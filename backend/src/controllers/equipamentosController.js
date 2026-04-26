@@ -1,0 +1,457 @@
+import { Equipamento } from '../models/Equipamento.js'
+import { PDFParse } from 'pdf-parse'
+import multer from 'multer'
+
+export const listarEquipamentos = async (req, res) => {
+  try {
+    const { tipo, ativo, search, ordenar } = req.query
+
+    const filtro = {}
+    if (tipo) filtro.tipo = tipo
+    if (ativo !== undefined) filtro.ativo = ativo === 'true'
+
+    let query = Equipamento.find(filtro)
+
+    if (search) {
+      query = query.where({
+        $or: [
+          { fabricante: new RegExp(search, 'i') },
+          { modelo: new RegExp(search, 'i') },
+        ],
+      })
+    }
+
+    if (ordenar === 'potencia') {
+      query = query.sort({ 'especificacoes.potencia': -1 })
+    } else if (ordenar === 'preco') {
+      query = query.sort({ preco_sugerido: 1 })
+    } else {
+      query = query.sort({ createdAt: -1 })
+    }
+
+    const equipamentos = await query.exec()
+
+    res.json({
+      total: equipamentos.length,
+      equipamentos,
+    })
+  } catch (err) {
+    console.error('❌ Erro ao listar equipamentos:', err)
+    res.status(500).json({ erro: err.message })
+  }
+}
+
+export const buscarEquipamento = async (req, res) => {
+  try {
+    const { id } = req.params
+    const equipamento = await Equipamento.findById(id)
+
+    if (!equipamento) {
+      return res.status(404).json({ erro: 'Equipamento não encontrado' })
+    }
+
+    res.json(equipamento)
+  } catch (err) {
+    console.error('❌ Erro ao buscar equipamento:', err)
+    res.status(500).json({ erro: err.message })
+  }
+}
+
+export const criarEquipamento = async (req, res) => {
+  try {
+    const {
+      tipo,
+      fabricante,
+      modelo,
+      especificacoes,
+      garantia_produto,
+      garantia_performance,
+      preco_sugerido,
+    } = req.body
+
+    if (!tipo || !fabricante || !modelo) {
+      return res.status(400).json({
+        erro: 'Campos obrigatórios: tipo, fabricante, modelo',
+      })
+    }
+
+    const novo = new Equipamento({
+      tipo,
+      fabricante,
+      modelo,
+      especificacoes: especificacoes || {},
+      garantia_produto,
+      garantia_performance,
+      preco_sugerido: preco_sugerido || 0,
+    })
+
+    await novo.save()
+    console.log('✓ Equipamento criado:', novo._id)
+    res.status(201).json(novo)
+  } catch (err) {
+    console.error('❌ Erro ao criar equipamento:', err)
+    res.status(500).json({ erro: err.message })
+  }
+}
+
+export const atualizarEquipamento = async (req, res) => {
+  try {
+    const { id } = req.params
+    const { fabricante, modelo, especificacoes, garantia_produto, garantia_performance, preco_sugerido, ativo } = req.body
+
+    const equipamento = await Equipamento.findByIdAndUpdate(
+      id,
+      {
+        fabricante,
+        modelo,
+        especificacoes,
+        garantia_produto,
+        garantia_performance,
+        preco_sugerido,
+        ativo,
+      },
+      { new: true }
+    )
+
+    if (!equipamento) {
+      return res.status(404).json({ erro: 'Equipamento não encontrado' })
+    }
+
+    console.log('✓ Equipamento atualizado:', id)
+    res.json(equipamento)
+  } catch (err) {
+    console.error('❌ Erro ao atualizar equipamento:', err)
+    res.status(500).json({ erro: err.message })
+  }
+}
+
+export const excluirEquipamento = async (req, res) => {
+  try {
+    const { id } = req.params
+    const equipamento = await Equipamento.findByIdAndDelete(id)
+
+    if (!equipamento) {
+      return res.status(404).json({ erro: 'Equipamento não encontrado' })
+    }
+
+    console.log('✓ Equipamento excluído:', id)
+    res.json({ mensagem: 'Equipamento excluído com sucesso' })
+  } catch (err) {
+    console.error('❌ Erro ao excluir equipamento:', err)
+    res.status(500).json({ erro: err.message })
+  }
+}
+
+export const extrairDatasheet = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ erro: 'Arquivo PDF não fornecido' })
+    }
+
+    const dados = await PDFParse(req.file.buffer)
+    const texto = dados.text.toUpperCase()
+    const linhas = texto.split('\n')
+
+    const especificacoes = {}
+
+    // ===== EXTRAIR MODELO =====
+    const regexModelos = [
+      /MODEL[\s:]*([A-Z0-9\-\/_]+)/,
+      /TYPE[\s:]*([A-Z0-9\-\/_]+)/,
+      /MODELO[\s:]*([A-Z0-9\-\/_]+)/,
+      /^([A-Z0-9\-\/_]+)[\s]*(SERIES|MODULE|INVERTER)/,
+      /PRODUCT[\s:]*([A-Z0-9\-\/_]+)/
+    ]
+
+    for (const regex of regexModelos) {
+      const match = texto.match(regex)
+      if (match && match[1]) {
+        especificacoes.modelo = match[1].trim()
+        break
+      }
+    }
+
+    // ===== EXTRAIR FABRICANTE =====
+    const regexFabricantes = [
+      /MANUFACTURER[\s:]*([A-Z\s]+?)(?:\n|$)/,
+      /FABRICANTE[\s:]*([A-Z\s]+?)(?:\n|$)/,
+      /^([A-Z][A-Z\s]+?)\s+(?:MODULE|INVERTER|SOLAR)/,
+    ]
+
+    for (const regex of regexFabricantes) {
+      const match = texto.match(regex)
+      if (match && match[1]) {
+        const fab = match[1].trim()
+        if (fab.length < 50) {
+          especificacoes.fabricante = fab
+          break
+        }
+      }
+    }
+
+    // ===== EXTRAIR POTÊNCIA (Wp) =====
+    const regexPotenciaWp = [
+      /(\d+)\s*W[\s\-]*(MODULE|RATED|PEAK|POWER)?(?!\w)/i,
+      /RATED[\s:]*POWER[\s:]*([0-9.]+)\s*W/i,
+      /POTÊNCIA[\s:]*([0-9.]+)\s*W/i,
+      /(\d+(?:\.?\d+)?)\s*WP/i,
+      /(\d+)\s*W\s*(?:@|AT)\s*STC/i,
+      /POWER[\s]*OUTPUT[\s:]*([0-9.]+)\s*W/i,
+      /MODULE[\s]*POWER[\s:]*([0-9.]+)\s*W/i,
+      /NOMINAL[\s]*POWER[\s:]*([0-9.]+)\s*W/i,
+    ]
+
+    for (const regex of regexPotenciaWp) {
+      const match = texto.match(regex)
+      if (match && match[1]) {
+        const pot = parseInt(match[1])
+        if (pot > 10 && pot < 10000) {
+          especificacoes.potencia_wp = pot
+          break
+        }
+      }
+    }
+
+    // ===== EXTRAIR POTÊNCIA (kW) =====
+    const regexPotenciaKW = [
+      /(\d+(?:\.\d+)?)\s*KW/i,
+      /RATED[\s:]*POWER[\s:]*([0-9.]+)\s*KW/i,
+      /POTÊNCIA[\s:]*NOMINAL[\s:]*([0-9.]+)\s*KW/i,
+      /(\d+(?:\.\d+)?)\s*K[\s]*W/i
+    ]
+
+    if (!especificacoes.potencia_wp) {
+      for (const regex of regexPotenciaKW) {
+        const match = texto.match(regex)
+        if (match && match[1]) {
+          especificacoes.potencia_kw = parseFloat(match[1])
+          break
+        }
+      }
+    }
+
+    // ===== EXTRAIR VOC =====
+    const regexVoc = [
+      /VOC[\s\(]*(?:VOLTAGE)?[\s\)]?[\s:]*([0-9.]+)\s*V/i,
+      /OPEN[\s-]*CIRCUIT[\s:]*([0-9.]+)\s*V/i,
+      /TENSÃO[\s]*ABERTA[\s:]*([0-9.]+)\s*V/i,
+      /V\s*OC[\s:]*([0-9.]+)/i
+    ]
+
+    for (const regex of regexVoc) {
+      const match = texto.match(regex)
+      if (match && match[1]) {
+        const voc = parseFloat(match[1])
+        if (voc > 5 && voc < 500) {
+          especificacoes.voc = voc
+          break
+        }
+      }
+    }
+
+    // ===== EXTRAIR VMP =====
+    const regexVmp = [
+      /VMP[\s\(]*(?:VOLTAGE)?[\s\)]?[\s:]*([0-9.]+)\s*V/i,
+      /MAX[\s-]*POWER[\s]*VOLT[\s:]*([0-9.]+)\s*V/i,
+      /VOLTAGE[\s]*AT[\s]*MAX[\s]*POWER[\s:]*([0-9.]+)\s*V/i,
+      /V\s*MP[\s:]*([0-9.]+)/i,
+      /TENSÃO[\s]*MAX[\s:]*([0-9.]+)\s*V/i,
+      /VOLTAGE[\s]*MAX[\s:]*([0-9.]+)\s*V/i,
+    ]
+
+    for (const regex of regexVmp) {
+      const match = texto.match(regex)
+      if (match && match[1]) {
+        const vmp = parseFloat(match[1])
+        if (vmp > 5 && vmp < 500) {
+          especificacoes.vmp = vmp
+          break
+        }
+      }
+    }
+
+    // ===== EXTRAIR ISC =====
+    const regexIsc = [
+      /ISC[\s\(]*(?:CURRENT)?[\s\)]?[\s:]*([0-9.]+)\s*A/i,
+      /SHORT[\s-]*CIRCUIT[\s]*CURRENT[\s:]*([0-9.]+)\s*A/i,
+      /CORRENTE[\s]*CURTO[\s:]*([0-9.]+)\s*A/i,
+      /I\s*SC[\s:]*([0-9.]+)/i,
+      /SHORT[\s-]*CIRCUIT[\s]*AMPERES[\s:]*([0-9.]+)/i,
+      /I\s*SC[\s]*\(AMPERES\)[\s:]*([0-9.]+)/i,
+    ]
+
+    for (const regex of regexIsc) {
+      const match = texto.match(regex)
+      if (match && match[1]) {
+        const isc = parseFloat(match[1])
+        if (isc > 0 && isc < 100) {
+          especificacoes.isc = isc
+          break
+        }
+      }
+    }
+
+    // ===== EXTRAIR IMP =====
+    const regexImp = [
+      /IMP[\s\(]*(?:CURRENT)?[\s\)]?[\s:]*([0-9.]+)\s*A/i,
+      /MAX[\s-]*POWER[\s]*CURRENT[\s:]*([0-9.]+)\s*A/i,
+      /CURRENT[\s]*AT[\s]*MAX[\s]*POWER[\s:]*([0-9.]+)\s*A/i,
+      /I\s*MP[\s:]*([0-9.]+)/i,
+      /MAX[\s-]*POWER[\s]*AMPERES[\s:]*([0-9.]+)/i,
+      /I\s*MP[\s]*\(AMPERES\)[\s:]*([0-9.]+)/i,
+    ]
+
+    for (const regex of regexImp) {
+      const match = texto.match(regex)
+      if (match && match[1]) {
+        const imp = parseFloat(match[1])
+        if (imp > 0 && imp < 100) {
+          especificacoes.imp = imp
+          break
+        }
+      }
+    }
+
+    // ===== EXTRAIR EFICIÊNCIA =====
+    const regexEficiencia = [
+      /EFFIC[A-Z]*[\s\(]*MODULE[\s\)]?[\s:]*([0-9.]+)\s*%/i,
+      /EFICIÊNCIA[\s:]*([0-9.]+)\s*%/i,
+      /EFFICIENCY[\s:]*([0-9.]+)\s*%/i,
+      /([0-9.]+)\s*%[\s]*EFFICIENCY/i
+    ]
+
+    for (const regex of regexEficiencia) {
+      const match = texto.match(regex)
+      if (match && match[1]) {
+        const eff = parseFloat(match[1])
+        if (eff > 5 && eff < 25) {
+          especificacoes.eficiencia = eff
+          break
+        }
+      }
+    }
+
+    // ===== EXTRAIR GARANTIA =====
+    const regexGarantia = [
+      /WARRANTY[\s:]*(\d+)\s*YEAR/i,
+      /GARANTIA[\s:]*(\d+)\s*ANO/i,
+      /PRODUCT[\s]*WARRANTY[\s:]*(\d+)/i,
+      /(\d+)\s*YEAR[\s]*(?:WARRANTY|GUARANTEE)/i
+    ]
+
+    for (const regex of regexGarantia) {
+      const match = texto.match(regex)
+      if (match && match[1]) {
+        const garantia = parseInt(match[1])
+        if (garantia > 0 && garantia < 100) {
+          especificacoes.garantia_anos = garantia
+          break
+        }
+      }
+    }
+
+    // ===== EXTRAIR TENSÃO ENTRADA (para inversores) =====
+    const regexTensaoEntrada = [
+      /INPUT[\s]*VOLTAGE[\s:]*([0-9.]+)\s*V/i,
+      /TENSÃO[\s]*ENTRADA[\s:]*([0-9.]+)\s*V/i,
+      /DC[\s]*VOLTAGE[\s:]*([0-9.]+)\s*V/i,
+      /([0-9.]+)[\s]*V[\s]*(?:DC|INPUT)/i
+    ]
+
+    for (const regex of regexTensaoEntrada) {
+      const match = texto.match(regex)
+      if (match && match[1]) {
+        const tensao = parseInt(match[1])
+        if (tensao > 50 && tensao < 1000) {
+          especificacoes.tensao_entrada = tensao
+          break
+        }
+      }
+    }
+
+    // ===== EXTRAIR MPPT =====
+    const regexMppt = [
+      /MPPT[\s:]*(\d+)/i,
+      /NUMBER[\s]*OF[\s]*MPPT[\s:]*(\d+)/i,
+      /(\d+)\s*MPPT/i
+    ]
+
+    for (const regex of regexMppt) {
+      const match = texto.match(regex)
+      if (match && match[1]) {
+        const mppt = parseInt(match[1])
+        if (mppt > 0 && mppt < 20) {
+          especificacoes.mppt = mppt
+          break
+        }
+      }
+    }
+
+    // ===== EXTRAIR CORRENTE MÁXIMA SAÍDA (para inversores) =====
+    const regexCorrenteMaxSaida = [
+      /MAX[\s]*OUTPUT[\s]*CURRENT[\s:]*([0-9.]+)\s*A/i,
+      /CORRENTE[\s]*MÁXIMA[\s]*SAÍDA[\s:]*([0-9.]+)\s*A/i,
+      /MAXIMUM[\s]*OUTPUT[\s]*CURRENT[\s:]*([0-9.]+)\s*A/i,
+      /OUTPUT[\s]*CURRENT[\s:]*([0-9.]+)\s*A(?:\s|$)/i,
+      /AC[\s]*OUTPUT[\s]*CURRENT[\s:]*([0-9.]+)\s*A/i,
+      /MAX[\s]*AC[\s]*CURRENT[\s:]*([0-9.]+)\s*A/i,
+    ]
+
+    for (const regex of regexCorrenteMaxSaida) {
+      const match = texto.match(regex)
+      if (match && match[1]) {
+        const corrente = parseFloat(match[1])
+        if (corrente > 0 && corrente < 1000) {
+          especificacoes.corrente_maxima_saida_ac = corrente
+          break
+        }
+      }
+    }
+
+    // ===== VALIDAÇÃO CRUZADA =====
+    let qualityScore = Object.keys(especificacoes).length * 10
+    const avisos = []
+
+    // Validar coerência entre Pmpp e Vmp×Imp
+    if (especificacoes.vmp && especificacoes.imp && especificacoes.potencia_wp) {
+      const pmppTeorico = especificacoes.vmp * especificacoes.imp
+      const diferenca = Math.abs(pmppTeorico - especificacoes.potencia_wp) / especificacoes.potencia_wp
+      if (diferenca > 0.15) {
+        avisos.push(`⚠️ Inconsistência: Pmpp calculado (${pmppTeorico.toFixed(0)}W) ≠ Pmpp informado (${especificacoes.potencia_wp}W)`)
+        qualityScore -= 10
+      }
+    }
+
+    // Validar se Voc > Vmp (deve ser sempre maior)
+    if (especificacoes.voc && especificacoes.vmp && especificacoes.voc <= especificacoes.vmp) {
+      avisos.push(`⚠️ Inconsistência: VOC (${especificacoes.voc}V) deve ser > VMP (${especificacoes.vmp}V)`)
+      qualityScore -= 10
+    }
+
+    // Validar se Isc > Imp (deve ser sempre maior)
+    if (especificacoes.isc && especificacoes.imp && especificacoes.isc <= especificacoes.imp) {
+      avisos.push(`⚠️ Inconsistência: ISC (${especificacoes.isc}A) deve ser > IMP (${especificacoes.imp}A)`)
+      qualityScore -= 10
+    }
+
+    qualityScore = Math.max(0, Math.min(100, qualityScore))
+
+    console.log('✓ Datasheet extraído com sucesso:', especificacoes)
+    if (avisos.length > 0) console.warn('Avisos de validação:', avisos)
+    console.log('📄 Texto extraído (primeiras 500 caracteres):', texto.substring(0, 500))
+
+    res.json({
+      ...especificacoes,
+      qualityScore,
+      avisos,
+      _debug: {
+        total_caracteres: texto.length,
+        campos_encontrados: Object.keys(especificacoes).length,
+        qualidade: qualityScore >= 70 ? 'Excelente' : qualityScore >= 50 ? 'Bom' : qualityScore >= 30 ? 'Aceitável' : 'Baixa'
+      }
+    })
+  } catch (err) {
+    console.error('❌ Erro ao extrair datasheet:', err)
+    res.status(500).json({ erro: 'Erro ao processar PDF: ' + err.message })
+  }
+}

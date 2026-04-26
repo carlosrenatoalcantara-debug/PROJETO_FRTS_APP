@@ -1,0 +1,46 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* CSS variables — sobrescritas pelo EmpresaContext */
+:root {
+  --cor-primaria:       #f97316;
+  --cor-primaria-hover: #ea580c;
+  --cor-primaria-light: #f9731620;
+  --cor-secundaria:     #0f172a;
+}
+
+@layer base {
+  * {
+    @apply box-border;
+  }
+  body {
+    @apply font-sans bg-slate-50 text-slate-900 antialiased;
+  }
+  ::-webkit-scrollbar {
+    @apply w-1.5;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-slate-300 rounded-full;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-slate-400;
+  }
+}
+
+@layer components {
+  .sidebar-link {
+    @apply flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-sidebar-text
+           transition-colors duration-150 cursor-pointer select-none;
+  }
+  .sidebar-link:hover {
+    @apply bg-sidebar-hover text-sidebar-textActive;
+  }
+  .sidebar-link.ativo {
+    background-color: var(--cor-primaria);
+    color: white;
+  }
+}

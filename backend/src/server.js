@@ -1,0 +1,131 @@
+import 'dotenv/config'
+import express from 'express'
+import cors from 'cors'
+import { conectarBD } from './config/database.js'
+import { inicializarCRM } from './seeds/crmInitialData.js'
+import { agendarTarefasManutencao } from './utils/arquivamentoPolicy.js'
+import rotasClientes   from './routes/clientes.js'
+import rotasProjetosFV from './routes/projetosFV.js'
+import rotasProjetosEV from './routes/projetosEV.js'
+import rotasDashboard  from './routes/dashboard.js'
+import rotasUpload      from './routes/upload.js'
+import rotasEquipamentos from './routes/equipamentos.js'
+import rotasEngenharia   from './routes/engenharia.js'
+import rotasString       from './routes/string.js'
+import rotasCarga        from './routes/carga.js'
+import rotasBESS         from './routes/bess.js'
+import rotasFinanceiro   from './routes/financeiro.js'
+import rotasOrcamento    from './routes/orcamento.js'
+import rotasCRM          from './routes/crm.js'
+import rotasProjeto      from './routes/projeto.js'
+import rotasRecomendacao from './routes/recomendacao.js'
+import rotasDecisao      from './routes/decisao.js'
+import rotasDatasheet    from './routes/datasheet.js'
+import rotasAdmin        from './routes/admin.js'
+import rotasUnifilar     from './routes/unifilar.js'
+import rotasIrradiancia  from './routes/irradiancia.js'
+import rotasHomologacao  from './routes/homologacao.js'
+import rotasProposta     from './routes/proposta.js'
+import rotasFatura       from './routes/fatura.js'
+import rotasBeneficiarias from './routes/beneficiarias.js'
+import errorHandler      from './middleware/errorHandler.js'
+
+const app  = express()
+const PORT = process.env.PORT || 5000
+
+// Configuração CORS com mais detalhes
+const corsOptions = {
+  origin: (origin, callback) => {
+    // Permite localhost em qualquer porta (3000, 3001, 3005, etc.)
+    // e também produção se necessário
+    const allowedOrigins = [
+      'http://localhost:3000',
+      'http://localhost:3001',
+      'http://localhost:3002',
+      'http://localhost:3003',
+      'http://localhost:3004',
+      'http://localhost:3005',
+      'http://localhost:3006',
+      'http://localhost:3007',
+      'http://localhost:3008',
+      'http://127.0.0.1:3000',
+    ]
+
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true)
+    } else {
+      console.warn(`⚠️ CORS: Origem rejeitada: ${origin}`)
+      callback(null, false)
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  optionsSuccessStatus: 200,
+}
+
+app.use(cors(corsOptions))
+app.use(express.json())
+
+// Log de requisições para debug
+app.use((req, res, next) => {
+  console.log(`📍 ${req.method} ${req.path}`)
+  next()
+})
+
+app.use('/api/health',       (_req, res) => res.json({ status: 'ok', servico: 'Forte Solar API' }))
+app.use('/api/dashboard',    rotasDashboard)
+app.use('/api/clientes',     rotasClientes)
+app.use('/api/projetos-fv',  rotasProjetosFV)
+app.use('/api/projetos-ev',  rotasProjetosEV)
+app.use('/api/upload',       rotasUpload)
+app.use('/api/equipamentos', rotasEquipamentos)
+app.use('/api/engenharia',   rotasEngenharia)
+app.use('/api/string',       rotasString)
+app.use('/api/carga',        rotasCarga)
+app.use('/api/bess',         rotasBESS)
+app.use('/api/financeiro',   rotasFinanceiro)
+app.use('/api/orcamento',    rotasOrcamento)
+app.use('/api/crm',          rotasCRM)
+app.use('/api/projeto',      rotasProjeto)
+app.use('/api/recomendacao', rotasRecomendacao)
+app.use('/api/decisao',      rotasDecisao)
+app.use('/api/datasheet',    rotasDatasheet)
+app.use('/api/admin',        rotasAdmin)
+app.use('/api/unifilar',     rotasUnifilar)
+app.use('/api/irradiancia',  rotasIrradiancia)
+app.use('/api/projetos-fv/:projetoId/homologacao', rotasHomologacao)
+app.use('/api/projetos-fv/:projetoId/proposta', rotasProposta)
+app.use('/api/projetos-fv/:id/beneficiarias', rotasBeneficiarias)
+app.use('/api/fatura', rotasFatura)
+
+app.use(errorHandler)
+
+// Iniciar servidor e conectar ao banco de dados
+async function iniciarServidor() {
+  const bdConectada = await conectarBD()
+
+  if (!bdConectada) {
+    console.warn('⚠️  Continuando sem MongoDB (dados em memória)')
+  } else {
+    // Inicializar dados padrão do CRM
+    try {
+      await inicializarCRM()
+    } catch (erro) {
+      console.error('❌ Erro ao inicializar CRM:', erro.message)
+    }
+
+    // Agendar tarefas de manutenção (arquivamento, limpeza, etc)
+    try {
+      agendarTarefasManutencao()
+    } catch (erro) {
+      console.error('❌ Erro ao agendar tarefas de manutenção:', erro.message)
+    }
+  }
+
+  app.listen(PORT, () => {
+    console.log(`✅ Forte Solar API rodando em http://localhost:${PORT}`)
+  })
+}
+
+iniciarServidor()
