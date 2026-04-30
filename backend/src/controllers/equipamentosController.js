@@ -148,8 +148,10 @@ export const extrairDatasheet = async (req, res) => {
       return res.status(400).json({ erro: 'Arquivo PDF não fornecido' })
     }
 
-    const dados = await PDFParse(req.file.buffer)
-    const texto = dados.text.toUpperCase()
+    const parser = new PDFParse({ data: req.file.buffer })
+    const textResult = await parser.getText()
+    const texto = textResult.text.toUpperCase()
+    await parser.destroy()
     const linhas = texto.split('\n')
 
     const especificacoes = {}
