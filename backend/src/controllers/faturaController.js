@@ -1,4 +1,4 @@
-import PDFParse from 'pdf-parse'
+import { PDFParse } from 'pdf-parse'
 
 export async function extrairDadosFatura(req, res) {
   try {
@@ -12,8 +12,10 @@ export async function extrairDadosFatura(req, res) {
     let texto = ''
     try {
       // Parse PDF
-      const data = await PDFParse(req.file.buffer)
-      texto = (data.text || '').toLowerCase()
+      const parser = new PDFParse({ data: req.file.buffer })
+      const textResult = await parser.getText()
+      texto = (textResult.text || '').toLowerCase()
+      await parser.destroy()
       console.log('📖 Texto extraído:', texto.substring(0, 100))
     } catch (pdfErr) {
       console.warn('⚠️ PDF parse falhou, retornando template vazio:', pdfErr.message)
