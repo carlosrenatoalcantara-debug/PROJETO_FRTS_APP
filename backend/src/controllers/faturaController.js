@@ -8,10 +8,27 @@ export async function extrairDadosFatura(req, res) {
     }
 
     console.log('📄 Processando PDF:', req.file.originalname, 'Size:', req.file.size)
-    // Parse PDF
-    const data = await PDFParse(req.file.buffer)
-    const texto = (data.text || '').toLowerCase()
-    console.log('📖 Texto extraído:', texto.substring(0, 100))
+
+    let texto = ''
+    try {
+      // Parse PDF
+      const data = await PDFParse(req.file.buffer)
+      texto = (data.text || '').toLowerCase()
+      console.log('📖 Texto extraído:', texto.substring(0, 100))
+    } catch (pdfErr) {
+      console.warn('⚠️ PDF parse falhou, retornando template vazio:', pdfErr.message)
+      // Se PDF falhar, retornar template para preenchimento manual
+      return res.json({
+        consumoKwh: null,
+        valorR: null,
+        distribuidora: null,
+        endereco: null,
+        historico12Meses: null,
+        mediaAnual: null,
+        periodoMeses: null,
+        aviso: 'Não foi possível extrair dados. Preencha manualmente.'
+      })
+    }
 
     // Extrair dados da fatura
     const historico = extrairHistorico12Meses(texto)
