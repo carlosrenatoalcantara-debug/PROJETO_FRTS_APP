@@ -1,4 +1,4 @@
-import { PDFParse } from 'pdf-parse'
+import PDFParse from 'pdf-parse'
 
 export async function extrairDadosFatura(req, res) {
   try {
