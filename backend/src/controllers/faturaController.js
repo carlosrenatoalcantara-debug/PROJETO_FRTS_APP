@@ -9,9 +9,8 @@ export async function extrairDadosFatura(req, res) {
 
     console.log('📄 Processando PDF:', req.file.originalname, 'Size:', req.file.size)
     // Parse PDF
-    const parser = new PDFParse({ data: req.file.buffer })
-    const result = await parser.getText()
-    const texto = result.text.toLowerCase()
+    const data = await PDFParse(req.file.buffer)
+    const texto = (data.text || '').toLowerCase()
     console.log('📖 Texto extraído:', texto.substring(0, 100))
 
     // Extrair dados da fatura
