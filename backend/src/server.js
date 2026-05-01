@@ -1,6 +1,7 @@
 import 'dotenv/config'
 import express from 'express'
 import cors from 'cors'
+import mongoose from './config/database.js'
 import { conectarBD } from './config/database.js'
 import { inicializarCRM } from './seeds/crmInitialData.js'
 import { agendarTarefasManutencao } from './utils/arquivamentoPolicy.js'
