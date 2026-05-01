@@ -28,3 +28,17 @@ Thumbs.db
 *.log
 npm-debug.log*
 yarn-debug.log*
+
+# 🔐 SEGURANÇA - Remover credenciais
+*.env
+*.env.local
+*.env.*.local
+.env.production
+MONGODB_CONFIG*.md
+MONGODB_*STATUS*.md
+DEPLOYMENT_MONGODB*.md
+CREDENTIALS*.md
+QUICK_START_MONGODB.md
+*MONGODB*.md
+setup-credentials.js
+CHANGELOG.md
