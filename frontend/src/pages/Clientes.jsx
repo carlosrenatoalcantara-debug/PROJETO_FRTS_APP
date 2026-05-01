@@ -23,14 +23,17 @@ function ModalNovoClienteComPDF({ onClose, onSalvo }) {
     endereco_completo: '',
     cep: '',
     cidade: '',
+    estado: '',
     tipo: 'Pessoa Física',
-    // Dados da conta
+    // Dados da conta de energia
     numero_cliente: '',
     codigo_instalacao: '',
     consumo_kwh: '',
     distribuidora: '',
-    tipo_ligacao: 'monofasico',
-    tensao: '220',
+    classificacao: '',
+    subgrupo: '',
+    tipo_ligacao: '',
+    valor_kwh: '',
   })
 
   function handleChange(e) {
@@ -56,12 +59,22 @@ function ModalNovoClienteComPDF({ onClose, onSalvo }) {
 
       const dados = await res.json()
 
-      // Auto-preencher com dados extraídos
+      // Auto-preencher com todos os dados extraídos
       setFormData(prev => ({
         ...prev,
-        consumo_kwh: dados.consumoKwh || prev.consumo_kwh,
-        distribuidora: dados.distribuidora || prev.distribuidora,
-        endereco_completo: dados.endereco || prev.endereco_completo,
+        nome:             dados.nome             || prev.nome,
+        cpf_cnpj:         dados.cpfCnpj          || prev.cpf_cnpj,
+        endereco_completo:dados.endereco          || prev.endereco_completo,
+        cep:              dados.cep               || prev.cep,
+        cidade:           dados.cidade            || prev.cidade,
+        estado:           dados.estado            || prev.estado,
+        numero_cliente:   dados.numeroCliente     || prev.numero_cliente,
+        consumo_kwh:      dados.consumoKwh        || prev.consumo_kwh,
+        distribuidora:    dados.distribuidora     || prev.distribuidora,
+        classificacao:    dados.classificacao     || prev.classificacao,
+        subgrupo:         dados.subgrupo          || prev.subgrupo,
+        tipo_ligacao:     dados.tipoLigacao       || prev.tipo_ligacao,
+        valor_kwh:        dados.valorKwh          || prev.valor_kwh,
       }))
 
       setStep('manual')
@@ -196,32 +209,55 @@ function ModalNovoClienteComPDF({ onClose, onSalvo }) {
                 </div>
               </div>
 
-              <h4 className="font-semibold text-slate-900 mt-4">Dados da conta</h4>
+              <h4 className="font-semibold text-slate-900 mt-4">Dados da conta de energia</h4>
               <div className="grid grid-cols-2 gap-2">
                 <Input
-                  rotulo="Número do cliente"
+                  rotulo="Número do cliente / UC"
                   value={formData.numero_cliente}
                   onChange={handleChange}
                   name="numero_cliente"
-                />
-                <Input
-                  rotulo="Código instalação"
-                  value={formData.codigo_instalacao}
-                  onChange={handleChange}
-                  name="codigo_instalacao"
-                />
-                <Input
-                  rotulo="Consumo (kWh)"
-                  type="number"
-                  value={formData.consumo_kwh}
-                  onChange={handleChange}
-                  name="consumo_kwh"
                 />
                 <Input
                   rotulo="Distribuidora"
                   value={formData.distribuidora}
                   onChange={handleChange}
                   name="distribuidora"
+                />
+                <Input
+                  rotulo="Classificação (B1, B2, B3...)"
+                  value={formData.classificacao}
+                  onChange={handleChange}
+                  name="classificacao"
+                  placeholder="Ex: B1"
+                />
+                <Input
+                  rotulo="Subgrupo"
+                  value={formData.subgrupo}
+                  onChange={handleChange}
+                  name="subgrupo"
+                  placeholder="Ex: Residencial"
+                />
+                <Input
+                  rotulo="Tipo de ligação"
+                  value={formData.tipo_ligacao}
+                  onChange={handleChange}
+                  name="tipo_ligacao"
+                  placeholder="Ex: Monofásico 220V"
+                />
+                <Input
+                  rotulo="Tarifa (R$/kWh)"
+                  type="number"
+                  value={formData.valor_kwh}
+                  onChange={handleChange}
+                  name="valor_kwh"
+                  placeholder="Ex: 0.85"
+                />
+                <Input
+                  rotulo="Consumo médio (kWh)"
+                  type="number"
+                  value={formData.consumo_kwh}
+                  onChange={handleChange}
+                  name="consumo_kwh"
                 />
               </div>
 
