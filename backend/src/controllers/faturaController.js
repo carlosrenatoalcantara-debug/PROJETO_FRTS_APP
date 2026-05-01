@@ -29,11 +29,12 @@ export async function extrairDadosFatura(req, res) {
 
     const historico = extrairHistorico12Meses(texto)
     const consumoUnico = extrairConsumo(texto)
-    const distribuidora = extrairDistribuidora(texto)
+    const distribuidora = extrairDistribuidora(textoOriginal)
 
     const dados = {
       nome: extrairNomeCliente(textoOriginal, distribuidora),
       cpfCnpj: extrairCpfCnpj(textoOriginal),
+      numeroCliente: extrairNumeroCliente(textoOriginal),
       consumoKwh: historico?.mediaAnual || consumoUnico,
       valorR: extrairValor(texto),
       distribuidora,
@@ -49,6 +50,7 @@ export async function extrairDadosFatura(req, res) {
     console.log('✓ Dados extraídos:', {
       nome: dados.nome,
       cpfCnpj: dados.cpfCnpj,
+      numeroCliente: dados.numeroCliente,
       distribuidora: dados.distribuidora,
       endereco: dados.endereco,
       cep: dados.cep,
@@ -230,23 +232,48 @@ function extrairValor(texto) {
   return null
 }
 
-function extrairDistribuidora(texto) {
-  const distribuidoras = [
-    { nome: 'Cosern', padrao: /cosern/ },
-    { nome: 'Enel', padrao: /enel(?!ergia)/ },
-    { nome: 'Cemig', padrao: /cemig/ },
-    { nome: 'Light', padrao: /light/ },
-    { nome: 'CPFL', padrao: /cpfl/ },
-    { nome: 'Eletropaulo', padrao: /eletropaulo/ },
-    { nome: 'EDP', padrao: /\bedp\b/ },
-    { nome: 'Neoenergia', padrao: /neoenergia/ },
-    { nome: 'Energisa', padrao: /energisa/ },
-    { nome: 'Coelba', padrao: /coelba/ },
-    { nome: 'Celpe', padrao: /celpe/ },
-    { nome: 'Equatorial', padrao: /equatorial/ },
-    { nome: 'CEEE', padrao: /ceee/ },
-    { nome: 'RGE', padrao: /\brge\b/ },
+function extrairNumeroCliente(texto) {
+  const padroes = [
+    // "Nº DO CLIENTE: 123456" ou "CÓDIGO DO CLIENTE: 123456"
+    /(?:N[ºO°]?\.?\s*DO\s*CLIENTE|C[ÓO]DIGO\s*(?:DO\s*)?CLIENTE|NÚMERO\s*DO\s*CLIENTE)[\s:]+(\d{5,15})/i,
+    // "CLIENTE Nº: 123456"
+    /CLIENTE\s*N[ºO°]?\.?[\s:]+(\d{5,15})/i,
+    // "UC: 123456" ou "UNIDADE CONSUMIDORA: 123456"
+    /(?:\bUC\b|UNIDADE\s*CONSUMIDORA)[\s:]+(\d{5,15})/i,
+    // "INSTALAÇÃO: 123456"
+    /INSTALA[ÇC][ÃA]O[\s:]+(\d{5,15})/i,
+    // "MATRÍCULA: 123456"
+    /MATR[ÍI]CULA[\s:]+(\d{5,15})/i,
   ]
+  for (const padrao of padroes) {
+    const match = texto.match(padrao)
+    if (match) return match[1].trim()
+  }
+  return null
+}
+
+function extrairDistribuidora(texto) {
+  // Ordem importa: verificar nomes específicos antes dos grupos
+  const distribuidoras = [
+    // Nomes específicos (antes dos grupos)
+    { nome: 'COSERN',     padrao: /cosern/i },
+    { nome: 'COELBA',     padrao: /coelba/i },
+    { nome: 'CELPE',      padrao: /celpe/i },
+    { nome: 'ELEKTRO',    padrao: /elektro/i },
+    { nome: 'ELETROPAULO',padrao: /eletropaulo/i },
+    { nome: 'CEMIG',      padrao: /cemig/i },
+    { nome: 'CPFL',       padrao: /cpfl/i },
+    { nome: 'LIGHT',      padrao: /light\s*s\.?a/i },
+    { nome: 'EDP',        padrao: /\bedp\b/i },
+    { nome: 'CEEE',       padrao: /ceee/i },
+    { nome: 'RGE',        padrao: /\brge\b/i },
+    { nome: 'EQUATORIAL', padrao: /equatorial/i },
+    { nome: 'ENERGISA',   padrao: /energisa/i },
+    // Grupos (verificar depois dos específicos)
+    { nome: 'ENEL',       padrao: /\benel\b/i },
+    { nome: 'NEOENERGIA', padrao: /neoenergia/i },
+  ]
+
   for (const { nome, padrao } of distribuidoras) {
     if (padrao.test(texto)) return nome
   }
