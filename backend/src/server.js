@@ -74,7 +74,16 @@ app.use((req, res, next) => {
   next()
 })
 
-app.use('/api/health',       (_req, res) => res.json({ status: 'ok', servico: 'Forte Solar API' }))
+app.use('/api/health', (_req, res) => {
+  const mongoState = ['desconectado', 'conectando', 'conectado', 'desconectando']
+  const estado = mongoose.connection.readyState
+  res.json({
+    status: 'ok',
+    servico: 'Forte Solar API',
+    mongodb: mongoState[estado] || 'desconhecido',
+    mongodbState: estado,
+  })
+})
 app.use('/api/dashboard',    rotasDashboard)
 app.use('/api/clientes',     rotasClientes)
 app.use('/api/projetos-fv',  rotasProjetosFV)
