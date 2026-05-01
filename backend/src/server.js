@@ -85,6 +85,22 @@ app.use('/api/health', (_req, res) => {
     mongodbState: estado,
   })
 })
+
+app.use('/api/reconectar', async (_req, res) => {
+  try {
+    if (mongoose.connection.readyState === 1) {
+      return res.json({ status: 'já conectado' })
+    }
+    await mongoose.disconnect()
+    await mongoose.connect(process.env.MONGODB_URI, {
+      serverSelectionTimeoutMS: 15000,
+      connectTimeoutMS: 15000,
+    })
+    res.json({ status: 'conectado com sucesso' })
+  } catch (erro) {
+    res.status(500).json({ status: 'falhou', erro: erro.message })
+  }
+})
 app.use('/api/dashboard',    rotasDashboard)
 app.use('/api/clientes',     rotasClientes)
 app.use('/api/projetos-fv',  rotasProjetosFV)
