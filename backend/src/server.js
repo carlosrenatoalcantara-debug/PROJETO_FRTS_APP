@@ -49,6 +49,7 @@ const corsOptions = {
       'http://localhost:3007',
       'http://localhost:3008',
       'http://127.0.0.1:3000',
+      'https://projeto-frts-app.vercel.app',
     ]
 
     if (!origin || allowedOrigins.includes(origin)) {
