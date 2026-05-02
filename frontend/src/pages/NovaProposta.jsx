@@ -19,8 +19,7 @@ const ETAPAS = [
   { num: 4, rotulo: 'Pré-Dimensionamento', icone: Wrench },
   { num: 5, rotulo: 'Irradiância', icone: Sun },
   { num: 6, rotulo: 'Dimensionamento', icone: Zap },
-  { num: 7, rotulo: 'Complementares', icone: Wrench },
-  { num: 8, rotulo: 'Orçamento', icone: DollarSign },
+  { num: 7, rotulo: 'Orçamento', icone: DollarSign },
 ]
 
 function Etapa1Localizacao({ dados, setDados, proxima }) {
@@ -542,12 +541,14 @@ function Etapa6Dimensionamento({ dados, setDados, proxima, anterior }) {
   useEffect(() => {
     if (dados.dimensionamento && dados.fase) {
       const svg = gerarUnifilarSVG({
-        nome: 'Proposta FV',
+        nome: dados.nomeProjeto || 'Proposta FV',
         nomeCliente: dados.clienteId || 'Cliente',
         dimensionamento: dados.dimensionamento,
         tipo_ligacao: dados.fase,
-        distribuidora: 'Distribuidora Local',
-        kitSelecionado: dados.kitSelecionado || null,
+        tensao: dados.tensao,
+        distribuidora: dados.distribuidora || 'Concessionária',
+        painel: dados.kitSelecionado?.painel || null,
+        inversor: dados.kitSelecionado?.inversor || null,
       })
       setUnifilarSVG(svg)
       setDados(prev => ({ ...prev, unifilar: svg }))
@@ -619,33 +620,7 @@ function Etapa6Dimensionamento({ dados, setDados, proxima, anterior }) {
   )
 }
 
-function Etapa7Complementares({ dados, setDados, proxima, anterior }) {
-  return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-lg font-semibold text-slate-900">Equipamentos Complementares</h2>
-        <p className="text-sm text-slate-500 mt-1">Proteções, cabos e estruturas</p>
-      </div>
-
-      <Card>
-        <CardBody className="space-y-4">
-          <Input rotulo="Estrutura (tipo)" placeholder="Alumínio / Aço" />
-          <Input rotulo="Metragem de cabos" type="number" placeholder="500" />
-          <Input rotulo="Disjuntor" placeholder="Especificação" />
-          <Input rotulo="DPS/Proteção" placeholder="Tipo" />
-          <Input rotulo="String Box" placeholder="Quantidade" />
-        </CardBody>
-      </Card>
-
-      <div className="flex justify-between gap-3">
-        <Button variante="secundario" onClick={anterior}>← Anterior</Button>
-        <Button onClick={proxima}>Próxima →</Button>
-      </div>
-    </div>
-  )
-}
-
-function Etapa8Orcamento({ dados, setDados, proxima, anterior }) {
+function Etapa7Orcamento({ dados, setDados, proxima, anterior }) {
   const [margemLucro, setMargemLucro] = useState(20)
   const [gerando, setGerando] = useState(false)
 
@@ -874,8 +849,7 @@ export default function NovaProposta() {
     4: Etapa4PreDimensionamento,
     5: Etapa5Irradiancia,
     6: Etapa6Dimensionamento,
-    7: Etapa7Complementares,
-    8: Etapa8Orcamento,
+    7: Etapa7Orcamento,
   }
 
   const Componente = componentes[etapa]
@@ -886,7 +860,7 @@ export default function NovaProposta() {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Nova Proposta</h1>
-          <p className="text-sm text-slate-500 mt-1">Etapa {etapa} de 8</p>
+          <p className="text-sm text-slate-500 mt-1">Etapa {etapa} de 7</p>
         </div>
         <button
           onClick={() => navigate('/clientes')}
@@ -903,7 +877,7 @@ export default function NovaProposta() {
       <Componente
         dados={dados}
         setDados={setDados}
-        proxima={() => setEtapa(Math.min(etapa + 1, 8))}
+        proxima={() => setEtapa(Math.min(etapa + 1, 7))}
         anterior={() => setEtapa(Math.max(etapa - 1, 1))}
       />
     </div>

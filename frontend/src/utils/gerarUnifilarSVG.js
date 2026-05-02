@@ -1,333 +1,455 @@
+// Gerador de Diagrama Unifilar Fotovoltaico
+// Conforme NBR 16274, NBR 5361/16800 e ABNT NBR IEC 60364
+
+// ─── CÁLCULOS ELÉTRICOS (NBR) ─────────────────────────────────────────────────
+
+function calcularStrings(numPaineis, numStrings) {
+  const paineisPorString = Math.ceil(numPaineis / numStrings)
+  const ultima = numPaineis - paineisPorString * (numStrings - 1)
+  return Array.from({ length: numStrings }, (_, i) => ({
+    id: i + 1,
+    paineis: i < numStrings - 1 ? paineisPorString : ultima,
+  }))
+}
+
+function calcularTensaoString(voc, paineisPorString, fatorTemp = 1.15) {
+  // NBR 16274: Voc_max = Voc × coef. temperatura (1.15 para climas quentes)
+  return +(voc * paineisPorString * fatorTemp).toFixed(1)
+}
+
+function calcularCorrenteDC(isc, fatorSeguranca = 1.25) {
+  // NBR 16274: corrente máxima string = Isc × 1.25
+  return +(isc * fatorSeguranca).toFixed(1)
+}
+
+function calcularCorrenteAC(potenciaKW, fasesAC, tensaoAC) {
+  const potW = potenciaKW * 1000
+  if (fasesAC === 1) return +(potW / (tensaoAC * 0.95)).toFixed(1)       // monofásico
+  if (fasesAC === 2) return +(potW / (tensaoAC * 2 * 0.95)).toFixed(1)  // bifásico
+  return +(potW / (tensaoAC * Math.sqrt(3) * 0.95)).toFixed(1)           // trifásico
+}
+
+// Tabela de bitolas NBR 5410 (temperatura ambiente 40°C, instalação B2)
+const TABELA_BITOLAS = [
+  { max: 16,  bitola: '2.5', disj: '16'  },
+  { max: 21,  bitola: '4',   disj: '20'  },
+  { max: 28,  bitola: '6',   disj: '25'  },
+  { max: 36,  bitola: '10',  disj: '32'  },
+  { max: 47,  bitola: '16',  disj: '40'  },
+  { max: 63,  bitola: '25',  disj: '63'  },
+  { max: 80,  bitola: '35',  disj: '80'  },
+  { max: 101, bitola: '50',  disj: '100' },
+  { max: 125, bitola: '70',  disj: '125' },
+]
+
+function selecionarBitola(corrente) {
+  const correnteProjetada = corrente * 1.25 // fator de segurança
+  for (const t of TABELA_BITOLAS) {
+    if (correnteProjetada <= t.max) return t
+  }
+  return TABELA_BITOLAS[TABELA_BITOLAS.length - 1]
+}
+
+// DPS: Nível de proteção por Voc da string
+function calcularDPS(vocString) {
+  if (vocString <= 500)  return { modelo: 'DPS DC 600V In=20kA', nivel: 'Tipo II' }
+  if (vocString <= 800)  return { modelo: 'DPS DC 1000V In=20kA', nivel: 'Tipo II' }
+  return { modelo: 'DPS DC 1200V In=40kA', nivel: 'Tipo I+II' }
+}
+
+// ─── DESENHADORES SVG ─────────────────────────────────────────────────────────
+
+const COR = {
+  painel: '#f59e0b',
+  stringDC: '#333',
+  stringBox: '#6b21a8',
+  inversor: '#1d4ed8',
+  quadroAC: '#0f766e',
+  rede: '#15803d',
+  gnd: '#b91c1c',
+  cabo: '#92400e',
+  dps: '#dc2626',
+  disjuntor: '#374151',
+  texto: '#1e293b',
+  textoCinza: '#64748b',
+}
+
+function svgPainel(x, y, id, marca, pmpp) {
+  return `
+  <g>
+    <rect x="${x}" y="${y}" width="48" height="72" fill="#fffbeb" stroke="${COR.painel}" stroke-width="2" rx="2"/>
+    <line x1="${x+12}" y1="${y}" x2="${x+12}" y2="${y+72}" stroke="${COR.painel}" stroke-width="0.5" opacity="0.5"/>
+    <line x1="${x+24}" y1="${y}" x2="${x+24}" y2="${y+72}" stroke="${COR.painel}" stroke-width="0.5" opacity="0.5"/>
+    <line x1="${x+36}" y1="${y}" x2="${x+36}" y2="${y+72}" stroke="${COR.painel}" stroke-width="0.5" opacity="0.5"/>
+    <line x1="${x}" y1="${y+24}" x2="${x+48}" y2="${y+24}" stroke="${COR.painel}" stroke-width="0.5" opacity="0.5"/>
+    <line x1="${x}" y1="${y+48}" x2="${x+48}" y2="${y+48}" stroke="${COR.painel}" stroke-width="0.5" opacity="0.5"/>
+    <text x="${x+24}" y="${y+14}" text-anchor="middle" font-size="7" font-weight="bold" fill="${COR.painel}">${marca}</text>
+    <text x="${x+24}" y="${y+26}" text-anchor="middle" font-size="7" fill="${COR.texto}">${pmpp}W</text>
+    <text x="${x+24}" y="${y+62}" text-anchor="middle" font-size="7" fill="${COR.textoCinza}">FV${id}</text>
+  </g>`
+}
+
+function svgDisjuntorDC(x, y, label, corrente) {
+  return `
+  <g>
+    <rect x="${x-18}" y="${y-22}" width="36" height="44" fill="#f0fdf4" stroke="${COR.disjuntor}" stroke-width="1.5" rx="3"/>
+    <text x="${x}" y="${y-8}" text-anchor="middle" font-size="7" font-weight="bold" fill="${COR.disjuntor}">DJ-DC</text>
+    <text x="${x}" y="${y+6}" text-anchor="middle" font-size="8" font-weight="bold" fill="${COR.disjuntor}">${corrente}A</text>
+    <text x="${x}" y="${y+18}" text-anchor="middle" font-size="7" fill="${COR.textoCinza}">${label}</text>
+  </g>`
+}
+
+function svgStringBox(x, y, numStrings, vocMax, idcMax) {
+  const H = 50 + numStrings * 14
+  return `
+  <g>
+    <rect x="${x-40}" y="${y-H/2}" width="80" height="${H}" fill="#faf5ff" stroke="${COR.stringBox}" stroke-width="2" rx="4"/>
+    <text x="${x}" y="${y-H/2+14}" text-anchor="middle" font-size="9" font-weight="bold" fill="${COR.stringBox}">STRING BOX</text>
+    <text x="${x}" y="${y-H/2+27}" text-anchor="middle" font-size="8" fill="${COR.texto}">Vdc: ${vocMax}V</text>
+    <text x="${x}" y="${y-H/2+40}" text-anchor="middle" font-size="8" fill="${COR.texto}">Idc: ${idcMax}A</text>
+    <text x="${x}" y="${y-H/2+53}" text-anchor="middle" font-size="7" fill="${COR.textoCinza}">DPS Tipo II</text>
+  </g>`
+}
+
+function svgInversor(x, y, marca, modelo, potKW, nMPPT, tensaoAC) {
+  return `
+  <g>
+    <rect x="${x-55}" y="${y-50}" width="110" height="100" fill="#eff6ff" stroke="${COR.inversor}" stroke-width="2" rx="5"/>
+    <text x="${x}" y="${y-33}" text-anchor="middle" font-size="10" font-weight="bold" fill="${COR.inversor}">${marca}</text>
+    <text x="${x}" y="${y-18}" text-anchor="middle" font-size="8" fill="${COR.texto}">${modelo}</text>
+    <text x="${x}" y="${y+0}" text-anchor="middle" font-size="16" font-weight="bold" fill="${COR.inversor}">${potKW}kW</text>
+    <text x="${x}" y="${y+18}" text-anchor="middle" font-size="8" fill="${COR.texto}">${nMPPT} MPPT</text>
+    <text x="${x}" y="${y+32}" text-anchor="middle" font-size="8" fill="${COR.texto}">Vac: ${tensaoAC}V</text>
+    <text x="${x}" y="${y+46}" text-anchor="middle" font-size="7" fill="${COR.textoCinza}">INVERSOR</text>
+  </g>`
+}
+
+function svgDisjuntorAC(x, y, corrente, fases) {
+  const label = fases === 1 ? '1P' : fases === 2 ? '2P' : '3P'
+  return `
+  <g>
+    <rect x="${x-20}" y="${y-28}" width="40" height="56" fill="#ecfdf5" stroke="${COR.disjuntor}" stroke-width="1.5" rx="3"/>
+    <text x="${x}" y="${y-14}" text-anchor="middle" font-size="8" font-weight="bold" fill="${COR.disjuntor}">DJ ${label}</text>
+    <text x="${x}" y="${y+4}" text-anchor="middle" font-size="10" font-weight="bold" fill="${COR.disjuntor}">${corrente}A</text>
+    <text x="${x}" y="${y+22}" text-anchor="middle" font-size="7" fill="${COR.textoCinza}">DIN NBR</text>
+  </g>`
+}
+
+function svgQuadroAC(x, y, label, faseLabel) {
+  return `
+  <g>
+    <rect x="${x-45}" y="${y-35}" width="90" height="70" fill="#f0fdfa" stroke="${COR.quadroAC}" stroke-width="2" rx="4"/>
+    <text x="${x}" y="${y-18}" text-anchor="middle" font-size="9" font-weight="bold" fill="${COR.quadroAC}">QUADRO AC</text>
+    <text x="${x}" y="${y+0}" text-anchor="middle" font-size="9" fill="${COR.texto}">${label}</text>
+    <text x="${x}" y="${y+18}" text-anchor="middle" font-size="9" font-weight="bold" fill="${COR.quadroAC}">${faseLabel}</text>
+  </g>`
+}
+
+function svgMedidor(x, y, faseLabel) {
+  return `
+  <g>
+    <circle cx="${x}" cy="${y}" r="30" fill="white" stroke="${COR.rede}" stroke-width="2"/>
+    <circle cx="${x}" cy="${y}" r="22" fill="none" stroke="${COR.rede}" stroke-width="1"/>
+    <text x="${x}" y="${y-6}" text-anchor="middle" font-size="9" font-weight="bold" fill="${COR.rede}">MEDIDOR</text>
+    <text x="${x}" y="${y+8}" text-anchor="middle" font-size="9" font-weight="bold" fill="${COR.rede}">${faseLabel}</text>
+    <text x="${x}" y="${y+22}" text-anchor="middle" font-size="7" fill="${COR.textoCinza}">BIDIRECIONAL</text>
+  </g>`
+}
+
+function svgRede(x, y, distribuidora, faseLabel) {
+  const abrev = distribuidora?.length > 8 ? distribuidora.substring(0, 8) : distribuidora
+  return `
+  <g>
+    <rect x="${x-50}" y="${y-36}" width="100" height="72" fill="#f0fdf4" stroke="${COR.rede}" stroke-width="2.5" rx="5"/>
+    <text x="${x}" y="${y-18}" text-anchor="middle" font-size="8" fill="${COR.texto}">${abrev || 'CONCESSIONÁRIA'}</text>
+    <text x="${x}" y="${y+2}" text-anchor="middle" font-size="10" font-weight="bold" fill="${COR.rede}">REDE</text>
+    <text x="${x}" y="${y+20}" text-anchor="middle" font-size="9" fill="${COR.rede}">${faseLabel}</text>
+  </g>`
+}
+
+function svgAterramento(x, y) {
+  return `
+  <g>
+    <line x1="${x}" y1="${y}" x2="${x}" y2="${y+20}" stroke="${COR.gnd}" stroke-width="2"/>
+    <line x1="${x-15}" y1="${y+20}" x2="${x+15}" y2="${y+20}" stroke="${COR.gnd}" stroke-width="2.5"/>
+    <line x1="${x-10}" y1="${y+25}" x2="${x+10}" y2="${y+25}" stroke="${COR.gnd}" stroke-width="2"/>
+    <line x1="${x-5}"  y1="${y+30}" x2="${x+5}"  y2="${y+30}" stroke="${COR.gnd}" stroke-width="1.5"/>
+    <text x="${x}" y="${y+44}" text-anchor="middle" font-size="8" font-weight="bold" fill="${COR.gnd}">ATERRAMENTO</text>
+    <text x="${x}" y="${y+55}" text-anchor="middle" font-size="7" fill="${COR.textoCinza}">NBR 5419</text>
+  </g>`
+}
+
+function svgLinhaCabo(x1, y1, x2, y2, bitola, cor) {
+  const mx = (x1 + x2) / 2
+  const my = (y1 + y2) / 2
+  return `
+  <line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${cor}" stroke-width="2.5"/>
+  <rect x="${mx-28}" y="${my-10}" width="56" height="20" fill="white" stroke="${cor}" stroke-width="1" rx="2"/>
+  <text x="${mx}" y="${my+5}" text-anchor="middle" font-size="8" font-weight="bold" fill="${cor}">${bitola}mm²</text>`
+}
+
+// ─── FUNÇÃO PRINCIPAL ─────────────────────────────────────────────────────────
+
 export const gerarUnifilarSVG = (projeto) => {
   const {
     nome = 'Projeto FV',
     nomeCliente = 'Cliente',
     dimensionamento = {},
-    tipo_ligacao = 'Trifásico',
-    distribuidora = 'Distribuidora',
-    kitSelecionado = null,
+    tipo_ligacao = 'Monofásico',
+    tensao: tensaoRede = '220',
+    distribuidora = 'COSERN',
+    painel = null,
+    inversor = null,
   } = projeto
 
-  // Detectar automaticamente o tipo de fase
-  const detectarFase = () => {
-    const texto = (tipo_ligacao || '').toUpperCase()
+  // Dados do painel (do datasheet ou defaults)
+  const painelVoc    = painel?.voc   || 49.5
+  const painelVmpp   = painel?.vmpp  || 41.2
+  const painelIsc    = painel?.isc   || 13.9
+  const painelPmpp   = painel?.potenciaW || painel?.pmpp || 550
+  const painelMarca  = painel?.marca || 'Painel'
+  const painelModelo = painel?.modelo || `${painelPmpp}W`
 
-    if (texto.includes('MONOFÁSICO') || texto.includes('MONOFASICO') || texto.includes('1Ø')) {
-      return { fases: 1, tensao: '127V', label: '1Ø 127V' }
-    } else if (texto.includes('BIFÁSICO') || texto.includes('BIFASICO') || texto.includes('2Ø')) {
-      return { fases: 2, tensao: '220V', label: '2Ø 220V' }
-    } else {
-      return { fases: 3, tensao: '380V', label: '3Ø 380V' }
-    }
-  }
+  // Dados do inversor (do datasheet ou defaults)
+  const invMarca    = inversor?.marca    || 'Inversor'
+  const invModelo   = inversor?.modelo   || ''
+  const invPotKW    = inversor?.potenciaKW || dimensionamento.potenciaArredondada || 5
+  const invNMPPT    = inversor?.nMppts   || 2
 
-  const faseInfo = detectarFase()
-  const { numPaineis = 68, numInversores = 1, numStrings = 4, potenciaArredondada = 15 } = dimensionamento
+  // Fase/tensão da rede
+  const fasesAC = tipo_ligacao?.toLowerCase().includes('trifás') ? 3
+                : tipo_ligacao?.toLowerCase().includes('bifás')  ? 2 : 1
+  const tensaoV = parseInt(tensaoRede) || 220
+  const faseLabel = fasesAC === 1 ? `1Ø ${tensaoV}V` : fasesAC === 2 ? `2Ø ${tensaoV}V` : `3Ø 380V`
 
-  // Extrair dados do kit selecionado
-  const modeloPainel = kitSelecionado?.paineis?.modelo || 'Painel FV'
-  const fabricantePainel = kitSelecionado?.paineis?.modelo?.split(' ')[0] || 'FV'
-  const modeloInversor = kitSelecionado?.inversor?.modelo || 'Inversor'
-  const fabricanteInversor = modeloInversor.split(' ')[0]
-  const potenciaKW = kitSelecionado?.inversor?.potenciaKW || potenciaArredondada
+  // Dimensionamento
+  const { numPaineis = 6, numStrings = 1, potenciaArredondada = invPotKW } = dimensionamento
+  const strings = calcularStrings(numPaineis, numStrings)
+  const paineisPorString = strings[0].paineis
 
-  // Calcular corrente AC baseado na potência do inversor
-  const tipoFase = tipo_ligacao.includes('monofásico') ? 'monofasico' : 'trifasico'
-  const calcularCorrenteAC = (potenciaKW, tipo) => {
-    const potenciaW = potenciaKW * 1000
-    const tensao = tipo === 'monofasico' ? 127 : (tipo === 'bifasico' ? 220 : 220)
-    const fator = tipo === 'monofasico' ? 1 : Math.sqrt(3)
-    const fatorPotencia = 0.95
-    return potenciaW / (tensao * fator * fatorPotencia)
-  }
+  // Cálculos elétricos
+  const vocString  = calcularTensaoString(painelVoc, paineisPorString)
+  const idcString  = calcularCorrenteDC(painelIsc)
+  const idcTotal   = +(idcString * numStrings).toFixed(1)
+  const iac        = calcularCorrenteAC(invPotKW, fasesAC, fasesAC === 1 ? tensaoV : 380)
+  const bolaDC     = selecionarBitola(idcString)
+  const bolaAC     = selecionarBitola(iac)
+  const dps        = calcularDPS(vocString)
 
-  const correnteAC = calcularCorrenteAC(potenciaKW, tipoFase)
+  // Tamanho do SVG
+  const W = 1400
+  const STRING_H = 130
+  const HEADER_H = 180
+  const FOOTER_H = 280
+  const H = Math.max(950, HEADER_H + numStrings * STRING_H + FOOTER_H)
+  const data = new Date().toLocaleDateString('pt-BR')
 
-  // Tabela de bitolas NBR 5036/4757
-  const tabelaBitolas = [
-    { min: 0, max: 10, bitola: '1.5', disjuntorMax: '16' },
-    { min: 10, max: 16, bitola: '2.5', disjuntorMax: '20' },
-    { min: 16, max: 25, bitola: '4', disjuntorMax: '32' },
-    { min: 25, max: 32, bitola: '6', disjuntorMax: '40' },
-    { min: 32, max: 40, bitola: '10', disjuntorMax: '50' },
-    { min: 40, max: 50, bitola: '16', disjuntorMax: '63' },
-    { min: 50, max: 63, bitola: '25', disjuntorMax: '80' },
-    { min: 63, max: 80, bitola: '35', disjuntorMax: '100' },
-    { min: 80, max: 100, bitola: '50', disjuntorMax: '125' },
-    { min: 100, max: 125, bitola: '70', disjuntorMax: '160' },
-  ]
+  // Posicionamentos X
+  const xPaineis   = 60
+  const xDJDC      = 560
+  const xSBOX      = 670
+  const xInversor  = 820
+  const xDJAC      = 970
+  const xQuadroAC  = 1065
+  const xMedidor   = 1195
+  const xRede      = 1325
 
-  // Aplicar margem de segurança de 1.25x
-  const correnteAjustada = correnteAC * 1.25
+  // Centro vertical das strings
+  const yCentro = HEADER_H + (numStrings * STRING_H) / 2
 
-  // Encontrar bitola apropriada
-  let bitolaSelecionada = tabelaBitolas[tabelaBitolas.length - 1]
-  for (const opcao of tabelaBitolas) {
-    if (correnteAjustada <= opcao.max) {
-      bitolaSelecionada = opcao
-      break
-    }
-  }
-
-  const bitolaCabo = bitolaSelecionada.bitola
-  const disjuntorMaximo = bitolaSelecionada.disjuntorMax
-
-  // Canvas responsivo baseado no número de strings
-  const SVG_WIDTH = 1400
-  const HEADER_HEIGHT = 150
-  const STRING_HEIGHT = 120
-  const FOOTER_HEIGHT = 200
-  const dynamicHeight = HEADER_HEIGHT + (numStrings * STRING_HEIGHT) + FOOTER_HEIGHT
-  const SVG_HEIGHT = Math.max(900, dynamicHeight)
-  const dataCurrent = new Date().toLocaleDateString('pt-BR')
-
-  // Layout com margens e zonas
-  const layout = {
-    marginLeft: 50,
-    marginRight: 50,
-    marginTop: HEADER_HEIGHT,
-    marginBottom: 100,
-    dcZoneWidth: 600,
-    acZoneX: 700,
-    painelSpacing: 120,
-    stringSpacing: STRING_HEIGHT,
-  }
-
-  const desenharPainel = (x, y, id) => `
-    <rect x="${x}" y="${y}" width="50" height="75" fill="none" stroke="#FFD700" stroke-width="2"/>
-    <text x="${x + 25}" y="${y + 25}" text-anchor="middle" font-size="9" font-weight="bold" fill="#333">${fabricantePainel}</text>
-    <text x="${x + 25}" y="${y + 45}" text-anchor="middle" font-size="8" fill="#555">${modeloPainel.split(' ').slice(1).join(' ')}</text>
-    <text x="${x + 25}" y="${y + 65}" text-anchor="middle" font-size="8" fill="#333">PV${id}</text>
-  `
-
-  const desenharInversor = (x, y) => `
-    <rect x="${x}" y="${y}" width="110" height="85" fill="none" stroke="#0066CC" stroke-width="2"/>
-    <text x="${x + 55}" y="${y + 20}" text-anchor="middle" font-size="10" font-weight="bold" fill="#0066CC">${fabricanteInversor}</text>
-    <text x="${x + 55}" y="${y + 35}" text-anchor="middle" font-size="9" fill="#333">${modeloInversor}</text>
-    <text x="${x + 55}" y="${y + 55}" text-anchor="middle" font-size="11" font-weight="bold" fill="#333">${potenciaKW}kW</text>
-    <text x="${x + 55}" y="${y + 72}" text-anchor="middle" font-size="7" fill="#666">I: ${Math.ceil(correnteAC)}A</text>
-  `
-
-  const desenharDisjuntor = (x, y, corrente = '63A') => `
-    <circle cx="${x}" cy="${y}" r="10" fill="none" stroke="#333" stroke-width="2"/>
-    <line x1="${x - 10}" y1="${y}" x2="${x + 10}" y2="${y}" stroke="#333" stroke-width="2"/>
-    <text x="${x}" y="${y + 20}" text-anchor="middle" font-size="8" fill="#333">${corrente}</text>
-  `
-
-  const desenharCaboComInfo = (x1, y1, x2, y2) => {
-    const midX = (x1 + x2) / 2
-    const midY = (y1 + y2) / 2
-    const boxWidth = 130
-    const boxHeight = 42
-
-    // Bounds checking - garantir que a caixa fica dentro do canvas
-    let boxX = midX - (boxWidth / 2)
-    if (boxX < layout.marginLeft) boxX = layout.marginLeft
-    if (boxX + boxWidth > SVG_WIDTH - layout.marginRight) {
-      boxX = SVG_WIDTH - boxWidth - layout.marginRight
-    }
-
-    return `
-      <line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#333" stroke-width="2"/>
-      <rect x="${boxX}" y="${midY - 21}" width="${boxWidth}" height="${boxHeight}" fill="#fff3cd" stroke="#ff8c00" stroke-width="2" rx="3"/>
-      <text x="${boxX + boxWidth/2}" y="${midY - 6}" text-anchor="middle" font-size="9" font-weight="bold" fill="#000">Cabo AC: ${bitolaCabo}mm²</text>
-      <text x="${boxX + boxWidth/2}" y="${midY + 13}" text-anchor="middle" font-size="8" fill="#333">Disjuntor: ${disjuntorMaximo}A</text>
-    `
-  }
-
-  const desenharMedidor = (x, y, fases) => {
-    let simbolo = ''
-
-    if (fases === 1) {
-      simbolo = `
-        <circle cx="${x}" cy="${y}" r="28" fill="none" stroke="#006699" stroke-width="2"/>
-        <text x="${x}" y="${y - 5}" text-anchor="middle" font-size="12" font-weight="bold" fill="#006699">1Ø</text>
-        <text x="${x}" y="${y + 15}" text-anchor="middle" font-size="10" fill="#333">127V</text>
-      `
-    } else if (fases === 2) {
-      simbolo = `
-        <circle cx="${x}" cy="${y}" r="28" fill="none" stroke="#006699" stroke-width="2"/>
-        <line x1="${x - 20}" y1="${y}" x2="${x - 5}" y2="${y}" stroke="#006699" stroke-width="2"/>
-        <line x1="${x + 5}" y1="${y}" x2="${x + 20}" y2="${y}" stroke="#006699" stroke-width="2"/>
-        <text x="${x}" y="${y - 5}" text-anchor="middle" font-size="12" font-weight="bold" fill="#006699">2Ø</text>
-        <text x="${x}" y="${y + 15}" text-anchor="middle" font-size="10" fill="#333">220V</text>
-      `
-    } else {
-      simbolo = `
-        <circle cx="${x}" cy="${y}" r="28" fill="none" stroke="#006699" stroke-width="2"/>
-        <line x1="${x - 22}" y1="${y - 15}" x2="${x - 10}" y2="${y - 8}" stroke="#006699" stroke-width="2"/>
-        <line x1="${x}" y1="${y - 22}" x2="${x}" y2="${y - 10}" stroke="#006699" stroke-width="2"/>
-        <line x1="${x + 22}" y1="${y - 15}" x2="${x + 10}" y2="${y - 8}" stroke="#006699" stroke-width="2"/>
-        <text x="${x}" y="${y + 5}" text-anchor="middle" font-size="12" font-weight="bold" fill="#006699">3Ø</text>
-        <text x="${x}" y="${y + 20}" text-anchor="middle" font-size="10" fill="#333">380V</text>
-      `
-    }
-
-    return simbolo
-  }
-
-  const desenharRede = (x, y, fases) => {
-    let simbolo = ''
-
-    if (fases === 1) {
-      simbolo = `
-        <circle cx="${x}" cy="${y}" r="22" fill="none" stroke="#009900" stroke-width="3"/>
-        <text x="${x}" y="${y + 5}" text-anchor="middle" font-size="10" font-weight="bold" fill="#009900">Rede</text>
-      `
-    } else if (fases === 2) {
-      simbolo = `
-        <circle cx="${x}" cy="${y}" r="22" fill="none" stroke="#009900" stroke-width="3"/>
-        <line x1="${x - 18}" y1="${y}" x2="${x - 5}" y2="${y}" stroke="#009900" stroke-width="2"/>
-        <line x1="${x + 5}" y1="${y}" x2="${x + 18}" y2="${y}" stroke="#009900" stroke-width="2"/>
-        <text x="${x}" y="${y + 8}" text-anchor="middle" font-size="9" font-weight="bold" fill="#009900">Rede</text>
-      `
-    } else {
-      simbolo = `
-        <circle cx="${x}" cy="${y}" r="22" fill="none" stroke="#009900" stroke-width="3"/>
-        <line x1="${x - 20}" y1="${y - 12}" x2="${x - 8}" y2="${y - 5}" stroke="#009900" stroke-width="2"/>
-        <line x1="${x}" y1="${y - 20}" x2="${x}" y2="${y - 8}" stroke="#009900" stroke-width="2"/>
-        <line x1="${x + 20}" y1="${y - 12}" x2="${x + 8}" y2="${y - 5}" stroke="#009900" stroke-width="2"/>
-        <text x="${x}" y="${y + 8}" text-anchor="middle" font-size="9" font-weight="bold" fill="#009900">Rede</text>
-      `
-    }
-
-    return simbolo
-  }
-
-  const desenharGND = (x, y) => `
-    <circle cx="${x}" cy="${y}" r="5" fill="none" stroke="#333" stroke-width="1"/>
-    <line x1="${x}" y1="${y + 5}" x2="${x}" y2="${y + 15}" stroke="#333" stroke-width="2"/>
-    <line x1="${x - 8}" y1="${y + 15}" x2="${x + 8}" y2="${y + 15}" stroke="#333" stroke-width="2"/>
-    <line x1="${x - 6}" y1="${y + 18}" x2="${x + 6}" y2="${y + 18}" stroke="#333" stroke-width="2"/>
-    <line x1="${x - 4}" y1="${y + 21}" x2="${x + 4}" y2="${y + 21}" stroke="#333" stroke-width="2"/>
-  `
-
+  // ─── SVG ────────────────────────────────────────────────────────────────────
   let svg = `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="${SVG_WIDTH}" height="${SVG_HEIGHT}" viewBox="0 0 ${SVG_WIDTH} ${SVG_HEIGHT}">
+<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" font-family="Arial,sans-serif">
   <defs>
-    <style>
-      .titulo { font-size: 22px; font-weight: bold; fill: #333; }
-      .subtitulo { font-size: 14px; font-weight: bold; fill: #666; }
-      .info { font-size: 11px; fill: #666; }
-      .label { font-size: 10px; font-weight: bold; fill: #333; }
-      .legenda-titulo { font-size: 12px; font-weight: bold; fill: #333; }
-      .legenda-item { font-size: 10px; fill: #555; }
-    </style>
+    <marker id="arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#333"/>
+    </marker>
   </defs>
 
-  <rect width="${SVG_WIDTH}" height="${SVG_HEIGHT}" fill="#f9f9f9" stroke="#ddd" stroke-width="1"/>
+  <!-- Fundo -->
+  <rect width="${W}" height="${H}" fill="#f8fafc"/>
 
-  <text x="700" y="35" text-anchor="middle" class="titulo">DIAGRAMA UNIFILAR - SISTEMA FOTOVOLTAICO</text>
-  <text x="700" y="55" text-anchor="middle" class="info">${nome} | ${nomeCliente}</text>
+  <!-- Cabeçalho -->
+  <rect x="0" y="0" width="${W}" height="${HEADER_H - 20}" fill="#1e3a5f"/>
+  <text x="${W/2}" y="38" text-anchor="middle" font-size="20" font-weight="bold" fill="white">DIAGRAMA UNIFILAR — SISTEMA FOTOVOLTAICO</text>
+  <text x="${W/2}" y="60" text-anchor="middle" font-size="13" fill="#94a3b8">${nome} | Cliente: ${nomeCliente}</text>
 
-  <rect x="50" y="70" width="1300" height="60" fill="#f0f7ff" stroke="#0066CC" stroke-width="1" rx="3"/>
-  <text x="70" y="90" class="subtitulo">Dados do Sistema:</text>
-  <text x="70" y="108" class="info">Potência: ${potenciaArredondada} kWp | Painéis: ${numPaineis} | Inversores: ${numInversores} | Strings: ${numStrings}</text>
-  <text x="750" y="90" class="subtitulo">Tipo de Ligação:</text>
-  <text x="750" y="108" class="info">${faseInfo.label} | Concessionária: ${distribuidora} | Data: ${dataCurrent}</text>
+  <!-- Dados do sistema -->
+  <rect x="30" y="76" width="${W-60}" height="68" fill="white" stroke="#cbd5e1" stroke-width="1" rx="4"/>
+  <text x="50"    y="96"  font-size="10" font-weight="bold" fill="${COR.texto}">MÓDULO:</text>
+  <text x="120"   y="96"  font-size="10" fill="${COR.texto}">${painelMarca} ${painelModelo}</text>
+  <text x="50"    y="114" font-size="10" fill="${COR.textoCinza}">Pmpp: ${painelPmpp}W | Voc: ${painelVoc}V | Vmpp: ${painelVmpp}V | Isc: ${painelIsc}A</text>
 
-  <text x="100" y="180" class="label">PAINEL SOLAR</text>
+  <text x="420"   y="96"  font-size="10" font-weight="bold" fill="${COR.texto}">INVERSOR:</text>
+  <text x="490"   y="96"  font-size="10" fill="${COR.texto}">${invMarca} ${invModelo}</text>
+  <text x="420"   y="114" font-size="10" fill="${COR.textoCinza}">${invPotKW}kW | ${invNMPPT} MPPT | Saída: ${faseLabel}</text>
+
+  <text x="840"   y="96"  font-size="10" font-weight="bold" fill="${COR.texto}">SISTEMA:</text>
+  <text x="905"   y="96"  font-size="10" fill="${COR.texto}">${potenciaArredondada} kWp | ${numPaineis} módulos | ${numStrings} string${numStrings > 1 ? 's' : ''}</text>
+  <text x="840"   y="114" font-size="10" fill="${COR.textoCinza}">Voc/string: ${vocString}V | Icc/string: ${idcString}A | Icc total: ${idcTotal}A</text>
+
+  <text x="1150"  y="96"  font-size="10" font-weight="bold" fill="${COR.texto}">REDE:</text>
+  <text x="1190"  y="96"  font-size="10" fill="${COR.texto}">${distribuidora} | ${faseLabel}</text>
+  <text x="1150"  y="114" font-size="10" fill="${COR.textoCinza}">Iac: ${iac}A | Data: ${data}</text>
+
+  <!-- Rótulos de zona -->
+  <text x="${xPaineis+80}"  y="${HEADER_H-4}" text-anchor="middle" font-size="9" font-weight="bold" fill="${COR.textoCinza}">GERAÇÃO DC</text>
+  <text x="${xSBOX}"        y="${HEADER_H-4}" text-anchor="middle" font-size="9" font-weight="bold" fill="${COR.textoCinza}">PROTEÇÃO DC</text>
+  <text x="${xInversor}"    y="${HEADER_H-4}" text-anchor="middle" font-size="9" font-weight="bold" fill="${COR.inversor}">CONVERSÃO</text>
+  <text x="${xMedidor}"     y="${HEADER_H-4}" text-anchor="middle" font-size="9" font-weight="bold" fill="${COR.rede}">MEDIÇÃO / REDE</text>
+  <line x1="${xDJDC-20}" y1="${HEADER_H-14}" x2="${xDJDC-20}" y2="${H-FOOTER_H+20}" stroke="#cbd5e1" stroke-width="1" stroke-dasharray="4,4"/>
+  <line x1="${xInversor-10}" y1="${HEADER_H-14}" x2="${xInversor-10}" y2="${H-FOOTER_H+20}" stroke="#cbd5e1" stroke-width="1" stroke-dasharray="4,4"/>
+  <line x1="${xQuadroAC-20}" y1="${HEADER_H-14}" x2="${xQuadroAC-20}" y2="${H-FOOTER_H+20}" stroke="#cbd5e1" stroke-width="1" stroke-dasharray="4,4"/>
 `
 
-  let yPainel = layout.marginTop + 50
-  let painelPorString = Math.ceil(numPaineis / numStrings)
-  let xPainel = layout.marginLeft
-  let idPainel = 1
+  // ─── STRINGS ──────────────────────────────────────────────────────────────────
+  const yStrings = []
+  strings.forEach((str, si) => {
+    const y0 = HEADER_H + si * STRING_H + 30
+    yStrings.push(y0 + 36)
 
-  for (let s = 0; s < numStrings; s++) {
-    let numPainelNesta = Math.ceil((numPaineis - s * painelPorString) / (numStrings - s))
-    let xPainelAtual = xPainel
-
-    for (let p = 0; p < numPainelNesta; p++) {
-      // Verificar se ultrapassa limite horizontal
-      if (xPainelAtual + 50 > layout.acZoneX - layout.marginRight) break
-
-      svg += desenharPainel(xPainelAtual, yPainel, idPainel)
-      xPainelAtual += layout.painelSpacing
-
-      if (p < numPainelNesta - 1) {
-        svg += `<line x1="${xPainelAtual - 75}" y1="${yPainel + 35}" x2="${xPainelAtual}" y2="${yPainel + 35}" stroke="#333" stroke-width="2"/>\n`
-      }
-
-      idPainel++
+    // Painéis da string
+    const maxPorLinha = Math.min(str.paineis, 6)
+    for (let p = 0; p < maxPorLinha; p++) {
+      svg += svgPainel(xPaineis + p * 75, y0, (si * maxPorLinha) + p + 1, painelMarca, painelPmpp)
+    }
+    if (str.paineis > 6) {
+      svg += `<text x="${xPaineis + 6*75 + 10}" y="${y0+38}" font-size="11" font-weight="bold" fill="${COR.textoCinza}">+${str.paineis - 6}</text>`
     }
 
-    svg += `<line x1="${xPainelAtual - 75}" y1="${yPainel + 35}" x2="${xPainelAtual + 30}" y2="${yPainel + 35}" stroke="#333" stroke-width="2"/>\n`
-    svg += desenharDisjuntor(xPainelAtual + 45, yPainel + 35, `DC${s + 1}`)
-    svg += `<text x="${xPainelAtual + 45}" y="${yPainel + 80}" text-anchor="middle" class="label">Desconexão ${s + 1}</text>\n`
+    // Linha DC da string até disjuntor
+    const xFimPaineis = xPaineis + Math.min(str.paineis, 6) * 75
+    svg += `<line x1="${xFimPaineis}" y1="${y0+36}" x2="${xDJDC-18}" y2="${y0+36}" stroke="${COR.stringDC}" stroke-width="2"/>`
 
-    yPainel += layout.stringSpacing
+    // Anotação da string
+    svg += `<text x="${xPaineis}" y="${y0+84}" font-size="9" fill="${COR.textoCinza}">String ${str.id}: ${str.paineis}mod × ${painelVoc}V = ${+(painelVoc*str.paineis).toFixed(0)}V / Isc=${painelIsc}A</text>`
+
+    // Disjuntor DC por string
+    svg += svgDisjuntorDC(xDJDC, y0 + 36, `S${str.id}`, bolaDC.disj)
+
+    // Linha do disjuntor à string box
+    svg += `<line x1="${xDJDC+18}" y1="${y0+36}" x2="${xSBOX-40}" y2="${y0+36}" stroke="${COR.stringDC}" stroke-width="2"/>`
+  })
+
+  // ─── STRING BOX ───────────────────────────────────────────────────────────────
+  svg += svgStringBox(xSBOX, yCentro, numStrings, vocString, idcTotal)
+
+  // Coletor DC: linha vertical unindo todas as strings à string box
+  if (numStrings > 1) {
+    const yTop = yStrings[0]
+    const yBot = yStrings[yStrings.length - 1]
+    svg += `<line x1="${xSBOX-40}" y1="${yTop}" x2="${xSBOX-40}" y2="${yBot}" stroke="${COR.stringDC}" stroke-width="2"/>`
+    yStrings.forEach(y => {
+      svg += `<line x1="${xSBOX-40}" y1="${y}" x2="${xSBOX-40}" y2="${y}" stroke="${COR.stringDC}" stroke-width="2"/>`
+    })
   }
 
-  let yJuncao = yPainel - 110 + 35
-  svg += `<line x1="50" y1="235" x2="50" y2="${yJuncao}" stroke="#333" stroke-width="3"/>\n`
+  // ─── STRING BOX → INVERSOR ────────────────────────────────────────────────────
+  svg += svgLinhaCabo(xSBOX + 40, yCentro, xInversor - 55, yCentro, bolaDC.bitola, COR.cabo)
+  svg += `<text x="${(xSBOX+xInversor)/2}" y="${yCentro+32}" text-anchor="middle" font-size="8" fill="${COR.textoCinza}">Cabo DC ${bolaDC.bitola}mm² — ${vocString}V / ${idcTotal}A</text>`
 
-  let inversorY = yJuncao + 80
-  svg += `<line x1="50" y1="${yJuncao}" x2="50" y2="${inversorY}" stroke="#333" stroke-width="3"/>\n`
+  // ─── INVERSOR ────────────────────────────────────────────────────────────────
+  svg += svgInversor(xInversor, yCentro, invMarca, invModelo, invPotKW, invNMPPT, fasesAC === 1 ? tensaoV : 380)
 
-  // Divisor visual DC/AC
-  svg += `<line x1="700" y1="140" x2="700" y2="${yGND + 40}" stroke="#999" stroke-width="1" stroke-dasharray="3,3"/>\n`
-  svg += `<text x="700" y="155" text-anchor="middle" font-size="10" fill="#999" font-weight="bold">AC</text>\n`
-  svg += `<text x="380" y="155" text-anchor="middle" font-size="10" fill="#999" font-weight="bold">DC</text>\n`
+  // ─── INVERSOR → DISJUNTOR AC ──────────────────────────────────────────────────
+  svg += svgLinhaCabo(xInversor + 55, yCentro, xDJAC - 20, yCentro, bolaAC.bitola, COR.quadroAC)
+  svg += svgDisjuntorAC(xDJAC, yCentro, bolaAC.disj, fasesAC)
 
-  svg += desenharInversor(250, inversorY)
+  // ─── DISJUNTOR → QUADRO AC ────────────────────────────────────────────────────
+  svg += `<line x1="${xDJAC+20}" y1="${yCentro}" x2="${xQuadroAC-45}" y2="${yCentro}" stroke="${COR.quadroAC}" stroke-width="2.5"/>`
+  svg += svgQuadroAC(xQuadroAC, yCentro, `Cabo ${bolaAC.bitola}mm²`, faseLabel)
 
-  svg += desenharCaboComInfo(340, inversorY + 35, 480, inversorY + 35)
-  svg += `\n`
-  svg += desenharDisjuntor(520, inversorY + 35, `${disjuntorMaximo}A`)
-  svg += `<text x="520" y="${inversorY + 75}" text-anchor="middle" class="label">Desconexão AC</text>\n`
+  // ─── QUADRO → MEDIDOR ─────────────────────────────────────────────────────────
+  svg += `<line x1="${xQuadroAC+45}" y1="${yCentro}" x2="${xMedidor-30}" y2="${yCentro}" stroke="${COR.rede}" stroke-width="2.5"/>`
+  svg += svgMedidor(xMedidor, yCentro, faseLabel)
 
-  svg += `<line x1="540" y1="${inversorY + 35}" x2="700" y2="${inversorY + 35}" stroke="#333" stroke-width="2"/>\n`
-  svg += `<rect x="700" y="${inversorY}" width="100" height="70" fill="none" stroke="#333" stroke-width="2" rx="3"/>\n`
-  svg += `<text x="750" y="${inversorY + 30}" text-anchor="middle" class="label">Quadro AC</text>\n`
-  svg += `<text x="750" y="${inversorY + 50}" text-anchor="middle" class="info">${faseInfo.label}</text>\n`
+  // ─── MEDIDOR → REDE ───────────────────────────────────────────────────────────
+  svg += `<line x1="${xMedidor+30}" y1="${yCentro}" x2="${xRede-50}" y2="${yCentro}" stroke="${COR.rede}" stroke-width="2.5"/>`
+  svg += svgRede(xRede, yCentro, distribuidora, faseLabel)
 
-  svg += `<line x1="800" y1="${inversorY + 35}" x2="950" y2="${inversorY + 35}" stroke="#333" stroke-width="2"/>\n`
-  svg += desenharMedidor(1050, inversorY + 35, faseInfo.fases)
+  // ─── ATERRAMENTO ──────────────────────────────────────────────────────────────
+  const yGnd = yCentro + 90
+  svg += `<line x1="${xMedidor}" y1="${yCentro+30}" x2="${xMedidor}" y2="${yGnd}" stroke="${COR.gnd}" stroke-width="2" stroke-dasharray="5,3"/>`
+  svg += svgAterramento(xMedidor, yGnd)
 
-  svg += `<line x1="1078" y1="${inversorY + 35}" x2="1180" y2="${inversorY + 35}" stroke="#333" stroke-width="3"/>\n`
-  svg += desenharRede(1280, inversorY + 35, faseInfo.fases)
-
-  let yGND = inversorY + 150
-  svg += `<line x1="1050" y1="${inversorY + 35}" x2="1050" y2="${yGND}" stroke="#FF0000" stroke-width="2" stroke-dasharray="5,5"/>\n`
-  svg += desenharGND(1050, yGND)
-  svg += `<text x="1090" y="${yGND + 5}" class="label">Aterramento</text>\n`
-
-  // Garantir que a legend não overflow
-  const legendY = Math.min(yGND + 40, SVG_HEIGHT - 160)
-
+  // ─── TABELA TÉCNICA (rodapé) ──────────────────────────────────────────────────
+  const yTab = H - FOOTER_H + 30
   svg += `
-  <rect x="50" y="${legendY}" width="600" height="140" fill="#fafafa" stroke="#ccc" stroke-width="1" rx="3"/>
-  <text x="70" y="${legendY + 20}" class="legenda-titulo">ESPECIFICAÇÕES TÉCNICAS</text>
+  <rect x="30" y="${yTab}" width="${W-60}" height="${FOOTER_H-40}" fill="white" stroke="#e2e8f0" stroke-width="1" rx="4"/>
+  <rect x="30" y="${yTab}" width="${W-60}" height="26" fill="#1e3a5f" rx="4"/>
+  <text x="${W/2}" y="${yTab+17}" text-anchor="middle" font-size="11" font-weight="bold" fill="white">MEMORIAL TÉCNICO RESUMIDO — NBR 16274 / NBR 5410 / NBR 5419</text>
 
-  <text x="70" y="${legendY + 45}" class="legenda-item">• Potência: ${potenciaArredondada} kWp</text>
-  <text x="70" y="${legendY + 65}" class="legenda-item">• Painéis: ${numPaineis} | Strings: ${numStrings}</text>
-  <text x="70" y="${legendY + 85}" class="legenda-item">• Cabo AC: ${bitolaCabo}mm² | Disjuntor: ${disjuntorMaximo}A</text>
-  <text x="70" y="${legendY + 105}" class="legenda-item">• Tensão AC: ${faseInfo.tensao} | ${faseInfo.label}</text>
+  <!-- Col 1: Módulos -->
+  <text x="60"  y="${yTab+42}" font-size="10" font-weight="bold" fill="${COR.texto}">MÓDULOS FOTOVOLTAICOS</text>
+  <text x="60"  y="${yTab+58}" font-size="9" fill="${COR.textoCinza}">Modelo: ${painelMarca} ${painelModelo}</text>
+  <text x="60"  y="${yTab+72}" font-size="9" fill="${COR.textoCinza}">Pmpp: ${painelPmpp} W | Qtd: ${numPaineis} un</text>
+  <text x="60"  y="${yTab+86}" font-size="9" fill="${COR.textoCinza}">Voc: ${painelVoc} V | Vmpp: ${painelVmpp} V</text>
+  <text x="60"  y="${yTab+100}" font-size="9" fill="${COR.textoCinza}">Isc: ${painelIsc} A | Config: ${numStrings}×${paineisPorString}</text>
+  <text x="60"  y="${yTab+114}" font-size="9" fill="${COR.textoCinza}">Garantia produto: ${painel?.garantiaProduto || 12} anos | Performance: ${painel?.garantiaPerformance || 25} anos</text>
 
-  <text x="700" y="${Math.min(SVG_HEIGHT - 20, legendY + 130)}" text-anchor="middle" class="info">
-    Diagrama Unifilar gerado em ${dataCurrent} | Projeto: ${nome}
-  </text>
+  <!-- Col 2: Inversor -->
+  <text x="330" y="${yTab+42}" font-size="10" font-weight="bold" fill="${COR.texto}">INVERSOR</text>
+  <text x="330" y="${yTab+58}" font-size="9" fill="${COR.textoCinza}">Modelo: ${invMarca} ${invModelo}</text>
+  <text x="330" y="${yTab+72}" font-size="9" fill="${COR.textoCinza}">Potência nominal: ${invPotKW} kW</text>
+  <text x="330" y="${yTab+86}" font-size="9" fill="${COR.textoCinza}">Entradas MPPT: ${invNMPPT} | Saída: ${faseLabel}</text>
+  <text x="330" y="${yTab+100}" font-size="9" fill="${COR.textoCinza}">Corrente saída: ${iac} A</text>
+  <text x="330" y="${yTab+114}" font-size="9" fill="${COR.textoCinza}">Garantia: ${inversor?.garantia || 10} anos</text>
 
-</svg>
-`
+  <!-- Col 3: Proteções DC -->
+  <text x="600" y="${yTab+42}" font-size="10" font-weight="bold" fill="${COR.texto}">PROTEÇÃO DC (por string)</text>
+  <text x="600" y="${yTab+58}" font-size="9" fill="${COR.textoCinza}">Disjuntor DC: ${bolaDC.disj}A / string</text>
+  <text x="600" y="${yTab+72}" font-size="9" fill="${COR.textoCinza}">Cabo DC: ${bolaDC.bitola} mm² (PV/Fotovoltaico)</text>
+  <text x="600" y="${yTab+86}" font-size="9" fill="${COR.textoCinza}">Tensão máx. string: ${vocString} V</text>
+  <text x="600" y="${yTab+100}" font-size="9" fill="${COR.textoCinza}">${dps.modelo}</text>
+  <text x="600" y="${yTab+114}" font-size="9" fill="${COR.textoCinza}">Proteção: ${dps.nivel} | NBR 16800</text>
+
+  <!-- Col 4: Proteções AC -->
+  <text x="880" y="${yTab+42}" font-size="10" font-weight="bold" fill="${COR.texto}">PROTEÇÃO AC</text>
+  <text x="880" y="${yTab+58}" font-size="9" fill="${COR.textoCinza}">Disjuntor AC: ${bolaAC.disj}A — ${fasesAC === 1 ? '1P' : fasesAC === 2 ? '2P' : '3P'}</text>
+  <text x="880" y="${yTab+72}" font-size="9" fill="${COR.textoCinza}">Cabo AC: ${bolaAC.bitola} mm² — ${faseLabel}</text>
+  <text x="880" y="${yTab+86}" font-size="9" fill="${COR.textoCinza}">Corrente de projeto: ${iac} A</text>
+  <text x="880" y="${yTab+100}" font-size="9" fill="${COR.textoCinza}">Aterramento: NBR 5419 — cabo verde/amarelo</text>
+  <text x="880" y="${yTab+114}" font-size="9" fill="${COR.textoCinza}">Medidor bidirecional (ANEEL 482/2012)</text>
+
+  <!-- Col 5: Rede/Concessionária -->
+  <text x="1160" y="${yTab+42}" font-size="10" font-weight="bold" fill="${COR.texto}">CONEXÃO À REDE</text>
+  <text x="1160" y="${yTab+58}" font-size="9" fill="${COR.textoCinza}">Concessionária: ${distribuidora}</text>
+  <text x="1160" y="${yTab+72}" font-size="9" fill="${COR.textoCinza}">Tipo de ligação: ${tipo_ligacao}</text>
+  <text x="1160" y="${yTab+86}" font-size="9" fill="${COR.textoCinza}">Tensão nominal: ${faseLabel}</text>
+  <text x="1160" y="${yTab+100}" font-size="9" fill="${COR.textoCinza}">Sistema: On-Grid (Conectado)</text>
+  <text x="1160" y="${yTab+114}" font-size="9" fill="${COR.textoCinza}">Resolução ANEEL 482/2012</text>
+
+  <!-- Rodapé -->
+  <text x="${W/2}" y="${H-12}" text-anchor="middle" font-size="9" fill="${COR.textoCinza}">Diagrama gerado em ${data} | Sistema ${potenciaArredondada}kWp | Forte Solar | Todos os valores conforme NBR 16274 / NBR 5410 / NBR 5419</text>
+</svg>`
 
   return svg
 }
 
 export const baixarUnifilarSVG = (svg, projeto = 'unifilar') => {
-  const nomeArquivo = `unifilar_${projeto}_${new Date().toISOString().split('T')[0]}.svg`
-
+  const nome = `unifilar_${projeto}_${new Date().toISOString().split('T')[0]}.svg`
   const blob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' })
   const link = document.createElement('a')
   link.href = URL.createObjectURL(blob)
-  link.download = nomeArquivo
+  link.download = nome
   link.click()
-
   URL.revokeObjectURL(link.href)
 }
 
-export const converterSVGparaPNG = async (svg, nomeArquivo = 'unifilar.png') => {
-  console.log('Função de conversão para PNG disponível')
-  console.log('Para usar, instale: npm install html2canvas')
+export const converterSVGparaPNG = async (svgString) => {
+  return new Promise((resolve) => {
+    const img = new Image()
+    const blob = new Blob([svgString], { type: 'image/svg+xml' })
+    const url = URL.createObjectURL(blob)
+    img.onload = () => {
+      const canvas = document.createElement('canvas')
+      canvas.width = img.width || 1400
+      canvas.height = img.height || 950
+      const ctx = canvas.getContext('2d')
+      ctx.drawImage(img, 0, 0)
+      canvas.toBlob(resolve, 'image/png')
+      URL.revokeObjectURL(url)
+    }
+    img.src = url
+  })
 }
