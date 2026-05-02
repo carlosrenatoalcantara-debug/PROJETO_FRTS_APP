@@ -1,5 +1,19 @@
 import { PDFParse } from 'pdf-parse'
 
+// Endpoint de debug: retorna o texto bruto do PDF linha por linha
+export async function debugFatura(req, res) {
+  try {
+    if (!req.file) return res.status(400).json({ erro: 'Nenhum arquivo enviado' })
+    const parser = new PDFParse({ data: req.file.buffer })
+    const textResult = await parser.getText()
+    await parser.destroy()
+    const linhas = (textResult.text || '').split('\n').map((l, i) => ({ linha: i + 1, texto: l }))
+    res.json({ totalLinhas: linhas.length, linhas })
+  } catch (err) {
+    res.status(500).json({ erro: err.message })
+  }
+}
+
 export async function extrairDadosFatura(req, res) {
   try {
     if (!req.file) return res.status(400).json({ erro: 'Nenhum arquivo enviado' })
