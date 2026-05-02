@@ -88,8 +88,8 @@ function ModalNovoClienteComPDF({ onClose, onSalvo }) {
   async function handleSubmit(e) {
     e.preventDefault()
 
-    if (!formData.nome || !formData.email) {
-      setErro('Nome e email são obrigatórios')
+    if (!formData.nome) {
+      setErro('Nome é obrigatório')
       return
     }
 
@@ -171,7 +171,7 @@ function ModalNovoClienteComPDF({ onClose, onSalvo }) {
                   name="cpf_cnpj"
                 />
                 <Input
-                  rotulo="Email *"
+                  rotulo="Email"
                   type="email"
                   value={formData.email}
                   onChange={handleChange}
@@ -303,8 +303,8 @@ function ModalEditarCliente({ cliente, onClose, onSalvo }) {
     setCarregando(true)
     setErro('')
 
-    if (!formData.nome || !formData.email) {
-      setErro('Nome e email são obrigatórios')
+    if (!formData.nome) {
+      setErro('Nome é obrigatório')
       setCarregando(false)
       return
     }
@@ -411,8 +411,8 @@ function ModalNovoClienteAntigo({ onClose, onSalvo }) {
     setCarregando(true)
     setErro('')
 
-    if (!formData.nome || !formData.email) {
-      setErro('Nome e email são obrigatórios')
+    if (!formData.nome) {
+      setErro('Nome é obrigatório')
       setCarregando(false)
       return
     }
