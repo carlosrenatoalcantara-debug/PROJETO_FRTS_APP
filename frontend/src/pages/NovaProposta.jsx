@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { X, MapPin, Zap, Sun, Wrench, DollarSign, FileText, CheckCircle, Download } from 'lucide-react'
+import { X, MapPin, Zap, Sun, Wrench, DollarSign, FileText, CheckCircle, Download, Info } from 'lucide-react'
 import Card, { CardHeader, CardBody } from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import Stepper from '../components/ui/Stepper'
@@ -10,6 +10,7 @@ import SeletorAutomaticoKits from '../components/fv/SeletorAutomaticoKits'
 import { calcularDimensionamentoAuto, selecionarKitsAuto, gerarOrcamentoAuto } from '../services/calcAutoMatico'
 import { gerarUnifilarSVG } from '../utils/gerarUnifilarSVG'
 import { gerarPropostaPDF, abrirOuBaixarProposta } from '../utils/gerarPropostaPDF'
+import { obterIrradianciaCity, obterIrradianciaFallback } from '../data/irradianciaRN.js'
 
 const ETAPAS = [
   { num: 1, rotulo: 'Localização', icone: MapPin },
@@ -80,13 +81,21 @@ function Etapa2Unidades({ dados, setDados, proxima, anterior }) {
   const [beneficiarias, setBeneficiarias] = useState([])
   const [dimensionamento, setDimensionamento] = useState(null)
 
+  // Auto-populate com dados extraídos da fatura
   useEffect(() => {
-    if (dados.consumo && dados.irradiancia) {
+    if (dados.consumo && dados.irradiancia && !dimensionamento) {
       const dim = calcularDimensionamentoAuto(Number(dados.consumo), dados.irradiancia)
       setDimensionamento(dim)
       setDados(prev => ({ ...prev, dimensionamento: dim }))
     }
   }, [dados.consumo, dados.irradiancia])
+
+  // Auto-definir GD2 como padrão
+  useEffect(() => {
+    if (!dados.gd) {
+      setDados(prev => ({ ...prev, gd: 'gd2' }))
+    }
+  }, [])
 
   return (
     <div className="space-y-6">
@@ -94,6 +103,44 @@ function Etapa2Unidades({ dados, setDados, proxima, anterior }) {
         <h2 className="text-lg font-semibold text-slate-900">Unidades Consumidoras</h2>
         <p className="text-sm text-slate-500 mt-1">Configure a unidade geradora e beneficiárias</p>
       </div>
+
+      {/* Mostrar dados extraídos da fatura */}
+      {(dados.consumo || dados.tarifa || dados.fase) && (
+        <Card>
+          <CardHeader className="flex items-center gap-2">
+            <Info size={18} className="text-blue-600" />
+            <span>Dados Extraídos da Fatura</span>
+          </CardHeader>
+          <CardBody>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {dados.consumo && (
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded">
+                  <p className="text-xs text-slate-600">Consumo Médio</p>
+                  <p className="text-lg font-bold text-blue-700">{dados.consumo} kWh</p>
+                </div>
+              )}
+              {dados.tarifa && (
+                <div className="p-3 bg-green-50 border border-green-200 rounded">
+                  <p className="text-xs text-slate-600">Tarifa</p>
+                  <p className="text-lg font-bold text-green-700">R$ {dados.tarifa.toFixed(5)}</p>
+                </div>
+              )}
+              {dados.fase && (
+                <div className="p-3 bg-purple-50 border border-purple-200 rounded">
+                  <p className="text-xs text-slate-600">Fase</p>
+                  <p className="text-lg font-bold text-purple-700">{dados.fase}</p>
+                </div>
+              )}
+              {dados.irradiancia && (
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded">
+                  <p className="text-xs text-slate-600">Irradiância</p>
+                  <p className="text-lg font-bold text-amber-700">{dados.irradiancia.toFixed(2)} kWh/m²</p>
+                </div>
+              )}
+            </div>
+          </CardBody>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>Unidade Geradora</CardHeader>
@@ -418,6 +465,7 @@ function Etapa4PreDimensionamento({ dados, setDados, proxima, anterior }) {
 
 function Etapa5Irradiancia({ dados, setDados, proxima, anterior }) {
   const [irradianciaCustom, setIrradianciaCustom] = useState(dados.irradiancia || 5.5)
+  const [fonte, setFonte] = useState('extraida')
 
   useEffect(() => {
     setDados(prev => ({ ...prev, irradiancia: irradianciaCustom }))
@@ -435,14 +483,17 @@ function Etapa5Irradiancia({ dados, setDados, proxima, anterior }) {
           <div className="p-4 bg-blue-50 border border-blue-200 rounded">
             <p className="text-sm text-blue-900">
               <strong>Irradiância em {dados.endereco || 'São Paulo, SP'}:</strong> <br />
-              <strong className="text-lg">{irradianciaCustom} kWh/m²/dia</strong>
+              <strong className="text-lg">{irradianciaCustom.toFixed(2)} kWh/m²/dia</strong>
             </p>
             <p className="text-xs text-blue-800 mt-2">
               Localização: {dados.latitude?.toFixed(4) || '-23.5505'}° S, {dados.longitude?.toFixed(4) || '-46.6333'}° O
             </p>
+            <p className="text-xs text-blue-700 mt-1 font-medium">
+              Fonte: {fonte === 'extraida' ? '📍 Extraída da cidade (base de dados CRESESB)' : '🔄 Ajustada manualmente'}
+            </p>
           </div>
           <div>
-            <label className="text-sm font-medium text-slate-700 block mb-2">Ajustar Irradiância</label>
+            <label className="text-sm font-medium text-slate-700 block mb-2">Ajustar Irradiância (se necessário)</label>
             <div className="flex gap-2 items-center">
               <input
                 type="range"
@@ -450,7 +501,10 @@ function Etapa5Irradiancia({ dados, setDados, proxima, anterior }) {
                 max="8"
                 step="0.1"
                 value={irradianciaCustom}
-                onChange={(e) => setIrradianciaCustom(Number(e.target.value))}
+                onChange={(e) => {
+                  setIrradianciaCustom(Number(e.target.value))
+                  setFonte('ajustada')
+                }}
                 className="flex-1"
               />
               <input
@@ -459,9 +513,13 @@ function Etapa5Irradiancia({ dados, setDados, proxima, anterior }) {
                 max="8"
                 step="0.1"
                 value={irradianciaCustom}
-                onChange={(e) => setIrradianciaCustom(Number(e.target.value))}
+                onChange={(e) => {
+                  setIrradianciaCustom(Number(e.target.value))
+                  setFonte('ajustada')
+                }}
                 className="w-20 px-2 py-1 rounded border border-slate-300"
               />
+              <span className="text-xs text-slate-500">kWh/m²/dia</span>
             </div>
           </div>
           <div className="bg-slate-50 p-3 rounded border border-slate-200">
@@ -754,12 +812,43 @@ export default function NovaProposta() {
 
           console.log('Cliente carregado:', cliente)
 
+          // Extrair dados da fatura se disponíveis
+          const cidade = cliente.cidade || ''
+          const estado = cliente.estado || 'SP'
+
+          // Lookup de irradiância pela cidade
+          const irradiaciaCity = obterIrradianciaCity(cidade, estado)
+          const irradiancia = irradiaciaCity || obterIrradianciaFallback(estado)
+
+          // Mapear tipo_ligacao para fase
+          let fase = ''
+          if (cliente.tipo_ligacao) {
+            if (cliente.tipo_ligacao.includes('Monofás')) fase = 'Monofásico'
+            else if (cliente.tipo_ligacao.includes('Bifás')) fase = 'Bifásico'
+            else if (cliente.tipo_ligacao.includes('Trifás')) fase = 'Trifásico'
+          }
+
+          // Extrair tensão do tipo_ligacao
+          let tensao = '220'
+          if (cliente.tipo_ligacao) {
+            if (cliente.tipo_ligacao.includes('127')) tensao = '127'
+            else if (cliente.tipo_ligacao.includes('220')) tensao = '220'
+            else if (cliente.tipo_ligacao.includes('380')) tensao = '380'
+          }
+
           setNomeCliente(cliente.nome)
           setDados(prev => ({
             ...prev,
             endereco: cliente.endereco_completo || `${cliente.cidade || ''}, ${cliente.estado || ''}`,
             latitude: cliente.latitude ? parseFloat(cliente.latitude) : -23.5505,
             longitude: cliente.longitude ? parseFloat(cliente.longitude) : -46.6333,
+            // Dados extraídos da fatura
+            consumo: cliente.consumo_kwh ? Number(cliente.consumo_kwh) : '',
+            tarifa: cliente.valor_kwh ? Number(cliente.valor_kwh) : '',
+            fase: fase || '',
+            tensao: tensao,
+            irradiancia: irradiancia,
+            grupo: cliente.classificacao ? cliente.classificacao.split(' ')[0] : '',
           }))
         } catch (err) {
           console.error('Erro ao carregar cliente:', err)
@@ -769,6 +858,7 @@ export default function NovaProposta() {
             endereco: 'São Paulo, SP',
             latitude: -23.5505,
             longitude: -46.6333,
+            irradiancia: obterIrradianciaFallback('SP'),
           }))
         }
       }

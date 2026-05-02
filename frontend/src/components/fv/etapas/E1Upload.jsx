@@ -52,6 +52,12 @@ export default function E1Upload() {
             distribuidora: dados.distribuidora || '',
             historico12Meses: dados.historico12Meses || null,
             mediaAnual: dados.mediaAnual || null,
+            tipoLigacao: dados.tipoLigacao || '',
+            tensao: dados.tensao || '220',
+            grupoTarifario: dados.grupoTarifario || '',
+            fase: dados.fase || '',
+            valorKwh: dados.valorKwh || '',
+            irradiancia: dados.irradiancia || '',
           },
         })
 

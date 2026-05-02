@@ -1,4 +1,5 @@
 import { PDFParse } from 'pdf-parse'
+import { obterIrradianciaCity, obterIrradianciaFallback } from '../data/irradianciaRN.js'
 
 // Endpoint de debug: retorna o texto bruto do PDF linha por linha
 export async function debugFatura(req, res) {
@@ -35,6 +36,15 @@ export async function extrairDadosFatura(req, res) {
     const texto = textoOriginal.toLowerCase()
     const distribuidora = extrairDistribuidora(textoOriginal)
     const historico = extrairHistorico12Meses(linhas)
+    const classificacao = extrairClassificacao(linhas, textoOriginal)
+    const tipoLigacao = extrairTipoLigacao(linhas, textoOriginal, distribuidora)
+    const cidade = extrairCidade(linhas)
+    const estado = extrairEstado(linhas)
+
+    // Calcula dados para auto-preenchimento
+    const { fase, tensao } = extrairFaseETensao(tipoLigacao)
+    const grupoTarifario = mapeiaGrupoTarifario(classificacao)
+    const irradiancia = obterIrradianciaCity(cidade, estado) || obterIrradianciaFallback(estado)
 
     const dados = {
       nome:            extrairNomeCliente(linhas),
@@ -43,18 +53,23 @@ export async function extrairDadosFatura(req, res) {
       codigoInstalacao:extrairCodigoInstalacao(linhas),
       endereco:        extrairEnderecoCliente(linhas),
       cep:             extrairCep(linhas),
-      cidade:          extrairCidade(linhas),
-      estado:          extrairEstado(linhas),
+      cidade,
+      estado,
       distribuidora,
-      classificacao:   extrairClassificacao(linhas, textoOriginal),
+      classificacao,
       subgrupo:        extrairSubgrupo(linhas, textoOriginal),
-      tipoLigacao:     extrairTipoLigacao(linhas, textoOriginal, distribuidora),
+      tipoLigacao,
       consumoKwh:      historico?.mediaAnual || extrairConsumo(texto),
       mediaAnual:      historico?.mediaAnual || null,
       historico12Meses:historico?.historico || null,
       periodoMeses:    historico?.periodoMeses || null,
       valorR:          extrairValor(linhas, texto),
       valorKwh:        extrairValorKwh(linhas),
+      // Dados auto-preenchimento etapa 2
+      grupoTarifario,
+      fase,
+      tensao,
+      irradiancia,
     }
 
     console.log('✓ Extraído:', {
@@ -62,6 +77,9 @@ export async function extrairDadosFatura(req, res) {
       classificacao: dados.classificacao, tipoLigacao: dados.tipoLigacao,
       consumo: dados.consumoKwh, valorKwh: dados.valorKwh,
       cep: dados.cep, cidade: dados.cidade,
+      grupoTarifario: dados.grupoTarifario,
+      fase: dados.fase, tensao: dados.tensao,
+      irradiancia: dados.irradiancia,
     })
 
     res.json(dados)
@@ -408,6 +426,45 @@ function extrairDistribuidora(texto) {
   return null
 }
 
+function mapeiaGrupoTarifario(classificacao) {
+  // Mapeia classificação ANEEL (B1, B2, B3, etc.) para grupo tarifário
+  const mapeamento = {
+    'B1': 'B1 - Residencial',
+    'B2': 'B2 - Rural',
+    'B3': 'B3 - Demais Classes',
+    'B4': 'B4 - Iluminação Pública',
+    'A1': 'A1 - Altíssima Tensão',
+    'A2': 'A2 - Alta Tensão',
+    'A3': 'A3 - Média Tensão',
+    'A3a': 'A3a - Média Tensão (até 30 kV)',
+    'A4': 'A4 - Baixa Tensão',
+    'AS': 'AS - Subgrupo Especial',
+  }
+  return mapeamento[classificacao] || classificacao || null
+}
+
+function extrairFaseETensao(tipoLigacao) {
+  // Extrai fase e tensão do tipo de ligação
+  if (!tipoLigacao) return { fase: null, tensao: null }
+
+  const tipo = tipoLigacao.toLowerCase()
+  let fase = null
+  let tensao = null
+
+  if (tipo.includes('monof')) {
+    fase = 'Monofásico'
+    tensao = tipo.includes('220') ? '220' : '127'
+  } else if (tipo.includes('bif')) {
+    fase = 'Bifásico'
+    tensao = '220'
+  } else if (tipo.includes('trif')) {
+    fase = 'Trifásico'
+    tensao = tipo.includes('220') ? '220' : '380'
+  }
+
+  return { fase, tensao }
+}
+
 function templateVazio(aviso) {
   return {
     nome: null, cpfCnpj: null, numeroCliente: null, codigoInstalacao: null,
@@ -415,5 +472,10 @@ function templateVazio(aviso) {
     distribuidora: null, classificacao: null, subgrupo: null, tipoLigacao: null,
     consumoKwh: null, mediaAnual: null, historico12Meses: null, periodoMeses: null,
     valorR: null, valorKwh: null, aviso,
+    // Dados auto-preenchimento etapa 2
+    grupoTarifario: null,
+    fase: null,
+    tensao: null,
+    irradiancia: null,
   }
 }
