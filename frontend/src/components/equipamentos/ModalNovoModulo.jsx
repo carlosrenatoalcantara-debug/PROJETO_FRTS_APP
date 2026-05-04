@@ -226,54 +226,69 @@ export default function ModalNovoModulo({ modulo, onClose, onSalvar }) {
               )}
 
               {dadosExtraidos && (
-                <div className="bg-emerald-50 border border-emerald-300 rounded-lg p-4">
+                <div className={`border rounded-lg p-4 ${dadosExtraidos._debug?.campos_encontrados > 2 ? 'bg-emerald-50 border-emerald-300' : 'bg-amber-50 border-amber-300'}`}>
                   <div className="flex items-center gap-2 mb-3">
-                    <CheckCircle size={20} className="text-emerald-600" />
-                    <p className="font-semibold text-emerald-900">
-                      {dadosExtraidos._debug?.campos_encontrados || 0} campos extraídos com sucesso!
+                    <CheckCircle size={20} className={dadosExtraidos._debug?.campos_encontrados > 2 ? 'text-emerald-600' : 'text-amber-600'} />
+                    <p className="font-semibold text-slate-900">
+                      {dadosExtraidos._debug?.campos_encontrados || 0} campos extraídos
                     </p>
                   </div>
-                  <div className="grid grid-cols-2 gap-3 text-sm">
-                    {dadosExtraidos.fabricante && (
-                      <div className="flex justify-between">
-                        <span className="text-emerald-700">Fabricante:</span>
-                        <span className="font-semibold text-emerald-900">{dadosExtraidos.fabricante}</span>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    {(dadosExtraidos.marca || dadosExtraidos.fabricante) && (
+                      <div className="flex justify-between gap-2">
+                        <span className="text-slate-600">Marca:</span>
+                        <span className="font-semibold">{dadosExtraidos.marca || dadosExtraidos.fabricante}</span>
                       </div>
                     )}
                     {dadosExtraidos.modelo && (
-                      <div className="flex justify-between">
-                        <span className="text-emerald-700">Modelo:</span>
-                        <span className="font-semibold text-emerald-900">{dadosExtraidos.modelo}</span>
+                      <div className="flex justify-between gap-2">
+                        <span className="text-slate-600">Modelo:</span>
+                        <span className="font-semibold">{dadosExtraidos.modelo}</span>
                       </div>
                     )}
-                    {dadosExtraidos.potencia_wp && (
-                      <div className="flex justify-between">
-                        <span className="text-emerald-700">Potência:</span>
-                        <span className="font-semibold text-emerald-900">{dadosExtraidos.potencia_wp} Wp</span>
+                    {(dadosExtraidos.potenciaW || dadosExtraidos.potencia_wp) && (
+                      <div className="flex justify-between gap-2">
+                        <span className="text-slate-600">Potência:</span>
+                        <span className="font-semibold">{dadosExtraidos.potenciaW || dadosExtraidos.potencia_wp} Wp</span>
                       </div>
                     )}
                     {dadosExtraidos.voc && (
-                      <div className="flex justify-between">
-                        <span className="text-emerald-700">VOC:</span>
-                        <span className="font-semibold text-emerald-900">{dadosExtraidos.voc} V</span>
+                      <div className="flex justify-between gap-2">
+                        <span className="text-slate-600">Voc:</span>
+                        <span className="font-semibold">{dadosExtraidos.voc} V</span>
                       </div>
                     )}
-                    {dadosExtraidos.vmp && (
-                      <div className="flex justify-between">
-                        <span className="text-emerald-700">VMP:</span>
-                        <span className="font-semibold text-emerald-900">{dadosExtraidos.vmp} V</span>
+                    {(dadosExtraidos.vmpp || dadosExtraidos.vmp) && (
+                      <div className="flex justify-between gap-2">
+                        <span className="text-slate-600">Vmpp:</span>
+                        <span className="font-semibold">{dadosExtraidos.vmpp || dadosExtraidos.vmp} V</span>
+                      </div>
+                    )}
+                    {dadosExtraidos.isc && (
+                      <div className="flex justify-between gap-2">
+                        <span className="text-slate-600">Isc:</span>
+                        <span className="font-semibold">{dadosExtraidos.isc} A</span>
+                      </div>
+                    )}
+                    {(dadosExtraidos.impp || dadosExtraidos.imp) && (
+                      <div className="flex justify-between gap-2">
+                        <span className="text-slate-600">Impp:</span>
+                        <span className="font-semibold">{dadosExtraidos.impp || dadosExtraidos.imp} A</span>
                       </div>
                     )}
                     {dadosExtraidos.eficiencia && (
-                      <div className="flex justify-between">
-                        <span className="text-emerald-700">Eficiência:</span>
-                        <span className="font-semibold text-emerald-900">{dadosExtraidos.eficiencia}%</span>
+                      <div className="flex justify-between gap-2">
+                        <span className="text-slate-600">Eficiência:</span>
+                        <span className="font-semibold">{dadosExtraidos.eficiencia}%</span>
                       </div>
                     )}
                   </div>
-                  <p className="text-xs text-emerald-600 mt-3">
-                    Os valores foram pré-preenchidos. Revise e ajuste se necessário.
-                  </p>
+                  {dadosExtraidos._debug?.campos_encontrados === 0 && (
+                    <p className="text-xs text-amber-700 mt-2">Nenhum campo extraído automaticamente. Preencha manualmente abaixo.</p>
+                  )}
+                  {dadosExtraidos._debug?.campos_encontrados > 0 && (
+                    <p className="text-xs text-slate-500 mt-2">Revise e ajuste os valores se necessário.</p>
+                  )}
                 </div>
               )}
             </div>
