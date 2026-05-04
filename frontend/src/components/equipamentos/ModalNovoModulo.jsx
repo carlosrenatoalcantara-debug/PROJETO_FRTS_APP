@@ -3,6 +3,8 @@ import { X, Upload, CheckCircle, AlertCircle } from 'lucide-react'
 import Button from '../ui/Button'
 import Card from '../ui/Card'
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+
 export default function ModalNovoModulo({ modulo, onClose, onSalvar }) {
   const [modo, setModo] = useState('manual')
   const [carregando, setCarregando] = useState(false)
@@ -36,45 +38,39 @@ export default function ModalNovoModulo({ modulo, onClose, onSalvar }) {
       const formDataFile = new FormData()
       formDataFile.append('pdf', file)
 
-      const res = await fetch('/api/equipamentos/datasheet/extrair', {
+      const res = await fetch(`${API_URL}/api/datasheet/extrair-datasheet`, {
         method: 'POST',
         body: formDataFile,
       })
 
-      const dados = await res.json()
-
-      if (!res.ok) {
-        setErroExtracao(dados.erro || 'Erro ao processar PDF')
-        setCarregando(false)
-        return
+      const texto = await res.text()
+      let json
+      try { json = JSON.parse(texto) } catch {
+        throw new Error(`Servidor retornou status ${res.status}. Verifique se o backend está acessível.`)
       }
+      if (!res.ok) throw new Error(json.erro || `Erro ${res.status}`)
 
-      // Mostrar preview dos dados
+      // Normaliza campos (datasheetController retorna camelCase, antigo retornava snake_case)
+      const dados = json.dados || json
+
       setDadosExtraidos(dados)
-
-      // Auto-preencher campos
       setFormData((prev) => ({
         ...prev,
-        fabricante: dados.fabricante || prev.fabricante,
+        fabricante: dados.marca || dados.fabricante || prev.fabricante,
         modelo: dados.modelo || prev.modelo,
         especificacoes: {
           ...prev.especificacoes,
-          potencia_wp: dados.potencia_wp || prev.especificacoes.potencia_wp,
+          potencia_wp: dados.potenciaW || dados.potencia_wp || prev.especificacoes.potencia_wp,
           voc: dados.voc || prev.especificacoes.voc,
-          vmp: dados.vmp || prev.especificacoes.vmp,
+          vmp: dados.vmpp || dados.vmp || prev.especificacoes.vmp,
           isc: dados.isc || prev.especificacoes.isc,
-          imp: dados.imp || prev.especificacoes.imp,
+          imp: dados.impp || dados.imp || prev.especificacoes.imp,
           eficiencia: dados.eficiencia || prev.especificacoes.eficiencia,
-          garantia_anos: dados.garantia_anos || prev.especificacoes.garantia_anos,
         },
-        garantia_produto: {
-          value: dados.garantia_anos || 25,
-          unit: 'anos'
-        }
       }))
     } catch (err) {
       console.error('Erro ao extrair datasheet:', err)
-      setErroExtracao('Erro ao processar PDF: ' + err.message)
+      setErroExtracao(err.message)
     } finally {
       setCarregando(false)
     }
