@@ -43,11 +43,18 @@ const TABELA_BITOLAS = [
 ]
 
 function selecionarBitola(corrente) {
-  const correnteProjetada = corrente * 1.25 // fator de segurança
+  const correnteProjetada = corrente * 1.25
   for (const t of TABELA_BITOLAS) {
     if (correnteProjetada <= t.max) return t
   }
   return TABELA_BITOLAS[TABELA_BITOLAS.length - 1]
+}
+
+// AC: mínimo 4mm² (prática NBR para saída de inversor)
+function selecionarBitolaAC(corrente) {
+  const t = selecionarBitola(corrente)
+  if (parseFloat(t.bitola) < 4) return TABELA_BITOLAS[1] // força 4mm²
+  return t
 }
 
 // DPS: Nível de proteção por Voc da string
@@ -216,9 +223,9 @@ export const gerarUnifilarSVG = (projeto) => {
   const invPotKW    = inversor?.potenciaKW || dimensionamento.potenciaArredondada || 5
   const invNMPPT    = inversor?.nMppts   || 2
 
-  // Fase/tensão da rede
-  const fasesAC = tipo_ligacao?.toLowerCase().includes('trifás') ? 3
-                : tipo_ligacao?.toLowerCase().includes('bifás')  ? 2 : 1
+  // Fase/tensão da rede (normaliza acentos para evitar falha de match NFD/NFC)
+  const _faseNorm = (tipo_ligacao || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+  const fasesAC = _faseNorm.includes('trifas') ? 3 : _faseNorm.includes('bifas') ? 2 : 1
   const tensaoV = parseInt(tensaoRede) || 220
   const faseLabel = fasesAC === 1 ? `1Ø ${tensaoV}V` : fasesAC === 2 ? `2Ø ${tensaoV}V` : `3Ø 380V`
 
@@ -233,7 +240,7 @@ export const gerarUnifilarSVG = (projeto) => {
   const idcTotal   = +(idcString * numStrings).toFixed(1)
   const iac        = calcularCorrenteAC(invPotKW, fasesAC, fasesAC === 1 ? tensaoV : 380)
   const bolaDC     = selecionarBitola(idcString)
-  const bolaAC     = selecionarBitola(iac)
+  const bolaAC     = selecionarBitolaAC(iac)
   const dps        = calcularDPS(vocString)
 
   // Tamanho do SVG

@@ -547,7 +547,7 @@ function Etapa6Dimensionamento({ dados, setDados, proxima, anterior }) {
         tipo_ligacao: dados.fase,
         tensao: dados.tensao,
         distribuidora: dados.distribuidora || 'Concessionária',
-        painel: dados.kitSelecionado?.painel || null,
+        painel: dados.kitSelecionado?.paineis || dados.kitSelecionado?.painel || null,
         inversor: dados.kitSelecionado?.inversor || null,
       })
       setUnifilarSVG(svg)
@@ -624,13 +624,20 @@ function Etapa7Orcamento({ dados, setDados, proxima, anterior }) {
   const [margemLucro, setMargemLucro] = useState(20)
   const [gerando, setGerando] = useState(false)
 
-  const orcamento = dados.orcamento || {
-    itens: [],
-    subtotal: 0,
-    margem: { percentual: margemLucro, valor: 0 },
-    total: 0,
-    precoWp: 0,
-  }
+  // Se nenhum kit foi selecionado mas há dimensionamento, auto-gera balanceado
+  const orcamento = (() => {
+    if (dados.orcamento) return dados.orcamento
+    if (dados.dimensionamento?.potenciaArredondada) {
+      const kits = selecionarKitsAuto(dados.dimensionamento.potenciaArredondada)
+      const kit = kits.find(k => k.tag === 'balanceado') || kits[0]
+      if (kit) {
+        const orc = gerarOrcamentoAuto(kit)
+        setDados(prev => ({ ...prev, orcamento: orc, kitSelecionado: kit }))
+        return orc
+      }
+    }
+    return { itens: [], subtotal: 0, margem: { percentual: margemLucro, valor: 0 }, total: 0, precoWp: 0 }
+  })()
 
   const gerarPDF = async () => {
     if (!dados.orcamento || !dados.dimensionamento) {
