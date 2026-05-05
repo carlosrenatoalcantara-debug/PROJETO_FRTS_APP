@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { X, Upload, CheckCircle, AlertCircle } from 'lucide-react'
+import { X, Upload, CheckCircle, AlertCircle, Plus } from 'lucide-react'
 import Button from '../ui/Button'
 import Card from '../ui/Card'
 
@@ -11,6 +11,8 @@ export default function ModalNovoModulo({ modulo, onClose, onSalvar }) {
   const [arquivo, setArquivo] = useState(null)
   const [arrastando, setArrastando] = useState(false)
   const [dadosExtraidos, setDadosExtraidos] = useState(null)
+  const [variantes, setVariantes] = useState(null)       // array multi-potência
+  const [selecionadas, setSelecionadas] = useState([])   // índices selecionados
   const [erroExtracao, setErroExtracao] = useState(null)
   const [formData, setFormData] = useState(
     modulo || {
@@ -33,6 +35,8 @@ export default function ModalNovoModulo({ modulo, onClose, onSalvar }) {
     setArquivo(file.name)
     setErroExtracao(null)
     setDadosExtraidos(null)
+    setVariantes(null)
+    setSelecionadas([])
 
     try {
       const formDataFile = new FormData()
@@ -50,24 +54,37 @@ export default function ModalNovoModulo({ modulo, onClose, onSalvar }) {
       }
       if (!res.ok) throw new Error(json.erro || `Erro ${res.status}`)
 
-      // Normaliza campos (datasheetController retorna camelCase, antigo retornava snake_case)
       const dados = json.dados || json
 
       setDadosExtraidos(dados)
-      setFormData((prev) => ({
-        ...prev,
-        fabricante: dados.marca || dados.fabricante || prev.fabricante,
-        modelo: dados.modelo || prev.modelo,
-        especificacoes: {
-          ...prev.especificacoes,
-          potencia_wp: dados.potenciaW || dados.potencia_wp || prev.especificacoes.potencia_wp,
-          voc: dados.voc || prev.especificacoes.voc,
-          vmp: dados.vmpp || dados.vmp || prev.especificacoes.vmp,
-          isc: dados.isc || prev.especificacoes.isc,
-          imp: dados.impp || dados.imp || prev.especificacoes.imp,
-          eficiencia: dados.eficiencia || prev.especificacoes.eficiencia,
-        },
-      }))
+
+      if (json.variantes && json.variantes.length > 1) {
+        // Modo multi-variante: seleciona todas por padrão
+        setVariantes(json.variantes)
+        setSelecionadas(json.variantes.map((_, i) => i))
+        // Preenche fabricante e modelo com os dados compartilhados
+        setFormData((prev) => ({
+          ...prev,
+          fabricante: dados.marca || dados.fabricante || prev.fabricante,
+          modelo: dados.modelo || prev.modelo,
+        }))
+      } else {
+        // Modo variante única
+        setFormData((prev) => ({
+          ...prev,
+          fabricante: dados.marca || dados.fabricante || prev.fabricante,
+          modelo: dados.modelo || prev.modelo,
+          especificacoes: {
+            ...prev.especificacoes,
+            potencia_wp: dados.potenciaW || dados.potencia_wp || prev.especificacoes.potencia_wp,
+            voc: dados.voc || prev.especificacoes.voc,
+            vmp: dados.vmpp || dados.vmp || prev.especificacoes.vmp,
+            isc: dados.isc || prev.especificacoes.isc,
+            imp: dados.impp || dados.imp || prev.especificacoes.imp,
+            eficiencia: dados.eficiencia || prev.especificacoes.eficiencia,
+          },
+        }))
+      }
     } catch (err) {
       console.error('Erro ao extrair datasheet:', err)
       setErroExtracao(err.message)
@@ -101,6 +118,21 @@ export default function ModalNovoModulo({ modulo, onClose, onSalvar }) {
     if (file) processarDatasheet(file)
   }
 
+  function toggleVariante(idx) {
+    setSelecionadas((prev) =>
+      prev.includes(idx) ? prev.filter((i) => i !== idx) : [...prev, idx]
+    )
+  }
+
+  async function salvarVariante(payload) {
+    const res = await fetch(`${API_URL}/api/equipamentos`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+    if (!res.ok) throw new Error('Erro ao salvar')
+  }
+
   async function handleSalvar() {
     if (!formData.fabricante || !formData.modelo) {
       alert('Preencha fabricante e modelo')
@@ -109,7 +141,31 @@ export default function ModalNovoModulo({ modulo, onClose, onSalvar }) {
 
     setCarregando(true)
     try {
-      const url = modulo ? `/api/equipamentos/${modulo._id}` : '/api/equipamentos'
+      // Modo multi-variante: cria um módulo por variante selecionada
+      if (variantes && selecionadas.length > 0) {
+        for (const idx of selecionadas) {
+          const v = variantes[idx]
+          const payload = {
+            ...formData,
+            tipo: 'modulo',
+            modelo: `${formData.modelo}-${v.potenciaW}W`,
+            especificacoes: {
+              potencia_wp: v.potenciaW,
+              voc: v.voc,
+              vmp: v.vmpp,
+              isc: v.isc,
+              imp: v.impp,
+              eficiencia: v.eficiencia,
+            },
+          }
+          await salvarVariante(payload)
+        }
+        onSalvar()
+        return
+      }
+
+      // Modo variante única ou manual
+      const url = modulo ? `${API_URL}/api/equipamentos/${modulo._id}` : `${API_URL}/api/equipamentos`
       const method = modulo ? 'PUT' : 'POST'
 
       const res = await fetch(url, {
@@ -133,7 +189,7 @@ export default function ModalNovoModulo({ modulo, onClose, onSalvar }) {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <Card className="w-full max-w-2xl mx-4 max-h-96 overflow-y-auto">
+      <Card className="w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-6 border-b">
           <h2 className="text-xl font-bold text-slate-900">
             {modulo ? 'Editar Módulo' : 'Novo Módulo'}
@@ -177,11 +233,7 @@ export default function ModalNovoModulo({ modulo, onClose, onSalvar }) {
               >
                 <label className="cursor-pointer block">
                   <div className="flex justify-center mb-4">
-                    <div className={`p-4 rounded-full transition-colors ${
-                      arrastando
-                        ? 'bg-emerald-100'
-                        : 'bg-blue-100'
-                    }`}>
+                    <div className={`p-4 rounded-full transition-colors ${arrastando ? 'bg-emerald-100' : 'bg-blue-100'}`}>
                       <Upload size={40} className={arrastando ? 'text-emerald-600' : 'text-blue-600'} />
                     </div>
                   </div>
@@ -225,7 +277,95 @@ export default function ModalNovoModulo({ modulo, onClose, onSalvar }) {
                 </div>
               )}
 
-              {dadosExtraidos && (
+              {/* Multi-variante: seleção de potências */}
+              {variantes && variantes.length > 1 && (
+                <div className="bg-blue-50 border border-blue-300 rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <CheckCircle size={20} className="text-blue-600" />
+                    <p className="font-semibold text-slate-900">
+                      Série detectada com {variantes.length} variantes de potência
+                    </p>
+                  </div>
+                  <p className="text-xs text-slate-600 mb-3">
+                    Selecione quais potências deseja cadastrar como módulos separados:
+                  </p>
+                  <div className="grid grid-cols-3 gap-2 mb-3">
+                    {variantes.map((v, idx) => (
+                      <label
+                        key={idx}
+                        className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-colors ${
+                          selecionadas.includes(idx)
+                            ? 'bg-blue-100 border-blue-500 text-blue-900'
+                            : 'bg-white border-slate-300 text-slate-600'
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selecionadas.includes(idx)}
+                          onChange={() => toggleVariante(idx)}
+                          className="rounded"
+                        />
+                        <div className="text-sm">
+                          <div className="font-bold">{v.potenciaW} Wp</div>
+                          {v.voc && <div className="text-xs opacity-70">Voc {v.voc}V</div>}
+                          {v.eficiencia && <div className="text-xs opacity-70">η {v.eficiencia}%</div>}
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setSelecionadas(variantes.map((_, i) => i))}
+                      className="text-xs text-blue-700 underline"
+                    >
+                      Selecionar todas
+                    </button>
+                    <span className="text-xs text-slate-400">·</span>
+                    <button
+                      onClick={() => setSelecionadas([])}
+                      className="text-xs text-slate-500 underline"
+                    >
+                      Limpar
+                    </button>
+                  </div>
+
+                  {/* Tabela resumo das variantes selecionadas */}
+                  {selecionadas.length > 0 && (
+                    <div className="mt-3 overflow-x-auto">
+                      <table className="w-full text-xs border-collapse">
+                        <thead>
+                          <tr className="bg-blue-200">
+                            <th className="px-2 py-1 text-left">Wp</th>
+                            <th className="px-2 py-1">Voc</th>
+                            <th className="px-2 py-1">Vmpp</th>
+                            <th className="px-2 py-1">Isc</th>
+                            <th className="px-2 py-1">Impp</th>
+                            <th className="px-2 py-1">η%</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {selecionadas.map(idx => {
+                            const v = variantes[idx]
+                            return (
+                              <tr key={idx} className="border-t border-blue-200">
+                                <td className="px-2 py-1 font-bold">{v.potenciaW}</td>
+                                <td className="px-2 py-1 text-center">{v.voc ?? '—'}</td>
+                                <td className="px-2 py-1 text-center">{v.vmpp ?? '—'}</td>
+                                <td className="px-2 py-1 text-center">{v.isc ?? '—'}</td>
+                                <td className="px-2 py-1 text-center">{v.impp ?? '—'}</td>
+                                <td className="px-2 py-1 text-center">{v.eficiencia ?? '—'}</td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Variante única extraída */}
+              {dadosExtraidos && (!variantes || variantes.length <= 1) && (
                 <div className={`border rounded-lg p-4 ${dadosExtraidos._debug?.campos_encontrados > 2 ? 'bg-emerald-50 border-emerald-300' : 'bg-amber-50 border-amber-300'}`}>
                   <div className="flex items-center gap-2 mb-3">
                     <CheckCircle size={20} className={dadosExtraidos._debug?.campos_encontrados > 2 ? 'text-emerald-600' : 'text-amber-600'} />
@@ -283,17 +423,13 @@ export default function ModalNovoModulo({ modulo, onClose, onSalvar }) {
                       </div>
                     )}
                   </div>
-                  {dadosExtraidos._debug?.campos_encontrados === 0 && (
-                    <p className="text-xs text-amber-700 mt-2">Nenhum campo extraído automaticamente. Preencha manualmente abaixo.</p>
-                  )}
-                  {dadosExtraidos._debug?.campos_encontrados > 0 && (
-                    <p className="text-xs text-slate-500 mt-2">Revise e ajuste os valores se necessário.</p>
-                  )}
+                  <p className="text-xs text-slate-500 mt-2">Revise e ajuste os valores se necessário.</p>
                 </div>
               )}
             </div>
           )}
 
+          {/* Campos manuais: sempre visíveis (em modo multi-variante, apenas fabricante/modelo) */}
           <div className="grid grid-cols-2 gap-4">
             <input
               type="text"
@@ -304,67 +440,84 @@ export default function ModalNovoModulo({ modulo, onClose, onSalvar }) {
             />
             <input
               type="text"
-              placeholder="Modelo"
+              placeholder={variantes && variantes.length > 1 ? 'Modelo base (ex: ZXMR-144)' : 'Modelo'}
               value={formData.modelo}
               onChange={(e) => setFormData({ ...formData, modelo: e.target.value })}
               className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
-            <input
-              type="number"
-              placeholder="Potência (Wp)"
-              value={formData.especificacoes?.potencia_wp || ''}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  especificacoes: {
-                    ...formData.especificacoes,
-                    potencia_wp: parseInt(e.target.value),
-                  },
-                })
-              }
-              className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <input
-              type="number"
-              placeholder="Preço (R$)"
-              value={formData.preco_sugerido}
-              onChange={(e) => setFormData({ ...formData, preco_sugerido: parseFloat(e.target.value) })}
-              className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <input
-              type="number"
-              placeholder="Voc (V)"
-              step="0.01"
-              value={formData.especificacoes?.voc || ''}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  especificacoes: { ...formData.especificacoes, voc: parseFloat(e.target.value) },
-                })
-              }
-              className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <input
-              type="number"
-              placeholder="Vmp (V)"
-              step="0.01"
-              value={formData.especificacoes?.vmp || ''}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  especificacoes: { ...formData.especificacoes, vmp: parseFloat(e.target.value) },
-                })
-              }
-              className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+            {(!variantes || variantes.length <= 1) && (
+              <>
+                <input
+                  type="number"
+                  placeholder="Potência (Wp)"
+                  value={formData.especificacoes?.potencia_wp || ''}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      especificacoes: { ...formData.especificacoes, potencia_wp: parseInt(e.target.value) },
+                    })
+                  }
+                  className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <input
+                  type="number"
+                  placeholder="Preço (R$)"
+                  value={formData.preco_sugerido}
+                  onChange={(e) => setFormData({ ...formData, preco_sugerido: parseFloat(e.target.value) })}
+                  className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <input
+                  type="number"
+                  placeholder="Voc (V)"
+                  step="0.01"
+                  value={formData.especificacoes?.voc || ''}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      especificacoes: { ...formData.especificacoes, voc: parseFloat(e.target.value) },
+                    })
+                  }
+                  className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <input
+                  type="number"
+                  placeholder="Vmp (V)"
+                  step="0.01"
+                  value={formData.especificacoes?.vmp || ''}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      especificacoes: { ...formData.especificacoes, vmp: parseFloat(e.target.value) },
+                    })
+                  }
+                  className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </>
+            )}
+            {variantes && variantes.length > 1 && (
+              <input
+                type="number"
+                placeholder="Preço base por módulo (R$)"
+                value={formData.preco_sugerido}
+                onChange={(e) => setFormData({ ...formData, preco_sugerido: parseFloat(e.target.value) })}
+                className="col-span-2 px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            )}
           </div>
 
           <div className="flex gap-2 justify-end">
             <Button onClick={onClose} variante="secundario">
               Cancelar
             </Button>
-            <Button onClick={handleSalvar} disabled={carregando}>
-              {carregando ? 'Salvando...' : 'Salvar'}
+            <Button
+              onClick={handleSalvar}
+              disabled={carregando || (variantes && variantes.length > 1 && selecionadas.length === 0)}
+            >
+              {carregando
+                ? 'Salvando...'
+                : variantes && variantes.length > 1
+                ? `Salvar ${selecionadas.length} módulo${selecionadas.length !== 1 ? 's' : ''}`
+                : 'Salvar'}
             </Button>
           </div>
         </div>
