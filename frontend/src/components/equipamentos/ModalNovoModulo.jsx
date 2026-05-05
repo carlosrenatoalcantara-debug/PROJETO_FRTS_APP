@@ -1,19 +1,42 @@
-import { useState } from 'react'
-import { X, Upload, CheckCircle, AlertCircle, Plus } from 'lucide-react'
+import { useState, useRef } from 'react'
+import { X, Upload, CheckCircle, AlertCircle, Loader, FileText, Plus } from 'lucide-react'
 import Button from '../ui/Button'
 import Card from '../ui/Card'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
 
+// ── Utilitários ───────────────────────────────────────────────────────────────
+
+function statusIcon(status) {
+  if (status === 'pendente')    return <FileText size={16} className="text-slate-400" />
+  if (status === 'processando') return <Loader size={16} className="text-blue-500 animate-spin" />
+  if (status === 'salvo')       return <CheckCircle size={16} className="text-emerald-500" />
+  if (status === 'erro')        return <AlertCircle size={16} className="text-red-500" />
+  return null
+}
+
+function statusLabel(item) {
+  if (item.status === 'pendente')    return <span className="text-xs text-slate-400">Aguardando…</span>
+  if (item.status === 'processando') return <span className="text-xs text-blue-600">Lendo datasheet…</span>
+  if (item.status === 'salvo') {
+    const n = item.modulosSalvos || 1
+    return <span className="text-xs text-emerald-700">{n} módulo{n > 1 ? 's' : ''} cadastrado{n > 1 ? 's' : ''}</span>
+  }
+  if (item.status === 'erro') return <span className="text-xs text-red-600 truncate">{item.erro}</span>
+  return null
+}
+
+// ── Componente principal ──────────────────────────────────────────────────────
+
 export default function ModalNovoModulo({ modulo, onClose, onSalvar }) {
-  const [modo, setModo] = useState('manual')
-  const [carregando, setCarregando] = useState(false)
-  const [arquivo, setArquivo] = useState(null)
+  const [modo, setModo] = useState('lote')          // 'lote' | 'manual'
   const [arrastando, setArrastando] = useState(false)
-  const [dadosExtraidos, setDadosExtraidos] = useState(null)
-  const [variantes, setVariantes] = useState(null)       // array multi-potência
-  const [selecionadas, setSelecionadas] = useState([])   // índices selecionados
-  const [erroExtracao, setErroExtracao] = useState(null)
+  const [fila, setFila] = useState([])              // itens da fila de processamento
+  const [processando, setProcessando] = useState(false)
+  const [concluido, setConcluido] = useState(false)
+  const inputRef = useRef(null)
+
+  // ── Modo manual ─────────────────────────────────────────────────────────────
   const [formData, setFormData] = useState(
     modulo || {
       tipo: 'modulo',
@@ -25,130 +48,82 @@ export default function ModalNovoModulo({ modulo, onClose, onSalvar }) {
     }
   )
 
-  async function processarDatasheet(file) {
-    if (!file.type.includes('pdf')) {
-      setErroExtracao('Por favor, selecione um arquivo PDF')
-      return
-    }
+  // ── Fila de arquivos ─────────────────────────────────────────────────────────
 
-    setCarregando(true)
-    setArquivo(file.name)
-    setErroExtracao(null)
-    setDadosExtraidos(null)
-    setVariantes(null)
-    setSelecionadas([])
+  function criarItens(files) {
+    return Array.from(files)
+      .filter(f => f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf'))
+      .map((file, i) => ({
+        id: Date.now() + i,
+        file,
+        nome: file.name,
+        status: 'pendente',
+        dados: null,
+        variantes: null,
+        modulosSalvos: 0,
+        erro: null,
+      }))
+  }
+
+  function adicionarArquivos(files) {
+    const novos = criarItens(files)
+    if (!novos.length) return
+    setFila(prev => [...prev, ...novos])
+    setConcluido(false)
+  }
+
+  function removerItem(id) {
+    setFila(prev => prev.filter(i => i.id !== id))
+  }
+
+  function atualizarItem(id, patch) {
+    setFila(prev => prev.map(i => i.id === id ? { ...i, ...patch } : i))
+  }
+
+  // ── Extrai + salva um arquivo ─────────────────────────────────────────────────
+
+  async function processarItem(item) {
+    atualizarItem(item.id, { status: 'processando' })
 
     try {
-      const formDataFile = new FormData()
-      formDataFile.append('pdf', file)
-
-      const res = await fetch(`${API_URL}/api/datasheet/extrair-datasheet`, {
-        method: 'POST',
-        body: formDataFile,
-      })
-
+      // 1. Extração
+      const fd = new FormData()
+      fd.append('pdf', item.file)
+      const res = await fetch(`${API_URL}/api/datasheet/extrair-datasheet`, { method: 'POST', body: fd })
       const texto = await res.text()
       let json
       try { json = JSON.parse(texto) } catch {
-        throw new Error(`Servidor retornou status ${res.status}. Verifique se o backend está acessível.`)
+        throw new Error(`Servidor retornou status ${res.status}`)
       }
       if (!res.ok) throw new Error(json.erro || `Erro ${res.status}`)
 
       const dados = json.dados || json
+      const variantes = json.variantes && json.variantes.length > 1 ? json.variantes : null
 
-      setDadosExtraidos(dados)
-
-      if (json.variantes && json.variantes.length > 1) {
-        // Modo multi-variante: seleciona todas por padrão
-        setVariantes(json.variantes)
-        setSelecionadas(json.variantes.map((_, i) => i))
-        // Preenche fabricante e modelo com os dados compartilhados
-        setFormData((prev) => ({
-          ...prev,
-          fabricante: dados.marca || dados.fabricante || prev.fabricante,
-          modelo: dados.modelo || prev.modelo,
-        }))
-      } else {
-        // Modo variante única
-        setFormData((prev) => ({
-          ...prev,
-          fabricante: dados.marca || dados.fabricante || prev.fabricante,
-          modelo: dados.modelo || prev.modelo,
-          especificacoes: {
-            ...prev.especificacoes,
-            potencia_wp: dados.potenciaW || dados.potencia_wp || prev.especificacoes.potencia_wp,
-            voc: dados.voc || prev.especificacoes.voc,
-            vmp: dados.vmpp || dados.vmp || prev.especificacoes.vmp,
-            isc: dados.isc || prev.especificacoes.isc,
-            imp: dados.impp || dados.imp || prev.especificacoes.imp,
-            eficiencia: dados.eficiencia || prev.especificacoes.eficiencia,
-          },
-        }))
+      // 2. Persistência
+      const salvarModulo = async (payload) => {
+        const r = await fetch(`${API_URL}/api/equipamentos`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        })
+        if (!r.ok) throw new Error('Erro ao salvar no banco')
       }
-    } catch (err) {
-      console.error('Erro ao extrair datasheet:', err)
-      setErroExtracao(err.message)
-    } finally {
-      setCarregando(false)
-    }
-  }
 
-  function handleUploadDatasheet(e) {
-    const file = e.target.files[0]
-    if (file) processarDatasheet(file)
-  }
+      const base = {
+        tipo: 'modulo',
+        fabricante: dados.marca || dados.fabricante || 'Desconhecido',
+        preco_sugerido: 0,
+        garantia_produto: { value: 25, unit: 'anos' },
+      }
 
-  function handleDragOver(e) {
-    e.preventDefault()
-    e.stopPropagation()
-    setArrastando(true)
-  }
+      let modulosSalvos = 0
 
-  function handleDragLeave(e) {
-    e.preventDefault()
-    e.stopPropagation()
-    setArrastando(false)
-  }
-
-  function handleDrop(e) {
-    e.preventDefault()
-    e.stopPropagation()
-    setArrastando(false)
-    const file = e.dataTransfer.files[0]
-    if (file) processarDatasheet(file)
-  }
-
-  function toggleVariante(idx) {
-    setSelecionadas((prev) =>
-      prev.includes(idx) ? prev.filter((i) => i !== idx) : [...prev, idx]
-    )
-  }
-
-  async function salvarVariante(payload) {
-    const res = await fetch(`${API_URL}/api/equipamentos`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    })
-    if (!res.ok) throw new Error('Erro ao salvar')
-  }
-
-  async function handleSalvar() {
-    if (!formData.fabricante || !formData.modelo) {
-      alert('Preencha fabricante e modelo')
-      return
-    }
-
-    setCarregando(true)
-    try {
-      // Modo multi-variante: cria um módulo por variante selecionada
-      if (variantes && selecionadas.length > 0) {
-        for (const idx of selecionadas) {
-          const v = variantes[idx]
-          const payload = {
-            ...formData,
-            tipo: 'modulo',
-            modelo: `${formData.modelo}-${v.potenciaW}W`,
+      if (variantes) {
+        for (const v of variantes) {
+          await salvarModulo({
+            ...base,
+            modelo: `${dados.modelo || 'Módulo'}-${v.potenciaW}W`,
             especificacoes: {
               potencia_wp: v.potenciaW,
               voc: v.voc,
@@ -157,40 +132,92 @@ export default function ModalNovoModulo({ modulo, onClose, onSalvar }) {
               imp: v.impp,
               eficiencia: v.eficiencia,
             },
-          }
-          await salvarVariante(payload)
+          })
+          modulosSalvos++
         }
-        onSalvar()
-        return
-      }
-
-      // Modo variante única ou manual
-      const url = modulo ? `${API_URL}/api/equipamentos/${modulo._id}` : `${API_URL}/api/equipamentos`
-      const method = modulo ? 'PUT' : 'POST'
-
-      const res = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      })
-
-      if (res.ok) {
-        onSalvar()
       } else {
-        alert('Erro ao salvar módulo')
+        await salvarModulo({
+          ...base,
+          modelo: dados.modelo || 'Módulo',
+          especificacoes: {
+            potencia_wp: dados.potenciaW,
+            voc: dados.voc,
+            vmp: dados.vmpp,
+            isc: dados.isc,
+            imp: dados.impp,
+            eficiencia: dados.eficiencia,
+          },
+        })
+        modulosSalvos = 1
       }
+
+      atualizarItem(item.id, { status: 'salvo', dados, variantes, modulosSalvos })
     } catch (err) {
-      console.error('Erro ao salvar:', err)
-      alert('Erro ao salvar módulo')
-    } finally {
-      setCarregando(false)
+      console.error('Erro no item', item.nome, err)
+      atualizarItem(item.id, { status: 'erro', erro: err.message })
     }
   }
 
+  // ── Processa a fila toda sequencialmente ──────────────────────────────────────
+
+  async function processarFila() {
+    setProcessando(true)
+    setConcluido(false)
+
+    const pendentes = fila.filter(i => i.status === 'pendente' || i.status === 'erro')
+    for (const item of pendentes) {
+      await processarItem(item)
+    }
+
+    setProcessando(false)
+    setConcluido(true)
+    onSalvar()
+  }
+
+  // ── Drag & Drop ──────────────────────────────────────────────────────────────
+
+  function handleDragOver(e)  { e.preventDefault(); setArrastando(true) }
+  function handleDragLeave(e) { e.preventDefault(); setArrastando(false) }
+  function handleDrop(e) {
+    e.preventDefault()
+    setArrastando(false)
+    adicionarArquivos(e.dataTransfer.files)
+  }
+
+  // ── Modo manual salvar ────────────────────────────────────────────────────────
+
+  async function handleSalvarManual() {
+    if (!formData.fabricante || !formData.modelo) {
+      alert('Preencha fabricante e modelo')
+      return
+    }
+    try {
+      const url = modulo ? `${API_URL}/api/equipamentos/${modulo._id}` : `${API_URL}/api/equipamentos`
+      const res = await fetch(url, {
+        method: modulo ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      })
+      if (res.ok) { onSalvar(); onClose() }
+      else alert('Erro ao salvar módulo')
+    } catch { alert('Erro ao salvar módulo') }
+  }
+
+  // ── Sumário ──────────────────────────────────────────────────────────────────
+
+  const totalSalvos   = fila.reduce((s, i) => s + (i.modulosSalvos || 0), 0)
+  const totalErros    = fila.filter(i => i.status === 'erro').length
+  const totalPendente = fila.filter(i => i.status === 'pendente').length
+  const podeProcesar  = !processando && totalPendente > 0
+
+  // ── Render ───────────────────────────────────────────────────────────────────
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <Card className="w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-6 border-b">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <Card className="w-full max-w-2xl max-h-[92vh] flex flex-col">
+
+        {/* Header */}
+        <div className="flex items-center justify-between p-6 border-b shrink-0">
           <h2 className="text-xl font-bold text-slate-900">
             {modulo ? 'Editar Módulo' : 'Novo Módulo'}
           </h2>
@@ -199,328 +226,211 @@ export default function ModalNovoModulo({ modulo, onClose, onSalvar }) {
           </button>
         </div>
 
-        <div className="p-6 space-y-6">
+        <div className="overflow-y-auto flex-1 p-6 space-y-5">
+
+          {/* Abas */}
           {!modulo && (
             <div className="flex gap-2">
+              <Button
+                onClick={() => setModo('lote')}
+                variante={modo === 'lote' ? 'primario' : 'secundario'}
+                className="flex items-center gap-2"
+              >
+                <Upload size={15} /> Upload de Datasheets
+              </Button>
               <Button
                 onClick={() => setModo('manual')}
                 variante={modo === 'manual' ? 'primario' : 'secundario'}
               >
                 Preencher Manualmente
               </Button>
-              <Button
-                onClick={() => setModo('datasheet')}
-                variante={modo === 'datasheet' ? 'primario' : 'secundario'}
-                className="flex items-center gap-2"
-              >
-                <Upload size={16} />
-                Upload Datasheet
-              </Button>
             </div>
           )}
 
-          {modo === 'datasheet' && !modulo && (
+          {/* ── MODO LOTE ── */}
+          {(modo === 'lote' || modulo) && !modulo && (
             <div className="space-y-4">
+
+              {/* Zona de drop */}
               <div
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
-                className={`border-2 border-dashed rounded-lg p-12 text-center transition-all ${
+                onClick={() => !processando && inputRef.current?.click()}
+                className={`border-2 border-dashed rounded-xl p-10 text-center cursor-pointer transition-all select-none ${
                   arrastando
-                    ? 'border-emerald-500 bg-emerald-50 scale-105'
+                    ? 'border-emerald-500 bg-emerald-50 scale-[1.02]'
                     : 'border-blue-300 hover:border-blue-500 hover:bg-blue-50'
-                } ${carregando ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                } ${processando ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''}`}
               >
-                <label className="cursor-pointer block">
-                  <div className="flex justify-center mb-4">
-                    <div className={`p-4 rounded-full transition-colors ${arrastando ? 'bg-emerald-100' : 'bg-blue-100'}`}>
-                      <Upload size={40} className={arrastando ? 'text-emerald-600' : 'text-blue-600'} />
-                    </div>
+                <div className={`flex justify-center mb-3`}>
+                  <div className={`p-4 rounded-full ${arrastando ? 'bg-emerald-100' : 'bg-blue-100'}`}>
+                    <Upload size={36} className={arrastando ? 'text-emerald-600' : 'text-blue-600'} />
                   </div>
-                  {carregando ? (
-                    <>
-                      <p className="font-semibold text-slate-600 mb-1">Processando datasheet...</p>
-                      <p className="text-sm text-slate-500">Extraindo dados do PDF</p>
-                    </>
-                  ) : arquivo ? (
-                    <>
-                      <p className="font-semibold text-emerald-600 mb-1">✓ {arquivo}</p>
-                      <p className="text-sm text-slate-600">Carregado com sucesso!</p>
-                    </>
-                  ) : (
-                    <>
-                      <p className="font-semibold text-blue-600 mb-2">
-                        {arrastando ? '⬇️ Solte o datasheet aqui' : '📄 Arraste o datasheet para aqui'}
-                      </p>
-                      <p className="text-sm text-slate-600">ou clique para selecionar</p>
-                      <p className="text-xs text-slate-500 mt-2">Formatos aceitos: PDF</p>
-                    </>
-                  )}
-                  <input
-                    type="file"
-                    accept=".pdf"
-                    onChange={handleUploadDatasheet}
-                    className="hidden"
-                    disabled={carregando}
-                  />
-                </label>
+                </div>
+                <p className="font-semibold text-blue-700 mb-1">
+                  {arrastando ? 'Solte os PDFs aqui' : 'Arraste um ou mais datasheets PDF'}
+                </p>
+                <p className="text-sm text-slate-500">ou clique para selecionar</p>
+                <p className="text-xs text-slate-400 mt-2">Aceita múltiplos arquivos de uma vez</p>
+                <input
+                  ref={inputRef}
+                  type="file"
+                  accept=".pdf"
+                  multiple
+                  className="hidden"
+                  onChange={e => { adicionarArquivos(e.target.files); e.target.value = '' }}
+                  disabled={processando}
+                />
               </div>
 
-              {erroExtracao && (
-                <div className="bg-red-50 border border-red-300 rounded-lg p-4 flex gap-3">
-                  <AlertCircle size={20} className="text-red-600 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <p className="font-semibold text-red-900">Erro na extração</p>
-                    <p className="text-sm text-red-700">{erroExtracao}</p>
-                    <p className="text-xs text-red-600 mt-2">Preencha os dados manualmente ou tente outro PDF</p>
+              {/* Fila de arquivos */}
+              {fila.length > 0 && (
+                <div className="border border-slate-200 rounded-xl overflow-hidden">
+                  <div className="bg-slate-50 px-4 py-2 flex items-center justify-between border-b">
+                    <span className="text-sm font-semibold text-slate-700">
+                      {fila.length} arquivo{fila.length > 1 ? 's' : ''} na fila
+                    </span>
+                    {!processando && (
+                      <button
+                        onClick={() => setFila([])}
+                        className="text-xs text-slate-400 hover:text-red-500 transition-colors"
+                      >
+                        Limpar tudo
+                      </button>
+                    )}
                   </div>
+
+                  <ul className="divide-y divide-slate-100 max-h-64 overflow-y-auto">
+                    {fila.map(item => (
+                      <li key={item.id} className="flex items-center gap-3 px-4 py-3">
+                        <div className="shrink-0">{statusIcon(item.status)}</div>
+
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-slate-800 truncate">{item.nome}</p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            {statusLabel(item)}
+                            {item.variantes && (
+                              <span className="text-xs text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded">
+                                {item.variantes.length} variantes
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {item.status !== 'processando' && (
+                          <button
+                            onClick={() => removerItem(item.id)}
+                            className="shrink-0 text-slate-300 hover:text-red-400 transition-colors"
+                          >
+                            <X size={14} />
+                          </button>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               )}
 
-              {/* Multi-variante: seleção de potências */}
-              {variantes && variantes.length > 1 && (
-                <div className="bg-blue-50 border border-blue-300 rounded-lg p-4">
-                  <div className="flex items-center gap-2 mb-3">
-                    <CheckCircle size={20} className="text-blue-600" />
-                    <p className="font-semibold text-slate-900">
-                      Série detectada com {variantes.length} variantes de potência
-                    </p>
-                  </div>
-                  <p className="text-xs text-slate-600 mb-3">
-                    Selecione quais potências deseja cadastrar como módulos separados:
-                  </p>
-                  <div className="grid grid-cols-3 gap-2 mb-3">
-                    {variantes.map((v, idx) => (
-                      <label
-                        key={idx}
-                        className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-colors ${
-                          selecionadas.includes(idx)
-                            ? 'bg-blue-100 border-blue-500 text-blue-900'
-                            : 'bg-white border-slate-300 text-slate-600'
-                        }`}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={selecionadas.includes(idx)}
-                          onChange={() => toggleVariante(idx)}
-                          className="rounded"
-                        />
-                        <div className="text-sm">
-                          <div className="font-bold">{v.potenciaW} Wp</div>
-                          {v.voc && <div className="text-xs opacity-70">Voc {v.voc}V</div>}
-                          {v.eficiencia && <div className="text-xs opacity-70">η {v.eficiencia}%</div>}
-                        </div>
-                      </label>
-                    ))}
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => setSelecionadas(variantes.map((_, i) => i))}
-                      className="text-xs text-blue-700 underline"
-                    >
-                      Selecionar todas
-                    </button>
-                    <span className="text-xs text-slate-400">·</span>
-                    <button
-                      onClick={() => setSelecionadas([])}
-                      className="text-xs text-slate-500 underline"
-                    >
-                      Limpar
-                    </button>
-                  </div>
-
-                  {/* Tabela resumo das variantes selecionadas */}
-                  {selecionadas.length > 0 && (
-                    <div className="mt-3 overflow-x-auto">
-                      <table className="w-full text-xs border-collapse">
-                        <thead>
-                          <tr className="bg-blue-200">
-                            <th className="px-2 py-1 text-left">Wp</th>
-                            <th className="px-2 py-1">Voc</th>
-                            <th className="px-2 py-1">Vmpp</th>
-                            <th className="px-2 py-1">Isc</th>
-                            <th className="px-2 py-1">Impp</th>
-                            <th className="px-2 py-1">η%</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {selecionadas.map(idx => {
-                            const v = variantes[idx]
-                            return (
-                              <tr key={idx} className="border-t border-blue-200">
-                                <td className="px-2 py-1 font-bold">{v.potenciaW}</td>
-                                <td className="px-2 py-1 text-center">{v.voc ?? '—'}</td>
-                                <td className="px-2 py-1 text-center">{v.vmpp ?? '—'}</td>
-                                <td className="px-2 py-1 text-center">{v.isc ?? '—'}</td>
-                                <td className="px-2 py-1 text-center">{v.impp ?? '—'}</td>
-                                <td className="px-2 py-1 text-center">{v.eficiencia ?? '—'}</td>
-                              </tr>
-                            )
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
+              {/* Sumário pós-processamento */}
+              {concluido && (
+                <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-sm">
+                  <p className="font-semibold text-emerald-800 mb-1">Processamento concluído</p>
+                  <p className="text-emerald-700">{totalSalvos} módulo{totalSalvos !== 1 ? 's' : ''} cadastrado{totalSalvos !== 1 ? 's' : ''} com sucesso.</p>
+                  {totalErros > 0 && (
+                    <p className="text-amber-700 mt-1">{totalErros} arquivo{totalErros > 1 ? 's' : ''} com erro — verifique e tente novamente.</p>
                   )}
                 </div>
               )}
 
-              {/* Variante única extraída */}
-              {dadosExtraidos && (!variantes || variantes.length <= 1) && (
-                <div className={`border rounded-lg p-4 ${dadosExtraidos._debug?.campos_encontrados > 2 ? 'bg-emerald-50 border-emerald-300' : 'bg-amber-50 border-amber-300'}`}>
-                  <div className="flex items-center gap-2 mb-3">
-                    <CheckCircle size={20} className={dadosExtraidos._debug?.campos_encontrados > 2 ? 'text-emerald-600' : 'text-amber-600'} />
-                    <p className="font-semibold text-slate-900">
-                      {dadosExtraidos._debug?.campos_encontrados || 0} campos extraídos
-                    </p>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    {(dadosExtraidos.marca || dadosExtraidos.fabricante) && (
-                      <div className="flex justify-between gap-2">
-                        <span className="text-slate-600">Marca:</span>
-                        <span className="font-semibold">{dadosExtraidos.marca || dadosExtraidos.fabricante}</span>
-                      </div>
-                    )}
-                    {dadosExtraidos.modelo && (
-                      <div className="flex justify-between gap-2">
-                        <span className="text-slate-600">Modelo:</span>
-                        <span className="font-semibold">{dadosExtraidos.modelo}</span>
-                      </div>
-                    )}
-                    {(dadosExtraidos.potenciaW || dadosExtraidos.potencia_wp) && (
-                      <div className="flex justify-between gap-2">
-                        <span className="text-slate-600">Potência:</span>
-                        <span className="font-semibold">{dadosExtraidos.potenciaW || dadosExtraidos.potencia_wp} Wp</span>
-                      </div>
-                    )}
-                    {dadosExtraidos.voc && (
-                      <div className="flex justify-between gap-2">
-                        <span className="text-slate-600">Voc:</span>
-                        <span className="font-semibold">{dadosExtraidos.voc} V</span>
-                      </div>
-                    )}
-                    {(dadosExtraidos.vmpp || dadosExtraidos.vmp) && (
-                      <div className="flex justify-between gap-2">
-                        <span className="text-slate-600">Vmpp:</span>
-                        <span className="font-semibold">{dadosExtraidos.vmpp || dadosExtraidos.vmp} V</span>
-                      </div>
-                    )}
-                    {dadosExtraidos.isc && (
-                      <div className="flex justify-between gap-2">
-                        <span className="text-slate-600">Isc:</span>
-                        <span className="font-semibold">{dadosExtraidos.isc} A</span>
-                      </div>
-                    )}
-                    {(dadosExtraidos.impp || dadosExtraidos.imp) && (
-                      <div className="flex justify-between gap-2">
-                        <span className="text-slate-600">Impp:</span>
-                        <span className="font-semibold">{dadosExtraidos.impp || dadosExtraidos.imp} A</span>
-                      </div>
-                    )}
-                    {dadosExtraidos.eficiencia && (
-                      <div className="flex justify-between gap-2">
-                        <span className="text-slate-600">Eficiência:</span>
-                        <span className="font-semibold">{dadosExtraidos.eficiencia}%</span>
-                      </div>
-                    )}
-                  </div>
-                  <p className="text-xs text-slate-500 mt-2">Revise e ajuste os valores se necessário.</p>
-                </div>
-              )}
             </div>
           )}
 
-          {/* Campos manuais: sempre visíveis (em modo multi-variante, apenas fabricante/modelo) */}
-          <div className="grid grid-cols-2 gap-4">
-            <input
-              type="text"
-              placeholder="Fabricante"
-              value={formData.fabricante}
-              onChange={(e) => setFormData({ ...formData, fabricante: e.target.value })}
-              className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <input
-              type="text"
-              placeholder={variantes && variantes.length > 1 ? 'Modelo base (ex: ZXMR-144)' : 'Modelo'}
-              value={formData.modelo}
-              onChange={(e) => setFormData({ ...formData, modelo: e.target.value })}
-              className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            {(!variantes || variantes.length <= 1) && (
-              <>
-                <input
-                  type="number"
-                  placeholder="Potência (Wp)"
-                  value={formData.especificacoes?.potencia_wp || ''}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      especificacoes: { ...formData.especificacoes, potencia_wp: parseInt(e.target.value) },
-                    })
-                  }
-                  className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <input
-                  type="number"
-                  placeholder="Preço (R$)"
-                  value={formData.preco_sugerido}
-                  onChange={(e) => setFormData({ ...formData, preco_sugerido: parseFloat(e.target.value) })}
-                  className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <input
-                  type="number"
-                  placeholder="Voc (V)"
-                  step="0.01"
-                  value={formData.especificacoes?.voc || ''}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      especificacoes: { ...formData.especificacoes, voc: parseFloat(e.target.value) },
-                    })
-                  }
-                  className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <input
-                  type="number"
-                  placeholder="Vmp (V)"
-                  step="0.01"
-                  value={formData.especificacoes?.vmp || ''}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      especificacoes: { ...formData.especificacoes, vmp: parseFloat(e.target.value) },
-                    })
-                  }
-                  className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </>
-            )}
-            {variantes && variantes.length > 1 && (
+          {/* ── MODO MANUAL ── */}
+          {(modo === 'manual' || modulo) && (
+            <div className="grid grid-cols-2 gap-4">
+              <input
+                type="text"
+                placeholder="Fabricante"
+                value={formData.fabricante}
+                onChange={e => setFormData({ ...formData, fabricante: e.target.value })}
+                className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <input
+                type="text"
+                placeholder="Modelo"
+                value={formData.modelo}
+                onChange={e => setFormData({ ...formData, modelo: e.target.value })}
+                className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
               <input
                 type="number"
-                placeholder="Preço base por módulo (R$)"
-                value={formData.preco_sugerido}
-                onChange={(e) => setFormData({ ...formData, preco_sugerido: parseFloat(e.target.value) })}
-                className="col-span-2 px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Potência (Wp)"
+                value={formData.especificacoes?.potencia_wp || ''}
+                onChange={e => setFormData({ ...formData, especificacoes: { ...formData.especificacoes, potencia_wp: parseInt(e.target.value) } })}
+                className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-            )}
-          </div>
-
-          <div className="flex gap-2 justify-end">
-            <Button onClick={onClose} variante="secundario">
-              Cancelar
-            </Button>
-            <Button
-              onClick={handleSalvar}
-              disabled={carregando || (variantes && variantes.length > 1 && selecionadas.length === 0)}
-            >
-              {carregando
-                ? 'Salvando...'
-                : variantes && variantes.length > 1
-                ? `Salvar ${selecionadas.length} módulo${selecionadas.length !== 1 ? 's' : ''}`
-                : 'Salvar'}
-            </Button>
-          </div>
+              <input
+                type="number"
+                placeholder="Preço (R$)"
+                value={formData.preco_sugerido}
+                onChange={e => setFormData({ ...formData, preco_sugerido: parseFloat(e.target.value) })}
+                className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <input
+                type="number"
+                placeholder="Voc (V)"
+                step="0.01"
+                value={formData.especificacoes?.voc || ''}
+                onChange={e => setFormData({ ...formData, especificacoes: { ...formData.especificacoes, voc: parseFloat(e.target.value) } })}
+                className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <input
+                type="number"
+                placeholder="Vmp (V)"
+                step="0.01"
+                value={formData.especificacoes?.vmp || ''}
+                onChange={e => setFormData({ ...formData, especificacoes: { ...formData.especificacoes, vmp: parseFloat(e.target.value) } })}
+                className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          )}
         </div>
+
+        {/* Footer */}
+        <div className="flex gap-2 justify-between items-center p-6 border-t shrink-0">
+          <Button onClick={onClose} variante="secundario">
+            {concluido ? 'Fechar' : 'Cancelar'}
+          </Button>
+
+          {modo === 'lote' && !modulo && (
+            <div className="flex items-center gap-3">
+              {processando && (
+                <span className="text-sm text-slate-500 flex items-center gap-1.5">
+                  <Loader size={14} className="animate-spin" />
+                  Processando…
+                </span>
+              )}
+              <Button
+                onClick={processarFila}
+                disabled={!podeProcesar}
+                className="flex items-center gap-2"
+              >
+                <Plus size={15} />
+                {totalPendente > 0
+                  ? `Cadastrar ${totalPendente} datasheet${totalPendente > 1 ? 's' : ''}`
+                  : 'Cadastrar'}
+              </Button>
+            </div>
+          )}
+
+          {(modo === 'manual' || modulo) && (
+            <Button onClick={handleSalvarManual}>
+              Salvar
+            </Button>
+          )}
+        </div>
+
       </Card>
     </div>
   )
