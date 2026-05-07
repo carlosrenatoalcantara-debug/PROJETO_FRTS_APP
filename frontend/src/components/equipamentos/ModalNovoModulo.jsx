@@ -22,13 +22,16 @@ function statusLabel(item) {
   if (item.status === 'pendente')    return <span className="text-xs text-slate-400">Aguardando…</span>
   if (item.status === 'processando') return <span className="text-xs text-blue-600">Lendo datasheet…</span>
   if (item.status === 'salvo') {
-    const n = item.modulosSalvos || 0
+    const n = item.modulosSalvos    || 0
+    const u = item.modulosAtualizados || 0
     const aviso = item.aviso
-    if (n === 0) return <span className="text-xs text-slate-500">Já cadastrado — ignorado</span>
+    const partes = []
+    if (n > 0) partes.push(`${n} cadastrado${n > 1 ? 's' : ''}`)
+    if (u > 0) partes.push(`${u} atualizado${u > 1 ? 's' : ''}`)
+    if (!partes.length) return <span className="text-xs text-slate-500">Sem alterações</span>
     return (
       <span className={`text-xs ${aviso ? 'text-amber-600' : 'text-emerald-700'}`}>
-        {n} módulo{n > 1 ? 's' : ''} cadastrado{n > 1 ? 's' : ''}
-        {aviso && ' ⚠ verifique os dados'}
+        {partes.join(' · ')}{aviso && ' ⚠ verifique os dados'}
       </span>
     )
   }
@@ -111,9 +114,8 @@ export default function ModalNovoModulo({ modulo, onClose, onSalvar }) {
       const variantes = json.variantes && json.variantes.length > 1 ? json.variantes : null
       const aviso = json.avisos && json.avisos.length > 0 ? json.avisos[0] : null
 
-      // 2. Persistência com deduplicação automática
+      // 2. Persistência: cria novo ou atualiza existente mesclando dados
       const salvarModulo = async (payload) => {
-        // Verifica se já existe antes de salvar
         const params = new URLSearchParams({
           fabricante: payload.fabricante,
           modelo:     payload.modelo,
@@ -121,7 +123,25 @@ export default function ModalNovoModulo({ modulo, onClose, onSalvar }) {
         })
         const dup = await fetch(`${API_URL}/api/datasheet/verificar-duplicata?${params}`)
         const dupJson = await dup.json()
-        if (dupJson.duplicata) return false  // pula silenciosamente
+
+        if (dupJson.duplicata && dupJson.equipamento) {
+          // Atualiza: mescla especificações existentes com os novos dados mecânicos/garantias
+          const existente = dupJson.equipamento
+          const updatePayload = {
+            fabricante: payload.fabricante,
+            modelo:     payload.modelo,
+            especificacoes: { ...existente.especificacoes, ...payload.especificacoes },
+            ...(payload.garantia_produto     ? { garantia_produto:    payload.garantia_produto    } : {}),
+            ...(payload.garantia_performance ? { garantia_performance: payload.garantia_performance } : {}),
+          }
+          const r = await fetch(`${API_URL}/api/equipamentos/${existente._id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updatePayload),
+          })
+          if (!r.ok) throw new Error('Erro ao atualizar no banco')
+          return 'atualizado'
+        }
 
         const r = await fetch(`${API_URL}/api/equipamentos`, {
           method: 'POST',
@@ -129,7 +149,7 @@ export default function ModalNovoModulo({ modulo, onClose, onSalvar }) {
           body: JSON.stringify(payload),
         })
         if (!r.ok) throw new Error('Erro ao salvar no banco')
-        return true
+        return 'criado'
       }
 
       // Campos mecânicos e garantias são iguais para todas as variantes do mesmo datasheet
@@ -156,10 +176,16 @@ export default function ModalNovoModulo({ modulo, onClose, onSalvar }) {
       }
 
       let modulosSalvos = 0
+      let modulosAtualizados = 0
+
+      const contarResultado = (r) => {
+        if (r === 'criado')    modulosSalvos++
+        if (r === 'atualizado') modulosAtualizados++
+      }
 
       if (variantes) {
         for (const v of variantes) {
-          const salvo = await salvarModulo({
+          contarResultado(await salvarModulo({
             ...base,
             modelo: `${dados.modelo || 'Módulo'}-${v.potenciaW}W`,
             especificacoes: {
@@ -171,11 +197,10 @@ export default function ModalNovoModulo({ modulo, onClose, onSalvar }) {
               eficiencia: v.eficiencia,
               ...especMecanica,
             },
-          })
-          if (salvo) modulosSalvos++
+          }))
         }
       } else {
-        const salvo = await salvarModulo({
+        contarResultado(await salvarModulo({
           ...base,
           modelo: dados.modelo || 'Módulo',
           especificacoes: {
@@ -187,11 +212,10 @@ export default function ModalNovoModulo({ modulo, onClose, onSalvar }) {
             eficiencia: dados.eficiencia,
             ...especMecanica,
           },
-        })
-        if (salvo) modulosSalvos = 1
+        }))
       }
 
-      atualizarItem(item.id, { status: 'salvo', dados, variantes, modulosSalvos, aviso })
+      atualizarItem(item.id, { status: 'salvo', dados, variantes, modulosSalvos, modulosAtualizados, aviso })
     } catch (err) {
       console.error('Erro no item', item.nome, err)
       atualizarItem(item.id, { status: 'erro', erro: err.message })
@@ -245,7 +269,8 @@ export default function ModalNovoModulo({ modulo, onClose, onSalvar }) {
 
   // ── Sumário ──────────────────────────────────────────────────────────────────
 
-  const totalSalvos   = fila.reduce((s, i) => s + (i.modulosSalvos || 0), 0)
+  const totalSalvos      = fila.reduce((s, i) => s + (i.modulosSalvos     || 0), 0)
+  const totalAtualizados = fila.reduce((s, i) => s + (i.modulosAtualizados || 0), 0)
   const totalErros    = fila.filter(i => i.status === 'erro').length
   const totalPendente = fila.filter(i => i.status === 'pendente').length
   const podeProcesar  = !processando && totalPendente > 0
@@ -383,11 +408,16 @@ export default function ModalNovoModulo({ modulo, onClose, onSalvar }) {
 
               {/* Sumário pós-processamento */}
               {concluido && (
-                <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-sm">
-                  <p className="font-semibold text-emerald-800 mb-1">Processamento concluído</p>
-                  <p className="text-emerald-700">{totalSalvos} módulo{totalSalvos !== 1 ? 's' : ''} cadastrado{totalSalvos !== 1 ? 's' : ''} com sucesso.</p>
+                <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-sm space-y-1">
+                  <p className="font-semibold text-emerald-800">Processamento concluído</p>
+                  {totalSalvos > 0 && (
+                    <p className="text-emerald-700">✓ {totalSalvos} módulo{totalSalvos !== 1 ? 's' : ''} cadastrado{totalSalvos !== 1 ? 's' : ''}</p>
+                  )}
+                  {totalAtualizados > 0 && (
+                    <p className="text-blue-700">↻ {totalAtualizados} módulo{totalAtualizados !== 1 ? 's' : ''} atualizado{totalAtualizados !== 1 ? 's' : ''} com novos dados</p>
+                  )}
                   {totalErros > 0 && (
-                    <p className="text-amber-700 mt-1">{totalErros} arquivo{totalErros > 1 ? 's' : ''} com erro — verifique e tente novamente.</p>
+                    <p className="text-amber-700">✗ {totalErros} arquivo{totalErros > 1 ? 's' : ''} com erro — verifique e tente novamente.</p>
                   )}
                 </div>
               )}
