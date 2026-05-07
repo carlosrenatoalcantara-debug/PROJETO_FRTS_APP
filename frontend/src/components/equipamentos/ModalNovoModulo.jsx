@@ -54,7 +54,7 @@ export default function ModalNovoModulo({ modulo, onClose, onSalvar }) {
       modelo: '',
       especificacoes: {},
       preco_sugerido: 0,
-      garantia_produto: { value: 25, unit: 'anos' },
+      garantia_produto: { value: null, unit: 'anos' },
     }
   )
 
@@ -151,14 +151,8 @@ export default function ModalNovoModulo({ modulo, onClose, onSalvar }) {
         tipo: 'modulo',
         fabricante: dados.marca || dados.fabricante || 'Desconhecido',
         preco_sugerido: 0,
-        garantia_produto: {
-          value: dados.garantia_produto_anos || 12,
-          unit: 'anos',
-        },
-        garantia_performance: {
-          value: dados.garantia_performance_anos || 25,
-          unit: 'anos',
-        },
+        ...(dados.garantia_produto_anos    ? { garantia_produto:    { value: dados.garantia_produto_anos,    unit: 'anos' } } : {}),
+        ...(dados.garantia_performance_anos ? { garantia_performance: { value: dados.garantia_performance_anos, unit: 'anos' } } : {}),
       }
 
       let modulosSalvos = 0
