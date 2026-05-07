@@ -1,114 +1,65 @@
 import { PDFParse } from 'pdf-parse'
+import Anthropic from '@anthropic-ai/sdk'
 
-const MODELO_BLACKLIST = new Set([
-  'STANDARD', 'CERTIFIED', 'MODULE', 'INVERTER', 'SOLAR', 'SERIES',
-  'PRODUCT', 'SYSTEM', 'POWER', 'ENERGY', 'LINEAR', 'NORMAL', 'GENERAL',
-  'TYPE', 'TEST', 'CLASS', 'GRADE', 'LEVEL', 'QUALITY', 'WARRANTY',
-  'MONO', 'POLY', 'BIFACIAL', 'DATASHEET', 'SPECIFICATIONS', 'TECHNICAL',
-])
+const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
-function primeiraMatch(texto, padroes, validar) {
-  for (const re of padroes) {
-    const m = texto.match(re)
-    if (m) {
-      const val = m[1]?.trim()
-      if (val && (!validar || validar(val))) return val
+// ── Extração via IA (Claude) ──────────────────────────────────────────────────
+
+async function extrairComIA(textoPDF) {
+  // Limita o texto para não exceder tokens desnecessários
+  const texto = textoPDF.substring(0, 12000)
+
+  const prompt = `Você é um especialista em equipamentos fotovoltaicos. Analise o texto extraído de um datasheet de equipamento solar e retorne SOMENTE um JSON válido, sem markdown, sem explicações.
+
+REGRAS IMPORTANTES:
+- "modelo" deve ser o código técnico do produto (ex: JKM550M-72HL4, RS6-550W, LP182*182-M-72-MH). NUNCA use certificações (ISO, IEC, CE, UL) como modelo.
+- "fabricante" deve ser o nome da empresa fabricante (ex: Jinko Solar, Risen Energy, Leapton Solar). NUNCA use "Desconhecido".
+- Se o datasheet for de uma SÉRIE com múltiplas potências (ex: 590W, 595W, 600W, 605W), coloque cada variante em "variantes". Se for um único produto, coloque em "variantes" com um único item.
+- Todos os valores numéricos devem ser números (não strings).
+- Se não encontrar um campo, use null.
+
+CAMPOS ESPERADOS NO JSON:
+{
+  "fabricante": "Nome do fabricante",
+  "modelo": "Código do modelo base (sem a potência, ex: ZXMR-UPLDD144)",
+  "tipo": "modulo" ou "inversor",
+  "variantes": [
+    {
+      "potenciaW": 590,
+      "voc": 52.0,
+      "vmpp": 43.5,
+      "isc": 14.47,
+      "impp": 13.57,
+      "eficiencia": 21.8
     }
+  ],
+  "dadosMecanicos": {
+    "dimensoes": "2278x1134x35mm",
+    "peso": 32.5,
+    "celulas": "144 células monocristalinas",
+    "vidro": "vidro temperado 3.2mm",
+    "conector": "MC4"
   }
-  return null
 }
 
-// Extrai todas ocorrências de números flutuantes de uma linha de texto
-function numerosLinha(linha) {
-  return [...linha.matchAll(/\b(\d+(?:\.\d+)?)\b/g)].map(m => parseFloat(m[1]))
+TEXTO DO DATASHEET:
+${texto}`
+
+  const message = await anthropic.messages.create({
+    model: 'claude-haiku-4-5-20251001',
+    max_tokens: 1500,
+    messages: [{ role: 'user', content: prompt }],
+  })
+
+  const resposta = message.content[0].text.trim()
+
+  // Remove possível markdown ```json ... ```
+  const limpo = resposta.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim()
+
+  return JSON.parse(limpo)
 }
 
-/**
- * Tenta detectar múltiplas variantes de potência em um datasheet de série.
- * Retorna array de variantes ou null se o PDF não tiver tabela multi-coluna.
- */
-function extrairVariantes(texto) {
-  const linhas = texto.split(/\r?\n/).map(l => l.trim()).filter(Boolean)
-
-  // Localiza a seção de características elétricas
-  let secaoIdx = 0
-  for (let i = 0; i < linhas.length; i++) {
-    if (/ELECTRICAL\s*CHAR|CARACTER.{0,5}STICA.{0,5}\s*EL.{0,5}TRICA|PARAMETROS?\s*EL/i.test(linhas[i])) {
-      secaoIdx = i
-      break
-    }
-  }
-
-  // Procura uma linha com 3+ inteiros no intervalo 200–800 formando progressão aritmética
-  let potencias = null
-  let linhaPotIdx = -1
-
-  const janela = linhas.slice(secaoIdx, secaoIdx + 60)
-  for (let i = 0; i < janela.length; i++) {
-    const ints = [...janela[i].matchAll(/\b(\d{3,4})\b/g)].map(m => parseInt(m[1]))
-    const vals = ints.filter(n => n >= 200 && n <= 800)
-    if (vals.length < 3) continue
-    const diffs = vals.slice(1).map((v, j) => v - vals[j])
-    const passo = diffs[0]
-    if (passo > 0 && passo <= 25 && diffs.every(d => d === passo)) {
-      potencias = vals
-      linhaPotIdx = secaoIdx + i
-      break
-    }
-  }
-
-  if (!potencias) return null
-
-  const n = potencias.length
-  const variantes = potencias.map(p => ({ potenciaW: p }))
-
-  // Busca os parâmetros nas linhas seguintes (até 35 linhas após a linha de potência)
-  const bloco = linhas.slice(linhaPotIdx, linhaPotIdx + 35)
-
-  const assignParam = (chave, filtro) => {
-    for (const linha of bloco) {
-      const nums = numerosLinha(linha).filter(filtro)
-      if (nums.length >= n) {
-        // Pega os últimos n valores (a label pode ter números no nome)
-        const vals = nums.slice(-n)
-        vals.forEach((v, i) => { variantes[i][chave] = v })
-        return true
-      }
-    }
-    return false
-  }
-
-  // Detecta cada linha pelos rótulos de parâmetro
-  for (const linha of bloco) {
-    const u = linha.toUpperCase()
-    const nums = numerosLinha(linha)
-    const floats = nums.filter(v => v !== Math.floor(v) || (v > 0 && v < 100))
-
-    if (/VMP|VMPP|MAX.*VOLT|VOLTAGE.*MAX/i.test(u) && !/VOC/i.test(u)) {
-      const vals = nums.filter(v => v > 10 && v < 200)
-      if (vals.length >= n) vals.slice(-n).forEach((v, i) => { variantes[i].vmpp = v })
-    } else if (/VOC|OPEN.{0,15}CIRCUIT.{0,10}VOLT/i.test(u)) {
-      const vals = nums.filter(v => v > 10 && v < 200)
-      if (vals.length >= n) vals.slice(-n).forEach((v, i) => { variantes[i].voc = v })
-    } else if (/IMP|IMPP|MAX.*CURR|CURRENT.*MAX/i.test(u) && !/ISC/i.test(u)) {
-      const vals = nums.filter(v => v > 0 && v < 50)
-      if (vals.length >= n) vals.slice(-n).forEach((v, i) => { variantes[i].impp = v })
-    } else if (/ISC|SHORT.{0,15}CIRCUIT.{0,10}CURR/i.test(u)) {
-      const vals = nums.filter(v => v > 0 && v < 50)
-      if (vals.length >= n) vals.slice(-n).forEach((v, i) => { variantes[i].isc = v })
-    } else if (/EFFICI|EFICI/i.test(u)) {
-      // Eficiência: normalmente 15–27%, pode vir como "21.8" ou "21,8"
-      const vals = nums.filter(v => v > 5 && v < 35)
-      if (vals.length >= n) vals.slice(-n).forEach((v, i) => { variantes[i].eficiencia = v })
-    }
-  }
-
-  // Só retorna se extraiu pelo menos vmpp ou voc para a maioria das variantes
-  const completas = variantes.filter(v => v.vmpp || v.voc).length
-  if (completas < Math.floor(n / 2)) return null
-
-  return variantes
-}
+// ── Endpoint principal ────────────────────────────────────────────────────────
 
 export async function extrairDatasheet(req, res) {
   try {
@@ -116,141 +67,71 @@ export async function extrairDatasheet(req, res) {
       return res.status(400).json({ sucesso: false, erro: 'Arquivo PDF não fornecido' })
     }
 
+    // 1. Extrai texto do PDF
     const parser = new PDFParse({ data: req.file.buffer })
     const textResult = await parser.getText()
     await parser.destroy()
 
-    const textoOriginal = textResult.text
-    const texto = textoOriginal.toUpperCase()
-    const cabecalho = texto.substring(0, 600)
+    const textoPDF = textResult.text
+    console.log(`📄 PDF lido: ${textoPDF.length} chars`)
 
-    console.log('📄 TEXTO PDF (primeiros 1500 chars):\n', texto.substring(0, 1500))
-
-    const dados = {}
-
-    // ── MARCA / FABRICANTE ───────────────────────────────────────────────────
-    const marcaStr = primeiraMatch(cabecalho, [
-      /^([A-Z][A-Z\s]{2,30}?)\s+(?:ENERGY|SOLAR|TECHNOLOGY|POWER|INDUSTRIA|CO\.|INC\.|LTD)/m,
-      /^(JINKO|CANADIAN|TRINA|LONGI|JA\s*SOLAR|NPLUX|RISEN|RECOM|ASTRONERGY|SERAPHIM|SUNTECH|HYUNDAI|HANWHA|YINGLI|CSUN|CHINT|GROWATT|DEYE|SUNGROW|FRONIUS|SMA|ABB|HUAWEI|WEG|SIEMENS|LEAPTON|ZNSHINE|ZN.SHINE|MFDA|TW.SOLAR|BIFOCAL|RS6|RENESOLA)/m,
-    ], v => v.length < 60 && !MODELO_BLACKLIST.has(v))
-    if (marcaStr) dados.marca = marcaStr.replace(/\s+/g, ' ').trim()
-
-    // ── MODELO ───────────────────────────────────────────────────────────────
-    const modeloStr = primeiraMatch(texto, [
-      /(?:MODEL|TYPE|MODELO|SERIE|PART\s*NO\.?)\s*[:\-]?\s*([A-Z0-9][A-Z0-9\-\_\/\.]{4,35})/,
-      /^([A-Z]{2,6}[0-9]{2,4}[A-Z0-9\-\/\.]{3,25})/m,
-    ], v => {
-      if (MODELO_BLACKLIST.has(v)) return false
-      return /[0-9]/.test(v) && v.length >= 4
-    })
-    if (modeloStr) dados.modelo = modeloStr
-
-    // ── MULTI-VARIANTE (série com várias potências) ──────────────────────────
-    const variantes = extrairVariantes(texto)
-
-    if (variantes && variantes.length > 1) {
-      // Pega a primeira variante para preencher os campos principais
-      const primeira = variantes[0]
-      dados.potenciaW = primeira.potenciaW
-      dados.voc = primeira.voc
-      dados.vmpp = primeira.vmpp
-      dados.isc = primeira.isc
-      dados.impp = primeira.impp
-      dados.eficiencia = primeira.eficiencia
-
-      console.log(`🔢 ${variantes.length} variantes detectadas:`, variantes.map(v => v.potenciaW + 'W').join(', '))
-    } else {
-      // ── POTÊNCIA (Wp) ──────────────────────────────────────────────────────
-      const potStr = primeiraMatch(texto, [
-        /(?:PMAX|PMPP|MAXIMUM\s*POWER|MAX\s*POWER|RATED\s*POWER|PEAK\s*POWER)\s*[:\(]?[^0-9]{0,20}?([0-9]{3,4}(?:\.[0-9]+)?)\s*W(?!H)/i,
-        /([0-9]{3,4})\s*W\s*(?:@|AT|STC)/i,
-        /\b([1-9][0-9]{2,3})\s*W(?![HK])/,
-      ], v => { const n = parseInt(v); return n >= 50 && n <= 800 })
-      if (potStr) dados.potenciaW = parseInt(potStr)
-
-      // ── VOC ───────────────────────────────────────────────────────────────
-      const vocStr = primeiraMatch(texto, [
-        /(?:VOC|OPEN[\s\-]*CIRCUIT\s*VOLTAGE)\s*[:\(]?[^0-9]{0,10}([0-9]{2,3}(?:\.[0-9]{1,2})?)\s*V/i,
-        /V\s*OC\s*[:\(]?[^0-9]{0,5}([0-9]{2,3}(?:\.[0-9]{1,2})?)/i,
-      ], v => { const n = parseFloat(v); return n > 10 && n < 500 })
-      if (vocStr) dados.voc = parseFloat(vocStr)
-
-      // ── VMPP ──────────────────────────────────────────────────────────────
-      const vmppStr = primeiraMatch(texto, [
-        /(?:VMPP|VMP|MAXIMUM\s*POWER\s*VOLT(?:AGE)?|VOLTAGE\s*AT\s*MAX(?:IMUM)?\s*POWER)\s*[:\(]?[^0-9]{0,10}([0-9]{2,3}(?:\.[0-9]{1,2})?)\s*V/i,
-        /V\s*MP(?:P)?\s*[:\(]?[^0-9]{0,5}([0-9]{2,3}(?:\.[0-9]{1,2})?)/i,
-      ], v => { const n = parseFloat(v); return n > 10 && n < 500 })
-      if (vmppStr) dados.vmpp = parseFloat(vmppStr)
-
-      // ── ISC ───────────────────────────────────────────────────────────────
-      const iscStr = primeiraMatch(texto, [
-        /(?:ISC|SHORT[\s\-]*CIRCUIT\s*CURRENT)\s*[:\(]?[^0-9]{0,10}([0-9]{1,2}(?:\.[0-9]{1,2})?)\s*A/i,
-        /I\s*SC\s*[:\(]?[^0-9]{0,5}([0-9]{1,2}(?:\.[0-9]{1,2})?)/i,
-      ], v => { const n = parseFloat(v); return n > 0 && n < 50 })
-      if (iscStr) dados.isc = parseFloat(iscStr)
-
-      // ── IMPP ──────────────────────────────────────────────────────────────
-      const imppStr = primeiraMatch(texto, [
-        /(?:IMPP|IMP|MAXIMUM\s*POWER\s*CURRENT|CURRENT\s*AT\s*MAX(?:IMUM)?\s*POWER)\s*[:\(]?[^0-9]{0,10}([0-9]{1,2}(?:\.[0-9]{1,2})?)\s*A/i,
-        /I\s*MP(?:P)?\s*[:\(]?[^0-9]{0,5}([0-9]{1,2}(?:\.[0-9]{1,2})?)/i,
-      ], v => { const n = parseFloat(v); return n > 0 && n < 50 })
-      if (imppStr) dados.impp = parseFloat(imppStr)
-
-      // ── EFICIÊNCIA ────────────────────────────────────────────────────────
-      const efStr = primeiraMatch(texto, [
-        /(?:MODULE\s*EFFICIENCY|EFICIÊNCIA|EFFICIENCY)\s*[:\(]?[^0-9]{0,10}([0-9]{1,2}(?:\.[0-9]{1,2})?)\s*%/i,
-      ], v => { const n = parseFloat(v); return n > 5 && n < 30 })
-      if (efStr) dados.eficiencia = parseFloat(efStr)
+    // 2. Tenta extração com IA
+    if (!process.env.ANTHROPIC_API_KEY) {
+      return res.status(503).json({
+        sucesso: false,
+        erro: 'ANTHROPIC_API_KEY não configurada. Configure a variável de ambiente no servidor.',
+      })
     }
 
-    // ── POTÊNCIA INVERSOR (kW) — apenas se não houver potenciaW ─────────────
-    if (!dados.potenciaW) {
-      const kwStr = primeiraMatch(texto, [
-        /(?:RATED|NOMINAL|OUTPUT)\s*(?:AC\s*)?POWER\s*[:\(]?[^0-9]{0,10}([0-9]+(?:\.[0-9]+)?)\s*KW/i,
-        /([0-9]+(?:\.[0-9]+)?)\s*KW\s*(?:AC\s*)?(?:RATED|OUTPUT|NOMINAL)/i,
-      ], v => { const n = parseFloat(v); return n > 0 && n < 2000 })
-      if (kwStr) dados.potenciaKW = parseFloat(kwStr)
+    let iaResultado
+    try {
+      iaResultado = await extrairComIA(textoPDF)
+      console.log('✅ IA extraiu:', JSON.stringify(iaResultado, null, 2))
+    } catch (iaErr) {
+      console.error('❌ Erro na IA:', iaErr.message)
+      return res.status(500).json({
+        sucesso: false,
+        erro: `Falha na extração com IA: ${iaErr.message}`,
+      })
     }
 
-    // ── MPPT (inversores) ─────────────────────────────────────────────────────
-    const mpptStr = primeiraMatch(texto, [
-      /(?:NUMBER\s*OF\s*MPPT|NO\.\s*OF\s*MPPT|MPPT\s*(?:QUANTITY|QTY|TRACKERS?))\s*[:\(]?[^0-9]{0,5}([0-9]+)/i,
-      /([0-9]+)\s*(?:X\s*)?MPPT\s*(?:TRACKER|INPUT)/i,
-    ], v => { const n = parseInt(v); return n > 0 && n < 20 })
-    if (mpptStr) dados.nMppts = parseInt(mpptStr)
+    // 3. Normaliza a resposta da IA para o formato esperado pelo frontend
+    const { fabricante, modelo, tipo = 'modulo', variantes = [], dadosMecanicos } = iaResultado
 
-    // ── CORRENTE AC SAÍDA (inversores) ────────────────────────────────────────
-    const iacStr = primeiraMatch(texto, [
-      /(?:MAX(?:IMUM)?\s*(?:AC\s*)?OUTPUT\s*CURRENT|AC\s*OUTPUT\s*CURRENT)\s*[:\(]?[^0-9]{0,10}([0-9]+(?:\.[0-9]+)?)\s*A/i,
-    ], v => { const n = parseFloat(v); return n > 0 && n < 1000 })
-    if (iacStr) dados.correnteACSaida = parseFloat(iacStr)
+    // Garante que variantes é array
+    const variantesNorm = Array.isArray(variantes) ? variantes : [variantes].filter(Boolean)
 
-    // ── VALIDAÇÕES ────────────────────────────────────────────────────────────
-    const avisos = []
-    if (dados.voc && dados.vmpp && dados.voc <= dados.vmpp)
-      avisos.push(`VOC (${dados.voc}V) deveria ser maior que VMPP (${dados.vmpp}V)`)
-    if (dados.isc && dados.impp && dados.isc <= dados.impp)
-      avisos.push(`ISC (${dados.isc}A) deveria ser maior que IMPP (${dados.impp}A)`)
+    // Dados compartilhados (primeira variante ou objeto único)
+    const primeira = variantesNorm[0] || {}
 
-    const camposEncontrados = Object.keys(dados).length
-    const qualityScore = Math.min(100, camposEncontrados * 12)
+    const dados = {
+      fabricante: fabricante || 'Desconhecido',
+      modelo: modelo || '',
+      potenciaW: primeira.potenciaW || null,
+      voc: primeira.voc || null,
+      vmpp: primeira.vmpp || null,
+      isc: primeira.isc || null,
+      impp: primeira.impp || null,
+      eficiencia: primeira.eficiencia || null,
+      // campos para inversores
+      potenciaKW: primeira.potenciaKW || iaResultado.potenciaKW || null,
+      nMppts: primeira.nMppts || iaResultado.nMppts || null,
+      correnteACSaida: primeira.correnteACSaida || iaResultado.correnteACSaida || null,
+    }
 
-    console.log(`✅ ${camposEncontrados} campos extraídos`, dados)
+    const camposEncontrados = Object.values(dados).filter(v => v !== null && v !== '').length
 
     const resposta = {
       sucesso: true,
       dados,
-      qualityScore,
-      avisos,
-      _debug: {
-        chars: texto.length,
-        campos_encontrados: camposEncontrados,
-        texto_inicio: texto.substring(0, 800),
-      },
+      qualityScore: Math.min(100, camposEncontrados * 12),
+      avisos: [],
+      _debug: { chars: textoPDF.length, campos_encontrados: camposEncontrados },
     }
 
-    if (variantes && variantes.length > 1) {
-      resposta.variantes = variantes
+    // Retorna variantes separadas apenas quando há mais de uma
+    if (variantesNorm.length > 1) {
+      resposta.variantes = variantesNorm
     }
 
     res.json(resposta)
