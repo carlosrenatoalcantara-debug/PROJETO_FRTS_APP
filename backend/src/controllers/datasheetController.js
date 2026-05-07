@@ -81,6 +81,7 @@ function detectarFabricante(texto) {
 function detectarModelo(texto) {
   const padroes = [
     /\b(ZXMR-[A-Z0-9]+)/i,
+    /\b(ZXNR-[A-Z0-9]+)/i,
     /\b(RSM[0-9]+-[0-9]+-[0-9A-Z]+BMDG[A-Z0-9-]*)/i,
     /\b(RS6-[0-9~]+-?[0-9A-Z]*NBG[A-Z0-9-]*)/i,
     /\b(SIRIUS-[A-Z0-9-]+)/i,
@@ -376,24 +377,30 @@ export async function extrairDatasheet(req, res) {
     console.log(`📄 PDF recebido: ${pdfBuffer.length} bytes`)
 
     let resultado, metodo
+    const avisosClaude = []
 
     if (process.env.ANTHROPIC_API_KEY) {
+      // Claude é sempre o método principal — garante leitura precisa de modelo e dados
       try {
         resultado = await extrairComClaude(pdfBuffer)
         metodo = 'claude-pdf'
         console.log('✅ Claude extraiu:', JSON.stringify(resultado, null, 2))
       } catch (err) {
-        console.warn('⚠️ Claude falhou, usando parser de texto:', err.message)
+        console.warn('⚠️ Claude indisponível, usando parser de texto como contingência:', err.message)
         resultado = await extrairPorTexto(pdfBuffer)
-        metodo = 'texto-fallback'
+        metodo = 'texto-contingencia'
+        avisosClaude.push('Claude temporariamente indisponível — verifique o modelo e os dados antes de salvar.')
       }
     } else {
-      console.warn('⚠️ Sem ANTHROPIC_API_KEY — usando parser de texto')
+      console.warn('⚠️ ANTHROPIC_API_KEY não configurada — usando parser de texto')
       resultado = await extrairPorTexto(pdfBuffer)
       metodo = 'texto'
+      avisosClaude.push('Chave Claude não configurada — leitura por parser de texto. Verifique o modelo e os dados antes de salvar.')
     }
 
-    res.json(normalizar(resultado, metodo))
+    const resposta = normalizar(resultado, metodo)
+    if (avisosClaude.length) resposta.avisos = [...(resposta.avisos || []), ...avisosClaude]
+    res.json(resposta)
   } catch (err) {
     console.error('❌ Erro:', err)
     res.status(500).json({ sucesso: false, erro: 'Erro ao processar PDF: ' + err.message })

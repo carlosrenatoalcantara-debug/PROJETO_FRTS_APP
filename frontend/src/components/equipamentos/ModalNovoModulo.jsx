@@ -7,11 +7,14 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
 
 // ── Utilitários ───────────────────────────────────────────────────────────────
 
-function statusIcon(status) {
-  if (status === 'pendente')    return <FileText size={16} className="text-slate-400" />
-  if (status === 'processando') return <Loader size={16} className="text-blue-500 animate-spin" />
-  if (status === 'salvo')       return <CheckCircle size={16} className="text-emerald-500" />
-  if (status === 'erro')        return <AlertCircle size={16} className="text-red-500" />
+function statusIcon(item) {
+  const s = typeof item === 'string' ? item : item?.status
+  if (s === 'pendente')    return <FileText size={16} className="text-slate-400" />
+  if (s === 'processando') return <Loader size={16} className="text-blue-500 animate-spin" />
+  if (s === 'salvo')       return item?.aviso
+    ? <AlertCircle size={16} className="text-amber-500" />
+    : <CheckCircle size={16} className="text-emerald-500" />
+  if (s === 'erro')        return <AlertCircle size={16} className="text-red-500" />
   return null
 }
 
@@ -20,7 +23,13 @@ function statusLabel(item) {
   if (item.status === 'processando') return <span className="text-xs text-blue-600">Lendo datasheet…</span>
   if (item.status === 'salvo') {
     const n = item.modulosSalvos || 1
-    return <span className="text-xs text-emerald-700">{n} módulo{n > 1 ? 's' : ''} cadastrado{n > 1 ? 's' : ''}</span>
+    const aviso = item.aviso
+    return (
+      <span className={`text-xs ${aviso ? 'text-amber-600' : 'text-emerald-700'}`}>
+        {n} módulo{n > 1 ? 's' : ''} cadastrado{n > 1 ? 's' : ''}
+        {aviso && ' ⚠ verifique os dados'}
+      </span>
+    )
   }
   if (item.status === 'erro') return <span className="text-xs text-red-600 truncate">{item.erro}</span>
   return null
@@ -99,6 +108,7 @@ export default function ModalNovoModulo({ modulo, onClose, onSalvar }) {
 
       const dados = json.dados || json
       const variantes = json.variantes && json.variantes.length > 1 ? json.variantes : null
+      const aviso = json.avisos && json.avisos.length > 0 ? json.avisos[0] : null
 
       // 2. Persistência
       const salvarModulo = async (payload) => {
@@ -151,7 +161,7 @@ export default function ModalNovoModulo({ modulo, onClose, onSalvar }) {
         modulosSalvos = 1
       }
 
-      atualizarItem(item.id, { status: 'salvo', dados, variantes, modulosSalvos })
+      atualizarItem(item.id, { status: 'salvo', dados, variantes, modulosSalvos, aviso })
     } catch (err) {
       console.error('Erro no item', item.nome, err)
       atualizarItem(item.id, { status: 'erro', erro: err.message })
@@ -209,6 +219,7 @@ export default function ModalNovoModulo({ modulo, onClose, onSalvar }) {
   const totalErros    = fila.filter(i => i.status === 'erro').length
   const totalPendente = fila.filter(i => i.status === 'pendente').length
   const podeProcesar  = !processando && totalPendente > 0
+  const temAvisoIA    = fila.some(i => i.aviso)
 
   // ── Render ───────────────────────────────────────────────────────────────────
 
@@ -227,6 +238,14 @@ export default function ModalNovoModulo({ modulo, onClose, onSalvar }) {
         </div>
 
         <div className="overflow-y-auto flex-1 p-6 space-y-5">
+
+          {/* Banner: Claude indisponível */}
+          {temAvisoIA && (
+            <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm text-amber-800">
+              <AlertCircle size={16} className="shrink-0 mt-0.5 text-amber-500" />
+              <span>Claude IA não estava disponível — leitura feita por parser de texto. Confirme o nome do modelo e os dados elétricos antes de usar em projetos.</span>
+            </div>
+          )}
 
           {/* Abas */}
           {!modulo && (
@@ -304,7 +323,7 @@ export default function ModalNovoModulo({ modulo, onClose, onSalvar }) {
                   <ul className="divide-y divide-slate-100 max-h-64 overflow-y-auto">
                     {fila.map(item => (
                       <li key={item.id} className="flex items-center gap-3 px-4 py-3">
-                        <div className="shrink-0">{statusIcon(item.status)}</div>
+                        <div className="shrink-0">{statusIcon(item)}</div>
 
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium text-slate-800 truncate">{item.nome}</p>
