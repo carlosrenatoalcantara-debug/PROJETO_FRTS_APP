@@ -22,10 +22,10 @@ function statusLabel(item) {
   if (item.status === 'pendente')    return <span className="text-xs text-slate-400">Aguardando…</span>
   if (item.status === 'processando') return <span className="text-xs text-blue-600">Lendo datasheet…</span>
   if (item.status === 'salvo') {
-    if (item.duplicata) return <span className="text-xs text-slate-500">Já cadastrado — ignorado</span>
+    const acao = item.atualizado ? 'atualizado' : 'cadastrado'
     return (
       <span className={`text-xs ${item.aviso ? 'text-amber-600' : 'text-emerald-700'}`}>
-        Inversor cadastrado{item.aviso ? ' ⚠ verifique os dados' : ''}
+        Inversor {acao}{item.aviso ? ' ⚠ verifique os dados' : ''}
       </span>
     )
   }
@@ -75,16 +75,13 @@ export default function ModalNovoInversor({ arquivosIniciais = [], onClose, onSa
       const dados = json.dados || json
       const aviso = json.avisos?.length ? json.avisos[0] : null
 
-      // Verifica duplicata
+      // Verifica duplicata — se existir, atualiza; senão, cria
       const params = new URLSearchParams({ fabricante: dados.fabricante || '', modelo: dados.modelo || '', tipo: 'inversor' })
       const dupRes  = await fetch(`${API_URL}/api/datasheet/verificar-duplicata?${params}`)
       const dupJson = await dupRes.json()
-      if (dupJson.duplicata) {
-        atualizarItem(item.id, { status: 'salvo', dados, duplicata: true, aviso })
-        return
-      }
+      const existente = dupJson.duplicata ? dupJson.equipamento : null
 
-      // Salva no banco
+      // Monta payload
       const payload = {
         tipo: 'inversor',
         fabricante: dados.fabricante || 'Desconhecido',
@@ -144,14 +141,20 @@ export default function ModalNovoInversor({ arquivosIniciais = [], onClose, onSa
         if (payload.especificacoes[k] === null) delete payload.especificacoes[k]
       })
 
-      const saveRes = await fetch(`${API_URL}/api/equipamentos`, {
-        method: 'POST',
+      const url    = existente ? `${API_URL}/api/equipamentos/${existente._id}` : `${API_URL}/api/equipamentos`
+      const method = existente ? 'PUT' : 'POST'
+      const savePayload = existente
+        ? { ...payload, especificacoes: { ...existente.especificacoes, ...payload.especificacoes } }
+        : payload
+
+      const saveRes = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(savePayload),
       })
       if (!saveRes.ok) throw new Error('Erro ao salvar no banco')
 
-      atualizarItem(item.id, { status: 'salvo', dados, aviso })
+      atualizarItem(item.id, { status: 'salvo', dados, atualizado: !!existente, aviso })
     } catch (err) {
       console.error('Erro no item', item.nome, err)
       atualizarItem(item.id, { status: 'erro', erro: err.message })

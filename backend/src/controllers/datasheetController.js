@@ -386,6 +386,25 @@ function parsearRisenRSM(texto, linhas) {
   }))
 }
 
+function detectarTipo(texto) {
+  const t = texto.toLowerCase()
+  const inversorScore = (
+    (t.includes('inversor') || t.includes('inverter') ? 2 : 0) +
+    (t.includes('mppt') ? 1 : 0) +
+    (t.includes('grid') || t.includes('on-grid') || t.includes('rede') ? 1 : 0) +
+    (t.includes('thd') || t.includes('thdi') ? 1 : 0) +
+    (t.includes('ac output') || t.includes('saída ca') || t.includes('saida ca') ? 2 : 0) +
+    (t.includes('microinversor') || t.includes('micro inversor') || t.includes('micro-inversor') ? 2 : 0)
+  )
+  const moduloScore = (
+    (t.includes('módulo') || t.includes('modulo') || t.includes('panel') || t.includes('painel') ? 2 : 0) +
+    (t.includes('voc') && t.includes('vmp') ? 2 : 0) +
+    (t.includes('stc') ? 1 : 0) +
+    (t.includes('wp') || t.includes('watt peak') ? 1 : 0)
+  )
+  return inversorScore > moduloScore ? 'inversor' : 'modulo'
+}
+
 async function extrairPorTexto(pdfBuffer) {
   const parser = new PDFParse({ data: pdfBuffer })
   const result = await parser.getText()
@@ -394,6 +413,14 @@ async function extrairPorTexto(pdfBuffer) {
   const linhas = texto.split('\n').map(l => l.trim()).filter(Boolean)
   const fabricante = detectarFabricante(texto)
   const modelo     = detectarModelo(texto)
+  const tipo       = detectarTipo(texto)
+
+  if (tipo === 'inversor') {
+    // Para inversores o parser de texto extrai apenas identificação — Claude é necessário para os campos técnicos
+    const subtipo = /microinversor|micro.?inversor/i.test(texto) ? 'microinversor' : 'string'
+    return { fabricante, modelo, tipo: 'inversor', subtipo, variantes: [{}] }
+  }
+
   let variantes = []
   variantes = parsearSirius(texto)
   if (!variantes.length) variantes = parsearZNShineInline(linhas)
