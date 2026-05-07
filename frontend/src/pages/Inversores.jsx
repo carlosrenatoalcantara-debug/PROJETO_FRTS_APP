@@ -8,34 +8,48 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
 
 // Campos técnicos exibidos no card expandido — organizados para o unifilar
 const SPECS_AC = [
-  { key: 'potencia_kw',        label: 'Potência nominal AC',  unit: 'kW' },
-  { key: 'potencia_maxima_kw', label: 'Potência máxima AC',   unit: 'kW' },
-  { key: 'tensao_ac',          label: 'Tensão AC',            unit: 'V'  },
-  { key: 'fases',              label: 'Fases',                unit: 'F'  },
-  { key: 'frequencia_hz',      label: 'Frequência',           unit: 'Hz' },
-  { key: 'corrente_ac_saida',  label: 'Corrente AC saída',    unit: 'A'  },
-  { key: 'fator_potencia',     label: 'Fator de potência',    unit: ''   },
-  { key: 'thdi',               label: 'THDi',                 unit: '%'  },
+  { key: 'potencia_kw',         label: 'Potência nominal CA',   unit: 'kW'  },
+  { key: 'potencia_maxima_kw',  label: 'Potência máxima CA',    unit: 'kW'  },
+  { key: 'potencia_aparente_kva',label:'Potência aparente',     unit: 'kVA' },
+  { key: 'tensao_ac',           label: 'Tensão nominal da rede',unit: 'V'   },
+  { key: 'faixa_tensao_rede',   label: 'Faixa tensão da rede',  unit: ''    },
+  { key: 'fases',               label: 'Fases',                 unit: ''    },
+  { key: 'tipo_conexao_rede',   label: 'Conexão com a rede',    unit: ''    },
+  { key: 'frequencia_hz',       label: 'Frequência nominal',    unit: 'Hz'  },
+  { key: 'faixa_frequencia_hz', label: 'Faixa de frequência',   unit: ''    },
+  { key: 'corrente_ac_saida',   label: 'Corrente saída CA',     unit: 'A'   },
+  { key: 'fator_potencia',      label: 'Fator de potência',     unit: ''    },
+  { key: 'thdi',                label: 'THDi',                  unit: '%'   },
+  { key: 'max_por_cabo_tronco', label: 'Máx. por cabo tronco',  unit: 'un.' },
 ]
 const SPECS_DC = [
-  { key: 'n_mppts',               label: 'Nº de MPPTs',              unit: ''  },
-  { key: 'strings_por_mppt',      label: 'Entradas por MPPT',        unit: ''  },
-  { key: 'tensao_mppt_min',       label: 'Tensão MPPT mín.',         unit: 'V' },
-  { key: 'tensao_mppt_max',       label: 'Tensão MPPT máx.',         unit: 'V' },
-  { key: 'tensao_max_entrada',    label: 'Tensão máx. entrada DC',   unit: 'V' },
-  { key: 'corrente_max_entrada',  label: 'Corrente máx. entrada DC', unit: 'A' },
-  { key: 'corrente_max_por_mppt', label: 'Corrente máx. por MPPT',   unit: 'A' },
-  { key: 'corrente_isc_max',      label: 'Isc máx. por entrada',     unit: 'A' },
+  { key: 'n_mppts',                label: 'Nº de MPPTs',               unit: ''  },
+  { key: 'strings_por_mppt',       label: 'Strings por MPPT',          unit: ''  },
+  { key: 'potencia_max_entrada_cc',label: 'Potência máx. entrada CC',  unit: ''  },
+  { key: 'tensao_max_entrada',     label: 'Tensão máx. entrada DC',    unit: 'V' },
+  { key: 'tensao_partida',         label: 'Tensão de partida',         unit: 'V' },
+  { key: 'tensao_nominal_cc',      label: 'Tensão nominal CC',         unit: 'V' },
+  { key: 'tensao_mppt_min',        label: 'Tensão MPPT mín.',          unit: 'V' },
+  { key: 'tensao_mppt_max',        label: 'Tensão MPPT máx.',          unit: 'V' },
+  { key: 'faixa_operacao_cc',      label: 'Faixa operação CC',         unit: ''  },
+  { key: 'corrente_max_entrada',   label: 'Corrente máx. entrada DC',  unit: 'A' },
+  { key: 'corrente_max_por_mppt',  label: 'Corrente máx. por MPPT',    unit: 'A' },
+  { key: 'corrente_isc_max',       label: 'Isc máx. por entrada',      unit: 'A' },
 ]
 const SPECS_EXTRA = [
-  { key: 'eficiencia_maxima',       label: 'Eficiência máxima',   unit: '%'  },
-  { key: 'eficiencia_europeia',     label: 'Eficiência europeia', unit: '%'  },
-  { key: 'grau_protecao_ip',        label: 'Grau proteção IP',    unit: ''   },
-  { key: 'protecao_sobretensao_dc', label: 'Prot. sobretensão DC',unit: ''   },
-  { key: 'temperatura_operacao',    label: 'Temperatura operação', unit: ''  },
-  { key: 'peso_kg',                 label: 'Peso',                unit: 'kg' },
-  { key: 'dimensoes',               label: 'Dimensões',           unit: ''   },
-  { key: 'garantia_anos',           label: 'Garantia',            unit: 'anos'},
+  { key: 'eficiencia_maxima',       label: 'Eficiência máxima',     unit: '%'   },
+  { key: 'eficiencia_europeia',     label: 'Eficiência europeia',   unit: '%'   },
+  { key: 'eficiencia_cec',          label: 'Eficiência CEC',        unit: '%'   },
+  { key: 'eficiencia_mppt',         label: 'Eficiência MPPT',       unit: '%'   },
+  { key: 'grau_protecao_ip',        label: 'Grau de proteção IP',   unit: ''    },
+  { key: 'protecao_sobretensao_dc', label: 'Prot. sobretensão DC',  unit: ''    },
+  { key: 'protecao_sobretensao_ac', label: 'Prot. sobretensão CA',  unit: ''    },
+  { key: 'temperatura_operacao',    label: 'Temperatura operação',  unit: ''    },
+  { key: 'tipo_refrigeracao',       label: 'Refrigeração',          unit: ''    },
+  { key: 'comunicacao',             label: 'Comunicação',           unit: ''    },
+  { key: 'peso_kg',                 label: 'Peso',                  unit: 'kg'  },
+  { key: 'dimensoes',               label: 'Dimensões',             unit: 'mm'  },
+  { key: 'garantia_anos',           label: 'Garantia',              unit: 'anos'},
 ]
 
 function SpecGroup({ titulo, specs, espec }) {
@@ -204,13 +218,21 @@ export default function Inversores() {
                     <Zap size={18} className="text-blue-600" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-bold text-slate-900 truncate">{inv.fabricante} — {inv.modelo}</p>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="font-bold text-slate-900 truncate">{inv.fabricante} — {inv.modelo}</p>
+                      {espec.subtipo && (
+                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wide shrink-0
+                          ${espec.subtipo === 'microinversor' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
+                          {espec.subtipo === 'microinversor' ? 'Microinversor' : 'String'}
+                        </span>
+                      )}
+                    </div>
                     <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-slate-500 mt-0.5">
-                      {espec.potencia_kw        && <span>{espec.potencia_kw} kW</span>}
-                      {espec.tensao_ac           && <span>{espec.tensao_ac}V AC</span>}
-                      {espec.fases               && <span>{espec.fases}F</span>}
+                      {espec.potencia_kw        && <span className="font-semibold text-slate-700">{espec.potencia_kw} kW</span>}
+                      {espec.tensao_ac           && <span>{espec.tensao_ac}V CA</span>}
+                      {espec.fases               && <span>{espec.fases === 1 ? 'Monofásico' : espec.fases === 3 ? 'Trifásico' : `${espec.fases}F`}</span>}
                       {espec.n_mppts             && <span>{espec.n_mppts} MPPT{espec.n_mppts > 1 ? 's' : ''}</span>}
-                      {espec.tensao_max_entrada  && <span>Vmax {espec.tensao_max_entrada}V DC</span>}
+                      {espec.tensao_max_entrada  && <span>Vmax {espec.tensao_max_entrada}V CC</span>}
                       {espec.eficiencia_maxima   && <span>η {espec.eficiencia_maxima}%</span>}
                       {espec.grau_protecao_ip    && <span>{espec.grau_protecao_ip}</span>}
                     </div>

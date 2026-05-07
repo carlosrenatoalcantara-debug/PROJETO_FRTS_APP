@@ -97,12 +97,15 @@ function montarPromptClaude(exemplosCache) {
   return `Você é especialista em equipamentos fotovoltaicos. Analise este datasheet e retorne SOMENTE um JSON válido, sem markdown, sem explicação.
 
 REGRAS OBRIGATÓRIAS:
-1. "fabricante": nome oficial da empresa (ex: ZNShine Solar, Risen Energy, Canadian Solar, Jinko Solar, Trina Solar, LONGi, JA Solar, BYD, Huawei, Fronius, SMA, WEG, Growatt, Solis, Deye, Sofar, Solax, GoodWe). NUNCA use "Desconhecido".
+1. "fabricante": nome oficial da empresa (ex: ZNShine Solar, Risen Energy, Canadian Solar, Jinko Solar, Trina Solar, LONGi, JA Solar, BYD, Huawei, Fronius, SMA, WEG, Growatt, Solis, Deye, Sofar, Solax, GoodWe, Kehua). NUNCA use "Desconhecido".
 2. "modelo": código técnico do produto. NUNCA use certificações ISO/IEC/UL como modelo.
 3. "tipo": "modulo" para painéis fotovoltaicos, "inversor" para inversores solares.
-4. Para MÓDULOS com múltiplas potências na tabela: crie UMA variante para CADA potência listada.
-5. Para INVERSORES: extraia TODOS os campos abaixo. São usados para gerar o diagrama unifilar completo.
-6. Valores numéricos devem ser números. Use null se não encontrar.${contexto}
+4. "subtipo" (inversores): use "microinversor" se potência AC ≤ 3kW e tensão DC ≤ 60V; caso contrário use "string".
+5. Para MÓDULOS com múltiplas potências na tabela: crie UMA variante para CADA potência listada.
+6. Para INVERSORES com múltiplos modelos na mesma tabela: crie UMA variante para CADA modelo/potência.
+7. Potência: se o datasheet mostrar em W (micro-inversores), converta para kW (ex: 2000W → 2.0).
+8. Campos "Faixa" devem ser string legível, ex: "25~55 V" ou "176~242 Vca".
+9. Valores numéricos devem ser números. Use null se não encontrar.${contexto}
 
 ════════════════════════════════════════
 FORMATO PARA MÓDULOS (extraia TUDO que encontrar):
@@ -125,38 +128,53 @@ FORMATO PARA MÓDULOS (extraia TUDO que encontrar):
 }
 
 ════════════════════════════════════════
-FORMATO PARA INVERSORES (extraia TUDO que encontrar):
+FORMATO PARA INVERSORES — extraia TODOS os campos. Usados no diagrama unifilar:
 {
   "fabricante": "string",
-  "modelo": "string",
+  "modelo": "string (ex: SUN2000G3, SPI8K-B X2)",
   "tipo": "inversor",
+  "subtipo": "microinversor | string",
   "variantes": [{
-    "potencia_nominal_kw":    <Potência AC nominal em kW — número>,
-    "potencia_maxima_kw":     <Potência AC máxima em kW — número ou null>,
-    "tensao_ac_nominal":      <Tensão AC nominal em V, ex: 220 ou 380>,
-    "fases":                  <Número de fases: 1 ou 3>,
-    "frequencia_hz":          <Frequência em Hz, ex: 60>,
-    "corrente_ac_saida":      <Corrente AC de saída em A — número>,
-    "fator_potencia":         <Fator de potência, ex: 1.0 ou ">0.99">,
-    "thdi":                   <THD de corrente em %, ex: 3 — número ou null>,
-    "n_mppts":                <Número de rastreadores MPPT — inteiro>,
-    "strings_por_mppt":       <Número de entradas/strings por MPPT — inteiro ou null>,
-    "tensao_mppt_min":        <Tensão mínima da faixa MPPT em V>,
-    "tensao_mppt_max":        <Tensão máxima da faixa MPPT em V>,
-    "tensao_max_entrada":     <Tensão máxima de entrada DC (Vmax) em V>,
-    "corrente_max_entrada":   <Corrente máxima de entrada DC total em A>,
-    "corrente_max_por_mppt":  <Corrente máxima por MPPT em A>,
-    "corrente_isc_max":       <Corrente de curto-circuito máxima por string em A ou null>,
-    "eficiencia_maxima":      <Eficiência máxima em %, ex: 98.4>,
-    "eficiencia_europeia":    <Eficiência europeia EURO em % ou null>,
-    "protecao_antiilhamento": <true/false ou "certificada" ou null>,
-    "protecao_sobretensao_dc": <Tipo de proteção DC, ex: "Tipo II" ou null>,
-    "protecao_sobretensao_ac": <Tipo de proteção AC ou null>,
-    "grau_protecao_ip":       <Grau IP, ex: "IP65" ou "IP66">,
-    "temperatura_operacao":   <Faixa de temperatura, ex: "-25 a +60°C">,
-    "peso_kg":                <Peso em kg — número>,
-    "dimensoes":              <Dimensões HxLxP em mm, ex: "365x315x135">,
-    "garantia_anos":          <Garantia em anos — inteiro>
+    "modelo_variante":         "<Modelo específico desta variante, ex: SPI8K-B X2>",
+    "potencia_nominal_kw":     <Potência AC nominal em kW — SEMPRE kW (converta de W)>,
+    "potencia_maxima_kw":      <Potência AC máxima em kW — número ou null>,
+    "potencia_aparente_kva":   <Potência aparente em kVA — número ou null>,
+    "tensao_ac_nominal":       <Tensão nominal da rede AC, ex: "220/230" ou "380/400">,
+    "faixa_tensao_rede":       <Faixa de tensão da rede, ex: "176~242 Vca / 185~265 Vca" ou null>,
+    "fases":                   <Número de fases: 1 ou 3>,
+    "tipo_conexao_rede":       <Tipo de conexão, ex: "L+N+PE" ou "3F+N+PE" ou null>,
+    "frequencia_hz":           <Frequência nominal da rede em Hz, ex: 50 ou 60>,
+    "faixa_frequencia_hz":     <Faixa de frequência, ex: "45~55 / 55~65 Hz" ou null>,
+    "corrente_ac_saida":       <Corrente nominal/máxima de saída AC em A — número>,
+    "fator_potencia":          <Fator de potência, ex: ">0.99">,
+    "thdi":                    <THDi em % — número ou string como "<3" ou null>,
+    "n_mppts":                 <Número de rastreadores MPPT — inteiro>,
+    "strings_por_mppt":        <Strings/entradas por MPPT, ex: "1/1" ou "2/2" — string ou inteiro>,
+    "potencia_max_entrada_cc": <Potência máxima de entrada DC em W (micro) ou kWp (string) — número ou null>,
+    "tensao_max_entrada":      <Tensão máxima de entrada DC (Vmax) em V>,
+    "tensao_partida":          <Tensão de partida/startup em V — número ou null>,
+    "tensao_nominal_cc":       <Tensão nominal CC em V — número ou null>,
+    "tensao_mppt_min":         <Tensão mínima MPPT em V>,
+    "tensao_mppt_max":         <Tensão máxima MPPT em V>,
+    "faixa_operacao_cc":       <Faixa de operação CC, ex: "20~60 V" — string ou null>,
+    "corrente_max_entrada":    <Corrente máxima de entrada DC total em A>,
+    "corrente_max_por_mppt":   <Corrente máxima por MPPT em A — número ou string como "15A/15A">,
+    "corrente_isc_max":        <Corrente de curto-circuito máxima por string em A — número ou null>,
+    "eficiencia_maxima":       <Eficiência máxima em %, ex: 98.6>,
+    "eficiencia_europeia":     <Eficiência europeia/EURO em % ou null>,
+    "eficiencia_cec":          <Eficiência ponderada CEC em % ou null (micro-inversores)>,
+    "eficiencia_mppt":         <Eficiência do MPPT em % ou null>,
+    "protecao_antiilhamento":  <"Sim" ou true ou null>,
+    "protecao_sobretensao_dc": <Tipo de proteção DC, ex: "Tipo II" ou "DC Type II">,
+    "protecao_sobretensao_ac": <Tipo de proteção AC, ex: "Tipo III" ou null>,
+    "grau_protecao_ip":        <Grau IP, ex: "IP66" ou "IP67">,
+    "temperatura_operacao":    <Faixa de temperatura, ex: "-40~+65°C">,
+    "tipo_refrigeracao":       <"Natural" ou "Forçada" ou null>,
+    "comunicacao":             <Interface de comunicação, ex: "WiFi" ou "RS485/WiFi">,
+    "max_por_cabo_tronco":     <Máx. microinversores por cabo tronco — inteiro ou null (só micro)>,
+    "peso_kg":                 <Peso em kg — número>,
+    "dimensoes":               <Dimensões em mm, ex: "460x420x182">,
+    "garantia_anos":           <Garantia em anos — inteiro>
   }]
 }`
 }
@@ -398,36 +416,47 @@ function normalizar(resultado, metodo) {
   const dados = { fabricante: fabricante || null, modelo: modelo || null, tipo }
 
   if (tipo === 'inversor') {
-    // Todos os campos técnicos do inversor — passados diretamente para o frontend
+    const sub = resultado.subtipo || null
     Object.assign(dados, {
+      subtipo:               sub,
       potenciaKW:            primeira.potencia_nominal_kw   || primeira.potenciaKW          || null,
       potencia_nominal_kw:   primeira.potencia_nominal_kw                                   || null,
       potencia_maxima_kw:    primeira.potencia_maxima_kw                                    || null,
+      potencia_aparente_kva: primeira.potencia_aparente_kva                                 || null,
       tensao_ac:             primeira.tensao_ac_nominal     || primeira.tensao_ac            || null,
+      faixa_tensao_rede:     primeira.faixa_tensao_rede                                     || null,
       fases:                 primeira.fases                 || primeira.faseAC               || null,
+      tipo_conexao_rede:     primeira.tipo_conexao_rede                                     || null,
       frequencia_hz:         primeira.frequencia_hz                                         || null,
+      faixa_frequencia_hz:   primeira.faixa_frequencia_hz                                   || null,
       corrente_ac_saida:     primeira.corrente_ac_saida     || primeira.correnteACSaida      || null,
       fator_potencia:        primeira.fator_potencia                                        || null,
       thdi:                  primeira.thdi                                                  || null,
-      nMppts:                primeira.n_mppts               || primeira.nMppts               || null,
       n_mppts:               primeira.n_mppts               || primeira.nMppts               || null,
       strings_por_mppt:      primeira.strings_por_mppt                                      || null,
-      tensaoMpptMin:         primeira.tensao_mppt_min       || primeira.tensaoMpptMin        || null,
-      tensao_mppt_min:       primeira.tensao_mppt_min       || primeira.tensaoMpptMin        || null,
-      tensaoMpptMax:         primeira.tensao_mppt_max       || primeira.tensaoMpptMax        || null,
-      tensao_mppt_max:       primeira.tensao_mppt_max       || primeira.tensaoMpptMax        || null,
+      potencia_max_entrada_cc: primeira.potencia_max_entrada_cc                             || null,
       tensao_max_entrada:    primeira.tensao_max_entrada                                    || null,
+      tensao_partida:        primeira.tensao_partida                                        || null,
+      tensao_nominal_cc:     primeira.tensao_nominal_cc                                     || null,
+      tensao_mppt_min:       primeira.tensao_mppt_min       || primeira.tensaoMpptMin        || null,
+      tensao_mppt_max:       primeira.tensao_mppt_max       || primeira.tensaoMpptMax        || null,
+      faixa_operacao_cc:     primeira.faixa_operacao_cc                                     || null,
       corrente_max_entrada:  primeira.corrente_max_entrada                                  || null,
       corrente_max_por_mppt: primeira.corrente_max_por_mppt                                 || null,
       corrente_isc_max:      primeira.corrente_isc_max                                      || null,
       eficiencia:            primeira.eficiencia_maxima     || primeira.eficiencia            || null,
       eficiencia_maxima:     primeira.eficiencia_maxima                                     || null,
       eficiencia_europeia:   primeira.eficiencia_europeia                                   || null,
-      protecao_antiilhamento: primeira.protecao_antiilhamento                               || null,
+      eficiencia_cec:        primeira.eficiencia_cec                                        || null,
+      eficiencia_mppt:       primeira.eficiencia_mppt                                       || null,
+      protecao_antiilhamento:  primeira.protecao_antiilhamento                              || null,
       protecao_sobretensao_dc: primeira.protecao_sobretensao_dc                             || null,
       protecao_sobretensao_ac: primeira.protecao_sobretensao_ac                             || null,
-      grau_protecao_ip:      primeira.grau_protecao_ip                                     || null,
+      grau_protecao_ip:      primeira.grau_protecao_ip                                      || null,
       temperatura_operacao:  primeira.temperatura_operacao                                  || null,
+      tipo_refrigeracao:     primeira.tipo_refrigeracao                                     || null,
+      comunicacao:           primeira.comunicacao                                           || null,
+      max_por_cabo_tronco:   primeira.max_por_cabo_tronco                                   || null,
       peso_kg:               primeira.peso_kg                                               || null,
       dimensoes:             primeira.dimensoes                                             || null,
       garantia_anos:         primeira.garantia_anos                                         || null,
