@@ -576,6 +576,22 @@ export async function extrairDatasheet(req, res) {
 // ENDPOINT: lista fabricantes aprendidos
 // ─────────────────────────────────────────────────────────────────────────────
 
+export async function diagnosticoIA(req, res) {
+  const chave = process.env.ANTHROPIC_API_KEY
+  if (!chave) return res.json({ ok: false, motivo: 'ANTHROPIC_API_KEY não configurada' })
+  try {
+    const client = new Anthropic({ apiKey: chave })
+    const msg = await client.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 16,
+      messages: [{ role: 'user', content: 'responda só: ok' }],
+    })
+    res.json({ ok: true, resposta: msg.content[0].text, chave_prefixo: chave.slice(0, 10) + '...' })
+  } catch (err) {
+    res.json({ ok: false, motivo: err.message, chave_prefixo: chave.slice(0, 10) + '...' })
+  }
+}
+
 export async function listarFabricantesAprendidos(req, res) {
   try {
     const docs = await DatasheetCache.find({}).sort({ totalExtrações: -1 }).lean()
