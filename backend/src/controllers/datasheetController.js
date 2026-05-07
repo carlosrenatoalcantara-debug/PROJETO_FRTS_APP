@@ -97,33 +97,58 @@ function montarPromptClaude(exemplosCache) {
   return `Você é especialista em equipamentos fotovoltaicos. Analise este datasheet e retorne SOMENTE um JSON válido, sem markdown, sem explicação.
 
 REGRAS OBRIGATÓRIAS:
-1. "fabricante": nome oficial da empresa fabricante do módulo/inversor (ex: ZNShine Solar, Risen Energy, Canadian Solar, Jinko Solar, Trina Solar, LONGi, JA Solar, BYD, Huawei, Fronius, SMA, WEG, Growatt, Solis, Deye). NUNCA use "Desconhecido".
-2. "modelo": código técnico do produto (ex: ZXNR-BD132, RSM110-8-540BMDG, RS6-560NBG, JKM580N-72HL4). NUNCA use certificações ISO/IEC/UL como modelo.
-3. "tipo": "modulo" para painéis fotovoltaicos, "inversor" para inversores.
-4. Se o datasheet contiver MÚLTIPLAS potências (ex: tabela com 560W, 565W, 570W, 575W, 580W), crie UMA variante para CADA potência.
-5. Todos os valores numéricos devem ser números (não strings). Use null se não encontrar.
-6. Para módulos: extraia Voc (V), Vmpp (V), Isc (A), Impp (A), eficiência (%), potência (W) de cada variante.
-7. Para inversores: extraia potência AC (kW), número de MPPTs, tensão MPPT min/max, corrente AC saída, fases.${contexto}
+1. "fabricante": nome oficial da empresa (ex: ZNShine Solar, Risen Energy, Canadian Solar, Jinko Solar, Trina Solar, LONGi, JA Solar, BYD, Huawei, Fronius, SMA, WEG, Growatt, Solis, Deye, Sofar, Solax, GoodWe). NUNCA use "Desconhecido".
+2. "modelo": código técnico do produto. NUNCA use certificações ISO/IEC/UL como modelo.
+3. "tipo": "modulo" para painéis fotovoltaicos, "inversor" para inversores solares.
+4. Para MÓDULOS com múltiplas potências na tabela: crie UMA variante para CADA potência listada.
+5. Para INVERSORES: extraia TODOS os campos abaixo. São usados para gerar o diagrama unifilar completo.
+6. Valores numéricos devem ser números. Use null se não encontrar.${contexto}
 
-FORMATO DE RESPOSTA:
+════════════════════════════════════════
+FORMATO PARA MÓDULOS:
 {
   "fabricante": "string",
   "modelo": "string",
   "tipo": "modulo",
   "variantes": [
-    { "potenciaW": 560, "voc": 50.67, "vmpp": 41.95, "isc": 14.13, "impp": 13.35, "eficiencia": 21.68 },
-    { "potenciaW": 565, "voc": 50.87, "vmpp": 42.14, "isc": 14.19, "impp": 13.41, "eficiencia": 21.87 }
+    { "potenciaW": 560, "voc": 50.67, "vmpp": 41.95, "isc": 14.13, "impp": 13.35, "eficiencia": 21.68 }
   ]
 }
 
-Para inversores use:
+════════════════════════════════════════
+FORMATO PARA INVERSORES (extraia TUDO que encontrar):
 {
   "fabricante": "string",
   "modelo": "string",
   "tipo": "inversor",
-  "variantes": [
-    { "potenciaKW": 5.0, "nMppts": 2, "tensaoMpptMin": 80, "tensaoMpptMax": 600, "correnteACSaida": 22.8, "faseAC": 1 }
-  ]
+  "variantes": [{
+    "potencia_nominal_kw":    <Potência AC nominal em kW — número>,
+    "potencia_maxima_kw":     <Potência AC máxima em kW — número ou null>,
+    "tensao_ac_nominal":      <Tensão AC nominal em V, ex: 220 ou 380>,
+    "fases":                  <Número de fases: 1 ou 3>,
+    "frequencia_hz":          <Frequência em Hz, ex: 60>,
+    "corrente_ac_saida":      <Corrente AC de saída em A — número>,
+    "fator_potencia":         <Fator de potência, ex: 1.0 ou ">0.99">,
+    "thdi":                   <THD de corrente em %, ex: 3 — número ou null>,
+    "n_mppts":                <Número de rastreadores MPPT — inteiro>,
+    "strings_por_mppt":       <Número de entradas/strings por MPPT — inteiro ou null>,
+    "tensao_mppt_min":        <Tensão mínima da faixa MPPT em V>,
+    "tensao_mppt_max":        <Tensão máxima da faixa MPPT em V>,
+    "tensao_max_entrada":     <Tensão máxima de entrada DC (Vmax) em V>,
+    "corrente_max_entrada":   <Corrente máxima de entrada DC total em A>,
+    "corrente_max_por_mppt":  <Corrente máxima por MPPT em A>,
+    "corrente_isc_max":       <Corrente de curto-circuito máxima por string em A ou null>,
+    "eficiencia_maxima":      <Eficiência máxima em %, ex: 98.4>,
+    "eficiencia_europeia":    <Eficiência europeia EURO em % ou null>,
+    "protecao_antiilhamento": <true/false ou "certificada" ou null>,
+    "protecao_sobretensao_dc": <Tipo de proteção DC, ex: "Tipo II" ou null>,
+    "protecao_sobretensao_ac": <Tipo de proteção AC ou null>,
+    "grau_protecao_ip":       <Grau IP, ex: "IP65" ou "IP66">,
+    "temperatura_operacao":   <Faixa de temperatura, ex: "-25 a +60°C">,
+    "peso_kg":                <Peso em kg — número>,
+    "dimensoes":              <Dimensões HxLxP em mm, ex: "365x315x135">,
+    "garantia_anos":          <Garantia em anos — inteiro>
+  }]
 }`
 }
 
@@ -359,26 +384,63 @@ function normalizar(resultado, metodo) {
   const { fabricante, modelo, tipo = 'modulo', variantes = [] } = resultado
   const variantesNorm = Array.isArray(variantes) ? variantes : [variantes].filter(Boolean)
   const primeira = variantesNorm[0] || {}
-  const dados = {
-    fabricante:      fabricante              || null,
-    modelo:          modelo                  || null,
-    potenciaW:       primeira.potenciaW      || null,
-    voc:             primeira.voc            || null,
-    vmpp:            primeira.vmpp           || null,
-    isc:             primeira.isc            || null,
-    impp:            primeira.impp           || null,
-    eficiencia:      primeira.eficiencia     || null,
-    potenciaKW:      primeira.potenciaKW     || resultado.potenciaKW     || null,
-    nMppts:          primeira.nMppts         || resultado.nMppts         || null,
-    correnteACSaida: primeira.correnteACSaida || resultado.correnteACSaida || null,
+
+  // Campos comuns
+  const dados = { fabricante: fabricante || null, modelo: modelo || null, tipo }
+
+  if (tipo === 'inversor') {
+    // Todos os campos técnicos do inversor — passados diretamente para o frontend
+    Object.assign(dados, {
+      potenciaKW:            primeira.potencia_nominal_kw   || primeira.potenciaKW          || null,
+      potencia_nominal_kw:   primeira.potencia_nominal_kw                                   || null,
+      potencia_maxima_kw:    primeira.potencia_maxima_kw                                    || null,
+      tensao_ac:             primeira.tensao_ac_nominal     || primeira.tensao_ac            || null,
+      fases:                 primeira.fases                 || primeira.faseAC               || null,
+      frequencia_hz:         primeira.frequencia_hz                                         || null,
+      corrente_ac_saida:     primeira.corrente_ac_saida     || primeira.correnteACSaida      || null,
+      fator_potencia:        primeira.fator_potencia                                        || null,
+      thdi:                  primeira.thdi                                                  || null,
+      nMppts:                primeira.n_mppts               || primeira.nMppts               || null,
+      n_mppts:               primeira.n_mppts               || primeira.nMppts               || null,
+      strings_por_mppt:      primeira.strings_por_mppt                                      || null,
+      tensaoMpptMin:         primeira.tensao_mppt_min       || primeira.tensaoMpptMin        || null,
+      tensao_mppt_min:       primeira.tensao_mppt_min       || primeira.tensaoMpptMin        || null,
+      tensaoMpptMax:         primeira.tensao_mppt_max       || primeira.tensaoMpptMax        || null,
+      tensao_mppt_max:       primeira.tensao_mppt_max       || primeira.tensaoMpptMax        || null,
+      tensao_max_entrada:    primeira.tensao_max_entrada                                    || null,
+      corrente_max_entrada:  primeira.corrente_max_entrada                                  || null,
+      corrente_max_por_mppt: primeira.corrente_max_por_mppt                                 || null,
+      corrente_isc_max:      primeira.corrente_isc_max                                      || null,
+      eficiencia:            primeira.eficiencia_maxima     || primeira.eficiencia            || null,
+      eficiencia_maxima:     primeira.eficiencia_maxima                                     || null,
+      eficiencia_europeia:   primeira.eficiencia_europeia                                   || null,
+      protecao_antiilhamento: primeira.protecao_antiilhamento                               || null,
+      protecao_sobretensao_dc: primeira.protecao_sobretensao_dc                             || null,
+      protecao_sobretensao_ac: primeira.protecao_sobretensao_ac                             || null,
+      grau_protecao_ip:      primeira.grau_protecao_ip                                     || null,
+      temperatura_operacao:  primeira.temperatura_operacao                                  || null,
+      peso_kg:               primeira.peso_kg                                               || null,
+      dimensoes:             primeira.dimensoes                                             || null,
+      garantia_anos:         primeira.garantia_anos                                         || null,
+    })
+  } else {
+    Object.assign(dados, {
+      potenciaW:  primeira.potenciaW  || null,
+      voc:        primeira.voc        || null,
+      vmpp:       primeira.vmpp       || null,
+      isc:        primeira.isc        || null,
+      impp:       primeira.impp       || null,
+      eficiencia: primeira.eficiencia || null,
+    })
   }
+
   const camposEncontrados = Object.values(dados).filter(v => v !== null && v !== '').length
   const resposta = {
     sucesso: true,
     dados,
-    qualityScore: Math.min(100, camposEncontrados * 12),
+    qualityScore: Math.min(100, camposEncontrados * 5),
     avisos: [],
-    _debug: { campos_encontrados: camposEncontrados, metodo },
+    _debug: { campos_encontrados: camposEncontrados, metodo, tipo },
   }
   if (variantesNorm.length > 1) resposta.variantes = variantesNorm
   return resposta
@@ -458,15 +520,19 @@ export async function listarFabricantesAprendidos(req, res) {
 
 export async function verificarDuplicata(req, res) {
   try {
-    const { fabricante, modelo, potenciaW } = req.query
+    const { fabricante, modelo, potenciaW, tipo = 'modulo' } = req.query
     if (!fabricante || !modelo) return res.json({ duplicata: false })
 
+    const modeloBase = tipo === 'modulo'
+      ? modelo.replace(/[-\d]+W$/, '')
+      : modelo
+
     const query = {
-      tipo: 'modulo',
-      fabricante: { $regex: fabricante, $options: 'i' },
-      modelo:     { $regex: modelo.replace(/[-\d]+W$/, ''), $options: 'i' },
+      tipo,
+      fabricante: { $regex: fabricante.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' },
+      modelo:     { $regex: modeloBase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' },
     }
-    if (potenciaW) query['especificacoes.potencia_wp'] = Number(potenciaW)
+    if (potenciaW && tipo === 'modulo') query['especificacoes.potencia_wp'] = Number(potenciaW)
 
     const existe = await Equipamento.findOne(query).lean()
     res.json({ duplicata: !!existe, equipamento: existe || null })

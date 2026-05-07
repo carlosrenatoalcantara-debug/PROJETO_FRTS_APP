@@ -1,355 +1,273 @@
-import { useState } from 'react'
-import { X, Upload, CheckCircle, AlertCircle } from 'lucide-react'
+import { useState, useRef } from 'react'
+import { X, Upload, CheckCircle, AlertCircle, Loader, FileText, Zap } from 'lucide-react'
 import Button from '../ui/Button'
 import Card from '../ui/Card'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
 
-export default function ModalNovoInversor({ inversor, onClose, onSalvar }) {
-  const [modo, setModo] = useState('manual')
-  const [carregando, setCarregando] = useState(false)
-  const [arquivo, setArquivo] = useState(null)
+// ── Status helpers ────────────────────────────────────────────────────────────
+
+function statusIcon(item) {
+  const s = typeof item === 'string' ? item : item?.status
+  if (s === 'pendente')    return <FileText size={16} className="text-slate-400" />
+  if (s === 'processando') return <Loader size={16} className="text-blue-500 animate-spin" />
+  if (s === 'salvo')       return item?.aviso
+    ? <AlertCircle size={16} className="text-amber-500" />
+    : <CheckCircle size={16} className="text-emerald-500" />
+  if (s === 'erro')        return <AlertCircle size={16} className="text-red-500" />
+  return null
+}
+
+function statusLabel(item) {
+  if (item.status === 'pendente')    return <span className="text-xs text-slate-400">Aguardando…</span>
+  if (item.status === 'processando') return <span className="text-xs text-blue-600">Lendo datasheet…</span>
+  if (item.status === 'salvo') {
+    if (item.duplicata) return <span className="text-xs text-slate-500">Já cadastrado — ignorado</span>
+    return (
+      <span className={`text-xs ${item.aviso ? 'text-amber-600' : 'text-emerald-700'}`}>
+        Inversor cadastrado{item.aviso ? ' ⚠ verifique os dados' : ''}
+      </span>
+    )
+  }
+  if (item.status === 'erro') return <span className="text-xs text-red-600 truncate">{item.erro}</span>
+  return null
+}
+
+// ── Componente principal ──────────────────────────────────────────────────────
+
+export default function ModalNovoInversor({ arquivosIniciais = [], onClose, onSalvar }) {
+  const inputRef  = useRef(null)
+  const [fila, setFila]             = useState(() => arquivosIniciais.map(criarItem))
   const [arrastando, setArrastando] = useState(false)
-  const [dadosExtraidos, setDadosExtraidos] = useState(null)
-  const [erroExtracao, setErroExtracao] = useState(null)
-  const [formData, setFormData] = useState(
-    inversor || {
-      tipo: 'inversor',
-      fabricante: '',
-      modelo: '',
-      especificacoes: {},
-      preco_sugerido: 0,
-      garantia_produto: { value: 10, unit: 'anos' },
-    }
-  )
+  const [processando, setProcessando] = useState(false)
+  const [concluido, setConcluido]   = useState(false)
 
-  async function processarDatasheet(file) {
-    if (!file.type.includes('pdf')) {
-      setErroExtracao('Por favor, selecione um arquivo PDF')
-      return
-    }
+  function criarItem(file) {
+    return { id: `${file.name}-${Date.now()}-${Math.random()}`, file, nome: file.name,
+      status: 'pendente', dados: null, aviso: null, duplicata: false, erro: null }
+  }
 
-    setCarregando(true)
-    setArquivo(file.name)
-    setErroExtracao(null)
-    setDadosExtraidos(null)
+  function atualizarItem(id, patch) {
+    setFila(f => f.map(i => i.id === id ? { ...i, ...patch } : i))
+  }
 
+  function adicionarArquivos(files) {
+    const novos = Array.from(files)
+      .filter(f => f.type === 'application/pdf')
+      .map(criarItem)
+    setFila(f => [...f, ...novos])
+    setConcluido(false)
+  }
+
+  // ── Processa um PDF e salva o inversor ─────────────────────────────────────
+
+  async function processarItem(item) {
+    atualizarItem(item.id, { status: 'processando' })
     try {
-      const formDataFile = new FormData()
-      formDataFile.append('pdf', file)
-
-      const res = await fetch(`${API_URL}/api/datasheet/extrair-datasheet`, {
-        method: 'POST',
-        body: formDataFile,
-      })
-
+      const fd = new FormData()
+      fd.append('pdf', item.file)
+      const res  = await fetch(`${API_URL}/api/datasheet/extrair-datasheet`, { method: 'POST', body: fd })
       const texto = await res.text()
       let json
-      try { json = JSON.parse(texto) } catch {
-        throw new Error(`Servidor retornou status ${res.status}. Verifique se o backend está acessível.`)
-      }
+      try { json = JSON.parse(texto) } catch { throw new Error(`Servidor retornou status ${res.status}`) }
       if (!res.ok) throw new Error(json.erro || `Erro ${res.status}`)
 
       const dados = json.dados || json
+      const aviso = json.avisos?.length ? json.avisos[0] : null
 
-      setDadosExtraidos(dados)
-      setFormData((prev) => ({
-        ...prev,
-        fabricante: dados.marca || dados.fabricante || prev.fabricante,
-        modelo: dados.modelo || prev.modelo,
+      // Verifica duplicata
+      const params = new URLSearchParams({ fabricante: dados.fabricante || '', modelo: dados.modelo || '', tipo: 'inversor' })
+      const dupRes  = await fetch(`${API_URL}/api/datasheet/verificar-duplicata?${params}`)
+      const dupJson = await dupRes.json()
+      if (dupJson.duplicata) {
+        atualizarItem(item.id, { status: 'salvo', dados, duplicata: true, aviso })
+        return
+      }
+
+      // Salva no banco
+      const payload = {
+        tipo: 'inversor',
+        fabricante: dados.fabricante || 'Desconhecido',
+        modelo:     dados.modelo     || 'Inversor',
+        preco_sugerido: 0,
+        garantia_produto: { value: dados.garantia_anos || 10, unit: 'anos' },
         especificacoes: {
-          ...prev.especificacoes,
-          potencia_kw: dados.potenciaKW || dados.potencia_kw || prev.especificacoes.potencia_kw,
-          tensao_entrada: dados.tensao_entrada || prev.especificacoes.tensao_entrada,
-          mppt: dados.nMppts || dados.mppt || prev.especificacoes.mppt,
-          corrente_saida_ac: dados.correnteACSaida || prev.especificacoes.corrente_saida_ac,
-          eficiencia: dados.eficiencia || prev.especificacoes.eficiencia,
+          // AC
+          potencia_kw:           dados.potenciaKW            || dados.potencia_nominal_kw  || null,
+          potencia_maxima_kw:    dados.potencia_maxima_kw                                  || null,
+          tensao_ac:             dados.tensao_ac             || dados.tensao_ac_nominal     || null,
+          fases:                 dados.faseAC                || dados.fases                || null,
+          frequencia_hz:         dados.frequencia_hz                                       || null,
+          corrente_ac_saida:     dados.correnteACSaida       || dados.corrente_ac_saida    || null,
+          fator_potencia:        dados.fator_potencia                                      || null,
+          thdi:                  dados.thdi                                                || null,
+          // DC / MPPT
+          n_mppts:               dados.nMppts               || dados.n_mppts               || null,
+          strings_por_mppt:      dados.strings_por_mppt                                   || null,
+          tensao_mppt_min:       dados.tensaoMpptMin        || dados.tensao_mppt_min       || null,
+          tensao_mppt_max:       dados.tensaoMpptMax        || dados.tensao_mppt_max       || null,
+          tensao_max_entrada:    dados.tensao_max_entrada                                  || null,
+          corrente_max_entrada:  dados.corrente_max_entrada                                || null,
+          corrente_max_por_mppt: dados.corrente_max_por_mppt                              || null,
+          corrente_isc_max:      dados.corrente_isc_max                                   || null,
+          // Desempenho
+          eficiencia_maxima:     dados.eficiencia           || dados.eficiencia_maxima      || null,
+          eficiencia_europeia:   dados.eficiencia_europeia                                 || null,
+          // Proteções
+          grau_protecao_ip:      dados.grau_protecao_ip                                   || null,
+          protecao_antiilhamento: dados.protecao_antiilhamento                            || null,
+          protecao_sobretensao_dc: dados.protecao_sobretensao_dc                          || null,
+          protecao_sobretensao_ac: dados.protecao_sobretensao_ac                          || null,
+          // Físico
+          temperatura_operacao:  dados.temperatura_operacao                               || null,
+          peso_kg:               dados.peso_kg                                            || null,
+          dimensoes:             dados.dimensoes                                          || null,
+          garantia_anos:         dados.garantia_anos                                      || null,
         },
-      }))
-    } catch (err) {
-      console.error('Erro ao extrair datasheet:', err)
-      setErroExtracao(err.message)
-    } finally {
-      setCarregando(false)
-    }
-  }
-
-  function handleUploadDatasheet(e) {
-    const file = e.target.files[0]
-    if (file) processarDatasheet(file)
-  }
-
-  function handleDragOver(e) {
-    e.preventDefault()
-    e.stopPropagation()
-    setArrastando(true)
-  }
-
-  function handleDragLeave(e) {
-    e.preventDefault()
-    e.stopPropagation()
-    setArrastando(false)
-  }
-
-  function handleDrop(e) {
-    e.preventDefault()
-    e.stopPropagation()
-    setArrastando(false)
-    const file = e.dataTransfer.files[0]
-    if (file) processarDatasheet(file)
-  }
-
-  async function handleSalvar() {
-    if (!formData.fabricante || !formData.modelo) {
-      alert('Preencha fabricante e modelo')
-      return
-    }
-
-    setCarregando(true)
-    try {
-      const url = inversor ? `/api/equipamentos/${inversor._id}` : '/api/equipamentos'
-      const method = inversor ? 'PUT' : 'POST'
-
-      const res = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+      }
+      // Remove campos nulos para não poluir o banco
+      Object.keys(payload.especificacoes).forEach(k => {
+        if (payload.especificacoes[k] === null) delete payload.especificacoes[k]
       })
 
-      if (res.ok) {
-        onSalvar()
-      } else {
-        alert('Erro ao salvar inversor')
-      }
+      const saveRes = await fetch(`${API_URL}/api/equipamentos`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      if (!saveRes.ok) throw new Error('Erro ao salvar no banco')
+
+      atualizarItem(item.id, { status: 'salvo', dados, aviso })
     } catch (err) {
-      console.error('Erro ao salvar:', err)
-      alert('Erro ao salvar inversor')
-    } finally {
-      setCarregando(false)
+      console.error('Erro no item', item.nome, err)
+      atualizarItem(item.id, { status: 'erro', erro: err.message })
     }
   }
 
+  async function processarFila() {
+    setProcessando(true)
+    setConcluido(false)
+    const pendentes = fila.filter(i => i.status === 'pendente' || i.status === 'erro')
+    for (const item of pendentes) await processarItem(item)
+    setProcessando(false)
+    setConcluido(true)
+    onSalvar()
+  }
+
+  // ── Drag & Drop ────────────────────────────────────────────────────────────
+
+  function onDragOver(e)  { e.preventDefault(); setArrastando(true)  }
+  function onDragLeave(e) { e.preventDefault(); setArrastando(false) }
+  function onDrop(e) {
+    e.preventDefault(); setArrastando(false)
+    adicionarArquivos(e.dataTransfer.files)
+  }
+
+  // ── Render ─────────────────────────────────────────────────────────────────
+
+  const totalPendente  = fila.filter(i => i.status === 'pendente').length
+  const totalSalvos    = fila.filter(i => i.status === 'salvo' && !i.duplicata).length
+  const totalErros     = fila.filter(i => i.status === 'erro').length
+  const totalIgnorados = fila.filter(i => i.duplicata).length
+  const temAvisoIA     = fila.some(i => i.aviso)
+  const podeProcesar   = !processando && totalPendente > 0
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <Card className="w-full max-w-2xl mx-4 max-h-96 overflow-y-auto">
-        <div className="flex items-center justify-between p-6 border-b">
-          <h2 className="text-xl font-bold text-slate-900">
-            {inversor ? 'Editar Inversor' : 'Novo Inversor'}
-          </h2>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <Card className="w-full max-w-2xl max-h-[92vh] flex flex-col">
+
+        {/* Header */}
+        <div className="flex items-center justify-between p-6 border-b shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-blue-100 rounded-lg">
+              <Zap size={20} className="text-blue-600" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-slate-900">Importar Inversores</h2>
+              <p className="text-xs text-slate-500">Claude extrai todos os dados para o unifilar</p>
+            </div>
+          </div>
           <button onClick={onClose} className="p-1 hover:bg-slate-100 rounded">
             <X size={20} />
           </button>
         </div>
 
-        <div className="p-6 space-y-6">
-          {!inversor && (
-            <div className="flex gap-2">
-              <Button
-                onClick={() => setModo('manual')}
-                variante={modo === 'manual' ? 'primario' : 'secundario'}
-              >
-                Preencher Manualmente
-              </Button>
-              <Button
-                onClick={() => setModo('datasheet')}
-                variante={modo === 'datasheet' ? 'primario' : 'secundario'}
-                className="flex items-center gap-2"
-              >
-                <Upload size={16} />
-                Upload Datasheet
-              </Button>
+        <div className="overflow-y-auto flex-1 p-6 space-y-5">
+
+          {/* Banner aviso IA */}
+          {temAvisoIA && (
+            <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm text-amber-800">
+              <AlertCircle size={16} className="shrink-0 mt-0.5 text-amber-500" />
+              <span>Claude IA não estava disponível — verifique os dados técnicos antes de usar em projetos.</span>
             </div>
           )}
 
-          {modo === 'datasheet' && !inversor && (
-            <div className="space-y-4">
-              <div
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-                className={`border-2 border-dashed rounded-lg p-12 text-center transition-all ${
-                  arrastando
-                    ? 'border-emerald-500 bg-emerald-50 scale-105'
-                    : 'border-blue-300 hover:border-blue-500 hover:bg-blue-50'
-                } ${carregando ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-              >
-                <label className="cursor-pointer block">
-                  <div className="flex justify-center mb-4">
-                    <div className={`p-4 rounded-full transition-colors ${
-                      arrastando
-                        ? 'bg-emerald-100'
-                        : 'bg-blue-100'
-                    }`}>
-                      <Upload size={40} className={arrastando ? 'text-emerald-600' : 'text-blue-600'} />
-                    </div>
-                  </div>
-                  {carregando ? (
-                    <>
-                      <p className="font-semibold text-slate-600 mb-1">Processando datasheet...</p>
-                      <p className="text-sm text-slate-500">Extraindo dados do PDF</p>
-                    </>
-                  ) : arquivo ? (
-                    <>
-                      <p className="font-semibold text-emerald-600 mb-1">✓ {arquivo}</p>
-                      <p className="text-sm text-slate-600">Carregado com sucesso!</p>
-                    </>
-                  ) : (
-                    <>
-                      <p className="font-semibold text-blue-600 mb-2">
-                        {arrastando ? '⬇️ Solte o datasheet aqui' : '📄 Arraste o datasheet para aqui'}
-                      </p>
-                      <p className="text-sm text-slate-600">ou clique para selecionar</p>
-                      <p className="text-xs text-slate-500 mt-2">Formatos aceitos: PDF</p>
-                    </>
-                  )}
-                  <input
-                    type="file"
-                    accept=".pdf"
-                    onChange={handleUploadDatasheet}
-                    className="hidden"
-                    disabled={carregando}
-                  />
-                </label>
-              </div>
-
-              {erroExtracao && (
-                <div className="bg-red-50 border border-red-300 rounded-lg p-4 flex gap-3">
-                  <AlertCircle size={20} className="text-red-600 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <p className="font-semibold text-red-900">Erro na extração</p>
-                    <p className="text-sm text-red-700">{erroExtracao}</p>
-                    <p className="text-xs text-red-600 mt-2">Preencha os dados manualmente ou tente outro PDF</p>
-                  </div>
-                </div>
-              )}
-
-              {dadosExtraidos && (
-                <div className="bg-emerald-50 border border-emerald-300 rounded-lg p-4">
-                  <div className="flex items-center gap-2 mb-3">
-                    <CheckCircle size={20} className="text-emerald-600" />
-                    <p className="font-semibold text-emerald-900">
-                      {dadosExtraidos._debug?.campos_encontrados || 0} campos extraídos com sucesso!
-                    </p>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3 text-sm">
-                    {dadosExtraidos.fabricante && (
-                      <div className="flex justify-between">
-                        <span className="text-emerald-700">Fabricante:</span>
-                        <span className="font-semibold text-emerald-900">{dadosExtraidos.fabricante}</span>
-                      </div>
-                    )}
-                    {dadosExtraidos.modelo && (
-                      <div className="flex justify-between">
-                        <span className="text-emerald-700">Modelo:</span>
-                        <span className="font-semibold text-emerald-900">{dadosExtraidos.modelo}</span>
-                      </div>
-                    )}
-                    {dadosExtraidos.potencia_kw && (
-                      <div className="flex justify-between">
-                        <span className="text-emerald-700">Potência:</span>
-                        <span className="font-semibold text-emerald-900">{dadosExtraidos.potencia_kw} kW</span>
-                      </div>
-                    )}
-                    {dadosExtraidos.tensao_entrada && (
-                      <div className="flex justify-between">
-                        <span className="text-emerald-700">Tensão Entrada:</span>
-                        <span className="font-semibold text-emerald-900">{dadosExtraidos.tensao_entrada} V</span>
-                      </div>
-                    )}
-                    {dadosExtraidos.mppt && (
-                      <div className="flex justify-between">
-                        <span className="text-emerald-700">MPPT:</span>
-                        <span className="font-semibold text-emerald-900">{dadosExtraidos.mppt}</span>
-                      </div>
-                    )}
-                    {dadosExtraidos.eficiencia && (
-                      <div className="flex justify-between">
-                        <span className="text-emerald-700">Eficiência:</span>
-                        <span className="font-semibold text-emerald-900">{dadosExtraidos.eficiencia}%</span>
-                      </div>
-                    )}
-                  </div>
-                  <p className="text-xs text-emerald-600 mt-3">
-                    Os valores foram pré-preenchidos. Revise e ajuste se necessário.
-                  </p>
-                </div>
-              )}
+          {/* Zona de drop */}
+          <div
+            onDragOver={onDragOver} onDragLeave={onDragLeave} onDrop={onDrop}
+            onClick={() => !processando && inputRef.current?.click()}
+            className={`border-2 border-dashed rounded-xl p-10 text-center transition-all cursor-pointer select-none
+              ${arrastando ? 'border-blue-500 bg-blue-50 scale-[1.02]' : 'border-slate-300 hover:border-blue-400 hover:bg-slate-50'}
+              ${processando ? 'opacity-50 pointer-events-none' : ''}`}
+          >
+            <div className={`inline-flex p-4 rounded-full mb-3 ${arrastando ? 'bg-blue-100' : 'bg-slate-100'}`}>
+              <Upload size={32} className={arrastando ? 'text-blue-600' : 'text-slate-500'} />
             </div>
-          )}
-
-          <div className="grid grid-cols-2 gap-4">
-            <input
-              type="text"
-              placeholder="Fabricante"
-              value={formData.fabricante}
-              onChange={(e) => setFormData({ ...formData, fabricante: e.target.value })}
-              className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <input
-              type="text"
-              placeholder="Modelo"
-              value={formData.modelo}
-              onChange={(e) => setFormData({ ...formData, modelo: e.target.value })}
-              className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <input
-              type="number"
-              placeholder="Potência (kW)"
-              value={formData.especificacoes?.potencia_kw || ''}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  especificacoes: {
-                    ...formData.especificacoes,
-                    potencia_kw: parseFloat(e.target.value),
-                  },
-                })
-              }
-              className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <input
-              type="number"
-              placeholder="Preço (R$)"
-              value={formData.preco_sugerido}
-              onChange={(e) => setFormData({ ...formData, preco_sugerido: parseFloat(e.target.value) })}
-              className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <input
-              type="number"
-              placeholder="Tensão Entrada (V)"
-              value={formData.especificacoes?.tensao_entrada || ''}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  especificacoes: {
-                    ...formData.especificacoes,
-                    tensao_entrada: parseInt(e.target.value),
-                  },
-                })
-              }
-              className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <input
-              type="number"
-              placeholder="MPPT (unidades)"
-              value={formData.especificacoes?.mppt || ''}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  especificacoes: { ...formData.especificacoes, mppt: parseInt(e.target.value) },
-                })
-              }
-              className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+            <p className="font-semibold text-slate-700">
+              {arrastando ? 'Solte os datasheets aqui' : 'Arraste os datasheets de inversores'}
+            </p>
+            <p className="text-sm text-slate-500 mt-1">ou clique para selecionar • PDF • múltiplos aceitos</p>
+            <input ref={inputRef} type="file" accept=".pdf" multiple className="hidden"
+              onChange={e => { adicionarArquivos(e.target.files); e.target.value = '' }} />
           </div>
 
-          <div className="flex gap-2 justify-end">
-            <Button onClick={onClose} variante="secundario">
-              Cancelar
-            </Button>
-            <Button onClick={handleSalvar} disabled={carregando}>
-              {carregando ? 'Salvando...' : 'Salvar'}
-            </Button>
+          {/* Fila */}
+          {fila.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Fila de processamento</p>
+              <div className="space-y-1.5 max-h-72 overflow-y-auto pr-1">
+                {fila.map(item => (
+                  <div key={item.id}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-lg border text-sm transition-colors
+                      ${item.status === 'salvo' && !item.duplicata ? 'bg-emerald-50 border-emerald-200'
+                      : item.status === 'erro'                     ? 'bg-red-50 border-red-200'
+                      : item.status === 'processando'              ? 'bg-blue-50 border-blue-200'
+                      : item.duplicata                             ? 'bg-slate-50 border-slate-200'
+                      : 'bg-white border-slate-200'}`}
+                  >
+                    <div className="shrink-0">{statusIcon(item)}</div>
+                    <span className="flex-1 truncate font-medium text-slate-700">{item.nome}</span>
+                    <div className="shrink-0 text-right">{statusLabel(item)}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Resumo pós-processamento */}
+          {concluido && (
+            <div className="bg-slate-50 rounded-xl p-4 space-y-1 text-sm">
+              {totalSalvos   > 0 && <p className="text-emerald-700">✓ {totalSalvos} inversor{totalSalvos > 1 ? 'es' : ''} cadastrado{totalSalvos > 1 ? 's' : ''}</p>}
+              {totalIgnorados > 0 && <p className="text-slate-500">— {totalIgnorados} já existia{totalIgnorados > 1 ? 'm' : ''} no sistema</p>}
+              {totalErros    > 0 && <p className="text-red-600">✗ {totalErros} com erro — verifique e tente novamente</p>}
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="p-6 border-t shrink-0 flex items-center justify-between gap-4">
+          <p className="text-xs text-slate-400">
+            {fila.length === 0 ? 'Nenhum arquivo selecionado'
+              : `${fila.length} arquivo${fila.length > 1 ? 's' : ''} na fila`}
+          </p>
+          <div className="flex gap-3">
+            <Button onClick={onClose} variante="secundario">Fechar</Button>
+            {podeProcesar && (
+              <Button onClick={processarFila} className="flex items-center gap-2">
+                <Zap size={16} />
+                Processar {totalPendente} PDF{totalPendente > 1 ? 's' : ''}
+              </Button>
+            )}
           </div>
         </div>
       </Card>
