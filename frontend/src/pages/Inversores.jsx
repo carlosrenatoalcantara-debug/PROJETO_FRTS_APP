@@ -1,10 +1,123 @@
 import { useState, useEffect, useRef } from 'react'
-import { X, Edit2, Trash2, Upload, Zap, ChevronDown, ChevronUp } from 'lucide-react'
+import { X, Edit2, Trash2, Upload, Zap, ChevronDown, ChevronUp, Cable } from 'lucide-react'
 import Card, { CardHeader, CardBody } from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import ModalNovoInversor from '../components/equipamentos/ModalNovoInversor'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+
+// ── Dimensionamento elétrico NBR 5410 ────────────────────────────────────────
+
+// Cabos de cobre 70°C PVC, método B1 (eletroduto fixado em parede), NBR 5410 Tab. 36
+const CABOS_NBR = [
+  { secao: 1.5,  amp: 15.5 },
+  { secao: 2.5,  amp: 21   },
+  { secao: 4,    amp: 28   },
+  { secao: 6,    amp: 36   },
+  { secao: 10,   amp: 50   },
+  { secao: 16,   amp: 68   },
+  { secao: 25,   amp: 89   },
+  { secao: 35,   amp: 110  },
+  { secao: 50,   amp: 134  },
+  { secao: 70,   amp: 171  },
+  { secao: 95,   amp: 207  },
+  { secao: 120,  amp: 239  },
+  { secao: 150,  amp: 275  },
+]
+// Correntes nominais padronizadas de disjuntores termomagnéticos (NBR IEC 60898-1)
+const DISJUNTORES_NBR = [6, 10, 16, 20, 25, 32, 40, 50, 63, 80, 100, 125, 160, 200, 250, 400]
+
+function parseCorrente(val) {
+  if (val == null) return null
+  if (typeof val === 'number') return val
+  const m = String(val).match(/[\d.]+/)
+  return m ? parseFloat(m[0]) : null
+}
+
+// Seleciona menor cabo e menor disjuntor satisfazendo Ib ≤ In ≤ Iz (NBR 5410 item 9.5)
+function dimensionar(corrente_projeto) {
+  for (const cabo of CABOS_NBR) {
+    const disj = DISJUNTORES_NBR.find(d => d >= corrente_projeto && d <= cabo.amp)
+    if (disj) return { secao: cabo.secao, ampCabo: cabo.amp, disjuntor: disj }
+  }
+  return null
+}
+
+function calcularDimensionamento(espec) {
+  if (!espec) return null
+  const imax = parseCorrente(espec.corrente_ac_saida)
+  if (!imax) return null
+
+  const fases  = Number(espec.fases) || 1
+  const polos  = fases === 3 ? 'Tripolar' : 'Bipolar'
+  const iProj  = +(imax * 1.25).toFixed(1)
+  const dim    = dimensionar(iProj)
+  if (!dim) return null
+
+  const result = { imax, iProj, polos, ...dim }
+
+  // Cabo tronco para micro-inversores (corrente acumulada de N unidades em série)
+  if (espec.subtipo === 'microinversor' && espec.max_por_cabo_tronco) {
+    const nMicros      = espec.max_por_cabo_tronco
+    const iTotal       = +(imax * nMicros).toFixed(1)
+    const iProjTronco  = +(iTotal * 1.25).toFixed(1)
+    const dimTronco    = dimensionar(iProjTronco)
+    if (dimTronco) result.tronco = { nMicros, iTotal, iProj: iProjTronco, ...dimTronco }
+  }
+
+  return result
+}
+
+// ── Componente de dimensionamento ─────────────────────────────────────────────
+
+function DimensionamentoEletrico({ espec }) {
+  const d = calcularDimensionamento(espec)
+  if (!d) return null
+
+  const Linha = ({ label, value, destaque }) => (
+    <div className="flex justify-between text-xs py-0.5 border-b border-amber-100 last:border-0">
+      <span className="text-slate-500">{label}</span>
+      <span className={`font-semibold ${destaque ? 'text-amber-800' : 'text-slate-800'}`}>{value}</span>
+    </div>
+  )
+
+  return (
+    <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 space-y-3">
+      <p className="text-xs font-bold text-amber-700 uppercase tracking-wide">
+        Dimensionamento Elétrico CA — NBR 5410
+      </p>
+
+      {/* Saída do inversor / conexão ao QDC */}
+      <div>
+        <p className="text-[10px] font-semibold text-amber-600 uppercase mb-1">
+          {espec.subtipo === 'microinversor' ? 'Conexão de cada microinversor' : 'Saída CA do inversor'}
+        </p>
+        <Linha label="Corrente de saída (Imax)"             value={`${d.imax} A`} />
+        <Linha label="Corrente de projeto (Imax × 1,25)"    value={`${d.iProj} A`} />
+        <Linha label="Cabo recomendado (cobre 70°C, B1)"    value={`${d.secao} mm²  —  cap. ${d.ampCabo} A`} destaque />
+        <Linha label={`Disjuntor ${d.polos}`}               value={`${d.disjuntor} A`} destaque />
+      </div>
+
+      {/* Cabo tronco — só para micro-inversores */}
+      {d.tronco && (
+        <div>
+          <p className="text-[10px] font-semibold text-amber-600 uppercase mb-1">
+            Cabo tronco — máx. {d.tronco.nMicros} microinversores em série
+          </p>
+          <Linha label="Corrente total do ramal"                value={`${d.tronco.nMicros} × ${d.imax} A = ${d.tronco.iTotal} A`} />
+          <Linha label="Corrente de projeto (× 1,25)"          value={`${d.tronco.iProj} A`} />
+          <Linha label="Cabo tronco recomendado (cobre 70°C)"  value={`${d.tronco.secao} mm²  —  cap. ${d.tronco.ampCabo} A`} destaque />
+          <Linha label={`Disjuntor do ramal ${d.polos}`}       value={`${d.tronco.disjuntor} A`} destaque />
+        </div>
+      )}
+
+      <p className="text-[10px] text-amber-600 leading-tight">
+        Referência: NBR 5410 — cabo cobre 70 °C, método B1 (eletroduto fixado em parede).
+        Corrente de projeto = 1,25 × Imax (carga contínua).
+      </p>
+    </div>
+  )
+}
 
 // Campos técnicos exibidos no card expandido — organizados para o unifilar
 const SPECS_AC = [
@@ -257,9 +370,10 @@ export default function Inversores() {
                 {/* Painel expandido — todos os dados técnicos */}
                 {aberto && (
                   <div className="border-t border-slate-100 px-5 py-4 bg-slate-50 space-y-5">
-                    <SpecGroup titulo="Saída AC" specs={SPECS_AC} espec={espec} />
-                    <SpecGroup titulo="Entrada DC / MPPT" specs={SPECS_DC} espec={espec} />
+                    <SpecGroup titulo="Saída CA" specs={SPECS_AC} espec={espec} />
+                    <SpecGroup titulo="Entrada CC / MPPT" specs={SPECS_DC} espec={espec} />
                     <SpecGroup titulo="Desempenho e instalação" specs={SPECS_EXTRA} espec={espec} />
+                    <DimensionamentoEletrico espec={espec} />
                     {Object.keys(espec).length === 0 && (
                       <p className="text-xs text-slate-400 text-center">Nenhum dado técnico registrado</p>
                     )}
