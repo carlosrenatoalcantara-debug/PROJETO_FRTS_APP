@@ -22,8 +22,9 @@ function statusLabel(item) {
   if (item.status === 'pendente')    return <span className="text-xs text-slate-400">Aguardando…</span>
   if (item.status === 'processando') return <span className="text-xs text-blue-600">Lendo datasheet…</span>
   if (item.status === 'salvo') {
-    const n = item.modulosSalvos || 1
+    const n = item.modulosSalvos || 0
     const aviso = item.aviso
+    if (n === 0) return <span className="text-xs text-slate-500">Já cadastrado — ignorado</span>
     return (
       <span className={`text-xs ${aviso ? 'text-amber-600' : 'text-emerald-700'}`}>
         {n} módulo{n > 1 ? 's' : ''} cadastrado{n > 1 ? 's' : ''}
@@ -110,14 +111,25 @@ export default function ModalNovoModulo({ modulo, onClose, onSalvar }) {
       const variantes = json.variantes && json.variantes.length > 1 ? json.variantes : null
       const aviso = json.avisos && json.avisos.length > 0 ? json.avisos[0] : null
 
-      // 2. Persistência
+      // 2. Persistência com deduplicação automática
       const salvarModulo = async (payload) => {
+        // Verifica se já existe antes de salvar
+        const params = new URLSearchParams({
+          fabricante: payload.fabricante,
+          modelo:     payload.modelo,
+          potenciaW:  payload.especificacoes?.potencia_wp ?? '',
+        })
+        const dup = await fetch(`${API_URL}/api/datasheet/verificar-duplicata?${params}`)
+        const dupJson = await dup.json()
+        if (dupJson.duplicata) return false  // pula silenciosamente
+
         const r = await fetch(`${API_URL}/api/equipamentos`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         })
         if (!r.ok) throw new Error('Erro ao salvar no banco')
+        return true
       }
 
       const base = {
@@ -131,7 +143,7 @@ export default function ModalNovoModulo({ modulo, onClose, onSalvar }) {
 
       if (variantes) {
         for (const v of variantes) {
-          await salvarModulo({
+          const salvo = await salvarModulo({
             ...base,
             modelo: `${dados.modelo || 'Módulo'}-${v.potenciaW}W`,
             especificacoes: {
@@ -143,10 +155,10 @@ export default function ModalNovoModulo({ modulo, onClose, onSalvar }) {
               eficiencia: v.eficiencia,
             },
           })
-          modulosSalvos++
+          if (salvo) modulosSalvos++
         }
       } else {
-        await salvarModulo({
+        const salvo = await salvarModulo({
           ...base,
           modelo: dados.modelo || 'Módulo',
           especificacoes: {
@@ -158,7 +170,7 @@ export default function ModalNovoModulo({ modulo, onClose, onSalvar }) {
             eficiencia: dados.eficiencia,
           },
         })
-        modulosSalvos = 1
+        if (salvo) modulosSalvos = 1
       }
 
       atualizarItem(item.id, { status: 'salvo', dados, variantes, modulosSalvos, aviso })

@@ -1,16 +1,138 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { PDFParse } from 'pdf-parse'
+import { DatasheetCache } from '../models/DatasheetCache.js'
+import { Equipamento } from '../models/Equipamento.js'
 
 // ─────────────────────────────────────────────────────────────────────────────
-// EXTRAÇÃO VIA CLAUDE (PDF binário nativo — melhor qualidade)
+// CACHE: carrega exemplos de fabricantes já vistos para enriquecer o prompt
 // ─────────────────────────────────────────────────────────────────────────────
 
-async function extrairComClaude(pdfBuffer) {
+async function carregarExemplosCache(fabricanteHint) {
+  try {
+    const query = fabricanteHint
+      ? { fabricante: { $regex: fabricanteHint, $options: 'i' } }
+      : {}
+    // Até 4 fabricantes mais recentes como contexto
+    const docs = await DatasheetCache.find(query).sort({ ultimaExtracao: -1 }).limit(4).lean()
+    return docs
+  } catch {
+    return []
+  }
+}
+
+async function salvarNoCache(resultado) {
+  if (!resultado?.fabricante || !resultado?.modelo) return
+  const { fabricante, modelo, variantes = [] } = resultado
+  const potencias = variantes.map(v => v.potenciaW).filter(Boolean)
+  const exemplo = variantes[0] || {}
+
+  try {
+    await DatasheetCache.findOneAndUpdate(
+      { fabricante: { $regex: `^${fabricante}$`, $options: 'i' } },
+      {
+        $set:  { fabricante, ultimaExtracao: new Date() },
+        $inc:  { totalExtrações: 1 },
+        $push: {
+          modelos: {
+            $each: [{
+              codigo: modelo,
+              potencias,
+              exemplo: {
+                potenciaW:  exemplo.potenciaW  || null,
+                voc:        exemplo.voc        || null,
+                vmpp:       exemplo.vmpp       || null,
+                isc:        exemplo.isc        || null,
+                impp:       exemplo.impp       || null,
+                eficiencia: exemplo.eficiencia || null,
+              },
+            }],
+            // Não duplicar modelos já conhecidos
+            $position: 0,
+          },
+        },
+      },
+      { upsert: true, new: true }
+    )
+    // Remove modelos duplicados mantendo apenas o mais recente de cada código
+    await DatasheetCache.findOneAndUpdate(
+      { fabricante: { $regex: `^${fabricante}$`, $options: 'i' } },
+      [{ $set: {
+        modelos: {
+          $reduce: {
+            input: '$modelos',
+            initialValue: [],
+            in: {
+              $cond: [
+                { $in: ['$$this.codigo', '$$value.codigo'] },
+                '$$value',
+                { $concatArrays: ['$$value', ['$$this']] },
+              ],
+            },
+          },
+        },
+      }}]
+    )
+  } catch (e) {
+    console.warn('Cache: erro ao salvar:', e.message)
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// EXTRAÇÃO VIA CLAUDE — lê qualquer fabricante, qualquer potência, qualquer formato
+// ─────────────────────────────────────────────────────────────────────────────
+
+function montarPromptClaude(exemplosCache) {
+  let contexto = ''
+  if (exemplosCache.length > 0) {
+    contexto = '\n\nFABRICANTES JÁ CONHECIDOS NO SISTEMA (use como referência de formato):\n'
+    for (const doc of exemplosCache) {
+      const m = doc.modelos?.[0]
+      if (!m) continue
+      contexto += `- ${doc.fabricante}: modelo ${m.codigo}, potências ${m.potencias.join('/')}W`
+      if (m.exemplo?.voc) contexto += `, Voc≈${m.exemplo.voc}V, Vmpp≈${m.exemplo.vmpp}V`
+      contexto += '\n'
+    }
+  }
+
+  return `Você é especialista em equipamentos fotovoltaicos. Analise este datasheet e retorne SOMENTE um JSON válido, sem markdown, sem explicação.
+
+REGRAS OBRIGATÓRIAS:
+1. "fabricante": nome oficial da empresa fabricante do módulo/inversor (ex: ZNShine Solar, Risen Energy, Canadian Solar, Jinko Solar, Trina Solar, LONGi, JA Solar, BYD, Huawei, Fronius, SMA, WEG, Growatt, Solis, Deye). NUNCA use "Desconhecido".
+2. "modelo": código técnico do produto (ex: ZXNR-BD132, RSM110-8-540BMDG, RS6-560NBG, JKM580N-72HL4). NUNCA use certificações ISO/IEC/UL como modelo.
+3. "tipo": "modulo" para painéis fotovoltaicos, "inversor" para inversores.
+4. Se o datasheet contiver MÚLTIPLAS potências (ex: tabela com 560W, 565W, 570W, 575W, 580W), crie UMA variante para CADA potência.
+5. Todos os valores numéricos devem ser números (não strings). Use null se não encontrar.
+6. Para módulos: extraia Voc (V), Vmpp (V), Isc (A), Impp (A), eficiência (%), potência (W) de cada variante.
+7. Para inversores: extraia potência AC (kW), número de MPPTs, tensão MPPT min/max, corrente AC saída, fases.${contexto}
+
+FORMATO DE RESPOSTA:
+{
+  "fabricante": "string",
+  "modelo": "string",
+  "tipo": "modulo",
+  "variantes": [
+    { "potenciaW": 560, "voc": 50.67, "vmpp": 41.95, "isc": 14.13, "impp": 13.35, "eficiencia": 21.68 },
+    { "potenciaW": 565, "voc": 50.87, "vmpp": 42.14, "isc": 14.19, "impp": 13.41, "eficiencia": 21.87 }
+  ]
+}
+
+Para inversores use:
+{
+  "fabricante": "string",
+  "modelo": "string",
+  "tipo": "inversor",
+  "variantes": [
+    { "potenciaKW": 5.0, "nMppts": 2, "tensaoMpptMin": 80, "tensaoMpptMax": 600, "correnteACSaida": 22.8, "faseAC": 1 }
+  ]
+}`
+}
+
+async function extrairComClaude(pdfBuffer, exemplosCache = []) {
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
   const message = await client.messages.create({
     model: 'claude-sonnet-4-6',
-    max_tokens: 2000,
+    max_tokens: 2048,
     messages: [{
       role: 'user',
       content: [
@@ -20,24 +142,7 @@ async function extrairComClaude(pdfBuffer) {
         },
         {
           type: 'text',
-          text: `Você é especialista em equipamentos fotovoltaicos. Analise este datasheet e retorne SOMENTE um JSON válido, sem markdown.
-
-REGRAS:
-- "fabricante": nome da empresa (ex: ZNShine Solar, Risen Energy, Renesola, TW Solar, Sirius Energias Renováveis). Nunca "Desconhecido".
-- "modelo": código técnico (ex: ZXMR-UPLDD144, RSM110-8-540BMDG, RS6-560NBG, SIRIUS-HD144N-550, TW-M10-66HD). Nunca certificações ISO/IEC.
-- "tipo": "modulo" ou "inversor".
-- Se houver múltiplas potências na mesma tabela, crie uma variante para cada (ex: 560W, 565W, 570W, 575W, 580W).
-- Valores numéricos devem ser números. Use null se não encontrar.
-
-FORMATO:
-{
-  "fabricante": "string",
-  "modelo": "string",
-  "tipo": "modulo",
-  "variantes": [
-    { "potenciaW": 590, "voc": 52.0, "vmpp": 43.5, "isc": 14.47, "impp": 13.57, "eficiencia": 21.8 }
-  ]
-}`,
+          text: montarPromptClaude(exemplosCache),
         },
       ],
     }],
@@ -49,13 +154,7 @@ FORMATO:
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// EXTRAÇÃO POR TEXTO INTELIGENTE (fallback sem API key)
-// Suporta todos os formatos identificados nos datasheets reais:
-//   A. Sirius: chave-valor português
-//   B. ZN-Shine 600W: 6 números em linha (pmax vmpp impp voc isc eta)
-//   C. ZN-Shine 570W: blocos verticais de 6 linhas por variante
-//   D. RS6/Renesola: usa códigos de modelo RS6-(\d{3})NBG para potências exatas
-//   E. Risen/RSM: usa códigos de modelo RSM\d+-\d+-(\d{3})BMDG para potências exatas
+// PARSERS DE TEXTO — fallback para os 5 formatos conhecidos (sem API key)
 // ─────────────────────────────────────────────────────────────────────────────
 
 function detectarFabricante(texto) {
@@ -71,6 +170,14 @@ function detectarFabricante(texto) {
     [/longi/i, 'LONGi Solar'],
     [/ja solar/i, 'JA Solar'],
     [/leapton/i, 'Leapton Solar'],
+    [/byd/i, 'BYD'],
+    [/huawei/i, 'Huawei'],
+    [/growatt/i, 'Growatt'],
+    [/fronius/i, 'Fronius'],
+    [/deye/i, 'Deye'],
+    [/solis/i, 'Solis'],
+    [/weg\b/i, 'WEG'],
+    [/sma\b/i, 'SMA'],
   ]
   for (const [re, nome] of mapa) {
     if (re.test(texto)) return nome
@@ -87,6 +194,10 @@ function detectarModelo(texto) {
     /\b(SIRIUS-[A-Z0-9-]+)/i,
     /\b(TW-[A-Z0-9-]+)/i,
     /\b(JKM[0-9A-Z-]+)/i,
+    /\b(CS[0-9][A-Z0-9-]+)/i,
+    /\b(TSM-[A-Z0-9-]+)/i,
+    /\b(LR[0-9]-[0-9A-Z-]+)/i,
+    /\b(JAM[0-9A-Z-]+)/i,
   ]
   for (const re of padroes) {
     const m = texto.match(re)
@@ -95,7 +206,6 @@ function detectarModelo(texto) {
   return null
 }
 
-// Formato A: Sirius — chave-valor português
 function parsearSirius(texto) {
   const pmax = texto.match(/Pmax\s*\(W\)\s+([\d.]+)/i)
   const vmp  = texto.match(/Vmp\s*\(V\)\s+([\d.]+)/i)
@@ -107,35 +217,26 @@ function parsearSirius(texto) {
   return [{
     potenciaW: parseFloat(pmax[1]),
     vmpp:      parseFloat(vmp[1]),
-    impp:      imp  ? parseFloat(imp[1])  : null,
-    voc:       voc  ? parseFloat(voc[1])  : null,
-    isc:       isc  ? parseFloat(isc[1])  : null,
-    eficiencia: ef  ? parseFloat(ef[1])   : null,
+    impp:      imp ? parseFloat(imp[1])  : null,
+    voc:       voc ? parseFloat(voc[1])  : null,
+    isc:       isc ? parseFloat(isc[1])  : null,
+    eficiencia: ef ? parseFloat(ef[1])   : null,
   }]
 }
 
-// Formato B: ZN-Shine 600W — linha com 6 números: pmax vmpp impp voc isc eta
 function parsearZNShineInline(linhas) {
   const variantes = []
   for (const linha of linhas) {
     const m = linha.match(/^(\d{3,4})\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s*$/)
     if (!m) continue
-    const p    = parseInt(m[1])
-    const vmpp = parseFloat(m[2])
-    const impp = parseFloat(m[3])
-    const voc  = parseFloat(m[4])
-    const isc  = parseFloat(m[5])
-    const eta  = parseFloat(m[6])
-    if (p < 200 || p > 800) continue
-    if (vmpp < 25 || vmpp > 60) continue
-    if (voc  < 30 || voc  > 80) continue
-    if (eta  < 10 || eta  > 30) continue
+    const p = parseInt(m[1]), vmpp = parseFloat(m[2]), impp = parseFloat(m[3])
+    const voc = parseFloat(m[4]), isc = parseFloat(m[5]), eta = parseFloat(m[6])
+    if (p < 200 || p > 800 || vmpp < 25 || vmpp > 60 || voc < 30 || voc > 80 || eta < 10 || eta > 30) continue
     variantes.push({ potenciaW: p, vmpp, impp, voc, isc, eficiencia: eta })
   }
   return variantes
 }
 
-// Formato C: ZN-Shine 570W — blocos verticais: [int pmax, vmpp, impp, voc, isc, eta] 6 linhas seguidas
 function parsearZNShineVertical(linhas) {
   const nums = []
   for (const l of linhas) {
@@ -145,211 +246,133 @@ function parsearZNShineVertical(linhas) {
   const variantes = []
   let i = 0
   while (i < nums.length - 5) {
-    const p    = nums[i]
-    const vmpp = nums[i+1]
-    const impp = nums[i+2]
-    const voc  = nums[i+3]
-    const isc  = nums[i+4]
-    const eta  = nums[i+5]
+    const [p, vmpp, impp, voc, isc, eta] = nums.slice(i, i + 6)
     if (Number.isInteger(p) && p >= 200 && p <= 800 &&
-        vmpp >= 30 && vmpp <= 55 &&
-        impp >= 10 && impp <= 22 &&
-        voc  >= 38 && voc  <= 75 &&
-        isc  >= 10 && isc  <= 25 &&
-        eta  >= 15 && eta  <= 30) {
+        vmpp >= 30 && vmpp <= 55 && impp >= 10 && impp <= 22 &&
+        voc >= 38 && voc <= 75 && isc >= 10 && isc <= 25 && eta >= 15 && eta <= 30) {
       variantes.push({ potenciaW: p, vmpp, impp, voc, isc, eficiencia: eta })
       i += 6
-    } else {
-      i++
-    }
+    } else i++
   }
   return variantes
 }
 
-// Formato D: RS6/Renesola — extrai potências dos códigos de modelo RS6-(\d{3})NBG
-// Lida com notação de faixa RS6-560~580NBG e com "580W22.45%" concatenado no texto
 function parsearRS6Horizontal(texto) {
   if (!/RS6/i.test(texto)) return []
-
   const potSet = new Set()
-
-  // Notação de faixa: RS6-560~580NBG → 560, 565, 570, 575, 580
   for (const m of texto.matchAll(/RS6-(\d{3})~(\d{3})NBG/gi)) {
     const s = parseInt(m[1]), e = parseInt(m[2])
     for (let p = s; p <= e; p += 5) potSet.add(p)
   }
-
-  // Potências individuais em códigos de modelo: RS6-560NBG
   for (const m of texto.matchAll(/RS6-(\d{3,4})[A-Z0-9-]*NBG/gi)) {
     const p = parseInt(m[1])
     if (p >= 200 && p <= 800) potSet.add(p)
   }
-
-  // Fallback W-sufixo (ex: "560W 565W 570W 575W")
   if (potSet.size < 2) {
     const potRow = texto.match(/\b(\d{3}W(?:\s+\d{3}W)+)/g)
-    if (potRow) {
-      for (const row of potRow) {
-        for (const m of row.matchAll(/(\d{3})W/g)) {
-          const w = parseInt(m[1])
-          if (w >= 200 && w <= 800) potSet.add(w)
-        }
-      }
+    if (potRow) for (const row of potRow) for (const m of row.matchAll(/(\d{3})W/g)) {
+      const w = parseInt(m[1]); if (w >= 200 && w <= 800) potSet.add(w)
     }
-    // Concatenado: "580W22.45%"
     for (const m of texto.matchAll(/(\d{3})W\d{2}\.\d{2}%/g)) {
-      const p = parseInt(m[1])
-      if (p >= 200 && p <= 800) potSet.add(p)
+      const p = parseInt(m[1]); if (p >= 200 && p <= 800) potSet.add(p)
     }
   }
-
-  let pots = [...potSet].sort((a, b) => a - b)
-
+  const pots = [...potSet].sort((a, b) => a - b)
   if (pots.length < 2) return []
-
   const n = pots.length
-
-  // Eficiência: percentuais soltos + concatenados do tipo "580W22.45%"
   const efMap = new Map()
   for (const m of texto.matchAll(/(\d{3})W(\d{2}\.\d{2})%/g)) {
-    const p = parseInt(m[1]); const ef = parseFloat(m[2])
+    const p = parseInt(m[1]), ef = parseFloat(m[2])
     if (p >= 200 && p <= 800 && ef > 15 && ef < 30) efMap.set(p, ef)
   }
-  const efSoltos = [...texto.matchAll(/\b(\d{2}\.\d{2})%/g)].map(m => parseFloat(m[1]))
-    .filter(v => v > 15 && v < 30)
+  const efSoltos = [...texto.matchAll(/\b(\d{2}\.\d{2})%/g)].map(m => parseFloat(m[1])).filter(v => v > 15 && v < 30)
   const efs = pots.map((p, i) => efMap.get(p) || efSoltos[i] || null)
-
-  // Separa Vmpp (<48V) de Voc (>=48V) por range — PDFParse pode misturar a ordem das colunas
   const allVolts = [...texto.matchAll(/\b(\d{2}\.\d{2})V/g)].map(m => parseFloat(m[1])).filter(v => v > 25)
   const vmppArr = allVolts.filter(v => v < 48).slice(0, n)
   const vocArr  = allVolts.filter(v => v >= 48).slice(0, n)
-
-  // Separa Impp (<14A) de Isc (>=14A) por range
   const allAmps = [...texto.matchAll(/\b(\d{2}\.\d{2})A/g)].map(m => parseFloat(m[1])).filter(v => v > 8 && v < 25)
   const imppArr = allAmps.filter(v => v < 14).slice(0, n)
   const iscArr  = allAmps.filter(v => v >= 14).slice(0, n)
-
   return pots.map((p, i) => ({
-    potenciaW:  p,
-    eficiencia: efs[i]     || null,
-    impp:       imppArr[i] || null,
-    vmpp:       vmppArr[i] || null,
-    isc:        iscArr[i]  || null,
-    voc:        vocArr[i]  || null,
+    potenciaW: p, eficiencia: efs[i] || null,
+    impp: imppArr[i] || null, vmpp: vmppArr[i] || null,
+    isc: iscArr[i] || null, voc: vocArr[i] || null,
   }))
 }
 
-// Formato E: Risen RSM — extrai potências dos códigos de modelo RSM\d+-\d+-(\d{3})BMDG
-// Lida com "RSM110-8-530BMDG-550BMDG" (min~max) e com falsos positivos de tabelas NMOT
 function parsearRisenRSM(texto, linhas) {
   if (!/RSM/i.test(texto)) return []
-
-  // Coleta todos os valores BMDG: RSM110-8-530BMDG-550BMDG → [530, 550]
-  const bmdgVals = [...texto.matchAll(/(\d{3,4})BMDG/gi)]
-    .map(m => parseInt(m[1])).filter(p => p >= 200 && p <= 800)
-
+  const bmdgVals = [...texto.matchAll(/(\d{3,4})BMDG/gi)].map(m => parseInt(m[1])).filter(p => p >= 200 && p <= 800)
   let pots = []
   if (bmdgVals.length >= 2) {
-    // Expande do menor ao maior em steps de 5: 530→550 = [530,535,540,545,550]
     const pMin = Math.min(...bmdgVals), pMax = Math.max(...bmdgVals)
     for (let p = pMin; p <= pMax; p += 5) pots.push(p)
-  } else if (bmdgVals.length === 1) {
-    pots = bmdgVals
-  }
-
+  } else if (bmdgVals.length === 1) pots = bmdgVals
   if (pots.length < 1) return []
-
-  // Eficiência: coleta todos os valores XX.X em faixa 18-26, ordena e associa às potências ordenadas
   const efVals = []
-  for (const l of linhas) {
-    for (const m of l.matchAll(/\b(\d{2}\.\d)\b/g)) {
-      const v = parseFloat(m[1])
-      if (v >= 18 && v <= 26) efVals.push(v)
-    }
+  for (const l of linhas) for (const m of l.matchAll(/\b(\d{2}\.\d)\b/g)) {
+    const v = parseFloat(m[1]); if (v >= 18 && v <= 26) efVals.push(v)
   }
   const efUnicos = [...new Set(efVals)].sort((a, b) => a - b).slice(0, pots.length)
   const efs = new Map()
   pots.forEach((p, i) => { if (efUnicos[i] !== undefined) efs.set(p, efUnicos[i]) })
-
-  // O PDF Risen produz cada valor numa linha individual. Coletamos todos os XX.XX em ordem
-  // e procuramos sequências de 4 que correspondem a [Voc, Isc, Vmpp, Impp] de uma variante.
   const allFloats = []
-  for (const l of linhas) {
-    const nums = [...l.matchAll(/\b(\d{2}\.\d{2})\b/g)].map(m => parseFloat(m[1]))
-    for (const v of nums) allFloats.push(v)
-  }
-
-  // Coleta grupos [Voc, Isc, Vmpp, Impp] e ordena por Voc crescente para alinhar com potências crescentes
+  for (const l of linhas) for (const m of l.matchAll(/\b(\d{2}\.\d{2})\b/g)) allFloats.push(parseFloat(m[1]))
   const grupos = []
   let fi = 0
   while (fi < allFloats.length - 3 && grupos.length < pots.length) {
-    const [v1, v2, v3, v4] = allFloats.slice(fi, fi+4)
+    const [v1, v2, v3, v4] = allFloats.slice(fi, fi + 4)
     if (v1 >= 36 && v1 <= 42 && v2 >= 17 && v2 <= 20 && v3 >= 30 && v3 <= 34 && v4 >= 16 && v4 <= 18.5) {
-      grupos.push({ voc: v1, isc: v2, vmpp: v3, impp: v4 })
-      fi += 4
-    } else {
-      fi++
-    }
+      grupos.push({ voc: v1, isc: v2, vmpp: v3, impp: v4 }); fi += 4
+    } else fi++
   }
   grupos.sort((a, b) => a.voc - b.voc)
-
   return pots.map((p, i) => ({
-    potenciaW:  p,
-    eficiencia: efs.get(p)     || null,
-    voc:        grupos[i]?.voc  || null,
-    isc:        grupos[i]?.isc  || null,
-    vmpp:       grupos[i]?.vmpp || null,
-    impp:       grupos[i]?.impp || null,
+    potenciaW: p, eficiencia: efs.get(p) || null,
+    voc: grupos[i]?.voc || null, isc: grupos[i]?.isc || null,
+    vmpp: grupos[i]?.vmpp || null, impp: grupos[i]?.impp || null,
   }))
 }
 
-// Orquestrador da extração por texto
 async function extrairPorTexto(pdfBuffer) {
   const parser = new PDFParse({ data: pdfBuffer })
   const result = await parser.getText()
   await parser.destroy()
   const texto = result.text
   const linhas = texto.split('\n').map(l => l.trim()).filter(Boolean)
-
   const fabricante = detectarFabricante(texto)
   const modelo     = detectarModelo(texto)
-
   let variantes = []
-
   variantes = parsearSirius(texto)
   if (!variantes.length) variantes = parsearZNShineInline(linhas)
   if (!variantes.length) variantes = parsearRS6Horizontal(texto)
   if (!variantes.length) variantes = parsearRisenRSM(texto, linhas)
   if (!variantes.length) variantes = parsearZNShineVertical(linhas)
-
   return { fabricante, modelo, tipo: 'modulo', variantes }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// NORMALIZAÇÃO (mesmo formato para Claude e regex)
+// NORMALIZAÇÃO
 // ─────────────────────────────────────────────────────────────────────────────
 
 function normalizar(resultado, metodo) {
   const { fabricante, modelo, tipo = 'modulo', variantes = [] } = resultado
   const variantesNorm = Array.isArray(variantes) ? variantes : [variantes].filter(Boolean)
   const primeira = variantesNorm[0] || {}
-
   const dados = {
-    fabricante:       fabricante              || null,
-    modelo:           modelo                  || null,
-    potenciaW:        primeira.potenciaW      || null,
-    voc:              primeira.voc            || null,
-    vmpp:             primeira.vmpp           || null,
-    isc:              primeira.isc            || null,
-    impp:             primeira.impp           || null,
-    eficiencia:       primeira.eficiencia     || null,
-    potenciaKW:       primeira.potenciaKW     || resultado.potenciaKW     || null,
-    nMppts:           primeira.nMppts         || resultado.nMppts         || null,
-    correnteACSaida:  primeira.correnteACSaida || resultado.correnteACSaida || null,
+    fabricante:      fabricante              || null,
+    modelo:          modelo                  || null,
+    potenciaW:       primeira.potenciaW      || null,
+    voc:             primeira.voc            || null,
+    vmpp:            primeira.vmpp           || null,
+    isc:             primeira.isc            || null,
+    impp:            primeira.impp           || null,
+    eficiencia:      primeira.eficiencia     || null,
+    potenciaKW:      primeira.potenciaKW     || resultado.potenciaKW     || null,
+    nMppts:          primeira.nMppts         || resultado.nMppts         || null,
+    correnteACSaida: primeira.correnteACSaida || resultado.correnteACSaida || null,
   }
-
   const camposEncontrados = Object.values(dados).filter(v => v !== null && v !== '').length
-
   const resposta = {
     sucesso: true,
     dados,
@@ -357,9 +380,7 @@ function normalizar(resultado, metodo) {
     avisos: [],
     _debug: { campos_encontrados: camposEncontrados, metodo },
   }
-
   if (variantesNorm.length > 1) resposta.variantes = variantesNorm
-
   return resposta
 }
 
@@ -380,13 +401,16 @@ export async function extrairDatasheet(req, res) {
     const avisosClaude = []
 
     if (process.env.ANTHROPIC_API_KEY) {
-      // Claude é sempre o método principal — garante leitura precisa de modelo e dados
+      // Carrega exemplos do cache para enriquecer o contexto do Claude
+      const exemplos = await carregarExemplosCache()
       try {
-        resultado = await extrairComClaude(pdfBuffer)
+        resultado = await extrairComClaude(pdfBuffer, exemplos)
         metodo = 'claude-pdf'
-        console.log('✅ Claude extraiu:', JSON.stringify(resultado, null, 2))
+        console.log(`✅ Claude extraiu: ${resultado.fabricante} | ${resultado.modelo} | ${resultado.variantes?.length || 1} variante(s)`)
+        // Salva no cache para aprendizado futuro
+        await salvarNoCache(resultado)
       } catch (err) {
-        console.warn('⚠️ Claude indisponível, usando parser de texto como contingência:', err.message)
+        console.warn('⚠️ Claude indisponível, usando parser de texto:', err.message)
         resultado = await extrairPorTexto(pdfBuffer)
         metodo = 'texto-contingencia'
         avisosClaude.push('Claude temporariamente indisponível — verifique o modelo e os dados antes de salvar.')
@@ -404,6 +428,50 @@ export async function extrairDatasheet(req, res) {
   } catch (err) {
     console.error('❌ Erro:', err)
     res.status(500).json({ sucesso: false, erro: 'Erro ao processar PDF: ' + err.message })
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ENDPOINT: lista fabricantes aprendidos
+// ─────────────────────────────────────────────────────────────────────────────
+
+export async function listarFabricantesAprendidos(req, res) {
+  try {
+    const docs = await DatasheetCache.find({}).sort({ totalExtrações: -1 }).lean()
+    res.json({
+      total: docs.length,
+      fabricantes: docs.map(d => ({
+        fabricante:     d.fabricante,
+        modelos:        d.modelos.map(m => m.codigo),
+        totalExtrações: d.totalExtrações,
+        ultimaExtracao: d.ultimaExtracao,
+      })),
+    })
+  } catch (err) {
+    res.status(500).json({ erro: err.message })
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DEDUPLICAÇÃO: verifica se módulo já existe antes de salvar
+// ─────────────────────────────────────────────────────────────────────────────
+
+export async function verificarDuplicata(req, res) {
+  try {
+    const { fabricante, modelo, potenciaW } = req.query
+    if (!fabricante || !modelo) return res.json({ duplicata: false })
+
+    const query = {
+      tipo: 'modulo',
+      fabricante: { $regex: fabricante, $options: 'i' },
+      modelo:     { $regex: modelo.replace(/[-\d]+W$/, ''), $options: 'i' },
+    }
+    if (potenciaW) query['especificacoes.potencia_wp'] = Number(potenciaW)
+
+    const existe = await Equipamento.findOne(query).lean()
+    res.json({ duplicata: !!existe, equipamento: existe || null })
+  } catch (err) {
+    res.status(500).json({ erro: err.message })
   }
 }
 
