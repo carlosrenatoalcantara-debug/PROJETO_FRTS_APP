@@ -50,7 +50,7 @@ function calcularDimensionamento(espec) {
 
   const fases  = Number(espec.fases) || 1
   const polos  = fases === 3 ? 'Tripolar' : 'Bipolar'
-  const iProj  = +(imax * 1.25).toFixed(1)
+  const iProj  = +(imax * 1.1).toFixed(1)
   const dim    = dimensionar(iProj)
   if (!dim) return null
 
@@ -60,7 +60,7 @@ function calcularDimensionamento(espec) {
   if (espec.subtipo === 'microinversor' && espec.max_por_cabo_tronco) {
     const nMicros      = espec.max_por_cabo_tronco
     const iTotal       = +(imax * nMicros).toFixed(1)
-    const iProjTronco  = +(iTotal * 1.25).toFixed(1)
+    const iProjTronco  = +(iTotal * 1.1).toFixed(1)
     const dimTronco    = dimensionar(iProjTronco)
     if (dimTronco) result.tronco = { nMicros, iTotal, iProj: iProjTronco, ...dimTronco }
   }
