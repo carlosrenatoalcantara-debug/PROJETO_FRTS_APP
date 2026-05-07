@@ -132,11 +132,33 @@ export default function ModalNovoModulo({ modulo, onClose, onSalvar }) {
         return true
       }
 
+      // Campos mecânicos e garantias são iguais para todas as variantes do mesmo datasheet
+      const especMecanica = {
+        dimensoes:                 dados.dimensoes                 || null,
+        peso_kg:                   dados.peso_kg                   || null,
+        tipo_celula:               dados.tipo_celula               || null,
+        num_celulas:               dados.num_celulas               || null,
+        coef_temp_pmax:            dados.coef_temp_pmax            || null,
+        coef_temp_voc:             dados.coef_temp_voc             || null,
+        coef_temp_isc:             dados.coef_temp_isc             || null,
+        garantia_produto_anos:     dados.garantia_produto_anos     || null,
+        garantia_performance_anos: dados.garantia_performance_anos || null,
+      }
+      // Remove nulos para não poluir o banco
+      Object.keys(especMecanica).forEach(k => { if (especMecanica[k] === null) delete especMecanica[k] })
+
       const base = {
         tipo: 'modulo',
         fabricante: dados.marca || dados.fabricante || 'Desconhecido',
         preco_sugerido: 0,
-        garantia_produto: { value: 25, unit: 'anos' },
+        garantia_produto: {
+          value: dados.garantia_produto_anos || 12,
+          unit: 'anos',
+        },
+        garantia_performance: {
+          value: dados.garantia_performance_anos || 25,
+          unit: 'anos',
+        },
       }
 
       let modulosSalvos = 0
@@ -153,6 +175,7 @@ export default function ModalNovoModulo({ modulo, onClose, onSalvar }) {
               isc: v.isc,
               imp: v.impp,
               eficiencia: v.eficiencia,
+              ...especMecanica,
             },
           })
           if (salvo) modulosSalvos++
@@ -168,6 +191,7 @@ export default function ModalNovoModulo({ modulo, onClose, onSalvar }) {
             isc: dados.isc,
             imp: dados.impp,
             eficiencia: dados.eficiencia,
+            ...especMecanica,
           },
         })
         if (salvo) modulosSalvos = 1

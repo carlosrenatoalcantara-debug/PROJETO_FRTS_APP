@@ -105,11 +105,20 @@ REGRAS OBRIGATÓRIAS:
 6. Valores numéricos devem ser números. Use null se não encontrar.${contexto}
 
 ════════════════════════════════════════
-FORMATO PARA MÓDULOS:
+FORMATO PARA MÓDULOS (extraia TUDO que encontrar):
 {
   "fabricante": "string",
   "modelo": "string",
   "tipo": "modulo",
+  "dimensoes": "<Dimensões em mm, ex: '2278x1134x35'>",
+  "peso_kg": <Peso do módulo em kg — número>,
+  "garantia_produto_anos": <Garantia contra defeito de fabricação/materiais em anos — inteiro>,
+  "garantia_performance_anos": <Garantia de potência linear (performance) em anos — inteiro>,
+  "tipo_celula": "<Tipo de célula, ex: 'Monocristalino N-type', 'Bifacial', 'Half-cell'>",
+  "num_celulas": <Número de células — inteiro ou null>,
+  "coef_temp_pmax": <Coeficiente de temperatura de Pmax em %/°C — número negativo, ex: -0.30>,
+  "coef_temp_voc":  <Coeficiente de temperatura de Voc em %/°C — número negativo>,
+  "coef_temp_isc":  <Coeficiente de temperatura de Isc em %/°C — número positivo>,
   "variantes": [
     { "potenciaW": 560, "voc": 50.67, "vmpp": 41.95, "isc": 14.13, "impp": 13.35, "eficiencia": 21.68 }
   ]
@@ -424,6 +433,7 @@ function normalizar(resultado, metodo) {
       garantia_anos:         primeira.garantia_anos                                         || null,
     })
   } else {
+    // Campos elétricos (por variante)
     Object.assign(dados, {
       potenciaW:  primeira.potenciaW  || null,
       voc:        primeira.voc        || null,
@@ -431,6 +441,19 @@ function normalizar(resultado, metodo) {
       isc:        primeira.isc        || null,
       impp:       primeira.impp       || null,
       eficiencia: primeira.eficiencia || null,
+    })
+    // Campos mecânicos e garantias (nível do módulo — iguais para todas variantes)
+    const r = resultado
+    Object.assign(dados, {
+      dimensoes:                 r.dimensoes                 || null,
+      peso_kg:                   r.peso_kg                   || null,
+      garantia_produto_anos:     r.garantia_produto_anos     || null,
+      garantia_performance_anos: r.garantia_performance_anos || null,
+      tipo_celula:               r.tipo_celula               || null,
+      num_celulas:               r.num_celulas               || null,
+      coef_temp_pmax:            r.coef_temp_pmax            || null,
+      coef_temp_voc:             r.coef_temp_voc             || null,
+      coef_temp_isc:             r.coef_temp_isc             || null,
     })
   }
 
