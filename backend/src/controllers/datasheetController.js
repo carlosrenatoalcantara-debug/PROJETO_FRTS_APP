@@ -542,25 +542,39 @@ export async function extrairDatasheet(req, res) {
     const avisosClaude = []
 
     if (process.env.ANTHROPIC_API_KEY) {
-      // Carrega exemplos do cache para enriquecer o contexto do Claude
       const exemplos = await carregarExemplosCache()
       try {
         resultado = await extrairComClaude(pdfBuffer, exemplos)
         metodo = 'claude-pdf'
         console.log(`✅ Claude extraiu: ${resultado.fabricante} | ${resultado.modelo} | ${resultado.variantes?.length || 1} variante(s)`)
-        // Salva no cache para aprendizado futuro
         await salvarNoCache(resultado)
       } catch (err) {
-        console.warn('⚠️ Claude indisponível, usando parser de texto:', err.message)
-        resultado = await extrairPorTexto(pdfBuffer)
-        metodo = 'texto-contingencia'
-        avisosClaude.push('Claude temporariamente indisponível — verifique o modelo e os dados antes de salvar.')
+        console.error('❌ Claude ERRO:', err.message, err.status || '', err.error?.error?.message || '')
+        let motivo = err.message
+        if (err.status === 401)        motivo = 'Chave da API inválida ou sem permissão'
+        else if (err.status === 429)   motivo = 'Limite de requisições atingido — tente novamente em alguns minutos'
+        else if (err.status === 529)   motivo = 'Serviço Claude sobrecarregado — tente novamente'
+        else if (/json/i.test(err.message)) motivo = 'Claude retornou resposta inválida — tente novamente'
+        avisosClaude.push(`Claude: ${motivo}`)
+        try {
+          resultado = await extrairPorTexto(pdfBuffer)
+          metodo = 'texto-contingencia'
+        } catch (e2) {
+          console.error('❌ Fallback texto também falhou:', e2.message)
+          resultado = { fabricante: null, modelo: null, tipo: 'modulo', variantes: [] }
+          metodo = 'vazio'
+        }
       }
     } else {
       console.warn('⚠️ ANTHROPIC_API_KEY não configurada — usando parser de texto')
-      resultado = await extrairPorTexto(pdfBuffer)
-      metodo = 'texto'
-      avisosClaude.push('Chave Claude não configurada — leitura por parser de texto. Verifique o modelo e os dados antes de salvar.')
+      avisosClaude.push('Chave Claude não configurada — leitura por parser de texto.')
+      try {
+        resultado = await extrairPorTexto(pdfBuffer)
+        metodo = 'texto'
+      } catch (e2) {
+        resultado = { fabricante: null, modelo: null, tipo: 'modulo', variantes: [] }
+        metodo = 'vazio'
+      }
     }
 
     const resposta = normalizar(resultado, metodo)
