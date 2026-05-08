@@ -186,7 +186,8 @@ export default function ModalNovoInversor({ arquivosIniciais = [], onClose, onSa
   const totalSalvos    = fila.filter(i => i.status === 'salvo' && !i.duplicata).length
   const totalErros     = fila.filter(i => i.status === 'erro').length
   const totalIgnorados = fila.filter(i => i.duplicata).length
-  const temAvisoIA     = fila.some(i => i.aviso)
+  const avisos         = [...new Set(fila.filter(i => i.aviso).map(i => i.aviso))]
+  const temAvisoIA     = avisos.length > 0
   const podeProcesar   = !processando && totalPendente > 0
 
   return (
@@ -211,11 +212,14 @@ export default function ModalNovoInversor({ arquivosIniciais = [], onClose, onSa
 
         <div className="overflow-y-auto flex-1 p-6 space-y-5">
 
-          {/* Banner aviso IA */}
+          {/* Banner aviso IA — mostra o erro real do servidor */}
           {temAvisoIA && (
             <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm text-amber-800">
               <AlertCircle size={16} className="shrink-0 mt-0.5 text-amber-500" />
-              <span>Claude IA não estava disponível — verifique os dados técnicos antes de usar em projetos.</span>
+              <div className="space-y-0.5">
+                {avisos.map((a, i) => <p key={i}>{a}</p>)}
+                <p className="text-amber-600 text-xs mt-1">Verifique os dados técnicos antes de usar em projetos.</p>
+              </div>
             </div>
           )}
 

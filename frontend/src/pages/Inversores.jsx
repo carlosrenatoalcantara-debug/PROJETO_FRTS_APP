@@ -93,7 +93,7 @@ function DimensionamentoEletrico({ espec }) {
           {espec.subtipo === 'microinversor' ? 'Conexão de cada microinversor' : 'Saída CA do inversor'}
         </p>
         <Linha label="Corrente de saída (Imax)"             value={`${d.imax} A`} />
-        <Linha label="Corrente de projeto (Imax × 1,25)"    value={`${d.iProj} A`} />
+        <Linha label="Corrente de projeto (Imax × 1,1)"    value={`${d.iProj} A`} />
         <Linha label="Cabo recomendado (cobre 70°C, B1)"    value={`${d.secao} mm²  —  cap. ${d.ampCabo} A`} destaque />
         <Linha label={`Disjuntor ${d.polos}`}               value={`${d.disjuntor} A`} destaque />
       </div>
@@ -105,7 +105,7 @@ function DimensionamentoEletrico({ espec }) {
             Cabo tronco — máx. {d.tronco.nMicros} microinversores em série
           </p>
           <Linha label="Corrente total do ramal"                value={`${d.tronco.nMicros} × ${d.imax} A = ${d.tronco.iTotal} A`} />
-          <Linha label="Corrente de projeto (× 1,25)"          value={`${d.tronco.iProj} A`} />
+          <Linha label="Corrente de projeto (× 1,1)"          value={`${d.tronco.iProj} A`} />
           <Linha label="Cabo tronco recomendado (cobre 70°C)"  value={`${d.tronco.secao} mm²  —  cap. ${d.tronco.ampCabo} A`} destaque />
           <Linha label={`Disjuntor do ramal ${d.polos}`}       value={`${d.tronco.disjuntor} A`} destaque />
         </div>
@@ -113,7 +113,7 @@ function DimensionamentoEletrico({ espec }) {
 
       <p className="text-[10px] text-amber-600 leading-tight">
         Referência: NBR 5410 — cabo cobre 70 °C, método B1 (eletroduto fixado em parede).
-        Corrente de projeto = 1,25 × Imax (carga contínua).
+        Corrente de projeto = 1,1 × Imax (carga contínua).
       </p>
     </div>
   )
