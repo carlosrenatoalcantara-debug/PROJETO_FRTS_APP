@@ -274,7 +274,8 @@ export default function ModalNovoModulo({ modulo, onClose, onSalvar }) {
   const totalErros    = fila.filter(i => i.status === 'erro').length
   const totalPendente = fila.filter(i => i.status === 'pendente').length
   const podeProcesar  = !processando && totalPendente > 0
-  const temAvisoIA    = fila.some(i => i.aviso)
+  const avisos        = [...new Set(fila.filter(i => i.aviso).map(i => i.aviso))]
+  const temAvisoIA    = avisos.length > 0
 
   // ── Render ───────────────────────────────────────────────────────────────────
 
@@ -294,11 +295,14 @@ export default function ModalNovoModulo({ modulo, onClose, onSalvar }) {
 
         <div className="overflow-y-auto flex-1 p-6 space-y-5">
 
-          {/* Banner: Claude indisponível */}
+          {/* Banner: aviso real do servidor */}
           {temAvisoIA && (
             <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm text-amber-800">
               <AlertCircle size={16} className="shrink-0 mt-0.5 text-amber-500" />
-              <span>Claude IA não estava disponível — leitura feita por parser de texto. Confirme o nome do modelo e os dados elétricos antes de usar em projetos.</span>
+              <div className="space-y-0.5">
+                {avisos.map((a, i) => <p key={i}>{a}</p>)}
+                <p className="text-amber-600 text-xs mt-1">Confirme os dados técnicos antes de usar em projetos.</p>
+              </div>
             </div>
           )}
 
