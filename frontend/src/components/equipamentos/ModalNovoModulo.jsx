@@ -116,21 +116,27 @@ export default function ModalNovoModulo({ modulo, onClose, onSalvar }) {
 
       // 2. Persistência: cria novo ou atualiza existente mesclando dados
       const salvarModulo = async (payload) => {
+        // Remove campos nulos/undefined do spec para não sobrescrever dados bons no banco
+        const specLimpo = Object.fromEntries(
+          Object.entries(payload.especificacoes || {}).filter(([, v]) => v != null)
+        )
+
         const params = new URLSearchParams({
           fabricante: payload.fabricante,
           modelo:     payload.modelo,
-          potenciaW:  payload.especificacoes?.potencia_wp ?? '',
+          tipo:       'modulo',
+          potenciaW:  specLimpo.potencia_wp ?? '',
         })
         const dup = await fetch(`${API_URL}/api/datasheet/verificar-duplicata?${params}`)
         const dupJson = await dup.json()
 
         if (dupJson.duplicata && dupJson.equipamento) {
-          // Atualiza: mescla especificações existentes com os novos dados mecânicos/garantias
           const existente = dupJson.equipamento
           const updatePayload = {
             fabricante: payload.fabricante,
             modelo:     payload.modelo,
-            especificacoes: { ...existente.especificacoes, ...payload.especificacoes },
+            // existente primeiro — novos dados só completam, nunca apagam
+            especificacoes: { ...existente.especificacoes, ...specLimpo },
             ...(payload.garantia_produto     ? { garantia_produto:    payload.garantia_produto    } : {}),
             ...(payload.garantia_performance ? { garantia_performance: payload.garantia_performance } : {}),
           }
@@ -146,7 +152,7 @@ export default function ModalNovoModulo({ modulo, onClose, onSalvar }) {
         const r = await fetch(`${API_URL}/api/equipamentos`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
+          body: JSON.stringify({ ...payload, especificacoes: specLimpo }),
         })
         if (!r.ok) throw new Error('Erro ao salvar no banco')
         return 'criado'
