@@ -2,7 +2,6 @@ import { Equipamento } from '../models/Equipamento.js'
 import { PDFParse } from 'pdf-parse'
 import multer from 'multer'
 import Anthropic from '@anthropic-ai/sdk'
-import pdfParse from 'pdf-parse/lib/pdf-parse.js'
 
 export const listarEquipamentos = async (req, res) => {
   try {
@@ -148,16 +147,15 @@ export const excluirEquipamento = async (req, res) => {
 
 const extrairImagensDoPDF = async (bufferPDF) => {
   try {
-    const pdfData = await pdfParse(bufferPDF)
-    const imagens = []
+    const parser = new PDFParse({ data: bufferPDF })
+    const pdfData = await parser.parseBuffer()
 
-    // pdfParse não extrai imagens diretamente, então usamos uma abordagem alternativa
-    // Convertemos as primeiras páginas em imagens usando o buffer PDF bruto
-    // Para um método mais robusto, seria necessário usar uma biblioteca como pdf-lib ou pdfjs
+    // PDFParse não extrai imagens diretamente, então usamos buffer bruto
+    // Para método robusto, seria necessário pdf-lib ou pdfjs
 
     console.log(`📄 PDF contém ${pdfData.numpages} páginas`)
 
-    // Retornamos o buffer PDF que será usado para extração de imagens
+    // Retornar buffer PDF para extração de imagens
     return {
       buffer: bufferPDF,
       pages: pdfData.numpages,
