@@ -48,3 +48,4 @@ npm run dev
 | CRUD   | /api/clientes         | Gestão de clientes      |
 | CRUD   | /api/projetos-fv      | Projetos fotovoltaicos  |
 | CRUD   | /api/projetos-ev      | Projetos EV             |
+# Deploy force
