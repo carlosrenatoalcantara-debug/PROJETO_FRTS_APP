@@ -87,9 +87,15 @@ function ModalNovoClienteComPDF({ onClose, onSalvo }) {
 
   async function handleSubmit(e) {
     e.preventDefault()
+    setErro('')
 
-    if (!formData.nome) {
+    if (!formData.nome || !formData.nome.trim()) {
       setErro('Nome é obrigatório')
+      return
+    }
+
+    if (!formData.email || !formData.email.trim()) {
+      setErro('Email é obrigatório')
       return
     }
 
@@ -100,9 +106,13 @@ function ModalNovoClienteComPDF({ onClose, onSalvo }) {
         body: JSON.stringify(formData),
       })
 
-      if (!res.ok) throw new Error('Erro ao criar')
+      const data = await res.json()
 
-      const novoCliente = await res.json()
+      if (!res.ok) {
+        throw new Error(data.mensagem || data.erro || 'Erro ao criar cliente')
+      }
+
+      const novoCliente = data
       onSalvo(novoCliente)
       onClose()
     } catch (err) {
@@ -171,11 +181,12 @@ function ModalNovoClienteComPDF({ onClose, onSalvo }) {
                   name="cpf_cnpj"
                 />
                 <Input
-                  rotulo="Email"
+                  rotulo="Email *"
                   type="email"
                   value={formData.email}
                   onChange={handleChange}
                   name="email"
+                  placeholder="Ex: joao@email.com"
                 />
                 <Input
                   rotulo="Telefone"

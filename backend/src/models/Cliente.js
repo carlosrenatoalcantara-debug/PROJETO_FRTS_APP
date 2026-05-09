@@ -32,6 +32,14 @@ const clienteSchema = new mongoose.Schema({
     type: String,
     default: '',
   },
+  endereco_completo: {
+    type: String,
+    default: '',
+  },
+  cep: {
+    type: String,
+    default: '',
+  },
   cidade: {
     type: String,
     default: '',
@@ -47,6 +55,39 @@ const clienteSchema = new mongoose.Schema({
   longitude: {
     type: Number,
     default: null,
+  },
+  // Dados de conta de energia
+  numero_cliente: {
+    type: String,
+    default: '',
+  },
+  codigo_instalacao: {
+    type: String,
+    default: '',
+  },
+  distribuidora: {
+    type: String,
+    default: '',
+  },
+  classificacao: {
+    type: String,
+    default: '',
+  },
+  subgrupo: {
+    type: String,
+    default: '',
+  },
+  tipo_ligacao: {
+    type: String,
+    default: '',
+  },
+  valor_kwh: {
+    type: Number,
+    default: 0,
+  },
+  consumo_kwh: {
+    type: Number,
+    default: 0,
   },
   tags: [String],
   status: {
