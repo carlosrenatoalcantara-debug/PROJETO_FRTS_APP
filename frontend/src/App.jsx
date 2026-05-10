@@ -19,10 +19,12 @@ import Modulos             from './pages/Modulos'
 import Inversores          from './pages/Inversores'
 import CarregadoresEV      from './pages/CarregadoresEV'
 import Baterias            from './pages/Baterias'
+import Login               from './pages/Login'
 
 export default function App() {
   return (
     <Routes>
+      <Route path="/login" element={<Login />} />
       <Route path="/" element={<Layout />}>
         <Route index element={<Navigate to="/dashboard" replace />} />
         <Route path="dashboard"               element={<Dashboard />} />
