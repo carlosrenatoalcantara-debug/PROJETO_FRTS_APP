@@ -29,6 +29,7 @@ import rotasHomologacao  from './routes/homologacao.js'
 import rotasProposta     from './routes/proposta.js'
 import rotasFatura       from './routes/fatura.js'
 import rotasBeneficiarias from './routes/beneficiarias.js'
+import rotasAuth         from './routes/auth.js'
 import errorHandler      from './middleware/errorHandler.js'
 
 const app  = express()
@@ -113,6 +114,7 @@ app.use('/api/reconectar', async (_req, res) => {
     res.status(500).json({ status: 'falhou', erro: erro.message })
   }
 })
+app.use('/api/auth',         rotasAuth)
 app.use('/api/dashboard',    rotasDashboard)
 app.use('/api/clientes',     rotasClientes)
 app.use('/api/projetos-fv',  rotasProjetosFV)
