@@ -30,10 +30,11 @@ import rotasProposta     from './routes/proposta.js'
 import rotasFatura       from './routes/fatura.js'
 import rotasBeneficiarias from './routes/beneficiarias.js'
 import rotasAuth         from './routes/auth.js'
+import rotasCalculadora  from './routes/calculadora.js'
 import errorHandler      from './middleware/errorHandler.js'
 
 const app  = express()
-const PORT = process.env.PORT || 5000
+const PORT = process.env.PORT || 5001
 
 // Configuração CORS com mais detalhes
 const corsOptions = {
@@ -115,6 +116,7 @@ app.use('/api/reconectar', async (_req, res) => {
   }
 })
 app.use('/api/auth',         rotasAuth)
+app.use('/api/calculadora',  rotasCalculadora)
 app.use('/api/dashboard',    rotasDashboard)
 app.use('/api/clientes',     rotasClientes)
 app.use('/api/projetos-fv',  rotasProjetosFV)
