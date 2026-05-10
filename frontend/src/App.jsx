@@ -17,6 +17,8 @@ import Catalogo            from './pages/Catalogo'
 import Configuracoes       from './pages/Configuracoes'
 import Modulos             from './pages/Modulos'
 import Inversores          from './pages/Inversores'
+import CarregadoresEV      from './pages/CarregadoresEV'
+import Baterias            from './pages/Baterias'
 
 export default function App() {
   return (
@@ -38,8 +40,10 @@ export default function App() {
         <Route path="homologacao"             element={<Homologacao />} />
         <Route path="catalogo"                element={<Catalogo />} />
         <Route path="configuracoes"           element={<Configuracoes />} />
-        <Route path="equipamentos/modulos"    element={<Modulos />} />
-        <Route path="equipamentos/inversores" element={<Inversores />} />
+        <Route path="equipamentos/modulos"         element={<Modulos />} />
+        <Route path="equipamentos/inversores"      element={<Inversores />} />
+        <Route path="equipamentos/carregadores-ev" element={<CarregadoresEV />} />
+        <Route path="equipamentos/baterias"        element={<Baterias />} />
       </Route>
     </Routes>
   )

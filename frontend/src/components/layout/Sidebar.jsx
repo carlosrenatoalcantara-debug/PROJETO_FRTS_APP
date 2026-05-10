@@ -15,6 +15,8 @@ const itensMenu = [
   { rotulo: 'Equipamentos',  icone: Package, submenu: [
     { rotulo: 'Módulos',     caminho: '/equipamentos/modulos' },
     { rotulo: 'Inversores',  caminho: '/equipamentos/inversores' },
+    { rotulo: 'Carregadores EV', caminho: '/equipamentos/carregadores-ev' },
+    { rotulo: 'Baterias',    caminho: '/equipamentos/baterias' },
   ]},
   { rotulo: 'Configurações', caminho: '/configuracoes', icone: Settings        },
 ]

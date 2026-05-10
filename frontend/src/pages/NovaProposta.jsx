@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { X, MapPin, Zap, Sun, Wrench, DollarSign, FileText, CheckCircle, Download, Info } from 'lucide-react'
+import { X, MapPin, Zap, Sun, Wrench, DollarSign, FileText, CheckCircle, Download, Info, Trash2 } from 'lucide-react'
 import Card, { CardHeader, CardBody } from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import Stepper from '../components/ui/Stepper'
 import MapaTelhado from '../components/fv/MapaTelhado'
 import Input from '../components/ui/Input'
 import SeletorAutomaticoKits from '../components/fv/SeletorAutomaticoKits'
+import ModalBeneficiaria from '../components/fv/ModalBeneficiaria'
 import { calcularDimensionamentoAuto, selecionarKitsAuto, gerarOrcamentoAuto } from '../services/calcAutoMatico'
 import { gerarUnifilarSVG } from '../utils/gerarUnifilarSVG'
 import { gerarPropostaPDF, abrirOuBaixarProposta } from '../utils/gerarPropostaPDF'
@@ -20,6 +21,7 @@ const ETAPAS = [
   { num: 5, rotulo: 'Irradiância', icone: Sun },
   { num: 6, rotulo: 'Dimensionamento', icone: Zap },
   { num: 7, rotulo: 'Orçamento', icone: DollarSign },
+  { num: 8, rotulo: 'Proposta', icone: FileText },
 ]
 
 function Etapa1Localizacao({ dados, setDados, proxima }) {
@@ -77,8 +79,9 @@ function Etapa1Localizacao({ dados, setDados, proxima }) {
 }
 
 function Etapa2Unidades({ dados, setDados, proxima, anterior }) {
-  const [beneficiarias, setBeneficiarias] = useState([])
+  const [beneficiarias, setBeneficiarias] = useState(dados.beneficiarias || [])
   const [dimensionamento, setDimensionamento] = useState(null)
+  const [modalAberta, setModalAberta] = useState(false)
 
   // Auto-populate com dados extraídos da fatura
   useEffect(() => {
@@ -95,6 +98,20 @@ function Etapa2Unidades({ dados, setDados, proxima, anterior }) {
       setDados(prev => ({ ...prev, gd: 'gd2' }))
     }
   }, [])
+
+  // Sincronizar beneficiárias com dados
+  useEffect(() => {
+    setDados(prev => ({ ...prev, beneficiarias }))
+  }, [beneficiarias])
+
+  const handleAdicionarBeneficiaria = (nova) => {
+    setBeneficiarias(prev => [...prev, { ...nova, id: Date.now() }])
+    setModalAberta(false)
+  }
+
+  const handleRemoverBeneficiaria = (id) => {
+    setBeneficiarias(prev => prev.filter(b => b.id !== id))
+  }
 
   return (
     <div className="space-y-6">
@@ -229,21 +246,54 @@ function Etapa2Unidades({ dados, setDados, proxima, anterior }) {
       <Card>
         <CardHeader className="flex items-center justify-between">
           <span>Beneficiárias</span>
-          <Button tamanho="sm">+ Adicionar</Button>
+          <Button tamanho="sm" onClick={() => setModalAberta(true)}>+ Adicionar</Button>
         </CardHeader>
         <CardBody>
           {beneficiarias.length === 0 ? (
             <p className="text-sm text-slate-500">Nenhuma beneficiária adicionada</p>
           ) : (
-            <div>Beneficiárias listadas aqui</div>
+            <div className="space-y-2">
+              {beneficiarias.map((b) => (
+                <div key={b.id} className="flex items-center justify-between p-3 bg-slate-50 border border-slate-200 rounded">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-slate-900">{b.contaContrato}</p>
+                    <p className="text-xs text-slate-600">
+                      {b.tipoRateio === 'percentual' ? `${b.valor}%` : `R$ ${b.valor.toFixed(2)}`}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => handleRemoverBeneficiaria(b.id)}
+                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              ))}
+            </div>
           )}
         </CardBody>
       </Card>
 
       <div className="flex justify-between gap-3">
         <Button variante="secundario" onClick={anterior}>← Anterior</Button>
-        <Button onClick={proxima}>Próxima →</Button>
+        <Button onClick={proxima} disabled={!dados.consumo || dados.consumo <= 0 || !dimensionamento}>
+          Próxima →
+        </Button>
       </div>
+
+      {!dados.consumo || dados.consumo <= 0 ? (
+        <div className="p-3 bg-amber-50 border border-amber-200 rounded text-sm text-amber-700">
+          ⚠️ Preencha o consumo (> 0) para prosseguir
+        </div>
+      ) : null}
+
+      {modalAberta && (
+        <ModalBeneficiaria
+          onAdicionarBeneficiaria={handleAdicionarBeneficiaria}
+          onClose={() => setModalAberta(false)}
+          beneficiarias={beneficiarias}
+        />
+      )}
     </div>
   )
 }
@@ -418,8 +468,16 @@ function Etapa3KitGerador({ dados, setDados, proxima, anterior }) {
 
       <div className="flex justify-between gap-3">
         <Button variante="secundario" onClick={anterior}>← Anterior</Button>
-        <Button onClick={proxima}>Próxima →</Button>
+        <Button onClick={proxima} disabled={!dados.kitSelecionado || !dados.orcamento}>
+          Próxima →
+        </Button>
       </div>
+
+      {(!dados.kitSelecionado || !dados.orcamento) && (
+        <div className="p-3 bg-amber-50 border border-amber-200 rounded text-sm text-amber-700">
+          ⚠️ Selecione um kit para prosseguir
+        </div>
+      )}
     </div>
   )
 }
@@ -734,6 +792,136 @@ function Etapa7Orcamento({ dados, setDados, proxima, anterior }) {
   )
 }
 
+function Etapa8Proposta({ dados, anterior }) {
+  const [gerando, setGerando] = useState(false)
+  const [propostaBaixada, setPropostaBaixada] = useState(false)
+
+  const handleGerarProposta = async () => {
+    try {
+      setGerando(true)
+      const htmlProposta = gerarPropostaPDF(dados)
+      abrirOuBaixarProposta(htmlProposta, `Proposta-${dados.nomeProjeto || 'SolarFV'}-${new Date().toLocaleDateString('pt-BR')}`)
+      setPropostaBaixada(true)
+    } catch (err) {
+      console.error('Erro ao gerar proposta:', err)
+      alert('Erro ao gerar proposta. Verifique o console.')
+    } finally {
+      setGerando(false)
+    }
+  }
+
+  const resumoCompleto = () => {
+    const dim = dados.dimensionamento
+    const orc = dados.orcamento
+    if (!dim || !orc) return null
+
+    return {
+      potencia: `${dim.potenciaArredondada} kWp`,
+      paineis: dim.numPaineis,
+      inversores: dim.numInversores,
+      economia: `R$ ${Number(dim.economiaAnual).toLocaleString('pt-BR')}/ano`,
+      payback: `${dim.payback} anos`,
+      investimento: `R$ ${Math.round(orc.total).toLocaleString('pt-BR')}`,
+      precoWp: `R$ ${orc.precoWp}/Wp`,
+    }
+  }
+
+  const resumo = resumoCompleto()
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-lg font-semibold text-slate-900">Resumo da Proposta</h2>
+        <p className="text-sm text-slate-500 mt-1">Confira os dados finais e gere o PDF</p>
+      </div>
+
+      {resumo ? (
+        <>
+          <Card>
+            <CardHeader>Sistema Fotovoltaico</CardHeader>
+            <CardBody>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded">
+                  <p className="text-xs text-slate-600">Potência</p>
+                  <p className="text-lg font-bold text-blue-700">{resumo.potencia}</p>
+                </div>
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded">
+                  <p className="text-xs text-slate-600">Painéis</p>
+                  <p className="text-lg font-bold text-blue-700">{resumo.paineis} un</p>
+                </div>
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded">
+                  <p className="text-xs text-slate-600">Inversores</p>
+                  <p className="text-lg font-bold text-blue-700">{resumo.inversores} un</p>
+                </div>
+              </div>
+            </CardBody>
+          </Card>
+
+          <Card>
+            <CardHeader>Análise Financeira</CardHeader>
+            <CardBody>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <div className="p-3 bg-green-50 border border-green-200 rounded">
+                  <p className="text-xs text-slate-600">Economia/Ano</p>
+                  <p className="text-lg font-bold text-green-700">{resumo.economia}</p>
+                </div>
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded">
+                  <p className="text-xs text-slate-600">Payback</p>
+                  <p className="text-lg font-bold text-amber-700">{resumo.payback}</p>
+                </div>
+                <div className="p-3 bg-slate-50 border border-slate-200 rounded">
+                  <p className="text-xs text-slate-600">Preço/Wp</p>
+                  <p className="text-lg font-bold">{resumo.precoWp}</p>
+                </div>
+              </div>
+            </CardBody>
+          </Card>
+
+          <Card>
+            <CardHeader>Investimento Total</CardHeader>
+            <CardBody>
+              <div className="p-4 bg-slate-900 text-white rounded text-center">
+                <p className="text-sm text-slate-300 mb-1">Valor Total do Sistema</p>
+                <p className="text-4xl font-bold">{resumo.investimento}</p>
+              </div>
+            </CardBody>
+          </Card>
+
+          {propostaBaixada && (
+            <div className="p-4 bg-emerald-50 border border-emerald-200 rounded text-center">
+              <p className="text-emerald-700 font-semibold">✅ Proposta PDF gerada com sucesso!</p>
+              <p className="text-sm text-emerald-600">O arquivo foi aberto em uma nova aba</p>
+            </div>
+          )}
+        </>
+      ) : (
+        <Card>
+          <CardBody className="text-center py-8">
+            <p className="text-slate-600 mb-4">Preencha todas as etapas anteriores para ver o resumo</p>
+          </CardBody>
+        </Card>
+      )}
+
+      <div className="flex justify-between gap-3">
+        <Button variante="secundario" onClick={anterior}>← Anterior</Button>
+        <Button
+          onClick={handleGerarProposta}
+          disabled={gerando || !resumo}
+          className="flex-1 flex items-center justify-center gap-2"
+        >
+          {gerando ? (
+            <>⏳ Gerando...</>
+          ) : propostaBaixada ? (
+            <>✅ Proposta Gerada</>
+          ) : (
+            <>📄 Gerar Proposta PDF</>
+          )}
+        </Button>
+      </div>
+    </div>
+  )
+}
+
 export default function NovaProposta() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
@@ -857,6 +1045,7 @@ export default function NovaProposta() {
     5: Etapa5Irradiancia,
     6: Etapa6Dimensionamento,
     7: Etapa7Orcamento,
+    8: Etapa8Proposta,
   }
 
   const Componente = componentes[etapa]
@@ -867,7 +1056,7 @@ export default function NovaProposta() {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Nova Proposta</h1>
-          <p className="text-sm text-slate-500 mt-1">Etapa {etapa} de 7</p>
+          <p className="text-sm text-slate-500 mt-1">Etapa {etapa} de 8</p>
         </div>
         <button
           onClick={() => navigate('/clientes')}
@@ -884,7 +1073,7 @@ export default function NovaProposta() {
       <Componente
         dados={dados}
         setDados={setDados}
-        proxima={() => setEtapa(Math.min(etapa + 1, 7))}
+        proxima={() => setEtapa(Math.min(etapa + 1, 8))}
         anterior={() => setEtapa(Math.max(etapa - 1, 1))}
       />
     </div>
