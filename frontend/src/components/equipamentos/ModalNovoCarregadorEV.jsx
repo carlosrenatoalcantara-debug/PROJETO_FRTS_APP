@@ -64,83 +64,49 @@ export default function ModalNovoCarregadorEV({ arquivosIniciais = [], onClose, 
   async function processarItem(item) {
     atualizarItem(item.id, { status: 'processando' })
     try {
-      const fd = new FormData()
-      fd.append('pdf', item.file)
-      const res  = await fetch(`${API_URL}/api/datasheet/extrair-datasheet`, { method: 'POST', body: fd })
-      const texto = await res.text()
-      let json
-      try { json = JSON.parse(texto) } catch { throw new Error(`Servidor retornou status ${res.status}`) }
-      if (!res.ok) throw new Error(json.erro || `Erro ${res.status}`)
-
-      const dados = json.dados || json
-      const aviso = json.avisos?.length ? json.avisos[0] : null
-
-      // Verifica duplicata — se existir, atualiza; senão, cria
-      const params = new URLSearchParams({ fabricante: dados.fabricante || '', modelo: dados.modelo || '', tipo: 'carregador_ev' })
-      const dupRes  = await fetch(`${API_URL}/api/datasheet/verificar-duplicata?${params}`)
-      const dupJson = await dupRes.json()
-      const existente = dupJson.duplicata ? dupJson.equipamento : null
-
-      // Monta payload
-      const payload = {
-        tipo: 'carregador_ev',
-        fabricante: dados.fabricante || 'Desconhecido',
-        modelo:     dados.modelo     || 'Carregador EV',
-        preco_sugerido: 0,
-        ...(dados.garantia_anos ? { garantia_produto: { value: dados.garantia_anos, unit: 'anos' } } : {}),
-        especificacoes: {
-          // Potência
-          potencia_kw:           dados.potencia_nominal_kw   || dados.potenciaKW           || null,
-          potencia_maxima_kw:    dados.potencia_maxima_kw                                  || null,
-          // Entrada AC
-          tensao_entrada_ac:     dados.tensao_ac             || dados.tensao_ac_nominal     || null,
-          fases_entrada:         dados.fases                 || dados.faseAC               || null,
-          frequencia_hz:         dados.frequencia_hz                                       || null,
-          corrente_entrada_max:  dados.corrente_ac_saida     || dados.correnteACSaida      || null,
-          fator_potencia:        dados.fator_potencia                                      || null,
-          // Saída DC
-          tensao_saida_dc:       dados.tensao_nominal_cc                                   || null,
-          tensao_saida_min:      dados.tensao_mppt_min       || dados.tensaoMpptMin        || null,
-          tensao_saida_max:      dados.tensao_mppt_max       || dados.tensaoMpptMax        || null,
-          corrente_saida_max:    dados.corrente_max_entrada                                || null,
-          // Conectores
-          tipos_conector:        dados.tipos_conector                                      || null,
-          tipo_carregador:       dados.tipo_carregador       || 'CA'                       || null,
-          // Proteções
-          grau_protecao_ip:      dados.grau_protecao_ip                                    || null,
-          protecao_sobretensao:  dados.protecao_sobretensao_ac                            || null,
-          protecao_sobrecorrente: dados.protecao_sobrecorrente                            || null,
-          // Eficiência
-          eficiencia:            dados.eficiencia_maxima     || dados.eficiencia           || null,
-          // Geral
-          temperatura_operacao:  dados.temperatura_operacao                               || null,
-          peso_kg:               dados.peso_kg                                            || null,
-          dimensoes:             dados.dimensoes                                          || null,
-          garantia_anos:         dados.garantia_anos                                      || null,
-        },
-      }
-      // Remove campos nulos para não poluir o banco
-      Object.keys(payload.especificacoes).forEach(k => {
-        if (payload.especificacoes[k] === null) delete payload.especificacoes[k]
+      // Ler arquivo PDF como base64 (usando FileReader nativo do navegador)
+      const pdfBase64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => {
+          const base64 = reader.result.split(',')[1] // Remove o "data:application/pdf;base64," do início
+          resolve(base64)
+        }
+        reader.onerror = reject
+        reader.readAsDataURL(item.file)
       })
 
-      const url    = existente ? `${API_URL}/api/equipamentos/${existente._id}` : `${API_URL}/api/equipamentos`
-      const method = existente ? 'PUT' : 'POST'
-      const savePayload = existente
-        ? { ...payload, especificacoes: { ...existente.especificacoes, ...payload.especificacoes } }
-        : payload
-
-      const saveRes = await fetch(url, {
-        method,
+      // Chamar nova rota de extração EV (Claude Vision)
+      const res = await fetch(`${API_URL}/api/carregadores-ev/upload-datasheet`, {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(savePayload),
+        body: JSON.stringify({ pdfBase64 }),
       })
-      if (!saveRes.ok) throw new Error('Erro ao salvar no banco')
 
-      atualizarItem(item.id, { status: 'salvo', dados, atualizado: !!existente, aviso })
+      const json = await res.json()
+
+      if (!res.ok) {
+        // Erro na extração, mostrar avisos
+        atualizarItem(item.id, {
+          status: 'salvo',
+          dados: json.carregador,
+          aviso: json.avisos?.join('; ') || json.erro || 'Falha ao extrair dados',
+        })
+        return
+      }
+
+      // Sucesso! Carregador já foi salvo no backend
+      atualizarItem(item.id, {
+        status: 'salvo',
+        dados: json.carregador,
+        aviso: json.avisos?.length > 0 ? json.avisos.join('; ') : null,
+      })
+
     } catch (err) {
-      console.error('Erro no item', item.nome, err)
-      atualizarItem(item.id, { status: 'erro', erro: err.message })
+      console.error('Erro ao processar:', item.nome, err)
+      atualizarItem(item.id, {
+        status: 'erro',
+        erro: err.message || 'Erro ao ler o arquivo PDF',
+      })
     }
   }
 

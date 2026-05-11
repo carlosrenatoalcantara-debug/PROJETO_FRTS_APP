@@ -1,5 +1,10 @@
 import { Router } from 'express'
 import { CarregadorEV } from '../models/CarregadorEV.js'
+import {
+  processarDatasheetEV,
+  normalizarDadosEV,
+  validarDadosEV,
+} from '../controllers/carregadorEVController.js'
 
 const router = Router()
 
@@ -90,6 +95,60 @@ router.post('/seed/inicializar', async (req, res) => {
     res.json({ msg: 'Banco inicializado com sucesso', total: carregadores.length })
   } catch (error) {
     res.status(500).json({ erro: error.message })
+  }
+})
+
+// Upload e extração de datasheet EV com Claude Vision
+router.post('/upload-datasheet', async (req, res) => {
+  try {
+    const { pdfBase64 } = req.body
+
+    if (!pdfBase64) {
+      return res.status(400).json({
+        sucesso: false,
+        erro: 'PDF não fornecido',
+        avisos: ['Envie um arquivo PDF válido'],
+      })
+    }
+
+    // Converter base64 para buffer
+    const pdfBuffer = Buffer.from(pdfBase64, 'base64')
+
+    // Processar datasheet (extrai + normaliza + valida)
+    const resultado = await processarDatasheetEV(pdfBuffer)
+
+    if (resultado.sucesso && resultado.carregador) {
+      // Salvar no banco de dados
+      const novoCarregador = new CarregadorEV(resultado.carregador)
+      await novoCarregador.save()
+
+      return res.status(201).json({
+        sucesso: true,
+        carregador: novoCarregador,
+        avisos: resultado.avisos,
+        msg: '✅ Carregador extraído e adicionado com sucesso',
+      })
+    } else {
+      // Falha na extração, retornar dados parciais para edição manual
+      return res.status(400).json({
+        sucesso: false,
+        carregador: resultado.carregador,
+        avisos: [
+          ...resultado.avisos,
+          'Use a opção "Cadastro Manual" para preencher os dados corretamente',
+        ],
+        erro: resultado.erro,
+        msg: '⚠️ Não foi possível extrair todos os dados do PDF',
+      })
+    }
+
+  } catch (error) {
+    console.error('[EV Upload] Erro:', error.message)
+    res.status(500).json({
+      sucesso: false,
+      erro: error.message,
+      avisos: ['Erro ao processar arquivo - tente novamente ou use Cadastro Manual'],
+    })
   }
 })
 
