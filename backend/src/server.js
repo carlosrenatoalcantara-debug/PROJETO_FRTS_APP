@@ -31,6 +31,7 @@ import rotasFatura       from './routes/fatura.js'
 import rotasBeneficiarias from './routes/beneficiarias.js'
 import rotasAuth         from './routes/auth.js'
 import rotasCalculadora  from './routes/calculadora.js'
+import rotasCarregadoresEV from './routes/carregadoresEV.js'
 import errorHandler      from './middleware/errorHandler.js'
 
 const app  = express()
@@ -117,6 +118,7 @@ app.use('/api/reconectar', async (_req, res) => {
 })
 app.use('/api/auth',         rotasAuth)
 app.use('/api/calculadora',  rotasCalculadora)
+app.use('/api/carregadores-ev', rotasCarregadoresEV)
 app.use('/api/dashboard',    rotasDashboard)
 app.use('/api/clientes',     rotasClientes)
 app.use('/api/projetos-fv',  rotasProjetosFV)

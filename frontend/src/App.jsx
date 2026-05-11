@@ -4,6 +4,7 @@ import Dashboard      from './pages/Dashboard'
 import Clientes       from './pages/Clientes'
 import ClienteGerenciamento from './pages/ClienteGerenciamento'
 import NovaProposta from './pages/NovaProposta'
+import NovaPropostaEV from './pages/NovaPropostaEV'
 import ProjetosFV     from './pages/ProjetosFV'
 import ProjetosFVDetalhes from './pages/ProjetosFVDetalhes'
 import ProjetosFVNovo from './pages/ProjetosFVNovo'
@@ -33,6 +34,7 @@ export default function App() {
         <Route path="clientes"                element={<Clientes />} />
         <Route path="clientes/:clienteId"     element={<ClienteGerenciamento />} />
         <Route path="propostas/nova"          element={<NovaProposta />} />
+        <Route path="propostas-ev/nova"       element={<NovaPropostaEV />} />
         <Route path="projetos-fv"             element={<ProjetosFV />} />
         <Route path="projetos-fv/novo"        element={<ProjetosFVNovo />} />
         <Route path="projetos-fv/simulacao"   element={<SimulacaoFV />} />

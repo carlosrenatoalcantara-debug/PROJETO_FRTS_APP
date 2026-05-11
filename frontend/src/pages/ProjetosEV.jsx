@@ -1,4 +1,5 @@
 import { Plus, Zap, Filter } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import Card, { CardHeader, CardBody } from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import Badge from '../components/ui/Badge'
@@ -12,6 +13,8 @@ const projetos = [
 const corStatus = { 'Concluído': 'verde', 'Em andamento': 'azul', 'Aguardando': 'amarelo', 'Proposta': 'cinza' }
 
 export default function ProjetosEV() {
+  const navigate = useNavigate()
+
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between">
@@ -26,7 +29,9 @@ export default function ProjetosEV() {
         </div>
         <div className="flex gap-2">
           <Button variante="secundario" icone={Filter} tamanho="sm">Filtros</Button>
-          <Button icone={Plus} tamanho="sm">Novo Projeto EV</Button>
+          <Button icone={Plus} tamanho="sm" onClick={() => navigate('/propostas-ev/nova')}>
+            Novo Projeto EV
+          </Button>
         </div>
       </div>
 
