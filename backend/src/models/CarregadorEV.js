@@ -10,7 +10,7 @@ const carregadorEVSchema = new mongoose.Schema({
     type: Number,
     required: true,
     enum: [3.6, 7.4, 11, 22, 30, 40, 60, 80, 90, 120, 150, 180],
-  },
+  }, // ✅ Todas as 12 potências solicitadas
   marca: {
     type: String,
     required: true,
