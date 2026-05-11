@@ -927,9 +927,17 @@ export default function NovaProposta() {
   const [searchParams] = useSearchParams()
   const clienteId = searchParams.get('clienteId')
   const leadId = searchParams.get('leadId')
+  const tipoParam = searchParams.get('tipo')
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
 
   const [etapa, setEtapa] = useState(1)
+
+  // Redirecionar EV para página correta
+  useEffect(() => {
+    if (tipoParam === 'ev') {
+      navigate(`/propostas-ev/nova${clienteId ? `?clienteId=${clienteId}` : ''}`, { replace: true })
+    }
+  }, [tipoParam, clienteId, navigate])
   const [nomeCliente, setNomeCliente] = useState('')
   const [dados, setDados] = useState({
     clienteId,

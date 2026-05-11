@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { MapPin, Zap, Wrench, FileText, Download, Plus, X } from 'lucide-react'
 import Card, { CardHeader, CardBody } from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import Input from '../components/ui/Input'
 import Stepper from '../components/ui/Stepper'
+import ModalNovoCarregadorEV from '../components/equipamentos/ModalNovoCarregadorEV'
 import { calcularParametrosNBR5410, validarNBR5410 } from '../services/calculosNBR5410EV'
 import { gerarUnifilarEVSVG } from '../utils/gerarUnifilarEV'
 
@@ -19,11 +20,15 @@ const ETAPAS = [
 
 export default function NovaPropostaEV() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const clienteId = searchParams.get('clienteId')
+
   const [etapa, setEtapa] = useState(1)
   const [carregadores, setCarregadores] = useState([])
   const [carregadoresDisponiveis, setCarregadoresDisponiveis] = useState([])
   const [calculos, setCalculos] = useState(null)
   const [unifilar, setUnifilar] = useState(null)
+  const [modalUploadAberto, setModalUploadAberto] = useState(false)
 
   const [dados, setDados] = useState({
     nome_projeto: '',
@@ -37,12 +42,32 @@ export default function NovaPropostaEV() {
     tecnico_crea: '',
   })
 
-  // Carregar carregadores disponíveis
+  // Carregar cliente se clienteId foi fornecido
   useEffect(() => {
+    if (clienteId) {
+      fetch(`${API_URL}/api/clientes/${clienteId}`)
+        .then(r => r.json())
+        .then(cliente => {
+          setDados(prev => ({
+            ...prev,
+            cliente_nome: cliente.nome || '',
+            endereco: cliente.endereco_completo || '',
+          }))
+        })
+        .catch(console.error)
+    }
+  }, [clienteId])
+
+  // Carregar carregadores disponíveis
+  const carregarCarregadores = () => {
     fetch(`${API_URL}/api/carregadores-ev`)
       .then(r => r.json())
       .then(data => setCarregadoresDisponiveis(data))
       .catch(console.error)
+  }
+
+  useEffect(() => {
+    carregarCarregadores()
   }, [])
 
   const proximaEtapa = () => {
@@ -234,7 +259,16 @@ export default function NovaPropostaEV() {
 
             {/* Banco de Carregadores Disponíveis */}
             <div className="mt-6 pt-6 border-t">
-              <h3 className="font-semibold mb-3">Banco de Carregadores</h3>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-semibold">Banco de Carregadores</h3>
+                <Button
+                  variante="secundario"
+                  tamanho="sm"
+                  onClick={() => setModalUploadAberto(true)}
+                >
+                  Adicionar datasheet
+                </Button>
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-64 overflow-y-auto">
                 {carregadoresDisponiveis.map((c) => (
                   <div key={c._id} className="p-3 border border-slate-200 rounded hover:bg-blue-50">
@@ -382,6 +416,16 @@ export default function NovaPropostaEV() {
             </div>
           </CardBody>
         </Card>
+      )}
+
+      {modalUploadAberto && (
+        <ModalNovoCarregadorEV
+          onClose={() => setModalUploadAberto(false)}
+          onSalvar={() => {
+            setModalUploadAberto(false)
+            carregarCarregadores()
+          }}
+        />
       )}
     </div>
   )
