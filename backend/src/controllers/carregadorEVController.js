@@ -10,66 +10,76 @@ import Anthropic from '@anthropic-ai/sdk'
  * Reconhece: Intelbras, Solplanet, Belenergy, Evowatt, ABB, Siemens, Wallbox, etc.
  */
 function montarPromptExtracao() {
-  return `Você é especialista em carregadores de veículos elétricos. Analise este datasheet EV e retorne SOMENTE um JSON válido, sem markdown, sem explicação adicional.
+  return `ESPECIALISTA EM DATASHEETS DE CARREGADORES EV
 
-ESTRUTURA ESPERADA DO JSON:
+Você é engenheiro especializado em analisar datasheets de carregadores de veículos elétricos.
+Analise o documento PDF fornecido e extraia TODOS os dados técnicos disponíveis.
+
+RETORNE APENAS UM JSON VÁLIDO E COMPLETO. Sem markdown, sem blocos de código, sem explicações.
+
+JSON ESPERADO (CAMPOS OBRIGATÓRIOS = ★):
 {
-  "marca": "string (Intelbras, Solplanet, Belenergy, Evowatt, ABB, Siemens, Wallbox, etc.)",
-  "modelo": "string (código do modelo, ex: EVE 0074C, SOL7.4H, KS1207A21)",
-  "tipo": "AC_Mono|AC_Tri|DC",
-  "potencia_kw": number (potência nominal em kW),
-  "tensao_entrada_v": number (tensão de entrada nominal em V),
-  "corrente_entrada_a": number (corrente nominal de entrada em A),
-  "numero_fases": number (1 para monofásico, 3 para trifásico),
-  "frequencia_hz": number (50 ou 60),
-  "tensao_saida_dc_v": number (só para DC, tensão de saída DC em V ou null),
-  "corrente_saida_dc_a": number (só para DC, corrente de saída DC em A ou null),
-  "conector": "Tipo 2|Tipo Chinês|CCS2|CHAdeMO",
-  "comprimento_cabo_m": number (comprimento do cabo integrado em metros),
-  "ip_rating": "IP55|IP65|IP66|IP67",
-  "temperatura_operacao_min": number (mínima em °C),
-  "temperatura_operacao_max": number (máxima em °C),
-  "eficiencia_pct": number (eficiência em %, se disponível),
-  "fator_potencia": number (fator de potência, típico 0.95-0.99),
-  "peso_kg": number (peso do equipamento em kg, se disponível),
-  "dimensoes_mm": "string (formato LxAxP em mm, ex: 222x405x104)",
-  "protocolo_carregamento": "IEC 61851|GB/T 20234|outro",
-  "tipo_carregamento": "Type 2|CCS|CHAdeMO|Type 2 Combo",
-  "comunicacao": ["WiFi", "OCPP", "RFID", "Bluetooth", "4G", "Ethernet"] (array de strings, remova os não presentes),
-  "ocpp_version": "1.6|1.6J|2.0",
-  "rcd_tipo": "Tipo A|Tipo A integrado|outro",
-  "rcd_sensibilidade_ma": number (sensibilidade do RCD em mA, típico 30 ou 6),
-  "disjuntor_recomendado_a": number (amperagem do disjuntor recomendado),
-  "dr_recomendado_ma": number (sensibilidade do DR recomendado),
-  "bitola_cabo_minima_mm2": number (bitola mínima de cabo recomendada em mm²),
-  "garantia_anos": number (período de garantia em anos),
-  "certificacao": ["CE", "ANATEL", "TUV", "IEC"] (array),
-  "padroes_certificacao": "string (ex: IEC 61851-1: 2017, IEC 61851-21-2: 2018)"
+  "marca": "★ string - Nome do fabricante (ex: Intelbras, Solplanet, Belenergy, Evowatt, ABB, Wallbox)",
+  "modelo": "★ string - Código/designação do modelo (ex: EVE 0074C, SOL7.4H, KS1207A21, IEC-TRIFASICO)",
+  "tipo": "★ string - Um de: AC_Mono | AC_Tri | DC",
+  "potencia_kw": "★ number - Potência nominal em kW (MAIOR potência se houver variantes)",
+  "tensao_entrada_v": "number - Tensão entrada nominal em volts (ex: 220, 380, 120)",
+  "corrente_entrada_a": "number - Corrente entrada em amperes",
+  "numero_fases": "number - 1 (monofásico) ou 3 (trifásico)",
+  "frequencia_hz": "number - 50 ou 60 Hz",
+  "tensao_saida_dc_v": "number ou null - Saída DC em volts (apenas carregadores DC)",
+  "corrente_saida_dc_a": "number ou null - Saída DC em amperes (apenas carregadores DC)",
+  "protocolo_carregamento": "string - IEC 61851, GB/T 20234, CHAdeMO, CCS, etc.",
+  "tipo_carregamento": "string - Type 1, Type 2, CCS Combo, CHAdeMO, etc.",
+  "conector": "string - Tipo de conector (Type 2, Type Chinês, CCS2, CHAdeMO)",
+  "comprimento_cabo_m": "number ou null - Comprimento do cabo integrado em metros",
+  "ip_rating": "string - IP55, IP65, IP66, IP67, etc",
+  "temperatura_operacao_min": "number - Temperatura mínima em °C (ex: -30)",
+  "temperatura_operacao_max": "number - Temperatura máxima em °C (ex: 50)",
+  "eficiencia_pct": "number ou null - Eficiência em % se informada",
+  "fator_potencia": "number ou null - Fator de potência (0.95-0.99)",
+  "peso_kg": "number ou null - Peso em quilogramas",
+  "dimensoes_mm": "string ou null - Dimensões no formato LxAxP (ex: 222x405x104)",
+  "comunicacao": "array - Interfaces de comunicação: WiFi, OCPP, RFID, Bluetooth, 4G, Ethernet, Modbus, etc",
+  "ocpp_version": "string ou null - Versão OCPP (1.6, 1.6J, 2.0, etc)",
+  "disjuntor_recomendado_a": "number ou null - Amperagem do disjuntor recomendado",
+  "dr_recomendado_ma": "number - Sensibilidade do DR recomendado (típico 30 mA)",
+  "bitola_cabo_minima_mm2": "number ou null - Bitola mínima de cabo em mm²",
+  "garantia_anos": "number - Período de garantia em anos (padrão 2 se não encontrado)",
+  "certificacao": "array - Certificações: CE, ANATEL, TUV, IEC, RoHS, etc",
+  "condicoes_ambientes": "string ou null - Temperatura, umidade, altitude de operação"
 }
 
-REGRAS CRÍTICAS:
-1. TIPO: Inferir de "Conexão elétrica" → F+N+T ou 2F+T = AC_Mono, 3F+N+T = AC_Tri, DC output = DC
-2. Se múltiplas potências (ex: 7.0 kW em 220V vs 10.5 kW em 380V), use a MAIOR
-3. Se campo não encontrado no datasheet, use null (NÃO omitir chaves)
-4. POTÊNCIA: sempre em kW (converter de W se necessário)
-5. COMUNICAÇÃO: procure por seções "Comunicação", "Conectividade", "Interface"
-6. GARANTIA: procure por "Warranty", "Garantia" em tabelas e seções de ambiente
-7. TEMPERATURA: procure por ranges como "-30°C até +50°C"
-8. DIMENSÕES: formato LxAxP em milímetros (ex: 325x181x87)
-9. Se há variantes do mesmo modelo em uma página, crie um objeto único com dados do modelo PRINCIPAL
+INSTRUÇÕES CRÍTICAS:
+1. MARCA: Procure no topo, cabeçalho ou capa do datasheet
+2. MODELO: Código exato do produto (ler cuidadosamente, EVE vs EVA vs outro)
+3. TIPO: Determinar de "entrada elétrica" → F+N+T (monofásico) | 3F+N+T (trifásico) | "DC output" (DC)
+4. POTÊNCIA: Se múltiplas (ex: 7kW em 220V, 10.5kW em 380V) → use a MAIOR
+5. CAMPOS NULL: Se não encontrado, use null (NUNCA omitir chaves)
+6. COMUNICAÇÃO: Array vazio [] se nenhuma. Procure seções "Comunicação", "Conectividade", "Protocolos"
+7. TEMPERATURA: Procure ranges tipo "-30°C a +50°C" ou em "Condições Ambientes"
+8. GARANTIA: Padrão 2 anos se não informado
+9. Se há múltiplas variantes na mesma página → extrai dados do modelo PRINCIPAL destacado
 
-PROCURE NAS SEGUINTES SEÇÕES DO PDF:
-- "Especificações técnicas" / "Technical Specifications"
-- "Entrada CA" / "AC Input"
-- "Saída CA" / "AC Output"
-- "Interface do usuário" / "User Interface"
-- "Comunicação" / "Communication"
-- "Proteções elétricas" / "Electrical Protections"
-- "Ambiente" / "Environment"
-- "Garantia" / "Warranty"
-- "Certificação" / "Certification"
+SEÇÕES PARA CONSULTAR:
+✓ Capa / Title page
+✓ Especificações Técnicas / Technical Specifications
+✓ Dados de Entrada / Input Data
+✓ Dados de Saída / Output Data
+✓ Características Ambientais / Environmental
+✓ Comunicação / Communication
+✓ Proteções / Protections
+✓ Garantia / Warranty
+✓ Certificações / Certifications
+✓ Tabelas técnicas / Technical tables
 
-RETORNE APENAS O JSON VÁLIDO, sem explicações, sem markdown.`
+VALIDE ANTES DE RETORNAR:
+- marca e modelo preenchidos (NOT "Desconhecido" ou "Sem modelo")
+- tipo é um de: AC_Mono, AC_Tri, DC
+- potencia_kw é um número > 0
+- Sem explicações, sem markdown, APENAS JSON válido
+
+Comece a análise agora:`
 }
 
 /**
@@ -190,44 +200,46 @@ export function normalizarDadosEV(dados) {
 export function validarDadosEV(dados) {
   const avisos = []
 
-  // Validações críticas
+  // ✓ VALIDAÇÕES CRÍTICAS APENAS
+  // Marca e modelo são OBRIGATÓRIOS para identificar o equipamento
   if (!dados.marca || dados.marca === 'Desconhecido') {
-    avisos.push('Marca não identificada - verifique o PDF')
+    avisos.push('⚠ Marca não identificada no PDF')
   }
 
   if (!dados.modelo || dados.modelo === 'Sem modelo') {
-    avisos.push('Modelo não identificado - verifique o PDF')
+    avisos.push('⚠ Modelo não identificado no PDF')
   }
 
-  // Validações recomendadas
-  if (!dados.tensao_entrada_v) {
-    avisos.push('Tensão de entrada não encontrada')
+  // Potência é OBRIGATÓRIA
+  if (!dados.potencia_kw || dados.potencia_kw <= 0) {
+    avisos.push('⚠ Potência inválida ou não encontrada')
   }
 
-  if (!dados.corrente_entrada_a) {
-    avisos.push('Corrente de entrada não encontrada')
+  // Tipo deve ser válido
+  if (!['AC_Mono', 'AC_Tri', 'DC'].includes(dados.tipo)) {
+    avisos.push(`⚠ Tipo inválido: ${dados.tipo}`)
   }
 
-  if (!dados.garantia_anos) {
-    avisos.push('Garantia não especificada')
-  }
-
-  // Validações específicas por tipo
+  // ✗ NÃO AVISAR SOBRE CAMPOS OPCIONAIS
+  // Tensão, corrente, garantia, etc. são opcionais - datasheet pode não ter
+  // Aviso apenas se DC sem saída DC especificada
   if (dados.tipo === 'DC' && !dados.tensao_saida_dc_v) {
-    avisos.push('Carregador DC sem tensão de saída especificada')
+    avisos.push('⚠ Carregador DC: tensão de saída não encontrada')
   }
 
-  // Dados completamente vazios
+  // Dados essenciais para salvar
   const temDadosEssenciais = !!(
     dados.marca &&
+    dados.marca !== 'Desconhecido' &&
     dados.modelo &&
+    dados.modelo !== 'Sem modelo' &&
     dados.potencia_kw &&
-    (dados.tensao_entrada_v || dados.corrente_entrada_a)
+    dados.potencia_kw > 0
   )
 
   return {
     valido: temDadosEssenciais,
-    avisos,
+    avisos: avisos.length > 0 ? avisos : [], // Array vazio se nenhum aviso
   }
 }
 
