@@ -75,6 +75,7 @@ export default function CarregadoresEV() {
   const [arquivosModal, setArquivosModal]       = useState([])
   const [carregadorEditar, setCarregadorEditar] = useState(null)
   const [expandido, setExpandido]               = useState(null)
+  const [modoManual, setModoManual]             = useState(false)
 
   useEffect(() => { carregarCarregadores() }, [busca, ordenar])
 
@@ -134,7 +135,32 @@ export default function CarregadoresEV() {
         <p className="text-slate-600 mt-1">Importe datasheets — Claude extrai todos os dados técnicos automaticamente</p>
       </div>
 
+      {/* Abas: Upload ou Manual */}
+      <div className="flex gap-2 mb-4">
+        <button
+          onClick={() => setModoManual(false)}
+          className={`px-4 py-2 rounded-lg font-medium transition-all ${
+            !modoManual
+              ? 'bg-blue-600 text-white'
+              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+          }`}
+        >
+          📄 Upload Datasheet
+        </button>
+        <button
+          onClick={() => setModoManual(true)}
+          className={`px-4 py-2 rounded-lg font-medium transition-all ${
+            modoManual
+              ? 'bg-blue-600 text-white'
+              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+          }`}
+        >
+          ✏️ Cadastro Manual
+        </button>
+      </div>
+
       {/* Zona de upload */}
+      {!modoManual && (
       <div
         ref={dropRef}
         onDragOver={onDragOver} onDragLeave={onDragLeave} onDrop={onDrop}
@@ -165,6 +191,34 @@ export default function CarregadoresEV() {
         <input ref={inputRef} type="file" accept=".pdf" multiple className="hidden"
           onChange={e => { abrirComArquivos(e.target.files); e.target.value = '' }} />
       </div>
+      )}
+
+      {/* Cadastro Manual */}
+      {modoManual && (
+        <Card>
+          <CardHeader>Cadastro Manual de Carregador EV</CardHeader>
+          <CardBody>
+            <button
+              onClick={() => {
+                setCarregadorEditar({
+                  fabricante: '',
+                  modelo: '',
+                  tipo: 'AC_Tri',
+                  especificacoes: {}
+                })
+                setModoManual(false)
+                setModalAberto(true)
+              }}
+              className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-all"
+            >
+              ➕ Novo Carregador EV
+            </button>
+            <p className="text-sm text-slate-500 mt-3 text-center">
+              Preencha os dados do carregador no formulário que será aberto
+            </p>
+          </CardBody>
+        </Card>
+      )}
 
       {/* Filtros */}
       <Card>
