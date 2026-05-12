@@ -31,13 +31,13 @@ export async function extrairDatasheetEV(pdfBuffer) {
     const marcasConhecidas = [
       'INTELBRAS', 'WALLBOX', 'ABB', 'SIEMENS', 'SOLPLANET', 'BELENERGY',
       'EVOWATT', 'DELTA', 'KEMPOWER', 'PHOENIX', 'CATL', 'CEMOSA',
-      'EMOBI', 'BOREAL'  // EMOBI fabrica Evowatt/Boreal Master
+      'EMOBI', 'BOREAL'
     ]
 
-    // Mapeamento: algumas marcas no PDF são aliases
+    // Mapeamento: EMOBI/Boreal = EVOWATT (marca comercial)
     const marcaAliases = {
-      'EMOBI': 'EMOBI',          // EMOBI fabrica Evowatt (mantém EMOBI por enquanto)
-      'BOREAL': 'EMOBI',         // Boreal Master é EMOBI
+      'EMOBI': 'EVOWATT',        // Série Boreal Master é vendida como Evowatt
+      'BOREAL': 'EVOWATT',       // Boreal Master = Evowatt
     }
 
     // Procurar marcas conhecidas
