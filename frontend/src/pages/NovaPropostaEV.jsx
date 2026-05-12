@@ -137,20 +137,74 @@ export default function NovaPropostaEV() {
   const baixarUnifilar = () => {
     if (!unifilar) return
 
-    const canvas = document.createElement('canvas')
-    const ctx = canvas.getContext('2d')
-    canvas.width = 1200
-    canvas.height = 842
+    // Método 1: Salvar como SVG (mais seguro e compatível)
+    const svgBlob = new Blob([unifilar], { type: 'image/svg+xml' })
+    const url = window.URL.createObjectURL(svgBlob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `Unifilar_${dados.nome_projeto}.svg`
+    link.click()
+    window.URL.revokeObjectURL(url)
+  }
 
-    const img = new Image()
-    img.onload = () => {
-      ctx.drawImage(img, 0, 0)
-      const link = document.createElement('a')
-      link.download = `Unifilar_${dados.nome_projeto}.png`
-      link.href = canvas.toDataURL()
-      link.click()
+  const salvarProjeto = async () => {
+    if (!clienteId) {
+      alert('Erro: cliente não identificado')
+      return
     }
-    img.src = 'data:image/svg+xml;base64,' + btoa(unifilar)
+
+    if (!validarEtapa(1) || !validarEtapa(2) || !unifilar) {
+      alert('Por favor, complete todas as etapas antes de salvar')
+      return
+    }
+
+    const potencia_total = carregadores.reduce((sum, c) => sum + c.potencia_kw * c.quantidade, 0)
+
+    const projetoData = {
+      clienteId,
+      nome: dados.nome_projeto,
+      endereco_completo: dados.endereco,
+      latitude: dados.latitude,
+      longitude: dados.longitude,
+      carregadores: carregadores.map(c => ({
+        tipo: c.tipo,
+        potencia_kw: c.potencia_kw,
+        marca: c.marca,
+        modelo: c.modelo,
+        quantidade: c.quantidade,
+      })),
+      quantidade_pontos: carregadores.length,
+      potencia_total_kw: potencia_total,
+      comprimento_cabo_m: dados.comprimento_cabo_m,
+      calculos_nbr: calculos,
+      tecnico: {
+        nome: dados.tecnico_nome,
+        crea: dados.tecnico_crea,
+      },
+      status: 'dimensionado',
+    }
+
+    try {
+      const response = await fetch(`${API_URL}/api/projetos-ev`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(projetoData),
+      })
+
+      if (!response.ok) {
+        const erro = await response.json()
+        throw new Error(erro.erro || 'Erro ao salvar projeto')
+      }
+
+      const novosProjeto = await response.json()
+      alert('✅ Projeto salvo com sucesso!')
+      navigate(`/projetos-ev`)
+    } catch (erro) {
+      console.error('Erro ao salvar projeto:', erro)
+      alert(`❌ Erro ao salvar: ${erro.message}`)
+    }
   }
 
   return (
@@ -410,7 +464,7 @@ export default function NovaPropostaEV() {
 
             <div className="flex justify-between gap-2">
               <Button variante="secundario" onClick={etapaAnterior}>← Anterior</Button>
-              <Button onClick={() => navigate('/projetos-ev')} disabled={!unifilar}>
+              <Button onClick={salvarProjeto} disabled={!unifilar}>
                 Salvar Projeto
               </Button>
             </div>
