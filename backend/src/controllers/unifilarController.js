@@ -1,4 +1,5 @@
 import * as SVG from '../utils/simbolosUnifilar.js'
+import { criarSVGArquitetura, gerarArquiteturaCompleta } from '../utils/arquiteturaUnifilar.js'
 
 export function gerarUnifilarFV(req, res) {
   try {
@@ -146,6 +147,29 @@ export function gerarUnifilarEV(req, res) {
     })
   } catch (err) {
     console.error('Erro ao gerar unifilar EV:', err)
+    res.status(500).json({ erro: err.message })
+  }
+}
+
+export function gerarArquitetura(req, res) {
+  try {
+    const conteudo = gerarArquiteturaCompleta()
+    const svg = criarSVGArquitetura(conteudo)
+
+    res.json({
+      sucesso: true,
+      svg,
+      tipo: 'arquitetura-sistema',
+      componentes: {
+        frontend: 'Vercel (React + Vite)',
+        backend: 'Railway (Node.js + Express)',
+        database: 'MongoDB Atlas',
+        apisExternas: ['Google Gemini Vision', 'SolarMarket API'],
+        status: 'Em produção',
+      },
+    })
+  } catch (err) {
+    console.error('Erro ao gerar arquitetura:', err)
     res.status(500).json({ erro: err.message })
   }
 }

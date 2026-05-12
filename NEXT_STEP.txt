@@ -1,0 +1,88 @@
+╔═══════════════════════════════════════════════════════════════════════════╗
+║                                                                           ║
+║  🎯 PRÓXIMO PASSO - CONFIGURE CLAUDE VISION NO RAILWAY (5 MINUTOS)      ║
+║                                                                           ║
+╚═══════════════════════════════════════════════════════════════════════════╝
+
+STATUS ATUAL: ✅ 95% COMPLETO
+
+O projeto PROJETO_FRTS_APP está quase 100% funcional. Faltam apenas 2 passos:
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+PASSO 1: ADICIONAR CHAVE API NO RAILWAY (5 minutos)
+
+  1. Acesse: https://railway.app/dashboard
+  2. Faça login com GitHub
+  3. Clique no projeto Forte Solar
+  4. Vá para "Variables" ou "Settings → Variables"
+  5. Clique "+ Add" ou "+ New Variable"
+  6. Preencha:
+     - Nome: ANTHROPIC_API_KEY
+     - Valor: (copie do arquivo .env local)
+  7. Clique "Deploy"
+  8. Aguarde 2-5 minutos (rebuild automático)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+PASSO 2: TESTAR CLAUDE VISION (2 minutos)
+
+  1. Abra: https://projeto-frts-app.vercel.app/equipamentos/carregadores-ev
+  2. Clique "Upload Datasheet"
+  3. Escolha um PDF de datasheet
+  4. Verifique a resposta contém "analiseVisao"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+DOCUMENTAÇÃO CRIADA:
+
+  ✅ STATUS_CARREGADORES_EV.md
+     - Detalhamento técnico completo
+     - Testes executados
+     - Dados armazenados
+
+  ✅ CLAUDE_VISION_SETUP_FINAL.md
+     - 3 opções de setup (Dashboard, CLI, Script)
+     - Instruções passo-a-passo
+     - Troubleshooting
+
+  ✅ RESUMO_EXECUTIVO_2026_05_12.md
+     - Overview do projeto
+     - Arquitetura
+     - Métricas
+     - Tecnologias
+
+  ✅ scripts/configure_claude_vision.py
+     - Script automático para setup
+     - Suporta API GraphQL do Railway
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ESTADO ATUAL DO PROJETO:
+
+  ✅ 56 Carregadores EV cadastrados
+  ✅ 19 Fabricantes diferentes
+  ✅ API em Produção (Railway)
+  ✅ Frontend em Produção (Vercel)
+  ✅ Extração por Regex funcionando
+  ⏳ Claude Vision pronto (aguardando chave)
+  ⚠️  MongoDB conectando (fallback funcionando)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+APÓS COMPLETAR:
+
+  1. Claude Vision estará ativo ✅
+  2. Selos e certificações serão extraídos de imagens ✅
+  3. Garantias visuais serão reconhecidas ✅
+  4. Sistema será 100% operacional ✅
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+TEMPO TOTAL: ~10 MINUTOS
+DIFICULDADE: ⭐ MUITO FÁCIL
+
+╔═══════════════════════════════════════════════════════════════════════════╗
+║  Pronto para começar?                                                     ║
+║  Acesse: https://railway.app/dashboard                                    ║
+╚═══════════════════════════════════════════════════════════════════════════╝
