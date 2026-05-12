@@ -40,7 +40,24 @@ export default function NovaPropostaEV() {
     comprimento_cabo_m: 50,
     tecnico_nome: '',
     tecnico_crea: '',
+    tecnico_cft: '',
+    tecnico_tipo: 'crea', // 'crea' ou 'cft'
   })
+
+  // Carregar dados do técnico da configuração (localStorage)
+  useEffect(() => {
+    const tecnicoSalvo = localStorage.getItem('tecnico_dados')
+    if (tecnicoSalvo) {
+      const tecnico = JSON.parse(tecnicoSalvo)
+      setDados(prev => ({
+        ...prev,
+        tecnico_nome: tecnico.nome || '',
+        tecnico_crea: tecnico.crea || '',
+        tecnico_cft: tecnico.cft || '',
+        tecnico_tipo: tecnico.tipo || 'crea',
+      }))
+    }
+  }, [])
 
   // Carregar cliente se clienteId foi fornecido
   useEffect(() => {
@@ -134,17 +151,27 @@ export default function NovaPropostaEV() {
     setUnifilar(unifilarSvg)
   }
 
-  const baixarUnifilar = () => {
-    if (!unifilar) return
+  const baixarUnifilarPDF = () => {
+    // Quando o projeto é salvo, ele pode fazer download do PDF
+    alert('Por favor, salve o projeto primeiro para gerar o PDF completo.')
+  }
 
-    // Método 1: Salvar como SVG (mais seguro e compatível)
-    const svgBlob = new Blob([unifilar], { type: 'image/svg+xml' })
-    const url = window.URL.createObjectURL(svgBlob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = `Unifilar_${dados.nome_projeto}.svg`
-    link.click()
-    window.URL.revokeObjectURL(url)
+  const baixarPDFProjeto = async (projetoId) => {
+    try {
+      const response = await fetch(`${API_URL}/api/projetos-ev/${projetoId}/pdf`)
+      if (!response.ok) throw new Error('Erro ao gerar PDF')
+
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `Unifilar_${dados.nome_projeto}.pdf`
+      link.click()
+      window.URL.revokeObjectURL(url)
+    } catch (erro) {
+      console.error('Erro ao baixar PDF:', erro)
+      alert(`Erro ao gerar PDF: ${erro.message}`)
+    }
   }
 
   const salvarProjeto = async () => {
@@ -180,6 +207,8 @@ export default function NovaPropostaEV() {
       tecnico: {
         nome: dados.tecnico_nome,
         crea: dados.tecnico_crea,
+        cft: dados.tecnico_cft,
+        tipo_profissional: dados.tecnico_tipo,
       },
       status: 'dimensionado',
     }
@@ -198,8 +227,24 @@ export default function NovaPropostaEV() {
         throw new Error(erro.erro || 'Erro ao salvar projeto')
       }
 
-      const novosProjeto = await response.json()
+      const novoProjeto = await response.json()
       alert('✅ Projeto salvo com sucesso!')
+
+      // Salvar dados do técnico para próximos projetos
+      localStorage.setItem('tecnico_dados', JSON.stringify({
+        nome: dados.tecnico_nome,
+        crea: dados.tecnico_crea,
+        cft: dados.tecnico_cft,
+        tipo: dados.tecnico_tipo,
+      }))
+
+      // Oferecer download de PDF
+      const fazerDownload = window.confirm('Deseja baixar o diagrama em PDF?')
+      if (fazerDownload) {
+        await new Promise(resolve => setTimeout(resolve, 500)) // Aguardar um pouco
+        baixarPDFProjeto(novoProjeto._id)
+      }
+
       navigate(`/projetos-ev`)
     } catch (erro) {
       console.error('Erro ao salvar projeto:', erro)
@@ -253,12 +298,42 @@ export default function NovaPropostaEV() {
               placeholder="Nome completo"
             />
 
-            <Input
-              rotulo="CREA"
-              value={dados.tecnico_crea}
-              onChange={(e) => setDados({ ...dados, tecnico_crea: e.target.value })}
-              placeholder="Ex: SP 123456/D"
-            />
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  Tipo de Profissional
+                </label>
+                <select
+                  value={dados.tecnico_tipo}
+                  onChange={(e) => setDados({ ...dados, tecnico_tipo: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"
+                >
+                  <option value="crea">CREA (Engenheiro/Técnico)</option>
+                  <option value="cft">CFT (Eletrotécnico)</option>
+                </select>
+              </div>
+            </div>
+
+            {dados.tecnico_tipo === 'crea' ? (
+              <Input
+                rotulo="Número CREA"
+                value={dados.tecnico_crea}
+                onChange={(e) => setDados({ ...dados, tecnico_crea: e.target.value })}
+                placeholder="Ex: SP 123456/D"
+              />
+            ) : (
+              <Input
+                rotulo="Número CFT"
+                value={dados.tecnico_cft}
+                onChange={(e) => setDados({ ...dados, tecnico_cft: e.target.value })}
+                placeholder="Ex: CFT 123456"
+              />
+            )}
+
+            <p className="text-xs text-slate-500 bg-blue-50 p-2 rounded">
+              💡 Dica: Para projetos elétricos pequenos (solar/EV), eletrotécnico (CFT) pode assinar.
+              Seus dados serão salvos e pré-preenchidos em novos projetos.
+            </p>
 
             <div className="flex justify-end gap-2">
               <Button variante="secundario" disabled>Anterior</Button>

@@ -1,5 +1,6 @@
 import { ProjetoEV } from '../models/ProjetoEV.js'
 import mongoose from 'mongoose'
+import { gerarPDFUnifilarStream } from '../utils/gerarPDFUnifilar.js'
 
 export const listarProjetosEV = async (_req, res) => {
   try {
@@ -87,6 +88,43 @@ export const listarProjetosEVPorCliente = async (req, res) => {
     res.json(projetosDocliente)
   } catch (err) {
     console.error('❌ Erro ao listar projetos EV por cliente:', err)
+    res.status(500).json({ erro: err.message })
+  }
+}
+
+export const exportarPDFProjetoEV = async (req, res) => {
+  try {
+    const { id } = req.params
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ erro: 'ID do projeto inválido' })
+    }
+
+    const projeto = await ProjetoEV.findById(id).populate('clienteId')
+    if (!projeto) {
+      return res.status(404).json({ mensagem: 'Projeto não encontrado' })
+    }
+
+    // Dados do técnico
+    const tecnico = projeto.tecnico || {}
+
+    // Gerar PDF
+    const doc = gerarPDFUnifilarStream(projeto, projeto.clienteId, tecnico)
+
+    // Configurar resposta
+    res.setHeader('Content-Type', 'application/pdf')
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="Unifilar_${projeto.nome.replace(/\s+/g, '_')}.pdf"`
+    )
+
+    // Enviar PDF
+    doc.pipe(res)
+    doc.end()
+
+    console.log(`✓ PDF gerado para projeto: ${projeto.nome}`)
+  } catch (err) {
+    console.error('❌ Erro ao gerar PDF:', err)
     res.status(500).json({ erro: err.message })
   }
 }
