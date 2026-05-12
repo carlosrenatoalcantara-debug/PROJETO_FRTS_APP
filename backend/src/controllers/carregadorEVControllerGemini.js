@@ -361,11 +361,15 @@ export function normalizarDadosEV(dados) {
     else tipoFinal = 'AC_Mono'
   }
 
+  // Garantir que marca e modelo são sempre preenchidos
+  const marcaFinal = dados.marca && dados.marca !== 'Desconhecido' ? dados.marca : 'Marca não identificada'
+  const modeloFinal = dados.modelo && dados.modelo !== 'Sem modelo' ? dados.modelo : 'Modelo não identificado'
+
   return {
     tipo: tipoFinal,
     potencia_kw: potenciaFinal,
-    marca: dados.marca || 'Desconhecido',
-    modelo: dados.modelo || 'Sem modelo',
+    marca: marcaFinal,
+    modelo: modeloFinal,
     tensao_entrada_v: dados.tensao_entrada_v || null,
     corrente_entrada_a: dados.corrente_entrada_a || null,
     numero_fases: dados.numero_fases || (tipoFinal === 'AC_Tri' ? 3 : 1),

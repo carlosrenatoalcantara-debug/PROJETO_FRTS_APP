@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import { CarregadorEV } from '../models/CarregadorEV.js'
+import { Equipamento } from '../models/Equipamento.js'
 import {
   processarDatasheetEV,
   normalizarDadosEV,
@@ -118,16 +119,63 @@ router.post('/upload-datasheet', async (req, res) => {
     const resultado = await processarDatasheetEV(pdfBuffer)
 
     if (resultado.sucesso && resultado.carregador) {
-      // Salvar no banco de dados
-      const novoCarregador = new CarregadorEV(resultado.carregador)
-      await novoCarregador.save()
+      try {
+        // Salvar no banco de dados (CarregadorEV)
+        const novoCarregador = new CarregadorEV(resultado.carregador)
+        await novoCarregador.save()
 
-      return res.status(201).json({
-        sucesso: true,
-        carregador: novoCarregador,
-        avisos: resultado.avisos,
-        msg: '✅ Carregador extraído e adicionado com sucesso',
-      })
+        // Também salvar na tabela Equipamentos para visibilidade na interface
+        try {
+          const novoEquipamento = new Equipamento({
+            tipo: 'carregador_ev',
+            fabricante: resultado.carregador.marca,
+            modelo: resultado.carregador.modelo,
+            especificacoes: {
+              tipo_carregador: resultado.carregador.tipo,
+              potencia_kw: resultado.carregador.potencia_kw,
+              tensao_entrada_v: resultado.carregador.tensao_entrada_v,
+              corrente_entrada_a: resultado.carregador.corrente_entrada_a,
+              numero_fases: resultado.carregador.numero_fases,
+              grau_protecao_ip: resultado.carregador.grau_protecao_ip,
+              temperatura_operacao: resultado.carregador.temperatura_operacao,
+              protocolo_carregamento: resultado.carregador.protocolo_carregamento,
+              tipo_carregamento: resultado.carregador.tipo_carregamento,
+              tipo_conector: resultado.carregador.tipo_conector,
+              comunicacao: resultado.carregador.comunicacao,
+              carregadorEV_id: novoCarregador._id,
+            },
+            garantia_produto: resultado.carregador.garantia_anos
+              ? { value: resultado.carregador.garantia_anos, unit: 'anos' }
+              : undefined,
+            datasheet_url: resultado.carregador.datasheet_url,
+            ativo: true,
+          })
+          await novoEquipamento.save()
+          console.log('[EV Upload] Equipamento salvo na tabela Equipamentos:', novoEquipamento._id)
+        } catch (equipError) {
+          console.warn('[EV Upload] Aviso: Equipamento não foi sincronizado:', equipError.message)
+          resultado.avisos.push('Equipamento não foi sincronizado para a tabela genérica')
+        }
+
+        return res.status(201).json({
+          sucesso: true,
+          carregador: novoCarregador,
+          avisos: resultado.avisos,
+          msg: '✅ Carregador extraído e adicionado com sucesso',
+        })
+      } catch (saveError) {
+        // Erro ao salvar no banco
+        console.error('[EV Upload] Erro ao salvar:', saveError.message)
+        console.error('[EV Upload] Dados tentados:', JSON.stringify(resultado.carregador, null, 2))
+
+        return res.status(500).json({
+          sucesso: false,
+          carregador: resultado.carregador,
+          avisos: [...resultado.avisos, `Erro ao salvar no banco: ${saveError.message}`],
+          erro: saveError.message,
+          msg: '❌ Dados extraídos mas não foi possível salvar no banco de dados',
+        })
+      }
     } else {
       // Falha na extração, retornar dados parciais para edição manual
       return res.status(400).json({
@@ -143,7 +191,8 @@ router.post('/upload-datasheet', async (req, res) => {
     }
 
   } catch (error) {
-    console.error('[EV Upload] Erro:', error.message)
+    console.error('[EV Upload] Erro geral:', error.message)
+    console.error('[EV Upload] Stack:', error.stack)
     res.status(500).json({
       sucesso: false,
       erro: error.message,

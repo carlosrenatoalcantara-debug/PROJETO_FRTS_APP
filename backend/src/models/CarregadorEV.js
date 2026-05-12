@@ -9,8 +9,15 @@ const carregadorEVSchema = new mongoose.Schema({
   potencia_kw: {
     type: Number,
     required: true,
-    enum: [3.6, 7.4, 11, 22, 30, 40, 60, 80, 90, 120, 150, 180],
-  }, // ✅ Todas as 12 potências solicitadas
+    // REMOVIDO: enum restritivo causava falhas silenciosas
+    // Validar apenas que é um número positivo
+    validate: {
+      validator: function(v) {
+        return v > 0 && v < 500
+      },
+      message: 'Potência deve estar entre 0 e 500 kW'
+    }
+  }, // ✅ Aceita qualquer valor razoável de potência
   marca: {
     type: String,
     required: true,
