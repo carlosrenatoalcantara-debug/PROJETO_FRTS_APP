@@ -1,4 +1,5 @@
 import { Equipamento } from '../models/Equipamento.js'
+import { CarregadorEV } from '../models/CarregadorEV.js'
 import { PDFParse } from 'pdf-parse'
 import multer from 'multer'
 import Anthropic from '@anthropic-ai/sdk'
@@ -30,7 +31,40 @@ export const listarEquipamentos = async (req, res) => {
       query = query.sort({ createdAt: -1 })
     }
 
-    const equipamentos = await query.exec()
+    let equipamentos = await query.exec()
+
+    // FALLBACK: Se tipo é carregador-ev e não há resultados, buscar de CarregadorEV
+    if (tipo === 'carregador_ev' && equipamentos.length === 0) {
+      console.log('[Equipamentos] Fallback: buscando de CarregadorEV...')
+      const carregadores = await CarregadorEV.find({ ativo: true }).sort({ createdAt: -1 })
+
+      // Converter CarregadorEV para formato Equipamento
+      equipamentos = carregadores.map(cg => ({
+        tipo: 'carregador_ev',
+        fabricante: cg.marca,
+        modelo: cg.modelo,
+        especificacoes: {
+          tipo_carregador: cg.tipo,
+          potencia_kw: cg.potencia_kw,
+          tensao_entrada_v: cg.tensao_entrada_v,
+          corrente_entrada_a: cg.corrente_entrada_a,
+          numero_fases: cg.numero_fases,
+          grau_protecao_ip: cg.grau_protecao_ip,
+          temperatura_operacao: cg.temperatura_operacao,
+          protocolo_carregamento: cg.protocolo_carregamento,
+          tipo_carregamento: cg.tipo_carregamento,
+          tipo_conector: cg.tipo_conector,
+          comunicacao: cg.comunicacao,
+          carregadorEV_id: cg._id,
+        },
+        garantia_produto: cg.garantia_anos
+          ? { value: cg.garantia_anos, unit: 'anos' }
+          : undefined,
+        ativo: cg.ativo,
+        createdAt: cg.createdAt,
+        updatedAt: cg.updatedAt,
+      }))
+    }
 
     res.json({
       total: equipamentos.length,

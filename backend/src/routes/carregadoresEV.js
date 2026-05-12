@@ -66,6 +66,68 @@ router.delete('/:id', async (req, res) => {
   }
 })
 
+// Sincronizar todos os CarregadoresEV com tabela Equipamentos
+router.post('/admin/sincronizar-equipamentos', async (req, res) => {
+  try {
+    const carregadores = await CarregadorEV.find({ ativo: true })
+
+    let sincronizados = 0
+    let erros = []
+
+    for (const cg of carregadores) {
+      try {
+        // Verificar se já existe
+        const existe = await Equipamento.findOne({
+          tipo: 'carregador_ev',
+          fabricante: cg.marca,
+          modelo: cg.modelo,
+        })
+
+        if (!existe) {
+          const novoEquipamento = new Equipamento({
+            tipo: 'carregador_ev',
+            fabricante: cg.marca,
+            modelo: cg.modelo,
+            especificacoes: {
+              tipo_carregador: cg.tipo,
+              potencia_kw: cg.potencia_kw,
+              tensao_entrada_v: cg.tensao_entrada_v,
+              corrente_entrada_a: cg.corrente_entrada_a,
+              numero_fases: cg.numero_fases,
+              grau_protecao_ip: cg.grau_protecao_ip,
+              temperatura_operacao: cg.temperatura_operacao,
+              protocolo_carregamento: cg.protocolo_carregamento,
+              tipo_carregamento: cg.tipo_carregamento,
+              tipo_conector: cg.tipo_conector,
+              comunicacao: cg.comunicacao,
+              carregadorEV_id: cg._id,
+            },
+            garantia_produto: cg.garantia_anos
+              ? { value: cg.garantia_anos, unit: 'anos' }
+              : undefined,
+            datasheet_url: cg.datasheet_url,
+            ativo: true,
+          })
+          await novoEquipamento.save()
+          sincronizados++
+        }
+      } catch (err) {
+        erros.push(`${cg.marca} ${cg.modelo}: ${err.message}`)
+      }
+    }
+
+    res.json({
+      sucesso: true,
+      sincronizados,
+      total: carregadores.length,
+      erros,
+      msg: `Sincronizados ${sincronizados}/${carregadores.length} carregadores`,
+    })
+  } catch (error) {
+    res.status(500).json({ erro: error.message })
+  }
+})
+
 // Seed - Carregar banco inicial
 router.post('/seed/inicializar', async (req, res) => {
   try {
