@@ -33,8 +33,8 @@ export const listarEquipamentos = async (req, res) => {
 
     let equipamentos = await query.exec()
 
-    // FALLBACK: Se tipo é carregador-ev e não há resultados, buscar de CarregadorEV
-    if (tipo === 'carregador_ev' && equipamentos.length === 0) {
+    // FALLBACK: Se tipo é carregador-ev (ou carregador_ev) e não há resultados, buscar de CarregadorEV
+    if ((tipo === 'carregador_ev' || tipo === 'carregador-ev') && equipamentos.length === 0) {
       console.log('[Equipamentos] Fallback: buscando de CarregadorEV...')
       const carregadores = await CarregadorEV.find({ ativo: true }).sort({ createdAt: -1 })
 
