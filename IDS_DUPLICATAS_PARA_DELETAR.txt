@@ -1,0 +1,112 @@
+╔═══════════════════════════════════════════════════════════════════════════╗
+║                                                                           ║
+║  REGISTRO DE DUPLICATAS A DELETAR                                        ║
+║  Total: 29 registros duplicados                                          ║
+║  Data: 2026-05-12                                                        ║
+║                                                                           ║
+╚═══════════════════════════════════════════════════════════════════════════╝
+
+RESUMO EXECUTIVO:
+- Total de registros atual: 56
+- Duplicatas identificadas: 29
+- Após limpeza: 27 carregadores únicos
+
+MODELOS COM DUPLICATAS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. INTELBRAS EVE 0074B (9 registros, manter 1, deletar 8)
+   ├─ DELETAR: 6a033e187329b4d15f06925e (2026-05-12T14:50:00.528Z)
+   ├─ DELETAR: 6a033e7e7329b4d15f069262 (2026-05-12T14:51:42.586Z)
+   ├─ DELETAR: 6a033ef77329b4d15f069266 (2026-05-12T14:53:43.292Z)
+   ├─ DELETAR: 6a033f597329b4d15f069267 (2026-05-12T14:55:21.589Z)
+   ├─ DELETAR: 6a034621f5db295fc95ffad1 (2026-05-12T15:24:17.622Z)
+   ├─ DELETAR: 6a03462ef5db295fc95ffad3 (2026-05-12T15:24:30.308Z)
+   ├─ DELETAR: 6a034641f5db295fc95ffad5 (2026-05-12T15:24:49.851Z)
+   └─ DELETAR: 6a034684f5db295fc95ffad7 (2026-05-12T15:25:56.903Z)
+   ✓ MANTER: 6a033e157329b4d15f069258 (original - 2026-05-12T14:49:57.634Z)
+
+2. INTELBRAS EVE 0074C (5 registros, manter 1, deletar 4)
+   ├─ DELETAR: 6a033e7f7329b4d15f069263
+   ├─ DELETAR: 6a033f9a7329b4d15f069268
+   ├─ DELETAR: 6a034630f5db295fc95ffad2
+   └─ DELETAR: 6a03468bf5db295fc95ffad9
+   ✓ MANTER: 6a033e157329b4d15f069258
+
+3. INTELBRAS EVE 0110C (4 registros, manter 1, deletar 3)
+   ├─ DELETAR: 6a033e187329b4d15f069260
+   ├─ DELETAR: 6a034600f5db295fc95ffacf
+   └─ DELETAR: 6a034682f5db295fc95ffad8
+   ✓ MANTER: 6a033f9c7329b4d15f069269
+
+4. INTELBRAS EVE 0220B (4 registros, manter 1, deletar 3)
+   ├─ DELETAR: 6a033e187329b4d15f069261
+   ├─ DELETAR: 6a034607f5db295fc95ffad0
+   └─ DELETAR: 6a034683f5db295fc95ffad6
+   ✓ MANTER: 6a033f9f7329b4d15f06926a
+
+5. BELENERGY CVBE-MO-220V-7 (4 registros, manter 1, deletar 3)
+   ├─ DELETAR: 6a033e177329b4d15f069265
+   ├─ DELETAR: 6a034611f5db295fc95ffad4
+   └─ DELETAR: 6a034640f5db295fc95ffad9
+   ✓ MANTER: 6a033fb57329b4d15f06926c
+
+6. SOLPLANET SOL7.4H (4 registros, manter 1, deletar 3)
+   ├─ DELETAR: 6a033e177329b4d15f06925c
+   ├─ DELETAR: 6a033e7d7329b4d15f069260
+   └─ DELETAR: 6a033fb77329b4d15f06926d
+   ✓ MANTER: 6a033e177329b4d15f06925c
+
+7. EVOWATT KS1207A21 (4 registros, manter 1, deletar 3)
+   ├─ DELETAR: 6a033e177329b4d15f06925b
+   ├─ DELETAR: 6a033e7c7329b4d15f06925f
+   ├─ DELETAR: 6a033fa07329b4d15f06926b
+   └─ MANTER: 6a033fa07329b4d15f06926b
+
+8. Wallbox Pulsar Plus (2 registros, manter 1, deletar 1)
+   ├─ DELETAR: 6a033d3e79567e941fc61f62
+   └─ MANTER: 6a033d3e79567e941fc61f61
+
+9. ABB Terra AC (2 registros, manter 1, deletar 1)
+   ├─ DELETAR: [ID a ser identificado]
+   └─ MANTER: [ID original]
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+COMO USAR:
+
+OPÇÃO 1: Script Node.js (Recomendado)
+───────────────────────────────────────
+1. cd backend
+2. node remove-duplicatas.js
+
+OPÇÃO 2: MongoDB Compass (Manual)
+─────────────────────────────────
+1. Conectar ao MongoDB Atlas
+2. Database: forte_solar
+3. Collection: carregadorevs
+4. Deletar IDs listados acima
+
+OPÇÃO 3: Via Railway Terminal
+──────────────────────────────
+1. Acessar Railway Dashboard
+2. Terminal do projeto
+3. Executar: node remove-duplicatas.js
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+VERIFICAÇÃO APÓS LIMPEZA:
+
+curl https://projetofrtsapp-production.up.railway.app/api/carregadores-ev
+
+Esperado:
+- Total: 27 registros
+- Sem duplicatas
+- Todos os modelos únicos
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ROLLBACK (se necessário):
+
+Se deletou algo errado, os registros estão em backup no histórico do git.
+Contacte o time de banco de dados.
+
