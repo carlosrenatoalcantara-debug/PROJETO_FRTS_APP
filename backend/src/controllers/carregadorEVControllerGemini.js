@@ -28,11 +28,23 @@ export async function extrairDatasheetEV(pdfBuffer) {
 
     // Marca/Fabricante - procura em padrões conhecidos ou no início
     let marca = 'Desconhecido'
-    const marcasConhecidas = ['INTELBRAS', 'WALLBOX', 'ABB', 'SIEMENS', 'SOLPLANET', 'BELENERGY', 'EVOWATT', 'DELTA', 'KEMPOWER', 'PHOENIX', 'CATL', 'CEMOSA']
+    const marcasConhecidas = [
+      'INTELBRAS', 'WALLBOX', 'ABB', 'SIEMENS', 'SOLPLANET', 'BELENERGY',
+      'EVOWATT', 'DELTA', 'KEMPOWER', 'PHOENIX', 'CATL', 'CEMOSA',
+      'EMOBI', 'BOREAL'  // EMOBI fabrica Evowatt/Boreal Master
+    ]
 
+    // Mapeamento: algumas marcas no PDF são aliases
+    const marcaAliases = {
+      'EMOBI': 'EMOBI',          // EMOBI fabrica Evowatt (mantém EMOBI por enquanto)
+      'BOREAL': 'EMOBI',         // Boreal Master é EMOBI
+    }
+
+    // Procurar marcas conhecidas
     for (const marcaKnown of marcasConhecidas) {
       if (texto.includes(marcaKnown)) {
-        marca = marcaKnown
+        // Aplicar alias se existir
+        marca = marcaAliases[marcaKnown] || marcaKnown
         break
       }
     }
@@ -53,16 +65,19 @@ export async function extrairDatasheetEV(pdfBuffer) {
     // Modelo - procura depois da marca, nos primeiros 500 caracteres
     let modelo = 'Sem modelo'
     const modeloPatterns = [
-      /EVE\s*0\d{3}[A-Z]?/i,  // EVE 0074B
-      /KS\s*\d{4}[A-Z0-9]*/i,  // KS1207A21
-      /SOL[\s\-]*[\d.]+[A-Z]?/i, // SOL7.4H
+      /EVE\s*0\d{3}[A-Z]?/i,      // EVE 0074B, EVE 0074C, etc
+      /CVBE[\s\-]*[A-Z0-9\-]*/i,  // CVBE-MO, CVBE-TR, etc
+      /KS\s*\d{4}[A-Z0-9]*/i,     // KS1207A21
+      /SOL[\s\-]*[\d.]+[A-Z]?/i,  // SOL7.4H
       /([A-Z]{2,}[\s\-]*[0-9]{3,}[A-Z0-9\-]*)/,
     ]
 
     for (const pattern of modeloPatterns) {
       const match = textoOriginal.substring(0, 500).match(pattern)
       if (match) {
-        modelo = match[0] || match[1]
+        modelo = (match[0] || match[1]).trim()
+        // Remover caracteres especiais no final
+        modelo = modelo.replace(/[\.\-\s]+$/g, '')
         break
       }
     }
