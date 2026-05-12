@@ -66,6 +66,79 @@ router.delete('/:id', async (req, res) => {
   }
 })
 
+// Adicionar novos carregadores em massa
+router.post('/admin/adicionar-lote', async (req, res) => {
+  try {
+    const { carregadores } = req.body
+
+    if (!Array.isArray(carregadores) || carregadores.length === 0) {
+      return res.status(400).json({ erro: 'Array de carregadores vazio' })
+    }
+
+    let adicionados = 0
+    let erros = []
+
+    for (const dados of carregadores) {
+      try {
+        // Verificar se já existe
+        const existe = await CarregadorEV.findOne({
+          marca: dados.marca,
+          modelo: dados.modelo,
+        })
+
+        if (!existe) {
+          const novo = new CarregadorEV(dados)
+          await novo.save()
+          adicionados++
+
+          // Também sincronizar com Equipamentos
+          try {
+            const novoEquipamento = new Equipamento({
+              tipo: 'carregador_ev',
+              fabricante: dados.marca,
+              modelo: dados.modelo,
+              especificacoes: {
+                tipo_carregador: dados.tipo,
+                potencia_kw: dados.potencia_kw,
+                tensao_entrada_v: dados.tensao_entrada_v,
+                corrente_entrada_a: dados.corrente_entrada_a,
+                numero_fases: dados.numero_fases,
+                grau_protecao_ip: dados.grau_protecao_ip,
+                temperatura_operacao: dados.temperatura_operacao,
+                protocolo_carregamento: dados.protocolo_carregamento,
+                tipo_carregamento: dados.tipo_carregamento,
+                tipo_conector: dados.tipo_conector,
+                comunicacao: dados.comunicacao,
+                carregadorEV_id: novo._id,
+              },
+              garantia_produto: dados.garantia_anos
+                ? { value: dados.garantia_anos, unit: 'anos' }
+                : undefined,
+              datasheet_url: dados.datasheet_url,
+              ativo: true,
+            })
+            await novoEquipamento.save()
+          } catch (e) {
+            console.warn('[Lote] Aviso: Equipamento não sincronizado:', e.message)
+          }
+        }
+      } catch (err) {
+        erros.push(`${dados.marca} ${dados.modelo}: ${err.message}`)
+      }
+    }
+
+    res.json({
+      sucesso: true,
+      adicionados,
+      total_tentados: carregadores.length,
+      erros,
+      msg: `Adicionados ${adicionados}/${carregadores.length} carregadores`,
+    })
+  } catch (error) {
+    res.status(500).json({ erro: error.message })
+  }
+})
+
 // Sincronizar todos os CarregadoresEV com tabela Equipamentos
 router.post('/admin/sincronizar-equipamentos', async (req, res) => {
   try {
