@@ -4,7 +4,7 @@ import {
   processarDatasheetEV,
   normalizarDadosEV,
   validarDadosEV,
-} from '../controllers/carregadorEVController.js'
+} from '../controllers/carregadorEVControllerGemini.js' // ✨ Usando Google Gemini (GRATUITO)
 
 const router = Router()
 

@@ -1,42 +1,22 @@
-import 'dotenv/config'
-import mongoose from 'mongoose'
+import mongoose from 'mongoose';
 
-const MONGODB_URI = process.env.MONGODB_URI
-
-console.log('🔍 Testando conexão MongoDB...')
-console.log('📍 URI:', MONGODB_URI.replace(/:[^:/@]+@/, ':***@'))
-
-async function testarConexao() {
+async function testConnection() {
   try {
-    console.log('⏳ Conectando...')
-    await mongoose.connect(MONGODB_URI, {
-      serverSelectionTimeoutMS: 10000,
-    })
-    console.log('✅ Conectado com sucesso!')
-
-    // Tentar listar collections
-    const collections = await mongoose.connection.db.listCollections().toArray()
-    console.log(`📚 Collections encontradas: ${collections.length}`)
-    collections.forEach(c => console.log(`   - ${c.name}`))
-
-    // Tentar contar documentos em clientes se existir
-    if (collections.some(c => c.name === 'clientes')) {
-      const count = await mongoose.connection.db.collection('clientes').countDocuments()
-      console.log(`👥 Clientes no banco: ${count}`)
-    }
-
-    console.log('\n✨ Tudo funcionando!')
-    process.exit(0)
-  } catch (erro) {
-    console.error('❌ Erro ao conectar:')
-    console.error('   Mensagem:', erro.message)
-    if (erro.code) console.error('   Código:', erro.code)
-    console.error('\n💡 Possíveis soluções:')
-    console.error('   1. Verificar string de conexão em .env')
-    console.error('   2. Configurar IP whitelist em MongoDB Atlas')
-    console.error('   3. Verificar conectividade de rede')
-    process.exit(1)
+    const mongoUri = 'mongodb+srv://carlosrenatoalcantara_db_user:RenatoAlcantara@cluster0.8jrrytu.mongodb.net/forte-solar?retryWrites=true&w=majority&authSource=admin';
+    console.log('Tentando conectar a MongoDB Atlas...');
+    
+    const conn = await mongoose.connect(mongoUri, {
+      serverSelectionTimeoutMS: 5000,
+      connectTimeoutMS: 5000,
+      socketTimeoutMS: 5000,
+    });
+    
+    console.log('✅ Conectado ao MongoDB Atlas com sucesso!');
+    await mongoose.disconnect();
+  } catch (error) {
+    console.error('❌ Erro ao conectar:', error.message);
+    console.error('Tipo:', error.name);
   }
 }
 
-testarConexao()
+testConnection();

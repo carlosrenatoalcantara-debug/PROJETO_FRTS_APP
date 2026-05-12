@@ -1,8 +1,13 @@
 import 'dotenv/config'
 import express from 'express'
 import cors from 'cors'
+import path from 'path'
+import { fileURLToPath } from 'url'
 import mongoose from './config/database.js'
 import { conectarBD } from './config/database.js'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 import { inicializarCRM } from './seeds/crmInitialData.js'
 import { agendarTarefasManutencao } from './utils/arquivamentoPolicy.js'
 import rotasClientes   from './routes/clientes.js'
@@ -143,6 +148,18 @@ app.use('/api/projetos-fv/:projetoId/homologacao', rotasHomologacao)
 app.use('/api/projetos-fv/:projetoId/proposta', rotasProposta)
 app.use('/api/projetos-fv/:id/beneficiarias', rotasBeneficiarias)
 app.use('/api/fatura', rotasFatura)
+
+// ✅ Servir frontend compilado
+const distPath = path.join(__dirname, '../../frontend/dist')
+app.use(express.static(distPath))
+
+// Rota catch-all para SPA - serve index.html para rotas não encontradas
+app.get('*', (req, res) => {
+  // Se não for requisição de API, servir index.html (para roteamento SPA)
+  if (!req.path.startsWith('/api')) {
+    res.sendFile(path.join(distPath, 'index.html'))
+  }
+})
 
 app.use(errorHandler)
 
