@@ -3,6 +3,7 @@ import { CarregadorEV } from '../models/CarregadorEV.js'
 import { PDFParse } from 'pdf-parse'
 import multer from 'multer'
 import Anthropic from '@anthropic-ai/sdk'
+import { GoogleGenerativeAI } from '@google/generative-ai'
 
 export const listarEquipamentos = async (req, res) => {
   try {
@@ -278,6 +279,75 @@ const converterPDFParaImagensBase64 = async (bufferPDF) => {
   return []
 }
 
+// ===== ANÁLISE COM GOOGLE GEMINI (GRATUITO - 60 req/min) =====
+const analisarImagemComGemini = async (imagemBase64, contexto = 'Analise esta imagem de datasheet') => {
+  try {
+    const apiKey = process.env.GOOGLE_API_KEY
+    if (!apiKey) {
+      console.warn('⚠️ GOOGLE_API_KEY não configurada')
+      return { error: 'Google API key not configured' }
+    }
+
+    const genAI = new GoogleGenerativeAI(apiKey)
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' })
+
+    const prompt = `${contexto}
+
+Extraia as seguintes informações se estiverem visíveis nesta imagem de datasheet:
+1. Garantia de Produto (em anos)
+2. Garantia de Performance (em anos ou percentual)
+3. Eficiência (em %)
+4. Qualquer informação técnica adicional visível
+5. Selos, certificações ou badges (IEC, CE, etc)
+
+Retorne um JSON com a estrutura:
+{
+  "garantia_produto": número em anos ou null,
+  "garantia_performance": string ou null,
+  "eficiencia": número ou null,
+  "certificacoes": [array de strings],
+  "info_adicional": string,
+  "confianca": "alta" | "media" | "baixa"
+}
+
+Responda APENAS com o JSON, sem markdown ou explicações.`
+
+    // Converter base64 para buffer
+    const imageBuffer = Buffer.from(imagemBase64, 'base64')
+
+    const result = await model.generateContent([
+      {
+        inlineData: {
+          data: imagemBase64,
+          mimeType: 'image/jpeg',
+        },
+      },
+      prompt,
+    ])
+
+    const resposta = result.response.text()
+
+    try {
+      // Extrair JSON da resposta
+      const jsonMatch = resposta.match(/\{[\s\S]*\}/)
+      if (jsonMatch) {
+        return JSON.parse(jsonMatch[0])
+      }
+    } catch (e) {
+      console.warn('⚠️ Erro ao fazer parse do JSON do Gemini:', e.message)
+      return {
+        texto_bruto: resposta,
+        confianca: 'baixa'
+      }
+    }
+
+    return { error: 'Resposta inesperada do Gemini' }
+  } catch (err) {
+    console.error('❌ Erro ao analisar imagem com Gemini:', err.message)
+    return { error: err.message }
+  }
+}
+
 export const extrairDatasheet = async (req, res) => {
   try {
     if (!req.file) {
@@ -490,21 +560,22 @@ export const extrairDatasheet = async (req, res) => {
       }
     }
 
-    // ===== ANÁLISE COM CLAUDE VISION (se garantia não encontrada) =====
+    // ===== ANÁLISE COM GOOGLE GEMINI (GRATUITO) (se garantia não encontrada) =====
     let analiseVisao = null
     if (!garantiaEncontrada && req.file && req.file.buffer) {
       try {
-        console.log('🔍 Tentando extrair garantia com visão de imagem...')
+        console.log('🔍 Tentando extrair garantia com Google Gemini (visão de imagem)...')
 
         // Extrair imagens do PDF
         const resultadoExtracao = await extrairImagensDoPDF(req.file.buffer)
 
         if (resultadoExtracao.success) {
-          // Converter PDF para Base64 para enviar ao Claude
+          // Converter PDF para Base64 para enviar ao Gemini
           const pdfBase64 = req.file.buffer.toString('base64')
 
-          // Analisar com Claude Vision focando em garantias
-          analiseVisao = await analisarImagemComClaude(
+          // Analisar com Google Gemini focando em garantias
+          // Gemini é GRATUITO (60 req/min) - muito melhor para custos operacionais
+          analiseVisao = await analisarImagemComGemini(
             pdfBase64,
             'Este é um datasheet de equipamento solar em formato PDF. Procure por informações de garantia, selos, badges e certificações. Extraia qualquer informação sobre garantia de produto, performance ou tempo de vida útil.'
           )
