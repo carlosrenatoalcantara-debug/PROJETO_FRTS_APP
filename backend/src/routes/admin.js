@@ -6,6 +6,7 @@ import {
   arquivarLeads,
   compactarDados,
   relatorio,
+  removerDuplicatas,
 } from '../controllers/adminController.js'
 
 const router = Router()
@@ -19,5 +20,8 @@ router.post('/manutencao', executarManutencao)
 router.post('/arquivar-leads', arquivarLeads)
 router.post('/compactar-dados', compactarDados)
 router.get('/relatorio-win-rate', relatorio)
+
+// Limpeza de Duplicatas
+router.post('/remover-duplicatas', removerDuplicatas)
 
 export default router

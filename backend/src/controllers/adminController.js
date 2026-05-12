@@ -5,6 +5,7 @@ import {
   compactarDadosAntigos,
   relatorioWinRate,
 } from '../utils/arquivamentoPolicy.js'
+import { CarregadorEV } from '../models/CarregadorEV.js'
 
 export async function importarSolarMarket(req, res) {
   try {
@@ -125,6 +126,98 @@ export async function relatorio(req, res) {
     })
   } catch (erro) {
     console.error('❌ Erro ao gerar relatório:', erro.message)
+    res.status(500).json({ erro: erro.message })
+  }
+}
+
+// ========== LIMPEZA DE DUPLICATAS ==========
+export async function removerDuplicatas(req, res) {
+  try {
+    if (!validarChaveAdmin(req)) {
+      return res.status(403).json({ erro: 'Acesso negado - header x-admin-key obrigatório' })
+    }
+
+    console.log('🗑️  Iniciando limpeza de duplicatas de carregadores EV...')
+
+    // Buscar todos os carregadores
+    const todos = await CarregadorEV.find({}).sort({ createdAt: 1 })
+    console.log(`📊 Total de registros: ${todos.length}`)
+
+    // Agrupar por marca+modelo
+    const grupos = {}
+    todos.forEach(cg => {
+      const chave = `${cg.marca}|${cg.modelo}`
+      if (!grupos[chave]) {
+        grupos[chave] = []
+      }
+      grupos[chave].push(cg)
+    })
+
+    // Identificar duplicatas
+    const duplicatas = []
+    const aKeeper = []
+    const detalhes = []
+
+    for (const [chave, registros] of Object.entries(grupos)) {
+      if (registros.length > 1) {
+        const [keeper, ...duplicados] = registros
+        aKeeper.push(keeper._id)
+        duplicatas.push(...duplicados.map(d => d._id))
+
+        detalhes.push({
+          modelo: chave,
+          total: registros.length,
+          mantidos: 1,
+          deletados: duplicados.length,
+          mantendoId: keeper._id,
+          deletandoIds: duplicados.map(d => d._id),
+        })
+
+        console.log(`⚠️  DUPLICATA: ${chave} - ${registros.length} registros, deletando ${duplicados.length}`)
+      }
+    }
+
+    if (duplicatas.length === 0) {
+      return res.json({
+        sucesso: true,
+        mensagem: '✅ Nenhuma duplicata encontrada',
+        resumo: {
+          totalAntes: todos.length,
+          duplicatasEncontradas: 0,
+          totalDepois: todos.length,
+        },
+      })
+    }
+
+    console.log(`\n📋 RESUMO DE LIMPEZA:`)
+    console.log(`   • Total de registros: ${todos.length}`)
+    console.log(`   • Duplicatas encontradas: ${duplicatas.length}`)
+    console.log(`   • Após limpeza: ${todos.length - duplicatas.length}\n`)
+
+    // Executar deleção
+    const resultado = await CarregadorEV.deleteMany({ _id: { $in: duplicatas } })
+
+    const totalFinal = await CarregadorEV.countDocuments()
+
+    console.log(`✅ SUCESSO!`)
+    console.log(`   • Deletados: ${resultado.deletedCount} registros`)
+    console.log(`   • Mantidos: ${aKeeper.length} registros únicos`)
+    console.log(`   • Total restante: ${totalFinal}\n`)
+
+    res.json({
+      sucesso: true,
+      mensagem: '✅ Limpeza de duplicatas concluída com sucesso',
+      resumo: {
+        totalAntes: todos.length,
+        duplicatasEncontradas: duplicatas.length,
+        deletados: resultado.deletedCount,
+        mantidos: aKeeper.length,
+        totalDepois: totalFinal,
+      },
+      detalhes: detalhes,
+    })
+  } catch (erro) {
+    console.error('❌ Erro ao remover duplicatas:', erro.message)
     res.status(500).json({ erro: erro.message })
   }
 }
