@@ -1,6 +1,7 @@
 import { Equipamento } from '../models/Equipamento.js'
 import { PDFParse } from 'pdf-parse'
 import multer from 'multer'
+import Anthropic from '@anthropic-ai/sdk'
 
 export const listarEquipamentos = async (req, res) => {
   try {
@@ -140,6 +141,107 @@ export const excluirEquipamento = async (req, res) => {
     console.error('❌ Erro ao excluir equipamento:', err)
     res.status(500).json({ erro: err.message })
   }
+}
+
+// ===== FUNÇÕES AUXILIARES PARA ANÁLISE DE IMAGENS =====
+
+const extrairImagensDoPDF = async (bufferPDF) => {
+  try {
+    const parser = new PDFParse({ data: bufferPDF })
+    const pdfData = await parser.parseBuffer()
+
+    // PDFParse não extrai imagens diretamente, então usamos buffer bruto
+    // Para método robusto, seria necessário pdf-lib ou pdfjs
+
+    console.log(`📄 PDF contém ${pdfData.numpages} páginas`)
+
+    // Retornar buffer PDF para extração de imagens
+    return {
+      buffer: bufferPDF,
+      pages: pdfData.numpages,
+      success: true
+    }
+  } catch (err) {
+    console.error('❌ Erro ao extrair imagens do PDF:', err.message)
+    return { success: false, error: err.message }
+  }
+}
+
+const analisarImagemComClaude = async (imagemBase64, contexto = 'Analise esta imagem de datasheet') => {
+  try {
+    const client = new Anthropic()
+
+    const message = await client.messages.create({
+      model: 'claude-3-5-sonnet-20241022',
+      max_tokens: 1024,
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'image',
+              source: {
+                type: 'base64',
+                media_type: 'image/jpeg',
+                data: imagemBase64,
+              },
+            },
+            {
+              type: 'text',
+              text: `${contexto}
+
+Extraia as seguintes informações se estiverem visíveis:
+1. Garantia de Produto (em anos)
+2. Garantia de Performance (em anos ou percentual)
+3. Eficiência (em %)
+4. Qualquer informação técnica adicional visível
+5. Selos, certificações ou badges
+
+Retorne um JSON com a estrutura:
+{
+  "garantia_produto": número em anos,
+  "garantia_performance": número ou string,
+  "eficiencia": número,
+  "certificacoes": [array de strings],
+  "info_adicional": string,
+  "confianca": "alta" | "media" | "baixa"
+}`
+            }
+          ],
+        }
+      ],
+    })
+
+    const conteudo = message.content[0]
+    if (conteudo.type === 'text') {
+      try {
+        const jsonMatch = conteudo.text.match(/\{[\s\S]*\}/)
+        if (jsonMatch) {
+          return JSON.parse(jsonMatch[0])
+        }
+      } catch (e) {
+        console.warn('⚠️ Não foi possível fazer parse do JSON retornado:', e.message)
+        return {
+          texto_bruto: conteudo.text,
+          confianca: 'baixa'
+        }
+      }
+    }
+
+    return { error: 'Resposta inesperada da API' }
+  } catch (err) {
+    console.error('❌ Erro ao analisar imagem com Claude:', err.message)
+    return { error: err.message }
+  }
+}
+
+const converterPDFParaImagensBase64 = async (bufferPDF) => {
+  // Para uma implementação mais robusta, seria necessário usar pdfjs-dist ou similar
+  // Por enquanto, vamos retornar um placeholder que pode ser expandido
+  // Em produção, seria necessário usar uma biblioteca como 'pdf-to-img' ou 'pdfjs-dist'
+
+  console.log('⚠️ Nota: Conversão de PDF para imagem requer biblioteca adicional (pdfjs-dist)')
+  return []
 }
 
 export const extrairDatasheet = async (req, res) => {
@@ -333,7 +435,7 @@ export const extrairDatasheet = async (req, res) => {
       }
     }
 
-    // ===== EXTRAIR GARANTIA =====
+    // ===== EXTRAIR GARANTIA (texto) =====
     const regexGarantia = [
       /WARRANTY[\s:]*(\d+)\s*YEAR/i,
       /GARANTIA[\s:]*(\d+)\s*ANO/i,
@@ -341,14 +443,56 @@ export const extrairDatasheet = async (req, res) => {
       /(\d+)\s*YEAR[\s]*(?:WARRANTY|GUARANTEE)/i
     ]
 
+    let garantiaEncontrada = false
     for (const regex of regexGarantia) {
       const match = texto.match(regex)
       if (match && match[1]) {
         const garantia = parseInt(match[1])
         if (garantia > 0 && garantia < 100) {
           especificacoes.garantia_anos = garantia
+          garantiaEncontrada = true
           break
         }
+      }
+    }
+
+    // ===== ANÁLISE COM CLAUDE VISION (se garantia não encontrada) =====
+    let analiseVisao = null
+    if (!garantiaEncontrada && req.file && req.file.buffer) {
+      try {
+        console.log('🔍 Tentando extrair garantia com visão de imagem...')
+
+        // Extrair imagens do PDF
+        const resultadoExtracao = await extrairImagensDoPDF(req.file.buffer)
+
+        if (resultadoExtracao.success) {
+          // Converter PDF para Base64 para enviar ao Claude
+          const pdfBase64 = req.file.buffer.toString('base64')
+
+          // Analisar com Claude Vision focando em garantias
+          analiseVisao = await analisarImagemComClaude(
+            pdfBase64,
+            'Este é um datasheet de equipamento solar em formato PDF. Procure por informações de garantia, selos, badges e certificações. Extraia qualquer informação sobre garantia de produto, performance ou tempo de vida útil.'
+          )
+
+          if (analiseVisao && !analiseVisao.error) {
+            console.log('✓ Análise de visão concluída:', analiseVisao)
+
+            // Mesclar informações da análise de visão
+            if (analiseVisao.garantia_produto && !especificacoes.garantia_anos) {
+              especificacoes.garantia_anos = analiseVisao.garantia_produto
+            }
+            if (analiseVisao.garantia_performance) {
+              especificacoes.garantia_performance = analiseVisao.garantia_performance
+            }
+            if (analiseVisao.certificacoes && analiseVisao.certificacoes.length > 0) {
+              especificacoes.certificacoes = analiseVisao.certificacoes
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('⚠️ Erro ao analisar com visão:', err.message)
+        // Continuar mesmo se falhar a análise de visão
       }
     }
 
@@ -446,10 +590,12 @@ export const extrairDatasheet = async (req, res) => {
       ...especificacoes,
       qualityScore,
       avisos,
+      analiseVisao: analiseVisao || null,
       _debug: {
         total_caracteres: texto.length,
         campos_encontrados: Object.keys(especificacoes).length,
-        qualidade: qualityScore >= 70 ? 'Excelente' : qualityScore >= 50 ? 'Bom' : qualityScore >= 30 ? 'Aceitável' : 'Baixa'
+        qualidade: qualityScore >= 70 ? 'Excelente' : qualityScore >= 50 ? 'Bom' : qualityScore >= 30 ? 'Aceitável' : 'Baixa',
+        analiseVisaoUsada: !garantiaEncontrada && analiseVisao && !analiseVisao.error
       }
     })
   } catch (err) {

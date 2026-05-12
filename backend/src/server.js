@@ -1,6 +1,7 @@
 import 'dotenv/config'
 import express from 'express'
 import cors from 'cors'
+import mongoose from './config/database.js'
 import { conectarBD } from './config/database.js'
 import { inicializarCRM } from './seeds/crmInitialData.js'
 import { agendarTarefasManutencao } from './utils/arquivamentoPolicy.js'
@@ -28,10 +29,13 @@ import rotasHomologacao  from './routes/homologacao.js'
 import rotasProposta     from './routes/proposta.js'
 import rotasFatura       from './routes/fatura.js'
 import rotasBeneficiarias from './routes/beneficiarias.js'
+import rotasAuth         from './routes/auth.js'
+import rotasCalculadora  from './routes/calculadora.js'
+import rotasCarregadoresEV from './routes/carregadoresEV.js'
 import errorHandler      from './middleware/errorHandler.js'
 
 const app  = express()
-const PORT = process.env.PORT || 5000
+const PORT = process.env.PORT || 5001
 
 // Configuração CORS com mais detalhes
 const corsOptions = {
@@ -49,6 +53,7 @@ const corsOptions = {
       'http://localhost:3007',
       'http://localhost:3008',
       'http://127.0.0.1:3000',
+      'https://projeto-frts-app.vercel.app',
     ]
 
     if (!origin || allowedOrigins.includes(origin)) {
@@ -67,13 +72,53 @@ const corsOptions = {
 app.use(cors(corsOptions))
 app.use(express.json())
 
+// Header CORS explícito como fallback
+app.use((req, res, next) => {
+  const origin = req.headers.origin
+  if (origin === 'https://projeto-frts-app.vercel.app' || origin?.includes('localhost')) {
+    res.header('Access-Control-Allow-Origin', origin)
+    res.header('Access-Control-Allow-Credentials', 'true')
+    res.header('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS')
+    res.header('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+  }
+  next()
+})
+
 // Log de requisições para debug
 app.use((req, res, next) => {
   console.log(`📍 ${req.method} ${req.path}`)
   next()
 })
 
-app.use('/api/health',       (_req, res) => res.json({ status: 'ok', servico: 'Forte Solar API' }))
+app.use('/api/health', (_req, res) => {
+  const mongoState = ['desconectado', 'conectando', 'conectado', 'desconectando']
+  const estado = mongoose.connection.readyState
+  res.json({
+    status: 'ok',
+    servico: 'Forte Solar API',
+    mongodb: mongoState[estado] || 'desconhecido',
+    mongodbState: estado,
+  })
+})
+
+app.use('/api/reconectar', async (_req, res) => {
+  try {
+    if (mongoose.connection.readyState === 1) {
+      return res.json({ status: 'já conectado' })
+    }
+    await mongoose.disconnect()
+    await mongoose.connect(process.env.MONGODB_URI, {
+      serverSelectionTimeoutMS: 15000,
+      connectTimeoutMS: 15000,
+    })
+    res.json({ status: 'conectado com sucesso' })
+  } catch (erro) {
+    res.status(500).json({ status: 'falhou', erro: erro.message })
+  }
+})
+app.use('/api/auth',         rotasAuth)
+app.use('/api/calculadora',  rotasCalculadora)
+app.use('/api/carregadores-ev', rotasCarregadoresEV)
 app.use('/api/dashboard',    rotasDashboard)
 app.use('/api/clientes',     rotasClientes)
 app.use('/api/projetos-fv',  rotasProjetosFV)

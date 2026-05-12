@@ -1,0 +1,448 @@
+<!--
+INSTRUÇÕES:
+1. No editor Wix, clique em "Código" ou "HTML Customizado"
+2. Copie e cole o código abaixo onde desejar
+3. Personalize cores e textos conforme necessário
+-->
+
+<!-- ============================================ -->
+<!-- SEÇÃO: BENEFÍCIOS (4 Cards) -->
+<!-- ============================================ -->
+
+<section class="benefits-section">
+  <div class="benefits-container">
+    <h2>Por que escolher a Forte Solar?</h2>
+
+    <div class="benefits-grid">
+      <!-- Card 1 -->
+      <div class="benefit-card">
+        <div class="benefit-icon">☀️</div>
+        <h3>Economia Garantida</h3>
+        <p>Economia de até 80% na sua conta de energia com sistemas dimensionados para sua necessidade específica.</p>
+      </div>
+
+      <!-- Card 2 -->
+      <div class="benefit-card">
+        <div class="benefit-icon">🔧</div>
+        <h3>Instalação Profissional</h3>
+        <p>Equipe técnica certificada com mais de 100 instalações realizadas em Natal e região.</p>
+      </div>
+
+      <!-- Card 3 -->
+      <div class="benefit-card">
+        <div class="benefit-icon">💰</div>
+        <h3>Financiamento Flexível</h3>
+        <p>Múltiplas opções de pagamento com taxas especiais. Primeira parcela após a instalação.</p>
+      </div>
+
+      <!-- Card 4 -->
+      <div class="benefit-card">
+        <div class="benefit-icon">🏠</div>
+        <h3>Suporte Vitalício</h3>
+        <p>Garantia estendida e suporte técnico permanente. Sua satisfação é nossa prioridade.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================ -->
+<!-- SEÇÃO: COMO FUNCIONA (4 Passos) -->
+<!-- ============================================ -->
+
+<section class="how-it-works-section">
+  <div class="how-it-works-container">
+    <h2>4 Passos para sua Economia Solar</h2>
+
+    <div class="steps-grid">
+      <!-- Passo 1 -->
+      <div class="step-card">
+        <div class="step-number">1️⃣</div>
+        <h3>Simulação</h3>
+        <p>Use nossa calculadora para estimar sua economia. Leva apenas 2 minutos.</p>
+        <a href="https://projeto-frts-app.vercel.app/calculadora" class="step-link">Simular Agora →</a>
+      </div>
+
+      <!-- Passo 2 -->
+      <div class="step-card">
+        <div class="step-number">2️⃣</div>
+        <h3>Análise</h3>
+        <p>Nossa equipe analisa seu local e define o melhor sistema para você.</p>
+      </div>
+
+      <!-- Passo 3 -->
+      <div class="step-card">
+        <div class="step-number">3️⃣</div>
+        <h3>Instalação</h3>
+        <p>Instalação profissional em um dia. Zero incômodo para sua casa.</p>
+      </div>
+
+      <!-- Passo 4 -->
+      <div class="step-card">
+        <div class="step-number">4️⃣</div>
+        <h3>Economia</h3>
+        <p>Comece a economizar imediatamente. Acompanhe sua geração online.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================ -->
+<!-- SEÇÃO: CTA CALCULADORA -->
+<!-- ============================================ -->
+
+<section class="calculator-cta-section">
+  <div class="calculator-cta-content">
+    <h2>Descubra quanto você pode economizar</h2>
+    <p>Nossa calculadora interativa considera sua localização, consumo e tarifa local para fornecer uma estimativa realista de economia.</p>
+
+    <div class="cta-buttons">
+      <a href="https://projeto-frts-app.vercel.app/calculadora" class="cta-button primary">
+        Simular Agora 🔆
+      </a>
+      <a href="https://wa.me/5584994047722" class="cta-button secondary">
+        Fale Conosco no WhatsApp
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================ -->
+<!-- SEÇÃO: CTA FINAL (Banner) -->
+<!-- ============================================ -->
+
+<section class="final-cta-section">
+  <div class="final-cta-content">
+    <h2>Pronto para Economizar com Energia Solar?</h2>
+    <p>Consulte um especialista Forte Solar sem compromisso</p>
+    <a href="https://wa.me/5584994047722" class="cta-button large">
+      💬 Consultar Especialista
+    </a>
+  </div>
+</section>
+
+<!-- ============================================ -->
+<!-- ESTILOS CSS (Copie também) -->
+<!-- ============================================ -->
+
+<style>
+  /* ===== CORES PRINCIPAIS ===== */
+  :root {
+    --primary: #0066CC;
+    --secondary: #FF6600;
+    --success: #00AA44;
+    --light-gray: #F5F5F5;
+    --dark-gray: #333333;
+    --border-color: #DDDDDD;
+  }
+
+  /* ===== SEÇÃO BENEFÍCIOS ===== */
+  .benefits-section {
+    padding: 60px 20px;
+    background: var(--light-gray);
+  }
+
+  .benefits-container {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .benefits-section h2 {
+    text-align: center;
+    font-size: 36px;
+    color: var(--dark-gray);
+    margin-bottom: 40px;
+    font-weight: bold;
+  }
+
+  .benefits-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 30px;
+  }
+
+  .benefit-card {
+    background: white;
+    padding: 30px;
+    border-radius: 12px;
+    text-align: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  .benefit-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+  }
+
+  .benefit-icon {
+    font-size: 48px;
+    margin-bottom: 15px;
+  }
+
+  .benefit-card h3 {
+    font-size: 20px;
+    color: var(--primary);
+    margin-bottom: 12px;
+    font-weight: bold;
+  }
+
+  .benefit-card p {
+    font-size: 14px;
+    color: #666;
+    line-height: 1.6;
+  }
+
+  /* ===== SEÇÃO COMO FUNCIONA ===== */
+  .how-it-works-section {
+    padding: 60px 20px;
+    background: white;
+  }
+
+  .how-it-works-container {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .how-it-works-section h2 {
+    text-align: center;
+    font-size: 36px;
+    color: var(--dark-gray);
+    margin-bottom: 40px;
+    font-weight: bold;
+  }
+
+  .steps-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 25px;
+  }
+
+  .step-card {
+    background: var(--light-gray);
+    padding: 30px;
+    border-radius: 12px;
+    border-left: 4px solid var(--primary);
+    text-align: center;
+    transition: transform 0.3s ease;
+  }
+
+  .step-card:hover {
+    transform: translateY(-3px);
+  }
+
+  .step-number {
+    font-size: 40px;
+    margin-bottom: 15px;
+  }
+
+  .step-card h3 {
+    font-size: 20px;
+    color: var(--primary);
+    margin-bottom: 12px;
+    font-weight: bold;
+  }
+
+  .step-card p {
+    font-size: 14px;
+    color: #666;
+    line-height: 1.6;
+    margin-bottom: 15px;
+  }
+
+  .step-link {
+    display: inline-block;
+    color: var(--secondary);
+    text-decoration: none;
+    font-weight: bold;
+    transition: color 0.3s ease;
+  }
+
+  .step-link:hover {
+    color: #FF8C00;
+  }
+
+  /* ===== SEÇÃO CTA CALCULADORA ===== */
+  .calculator-cta-section {
+    padding: 60px 20px;
+    background: linear-gradient(135deg, var(--primary) 0%, #0052A3 100%);
+    color: white;
+    text-align: center;
+  }
+
+  .calculator-cta-content {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  .calculator-cta-section h2 {
+    font-size: 36px;
+    margin-bottom: 15px;
+    font-weight: bold;
+  }
+
+  .calculator-cta-section p {
+    font-size: 16px;
+    margin-bottom: 30px;
+    opacity: 0.95;
+    line-height: 1.6;
+  }
+
+  .cta-buttons {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .cta-button {
+    padding: 14px 30px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: bold;
+    font-size: 16px;
+    transition: all 0.3s ease;
+    display: inline-block;
+    border: none;
+    cursor: pointer;
+  }
+
+  .cta-button.primary {
+    background: var(--secondary);
+    color: white;
+  }
+
+  .cta-button.primary:hover {
+    background: #FF8C00;
+    transform: scale(1.05);
+  }
+
+  .cta-button.secondary {
+    background: white;
+    color: var(--primary);
+    border: 2px solid white;
+  }
+
+  .cta-button.secondary:hover {
+    background: var(--light-gray);
+  }
+
+  /* ===== SEÇÃO CTA FINAL ===== */
+  .final-cta-section {
+    padding: 50px 20px;
+    background: linear-gradient(135deg, var(--success) 0%, #00B359 100%);
+    color: white;
+    text-align: center;
+  }
+
+  .final-cta-content {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  .final-cta-section h2 {
+    font-size: 32px;
+    margin-bottom: 12px;
+    font-weight: bold;
+  }
+
+  .final-cta-section p {
+    font-size: 16px;
+    margin-bottom: 25px;
+    opacity: 0.95;
+  }
+
+  .cta-button.large {
+    padding: 16px 40px;
+    font-size: 18px;
+    background: var(--secondary);
+    color: white;
+  }
+
+  .cta-button.large:hover {
+    background: #FF8C00;
+    transform: scale(1.05);
+  }
+
+  /* ===== RESPONSIVO ===== */
+  @media (max-width: 768px) {
+    .benefits-section h2,
+    .how-it-works-section h2,
+    .calculator-cta-section h2,
+    .final-cta-section h2 {
+      font-size: 24px;
+      margin-bottom: 30px;
+    }
+
+    .benefits-grid,
+    .steps-grid {
+      grid-template-columns: 1fr;
+      gap: 20px;
+    }
+
+    .cta-buttons {
+      flex-direction: column;
+    }
+
+    .cta-button {
+      width: 100%;
+      text-align: center;
+    }
+
+    .benefit-card,
+    .step-card {
+      padding: 20px;
+    }
+  }
+
+  /* ===== ANIMAÇÕES ===== */
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .benefit-card,
+  .step-card {
+    animation: fadeInUp 0.6s ease-out;
+  }
+</style>
+
+<!-- ============================================ -->
+<!-- INSTRUÇÕES DE USO NO WIX -->
+<!-- ============================================ -->
+
+<!--
+COMO ADICIONAR AO WIX:
+
+1. OPÇÃO A: Código Customizado
+   - No editor Wix, vá para "Adicionar"
+   - Procure por "HTML Embed" ou "Código Customizado"
+   - Cole todo o código acima
+
+2. OPÇÃO B: Seção por Seção
+   - Copie apenas a seção desejada
+   - Crie um novo container para cada seção
+   - Cole o código HTML
+   - Depois adicione o CSS em Configurações > Código Customizado
+
+3. OPÇÃO C: Usar como Referência
+   - Recrie os elementos no editor Wix visualmente
+   - Use este código como guia de design
+
+DICAS:
+- Ajuste cores conforme sua marca
+- Teste em mobile (redimensione o navegador)
+- Use imagens de alta qualidade
+- Mantenha os links para a calculadora funcionando
+- Atualize o WhatsApp com seu número real
+
+CORES RECOMENDADAS:
+- Primária: #0066CC (Azul - Confiança)
+- Secundária: #FF6600 (Laranja - Energia)
+- Success: #00AA44 (Verde - Sustentabilidade)
+-->

@@ -29,6 +29,14 @@ const estadoInicial = {
     concessionaria: '',
     tipoLigacao:    'monofasico',
     tensao:         '220',
+    // Dados extraídos da fatura
+    distribuidora: '',
+    grupoTarifario: '',
+    fase: '',
+    valorKwh: '',
+    irradiancia: '',
+    historico12Meses: null,
+    mediaAnual: null,
   },
   localizacao: {
     endereco:     '',

@@ -16,43 +16,68 @@ const projetoEVSchema = new mongoose.Schema({
     enum: ['rascunho', 'em_simulacao', 'dimensionado', 'proposta', 'aprovado', 'em_execucao', 'concluido'],
     default: 'rascunho',
   },
-  tipo_carregamento: {
-    type: String,
-    enum: ['AC', 'DC'],
-    default: 'AC',
-  },
-  quantidade_pontos: Number,
+
+  // LOCALIZAÇÃO
   endereco_completo: String,
   latitude: Number,
   longitude: Number,
-  potencia_total_kw: Number,
-  tensao_sistema: Number,
-  corrente_max_a: Number,
-  bitola_cabo_mm2: Number,
-  comprimento_cabo_m: Number,
-  carregador: {
+
+  // CARREGADORES
+  carregadores: [{
+    tipo: { type: String, enum: ['AC_Mono', 'AC_Tri', 'DC'] },
+    potencia_kw: Number,
     marca: String,
     modelo: String,
-    potencia_kw: Number,
+    quantidade: Number,
+  }],
+  quantidade_pontos: Number,
+  potencia_total_kw: Number,
+
+  // INSTALAÇÃO
+  tensao_sistema: { type: Number, default: 220 },
+  fases: { type: Number, enum: [1, 3], default: 3 },
+  frequencia_hz: { type: Number, default: 60 },
+  comprimento_cabo_m: Number,
+  localizacao_instacao: String,
+
+  // CÁLCULOS NBR 5410
+  calculos_nbr: {
+    corrente_projeto_a: Number,
+    corrente_maxima_a: Number,
+    bitola_cabo_mm2: Number,
+    disjuntor_a: Number,
+    dr_ma: Number,
+    tempo_seccionamento_s: Number,
+    queda_tensao_pct: Number,
+    materiais: [{ item: String, especificacao: String, quantidade: Number }],
   },
+
   protecoes: {
     disjuntor_a: Number,
     dr_ma: Number,
     dispositivo_diferencial: Boolean,
+    aterramento: String,
   },
+
+  // DOCUMENTAÇÃO
+  fotos: [{
+    url: String,
+    descricao: String,
+    tipo: { type: String, enum: ['instalacao', 'quadro', 'geral'] },
+  }],
+
+  tecnico: {
+    nome: String,
+    crea: String,
+    assinatura_url: String,
+  },
+
   financeiro: {
+    custo_equipamentos_r: Number,
+    custo_instalacao_r: Number,
     custo_total_r: Number,
-    irr_pct: Number,
-    npv_r: Number,
-    payback_anos: Number,
   },
-  homologacao: {
-    status: {
-      type: String,
-      enum: ['rascunho', 'enviado', 'analise', 'aprovado', 'conectado'],
-      default: 'rascunho',
-    },
-  },
+
   observacoes: String,
 }, {
   timestamps: true,

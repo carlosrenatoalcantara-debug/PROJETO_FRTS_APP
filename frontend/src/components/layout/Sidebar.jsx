@@ -12,9 +12,15 @@ const itensMenu = [
   { rotulo: 'Clientes',      caminho: '/clientes',      icone: Users           },
   { rotulo: 'Financeiro',    caminho: '/financeiro',    icone: TrendingUp      },
   { rotulo: 'CRM',           caminho: '/crm',           icone: Briefcase       },
+  { rotulo: 'Projetos',      icone: Sun, submenu: [
+    { rotulo: 'Fotovoltaico',  caminho: '/projetos-fv' },
+    { rotulo: 'Elétrico-Veicular', caminho: '/projetos-ev' },
+  ]},
   { rotulo: 'Equipamentos',  icone: Package, submenu: [
     { rotulo: 'Módulos',     caminho: '/equipamentos/modulos' },
     { rotulo: 'Inversores',  caminho: '/equipamentos/inversores' },
+    { rotulo: 'Carregadores EV', caminho: '/equipamentos/carregadores-ev' },
+    { rotulo: 'Baterias',    caminho: '/equipamentos/baterias' },
   ]},
   { rotulo: 'Configurações', caminho: '/configuracoes', icone: Settings        },
 ]

@@ -39,16 +39,24 @@ export default function AssistenteDatasheet({ onExtrair, tipo = 'painel' }) {
         body: formData,
       })
 
-      if (!res.ok) {
-        const erroData = await res.json()
-        throw new Error(erroData.erro || 'Erro ao extrair PDF')
+      // Lê o corpo uma só vez - pode ser JSON ou HTML (erro de servidor/proxy)
+      const texto = await res.text()
+      let json
+      try {
+        json = JSON.parse(texto)
+      } catch {
+        // Resposta não é JSON (ex: página de erro HTML do Windows/IIS)
+        if (!res.ok) throw new Error(`Servidor retornou status ${res.status}. Verifique se o backend está rodando.`)
+        throw new Error('Resposta inválida do servidor (não é JSON)')
       }
 
-      const dados = await res.json()
-      setResultado(dados.dados)
-      onExtrair(dados.dados)
+      if (!res.ok) throw new Error(json.erro || `Erro ${res.status}`)
+
+      const dados = json.dados || json
+      setResultado(dados)
+      onExtrair(dados)
     } catch (err) {
-      setErro(`Erro: ${err.message}`)
+      setErro(`Erro ao processar PDF: ${err.message}`)
       console.error('Erro ao extrair datasheet:', err)
     } finally {
       setCarregando(false)

@@ -24,7 +24,12 @@ export const buscarCliente = async (req, res) => {
 
 export const criarCliente = async (req, res) => {
   try {
-    const { nome, email, telefone, cidade, estado, tipo, cpf_cnpj } = req.body
+    const {
+      nome, email, telefone, cidade, estado, tipo, cpf_cnpj,
+      endereco_completo, cep,
+      numero_cliente, codigo_instalacao, distribuidora, classificacao,
+      subgrupo, tipo_ligacao, valor_kwh, consumo_kwh
+    } = req.body
 
     if (!nome || !email) {
       console.warn('❌ Criação de cliente falhou: faltam campos obrigatórios', { nome, email })
@@ -32,24 +37,35 @@ export const criarCliente = async (req, res) => {
     }
 
     const novo = new Cliente({
-      nome,
-      email,
+      nome: nome.trim(),
+      email: email.toLowerCase().trim(),
       telefone: telefone || '',
+      cpf_cnpj: cpf_cnpj || '',
+      tipo: tipo || 'Pessoa Física',
+      endereco_completo: endereco_completo || '',
+      cep: cep || '',
       cidade: cidade || '',
       estado: estado || '',
-      tipo: tipo || 'Pessoa Física',
-      cpf_cnpj: cpf_cnpj || '',
+      numero_cliente: numero_cliente || '',
+      codigo_instalacao: codigo_instalacao || '',
+      distribuidora: distribuidora || '',
+      classificacao: classificacao || '',
+      subgrupo: subgrupo || '',
+      tipo_ligacao: tipo_ligacao || '',
+      valor_kwh: parseFloat(valor_kwh) || 0,
+      consumo_kwh: parseFloat(consumo_kwh) || 0,
       status: 'ativo',
     })
 
     await novo.save()
-    console.log('✓ Cliente criado com sucesso:', novo._id)
+    console.log('✓ Cliente criado com sucesso:', novo._id, `(${nome})`)
     res.status(201).json(novo)
   } catch (err) {
     if (err.code === 11000) {
+      console.warn('❌ Email duplicado:', req.body.email)
       return res.status(400).json({ mensagem: 'Email já cadastrado' })
     }
-    console.error('❌ Erro ao criar cliente:', err)
+    console.error('❌ Erro ao criar cliente:', err.message)
     res.status(500).json({ mensagem: 'Erro ao criar cliente', erro: err.message })
   }
 }

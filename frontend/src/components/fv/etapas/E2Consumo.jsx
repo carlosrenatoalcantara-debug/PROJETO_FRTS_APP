@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { TrendingDown } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { TrendingDown, Info } from 'lucide-react'
 import { useProjetoFV } from '../../../contexts/ProjetoFVContext'
 import Input from '../../ui/Input'
 import Select from '../../ui/Select'
@@ -10,7 +10,7 @@ const MESES_LABELS = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out
 
 const CONCESSIONARIAS = [
   'CEMIG','COPEL','CPFL Energia','CELPE','COELBA','ENERGISA','ENEL','LIGHT',
-  'ELEKTRO','CELESC','AES Sul','RGE','AMPLA','Outra',
+  'ELEKTRO','CELESC','AES Sul','RGE','AMPLA','COSERN','Outra',
 ].map(v => ({ valor: v, rotulo: v }))
 
 const TIPOS_LIGACAO = [
@@ -29,6 +29,13 @@ export default function E2Consumo() {
   const { state, dispatch, proxima, anterior } = useProjetoFV()
   const d = state.dadosConsumo
   const [erros, setErros] = useState({})
+
+  // Auto-populate from extracted bill data on component mount
+  useEffect(() => {
+    if (d.grupoTarifario && !d.concessionaria) {
+      // Tentaremos popular concessionária a partir de outros dados se necessário
+    }
+  }, [])
 
   function set(campo, valor) {
     dispatch({ type: 'SET_CONSUMO', payload: { [campo]: valor } })
@@ -163,6 +170,42 @@ export default function E2Consumo() {
         </div>
       )}
 
+      {/* Dados da fatura extraída (se disponível) */}
+      {(d.grupoTarifario || d.irradiancia) && (
+        <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl space-y-3">
+          <div className="flex items-center gap-2">
+            <Info size={18} className="text-blue-600" />
+            <p className="text-sm font-semibold text-slate-700">Dados extraídos da fatura</p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {d.grupoTarifario && (
+              <div className="p-3 bg-white rounded-lg border border-blue-100">
+                <p className="text-xs text-slate-500 mb-1">Grupo Tarifário</p>
+                <p className="text-sm font-medium text-slate-900">{d.grupoTarifario}</p>
+              </div>
+            )}
+            {d.fase && (
+              <div className="p-3 bg-white rounded-lg border border-blue-100">
+                <p className="text-xs text-slate-500 mb-1">Fase</p>
+                <p className="text-sm font-medium text-slate-900">{d.fase}</p>
+              </div>
+            )}
+            {d.valorKwh && (
+              <div className="p-3 bg-white rounded-lg border border-blue-100">
+                <p className="text-xs text-slate-500 mb-1">Tarifa (R$/kWh)</p>
+                <p className="text-sm font-medium text-slate-900">R$ {parseFloat(d.valorKwh).toFixed(5)}</p>
+              </div>
+            )}
+            {d.irradiancia && (
+              <div className="p-3 bg-white rounded-lg border border-blue-100">
+                <p className="text-xs text-slate-500 mb-1">Irradiância da cidade</p>
+                <p className="text-sm font-medium text-slate-900">{d.irradiancia.toFixed(2)} kWh/m²/dia</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Outros campos */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Select
@@ -171,6 +214,7 @@ export default function E2Consumo() {
           value={d.concessionaria}
           onChange={e => set('concessionaria', e.target.value)}
           erro={erros.concessionaria}
+          helpText={d.distribuidora ? `Extraída: ${d.distribuidora}` : undefined}
         />
         <Select
           rotulo="Tipo de ligação"

@@ -325,7 +325,7 @@ export default function ClienteGerenciamento() {
           <div className="flex items-center gap-2">
             <Button icone={Plus} tamanho="sm" onClick={(e) => {
               e.stopPropagation()
-              navigate(`/propostas/nova?clienteId=${clienteId}&tipo=ev`)
+              navigate(`/propostas-ev/nova?clienteId=${clienteId}`)
             }}>
               Novo
             </Button>

@@ -4,7 +4,7 @@ const EquipamentoSchema = new mongoose.Schema(
   {
     tipo: {
       type: String,
-      enum: ['modulo', 'inversor', 'estrutura', 'bateria'],
+      enum: ['modulo', 'inversor', 'estrutura', 'bateria', 'carregador_ev'],
       required: true,
       index: true,
     },

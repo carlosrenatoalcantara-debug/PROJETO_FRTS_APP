@@ -1,15 +1,17 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { X, MapPin, Zap, Sun, Wrench, DollarSign, FileText, CheckCircle, Download } from 'lucide-react'
+import { X, MapPin, Zap, Sun, Wrench, DollarSign, FileText, CheckCircle, Download, Info, Trash2 } from 'lucide-react'
 import Card, { CardHeader, CardBody } from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import Stepper from '../components/ui/Stepper'
 import MapaTelhado from '../components/fv/MapaTelhado'
 import Input from '../components/ui/Input'
 import SeletorAutomaticoKits from '../components/fv/SeletorAutomaticoKits'
+import ModalBeneficiaria from '../components/fv/ModalBeneficiaria'
 import { calcularDimensionamentoAuto, selecionarKitsAuto, gerarOrcamentoAuto } from '../services/calcAutoMatico'
 import { gerarUnifilarSVG } from '../utils/gerarUnifilarSVG'
 import { gerarPropostaPDF, abrirOuBaixarProposta } from '../utils/gerarPropostaPDF'
+import { obterIrradianciaCity, obterIrradianciaFallback } from '../data/irradianciaRN.js'
 
 const ETAPAS = [
   { num: 1, rotulo: 'Localização', icone: MapPin },
@@ -18,8 +20,8 @@ const ETAPAS = [
   { num: 4, rotulo: 'Pré-Dimensionamento', icone: Wrench },
   { num: 5, rotulo: 'Irradiância', icone: Sun },
   { num: 6, rotulo: 'Dimensionamento', icone: Zap },
-  { num: 7, rotulo: 'Complementares', icone: Wrench },
-  { num: 8, rotulo: 'Orçamento', icone: DollarSign },
+  { num: 7, rotulo: 'Orçamento', icone: DollarSign },
+  { num: 8, rotulo: 'Proposta', icone: FileText },
 ]
 
 function Etapa1Localizacao({ dados, setDados, proxima }) {
@@ -77,16 +79,39 @@ function Etapa1Localizacao({ dados, setDados, proxima }) {
 }
 
 function Etapa2Unidades({ dados, setDados, proxima, anterior }) {
-  const [beneficiarias, setBeneficiarias] = useState([])
+  const [beneficiarias, setBeneficiarias] = useState(dados.beneficiarias || [])
   const [dimensionamento, setDimensionamento] = useState(null)
+  const [modalAberta, setModalAberta] = useState(false)
 
+  // Auto-populate com dados extraídos da fatura
   useEffect(() => {
-    if (dados.consumo && dados.irradiancia) {
+    if (dados.consumo && dados.irradiancia && !dimensionamento) {
       const dim = calcularDimensionamentoAuto(Number(dados.consumo), dados.irradiancia)
       setDimensionamento(dim)
       setDados(prev => ({ ...prev, dimensionamento: dim }))
     }
   }, [dados.consumo, dados.irradiancia])
+
+  // Auto-definir GD2 como padrão
+  useEffect(() => {
+    if (!dados.gd) {
+      setDados(prev => ({ ...prev, gd: 'gd2' }))
+    }
+  }, [])
+
+  // Sincronizar beneficiárias com dados
+  useEffect(() => {
+    setDados(prev => ({ ...prev, beneficiarias }))
+  }, [beneficiarias])
+
+  const handleAdicionarBeneficiaria = (nova) => {
+    setBeneficiarias(prev => [...prev, { ...nova, id: Date.now() }])
+    setModalAberta(false)
+  }
+
+  const handleRemoverBeneficiaria = (id) => {
+    setBeneficiarias(prev => prev.filter(b => b.id !== id))
+  }
 
   return (
     <div className="space-y-6">
@@ -94,6 +119,44 @@ function Etapa2Unidades({ dados, setDados, proxima, anterior }) {
         <h2 className="text-lg font-semibold text-slate-900">Unidades Consumidoras</h2>
         <p className="text-sm text-slate-500 mt-1">Configure a unidade geradora e beneficiárias</p>
       </div>
+
+      {/* Mostrar dados extraídos da fatura */}
+      {(dados.consumo || dados.tarifa || dados.fase) && (
+        <Card>
+          <CardHeader className="flex items-center gap-2">
+            <Info size={18} className="text-blue-600" />
+            <span>Dados Extraídos da Fatura</span>
+          </CardHeader>
+          <CardBody>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {dados.consumo && (
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded">
+                  <p className="text-xs text-slate-600">Consumo Médio</p>
+                  <p className="text-lg font-bold text-blue-700">{dados.consumo} kWh</p>
+                </div>
+              )}
+              {dados.tarifa && (
+                <div className="p-3 bg-green-50 border border-green-200 rounded">
+                  <p className="text-xs text-slate-600">Tarifa</p>
+                  <p className="text-lg font-bold text-green-700">R$ {dados.tarifa.toFixed(5)}</p>
+                </div>
+              )}
+              {dados.fase && (
+                <div className="p-3 bg-purple-50 border border-purple-200 rounded">
+                  <p className="text-xs text-slate-600">Fase</p>
+                  <p className="text-lg font-bold text-purple-700">{dados.fase}</p>
+                </div>
+              )}
+              {dados.irradiancia && (
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded">
+                  <p className="text-xs text-slate-600">Irradiância</p>
+                  <p className="text-lg font-bold text-amber-700">{dados.irradiancia.toFixed(2)} kWh/m²</p>
+                </div>
+              )}
+            </div>
+          </CardBody>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>Unidade Geradora</CardHeader>
@@ -183,21 +246,54 @@ function Etapa2Unidades({ dados, setDados, proxima, anterior }) {
       <Card>
         <CardHeader className="flex items-center justify-between">
           <span>Beneficiárias</span>
-          <Button tamanho="sm">+ Adicionar</Button>
+          <Button tamanho="sm" onClick={() => setModalAberta(true)}>+ Adicionar</Button>
         </CardHeader>
         <CardBody>
           {beneficiarias.length === 0 ? (
             <p className="text-sm text-slate-500">Nenhuma beneficiária adicionada</p>
           ) : (
-            <div>Beneficiárias listadas aqui</div>
+            <div className="space-y-2">
+              {beneficiarias.map((b) => (
+                <div key={b.id} className="flex items-center justify-between p-3 bg-slate-50 border border-slate-200 rounded">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-slate-900">{b.contaContrato}</p>
+                    <p className="text-xs text-slate-600">
+                      {b.tipoRateio === 'percentual' ? `${b.valor}%` : `R$ ${b.valor.toFixed(2)}`}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => handleRemoverBeneficiaria(b.id)}
+                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              ))}
+            </div>
           )}
         </CardBody>
       </Card>
 
       <div className="flex justify-between gap-3">
         <Button variante="secundario" onClick={anterior}>← Anterior</Button>
-        <Button onClick={proxima}>Próxima →</Button>
+        <Button onClick={proxima} disabled={!dados.consumo || dados.consumo <= 0 || !dimensionamento}>
+          Próxima →
+        </Button>
       </div>
+
+      {!dados.consumo || dados.consumo <= 0 ? (
+        <div className="p-3 bg-amber-50 border border-amber-200 rounded text-sm text-amber-700">
+          ⚠️ Preencha o consumo (> 0) para prosseguir
+        </div>
+      ) : null}
+
+      {modalAberta && (
+        <ModalBeneficiaria
+          onAdicionarBeneficiaria={handleAdicionarBeneficiaria}
+          onClose={() => setModalAberta(false)}
+          beneficiarias={beneficiarias}
+        />
+      )}
     </div>
   )
 }
@@ -372,8 +468,16 @@ function Etapa3KitGerador({ dados, setDados, proxima, anterior }) {
 
       <div className="flex justify-between gap-3">
         <Button variante="secundario" onClick={anterior}>← Anterior</Button>
-        <Button onClick={proxima}>Próxima →</Button>
+        <Button onClick={proxima} disabled={!dados.kitSelecionado || !dados.orcamento}>
+          Próxima →
+        </Button>
       </div>
+
+      {(!dados.kitSelecionado || !dados.orcamento) && (
+        <div className="p-3 bg-amber-50 border border-amber-200 rounded text-sm text-amber-700">
+          ⚠️ Selecione um kit para prosseguir
+        </div>
+      )}
     </div>
   )
 }
@@ -418,6 +522,7 @@ function Etapa4PreDimensionamento({ dados, setDados, proxima, anterior }) {
 
 function Etapa5Irradiancia({ dados, setDados, proxima, anterior }) {
   const [irradianciaCustom, setIrradianciaCustom] = useState(dados.irradiancia || 5.5)
+  const [fonte, setFonte] = useState('extraida')
 
   useEffect(() => {
     setDados(prev => ({ ...prev, irradiancia: irradianciaCustom }))
@@ -435,14 +540,17 @@ function Etapa5Irradiancia({ dados, setDados, proxima, anterior }) {
           <div className="p-4 bg-blue-50 border border-blue-200 rounded">
             <p className="text-sm text-blue-900">
               <strong>Irradiância em {dados.endereco || 'São Paulo, SP'}:</strong> <br />
-              <strong className="text-lg">{irradianciaCustom} kWh/m²/dia</strong>
+              <strong className="text-lg">{irradianciaCustom.toFixed(2)} kWh/m²/dia</strong>
             </p>
             <p className="text-xs text-blue-800 mt-2">
               Localização: {dados.latitude?.toFixed(4) || '-23.5505'}° S, {dados.longitude?.toFixed(4) || '-46.6333'}° O
             </p>
+            <p className="text-xs text-blue-700 mt-1 font-medium">
+              Fonte: {fonte === 'extraida' ? '📍 Extraída da cidade (base de dados CRESESB)' : '🔄 Ajustada manualmente'}
+            </p>
           </div>
           <div>
-            <label className="text-sm font-medium text-slate-700 block mb-2">Ajustar Irradiância</label>
+            <label className="text-sm font-medium text-slate-700 block mb-2">Ajustar Irradiância (se necessário)</label>
             <div className="flex gap-2 items-center">
               <input
                 type="range"
@@ -450,7 +558,10 @@ function Etapa5Irradiancia({ dados, setDados, proxima, anterior }) {
                 max="8"
                 step="0.1"
                 value={irradianciaCustom}
-                onChange={(e) => setIrradianciaCustom(Number(e.target.value))}
+                onChange={(e) => {
+                  setIrradianciaCustom(Number(e.target.value))
+                  setFonte('ajustada')
+                }}
                 className="flex-1"
               />
               <input
@@ -459,9 +570,13 @@ function Etapa5Irradiancia({ dados, setDados, proxima, anterior }) {
                 max="8"
                 step="0.1"
                 value={irradianciaCustom}
-                onChange={(e) => setIrradianciaCustom(Number(e.target.value))}
+                onChange={(e) => {
+                  setIrradianciaCustom(Number(e.target.value))
+                  setFonte('ajustada')
+                }}
                 className="w-20 px-2 py-1 rounded border border-slate-300"
               />
+              <span className="text-xs text-slate-500">kWh/m²/dia</span>
             </div>
           </div>
           <div className="bg-slate-50 p-3 rounded border border-slate-200">
@@ -484,12 +599,14 @@ function Etapa6Dimensionamento({ dados, setDados, proxima, anterior }) {
   useEffect(() => {
     if (dados.dimensionamento && dados.fase) {
       const svg = gerarUnifilarSVG({
-        nome: 'Proposta FV',
+        nome: dados.nomeProjeto || 'Proposta FV',
         nomeCliente: dados.clienteId || 'Cliente',
         dimensionamento: dados.dimensionamento,
         tipo_ligacao: dados.fase,
-        distribuidora: 'Distribuidora Local',
-        kitSelecionado: dados.kitSelecionado || null,
+        tensao: dados.tensao,
+        distribuidora: dados.distribuidora || 'Concessionária',
+        painel: dados.kitSelecionado?.paineis || dados.kitSelecionado?.painel || null,
+        inversor: dados.kitSelecionado?.inversor || null,
       })
       setUnifilarSVG(svg)
       setDados(prev => ({ ...prev, unifilar: svg }))
@@ -561,43 +678,24 @@ function Etapa6Dimensionamento({ dados, setDados, proxima, anterior }) {
   )
 }
 
-function Etapa7Complementares({ dados, setDados, proxima, anterior }) {
-  return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-lg font-semibold text-slate-900">Equipamentos Complementares</h2>
-        <p className="text-sm text-slate-500 mt-1">Proteções, cabos e estruturas</p>
-      </div>
-
-      <Card>
-        <CardBody className="space-y-4">
-          <Input rotulo="Estrutura (tipo)" placeholder="Alumínio / Aço" />
-          <Input rotulo="Metragem de cabos" type="number" placeholder="500" />
-          <Input rotulo="Disjuntor" placeholder="Especificação" />
-          <Input rotulo="DPS/Proteção" placeholder="Tipo" />
-          <Input rotulo="String Box" placeholder="Quantidade" />
-        </CardBody>
-      </Card>
-
-      <div className="flex justify-between gap-3">
-        <Button variante="secundario" onClick={anterior}>← Anterior</Button>
-        <Button onClick={proxima}>Próxima →</Button>
-      </div>
-    </div>
-  )
-}
-
-function Etapa8Orcamento({ dados, setDados, proxima, anterior }) {
+function Etapa7Orcamento({ dados, setDados, proxima, anterior }) {
   const [margemLucro, setMargemLucro] = useState(20)
   const [gerando, setGerando] = useState(false)
 
-  const orcamento = dados.orcamento || {
-    itens: [],
-    subtotal: 0,
-    margem: { percentual: margemLucro, valor: 0 },
-    total: 0,
-    precoWp: 0,
-  }
+  // Se nenhum kit foi selecionado mas há dimensionamento, auto-gera balanceado
+  const orcamento = (() => {
+    if (dados.orcamento) return dados.orcamento
+    if (dados.dimensionamento?.potenciaArredondada) {
+      const kits = selecionarKitsAuto(dados.dimensionamento.potenciaArredondada)
+      const kit = kits.find(k => k.tag === 'balanceado') || kits[0]
+      if (kit) {
+        const orc = gerarOrcamentoAuto(kit)
+        setDados(prev => ({ ...prev, orcamento: orc, kitSelecionado: kit }))
+        return orc
+      }
+    }
+    return { itens: [], subtotal: 0, margem: { percentual: margemLucro, valor: 0 }, total: 0, precoWp: 0 }
+  })()
 
   const gerarPDF = async () => {
     if (!dados.orcamento || !dados.dimensionamento) {
@@ -694,14 +792,152 @@ function Etapa8Orcamento({ dados, setDados, proxima, anterior }) {
   )
 }
 
+function Etapa8Proposta({ dados, anterior }) {
+  const [gerando, setGerando] = useState(false)
+  const [propostaBaixada, setPropostaBaixada] = useState(false)
+
+  const handleGerarProposta = async () => {
+    try {
+      setGerando(true)
+      const htmlProposta = gerarPropostaPDF(dados)
+      abrirOuBaixarProposta(htmlProposta, `Proposta-${dados.nomeProjeto || 'SolarFV'}-${new Date().toLocaleDateString('pt-BR')}`)
+      setPropostaBaixada(true)
+    } catch (err) {
+      console.error('Erro ao gerar proposta:', err)
+      alert('Erro ao gerar proposta. Verifique o console.')
+    } finally {
+      setGerando(false)
+    }
+  }
+
+  const resumoCompleto = () => {
+    const dim = dados.dimensionamento
+    const orc = dados.orcamento
+    if (!dim || !orc) return null
+
+    return {
+      potencia: `${dim.potenciaArredondada} kWp`,
+      paineis: dim.numPaineis,
+      inversores: dim.numInversores,
+      economia: `R$ ${Number(dim.economiaAnual).toLocaleString('pt-BR')}/ano`,
+      payback: `${dim.payback} anos`,
+      investimento: `R$ ${Math.round(orc.total).toLocaleString('pt-BR')}`,
+      precoWp: `R$ ${orc.precoWp}/Wp`,
+    }
+  }
+
+  const resumo = resumoCompleto()
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-lg font-semibold text-slate-900">Resumo da Proposta</h2>
+        <p className="text-sm text-slate-500 mt-1">Confira os dados finais e gere o PDF</p>
+      </div>
+
+      {resumo ? (
+        <>
+          <Card>
+            <CardHeader>Sistema Fotovoltaico</CardHeader>
+            <CardBody>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded">
+                  <p className="text-xs text-slate-600">Potência</p>
+                  <p className="text-lg font-bold text-blue-700">{resumo.potencia}</p>
+                </div>
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded">
+                  <p className="text-xs text-slate-600">Painéis</p>
+                  <p className="text-lg font-bold text-blue-700">{resumo.paineis} un</p>
+                </div>
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded">
+                  <p className="text-xs text-slate-600">Inversores</p>
+                  <p className="text-lg font-bold text-blue-700">{resumo.inversores} un</p>
+                </div>
+              </div>
+            </CardBody>
+          </Card>
+
+          <Card>
+            <CardHeader>Análise Financeira</CardHeader>
+            <CardBody>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <div className="p-3 bg-green-50 border border-green-200 rounded">
+                  <p className="text-xs text-slate-600">Economia/Ano</p>
+                  <p className="text-lg font-bold text-green-700">{resumo.economia}</p>
+                </div>
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded">
+                  <p className="text-xs text-slate-600">Payback</p>
+                  <p className="text-lg font-bold text-amber-700">{resumo.payback}</p>
+                </div>
+                <div className="p-3 bg-slate-50 border border-slate-200 rounded">
+                  <p className="text-xs text-slate-600">Preço/Wp</p>
+                  <p className="text-lg font-bold">{resumo.precoWp}</p>
+                </div>
+              </div>
+            </CardBody>
+          </Card>
+
+          <Card>
+            <CardHeader>Investimento Total</CardHeader>
+            <CardBody>
+              <div className="p-4 bg-slate-900 text-white rounded text-center">
+                <p className="text-sm text-slate-300 mb-1">Valor Total do Sistema</p>
+                <p className="text-4xl font-bold">{resumo.investimento}</p>
+              </div>
+            </CardBody>
+          </Card>
+
+          {propostaBaixada && (
+            <div className="p-4 bg-emerald-50 border border-emerald-200 rounded text-center">
+              <p className="text-emerald-700 font-semibold">✅ Proposta PDF gerada com sucesso!</p>
+              <p className="text-sm text-emerald-600">O arquivo foi aberto em uma nova aba</p>
+            </div>
+          )}
+        </>
+      ) : (
+        <Card>
+          <CardBody className="text-center py-8">
+            <p className="text-slate-600 mb-4">Preencha todas as etapas anteriores para ver o resumo</p>
+          </CardBody>
+        </Card>
+      )}
+
+      <div className="flex justify-between gap-3">
+        <Button variante="secundario" onClick={anterior}>← Anterior</Button>
+        <Button
+          onClick={handleGerarProposta}
+          disabled={gerando || !resumo}
+          className="flex-1 flex items-center justify-center gap-2"
+        >
+          {gerando ? (
+            <>⏳ Gerando...</>
+          ) : propostaBaixada ? (
+            <>✅ Proposta Gerada</>
+          ) : (
+            <>📄 Gerar Proposta PDF</>
+          )}
+        </Button>
+      </div>
+    </div>
+  )
+}
+
 export default function NovaProposta() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const clienteId = searchParams.get('clienteId')
   const leadId = searchParams.get('leadId')
+  const tipoParam = searchParams.get('tipo')
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
 
   const [etapa, setEtapa] = useState(1)
+
+  // Redirecionar EV para página correta
+  useEffect(() => {
+    if (tipoParam === 'ev') {
+      navigate(`/propostas-ev/nova${clienteId ? `?clienteId=${clienteId}` : ''}`, { replace: true })
+    }
+  }, [tipoParam, clienteId, navigate])
   const [nomeCliente, setNomeCliente] = useState('')
   const [dados, setDados] = useState({
     clienteId,
@@ -754,12 +990,43 @@ export default function NovaProposta() {
 
           console.log('Cliente carregado:', cliente)
 
+          // Extrair dados da fatura se disponíveis
+          const cidade = cliente.cidade || ''
+          const estado = cliente.estado || 'SP'
+
+          // Lookup de irradiância pela cidade
+          const irradiaciaCity = obterIrradianciaCity(cidade, estado)
+          const irradiancia = irradiaciaCity || obterIrradianciaFallback(estado)
+
+          // Mapear tipo_ligacao para fase
+          let fase = ''
+          if (cliente.tipo_ligacao) {
+            if (cliente.tipo_ligacao.includes('Monofás')) fase = 'Monofásico'
+            else if (cliente.tipo_ligacao.includes('Bifás')) fase = 'Bifásico'
+            else if (cliente.tipo_ligacao.includes('Trifás')) fase = 'Trifásico'
+          }
+
+          // Extrair tensão do tipo_ligacao
+          let tensao = '220'
+          if (cliente.tipo_ligacao) {
+            if (cliente.tipo_ligacao.includes('127')) tensao = '127'
+            else if (cliente.tipo_ligacao.includes('220')) tensao = '220'
+            else if (cliente.tipo_ligacao.includes('380')) tensao = '380'
+          }
+
           setNomeCliente(cliente.nome)
           setDados(prev => ({
             ...prev,
             endereco: cliente.endereco_completo || `${cliente.cidade || ''}, ${cliente.estado || ''}`,
             latitude: cliente.latitude ? parseFloat(cliente.latitude) : -23.5505,
             longitude: cliente.longitude ? parseFloat(cliente.longitude) : -46.6333,
+            // Dados extraídos da fatura
+            consumo: cliente.consumo_kwh ? Number(cliente.consumo_kwh) : '',
+            tarifa: cliente.valor_kwh ? Number(cliente.valor_kwh) : '',
+            fase: fase || '',
+            tensao: tensao,
+            irradiancia: irradiancia,
+            grupo: cliente.classificacao ? cliente.classificacao.split(' ')[0] : '',
           }))
         } catch (err) {
           console.error('Erro ao carregar cliente:', err)
@@ -769,6 +1036,7 @@ export default function NovaProposta() {
             endereco: 'São Paulo, SP',
             latitude: -23.5505,
             longitude: -46.6333,
+            irradiancia: obterIrradianciaFallback('SP'),
           }))
         }
       }
@@ -784,8 +1052,8 @@ export default function NovaProposta() {
     4: Etapa4PreDimensionamento,
     5: Etapa5Irradiancia,
     6: Etapa6Dimensionamento,
-    7: Etapa7Complementares,
-    8: Etapa8Orcamento,
+    7: Etapa7Orcamento,
+    8: Etapa8Proposta,
   }
 
   const Componente = componentes[etapa]
