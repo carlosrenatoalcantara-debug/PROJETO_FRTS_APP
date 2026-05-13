@@ -50,6 +50,13 @@ export default function Configuracoes() {
   const [apiAtivada, setApiAtivada] = useState({})
   const [iaAtiva, setIaAtiva] = useState('')
   const [salvo, setSalvo] = useState(false)
+  const [responsavelTecnico, setResponsavelTecnico] = useState({
+    nome: '',
+    certificacao: 'CREA',
+    numero: '',
+    funcao: ''
+  })
+  const [abaSelecionada, setAbaSelecionada] = useState('apis')
 
   useEffect(() => {
     const novasChaves = {}
@@ -69,6 +76,12 @@ export default function Configuracoes() {
     const iaArmazenada = localStorage.getItem('iaAtiva')
     if (iaArmazenada) {
       setIaAtiva(iaArmazenada)
+    }
+
+    // Carregar dados do responsável técnico
+    const respTecnicoArmazenado = localStorage.getItem('responsavelTecnico')
+    if (respTecnicoArmazenado) {
+      setResponsavelTecnico(JSON.parse(respTecnicoArmazenado))
     }
   }, [])
 
@@ -125,6 +138,31 @@ export default function Configuracoes() {
     }, 1500)
   }
 
+  function salvarResponsavel() {
+    if (!responsavelTecnico.nome?.trim()) {
+      alert('⚠️ Nome do responsável é obrigatório')
+      return
+    }
+    if (!responsavelTecnico.numero?.trim()) {
+      alert('⚠️ Número de registro é obrigatório')
+      return
+    }
+    if (!responsavelTecnico.funcao?.trim()) {
+      alert('⚠️ Função é obrigatória')
+      return
+    }
+
+    localStorage.setItem('responsavelTecnico', JSON.stringify(responsavelTecnico))
+    setSalvo(true)
+    setTimeout(() => {
+      setSalvo(false)
+    }, 2000)
+  }
+
+  function atualizarResponsavel(campo, valor) {
+    setResponsavelTecnico(prev => ({ ...prev, [campo]: valor }))
+  }
+
   const podesSalvar = chaves.googleMaps?.trim()
 
   return (
@@ -139,10 +177,37 @@ export default function Configuracoes() {
         </button>
         <div>
           <h1 className="text-3xl font-bold text-slate-900">Configurações</h1>
-          <p className="text-sm text-slate-600">Gerenciar chaves de API</p>
+          <p className="text-sm text-slate-600">Gerenciar configurações do sistema</p>
         </div>
       </div>
 
+      {/* Abas de navegação */}
+      <div className="flex gap-2 border-b border-slate-200">
+        <button
+          onClick={() => setAbaSelecionada('apis')}
+          className={`px-4 py-3 font-medium border-b-2 transition ${
+            abaSelecionada === 'apis'
+              ? 'text-blue-600 border-blue-600'
+              : 'text-slate-600 border-transparent hover:text-slate-900'
+          }`}
+        >
+          🔑 Chaves de API
+        </button>
+        <button
+          onClick={() => setAbaSelecionada('responsavel')}
+          className={`px-4 py-3 font-medium border-b-2 transition ${
+            abaSelecionada === 'responsavel'
+              ? 'text-blue-600 border-blue-600'
+              : 'text-slate-600 border-transparent hover:text-slate-900'
+          }`}
+        >
+          👤 Responsável Técnico
+        </button>
+      </div>
+
+      {/* Aba de APIs */}
+      {abaSelecionada === 'apis' && (
+        <>
       {/* Cartão principal com todas as APIs */}
       <Card>
         <CardHeader>
@@ -347,6 +412,106 @@ export default function Configuracoes() {
           </div>
         </CardBody>
       </Card>
+        </>
+      )}
+
+      {/* Aba de Responsável Técnico */}
+      {abaSelecionada === 'responsavel' && (
+        <Card>
+          <CardHeader>
+            <h2 className="font-semibold text-slate-900">Dados do Responsável Técnico</h2>
+            <p className="text-sm text-slate-600 mt-1">Informações do técnico responsável pelos projetos EV e FV</p>
+          </CardHeader>
+          <CardBody className="space-y-6">
+            {/* Nome */}
+            <div>
+              <Input
+                rotulo="Nome Completo"
+                tipo="text"
+                value={responsavelTecnico.nome}
+                onChange={(e) => atualizarResponsavel('nome', e.target.value)}
+                placeholder="Ex: João Silva Santos"
+              />
+            </div>
+
+            {/* Certificação */}
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Tipo de Certificação
+              </label>
+              <select
+                value={responsavelTecnico.certificacao}
+                onChange={(e) => atualizarResponsavel('certificacao', e.target.value)}
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="CREA">CREA (Conselho Regional de Engenharia e Agronomia)</option>
+                <option value="CFT">CFT (Certificado de Formação Técnica)</option>
+              </select>
+              <p className="text-xs text-slate-500 mt-2">
+                Selecione o tipo de certificação profissional
+              </p>
+            </div>
+
+            {/* Número de Registro */}
+            <div>
+              <Input
+                rotulo={`Número de Registro (${responsavelTecnico.certificacao})`}
+                tipo="text"
+                value={responsavelTecnico.numero}
+                onChange={(e) => atualizarResponsavel('numero', e.target.value)}
+                placeholder="Ex: 123456/D-XX"
+              />
+              <p className="text-xs text-slate-500 mt-2">
+                Número do registro no {responsavelTecnico.certificacao}
+              </p>
+            </div>
+
+            {/* Função */}
+            <div>
+              <Input
+                rotulo="Função/Especialidade"
+                tipo="text"
+                value={responsavelTecnico.funcao}
+                onChange={(e) => atualizarResponsavel('funcao', e.target.value)}
+                placeholder="Ex: Engenheiro Eletricista"
+              />
+              <p className="text-xs text-slate-500 mt-2">
+                Função técnica (ex: Engenheiro, Técnico, Especialista)
+              </p>
+            </div>
+
+            {/* Resumo dos dados */}
+            {responsavelTecnico.nome && (
+              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg mt-6">
+                <p className="text-sm text-slate-700">
+                  <strong>Resumo:</strong><br />
+                  {responsavelTecnico.nome} - {responsavelTecnico.funcao}<br />
+                  {responsavelTecnico.certificacao}: {responsavelTecnico.numero}
+                </p>
+              </div>
+            )}
+
+            {/* Botão Salvar */}
+            <div className="pt-4">
+              <Button
+                onClick={salvarResponsavel}
+                disabled={!responsavelTecnico.nome?.trim() || !responsavelTecnico.numero?.trim() || !responsavelTecnico.funcao?.trim()}
+                icone={salvo ? Check : Save}
+                className="w-full"
+              >
+                {salvo ? '✓ Dados Salvos!' : 'Salvar Responsável Técnico'}
+              </Button>
+            </div>
+
+            {/* Informações de uso */}
+            <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+              <p className="text-sm text-amber-900">
+                <strong>💡 Como usar:</strong> Os dados do responsável técnico aparecerão nos documentos e unifilares dos projetos EV e FV quando o operador indicar que deseja assinar os documentos.
+              </p>
+            </div>
+          </CardBody>
+        </Card>
+      )}
     </div>
   )
 }
