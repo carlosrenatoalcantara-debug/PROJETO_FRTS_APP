@@ -3,7 +3,7 @@ import { CheckCircle, AlertCircle, Zap, DollarSign, TrendingUp, Battery } from '
 import Card, { CardHeader, CardBody } from '../ui/Card'
 import Button from '../ui/Button'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005'
 
 export default function RecomendacaoFinal({ dadosSimulacao, onAceitar, onPersonalizar }) {
   const [carregando, setCarregando] = useState(false)

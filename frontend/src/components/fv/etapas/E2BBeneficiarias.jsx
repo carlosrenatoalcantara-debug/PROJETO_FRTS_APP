@@ -6,7 +6,7 @@ import Badge from '../../ui/Badge'
 import Input from '../../ui/Input'
 import Card, { CardHeader, CardBody } from '../../ui/Card'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005'
 
 function ModalBeneficiaria({ beneficiaria, projetoId, onClose, onSalvo }) {
   const [formData, setFormData] = useState(beneficiaria || {

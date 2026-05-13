@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { CheckCircle2, Circle, AlertCircle } from 'lucide-react'
 import Button from '../../ui/Button'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005'
 
 const STATUS_CORES = {
   rascunho: 'bg-slate-100 text-slate-700',

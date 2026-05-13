@@ -111,7 +111,7 @@ export default function E8Orcamento() {
     setErroSalvar('')
     try {
       // Buscar cliente pelo nome (temporário - idealmente teria um seletor)
-      const clientesResp = await fetch('http://localhost:5000/api/clientes')
+      const clientesResp = await fetch('http://localhost:5005/api/clientes')
       const clientes = await clientesResp.json()
       const cliente = clientes.find(c => c.nome.toLowerCase() === (dadosCliente.nomeCliente || '').toLowerCase())
 
@@ -121,7 +121,7 @@ export default function E8Orcamento() {
         return
       }
 
-      const resp = await fetch('http://localhost:5000/api/projetos-fv', {
+      const resp = await fetch('http://localhost:5005/api/projetos-fv', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

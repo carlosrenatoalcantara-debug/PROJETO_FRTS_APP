@@ -4,7 +4,7 @@ import Card, { CardHeader, CardBody } from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import ModalNovoCarregadorEV from '../components/equipamentos/ModalNovoCarregadorEV'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005'
 
 // Campos técnicos exibidos no card expandido
 const SPECS_POTENCIA = [

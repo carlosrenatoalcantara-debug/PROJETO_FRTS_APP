@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Copy, ExternalLink } from 'lucide-react'
 import Button from '../../ui/Button'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005'
 
 const CREAS_POR_ESTADO = {
   'SP': 'https://www.creasp.org.br',

@@ -8,6 +8,7 @@ import NovaPropostaEV from './pages/NovaPropostaEV'
 import ProjetosFV     from './pages/ProjetosFV'
 import ProjetosFVDetalhes from './pages/ProjetosFVDetalhes'
 import ProjetosFVNovo from './pages/ProjetosFVNovo'
+import ProjetosEVDetalhes from './pages/ProjetosEVDetalhes'
 import SimulacaoFV         from './pages/SimulacaoFV'
 import SimulacaoFinanceira from './pages/SimulacaoFinanceira'
 import ComparacaoBESS      from './pages/ComparacaoBESS'
@@ -43,6 +44,7 @@ export default function App() {
         <Route path="comparacao-bess"         element={<ComparacaoBESS />} />
         <Route path="crm"                     element={<CRM />} />
         <Route path="projetos-ev"             element={<ProjetosEV />} />
+        <Route path="projetos-ev/:id"         element={<ProjetosEVDetalhes />} />
         <Route path="homologacao"             element={<Homologacao />} />
         <Route path="catalogo"                element={<Catalogo />} />
         <Route path="configuracoes"           element={<Configuracoes />} />

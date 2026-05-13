@@ -5,7 +5,7 @@ import Dropzone from '../../ui/Dropzone'
 import Button from '../../ui/Button'
 import Input from '../../ui/Input'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005'
 
 export default function E1Upload() {
   const { state, dispatch, proxima } = useProjetoFV()

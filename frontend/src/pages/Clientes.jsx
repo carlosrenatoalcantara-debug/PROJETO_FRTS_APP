@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, Search, Phone, Mail, MapPin, X, Edit2, FileUp } from 'lucide-react'
+import { Plus, Search, Phone, Mail, MapPin, X, Edit2, FileUp, Sun, Zap } from 'lucide-react'
 import Card, { CardHeader, CardBody } from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import Badge from '../components/ui/Badge'
 import Input from '../components/ui/Input'
 import Dropzone from '../components/ui/Dropzone'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005'
 
 function ModalNovoClienteComPDF({ onClose, onSalvo }) {
   const [step, setStep] = useState('upload') // 'upload' | 'manual'
