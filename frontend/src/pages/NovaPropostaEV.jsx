@@ -1,15 +1,17 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { MapPin, Zap, Wrench, FileText, Download, Plus, X } from 'lucide-react'
+import { MapPin, Zap, Wrench, FileText, Download, Plus, X, Edit2 } from 'lucide-react'
 import Card, { CardHeader, CardBody } from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import Input from '../components/ui/Input'
 import Stepper from '../components/ui/Stepper'
 import ModalNovoCarregadorEV from '../components/equipamentos/ModalNovoCarregadorEV'
+import InteractiveDiagram from '../components/diagram/InteractiveDiagram'
 import { calcularParametrosNBR5410, validarNBR5410 } from '../services/calculosNBR5410EV'
 import { gerarUnifilarEVSVG } from '../utils/gerarUnifilarEV'
+import { salvarDiagramaLocal } from '../components/diagram/utils/diagramPersistence'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001'
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005'
 
 const ETAPAS = [
   { num: 1, rotulo: 'Localização', icone: MapPin },
@@ -29,6 +31,10 @@ export default function NovaPropostaEV() {
   const [calculos, setCalculos] = useState(null)
   const [unifilar, setUnifilar] = useState(null)
   const [modalUploadAberto, setModalUploadAberto] = useState(false)
+  const [responsaveisTecnicos, setResponsaveisTecnicos] = useState([])
+  const [tecnicoSelecionado, setTecnicoSelecionado] = useState('')
+  const [modoEdicao, setModoEdicao] = useState(false)
+  const [diagramaEditado, setDiagramaEditado] = useState(null)
 
   const [dados, setDados] = useState({
     nome_projeto: '',
@@ -46,16 +52,38 @@ export default function NovaPropostaEV() {
 
   // Carregar dados do técnico da configuração (localStorage)
   useEffect(() => {
-    const tecnicoSalvo = localStorage.getItem('tecnico_dados')
-    if (tecnicoSalvo) {
-      const tecnico = JSON.parse(tecnicoSalvo)
-      setDados(prev => ({
-        ...prev,
-        tecnico_nome: tecnico.nome || '',
-        tecnico_crea: tecnico.crea || '',
-        tecnico_cft: tecnico.cft || '',
-        tecnico_tipo: tecnico.tipo || 'crea',
-      }))
+    // Carregar lista de responsáveis técnicos
+    const respTecnicosArmazenados = localStorage.getItem('responsaveisTecnicos')
+    if (respTecnicosArmazenados) {
+      const responsaveis = JSON.parse(respTecnicosArmazenados)
+      setResponsaveisTecnicos(responsaveis)
+      // Auto-selecionar o primeiro responsável se houver
+      if (responsaveis.length > 0) {
+        const primeiro = responsaveis[0]
+        setTecnicoSelecionado(primeiro.id)
+        setDados(prev => ({
+          ...prev,
+          tecnico_nome: primeiro.nome || '',
+          tecnico_crea: primeiro.certificacao === 'CREA' ? primeiro.numero : '',
+          tecnico_cft: primeiro.certificacao === 'CFT' ? primeiro.numero : '',
+          tecnico_tipo: primeiro.certificacao === 'CREA' ? 'crea' : 'cft',
+        }))
+      }
+    }
+
+    // Fallback: tentar carregar dados do técnico antigo (backward compatibility)
+    if (!respTecnicosArmazenados) {
+      const tecnicoSalvo = localStorage.getItem('tecnico_dados')
+      if (tecnicoSalvo) {
+        const tecnico = JSON.parse(tecnicoSalvo)
+        setDados(prev => ({
+          ...prev,
+          tecnico_nome: tecnico.nome || '',
+          tecnico_crea: tecnico.crea || '',
+          tecnico_cft: tecnico.cft || '',
+          tecnico_tipo: tecnico.tipo || 'crea',
+        }))
+      }
     }
   }, [])
 
@@ -77,10 +105,21 @@ export default function NovaPropostaEV() {
 
   // Carregar carregadores disponíveis
   const carregarCarregadores = () => {
+    console.log('🔄 Carregando carregadores de:', `${API_URL}/api/carregadores-ev`)
     fetch(`${API_URL}/api/carregadores-ev`)
-      .then(r => r.json())
-      .then(data => setCarregadoresDisponiveis(data))
-      .catch(console.error)
+      .then(r => {
+        console.log('📡 Response status:', r.status)
+        if (!r.ok) throw new Error(`HTTP ${r.status}`)
+        return r.json()
+      })
+      .then(data => {
+        console.log('✅ Carregadores carregados:', data?.length || 0)
+        setCarregadoresDisponiveis(data || [])
+      })
+      .catch(err => {
+        console.error('❌ Erro ao carregar carregadores:', err)
+        setCarregadoresDisponiveis([])
+      })
   }
 
   useEffect(() => {
@@ -88,8 +127,16 @@ export default function NovaPropostaEV() {
   }, [])
 
   const proximaEtapa = () => {
-    if (validarEtapa(etapa)) {
-      setEtapa(etapa + 1)
+    console.log('🔄 Validando etapa:', etapa)
+    try {
+      if (validarEtapa(etapa)) {
+        console.log('✅ Etapa válida, avançando para:', etapa + 1)
+        setEtapa(etapa + 1)
+      } else {
+        console.warn('⚠️ Etapa inválida:', etapa)
+      }
+    } catch (err) {
+      console.error('❌ Erro ao avançar etapa:', err)
     }
   }
 
@@ -119,36 +166,97 @@ export default function NovaPropostaEV() {
   }
 
   const calcularNBR = () => {
-    if (carregadores.length === 0) return
+    console.log('🧮 Iniciando cálculo NBR')
+    if (carregadores.length === 0) {
+      console.warn('⚠️ Sem carregadores')
+      return
+    }
 
-    const potencia_total = carregadores.reduce((sum, c) => sum + c.potencia_kw * c.quantidade, 0)
-    const primeiro = carregadores[0]
+    try {
+      console.log('📊 Calculando potência total...')
+      const potencia_total = carregadores.reduce((sum, c) => sum + c.potencia_kw * c.quantidade, 0)
+      console.log('✅ Potência total:', potencia_total)
 
-    const resultado = calcularParametrosNBR5410({
-      potencia_kw: potencia_total,
-      tensao_entrada_v: primeiro.tensao_entrada_v || 220,
-      numero_fases: primeiro.numero_fases || 3,
-      comprimento_cabo_m: dados.comprimento_cabo_m,
-      tipo_carregador: primeiro.tipo,
-    })
+      const primeiro = carregadores[0]
+      console.log('📋 Dados do primeiro carregador:', { tipo: primeiro.tipo, potencia: primeiro.potencia_kw })
 
-    setCalculos(resultado)
+      console.log('🔢 Chamando calcularParametrosNBR5410...')
+      const resultado = calcularParametrosNBR5410({
+        potencia_kw: potencia_total,
+        tensao_entrada_v: primeiro.tensao_entrada_v || 220,
+        numero_fases: primeiro.numero_fases || 3,
+        comprimento_cabo_m: dados.comprimento_cabo_m,
+        tipo_carregador: primeiro.tipo,
+      })
+      console.log('✅ Cálculos completos:', resultado)
 
-    // Gerar unifilar
-    const unifilarSvg = gerarUnifilarEVSVG({
-      projeto_nome: dados.nome_projeto,
-      endereco: dados.endereco,
-      cliente_nome: dados.cliente_nome,
-      carregador_tipo: primeiro.tipo,
-      carregador_potencia_kw: potencia_total,
-      carregador_marca: primeiro.marca,
-      carregador_modelo: primeiro.modelo,
-      calculos: resultado,
-      tecnico_nome: dados.tecnico_nome,
-      tecnico_crea: dados.tecnico_crea,
-    })
+      console.log('💾 Salvando cálculos no estado...')
+      setCalculos(resultado)
 
-    setUnifilar(unifilarSvg)
+      // Gerar unifilar
+      console.log('🎨 Gerando SVG unifilar...')
+      const unifilarSvg = gerarUnifilarEVSVG({
+        projeto_nome: dados.nome_projeto,
+        endereco: dados.endereco,
+        cliente_nome: dados.cliente_nome,
+        carregador_tipo: primeiro.tipo,
+        carregador_potencia_kw: potencia_total,
+        carregador_marca: primeiro.marca,
+        carregador_modelo: primeiro.modelo,
+        calculos: resultado,
+        tecnico_nome: dados.tecnico_nome,
+        tecnico_crea: dados.tecnico_crea,
+      })
+      console.log('✅ SVG gerado')
+
+      console.log('💾 Salvando unifilar no estado...')
+      setUnifilar(unifilarSvg)
+      console.log('✅ Cálculo NBR concluído com sucesso!')
+    } catch (err) {
+      console.error('❌ Erro ao calcular NBR:', err)
+      alert('Erro ao calcular: ' + err.message)
+    }
+  }
+
+  const baixarUnifilar = () => {
+    if (!unifilar) {
+      alert('Nenhum unifilar gerado. Por favor, gere o unifilar primeiro.')
+      return
+    }
+
+    try {
+      // Baixar como SVG
+      const link = document.createElement('a')
+      link.href = 'data:application/octet-stream;base64,' + btoa(unifilar)
+      link.download = `unifilar-ev-${dados.nome_projeto.replace(/\s+/g, '-')}.svg`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+
+      // Também oferece download como PNG
+      const svgBlob = new Blob([unifilar], { type: 'image/svg+xml' })
+      const canvas = document.createElement('canvas')
+      const ctx = canvas.getContext('2d')
+      const img = new Image()
+
+      img.onload = () => {
+        canvas.width = 1200
+        canvas.height = 842
+        ctx.fillStyle = 'white'
+        ctx.fillRect(0, 0, 1200, 842)
+        ctx.drawImage(img, 0, 0)
+
+        const pngLink = document.createElement('a')
+        pngLink.href = canvas.toDataURL('image/png')
+        pngLink.download = `unifilar-ev-${dados.nome_projeto.replace(/\s+/g, '-')}.png`
+        pngLink.click()
+      }
+
+      img.src = 'data:image/svg+xml;base64,' + btoa(unifilar)
+    } catch (erro) {
+      console.error('Erro ao baixar unifilar:', erro)
+      alert('Erro ao baixar unifilar: ' + erro.message)
+    }
   }
 
   const baixarUnifilarPDF = () => {
@@ -291,6 +399,41 @@ export default function NovaPropostaEV() {
               placeholder="Rua, número, complemento"
             />
 
+            {responsaveisTecnicos.length > 0 && (
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  Selecionar Técnico Responsável
+                </label>
+                <select
+                  value={tecnicoSelecionado}
+                  onChange={(e) => {
+                    setTecnicoSelecionado(e.target.value)
+                    const responsavel = responsaveisTecnicos.find(r => r.id === e.target.value)
+                    if (responsavel) {
+                      setDados(prev => ({
+                        ...prev,
+                        tecnico_nome: responsavel.nome || '',
+                        tecnico_crea: responsavel.certificacao === 'CREA' ? responsavel.numero : '',
+                        tecnico_cft: responsavel.certificacao === 'CFT' ? responsavel.numero : '',
+                        tecnico_tipo: responsavel.certificacao === 'CREA' ? 'crea' : 'cft',
+                      }))
+                    }
+                  }}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"
+                >
+                  <option value="">-- Selecionar --</option>
+                  {responsaveisTecnicos.map(resp => (
+                    <option key={resp.id} value={resp.id}>
+                      {resp.nome} ({resp.certificacao})
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-slate-500 mt-1">
+                  Responsáveis cadastrados em Configurações → Responsável Técnico
+                </p>
+              </div>
+            )}
+
             <Input
               rotulo="Técnico Responsável"
               value={dados.tecnico_nome}
@@ -330,10 +473,18 @@ export default function NovaPropostaEV() {
               />
             )}
 
-            <p className="text-xs text-slate-500 bg-blue-50 p-2 rounded">
-              💡 Dica: Para projetos elétricos pequenos (solar/EV), eletrotécnico (CFT) pode assinar.
-              Seus dados serão salvos e pré-preenchidos em novos projetos.
-            </p>
+            {responsaveisTecnicos.length === 0 ? (
+              <p className="text-xs text-slate-600 bg-yellow-50 p-2 rounded border border-yellow-200">
+                ⚠️ Nenhum responsável técnico cadastrado.
+                <br />
+                Acesse <strong>Configurações → Responsável Técnico</strong> para adicionar responsáveis que serão pré-preenchidos nos projetos.
+              </p>
+            ) : (
+              <p className="text-xs text-slate-500 bg-blue-50 p-2 rounded">
+                💡 Dica: Para projetos elétricos pequenos (solar/EV), eletrotécnico (CFT) pode assinar.
+                Você pode adicionar mais responsáveis em <strong>Configurações → Responsável Técnico</strong>.
+              </p>
+            )}
 
             <div className="flex justify-end gap-2">
               <Button variante="secundario" disabled>Anterior</Button>
@@ -512,23 +663,90 @@ export default function NovaPropostaEV() {
       {etapa === 4 && (
         <Card>
           <CardHeader>
-            <h2 className="text-lg font-semibold">Unifilar A4 Paisagem</h2>
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold">Unifilar A4 Paisagem</h2>
+              {unifilar && (
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setModoEdicao(!modoEdicao)}
+                    className={`px-3 py-1 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors ${
+                      modoEdicao
+                        ? 'bg-blue-500 text-white'
+                        : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
+                    }`}
+                  >
+                    <Edit2 size={16} />
+                    {modoEdicao ? 'Visualizar' : 'Editar'}
+                  </button>
+                </div>
+              )}
+            </div>
           </CardHeader>
           <CardBody className="space-y-4">
             {unifilar ? (
               <div className="space-y-4">
-                <div
-                  className="border-2 border-slate-200 rounded-lg overflow-auto bg-white"
-                  dangerouslySetInnerHTML={{ __html: unifilar }}
-                  style={{ maxHeight: '500px' }}
-                />
-                <div className="flex gap-2">
-                  <Button icone={Download} onClick={baixarUnifilar} className="flex-1">
+                {modoEdicao ? (
+                  // Modo de Edição: Diagrama Interativo
+                  <div className="border-2 border-blue-300 rounded-lg overflow-hidden bg-white" style={{ height: '600px' }}>
+                    <InteractiveDiagram
+                      calculos={calculos}
+                      projeto={{
+                        projeto_nome: dados.nome_projeto,
+                        cliente_nome: dados.cliente_nome,
+                        endereco: dados.endereco,
+                        carregador_potencia_kw: carregadores.reduce((sum, c) => sum + c.potencia_kw * c.quantidade, 0),
+                        carregador_tipo: carregadores[0]?.tipo || 'AC Trifásico',
+                        carregador_marca: carregadores[0]?.marca || '',
+                        carregador_modelo: carregadores[0]?.modelo || '',
+                        comprimento_cabo: dados.comprimento_cabo_m,
+                        tecnico_nome: dados.tecnico_nome,
+                        tecnico_crea: dados.tecnico_crea,
+                      }}
+                      onDiagramChange={(diagramData) => {
+                        setDiagramaEditado(diagramData)
+                        // Salvar localmente para persistência
+                        salvarDiagramaLocal(
+                          `proposta-${dados.nome_projeto}`,
+                          diagramData.nodes,
+                          diagramData.edges,
+                          {
+                            projeto_nome: dados.nome_projeto,
+                            cliente_nome: dados.cliente_nome,
+                            timestamp: new Date().toISOString()
+                          }
+                        )
+                      }}
+                      readOnly={false}
+                    />
+                  </div>
+                ) : (
+                  // Modo de Visualização: SVG Estático
+                  <div
+                    className="border-2 border-slate-200 rounded-lg overflow-auto bg-white"
+                    dangerouslySetInnerHTML={{ __html: unifilar }}
+                    style={{ maxHeight: '500px' }}
+                  />
+                )}
+
+                <div className="flex gap-2 flex-wrap">
+                  <Button icone={Download} onClick={baixarUnifilar} className="flex-1 min-w-[150px]">
                     Baixar Unifilar
                   </Button>
-                  <Button variante="secundario" onClick={calcularNBR} className="flex-1">
+                  <Button variante="secundario" onClick={calcularNBR} className="flex-1 min-w-[150px]">
                     Recalcular
                   </Button>
+                  {modoEdicao && diagramaEditado && (
+                    <Button
+                      variante="secundario"
+                      onClick={() => {
+                        setModoEdicao(false)
+                        alert('✓ Diagrama salvo localmente. Use a opção "Salvar Projeto" para persistir as mudanças.')
+                      }}
+                      className="flex-1 min-w-[150px]"
+                    >
+                      Finalizar Edição
+                    </Button>
+                  )}
                 </div>
               </div>
             ) : (
