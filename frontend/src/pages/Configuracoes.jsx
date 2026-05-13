@@ -174,28 +174,31 @@ export default function Configuracoes() {
       return
     }
 
+    let novoArray;
+
     if (responsavelEmEdicao) {
       // UPDATE
-      setResponsaveisTecnicos(prev =>
-        prev.map(r =>
-          r.id === responsavelEmEdicao.id
-            ? { ...formData, id: responsavelEmEdicao.id, dataCriacao: responsavelEmEdicao.dataCriacao }
-            : r
-        )
+      novoArray = responsaveisTecnicos.map(r =>
+        r.id === responsavelEmEdicao.id
+          ? { ...formData, id: responsavelEmEdicao.id, dataCriacao: responsavelEmEdicao.dataCriacao }
+          : r
       )
     } else {
       // CREATE
-      setResponsaveisTecnicos(prev => [
-        ...prev,
+      novoArray = [
+        ...responsaveisTecnicos,
         {
           ...formData,
           id: gerarIdUnico(),
           dataCriacao: new Date().toLocaleDateString('pt-BR')
         }
-      ])
+      ]
     }
 
-    localStorage.setItem('responsaveisTecnicos', JSON.stringify(responsaveisTecnicos))
+    // Salvar no estado E no localStorage imediatamente
+    setResponsaveisTecnicos(novoArray)
+    localStorage.setItem('responsaveisTecnicos', JSON.stringify(novoArray))
+
     setSalvo(true)
     limparFormulario()
     setTelaResponsavel('lista')
@@ -219,6 +222,7 @@ export default function Configuracoes() {
     if (window.confirm('Tem certeza que deseja deletar este responsável?')) {
       const atualizado = responsaveisTecnicos.filter(r => r.id !== id)
       setResponsaveisTecnicos(atualizado)
+      // Salvar imediatamente no localStorage com o array atualizado
       localStorage.setItem('responsaveisTecnicos', JSON.stringify(atualizado))
     }
   }
