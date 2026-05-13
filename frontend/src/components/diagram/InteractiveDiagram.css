@@ -1,0 +1,378 @@
+.interactive-diagram-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: #f9fafb;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.diagram-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  background: white;
+  border-bottom: 1px solid #e5e7eb;
+  flex-wrap: wrap;
+  gap: 12px;
+  min-height: 60px;
+}
+
+.toolbar-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.diagram-toolbar h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.toolbar-subtitle {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.diagram-toolbar h3 + .toolbar-subtitle {
+  color: #10b981;
+}
+
+.toolbar-library {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 0 8px;
+  border-left: 1px solid #d1d5db;
+  border-right: 1px solid #d1d5db;
+}
+
+.library-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.btn-add {
+  padding: 6px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.btn-add:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.btn-rede {
+  background: #fef3c7;
+  color: #92400e;
+  border-color: #fbbf24;
+}
+
+.btn-rede:hover {
+  background: #fcd34d;
+}
+
+.btn-disjuntor {
+  background: #dbeafe;
+  color: #1e40af;
+  border-color: #93c5fd;
+}
+
+.btn-disjuntor:hover {
+  background: #bfdbfe;
+}
+
+.btn-dr {
+  background: #e9d5ff;
+  color: #5b21b6;
+  border-color: #d8b4fe;
+}
+
+.btn-dr:hover {
+  background: #ddd6fe;
+}
+
+.btn-cabo {
+  background: #d1fae5;
+  color: #065f46;
+  border-color: #a7f3d0;
+}
+
+.btn-cabo:hover {
+  background: #a7f3d0;
+}
+
+.btn-carregador {
+  background: #fbcfe8;
+  color: #831843;
+  border-color: #f472b6;
+}
+
+.btn-carregador:hover {
+  background: #f472b6;
+}
+
+.toolbar-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.btn {
+  padding: 8px 12px;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-secondary {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+.btn-secondary:hover {
+  background: #d1d5db;
+}
+
+.btn-primary {
+  background: #3b82f6;
+  color: white;
+}
+
+.btn-primary:hover {
+  background: #2563eb;
+}
+
+.diagram-content {
+  display: flex;
+  flex: 1;
+  gap: 0;
+  overflow: hidden;
+}
+
+.diagram-canvas {
+  flex: 1;
+  background: white;
+  border-radius: 0;
+  position: relative;
+}
+
+/* React Flow overrides */
+.diagram-canvas .react-flow {
+  background: #fafbfc;
+}
+
+.diagram-canvas .react-flow__controls {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.diagram-canvas .react-flow__minimap {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Properties Panel */
+.properties-panel {
+  width: 280px;
+  background: white;
+  border-left: 1px solid #e5e7eb;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.properties-panel h4 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1f2937;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.node-warnings {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.warning-item {
+  padding: 8px;
+  background: #fef3c7;
+  border: 1px solid #fbbf24;
+  border-radius: 5px;
+  font-size: 12px;
+  color: #92400e;
+  line-height: 1.4;
+}
+
+.properties-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.prop-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px;
+  background: #f3f4f6;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.prop-label {
+  font-weight: 500;
+  color: #6b7280;
+}
+
+.prop-value {
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.specs-panel {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 6px;
+  padding: 12px;
+  margin-top: 8px;
+}
+
+.specs-panel h5 {
+  margin: 0 0 12px 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #1e40af;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.specs-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.spec-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px;
+  background: white;
+  border-radius: 4px;
+  border-left: 3px solid #3b82f6;
+}
+
+.spec-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.spec-value {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e40af;
+}
+
+.spec-info {
+  font-size: 12px;
+  color: #1f2937;
+  line-height: 1.6;
+}
+
+.spec-info p {
+  margin: 4px 0;
+}
+
+.spec-info strong {
+  color: #374151;
+}
+
+/* Errors Panel */
+.diagram-errors {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-top: none;
+  padding: 12px 16px;
+}
+
+.diagram-errors h4 {
+  margin: 0 0 8px 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #dc2626;
+}
+
+.diagram-errors ul {
+  margin: 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.diagram-errors li {
+  font-size: 12px;
+  color: #991b1b;
+}
+
+/* Responsividade */
+@media (max-width: 1024px) {
+  .diagram-content {
+    flex-direction: column;
+  }
+
+  .properties-panel {
+    width: 100%;
+    border-left: none;
+    border-top: 1px solid #e5e7eb;
+    max-height: 200px;
+  }
+}
+
+/* Scrollbar customizado */
+.properties-panel::-webkit-scrollbar {
+  width: 6px;
+}
+
+.properties-panel::-webkit-scrollbar-track {
+  background: #f3f4f6;
+}
+
+.properties-panel::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 3px;
+}
+
+.properties-panel::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}

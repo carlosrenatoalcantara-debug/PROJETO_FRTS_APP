@@ -1,0 +1,241 @@
+.component-node {
+  padding: 12px 16px;
+  border: 2px solid #ccc;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 100px;
+  min-height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.component-node:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+}
+
+.component-node.selected {
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5);
+  border-color: #3b82f6;
+}
+
+.component-node.editing {
+  box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.2);
+}
+
+.node-content {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.node-label {
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.2;
+  word-break: break-word;
+}
+
+.node-details {
+  font-size: 10px;
+  opacity: 0.9;
+  font-weight: 500;
+}
+
+.node-edit {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 6px;
+}
+
+.node-edit-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.node-edit-header h4 {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.btn-delete {
+  padding: 4px 6px;
+  background: rgba(239, 68, 68, 0.8);
+  border: none;
+  border-radius: 4px;
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.btn-delete:hover {
+  background: rgba(239, 68, 68, 1);
+}
+
+.node-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.node-field {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.node-field:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.field-label {
+  font-weight: 600;
+  opacity: 0.8;
+  min-width: 60px;
+}
+
+.field-value {
+  font-weight: 700;
+  text-align: right;
+  flex: 1;
+}
+
+.node-field-edit {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.node-field-input {
+  flex: 1;
+  padding: 4px 6px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.node-field-input::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.node-field-input:focus {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.field-buttons {
+  display: flex;
+  gap: 2px;
+}
+
+.btn-save-field,
+.btn-cancel-field {
+  padding: 3px 5px;
+  border: none;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.1s ease;
+}
+
+.btn-save-field {
+  background: rgba(16, 185, 129, 0.9);
+  color: white;
+}
+
+.btn-save-field:hover {
+  background: rgba(16, 185, 129, 1);
+}
+
+.btn-cancel-field {
+  background: rgba(239, 68, 68, 0.9);
+  color: white;
+}
+
+.btn-cancel-field:hover {
+  background: rgba(239, 68, 68, 1);
+}
+
+.node-edit-footer {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+}
+
+.btn-cancel-edit {
+  padding: 5px 10px;
+  background: rgba(100, 116, 139, 0.8);
+  border: none;
+  border-radius: 4px;
+  color: white;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-cancel-edit:hover {
+  background: rgba(100, 116, 139, 1);
+}
+
+/* Ajustes para diferentes tipos de nós */
+.component-node[style*='background: rgb(249, 115, 22)'] {
+  /* Nó REDE */
+  min-height: 60px;
+}
+
+.component-node[style*='background: rgb(59, 130, 246)'] {
+  /* Nó DISJUNTOR */
+  min-height: 60px;
+}
+
+.component-node[style*='background: rgb(139, 92, 246)'] {
+  /* Nó DR */
+  min-height: 50px;
+}
+
+.component-node[style*='background: rgb(16, 185, 129)'] {
+  /* Nó CABO */
+  min-height: 60px;
+}
+
+.component-node[style*='background: rgb(236, 72, 153)'] {
+  /* Nó CARREGADOR */
+  min-height: 60px;
+}
+
+.component-node[style*='background: rgb(243, 244, 246)'] {
+  /* Nó ESPECIFICAÇÕES */
+  min-height: auto;
+  min-width: 250px;
+  cursor: default;
+}

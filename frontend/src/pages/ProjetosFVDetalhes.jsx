@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
-import { AlertCircle, BarChart3, Battery, FileText, Zap } from 'lucide-react'
+import { AlertCircle, BarChart3, Battery, FileText, Zap, Edit2, X } from 'lucide-react'
 import Card, { CardHeader, CardBody } from '../components/ui/Card'
+import Button from '../components/ui/Button'
 import UnifilarFV from '../components/fv/UnifilarFV'
+import InteractiveDiagram from '../components/diagram/InteractiveDiagram'
+import { carregarDiagramaLocal, salvarDiagramaLocal, deletarDiagramaLocal } from '../components/diagram/utils/diagramPersistence'
 
 export default function ProjetosFVDetalhes() {
   const { id } = useParams()
@@ -10,6 +13,9 @@ export default function ProjetosFVDetalhes() {
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState(null)
   const [abaAtiva, setAbaAtiva] = useState('resumo')
+  const [modalEditorAberto, setModalEditorAberto] = useState(false)
+  const [diagramaEditado, setDiagramaEditado] = useState(null)
+  const [salvandoDiagrama, setSalvandoDiagrama] = useState(false)
 
   useEffect(() => {
     carregarProjeto()
@@ -28,6 +34,82 @@ export default function ProjetosFVDetalhes() {
     }
   }
 
+  // Abrir editor de diagrama
+  const abrirEditorDiagrama = () => {
+    const diagramaSalvo = carregarDiagramaLocal(`projeto-fv-${id}`)
+    if (diagramaSalvo) {
+      setDiagramaEditado(diagramaSalvo)
+    }
+    setModalEditorAberto(true)
+  }
+
+  // Fechar editor sem salvar
+  const fecharEditorDiagrama = () => {
+    setModalEditorAberto(false)
+    setDiagramaEditado(null)
+  }
+
+  // Salvar diagrama editado
+  const salvarDiagramaEditado = async () => {
+    if (!diagramaEditado) return
+
+    try {
+      setSalvandoDiagrama(true)
+
+      // Salvar localmente
+      const sucesso = salvarDiagramaLocal(
+        `projeto-fv-${id}`,
+        diagramaEditado.nodes,
+        diagramaEditado.edges,
+        {
+          projeto_nome: projeto?.nomeCliente,
+          endereco: projeto?.endereco,
+          projeto_id: id,
+          timestamp: new Date().toISOString()
+        }
+      )
+
+      if (!sucesso) {
+        alert('❌ Erro ao salvar diagrama localmente')
+        return
+      }
+
+      // Atualizar projeto no backend
+      const response = await fetch(`/api/projetos-fv/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          diagrama_editado: {
+            nodes: diagramaEditado.nodes,
+            edges: diagramaEditado.edges,
+            timestamp: new Date().toISOString()
+          }
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error('Erro ao salvar diagrama no servidor')
+      }
+
+      alert('✅ Diagrama salvo com sucesso!')
+      fecharEditorDiagrama()
+      carregarProjeto()
+    } catch (erro) {
+      console.error('Erro ao salvar diagrama:', erro)
+      alert(`❌ Erro ao salvar: ${erro.message}`)
+    } finally {
+      setSalvandoDiagrama(false)
+    }
+  }
+
+  // Deletar diagrama salvo
+  const deletarDiagramaSalvo = () => {
+    if (window.confirm('Tem certeza que deseja deletar o diagrama editado?')) {
+      deletarDiagramaLocal(`projeto-fv-${id}`)
+      alert('✅ Diagrama deletado')
+    }
+  }
+
   if (carregando) return <div className="p-8 text-center"><p>Carregando...</p></div>
   if (erro) return <div className="p-8"><p className="text-red-600">{erro}</p></div>
   if (!projeto) return null
@@ -43,9 +125,18 @@ export default function ProjetosFVDetalhes() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-slate-900">{projeto.nomeCliente}</h1>
-        <p className="text-slate-600 mt-1">{projeto.endereco}</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-slate-900">{projeto.nomeCliente}</h1>
+          <p className="text-slate-600 mt-1">{projeto.endereco}</p>
+        </div>
+        <Button
+          icone={Edit2}
+          onClick={abrirEditorDiagrama}
+          title="Editar diagrama técnico"
+        >
+          Editar Diagrama
+        </Button>
       </div>
 
       <div className="border-b border-slate-200">
@@ -78,6 +169,71 @@ export default function ProjetosFVDetalhes() {
         {abaAtiva === 'unifilar' && <UnifilarFV projeto={projeto} />}
         {abaAtiva === 'homologacao' && <AbaHomologacao />}
       </div>
+
+      {/* Modal Editor de Diagrama */}
+      {modalEditorAberto && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg shadow-2xl w-full h-[90vh] max-w-6xl flex flex-col">
+            {/* Header do Modal */}
+            <div className="flex items-center justify-between p-4 border-b border-slate-200">
+              <h2 className="text-xl font-bold text-slate-900">Editor de Diagrama Técnico</h2>
+              <button
+                onClick={fecharEditorDiagrama}
+                className="p-1 hover:bg-slate-100 rounded-lg transition-colors"
+                title="Fechar editor"
+              >
+                <X size={24} className="text-slate-600" />
+              </button>
+            </div>
+
+            {/* Conteúdo do Modal */}
+            <div className="flex-1 overflow-hidden bg-slate-50">
+              <InteractiveDiagram
+                calculos={projeto?.calculos_nbr}
+                projeto={{
+                  projeto_nome: projeto?.nomeCliente,
+                  endereco: projeto?.endereco,
+                  comprimento_cabo: projeto?.comprimento_cabo_m || 10,
+                }}
+                onDiagramChange={(diagramData) => {
+                  setDiagramaEditado(diagramData)
+                }}
+                readOnly={false}
+              />
+            </div>
+
+            {/* Footer do Modal */}
+            <div className="flex items-center justify-between p-4 border-t border-slate-200 bg-slate-50">
+              <div className="flex gap-2">
+                <Button
+                  variante="fantasma"
+                  onClick={deletarDiagramaSalvo}
+                  className="text-red-600 hover:bg-red-50"
+                >
+                  🗑 Deletar Diagrama Salvo
+                </Button>
+              </div>
+
+              <div className="flex gap-2">
+                <Button
+                  variante="secundario"
+                  onClick={fecharEditorDiagrama}
+                  disabled={salvandoDiagrama}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  variante="primario"
+                  onClick={salvarDiagramaEditado}
+                  disabled={!diagramaEditado || salvandoDiagrama}
+                >
+                  {salvandoDiagrama ? 'Salvando...' : '✓ Salvar Diagrama'}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
