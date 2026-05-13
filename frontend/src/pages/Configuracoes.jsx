@@ -50,13 +50,18 @@ export default function Configuracoes() {
   const [apiAtivada, setApiAtivada] = useState({})
   const [iaAtiva, setIaAtiva] = useState('')
   const [salvo, setSalvo] = useState(false)
-  const [responsavelTecnico, setResponsavelTecnico] = useState({
+  const [abaSelecionada, setAbaSelecionada] = useState('apis')
+
+  // Multi-Responsável Técnico
+  const [responsaveisTecnicos, setResponsaveisTecnicos] = useState([])
+  const [telaResponsavel, setTelaResponsavel] = useState('lista') // 'lista' ou 'formulario'
+  const [responsavelEmEdicao, setResponsavelEmEdicao] = useState(null)
+  const [formData, setFormData] = useState({
     nome: '',
     certificacao: 'CREA',
     numero: '',
     funcao: ''
   })
-  const [abaSelecionada, setAbaSelecionada] = useState('apis')
 
   useEffect(() => {
     const novasChaves = {}
@@ -78,10 +83,10 @@ export default function Configuracoes() {
       setIaAtiva(iaArmazenada)
     }
 
-    // Carregar dados do responsável técnico
-    const respTecnicoArmazenado = localStorage.getItem('responsavelTecnico')
-    if (respTecnicoArmazenado) {
-      setResponsavelTecnico(JSON.parse(respTecnicoArmazenado))
+    // Carregar responsáveis técnicos
+    const respTecnicosArmazenados = localStorage.getItem('responsaveisTecnicos')
+    if (respTecnicosArmazenados) {
+      setResponsaveisTecnicos(JSON.parse(respTecnicosArmazenados))
     }
   }, [])
 
@@ -138,29 +143,90 @@ export default function Configuracoes() {
     }, 1500)
   }
 
+  // Gerar ID único
+  function gerarIdUnico() {
+    return Date.now().toString(36) + Math.random().toString(36).substr(2)
+  }
+
+  // Atualizar campo do formulário
+  function atualizarFormData(campo, valor) {
+    setFormData(prev => ({ ...prev, [campo]: valor }))
+  }
+
+  // Limpar formulário
+  function limparFormulario() {
+    setFormData({ nome: '', certificacao: 'CREA', numero: '', funcao: '' })
+    setResponsavelEmEdicao(null)
+  }
+
+  // Salvar novo ou editar responsável
   function salvarResponsavel() {
-    if (!responsavelTecnico.nome?.trim()) {
+    if (!formData.nome?.trim()) {
       alert('⚠️ Nome do responsável é obrigatório')
       return
     }
-    if (!responsavelTecnico.numero?.trim()) {
+    if (!formData.numero?.trim()) {
       alert('⚠️ Número de registro é obrigatório')
       return
     }
-    if (!responsavelTecnico.funcao?.trim()) {
+    if (!formData.funcao?.trim()) {
       alert('⚠️ Função é obrigatória')
       return
     }
 
-    localStorage.setItem('responsavelTecnico', JSON.stringify(responsavelTecnico))
+    if (responsavelEmEdicao) {
+      // UPDATE
+      setResponsaveisTecnicos(prev =>
+        prev.map(r =>
+          r.id === responsavelEmEdicao.id
+            ? { ...formData, id: responsavelEmEdicao.id, dataCriacao: responsavelEmEdicao.dataCriacao }
+            : r
+        )
+      )
+    } else {
+      // CREATE
+      setResponsaveisTecnicos(prev => [
+        ...prev,
+        {
+          ...formData,
+          id: gerarIdUnico(),
+          dataCriacao: new Date().toLocaleDateString('pt-BR')
+        }
+      ])
+    }
+
+    localStorage.setItem('responsaveisTecnicos', JSON.stringify(responsaveisTecnicos))
     setSalvo(true)
-    setTimeout(() => {
-      setSalvo(false)
-    }, 2000)
+    limparFormulario()
+    setTelaResponsavel('lista')
+    setTimeout(() => setSalvo(false), 2000)
   }
 
-  function atualizarResponsavel(campo, valor) {
-    setResponsavelTecnico(prev => ({ ...prev, [campo]: valor }))
+  // Editar responsável
+  function editarResponsavel(responsavel) {
+    setResponsavelEmEdicao(responsavel)
+    setFormData({
+      nome: responsavel.nome,
+      certificacao: responsavel.certificacao,
+      numero: responsavel.numero,
+      funcao: responsavel.funcao
+    })
+    setTelaResponsavel('formulario')
+  }
+
+  // Deletar responsável
+  function deletarResponsavel(id) {
+    if (window.confirm('Tem certeza que deseja deletar este responsável?')) {
+      const atualizado = responsaveisTecnicos.filter(r => r.id !== id)
+      setResponsaveisTecnicos(atualizado)
+      localStorage.setItem('responsaveisTecnicos', JSON.stringify(atualizado))
+    }
+  }
+
+  // Cancelar edição
+  function cancelarEdicao() {
+    limparFormulario()
+    setTelaResponsavel('lista')
   }
 
   const podesSalvar = chaves.googleMaps?.trim()
@@ -417,100 +483,191 @@ export default function Configuracoes() {
 
       {/* Aba de Responsável Técnico */}
       {abaSelecionada === 'responsavel' && (
-        <Card>
-          <CardHeader>
-            <h2 className="font-semibold text-slate-900">Dados do Responsável Técnico</h2>
-            <p className="text-sm text-slate-600 mt-1">Informações do técnico responsável pelos projetos EV e FV</p>
-          </CardHeader>
-          <CardBody className="space-y-6">
-            {/* Nome */}
-            <div>
-              <Input
-                rotulo="Nome Completo"
-                tipo="text"
-                value={responsavelTecnico.nome}
-                onChange={(e) => atualizarResponsavel('nome', e.target.value)}
-                placeholder="Ex: João Silva Santos"
-              />
-            </div>
+        <>
+          {telaResponsavel === 'lista' ? (
+            // ===== TELA DE LISTA =====
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="font-semibold text-slate-900">Responsáveis Técnicos</h2>
+                    <p className="text-sm text-slate-600 mt-1">
+                      {responsaveisTecnicos.length} responsável{responsaveisTecnicos.length !== 1 ? 'es' : ''} cadastrado{responsaveisTecnicos.length !== 1 ? 's' : ''}
+                    </p>
+                  </div>
+                  <Button
+                    onClick={() => {
+                      limparFormulario()
+                      setTelaResponsavel('formulario')
+                    }}
+                    icone={Save}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    + Novo Responsável
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardBody>
+                {responsaveisTecnicos.length === 0 ? (
+                  <div className="text-center py-12">
+                    <p className="text-slate-600 mb-4">Nenhum responsável técnico cadastrado</p>
+                    <Button
+                      onClick={() => {
+                        limparFormulario()
+                        setTelaResponsavel('formulario')
+                      }}
+                      className="bg-blue-600 hover:bg-blue-700"
+                    >
+                      Cadastrar Primeiro Responsável
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b border-slate-200">
+                          <th className="text-left py-3 px-4 font-semibold text-slate-700">Nome</th>
+                          <th className="text-left py-3 px-4 font-semibold text-slate-700">Certificação</th>
+                          <th className="text-left py-3 px-4 font-semibold text-slate-700">Número</th>
+                          <th className="text-left py-3 px-4 font-semibold text-slate-700">Função</th>
+                          <th className="text-center py-3 px-4 font-semibold text-slate-700">Ações</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {responsaveisTecnicos.map((responsavel) => (
+                          <tr key={responsavel.id} className="border-b border-slate-100 hover:bg-slate-50">
+                            <td className="py-3 px-4 text-slate-900">{responsavel.nome}</td>
+                            <td className="py-3 px-4 text-slate-600">
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                {responsavel.certificacao}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 text-slate-600">{responsavel.numero}</td>
+                            <td className="py-3 px-4 text-slate-600">{responsavel.funcao}</td>
+                            <td className="py-3 px-4 text-center space-x-2 flex justify-center">
+                              <button
+                                onClick={() => editarResponsavel(responsavel)}
+                                className="px-3 py-1 bg-amber-100 text-amber-700 rounded hover:bg-amber-200 text-sm font-medium"
+                              >
+                                Editar
+                              </button>
+                              <button
+                                onClick={() => deletarResponsavel(responsavel.id)}
+                                className="px-3 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 text-sm font-medium"
+                              >
+                                Deletar
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
 
-            {/* Certificação */}
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Tipo de Certificação
-              </label>
-              <select
-                value={responsavelTecnico.certificacao}
-                onChange={(e) => atualizarResponsavel('certificacao', e.target.value)}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="CREA">CREA (Conselho Regional de Engenharia e Agronomia)</option>
-                <option value="CFT">CFT (Certificado de Formação Técnica)</option>
-              </select>
-              <p className="text-xs text-slate-500 mt-2">
-                Selecione o tipo de certificação profissional
-              </p>
-            </div>
+                {salvo && (
+                  <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                    <p className="text-sm text-green-700">✓ Responsável salvo com sucesso!</p>
+                  </div>
+                )}
 
-            {/* Número de Registro */}
-            <div>
-              <Input
-                rotulo={`Número de Registro (${responsavelTecnico.certificacao})`}
-                tipo="text"
-                value={responsavelTecnico.numero}
-                onChange={(e) => atualizarResponsavel('numero', e.target.value)}
-                placeholder="Ex: 123456/D-XX"
-              />
-              <p className="text-xs text-slate-500 mt-2">
-                Número do registro no {responsavelTecnico.certificacao}
-              </p>
-            </div>
+                {/* Informações */}
+                <div className="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                  <p className="text-sm text-amber-900">
+                    <strong>💡 Como usar:</strong> Os dados dos responsáveis técnicos estarão disponíveis para seleção ao gerar documentos e unifilares dos projetos EV e FV.
+                  </p>
+                </div>
+              </CardBody>
+            </Card>
+          ) : (
+            // ===== TELA DE FORMULÁRIO =====
+            <Card>
+              <CardHeader>
+                <h2 className="font-semibold text-slate-900">
+                  {responsavelEmEdicao ? 'Editar Responsável Técnico' : 'Novo Responsável Técnico'}
+                </h2>
+              </CardHeader>
+              <CardBody className="space-y-6">
+                {/* Nome */}
+                <div>
+                  <Input
+                    rotulo="Nome Completo"
+                    tipo="text"
+                    value={formData.nome}
+                    onChange={(e) => atualizarFormData('nome', e.target.value)}
+                    placeholder="Ex: João Silva Santos"
+                  />
+                </div>
 
-            {/* Função */}
-            <div>
-              <Input
-                rotulo="Função/Especialidade"
-                tipo="text"
-                value={responsavelTecnico.funcao}
-                onChange={(e) => atualizarResponsavel('funcao', e.target.value)}
-                placeholder="Ex: Engenheiro Eletricista"
-              />
-              <p className="text-xs text-slate-500 mt-2">
-                Função técnica (ex: Engenheiro, Técnico, Especialista)
-              </p>
-            </div>
+                {/* Certificação */}
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Tipo de Certificação
+                  </label>
+                  <select
+                    value={formData.certificacao}
+                    onChange={(e) => atualizarFormData('certificacao', e.target.value)}
+                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="CREA">CREA (Conselho Regional de Engenharia e Agronomia)</option>
+                    <option value="CFT">CFT (Certificado de Formação Técnica)</option>
+                  </select>
+                </div>
 
-            {/* Resumo dos dados */}
-            {responsavelTecnico.nome && (
-              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg mt-6">
-                <p className="text-sm text-slate-700">
-                  <strong>Resumo:</strong><br />
-                  {responsavelTecnico.nome} - {responsavelTecnico.funcao}<br />
-                  {responsavelTecnico.certificacao}: {responsavelTecnico.numero}
-                </p>
-              </div>
-            )}
+                {/* Número de Registro */}
+                <div>
+                  <Input
+                    rotulo={`Número de Registro (${formData.certificacao})`}
+                    tipo="text"
+                    value={formData.numero}
+                    onChange={(e) => atualizarFormData('numero', e.target.value)}
+                    placeholder="Ex: 123456/D-XX"
+                  />
+                </div>
 
-            {/* Botão Salvar */}
-            <div className="pt-4">
-              <Button
-                onClick={salvarResponsavel}
-                disabled={!responsavelTecnico.nome?.trim() || !responsavelTecnico.numero?.trim() || !responsavelTecnico.funcao?.trim()}
-                icone={salvo ? Check : Save}
-                className="w-full"
-              >
-                {salvo ? '✓ Dados Salvos!' : 'Salvar Responsável Técnico'}
-              </Button>
-            </div>
+                {/* Função */}
+                <div>
+                  <Input
+                    rotulo="Função/Especialidade"
+                    tipo="text"
+                    value={formData.funcao}
+                    onChange={(e) => atualizarFormData('funcao', e.target.value)}
+                    placeholder="Ex: Engenheiro Eletricista"
+                  />
+                </div>
 
-            {/* Informações de uso */}
-            <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
-              <p className="text-sm text-amber-900">
-                <strong>💡 Como usar:</strong> Os dados do responsável técnico aparecerão nos documentos e unifilares dos projetos EV e FV quando o operador indicar que deseja assinar os documentos.
-              </p>
-            </div>
-          </CardBody>
-        </Card>
+                {/* Resumo */}
+                {formData.nome && (
+                  <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p className="text-sm text-slate-700">
+                      <strong>Resumo:</strong><br />
+                      {formData.nome} - {formData.funcao}<br />
+                      {formData.certificacao}: {formData.numero}
+                    </p>
+                  </div>
+                )}
+
+                {/* Botões */}
+                <div className="pt-4 flex gap-3">
+                  <Button
+                    onClick={salvarResponsavel}
+                    disabled={!formData.nome?.trim() || !formData.numero?.trim() || !formData.funcao?.trim()}
+                    icone={salvo ? Check : Save}
+                    className="flex-1"
+                  >
+                    {salvo ? '✓ Salvo!' : 'Salvar'}
+                  </Button>
+                  <Button
+                    onClick={cancelarEdicao}
+                    className="flex-1 bg-slate-400 hover:bg-slate-500"
+                  >
+                    Cancelar
+                  </Button>
+                </div>
+              </CardBody>
+            </Card>
+          )}
+        </>
       )}
     </div>
   )
