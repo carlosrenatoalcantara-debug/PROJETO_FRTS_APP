@@ -1,6 +1,7 @@
 import 'dotenv/config'
 import express from 'express'
 import cors from 'cors'
+// Restart trigger
 import path from 'path'
 import { fileURLToPath } from 'url'
 import mongoose from './config/database.js'
@@ -37,6 +38,7 @@ import rotasBeneficiarias from './routes/beneficiarias.js'
 import rotasAuth         from './routes/auth.js'
 import rotasCalculadora  from './routes/calculadora.js'
 import rotasCarregadoresEV from './routes/carregadoresEV.js'
+import rotasParecerAcesso from './routes/pareceracesso.js'
 import errorHandler      from './middleware/errorHandler.js'
 
 const app  = express()
@@ -150,6 +152,7 @@ app.use('/api/projetos-fv/:projetoId/homologacao', rotasHomologacao)
 app.use('/api/projetos-fv/:projetoId/proposta', rotasProposta)
 app.use('/api/projetos-fv/:id/beneficiarias', rotasBeneficiarias)
 app.use('/api/fatura', rotasFatura)
+app.use('/api/parecer-acesso', rotasParecerAcesso)
 
 // ✅ Servir frontend compilado
 const distPath = path.join(__dirname, '../../frontend/dist')

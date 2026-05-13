@@ -29,9 +29,16 @@ const projetoEVSchema = new mongoose.Schema({
     marca: String,
     modelo: String,
     quantidade: Number,
+    tensao_entrada_v: Number,
+    corrente_entrada_a: Number,
   }],
   quantidade_pontos: Number,
   potencia_total_kw: Number,
+  tipo_carregamento: { type: String, default: 'AC' }, // AC, DC, Misto
+
+  // MODO DE OPERAÇÃO (NBR IEC 61851-1:2021)
+  modo_operacao: { type: Number, enum: [1, 2, 3, 4], default: 1 },
+  tipo_conector: String, // IEC 62196-2, Tesla, CCS, CHAdeMO
 
   // INSTALAÇÃO
   tensao_sistema: { type: Number, default: 220 },
@@ -57,6 +64,33 @@ const projetoEVSchema = new mongoose.Schema({
     dr_ma: Number,
     dispositivo_diferencial: Boolean,
     aterramento: String,
+  },
+
+  // ATERRAMENTO E PROTEÇÃO (NBR 5410:2004)
+  resistencia_aterramento_ohms: Number,
+  resistencia_aterramento_conformidade: String, // 'Excelente', 'Aceitável', 'Não conforme'
+
+  // NORMAS APLICADAS
+  normas_aplicadas: {
+    type: [String],
+    default: [
+      'ABNT NBR 17019:2022',
+      'ABNT NBR 5410:2004',
+      'ABNT NBR IEC 61851-1:2021',
+      'ABNT NBR IEC 62196-1/2/3:2021',
+    ],
+  },
+
+  // CONFORMIDADE COM NORMAS
+  conformidade_norms: {
+    corrente_ok: Boolean,
+    bitola_ok: Boolean,
+    queda_tensao_ok: Boolean,
+    disjuntor_ok: Boolean,
+    dr_ok: Boolean,
+    aterramento_ok: Boolean,
+    spda_necessario: Boolean,
+    conforme: Boolean, // Todos os requisitos foram atendidos
   },
 
   // DOCUMENTAÇÃO

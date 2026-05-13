@@ -7,6 +7,7 @@ import {
   excluirProjetoEV,
   listarProjetosEVPorCliente,
   exportarPDFProjetoEV,
+  calcularNormasProjetoEV,
 } from '../controllers/projetosEVController.js'
 
 const router = Router()
@@ -14,6 +15,7 @@ const router = Router()
 router.get('/',                       listarProjetosEV)
 router.get('/:id',                    buscarProjetoEV)
 router.get('/:id/pdf',                exportarPDFProjetoEV)
+router.post('/:id/calcular-normas',   calcularNormasProjetoEV)
 router.get('/cliente/:clienteId',     listarProjetosEVPorCliente)
 router.post('/',                      criarProjetoEV)
 router.put('/:id',                    atualizarProjetoEV)
