@@ -1,0 +1,116 @@
+/* Custom Edge Styling */
+
+.custom-edge {
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  cursor: pointer;
+}
+
+.custom-edge:hover {
+  stroke-width: 3 !important;
+  filter: drop-shadow(0 0 6px rgba(0, 0, 0, 0.2)) !important;
+}
+
+.custom-edge.selected {
+  filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.6)) !important;
+}
+
+/* Edge Label Container */
+.edge-label-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Edge Label (tipo de conexão) */
+.edge-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: white;
+  border: 2px solid;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  user-select: none;
+  min-width: 30px;
+  text-align: center;
+}
+
+.edge-label:hover {
+  transform: scale(1.15);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  filter: brightness(0.9);
+}
+
+/* Tipos de conexão */
+/* CA - Corrente Alternada (Azul) */
+.react-flow__edge[data-tipo="CA"] .edge-label {
+  background: #3b82f6;
+  border-color: #1e40af;
+  color: white;
+}
+
+/* CC - Corrente Contínua (Vermelho) */
+.react-flow__edge[data-tipo="CC"] .edge-label {
+  background: #ef4444;
+  border-color: #b91c1c;
+  color: white;
+}
+
+/* Terra/Neutro (Verde) */
+.react-flow__edge[data-tipo="TERRA"] .edge-label {
+  background: #059669;
+  border-color: #065f46;
+  color: white;
+}
+
+/* Animação de fluxo (opcional) */
+.custom-edge-animated {
+  stroke-dasharray: 5, 5;
+  animation: edgeFlow 20s linear infinite;
+}
+
+@keyframes edgeFlow {
+  0% {
+    stroke-dashoffset: 0;
+  }
+  100% {
+    stroke-dashoffset: -10;
+  }
+}
+
+/* States */
+.custom-edge.selected {
+  stroke-width: 3;
+}
+
+.custom-edge.hover {
+  stroke-width: 3;
+  opacity: 1;
+}
+
+/* Markers (setas) */
+.edge-marker {
+  fill: currentColor;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  .edge-label {
+    padding: 1px 6px;
+    font-size: 9px;
+    min-width: 28px;
+  }
+
+  .edge-label:hover {
+    transform: scale(1.1);
+  }
+}

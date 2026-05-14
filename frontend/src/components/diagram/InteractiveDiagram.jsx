@@ -10,6 +10,7 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import ComponentNode from './nodes/ComponentNode';
 import ComponenteRealista from './nodes/ComponenteRealista';
+import CustomEdge from './edges/CustomEdge';
 import { converterCalculosParaNodesEdges, validarDiagrama, resetarPosicoes } from './utils/reactFlowHelpers';
 import { recalcularDiagrama, validarParametrosNBR5410, gerarListaMateriais, validarValorCampo, validarFluxoEletricoCompleto } from './utils/electricalCalculations';
 import { validarConexao, obterTipoConexaoEsperado, obterHandlesCompativeis } from './utils/connectionValidator';
@@ -35,6 +36,10 @@ const nodeTypes = {
   chargerNode: ComponentNode,
   customNode: ComponentNode,
   specsNode: ComponentNode
+};
+
+const edgeTypes = {
+  custom: CustomEdge
 };
 
 /**
@@ -285,11 +290,15 @@ export default function InteractiveDiagram({
           targetNode.data.tipo
         );
 
-        // Criar edge com tipo de conexão
+        // Criar edge com tipo de conexão (Phase 5: Edges customizáveis)
         const novaEdge = {
           ...connection,
-          type: 'smoothstep',
-          data: { tipo: tipoConexao }
+          type: 'custom', // Usar CustomEdge para suportar edição de tipo
+          data: {
+            tipo: tipoConexao,
+            onTypeChange: handleEdgeTypeChange,
+            onDelete: handleDeleteEdge
+          }
         };
 
         const novasEdges = addEdge(novaEdge, edges);
@@ -438,6 +447,48 @@ export default function InteractiveDiagram({
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
   }, [nodes, edges, projeto]);
+
+  // Handlers para edição de edges (Fase 5)
+  const handleEdgeTypeChange = useCallback((edgeId, novoTipo) => {
+    const edgesAtualizados = edges.map(e => {
+      if (e.id === edgeId) {
+        return {
+          ...e,
+          data: {
+            ...e.data,
+            tipo: novoTipo
+          }
+        };
+      }
+      return e;
+    });
+
+    setEdges(edgesAtualizados);
+    historioDiagrama.adicionar(
+      nodes,
+      edgesAtualizados,
+      `Alterou tipo de conexão para ${novoTipo}`
+    );
+
+    if (onDiagramChange) {
+      onDiagramChange({ nodes, edges: edgesAtualizados });
+    }
+  }, [edges, nodes, setEdges, onDiagramChange, historioDiagrama]);
+
+  const handleDeleteEdge = useCallback((edgeId) => {
+    const edgesAtualizados = edges.filter(e => e.id !== edgeId);
+
+    setEdges(edgesAtualizados);
+    historioDiagrama.adicionar(
+      nodes,
+      edgesAtualizados,
+      'Deletou conexão'
+    );
+
+    if (onDiagramChange) {
+      onDiagramChange({ nodes, edges: edgesAtualizados });
+    }
+  }, [edges, nodes, setEdges, onDiagramChange, historioDiagrama]);
 
   // Obter dados do nó selecionado
   const selectedNodeData = selectedNode ? nodes.find(n => n.id === selectedNode)?.data : null;
@@ -592,6 +643,7 @@ export default function InteractiveDiagram({
             onConnect={onConnect}
             onNodeClick={handleNodeClick}
             nodeTypes={nodeTypes}
+            edgeTypes={edgeTypes}
             snapToGrid={true}
             snapGrid={[16, 16]}
             fitView
