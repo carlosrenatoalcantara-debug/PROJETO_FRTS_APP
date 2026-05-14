@@ -212,6 +212,82 @@
 
 ---
 
+## 🔄 Funcionalidades Avançadas (Fase 4)
+
+### **Undo/Redo System - Histórico Completo**
+
+O editor possui um sistema completo de histórico que permite desfazer e refazer até **20 ações** anteriores:
+
+- **Ctrl+Z** (ou Cmd+Z no Mac): Desfazer última ação
+- **Ctrl+Shift+Z** (ou Cmd+Shift+Z): Refazer ação desfeita
+- **Botões na toolbar:** "↶ Desfazer" e "↷ Refazer"
+- **Persistência:** Histórico é salvo em localStorage automaticamente
+- **Snapshots descritivos:** Cada ação registra o que foi feito ("Moveu Painel 1", "Editou bitola do CABO", etc)
+
+**Exemplo:**
+```
+Ação 1: Mover DISJUNTOR
+Ação 2: Editar corrente de 32A para 40A  ← Usuário faz Ctrl+Z aqui
+Ação 2 desfeita: Voltou para 32A
+Usuário faz Ctrl+Shift+Z: Volta para 40A
+```
+
+### **Validação Inteligente de Conexões**
+
+Sistema automático que valida e sugere conexões corretas:
+
+- **Matriz de compatibilidade:** Só permite conexões elétrico-válidas
+- **Sequência obrigatória:** REDE → DISJUNTOR → DPS → DR → CABO → CARREGADOR
+- **Handles coloridos:** Durante conexão, apenas handles compatíveis ficam verdes
+- **Erros claros:** "❌ Conexão inválida: Carregador → Disjuntor" quando tenta conectar errado
+- **Tipos de conexão:** Cores indicam tipo (CA azul, CC vermelho, Terra verde)
+
+**Tipos permitidos:**
+```
+REDE (origem) → DISJUNTOR ✓
+DISJUNTOR → DPS ✓
+DPS → DR ✓
+DR → CABO ✓
+CABO → CARREGADOR ✓
+CARREGADOR → ... ✗ (ponto final)
+```
+
+### **Snap-to-Grid - Alinhamento Automático**
+
+Componentes se alinham automaticamente a uma grade 16×16 pixels:
+
+- **Automático ao soltar:** Nós se alinha quando você solta a posição
+- **Botão "⊞ Alinhar à Grade":** Realinha todos os nós de uma vez
+- **Melhor organização:** Diagrama fica mais limpo e profissional
+- **Posições precisas:** Coordenadas são sempre múltiplos de 16
+
+### **Validação Bloqueante - Valores Seguros**
+
+Impede erros elétricos bloqueando valores inválidos:
+
+**Ranges válidos (NBR 5410):**
+| Campo | Mínimo | Máximo | Unidade |
+|-------|--------|--------|---------|
+| REDE - Corrente | 1 | 200 | A |
+| DISJUNTOR - Corrente | 6 | 200 | A |
+| DR - Sensibilidade | 10 | 300 | mA |
+| CABO - Bitola | 1.5 | 240 | mm² |
+| CABO - Comprimento | 0.1 | 1000 | m |
+| CARREGADOR - Potência | 3.7 | 22 | kW |
+
+**Componentes obrigatórios:**
+- ✓ REDE (origem) - NÃO pode deletar
+- ✓ CARREGADOR (destino) - NÃO pode deletar
+- ✓ DPS (proteção) - NÃO pode deletar
+- ❌ Tentar salvar sem estes = BLOQUEADO com erro
+
+**Exemplo de erro bloqueante:**
+```
+Usuário tenta CABO bitola = -5
+Sistema responde: ❌ bitola deve estar entre 1.5 e 240 mm²
+Atualização é REJEITADA
+```
+
 ## 🚀 Atalhos de Teclado
 
 | Atalho | Ação |
@@ -221,7 +297,7 @@
 | `Duplo clique` | Editar componente |
 | `Delete` | Deletar selecionado |
 | `Scroll` | Zoom in/out |
-| `Arrastar` | Mover componente |
+| `Arrastar` | Mover componente (auto snap-to-grid) |
 
 ---
 
