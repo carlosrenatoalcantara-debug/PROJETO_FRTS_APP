@@ -2,9 +2,9 @@ import { PDFParse } from 'pdf-parse'
 import { Cliente } from '../models/Cliente.js'
 import { ProjetoFV } from '../models/ProjetoFV.js'
 import { Equipamento } from '../models/Equipamento.js'
-import { extrairTodosParecer } from '../utils/extrairParecer.js'
 import { gerarResumoPadraoStrings } from '../utils/otimizadorStrings.js'
 import * as SVG from '../utils/simbolosUnifilar.js'
+import { GoogleGenerativeAI } from '@google/generative-ai'
 
 // Wrapper function to make PDFParse easier to use
 const pdf = async (bufferPDF) => {
@@ -16,6 +16,141 @@ const pdf = async (bufferPDF) => {
   return {
     numpages: infoResult.total,
     text: textResult.text
+  }
+}
+
+/**
+ * Extract Parecer data using Google Gemini API vision model
+ */
+const extrairPareceComGemini = async (bufferPDF) => {
+  const apiKey = process.env.GOOGLE_API_KEY
+  if (!apiKey) {
+    throw new Error('GOOGLE_API_KEY não configurada no .env')
+  }
+
+  const client = new GoogleGenerativeAI(apiKey)
+  const model = client.getGenerativeModel({ model: 'gemini-2.0-flash' })
+
+  // Convert PDF to base64
+  const base64PDF = bufferPDF.toString('base64')
+
+  const prompt = `Você é um especialista em análise de documentos de parecer de acesso para microgeração solar (Parecer de Acesso para Conexão de Mini e Microgeração).
+
+Analise este documento PDF e extraia as seguintes informações estruturadas em JSON:
+
+{
+  "cliente": {
+    "nome": "Nome completo do cliente",
+    "cpf_cnpj": "CPF ou CNPJ formatado",
+    "email": "email@example.com (se disponível)",
+    "endereco": "Endereço completo"
+  },
+  "instalacao": {
+    "numero_cliente": "Número de cliente/unidade consumidora",
+    "numero_contrato": "Número do contrato (se disponível)",
+    "numero_parecer": "Número do parecer",
+    "distribuidora": "Nome da distribuidora (ex: Cosern, CELPE, etc)",
+    "fase_tensao": "Monofásico ou Trifásico",
+    "voltagem": "Tensão (220 ou 380)",
+    "gd_tier": "Classificação da microgeração (GD I, GD II, GD III, etc)"
+  },
+  "equipamento": {
+    "paineis": {
+      "marca": "Marca do painel solar",
+      "modelo": "Modelo do painel",
+      "potencia_w": "Potência em Watts (número)",
+      "quantidade": "Quantidade de painéis (número)"
+    },
+    "inversor": {
+      "marca": "Marca do inversor",
+      "modelo": "Modelo do inversor",
+      "potencia_kw": "Potência em kW (número)"
+    },
+    "quantidade_paineis": "Quantidade total de painéis (número)"
+  },
+  "rede": {
+    "potencia_contratada_kw": "Potência contratada em kW (número)",
+    "grupo_tarifario": "Grupo tarifário (B1, B2, B3, etc)"
+  }
+}
+
+IMPORTANTE:
+- Extraia APENAS informações que estão claramente presentes no documento
+- Use null para campos não encontrados
+- Para números, retorne sem formatação (ex: 5000 em vez de 5.000)
+- Se não conseguir extrair algum campo, deixe como null
+- Retorne APENAS JSON válido, sem markdown ou explicações adicionais`
+
+  try {
+    const response = await model.generateContent([
+      {
+        inlineData: {
+          mimeType: 'application/pdf',
+          data: base64PDF
+        }
+      },
+      {
+        text: prompt
+      }
+    ])
+
+    const responseText = response.response.text()
+    console.log(`✓ Resposta do Gemini recebida (${responseText.length} chars)`)
+
+    // Parse JSON response (handle markdown code blocks)
+    let jsonMatch = responseText.match(/```(?:json)?\s*([\s\S]*?)\s*```/)
+    let jsonStr
+
+    if (jsonMatch) {
+      jsonStr = jsonMatch[1]
+    } else {
+      // Try to find raw JSON
+      jsonMatch = responseText.match(/\{[\s\S]*\}/)
+      if (!jsonMatch) {
+        throw new Error('Não foi possível extrair JSON da resposta do Gemini')
+      }
+      jsonStr = jsonMatch[0]
+    }
+
+    const dados = JSON.parse(jsonStr)
+    console.log(`✓ Dados extraídos com sucesso via Gemini`)
+
+    // Ensure all required fields exist with proper types
+    const equipDados = dados.equipamento || {}
+    return {
+      cliente: {
+        nome: dados.cliente?.nome || null,
+        cpf_cnpj: dados.cliente?.cpf_cnpj || null,
+        email: dados.cliente?.email || null,
+        endereco: dados.cliente?.endereco || null
+      },
+      instalacao: {
+        numero_cliente: dados.instalacao?.numero_cliente || null,
+        numero_contrato: dados.instalacao?.numero_contrato || null,
+        numero_parecer: dados.instalacao?.numero_parecer || null,
+        distribuidora: dados.instalacao?.distribuidora || null,
+        fase_tensao: dados.instalacao?.fase_tensao || 'Monofásico',
+        voltagem: dados.instalacao?.voltagem || 220,
+        gd_tier: dados.instalacao?.gd_tier || 'GD II'
+      },
+      equipamento: {
+        paineis: {
+          marca: equipDados.paineis?.marca || null,
+          modelo: equipDados.paineis?.modelo || null,
+          potencia_w: equipDados.paineis?.potencia_w || 0
+        },
+        inversor: {
+          marca: equipDados.inversor?.marca || null,
+          modelo: equipDados.inversor?.modelo || null,
+          potencia_kw: equipDados.inversor?.potencia_kw || 0
+        },
+        quantidade_paineis: equipDados.quantidade_paineis || equipDados.paineis?.quantidade || 0
+      },
+      rede: dados.rede || {}
+    }
+  } catch (err) {
+    console.error('❌ Erro ao usar Gemini API:', err.message)
+    throw new Error(`Falha na análise do Parecer com Gemini: ${err.message}`)
   }
 }
 
@@ -54,8 +189,21 @@ export const extrairParecer = async (req, res) => {
       })
     }
 
-    // ===== STEP 2: Extract data from parecer =====
-    const { cliente: dadosCliente, instalacao: dadosInstalacao, equipamento: dadosEquipamento } = extrairTodosParecer(texto)
+    // ===== STEP 2: Extract data from parecer using Gemini API =====
+    let dadosCliente, dadosInstalacao, dadosEquipamento
+    try {
+      const dadosExtraidos = await extrairPareceComGemini(req.file.buffer)
+      dadosCliente = dadosExtraidos.cliente
+      dadosInstalacao = dadosExtraidos.instalacao
+      dadosEquipamento = dadosExtraidos.equipamento
+    } catch (geminiErr) {
+      console.warn(`⚠️  Erro na extração com Gemini, tentando com texto extraído: ${geminiErr.message}`)
+      // Fallback: use text extraction if Gemini fails
+      return res.status(400).json({
+        erro: 'Erro ao processar Parecer com Gemini API',
+        detalhes: geminiErr.message
+      })
+    }
 
     console.log(`✓ Data extracted:`, {
       nome: dadosCliente.nome,

@@ -89,6 +89,35 @@ export default function ProjetosFV() {
     }
   }
 
+  const handleDragOver = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    e.currentTarget.classList.add('border-blue-500', 'bg-blue-100')
+  }
+
+  const handleDragLeave = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    e.currentTarget.classList.remove('border-blue-500', 'bg-blue-100')
+  }
+
+  const handleDrop = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    e.currentTarget.classList.remove('border-blue-500', 'bg-blue-100')
+
+    const droppedFiles = e.dataTransfer.files
+    if (droppedFiles.length > 0) {
+      const selectedFile = droppedFiles[0]
+      if (!selectedFile.name.toLowerCase().endsWith('.pdf')) {
+        setUploadError('Por favor, selecione um arquivo PDF')
+        return
+      }
+      setFile(selectedFile)
+      setUploadError(null)
+    }
+  }
+
   const handleUploadParecer = async () => {
     if (!file) {
       setUploadError('Selecione um arquivo PDF')
@@ -228,6 +257,9 @@ export default function ProjetosFV() {
 
               <div
                 onClick={() => fileInputRef.current?.click()}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
                 className="border-2 border-dashed border-blue-300 rounded-lg p-8 text-center cursor-pointer hover:border-blue-500 hover:bg-blue-100 transition-all"
               >
                 <Upload size={40} className="mx-auto text-blue-400 mb-3" />
