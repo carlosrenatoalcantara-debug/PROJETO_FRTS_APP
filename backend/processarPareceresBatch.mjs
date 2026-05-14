@@ -272,7 +272,24 @@ async function main() {
   if (caminhos.length === 0) {
     log.warning('Nenhum arquivo fornecido')
     console.log('Uso: node processarPareceresBatch.mjs <caminho1> <caminho2> ...')
+    console.log('  ou: node processarPareceresBatch.mjs @arquivo-lista.txt')
     process.exit(1)
+  }
+
+  // Se começar com @, ler arquivo com lista de caminhos
+  if (caminhos.length === 1 && caminhos[0].startsWith('@')) {
+    const nomeArquivo = caminhos[0].substring(1)
+    try {
+      const conteudo = fs.readFileSync(nomeArquivo, 'utf-8')
+      caminhos = conteudo
+        .split('\n')
+        .map((linha) => linha.trim())
+        .filter((linha) => linha.length > 0)
+      log.info(`✅ Lido arquivo ${nomeArquivo} com ${caminhos.length} caminhos`)
+    } catch (erro) {
+      log.error(`Erro ao ler arquivo ${nomeArquivo}: ${erro.message}`)
+      process.exit(1)
+    }
   }
 
   // Filtrar apenas arquivos que existem e são PDFs
