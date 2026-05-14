@@ -1,4 +1,4 @@
-import { PDFParse } from 'pdf-parse'
+import pdf from 'pdf-parse/lib/pdf-parse.js'
 import { Cliente } from '../models/Cliente.js'
 import { ProjetoFV } from '../models/ProjetoFV.js'
 import { Equipamento } from '../models/Equipamento.js'
@@ -27,10 +27,8 @@ export const extrairParecer = async (req, res) => {
     console.log(`📄 Processing Parecer PDF... (${req.file.size} bytes)`)
 
     // ===== STEP 1: Parse PDF =====
-    const parser = new PDFParse({ data: req.file.buffer })
-    const pdfData = await parser.parseBuffer()
-    const textResult = await parser.getText()
-    const texto = textResult.text
+    const pdfData = await pdf(req.file.buffer)
+    const texto = pdfData.text || ''
 
     console.log(`✓ PDF parsed: ${pdfData.numpages} pages`)
 
