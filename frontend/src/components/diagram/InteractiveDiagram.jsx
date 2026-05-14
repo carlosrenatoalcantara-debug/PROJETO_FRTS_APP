@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect, useMemo } from 'react';
+import React, { useCallback, useState, useEffect, useMemo, Suspense, lazy } from 'react';
 import ReactFlow, {
   addEdge,
   useNodesState,
@@ -9,9 +9,11 @@ import ReactFlow, {
   ReactFlowProvider
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import ComponentNode from './nodes/ComponentNode';
-import ComponenteRealista from './nodes/ComponenteRealista';
 import CustomEdge from './edges/CustomEdge';
+
+// Lazy load node components to defer module initialization and avoid TDZ errors
+const ComponentNode = lazy(() => import('./nodes/ComponentNode'));
+const ComponenteRealista = lazy(() => import('./nodes/ComponenteRealista'));
 import { converterCalculosParaNodesEdges, validarDiagrama, resetarPosicoes } from './utils/reactFlowHelpers';
 import { recalcularDiagrama, validarParametrosNBR5410, gerarListaMateriais, validarValorCampo, validarFluxoEletricoCompleto } from './utils/electricalCalculations';
 import { validarConexao, obterTipoConexaoEsperado, obterHandlesCompativeis } from './utils/connectionValidator';

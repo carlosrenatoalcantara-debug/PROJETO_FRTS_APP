@@ -8,6 +8,7 @@
  */
 
 import fs from 'fs'
+import { promises as fsPromises } from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import 'dotenv/config'
@@ -63,8 +64,17 @@ async function processarParecer(caminhoArquivo, indice, total) {
 
     log.info(`[${indice}/${total}] Processando: ${nomeArquivo} (${tamanhoMB}MB)`)
 
-    // Ler arquivo como Buffer
-    const pdfBuffer = fs.readFileSync(caminhoArquivo)
+    // Ler arquivo como Buffer (usando promises para melhor tratamento de erros)
+    console.log(`DEBUG: Caminho para leitura: "${caminhoArquivo}"`)
+    let pdfBuffer
+    try {
+      pdfBuffer = await fsPromises.readFile(caminhoArquivo)
+    } catch (readErr) {
+      // Tentar com caminho normalizado (converter backslashes)
+      const pathNorm = path.resolve(caminhoArquivo)
+      console.log(`DEBUG: Tentando com caminho normalizado: "${pathNorm}"`)
+      pdfBuffer = await fsPromises.readFile(pathNorm)
+    }
 
     // Enviar para API usando FormData nativa (Node v18+)
     const formData = new FormData()
