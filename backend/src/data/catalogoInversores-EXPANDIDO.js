@@ -1,28 +1,9 @@
-// Catálogo Unificado de Inversores - Versão Completa
-// Inclui todos os fabricantes: Deye, Growatt, Kehua, Goodwe, Sungrow, Tsuness, Hoymiles, APsystem, Solplanet, Solax, Huawei, Nep, Fronius, Enphase
-// Data de atualização: 2026-05-14
+// Catálogo expandido de inversores com todos os fabricantes principais
+// Inclui: Deye, Growatt, Kehua, Goodwe, Sungrow, Tsuness, Hoymiles, APsystem, Solplanet, Solax, Huawei, Nep
 
-export const INVERSORES = [
+export const INVERSORES_EXPANDIDO = [
   // ═══════════════════════════════════════════════════════════════════════════
-  // FRONIUS - String Inverters (2 modelos originais + mantidos)
-  // ═══════════════════════════════════════════════════════════════════════════
-  {
-    id: 'fr5', marca: 'Fronius', modelo: 'Primo 5.0-1',
-    potenciaKW: 5, vocMax: 1000, mpptMin: 200, mpptMax: 800,
-    imaxMppt: 13.5, nMppts: 2, nStringsTotal: 4,
-    tipoInversor: 'string', faseAC: 1,
-    garantia: 10, precoUnitario: 4200,
-  },
-  {
-    id: 'fr20', marca: 'Fronius', modelo: 'Symo 20.0-3-M',
-    potenciaKW: 20, vocMax: 1000, mpptMin: 200, mpptMax: 800,
-    imaxMppt: 27.0, nMppts: 3, nStringsTotal: 6,
-    tipoInversor: 'string', faseAC: 3,
-    garantia: 10, precoUnitario: 18000,
-  },
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // DEYE - String Inverters (5 modelos)
+  // DEYE - String Inverters (4 modelos)
   // ═══════════════════════════════════════════════════════════════════════════
   {
     id: 'dy3', marca: 'Deye', modelo: 'SUN-3.6K-SG01LP1',
@@ -39,7 +20,7 @@ export const INVERSORES = [
     garantia: 5, precoUnitario: 3400,
   },
   {
-    id: 'dy8', marca: 'Deye', modelo: 'SUN-8K-SG04LP1',
+    id: 'dy8e', marca: 'Deye', modelo: 'SUN-8K-SG04LP1',
     potenciaKW: 8, vocMax: 1000, mpptMin: 100, mpptMax: 900,
     imaxMppt: 25.0, nMppts: 2, nStringsTotal: 4,
     tipoInversor: 'string', faseAC: 3,
@@ -71,7 +52,7 @@ export const INVERSORES = [
     garantia: 5, precoUnitario: 1600,
   },
   {
-    id: 'gw5', marca: 'Growatt', modelo: 'MOD 5000TL3-LV',
+    id: 'gw5n', marca: 'Growatt', modelo: 'MOD 5000TL3-LV',
     potenciaKW: 5, vocMax: 1000, mpptMin: 70, mpptMax: 850,
     imaxMppt: 16.0, nMppts: 2, nStringsTotal: 4,
     tipoInversor: 'string', faseAC: 3,
@@ -110,7 +91,7 @@ export const INVERSORES = [
     garantia: 10, precoUnitario: 1900,
   },
   {
-    id: 'sg5', marca: 'Sungrow', modelo: 'SG5.0RS',
+    id: 'sg5s', marca: 'Sungrow', modelo: 'SG5.0RS',
     potenciaKW: 5, vocMax: 1000, mpptMin: 80, mpptMax: 950,
     imaxMppt: 12.5, nMppts: 2, nStringsTotal: 2,
     tipoInversor: 'string', faseAC: 1,
@@ -124,18 +105,18 @@ export const INVERSORES = [
     garantia: 10, precoUnitario: 4200,
   },
   {
-    id: 'sg10', marca: 'Sungrow', modelo: 'SG10RS',
+    id: 'sg10s', marca: 'Sungrow', modelo: 'SG10RS',
     potenciaKW: 10, vocMax: 1000, mpptMin: 80, mpptMax: 950,
     imaxMppt: 15.0, nMppts: 2, nStringsTotal: 4,
     tipoInversor: 'string', faseAC: 1,
     garantia: 10, precoUnitario: 7800,
   },
   {
-    id: 'sg15', marca: 'Sungrow', modelo: 'SG15RT',
-    potenciaKW: 15, vocMax: 1000, mpptMin: 200, mpptMax: 950,
-    imaxMppt: 22.0, nMppts: 3, nStringsTotal: 6,
+    id: 'sg20s', marca: 'Sungrow', modelo: 'SG20RT-20',
+    potenciaKW: 20, vocMax: 1100, mpptMin: 200, mpptMax: 1000,
+    imaxMppt: 50.0, nMppts: 3, nStringsTotal: 6,
     tipoInversor: 'string', faseAC: 3,
-    garantia: 10, precoUnitario: 11500,
+    garantia: 10, precoUnitario: 12800,
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -257,10 +238,10 @@ export const INVERSORES = [
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // APSYSTEMS - Microinversores (2 modelos)
+  // APSYSTEM - Microinversores (2 modelos)
   // ═══════════════════════════════════════════════════════════════════════════
   {
-    id: 'aps400', marca: 'APsystems', modelo: 'EZ1-M 400W',
+    id: 'aps400e', marca: 'APsystems', modelo: 'EZ1-M 400W',
     potenciaKW: 0.4, vocMax: 60, mpptMin: 16, mpptMax: 55,
     imaxMppt: 10.5, nMppts: 1, nStringsTotal: 1,
     tipoInversor: 'micro', faseAC: 1,
@@ -334,31 +315,20 @@ export const INVERSORES = [
     tipoInversor: 'micro', faseAC: 1,
     garantia: 12, precoUnitario: 650,
   },
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // ENPHASE - Microinversores (1 modelo original + mantido)
-  // ═══════════════════════════════════════════════════════════════════════════
-  {
-    id: 'enph', marca: 'Enphase', modelo: 'IQ8M',
-    potenciaKW: 0.366, vocMax: 60, mpptMin: 16, mpptMax: 55,
-    imaxMppt: 14.0, nMppts: 1, nStringsTotal: 1,
-    tipoInversor: 'micro', faseAC: 1,
-    garantia: 25, precoUnitario: 1100,
-  },
 ]
 
 export function getInversorById(id) {
-  return INVERSORES.find(i => i.id === id) ?? null
+  return INVERSORES_EXPANDIDO.find(i => i.id === id) ?? null
 }
 
 export function getInversoresPorMarca(marca) {
-  return INVERSORES.filter(i => i.marca.toLowerCase() === marca.toLowerCase())
+  return INVERSORES_EXPANDIDO.filter(i => i.marca.toLowerCase() === marca.toLowerCase())
 }
 
 export function getInversoresString() {
-  return INVERSORES.filter(i => i.tipoInversor === 'string')
+  return INVERSORES_EXPANDIDO.filter(i => i.tipoInversor === 'string')
 }
 
 export function getInversoresMicro() {
-  return INVERSORES.filter(i => i.tipoInversor === 'micro')
+  return INVERSORES_EXPANDIDO.filter(i => i.tipoInversor === 'micro')
 }

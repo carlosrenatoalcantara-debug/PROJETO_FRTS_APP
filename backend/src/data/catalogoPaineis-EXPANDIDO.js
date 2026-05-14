@@ -1,9 +1,8 @@
-// Catálogo Unificado de Painéis Fotovoltaicos - Versão Completa (450W+)
-// Valores em STC (25°C, 1000 W/m², AM1.5)
+// Catálogo expandido de painéis fotovoltaicos 450W+
 // Fabricantes: Canadian, OSDA, Ronma, ZNshine, Helius, Era Solar, Leapton, Pulling, Jinko, JA, Trina, Hanesun, Longi, Renesola, Tongwei
-// Data de atualização: 2026-05-14
+// Valores em STC (25°C, 1000 W/m², AM1.5)
 
-export const PAINEIS = [
+export const PAINEIS_EXPANDIDO = [
   // ═══════════════════════════════════════════════════════════════════════════
   // CANADIAN SOLAR (4 modelos 450W+)
   // ═══════════════════════════════════════════════════════════════════════════
@@ -24,7 +23,7 @@ export const PAINEIS = [
     precoUnitario: 850,
   },
   {
-    id: 'cs550', marca: 'Canadian Solar', modelo: 'CS6W-550MS',
+    id: 'cs550c', marca: 'Canadian Solar', modelo: 'CS6W-550MS',
     pmpp: 550, voc: 49.5, isc: 13.90, vmpp: 41.2, impp: 13.35,
     tempCoefVoc: -0.28, tempCoefPmpp: -0.35, tempCoefIsc: 0.048,
     area: 2.26, eficiencia: 21.4,
@@ -88,7 +87,7 @@ export const PAINEIS = [
     precoUnitario: 770,
   },
   {
-    id: 'ja550', marca: 'JA Solar', modelo: 'JAM72S30-550MR',
+    id: 'ja550j', marca: 'JA Solar', modelo: 'JAM72S30-550MR',
     pmpp: 550, voc: 49.2, isc: 13.87, vmpp: 41.10, impp: 13.38,
     tempCoefVoc: -0.28, tempCoefPmpp: -0.35, tempCoefIsc: 0.048,
     area: 2.27, eficiencia: 21.0,
@@ -272,7 +271,7 @@ export const PAINEIS = [
     precoUnitario: 720,
   },
   {
-    id: 'rs550', marca: 'Risen', modelo: 'RSM144-7-550M',
+    id: 'rs550r', marca: 'Risen', modelo: 'RSM144-7-550M',
     pmpp: 550, voc: 49.8, isc: 13.85, vmpp: 41.65, impp: 13.20,
     tempCoefVoc: -0.27, tempCoefPmpp: -0.34, tempCoefIsc: 0.045,
     area: 2.26, eficiencia: 21.0,
@@ -335,44 +334,20 @@ export const PAINEIS = [
     garantiaProduto: 12, garantiaPerformance: 25, percentualPerformance: 82,
     precoUnitario: 940,
   },
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // ORIGEM: Modelo compatível com BYD (mantido para compatibilidade)
-  // ═══════════════════════════════════════════════════════════════════════════
-  {
-    id: 'byd415', marca: 'BYD', modelo: 'BYD415H5-54E',
-    pmpp: 415, voc: 40.2, isc: 13.20, vmpp: 33.50, impp: 12.38,
-    tempCoefVoc: -0.29, tempCoefPmpp: -0.35, tempCoefIsc: 0.050,
-    area: 1.72, eficiencia: 19.8,
-    garantiaProduto: 12, garantiaPerformance: 25, percentualPerformance: 80,
-    precoUnitario: 660,
-  },
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // ORIGEM: Modelo compatível com Canadian Solar (mantido para compatibilidade)
-  // ═══════════════════════════════════════════════════════════════════════════
-  {
-    id: 'cs400', marca: 'Canadian Solar', modelo: 'CS6L-400MS',
-    pmpp: 400, voc: 41.4, isc: 12.28, vmpp: 34.20, impp: 11.69,
-    tempCoefVoc: -0.28, tempCoefPmpp: -0.35, tempCoefIsc: 0.048,
-    area: 1.75, eficiencia: 19.6,
-    garantiaProduto: 10, garantiaPerformance: 25, percentualPerformance: 80,
-    precoUnitario: 680,
-  },
 ]
 
 export function getPainelById(id) {
-  return PAINEIS.find(p => p.id === id) ?? null
+  return PAINEIS_EXPANDIDO.find(p => p.id === id) ?? null
 }
 
 export function getPaineisPorMarca(marca) {
-  return PAINEIS.filter(p => p.marca.toLowerCase() === marca.toLowerCase())
+  return PAINEIS_EXPANDIDO.filter(p => p.marca.toLowerCase() === marca.toLowerCase())
 }
 
 export function getPaineisAcima450W() {
-  return PAINEIS.filter(p => p.pmpp >= 450)
+  return PAINEIS_EXPANDIDO.filter(p => p.pmpp >= 450)
 }
 
 export function getPaineisAcima550W() {
-  return PAINEIS.filter(p => p.pmpp >= 550)
+  return PAINEIS_EXPANDIDO.filter(p => p.pmpp >= 550)
 }
