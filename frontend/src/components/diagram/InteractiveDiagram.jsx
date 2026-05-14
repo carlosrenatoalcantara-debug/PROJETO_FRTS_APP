@@ -641,24 +641,26 @@ export default function InteractiveDiagram({
       <div className="diagram-content">
         {/* Canvas React Flow */}
         <div className="diagram-canvas">
-          <ReactFlow
-            nodes={nodes}
-            edges={edges}
-            onNodesChange={handleNodesChange_}
-            onEdgesChange={onEdgesChange}
-            onConnect={onConnect}
-            onNodeClick={handleNodeClick}
-            nodeTypes={nodeTypes}
-            edgeTypes={edgeTypes}
-            snapToGrid={true}
-            snapGrid={[16, 16]}
-            fitView
-            attributionPosition="bottom-left"
-          >
-            <Background color="#aaa" gap={16} />
-            <Controls />
-            <MiniMap />
-          </ReactFlow>
+          <Suspense fallback={<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>Carregando diagrama...</div>}>
+            <ReactFlow
+              nodes={nodes}
+              edges={edges}
+              onNodesChange={handleNodesChange_}
+              onEdgesChange={onEdgesChange}
+              onConnect={onConnect}
+              onNodeClick={handleNodeClick}
+              nodeTypes={nodeTypes}
+              edgeTypes={edgeTypes}
+              snapToGrid={true}
+              snapGrid={[16, 16]}
+              fitView
+              attributionPosition="bottom-left"
+            >
+              <Background color="#aaa" gap={16} />
+              <Controls />
+              <MiniMap />
+            </ReactFlow>
+          </Suspense>
         </div>
 
         {/* Painel de Propriedades */}
