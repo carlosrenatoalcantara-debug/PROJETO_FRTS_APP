@@ -8,14 +8,14 @@
  * Define quais nós podem se conectar a quais
  * Fluxo elétrico: REDE → DISJUNTOR → DPS → DR → CABO → CARREGADOR
  */
-const CONEXOES_PERMITIDAS = {
-  'grid': ['breaker'],       // REDE → DISJUNTOR
-  'breaker': ['dps'],        // DISJUNTOR → DPS (obrigatório)
+export const CONEXOES_PERMITIDAS = {
+  'rede': ['disjuntor'],       // REDE → DISJUNTOR
+  'disjuntor': ['dps'],        // DISJUNTOR → DPS (obrigatório)
   'dps': ['dr'],             // DPS → DR
-  'dr': ['cable'],           // DR → CABO
-  'cable': ['charger'],      // CABO → CARREGADOR
-  'charger': [],             // CARREGADOR é ponto final
-  'customizado': ['charger', 'cable', 'dr'], // Componentes customizados podem conectar em vários lugares
+  'dr': ['cabo'],           // DR → CABO
+  'cabo': ['carregador'],      // CABO → CARREGADOR
+  'carregador': [],             // CARREGADOR é ponto final
+  'customizado': ['carregador', 'cabo', 'dr'], // Componentes customizados podem conectar em vários lugares
   'specs': []                // SPECS nunca tem conexões
 }
 
@@ -71,10 +71,11 @@ export const TIPOS_CONEXAO = {
  */
 export function obterTipoConexaoEsperado(sourceType, targetType) {
   const mapa = {
-    'grid-breaker': 'CA',      // REDE → DISJUNTOR = CA
-    'breaker-dr': 'CA',        // DISJUNTOR → DR = CA
-    'dr-cable': 'CA',          // DR → CABO = CA
-    'cable-charger': 'CC'      // CABO → CARREGADOR = CC
+    'rede-disjuntor': 'CA',      // REDE → DISJUNTOR = CA
+    'disjuntor-dps': 'CA',       // DISJUNTOR → DPS = CA
+    'dps-dr': 'CA',              // DPS → DR = CA
+    'dr-cabo': 'CA',             // DR → CABO = CA
+    'cabo-carregador': 'CC'      // CABO → CARREGADOR = CC
   }
 
   return mapa[`${sourceType}-${targetType}`] || 'CA'

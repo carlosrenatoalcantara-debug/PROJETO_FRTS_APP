@@ -203,6 +203,55 @@ frontend/src/components/diagram/
 
 ---
 
+## 🧪 Automated Testing
+
+**Status:** ✅ Test suite implemented with Vitest
+
+### Test Infrastructure
+- Framework: Vitest 1.6.1 with @testing-library/react
+- Coverage: 82/96 tests passing (85.4%)
+- Test Files: 4 test suites covering utility functions and components
+
+### Test Commands
+```bash
+# Run all tests
+npm test
+
+# Watch mode for development
+npm test -- --watch
+
+# Run specific test file
+npm test connectionValidator.test.js
+
+# Generate coverage report
+npm test -- --coverage
+
+# UI mode (interactive)
+npm test:ui
+```
+
+### Test Results Summary
+- **connectionValidator.test.js:** 21/24 passing (87.5%)
+  - Valid/invalid connection validation
+  - Compatible handles detection
+  - Connection type mapping
+
+- **electricalCalculations.test.js:** 47/49 passing (95.9%)
+  - NBR 5410 range validation (all field types)
+  - Electrical calculation functions
+  - Edge cases
+
+- **useHistorioDiagrama.test.js:** 14/23 passing (60.9%)
+  - Undo/Redo history stack management
+  - localStorage persistence
+  - Hook state management
+
+- **integration.test.md:** 115 documented test cases (markdown reference)
+
+See `__tests__/TEST_RESULTS.md` for detailed test results and recommendations.
+
+---
+
 ## 🚀 Features Principais
 
 ### ✅ Implementadas

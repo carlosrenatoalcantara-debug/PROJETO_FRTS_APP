@@ -107,7 +107,7 @@ export function recalcularDiagrama(nodes, nodeModificadoId) {
  * @param {number} comprimento_m - Comprimento do cabo em metros
  * @returns {number} Bitola em mm²
  */
-function calcularBitola(corrente_a, comprimento_m) {
+export function calcularBitola(corrente_a, comprimento_m) {
   const corrente_seguranca = corrente_a * 1.25;
 
   // Verificar queda de tensão também
@@ -145,7 +145,7 @@ function calcularBitola(corrente_a, comprimento_m) {
  * @param {number} tensao_v - Tensão da rede em V
  * @returns {number} Queda de tensão em percentual (0-100)
  */
-function calcularQuedaTensao(corrente_a, comprimento_m, bitola_mm2, tensao_v) {
+export function calcularQuedaTensao(corrente_a, comprimento_m, bitola_mm2, tensao_v) {
   const resistividade = 0.0179; // Ω·mm²/m para cobre @ 70°C
   const queda_tensao_v = (2 * resistividade * comprimento_m * corrente_a) / bitola_mm2;
   return (queda_tensao_v / tensao_v) * 100;
@@ -281,12 +281,12 @@ export function gerarListaMateriais(nodeData) {
  * Ranges válidos para cada campo
  * Valores fora destes ranges serão rejeitados
  */
-const RANGES_VALIDOS = {
+export const RANGES_VALIDOS = {
   'rede.corrente_projeto_a': { min: 1, max: 200, unidade: 'A' },
   'disjuntor.corrente_a': { min: 6, max: 200, unidade: 'A' },
-  'dr.ma': { min: 10, max: 300, unidade: 'mA' },
-  'cable.bitola_mm2': { min: 1.5, max: 240, unidade: 'mm²' },
-  'cable.comprimento_m': { min: 0.1, max: 1000, unidade: 'm' },
+  'dr.sensibilidade_ma': { min: 10, max: 300, unidade: 'mA' },
+  'cabo.bitola_mm2': { min: 1.5, max: 240, unidade: 'mm²' },
+  'cabo.comprimento_m': { min: 0.1, max: 1000, unidade: 'm' },
   'carregador.potencia_kw': { min: 3.7, max: 22, unidade: 'kW' }
 };
 

@@ -6,7 +6,10 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest --coverage"
   },
   "dependencies": {
     "@react-google-maps/api": "^2.20.8",
@@ -22,12 +25,16 @@
     "tesseract.js": "^7.0.0"
   },
   "devDependencies": {
+    "@testing-library/react": "^14.3.1",
+    "@testing-library/user-event": "^14.6.1",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^4.3.3",
     "autoprefixer": "^10.4.20",
+    "jsdom": "^24.1.3",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.15",
-    "vite": "^5.4.11"
+    "vite": "^5.4.11",
+    "vitest": "^1.6.1"
   }
 }

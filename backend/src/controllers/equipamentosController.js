@@ -1,6 +1,6 @@
 import { Equipamento } from '../models/Equipamento.js'
 import { CarregadorEV } from '../models/CarregadorEV.js'
-import pdf from 'pdf-parse'
+import pdf from 'pdf-parse/lib/pdf.js'
 import multer from 'multer'
 import mongoose from 'mongoose'
 import { memoryStore } from '../config/memoryStorage.js'
@@ -391,12 +391,11 @@ export const extrairDatasheet = async (req, res) => {
       return res.status(400).json({ erro: 'Arquivo PDF não fornecido' })
     }
 
-    try {
-      const pdfData = await pdf(req.file.buffer)
-      const texto = (pdfData.text || '').toUpperCase()
-      const linhas = texto.split('\n')
+    const pdfData = await pdf(req.file.buffer)
+    const texto = (pdfData.text || '').toUpperCase()
+    const linhas = texto.split('\n')
 
-      const especificacoes = {}
+    const especificacoes = {}
 
     // ===== EXTRAIR MODELO =====
     const regexModelos = [
