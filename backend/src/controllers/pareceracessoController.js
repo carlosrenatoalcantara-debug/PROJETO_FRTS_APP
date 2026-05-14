@@ -5,6 +5,7 @@ import { Equipamento } from '../models/Equipamento.js'
 import { gerarResumoPadraoStrings } from '../utils/otimizadorStrings.js'
 import * as SVG from '../utils/simbolosUnifilar.js'
 import { GoogleGenerativeAI } from '@google/generative-ai'
+import { adicionarExemploTreinamento } from '../config/trainingDataCollector.js'
 
 // Wrapper function to make PDFParse easier to use
 const pdf = async (bufferPDF) => {
@@ -21,6 +22,7 @@ const pdf = async (bufferPDF) => {
 
 /**
  * Extract Parecer data using Google Gemini API vision model
+ * Optimized with examples and strict extraction rules
  */
 const extrairPareceComGemini = async (bufferPDF) => {
   const apiKey = process.env.GOOGLE_API_KEY
@@ -34,52 +36,75 @@ const extrairPareceComGemini = async (bufferPDF) => {
   // Convert PDF to base64
   const base64PDF = bufferPDF.toString('base64')
 
-  const prompt = `Você é um especialista em análise de documentos de parecer de acesso para microgeração solar (Parecer de Acesso para Conexão de Mini e Microgeração).
+  const prompt = `VOCÊ É UM ESPECIALISTA EM PARECER DE ACESSO PARA MICROGERAÇÃO SOLAR NO BRASIL
 
-Analise este documento PDF e extraia as seguintes informações estruturadas em JSON:
+Contexto:
+- Documento: Parecer de Acesso para Conexão de Mini e Microgeração (Resolução Normativa ANEEL)
+- Distribuidoras: Cosern, CELPE, CEEE, Enel, AES, etc
+- Propósito: Extrair dados de cliente, instalação e equipamento
 
+EXEMPLOS DE RESPOSTA ESPERADA:
+=========================================
+Exemplo 1 - Cosern Monofásico:
 {
   "cliente": {
-    "nome": "Nome completo do cliente",
-    "cpf_cnpj": "CPF ou CNPJ formatado",
-    "email": "email@example.com (se disponível)",
-    "endereco": "Endereço completo"
+    "nome": "JOÃO SILVA DOS SANTOS",
+    "cpf_cnpj": "123.456.789-10",
+    "email": null,
+    "endereco": "RUA PRINCIPAL, 123, NATAL - RN"
   },
   "instalacao": {
-    "numero_cliente": "Número de cliente/unidade consumidora",
-    "numero_contrato": "Número do contrato (se disponível)",
-    "numero_parecer": "Número do parecer",
-    "distribuidora": "Nome da distribuidora (ex: Cosern, CELPE, etc)",
-    "fase_tensao": "Monofásico ou Trifásico",
-    "voltagem": "Tensão (220 ou 380)",
-    "gd_tier": "Classificação da microgeração (GD I, GD II, GD III, etc)"
+    "numero_cliente": "2409118802",
+    "numero_contrato": "0000123456",
+    "numero_parecer": "2409118802",
+    "distribuidora": "Cosern",
+    "fase_tensao": "Monofásico",
+    "voltagem": 220,
+    "gd_tier": "GD II"
   },
   "equipamento": {
     "paineis": {
-      "marca": "Marca do painel solar",
-      "modelo": "Modelo do painel",
-      "potencia_w": "Potência em Watts (número)",
-      "quantidade": "Quantidade de painéis (número)"
+      "marca": "Neosolar",
+      "modelo": "NS550W",
+      "potencia_w": 550,
+      "quantidade": 20
     },
     "inversor": {
-      "marca": "Marca do inversor",
-      "modelo": "Modelo do inversor",
-      "potencia_kw": "Potência em kW (número)"
+      "marca": "Growatt",
+      "modelo": "MIC 10000TL-X",
+      "potencia_kw": 10
     },
-    "quantidade_paineis": "Quantidade total de painéis (número)"
+    "quantidade_paineis": 20
   },
   "rede": {
-    "potencia_contratada_kw": "Potência contratada em kW (número)",
-    "grupo_tarifario": "Grupo tarifário (B1, B2, B3, etc)"
+    "potencia_contratada_kw": 11,
+    "grupo_tarifario": "B1"
   }
 }
 
-IMPORTANTE:
-- Extraia APENAS informações que estão claramente presentes no documento
-- Use null para campos não encontrados
-- Para números, retorne sem formatação (ex: 5000 em vez de 5.000)
-- Se não conseguir extrair algum campo, deixe como null
-- Retorne APENAS JSON válido, sem markdown ou explicações adicionais`
+REGRAS DE EXTRAÇÃO CRÍTICAS:
+=========================================
+1. NOMES: Use EXATAMENTE como aparece (maiúsculas, minúsculas, acentos)
+2. NÚMEROS: Sem formatação (5000, não 5.000 ou 5,000)
+3. CPF/CNPJ: Mantenha a formatação original do documento
+4. MARCA/MODELO: Completo e exato (ex: "Neosolar", "NS550W", não abreviado)
+5. VOLTAGEM: 220 ou 380 (sempre número)
+6. FASES: "Monofásico" ou "Trifásico" (exatamente assim)
+7. POTÊNCIAS: Sempre em números inteiros (sem decimais se possível)
+8. CAMPOS AUSENTES: Use null, NUNCA deixe de fora
+9. JSON VÁLIDO: Retorne APENAS JSON, sem markdown, sem explicações
+
+ORDEM DE BUSCA NO DOCUMENTO:
+=========================================
+1. Cabeçalho: Número do parecer, data, distribuidora
+2. Dados do requerente/cliente: Nome, CPF/CNPJ, endereço
+3. Dados da unidade consumidora: Número cliente, fases, voltagem
+4. Características: Potência, GD tier
+5. Equipamentos: Painéis (marca, modelo, potência, quantidade), Inversor
+6. Rede: Potência contratada, grupo tarifário
+
+Agora analise ESTE DOCUMENTO e extraia RIGOROSAMENTE:
+=========================================`
 
   try {
     const response = await model.generateContent([
@@ -155,17 +180,101 @@ IMPORTANTE:
 }
 
 /**
+ * Validate extracted parecer data quality
+ */
+const validarExtracao = (dados) => {
+  const erros = []
+  const avisos = []
+
+  // Validações críticas
+  if (!dados.cliente?.nome) erros.push('Nome do cliente não encontrado')
+  if (!dados.instalacao?.numero_cliente) erros.push('Número de cliente não encontrado')
+  if (!dados.equipamento?.paineis?.marca) erros.push('Marca do painel não encontrada')
+  if (!dados.equipamento?.inversor?.marca) erros.push('Marca do inversor não encontrada')
+
+  // Avisos (campos recomendados)
+  if (!dados.cliente?.cpf_cnpj) avisos.push('CPF/CNPJ não encontrado')
+  if (!dados.cliente?.email) avisos.push('Email não encontrado')
+  if (!dados.equipamento?.paineis?.quantidade === 0) avisos.push('Quantidade de painéis não especificada')
+
+  // Validação de formato
+  if (dados.cliente?.cpf_cnpj && !/^\d{3}\.\d{3}\.\d{3}-\d{2}$|^\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}$/.test(dados.cliente.cpf_cnpj)) {
+    avisos.push(`CPF/CNPJ com formato não padrão: ${dados.cliente.cpf_cnpj}`)
+  }
+
+  return {
+    valido: erros.length === 0,
+    erros,
+    avisos,
+    taxa_completude: calcularCompletude(dados)
+  }
+}
+
+/**
+ * Calculate data completeness percentage
+ */
+const calcularCompletude = (dados) => {
+  const campos_importantes = [
+    dados.cliente?.nome,
+    dados.cliente?.cpf_cnpj,
+    dados.instalacao?.numero_cliente,
+    dados.instalacao?.distribuidora,
+    dados.instalacao?.fase_tensao,
+    dados.equipamento?.paineis?.marca,
+    dados.equipamento?.paineis?.modelo,
+    dados.equipamento?.paineis?.potencia_w,
+    dados.equipamento?.quantidade_paineis,
+    dados.equipamento?.inversor?.marca,
+    dados.equipamento?.inversor?.modelo,
+    dados.equipamento?.inversor?.potencia_kw
+  ]
+
+  const preenchidos = campos_importantes.filter(campo => campo !== null && campo !== undefined && campo !== '').length
+  return Math.round((preenchidos / campos_importantes.length) * 100)
+}
+
+/**
+ * Log extraction metrics for training optimization
+ */
+const registrarMetricaExtracao = async (resultado) => {
+  try {
+    // Se quiser persistir em DB, descomente:
+    // await MetricaExtracao.create({
+    //   timestamp: new Date(),
+    //   taxa_sucesso: resultado.valido ? 1 : 0,
+    //   taxa_completude: resultado.taxa_completude,
+    //   erros: resultado.erros,
+    //   avisos: resultado.avisos,
+    //   tempo_processamento_ms: resultado.tempo_ms,
+    //   tokens_usados: resultado.tokens
+    // })
+
+    // Por enquanto, log em console com estrutura para análise
+    console.log(`📊 Métrica de Extração:`, {
+      valido: resultado.valido,
+      completude: resultado.taxa_completude + '%',
+      erros: resultado.erros.length,
+      avisos: resultado.avisos.length,
+      tempo_ms: resultado.tempo_ms
+    })
+  } catch (err) {
+    console.warn(`⚠️  Erro ao registrar métrica:`, err.message)
+  }
+}
+
+/**
  * POST /api/parecer-acesso/extrair
  * Upload and process a Parecer de Acesso PDF
  *
  * Steps:
  * 1. Parse PDF and extract text
- * 2. Extract client, installation, and equipment data
- * 3. Search for existing client or create new
- * 4. Look up equipment in database
- * 5. Create ProjetoFV with extracted data
- * 6. Generate unifilar SVG diagram
- * 7. Return project, diagram, and extracted data
+ * 2. Extract client, installation, and equipment data (using Gemini API)
+ * 3. Validate extracted data quality
+ * 4. Search for existing client or create new
+ * 5. Look up equipment in database
+ * 6. Create ProjetoFV with extracted data
+ * 7. Generate unifilar SVG diagram
+ * 8. Return project, diagram, and extracted data with quality metrics
  */
 export const extrairParecer = async (req, res) => {
   try {
@@ -190,15 +299,61 @@ export const extrairParecer = async (req, res) => {
     }
 
     // ===== STEP 2: Extract data from parecer using Gemini API =====
-    let dadosCliente, dadosInstalacao, dadosEquipamento
+    const tempoInicio = Date.now()
+    let dadosCliente, dadosInstalacao, dadosEquipamento, validacao
     try {
       const dadosExtraidos = await extrairPareceComGemini(req.file.buffer)
       dadosCliente = dadosExtraidos.cliente
       dadosInstalacao = dadosExtraidos.instalacao
       dadosEquipamento = dadosExtraidos.equipamento
+
+      // Validar qualidade da extração
+      validacao = validarExtracao({
+        cliente: dadosCliente,
+        instalacao: dadosInstalacao,
+        equipamento: dadosEquipamento
+      })
+
+      // Registrar métricas para otimização futura
+      const tempoMs = Date.now() - tempoInicio
+      registrarMetricaExtracao({
+        valido: validacao.valido,
+        taxa_completude: validacao.taxa_completude,
+        erros: validacao.erros,
+        avisos: validacao.avisos,
+        tempo_ms: tempoMs
+      })
+
+      // Se há erros críticos, rejeitar
+      if (!validacao.valido) {
+        console.warn(`⚠️  Extração incompleta:`, validacao.erros)
+        return res.status(400).json({
+          erro: 'Dados insuficientes no Parecer',
+          erros_extracao: validacao.erros,
+          avisos: validacao.avisos,
+          taxa_completude: validacao.taxa_completude
+        })
+      }
+
+      console.log(`✓ Extração validada (${validacao.taxa_completude}% completa)`)
+
+      // Coletar exemplo para treinamento futuro do modelo
+      const exemploAdicionado = await adicionarExemploTreinamento(
+        req.file.buffer,
+        {
+          cliente: dadosCliente,
+          instalacao: dadosInstalacao,
+          equipamento: dadosEquipamento,
+          rede: {}
+        },
+        validacao
+      )
+
+      if (exemploAdicionado) {
+        console.log(`📚 Exemplo adicionado ao conjunto de treinamento`)
+      }
     } catch (geminiErr) {
-      console.warn(`⚠️  Erro na extração com Gemini, tentando com texto extraído: ${geminiErr.message}`)
-      // Fallback: use text extraction if Gemini fails
+      console.error(`❌ Erro na extração com Gemini:`, geminiErr.message)
       return res.status(400).json({
         erro: 'Erro ao processar Parecer com Gemini API',
         detalhes: geminiErr.message
@@ -418,6 +573,11 @@ export const extrairParecer = async (req, res) => {
         cliente: dadosCliente,
         instalacao: dadosInstalacao,
         equipamento: dadosEquipamento,
+      },
+      validacao: {
+        taxa_completude: validacao.taxa_completude,
+        erros: validacao.erros,
+        avisos: validacao.avisos,
       },
       resumo: {
         cliente_encontrado: !clienteCreated,
