@@ -1,6 +1,6 @@
 import { Equipamento } from '../models/Equipamento.js'
 import { CarregadorEV } from '../models/CarregadorEV.js'
-import { PDFParse } from 'pdf-parse'
+import pdf from 'pdf-parse'
 import multer from 'multer'
 import Anthropic from '@anthropic-ai/sdk'
 import { GoogleGenerativeAI } from '@google/generative-ai'
@@ -8,6 +8,8 @@ import { GoogleGenerativeAI } from '@google/generative-ai'
 export const listarEquipamentos = async (req, res) => {
   try {
     const { tipo, ativo, search, ordenar } = req.query
+
+    console.log(`📊 GET /api/equipamentos - Filters: tipo=${tipo}, ativo=${ativo}, search=${search}`)
 
     const filtro = {}
     if (tipo) filtro.tipo = tipo
@@ -33,11 +35,13 @@ export const listarEquipamentos = async (req, res) => {
     }
 
     let equipamentos = await query.exec()
+    console.log(`✓ Encontrados ${equipamentos.length} equipamentos em Equipamento collection`)
 
     // FALLBACK: Se tipo é carregador-ev (ou carregador_ev) e não há resultados, buscar de CarregadorEV
     if ((tipo === 'carregador_ev' || tipo === 'carregador-ev') && equipamentos.length === 0) {
-      console.log('[Equipamentos] Fallback: buscando de CarregadorEV...')
+      console.log('⚠️  Fallback: buscando de CarregadorEV collection...')
       const carregadores = await CarregadorEV.find({ ativo: true }).sort({ createdAt: -1 })
+      console.log(`✓ Encontrados ${carregadores.length} carregadores EV`)
 
       // Converter CarregadorEV para formato Equipamento
       equipamentos = carregadores.map(cg => ({
@@ -182,8 +186,7 @@ export const excluirEquipamento = async (req, res) => {
 
 const extrairImagensDoPDF = async (bufferPDF) => {
   try {
-    const parser = new PDFParse({ data: bufferPDF })
-    const pdfData = await parser.parseBuffer()
+    const pdfData = await pdf(bufferPDF)
 
     // PDFParse não extrai imagens diretamente, então usamos buffer bruto
     // Para método robusto, seria necessário pdf-lib ou pdfjs
@@ -354,13 +357,12 @@ export const extrairDatasheet = async (req, res) => {
       return res.status(400).json({ erro: 'Arquivo PDF não fornecido' })
     }
 
-    const parser = new PDFParse({ data: req.file.buffer })
-    const textResult = await parser.getText()
-    const texto = textResult.text.toUpperCase()
-    await parser.destroy()
-    const linhas = texto.split('\n')
+    try {
+      const pdfData = await pdf(req.file.buffer)
+      const texto = (pdfData.text || '').toUpperCase()
+      const linhas = texto.split('\n')
 
-    const especificacoes = {}
+      const especificacoes = {}
 
     // ===== EXTRAIR MODELO =====
     const regexModelos = [
