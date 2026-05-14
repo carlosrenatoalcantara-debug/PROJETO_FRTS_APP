@@ -1,10 +1,16 @@
-import pdf from 'pdf-parse'
+import { PDFParse } from 'pdf-parse'
 import { Cliente } from '../models/Cliente.js'
 import { ProjetoFV } from '../models/ProjetoFV.js'
 import { Equipamento } from '../models/Equipamento.js'
 import { extrairTodosParecer } from '../utils/extrairParecer.js'
 import { gerarResumoPadraoStrings } from '../utils/otimizadorStrings.js'
 import * as SVG from '../utils/simbolosUnifilar.js'
+
+// Wrapper function to make PDFParse easier to use
+const pdf = async (bufferPDF) => {
+  const parser = new PDFParse({ data: bufferPDF })
+  return await parser.document
+}
 
 /**
  * POST /api/parecer-acesso/extrair

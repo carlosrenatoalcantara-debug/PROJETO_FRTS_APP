@@ -1,6 +1,6 @@
 import { Equipamento } from '../models/Equipamento.js'
 import { CarregadorEV } from '../models/CarregadorEV.js'
-import pdf from 'pdf-parse/lib/pdf.js'
+import { PDFParse } from 'pdf-parse'
 import multer from 'multer'
 import mongoose from 'mongoose'
 import { memoryStore } from '../config/memoryStorage.js'
@@ -8,6 +8,12 @@ import Anthropic from '@anthropic-ai/sdk'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 
 const usarMemoryStorage = () => mongoose.connection.readyState !== 1
+
+// Wrapper function to make PDFParse easier to use
+const pdf = async (bufferPDF) => {
+  const parser = new PDFParse({ data: bufferPDF })
+  return await parser.document
+}
 
 export const listarEquipamentos = async (req, res) => {
   try {
