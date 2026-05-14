@@ -5,7 +5,8 @@ import ReactFlow, {
   useEdgesState,
   Background,
   Controls,
-  MiniMap
+  MiniMap,
+  ReactFlowProvider
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import ComponentNode from './nodes/ComponentNode';
@@ -515,9 +516,10 @@ export default function InteractiveDiagram({
   };
 
   return (
-    <div className="interactive-diagram-container">
-      {/* Toolbar */}
-      <div className="diagram-toolbar">
+    <ReactFlowProvider>
+      <div className="interactive-diagram-container">
+        {/* Toolbar */}
+        <div className="diagram-toolbar">
         <div className="toolbar-group">
           <h3>Editor de Diagrama</h3>
           <span className="toolbar-subtitle">
@@ -891,6 +893,7 @@ export default function InteractiveDiagram({
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </ReactFlowProvider>
   );
 }
