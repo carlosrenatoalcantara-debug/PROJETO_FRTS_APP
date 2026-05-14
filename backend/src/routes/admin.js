@@ -8,6 +8,10 @@ import {
   relatorio,
   removerDuplicatas,
 } from '../controllers/adminController.js'
+import {
+  limparDesconhecidos,
+  statusLimpeza,
+} from '../controllers/limpezaDesconhecidosController.js'
 
 const router = Router()
 
@@ -23,5 +27,9 @@ router.get('/relatorio-win-rate', relatorio)
 
 // Limpeza de Duplicatas
 router.post('/remover-duplicatas', removerDuplicatas)
+
+// Limpeza de "Desconhecido"
+router.post('/limpar-desconhecidos', limparDesconhecidos)
+router.get('/status-limpeza', statusLimpeza)
 
 export default router
