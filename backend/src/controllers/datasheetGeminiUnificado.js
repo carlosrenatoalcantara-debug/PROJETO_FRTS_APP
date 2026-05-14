@@ -20,7 +20,9 @@ import path from 'path'
  */
 
 const client = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY)
-const model = client.getGenerativeModel({ model: 'gemini-2.0-flash-exp' })
+const model = client.getGenerativeModel({
+  model: 'gemini-2.0-flash',
+})
 
 // ═══════════════════════════════════════════════════════════════════════════
 // PROMPT UNIFICADO - Otimizado para todos os tipos de documentos
