@@ -10,7 +10,6 @@
 import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
-import fetch from 'node-fetch'
 import 'dotenv/config'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -50,6 +49,9 @@ const log = {
  */
 async function processarParecer(caminhoArquivo, indice, total) {
   try {
+    // Debug: Log do caminho recebido
+    console.log(`DEBUG [${indice}]: Tipo=${typeof caminhoArquivo}, Comprimento=${caminhoArquivo?.length}`)
+
     // Verificar se arquivo existe
     if (!fs.existsSync(caminhoArquivo)) {
       log.error(`Arquivo não encontrado: ${caminhoArquivo}`)
@@ -61,10 +63,10 @@ async function processarParecer(caminhoArquivo, indice, total) {
 
     log.info(`[${indice}/${total}] Processando: ${nomeArquivo} (${tamanhoMB}MB)`)
 
-    // Ler arquivo
+    // Ler arquivo como Buffer
     const pdfBuffer = fs.readFileSync(caminhoArquivo)
 
-    // Enviar para API
+    // Enviar para API usando FormData nativa (Node v18+)
     const formData = new FormData()
     const blob = new Blob([pdfBuffer], { type: 'application/pdf' })
     formData.append('pdf', blob, nomeArquivo)
@@ -72,7 +74,7 @@ async function processarParecer(caminhoArquivo, indice, total) {
     const response = await fetch(API_ENDPOINT, {
       method: 'POST',
       body: formData,
-      timeout: 60000, // 60 segundos timeout
+      signal: AbortSignal.timeout(60000), // 60 segundos timeout
     })
 
     if (!response.ok) {
@@ -110,10 +112,12 @@ async function processarParecer(caminhoArquivo, indice, total) {
       distribuidora: dados.extractedData.instalacao.distribuidora,
     }
   } catch (erro) {
-    log.error(`[${indice}/${total}] Erro ao processar: ${erro.message}`)
+    const mensagem = erro.message || JSON.stringify(erro)
+    log.error(`[${indice}/${total}] Erro ao processar: ${mensagem}`)
+    console.error(`DEBUG: Stack trace:`, erro.stack || 'N/A')
     return {
       sucesso: false,
-      erro: erro.message,
+      erro: mensagem,
       arquivo: caminhoArquivo,
     }
   }
@@ -280,11 +284,22 @@ async function main() {
   if (caminhos.length === 1 && caminhos[0].startsWith('@')) {
     const nomeArquivo = caminhos[0].substring(1)
     try {
-      const conteudo = fs.readFileSync(nomeArquivo, 'utf-8')
+      // Ler com encoding UTF-8 explícito
+      const conteudo = fs.readFileSync(nomeArquivo, { encoding: 'utf8' })
       caminhos = conteudo
-        .split('\n')
+        .split(/\r?\n/) // Suporta tanto \n quanto \r\n
         .map((linha) => linha.trim())
-        .filter((linha) => linha.length > 0)
+        .filter((linha) => linha.length > 0 && !linha.startsWith('#')) // Ignorar linhas vazias e comentários
+
+      // Validar que cada caminho é string válida
+      caminhos = caminhos.map((c, idx) => {
+        if (typeof c !== 'string') {
+          console.warn(`⚠️  Caminho ${idx+1} não é string válida:`, typeof c)
+          return null
+        }
+        return c
+      }).filter(c => c !== null)
+
       log.info(`✅ Lido arquivo ${nomeArquivo} com ${caminhos.length} caminhos`)
     } catch (erro) {
       log.error(`Erro ao ler arquivo ${nomeArquivo}: ${erro.message}`)

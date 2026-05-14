@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect, useMemo } from 'react';
 import ReactFlow, {
   addEdge,
   useNodesState,
@@ -17,31 +17,6 @@ import { recalcularDiagrama, validarParametrosNBR5410, gerarListaMateriais, vali
 import { validarConexao, obterTipoConexaoEsperado, obterHandlesCompativeis } from './utils/connectionValidator';
 import { useHistorioDiagrama } from '../../hooks/useHistorioDiagrama';
 import './InteractiveDiagram.css';
-
-const nodeTypes = {
-  // Componentes realistas (visual melhorado)
-  gridNodeRealista: ComponenteRealista,
-  breakerNodeRealista: ComponenteRealista,
-  dpsNodeRealista: ComponenteRealista,
-  drNodeRealista: ComponenteRealista,
-  cableNodeRealista: ComponenteRealista,
-  chargerNodeRealista: ComponenteRealista,
-  customNodeRealista: ComponenteRealista,
-
-  // Componentes genéricos (fallback)
-  gridNode: ComponentNode,
-  breakerNode: ComponentNode,
-  dpsNode: ComponentNode,
-  drNode: ComponentNode,
-  cableNode: ComponentNode,
-  chargerNode: ComponentNode,
-  customNode: ComponentNode,
-  specsNode: ComponentNode
-};
-
-const edgeTypes = {
-  custom: CustomEdge
-};
 
 /**
  * Diagrama Interativo e Editável
@@ -73,6 +48,33 @@ export default function InteractiveDiagram({
 
   // Hook para Undo/Redo
   const historioDiagrama = useHistorioDiagrama(projeto?.projeto_id || 'diagrama-sem-id');
+
+  // Definir tipos de nós e edges com useMemo para evitar re-criação
+  // CRÍTICO: Envolvido em useMemo para garantir que ComponentNode esteja completamente inicializado
+  const nodeTypes = useMemo(() => ({
+    // Componentes realistas (visual melhorado)
+    gridNodeRealista: ComponenteRealista,
+    breakerNodeRealista: ComponenteRealista,
+    dpsNodeRealista: ComponenteRealista,
+    drNodeRealista: ComponenteRealista,
+    cableNodeRealista: ComponenteRealista,
+    chargerNodeRealista: ComponenteRealista,
+    customNodeRealista: ComponenteRealista,
+
+    // Componentes genéricos (fallback)
+    gridNode: ComponentNode,
+    breakerNode: ComponentNode,
+    dpsNode: ComponentNode,
+    drNode: ComponentNode,
+    cableNode: ComponentNode,
+    chargerNode: ComponentNode,
+    customNode: ComponentNode,
+    specsNode: ComponentNode
+  }), []);
+
+  const edgeTypes = useMemo(() => ({
+    custom: CustomEdge
+  }), []);
 
   // Inicializar diagrama com dados de entrada
   useEffect(() => {
