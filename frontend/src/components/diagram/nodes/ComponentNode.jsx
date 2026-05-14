@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Handle, Position, useReactFlow } from 'reactflow';
+import { Handle, Position } from 'reactflow';
 import { Trash2 } from 'lucide-react';
 import { obterHandlesCompativeis } from '../utils/connectionValidator';
 import './ComponentNode.css';
@@ -13,9 +13,6 @@ export default function ComponentNode({ data, selected, isConnecting, id }) {
   const [editando, setEditando] = useState(false);
   const [campoEditando, setCampoEditando] = useState(null); // Qual campo está sendo editado
   const [valoresTemp, setValoresTemp] = useState({});
-
-  // React Flow context para obter info sobre conexão em andamento
-  const { getNode } = useReactFlow();
 
   // Inicializar valores temporários quando entra em modo edição
   useEffect(() => {

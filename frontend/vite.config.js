@@ -12,13 +12,10 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
-        manualChunks: {
-          'reactflow': ['reactflow', '@reactflow/core', '@reactflow/background', '@reactflow/controls', '@reactflow/minimap'],
-          'vendor': ['react', 'react-dom', 'react-router-dom'],
-        },
+        manualChunks: undefined, // Let Vite optimize automatically
       },
     },
-    chunkSizeWarningLimit: 1000,
+    chunkSizeWarningLimit: 2000,
   },
   server: {
     port: 3005,

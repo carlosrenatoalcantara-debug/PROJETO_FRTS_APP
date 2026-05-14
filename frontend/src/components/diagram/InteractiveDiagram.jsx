@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect, useMemo, Suspense, lazy } from 'react';
+import React, { useCallback, useState, useEffect, useMemo, Suspense } from 'react';
 import ReactFlow, {
   addEdge,
   useNodesState,
@@ -10,10 +10,8 @@ import ReactFlow, {
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import CustomEdge from './edges/CustomEdge';
-
-// Lazy load node components to defer module initialization and avoid TDZ errors
-const ComponentNode = lazy(() => import('./nodes/ComponentNode'));
-const ComponenteRealista = lazy(() => import('./nodes/ComponenteRealista'));
+import ComponentNode from './nodes/ComponentNode';
+import ComponenteRealista from './nodes/ComponenteRealista';
 import { converterCalculosParaNodesEdges, validarDiagrama, resetarPosicoes } from './utils/reactFlowHelpers';
 import { recalcularDiagrama, validarParametrosNBR5410, gerarListaMateriais, validarValorCampo, validarFluxoEletricoCompleto } from './utils/electricalCalculations';
 import { validarConexao, obterTipoConexaoEsperado, obterHandlesCompativeis } from './utils/connectionValidator';
@@ -641,26 +639,24 @@ export default function InteractiveDiagram({
       <div className="diagram-content">
         {/* Canvas React Flow */}
         <div className="diagram-canvas">
-          <Suspense fallback={<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>Carregando diagrama...</div>}>
-            <ReactFlow
-              nodes={nodes}
-              edges={edges}
-              onNodesChange={handleNodesChange_}
-              onEdgesChange={onEdgesChange}
-              onConnect={onConnect}
-              onNodeClick={handleNodeClick}
-              nodeTypes={nodeTypes}
-              edgeTypes={edgeTypes}
-              snapToGrid={true}
-              snapGrid={[16, 16]}
-              fitView
-              attributionPosition="bottom-left"
-            >
-              <Background color="#aaa" gap={16} />
-              <Controls />
-              <MiniMap />
-            </ReactFlow>
-          </Suspense>
+          <ReactFlow
+            nodes={nodes}
+            edges={edges}
+            onNodesChange={handleNodesChange_}
+            onEdgesChange={onEdgesChange}
+            onConnect={onConnect}
+            onNodeClick={handleNodeClick}
+            nodeTypes={nodeTypes}
+            edgeTypes={edgeTypes}
+            snapToGrid={true}
+            snapGrid={[16, 16]}
+            fitView
+            attributionPosition="bottom-left"
+          >
+            <Background color="#aaa" gap={16} />
+            <Controls />
+            <MiniMap />
+          </ReactFlow>
         </div>
 
         {/* Painel de Propriedades */}
