@@ -2,8 +2,12 @@ import { Equipamento } from '../models/Equipamento.js'
 import { CarregadorEV } from '../models/CarregadorEV.js'
 import pdf from 'pdf-parse'
 import multer from 'multer'
+import mongoose from 'mongoose'
+import { memoryStore } from '../config/memoryStorage.js'
 import Anthropic from '@anthropic-ai/sdk'
 import { GoogleGenerativeAI } from '@google/generative-ai'
+
+const usarMemoryStorage = () => mongoose.connection.readyState !== 1
 
 export const listarEquipamentos = async (req, res) => {
   try {
@@ -11,6 +15,36 @@ export const listarEquipamentos = async (req, res) => {
 
     console.log(`📊 GET /api/equipamentos - Filters: tipo=${tipo}, ativo=${ativo}, search=${search}`)
 
+    let equipamentos
+
+    // Usar memory storage se MongoDB está offline
+    if (usarMemoryStorage()) {
+      console.log('⚠️  MongoDB offline - Usando dados em memória')
+      const filtro = {}
+      if (tipo) filtro.tipo = tipo
+      if (ativo !== undefined) filtro.ativo = ativo === 'true'
+      if (search) filtro.search = search
+
+      equipamentos = memoryStore.findAllEquipamentos(filtro)
+      console.log(`✓ Encontrados ${equipamentos.length} equipamentos em memória`)
+
+      // Ordenar
+      if (ordenar === 'potencia') {
+        equipamentos.sort((a, b) => (b.especificacoes?.potencia || 0) - (a.especificacoes?.potencia || 0))
+      } else if (ordenar === 'preco') {
+        equipamentos.sort((a, b) => (a.preco_sugerido || 0) - (b.preco_sugerido || 0))
+      } else {
+        equipamentos.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+      }
+
+      return res.json({
+        total: equipamentos.length,
+        equipamentos,
+        _debug: { origem: 'memory' }
+      })
+    }
+
+    // Usar MongoDB se disponível
     const filtro = {}
     if (tipo) filtro.tipo = tipo
     if (ativo !== undefined) filtro.ativo = ativo === 'true'
@@ -34,8 +68,8 @@ export const listarEquipamentos = async (req, res) => {
       query = query.sort({ createdAt: -1 })
     }
 
-    let equipamentos = await query.exec()
-    console.log(`✓ Encontrados ${equipamentos.length} equipamentos em Equipamento collection`)
+    equipamentos = await query.exec()
+    console.log(`✓ Encontrados ${equipamentos.length} equipamentos em MongoDB`)
 
     // FALLBACK: Se tipo é carregador-ev (ou carregador_ev) e não há resultados, buscar de CarregadorEV
     if ((tipo === 'carregador_ev' || tipo === 'carregador-ev') && equipamentos.length === 0) {

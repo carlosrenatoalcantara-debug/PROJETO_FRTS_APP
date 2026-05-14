@@ -7,6 +7,7 @@
 import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import { equipamentosExemplo, clientesExemplo } from '../seeds/equipamentosMemory.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const DATA_FILE = path.join(__dirname, '../../data/memory-storage.json')
@@ -18,12 +19,14 @@ class MemoryStore {
       projetos_ev: [],
       clientes: [],
       projetos_fv: [],
+      equipamentos: [],
       configuracoes: [],
     }
     this.idCounters = {
       projetos_ev: 1,
       clientes: 1,
       projetos_fv: 1,
+      equipamentos: 1,
     }
 
     // Criar diretório de dados se não existir
@@ -69,7 +72,15 @@ class MemoryStore {
   }
 
   initializeTestData() {
-    // Cliente de teste
+    // Carregar equipamentos de exemplo
+    console.log('📦 Carregando equipamentos de exemplo em memória...')
+    this.collections.equipamentos = [...equipamentosExemplo]
+
+    // Carregar clientes de exemplo
+    console.log('👥 Carregando clientes de exemplo em memória...')
+    this.collections.clientes = [...clientesExemplo]
+
+    // Cliente de teste adicional
     const clienteTeste = {
       _id: 'cliente-teste-1',
       nome: 'João Silva',
@@ -253,6 +264,48 @@ class MemoryStore {
     this.collections.configuracoes.splice(index, 1)
     this.saveToFile()
     return config
+  }
+
+  // Equipamentos
+  findAllEquipamentos(filtro = {}) {
+    let equips = this.collections.equipamentos || []
+
+    // Aplicar filtros
+    if (filtro.tipo) {
+      equips = equips.filter(e => e.tipo === filtro.tipo)
+    }
+    if (filtro.ativo !== undefined) {
+      equips = equips.filter(e => e.ativo === filtro.ativo)
+    }
+    if (filtro.search) {
+      const search = filtro.search.toLowerCase()
+      equips = equips.filter(e =>
+        e.fabricante.toLowerCase().includes(search) ||
+        e.modelo.toLowerCase().includes(search)
+      )
+    }
+
+    return equips
+  }
+
+  findEquipamentoById(id) {
+    return (this.collections.equipamentos || []).find(e => e._id === id)
+  }
+
+  createEquipamento(data) {
+    if (!this.collections.equipamentos) {
+      this.collections.equipamentos = []
+    }
+    const id = `equip-${this.idCounters.equipamentos++}`
+    const equip = {
+      _id: id,
+      ...data,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }
+    this.collections.equipamentos.push(equip)
+    this.saveToFile()
+    return equip
   }
 }
 
