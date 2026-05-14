@@ -3,6 +3,7 @@
 ## Versão Atual
 - **Phase 2:** ✅ Componentes Realistas + DPS Obrigatório + Customização
 - **Phase 4:** ✅ Undo/Redo + Validação de Conexões + Snap-to-Grid + Validações Bloqueantes
+- **Phase 5:** ✅ Edição de Edges + Context Menu + Tipos de Conexão
 - **Status:** 🚀 Pronto para Produção
 
 ---
@@ -229,6 +230,79 @@
 
 ---
 
+### Seção 5B: Edição de Edges - Context Menu (Phase 5)
+
+#### 5B.1 Context Menu de Edge
+- [ ] **Clique Direito em Uma Conexão**
+  - [ ] Posicione o mouse sobre uma linha de conexão
+  - [ ] Clique direito (ou context menu)
+  - [ ] Menu aparece com opções:
+    * Tipo de Conexão (submenu)
+    * Deletar Conexão
+    * Info do edge
+
+- [ ] **Info do Edge**
+  - [ ] Mostra "Origem:" com ID do nó source
+  - [ ] Mostra "Destino:" com ID do nó target
+  - [ ] Mostra "Tipo:" com tipo atual (CA, CC, TERRA)
+
+#### 5B.2 Submenu de Tipos de Conexão
+- [ ] **CA (Corrente Alternada)**
+  - [ ] Hover em submenu mostra "CA (Corrente Alternada)"
+  - [ ] Clique muda edge para azul (#3b82f6)
+  - [ ] Label no meio da edge mostra "CA"
+
+- [ ] **CC (Corrente Contínua)**
+  - [ ] Hover mostra "CC (Corrente Contínua)"
+  - [ ] Clique muda edge para vermelho (#ef4444)
+  - [ ] Label mostra "CC"
+
+- [ ] **TERRA/Neutro**
+  - [ ] Hover mostra "Terra/Neutro"
+  - [ ] Clique muda edge para verde (#059669)
+  - [ ] Label mostra "TERRA"
+
+#### 5B.3 Deletar Conexão
+- [ ] **Menu Delete Edge**
+  - [ ] Clique em "Deletar Conexão"
+  - [ ] Edge desaparece do diagrama
+  - [ ] Nós ficam desconectados
+  - [ ] Histórico registra "Deletou conexão"
+  - [ ] Ctrl+Z desfaz a deleção
+
+#### 5B.4 Label de Edge
+- [ ] **Visual do Label**
+  - [ ] Label aparece no meio da edge
+  - [ ] Mostra tipo atual (CA, CC, TERRA)
+  - [ ] Cor do label corresponde à cor da edge
+  - [ ] Label é clicável para abrir context menu
+
+- [ ] **Hover no Label**
+  - [ ] Label aumenta um pouco (scale 1.15)
+  - [ ] Mostra tooltip: "Clique direito para editar"
+  - [ ] Background fica mais escuro
+
+#### 5B.5 Integração com Undo/Redo
+- [ ] **Mudar Tipo de Edge**
+  - [ ] CA → CC (via menu)
+  - [ ] Ctrl+Z volta para CA
+  - [ ] Ctrl+Shift+Z volta para CC
+  - [ ] Histórico: "Alterou tipo de conexão para CC"
+
+- [ ] **Deletar Edge**
+  - [ ] Delete conexão via menu
+  - [ ] Ctrl+Z restaura com tipo anterior
+  - [ ] Histórico: "Deletou conexão"
+
+#### 5B.6 Responsividade
+- [ ] **Em Mobile/Tablet**
+  - [ ] Context menu fica visível ao longo tap
+  - [ ] Submenu abre à esquerda em telas pequenas
+  - [ ] Texto é legível (font-size ajustado)
+  - [ ] Menu não sai da tela
+
+---
+
 ### Seção 6: Fluxo Completo
 
 #### 6.1 Criar Diagrama Novo
@@ -286,6 +360,16 @@
 - ✅ Snap-to-grid alinha componentes automaticamente
 - ✅ Validações bloqueantes impedem valores inválidos
 - ✅ Componentes obrigatórios não podem ser deletados
+- ✅ Documento de teste passa 100% dos testes
+
+### Para Phase 5 (Edição de Edges)
+- ✅ Context menu abre ao clicar direito em edge
+- ✅ Submenu permite alterar tipo (CA, CC, TERRA)
+- ✅ Label de edge mostra tipo atual e cor correspondente
+- ✅ Deletar conexão via menu remove edge e nós ficam desconectados
+- ✅ Info do edge mostra origem, destino e tipo
+- ✅ Undo/Redo funciona para mudança de tipo e deleção
+- ✅ Menu responsivo em mobile
 - ✅ Documento de teste passa 100% dos testes
 
 ---
