@@ -1,8 +1,9 @@
-import pdf from 'pdf-parse/lib/pdf-parse.js'
+import pdf from 'pdf-parse'
 import { Cliente } from '../models/Cliente.js'
 import { ProjetoFV } from '../models/ProjetoFV.js'
 import { Equipamento } from '../models/Equipamento.js'
 import { extrairTodosParecer } from '../utils/extrairParecer.js'
+import { gerarResumoPadraoStrings } from '../utils/otimizadorStrings.js'
 import * as SVG from '../utils/simbolosUnifilar.js'
 
 /**
@@ -27,10 +28,18 @@ export const extrairParecer = async (req, res) => {
     console.log(`📄 Processing Parecer PDF... (${req.file.size} bytes)`)
 
     // ===== STEP 1: Parse PDF =====
-    const pdfData = await pdf(req.file.buffer)
-    const texto = pdfData.text || ''
-
-    console.log(`✓ PDF parsed: ${pdfData.numpages} pages`)
+    let pdfData, texto
+    try {
+      pdfData = await pdf(req.file.buffer)
+      texto = pdfData.text || ''
+      console.log(`✓ PDF parsed: ${pdfData.numpages} pages`)
+    } catch (pdfErr) {
+      console.error('❌ Erro ao fazer parse do PDF:', pdfErr.message)
+      return res.status(400).json({
+        erro: 'Erro ao processar PDF. Verifique se o arquivo é válido.',
+        detalhes: pdfErr.message
+      })
+    }
 
     // ===== STEP 2: Extract data from parecer =====
     const { cliente: dadosCliente, instalacao: dadosInstalacao, equipamento: dadosEquipamento } = extrairTodosParecer(texto)
@@ -153,13 +162,23 @@ export const extrairParecer = async (req, res) => {
     // ===== STEP 6: Generate Unifilar SVG =====
     let svgContent = ''
     try {
-      // Calculate strings configuration
-      const potenciaPainel = dadosEquipamento.paineis.potencia_w || 400
-      const potenciaInversor = (dadosEquipamento.inversor.potencia_kw || 5) * 1000
-      const quantidadePaineis = dadosEquipamento.quantidade_paineis || 10
+      // Otimizar configuração de strings
+      const configStrings = gerarResumoPadraoStrings({
+        equipamento: dadosEquipamento,
+        quantidade_paineis: dadosEquipamento.quantidade_paineis || 20,
+      })
 
-      const painelsPorString = Math.ceil((potenciaInversor / potenciaPainel) * 0.75) // 75% utilization
-      const numeroStrings = Math.ceil(quantidadePaineis / painelsPorString)
+      const numeroStrings = configStrings.numStrings || 1
+      const painelsPorString = configStrings.paineisPorSerie || Math.ceil((dadosEquipamento.quantidade_paineis || 10) / (configStrings.numStrings || 1))
+      const quantidadePaineis = configStrings.totalPaineis || dadosEquipamento.quantidade_paineis || 10
+
+      if (configStrings.aviso) {
+        console.log(`⚠️  ${configStrings.aviso}`)
+      }
+      console.log(`✓ Strings otimizadas: ${numeroStrings}x string de ${painelsPorString} painéis`)
+      if (configStrings.potenciaTotal) {
+        console.log(`  Potência total: ${configStrings.potenciaTotal}W, Tensão: ${Math.round(configStrings.tensaoNominal)}V`)
+      }
 
       // Generate SVG using backend-compatible utility
       let conteudo = SVG.marcadores()
