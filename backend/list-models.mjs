@@ -1,21 +1,31 @@
-import 'dotenv/config'
-import { GoogleGenerativeAI } from '@google/generative-ai'
+const apiKey = 'AIzaSyAHEzC-JqmipKOswZBpk3QZlJp2BLeNNSs'
 
-async function listarModelos() {
+console.log('📋 Listando modelos disponíveis...\n')
+
+const urls = [
+  'https://generativelanguage.googleapis.com/v1/models?key=' + apiKey,
+  'https://generativelanguage.googleapis.com/v1beta/models?key=' + apiKey,
+]
+
+for (const url of urls) {
+  console.log('Tentando:', url.split('?')[0])
   try {
-    const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY)
-    const models = await genAI.listModels()
-
-    console.log('\n📊 MODELOS DISPONÍVEIS:\n')
-    const modelList = await models
-
-    for await (const model of modelList) {
-      console.log(`  • ${model.name} - Versão: ${model.version}`)
+    const response = await fetch(url)
+    const data = await response.json()
+    
+    if (data.models) {
+      console.log(`✅ Encontrados ${data.models.length} modelos:\n`)
+      data.models.forEach(m => {
+        console.log(`  • ${m.name}`)
+        if (m.supportedGenerationMethods) {
+          console.log(`    Métodos: ${m.supportedGenerationMethods.join(', ')}`)
+        }
+      })
+    } else {
+      console.log('Erro:', data.error?.message || JSON.stringify(data))
     }
-
-  } catch (error) {
-    console.error('❌ Erro ao listar modelos:', error.message)
+  } catch (e) {
+    console.log('❌ Erro:', e.message)
   }
+  console.log()
 }
-
-listarModelos()
