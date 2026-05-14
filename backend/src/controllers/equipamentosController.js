@@ -12,7 +12,14 @@ const usarMemoryStorage = () => mongoose.connection.readyState !== 1
 // Wrapper function to make PDFParse easier to use
 const pdf = async (bufferPDF) => {
   const parser = new PDFParse({ data: bufferPDF })
-  return await parser.document
+  const infoResult = await parser.getInfo()
+  const textResult = await parser.getText()
+  await parser.destroy()
+
+  return {
+    numpages: infoResult.total,
+    text: textResult.text
+  }
 }
 
 export const listarEquipamentos = async (req, res) => {

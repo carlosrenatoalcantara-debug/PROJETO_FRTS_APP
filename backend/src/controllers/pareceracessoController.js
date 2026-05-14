@@ -9,7 +9,14 @@ import * as SVG from '../utils/simbolosUnifilar.js'
 // Wrapper function to make PDFParse easier to use
 const pdf = async (bufferPDF) => {
   const parser = new PDFParse({ data: bufferPDF })
-  return await parser.document
+  const infoResult = await parser.getInfo()
+  const textResult = await parser.getText()
+  await parser.destroy()
+
+  return {
+    numpages: infoResult.total,
+    text: textResult.text
+  }
 }
 
 /**
