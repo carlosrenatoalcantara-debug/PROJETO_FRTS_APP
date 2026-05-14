@@ -6,14 +6,16 @@
 /**
  * Matriz de conectividade permitida
  * Define quais nós podem se conectar a quais
- * Fluxo elétrico: REDE → DISJUNTOR → DR → CABO → CARREGADOR
+ * Fluxo elétrico: REDE → DISJUNTOR → DPS → DR → CABO → CARREGADOR
  */
 const CONEXOES_PERMITIDAS = {
   'grid': ['breaker'],       // REDE → DISJUNTOR
-  'breaker': ['dr'],         // DISJUNTOR → DR
+  'breaker': ['dps'],        // DISJUNTOR → DPS (obrigatório)
+  'dps': ['dr'],             // DPS → DR
   'dr': ['cable'],           // DR → CABO
   'cable': ['charger'],      // CABO → CARREGADOR
   'charger': [],             // CARREGADOR é ponto final
+  'customizado': ['charger', 'cable', 'dr'], // Componentes customizados podem conectar em vários lugares
   'specs': []                // SPECS nunca tem conexões
 }
 
@@ -84,9 +86,11 @@ export function obterTipoConexaoEsperado(sourceType, targetType) {
 const TIPOS_NODE = {
   'grid': 'REDE',
   'breaker': 'DISJUNTOR',
+  'dps': 'DPS',
   'dr': 'DR',
   'cable': 'CABO',
   'charger': 'CARREGADOR',
+  'customizado': 'COMPONENTE CUSTOMIZADO',
   'specs': 'ESPECIFICAÇÕES'
 }
 

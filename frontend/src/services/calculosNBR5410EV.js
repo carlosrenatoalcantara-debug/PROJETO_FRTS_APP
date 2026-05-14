@@ -96,6 +96,12 @@ export function calcularParametrosNBR5410({
   // Usar 300 mA para circuitos de força
   const dr_ma = corrente_maxima_a > 40 ? 300 : 30
 
+  // Seleção de DPS (Dispositivo de Proteção contra Surtos)
+  // NBR 5410: obrigatório para equipamentos eletrônicos sensíveis
+  // Usar DPS tipo 2 (classe II) para proteção de surtos de comutação
+  const dps_kv = tensao_entrada_v >= 380 ? 420 : 275 // Tensão nominal em V
+  const dps_capacidade_a = corrente_maxima_a + 20 // Margem de segurança
+
   // Cálculo de tempo de seccionamento automático
   // Para eletrocussão (< 50V): até 5s
   // Para 120V a 230V: até 0.4s
@@ -110,18 +116,21 @@ export function calcularParametrosNBR5410({
     bitola_cabo_mm2,
     disjuntor_a,
     dr_ma,
+    dps_kv,
+    dps_capacidade_a,
     queda_tensao_pct: parseFloat(queda_tensao_pct.toFixed(2)),
     tempo_seccionamento_s,
-    materiais: gerarListaMateriais(potencia_kw, tipo_carregador, bitola_cabo_mm2, disjuntor_a, dr_ma, comprimento_cabo_m),
+    materiais: gerarListaMateriais(potencia_kw, tipo_carregador, bitola_cabo_mm2, disjuntor_a, dr_ma, dps_kv, comprimento_cabo_m),
   }
 }
 
-function gerarListaMateriais(potencia_kw, tipo_carregador, bitola_mm2, disjuntor_a, dr_ma, comprimento_m) {
+function gerarListaMateriais(potencia_kw, tipo_carregador, bitola_mm2, disjuntor_a, dr_ma, dps_kv, comprimento_m) {
   const materiais = [
     { item: 'Carregador EV', especificacao: `${tipo_carregador} ${potencia_kw}kW`, quantidade: 1 },
     { item: 'Cabo de alimentação', especificacao: `${bitola_mm2} mm² (Cu, 0,6/1kV)`, quantidade: comprimento_m },
     { item: 'Disjuntor termomagnético', especificacao: `${disjuntor_a}A Curva C`, quantidade: 1 },
     { item: 'Dispositivo DR', especificacao: `${dr_ma}mA Tipo A`, quantidade: 1 },
+    { item: 'DPS (Proteção contra Surtos)', especificacao: `${dps_kv}V Classe II`, quantidade: 1 },
     { item: 'Eletroduto rígido/conduíte', especificacao: 'Proteção mecânica', quantidade: comprimento_m },
     { item: 'Fita isolante', especificacao: 'Vedação de conexões', quantidade: 5 },
     { item: 'Cinta de fixação', especificacao: 'Suporte do cabo', quantidade: 10 },

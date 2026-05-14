@@ -1,0 +1,231 @@
+.componente-realista {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  background: white;
+  border-radius: 8px;
+  border: 2px solid #e5e7eb;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.componente-realista:hover {
+  border-color: #3b82f6;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+}
+
+.componente-realista.selected {
+  border-color: #3b82f6;
+  background: #eff6ff;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.componente-realista.editing {
+  border-color: #f97316;
+  background: #fffbeb;
+}
+
+/* SVG do Componente */
+.componente-svg {
+  width: 140px;
+  height: 140px;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+  transition: transform 0.2s ease;
+}
+
+.componente-realista:hover .componente-svg {
+  transform: scale(1.05);
+}
+
+.componente-realista.selected .componente-svg {
+  filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.6));
+}
+
+/* Toolbar de edição */
+.componente-toolbar {
+  display: flex;
+  gap: 6px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.componente-realista:hover .componente-toolbar {
+  opacity: 1;
+}
+
+.btn-edit,
+.btn-delete {
+  padding: 6px 10px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.btn-edit {
+  background: #fbbf24;
+  color: #78350f;
+}
+
+.btn-edit:hover {
+  background: #f59e0b;
+  transform: scale(1.1);
+}
+
+.btn-delete {
+  background: #fecaca;
+  color: #7f1d1d;
+}
+
+.btn-delete:hover {
+  background: #fca5a5;
+  transform: scale(1.1);
+}
+
+/* Modal de edição */
+.componente-edit-modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 20px 25px rgba(0, 0, 0, 0.15);
+  padding: 20px;
+  z-index: 1000;
+  min-width: 320px;
+  border: 2px solid #f97316;
+}
+
+.componente-edit-modal h4 {
+  margin: 0 0 16px 0;
+  font-size: 16px;
+  color: #1f2937;
+  border-bottom: 2px solid #f97316;
+  padding-bottom: 8px;
+}
+
+.edit-field {
+  margin-bottom: 14px;
+}
+
+.edit-field label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 5px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.edit-field input,
+.edit-field select {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 13px;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.edit-field input:focus,
+.edit-field select:focus {
+  outline: none;
+  border-color: #f97316;
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
+}
+
+.edit-buttons {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.btn-save,
+.btn-cancel {
+  flex: 1;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+}
+
+.btn-save {
+  background: #10b981;
+  color: white;
+}
+
+.btn-save:hover {
+  background: #059669;
+}
+
+.btn-cancel {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+.btn-cancel:hover {
+  background: #d1d5db;
+}
+
+/* Handles do React Flow */
+.react-flow__handle {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 2px solid white;
+  background: #10b981;
+  box-shadow: 0 0 0 2px #059669;
+}
+
+.react-flow__handle.connectingto {
+  background: #3b82f6;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  .componente-realista {
+    padding: 8px;
+  }
+
+  .componente-svg {
+    width: 120px;
+    height: 120px;
+  }
+
+  .componente-edit-modal {
+    min-width: 280px;
+    padding: 16px;
+  }
+}
+
+/* Animação de entrada */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.componente-realista {
+  animation: slideIn 0.3s ease;
+}

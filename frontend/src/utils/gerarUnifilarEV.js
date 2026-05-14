@@ -87,12 +87,19 @@ function gerarDiagramaCircuito(x, y, width, height, tipo_carregador, calculos) {
     <line x1="${centerX}" y1="${y + step * 1.2 - 15}" x2="${centerX}" y2="${y + step * 1.2}" class="linha"/>
     <line x1="${centerX}" y1="${y + step * 1.2 + boxHeight}" x2="${centerX}" y2="${y + step * 1.2 + boxHeight + 15}" class="linha"/>
 
+    <!-- DPS (PROTEÇÃO CONTRA SURTOS) - OBRIGATÓRIO -->
+    <rect x="${centerX - boxWidth/2}" y="${y + step * 2}" width="${boxWidth}" height="${boxHeight}" class="box-esp" stroke="#ff6b35" stroke-width="2"/>
+    <text x="${centerX - 20}" y="${y + step * 2 + 20}" class="texto">DPS</text>
+    <text x="${centerX - 40}" y="${y + step * 2 + 35}" class="pequeno">${calculos.dps_kv}V</text>
+    <line x1="${centerX}" y1="${y + step * 2 - 15}" x2="${centerX}" y2="${y + step * 2}" class="linha"/>
+    <line x1="${centerX}" y1="${y + step * 2 + boxHeight}" x2="${centerX}" y2="${y + step * 2 + boxHeight + 15}" class="linha"/>
+
     <!-- DR -->
-    <rect x="${centerX - boxWidth/2}" y="${y + step * 2.4}" width="${boxWidth}" height="${boxHeight}" class="box-esp"/>
-    <text x="${centerX - 15}" y="${y + step * 2.4 + 20}" class="texto">DR</text>
-    <text x="${centerX - 35}" y="${y + step * 2.4 + 35}" class="pequeno">${calculos.dr_ma}mA</text>
-    <line x1="${centerX}" y1="${y + step * 2.4 - 15}" x2="${centerX}" y2="${y + step * 2.4}" class="linha"/>
-    <line x1="${centerX}" y1="${y + step * 2.4 + boxHeight}" x2="${centerX}" y2="${y + step * 2.4 + boxHeight + 15}" class="linha"/>
+    <rect x="${centerX - boxWidth/2}" y="${y + step * 2.8}" width="${boxWidth}" height="${boxHeight}" class="box-esp"/>
+    <text x="${centerX - 15}" y="${y + step * 2.8 + 20}" class="texto">DR</text>
+    <text x="${centerX - 35}" y="${y + step * 2.8 + 35}" class="pequeno">${calculos.dr_ma}mA</text>
+    <line x1="${centerX}" y1="${y + step * 2.8 - 15}" x2="${centerX}" y2="${y + step * 2.8}" class="linha"/>
+    <line x1="${centerX}" y1="${y + step * 2.8 + boxHeight}" x2="${centerX}" y2="${y + step * 2.8 + boxHeight + 15}" class="linha"/>
 
     <!-- CABO -->
     <rect x="${centerX - boxWidth/2}" y="${y + step * 3.6}" width="${boxWidth}" height="${boxHeight}" class="box"/>
@@ -102,10 +109,10 @@ function gerarDiagramaCircuito(x, y, width, height, tipo_carregador, calculos) {
     <line x1="${centerX}" y1="${y + step * 3.6 + boxHeight}" x2="${centerX}" y2="${y + step * 3.6 + boxHeight + 15}" class="linha"/>
 
     <!-- CARREGADOR -->
-    <rect x="${centerX - boxWidth/2}" y="${y + step * 4.8}" width="${boxWidth}" height="${boxHeight}" class="box-esp"/>
-    <text x="${centerX - 40}" y="${y + step * 4.8 + 20}" class="texto">Carregador</text>
-    <text x="${centerX - 40}" y="${y + step * 4.8 + 35}" class="pequeno">${tipo_carregador}</text>
-    <line x1="${centerX}" y1="${y + step * 4.8 - 15}" x2="${centerX}" y2="${y + step * 4.8}" class="linha"/>
+    <rect x="${centerX - boxWidth/2}" y="${y + step * 4.4}" width="${boxWidth}" height="${boxHeight}" class="box-esp"/>
+    <text x="${centerX - 40}" y="${y + step * 4.4 + 20}" class="texto">Carregador</text>
+    <text x="${centerX - 40}" y="${y + step * 4.4 + 35}" class="pequeno">${tipo_carregador}</text>
+    <line x1="${centerX}" y1="${y + step * 4.4 - 15}" x2="${centerX}" y2="${y + step * 4.4}" class="linha"/>
   `
 }
 

@@ -9,6 +9,7 @@ import ReactFlow, {
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import ComponentNode from './nodes/ComponentNode';
+import ComponenteRealista from './nodes/ComponenteRealista';
 import { converterCalculosParaNodesEdges, validarDiagrama, resetarPosicoes } from './utils/reactFlowHelpers';
 import { recalcularDiagrama, validarParametrosNBR5410, gerarListaMateriais, validarValorCampo, validarFluxoEletricoCompleto } from './utils/electricalCalculations';
 import { validarConexao, obterTipoConexaoEsperado, obterHandlesCompativeis } from './utils/connectionValidator';
@@ -16,11 +17,23 @@ import { useHistorioDiagrama } from '../../hooks/useHistorioDiagrama';
 import './InteractiveDiagram.css';
 
 const nodeTypes = {
+  // Componentes realistas (visual melhorado)
+  gridNodeRealista: ComponenteRealista,
+  breakerNodeRealista: ComponenteRealista,
+  dpsNodeRealista: ComponenteRealista,
+  drNodeRealista: ComponenteRealista,
+  cableNodeRealista: ComponenteRealista,
+  chargerNodeRealista: ComponenteRealista,
+  customNodeRealista: ComponenteRealista,
+
+  // Componentes genéricos (fallback)
   gridNode: ComponentNode,
   breakerNode: ComponentNode,
+  dpsNode: ComponentNode,
   drNode: ComponentNode,
   cableNode: ComponentNode,
   chargerNode: ComponentNode,
+  customNode: ComponentNode,
   specsNode: ComponentNode
 };
 
@@ -43,6 +56,14 @@ export default function InteractiveDiagram({
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [selectedNode, setSelectedNode] = useState(null);
   const [validacao, setValidacao] = useState({ valido: true, erros: [] });
+  const [mostraModalCustomizado, setMostraModalCustomizado] = useState(false);
+  const [novoCustomizado, setNovoCustomizado] = useState({
+    nome: '',
+    descricao: '',
+    valor1: '',
+    valor2: ''
+  });
+  const [usarRealista, setUsarRealista] = useState(true); // Usar componentes com desenhos realistas
 
   // Hook para Undo/Redo
   const historioDiagrama = useHistorioDiagrama(projeto?.projeto_id || 'diagrama-sem-id');
@@ -317,24 +338,50 @@ export default function InteractiveDiagram({
     }
   }, [nodes, edges, setNodes, onDiagramChange, historioDiagrama]);
 
+  // Adicionar componente customizado
+  const handleSalvarCustomizado = useCallback(() => {
+    if (!novoCustomizado.nome.trim()) {
+      alert('⚠️ Nome do componente é obrigatório');
+      return;
+    }
+
+    const camposCustos = {
+      nome: novoCustomizado.nome,
+      descricao: novoCustomizado.descricao,
+      valores: {
+        valor1: novoCustomizado.valor1,
+        valor2: novoCustomizado.valor2
+      }
+    };
+
+    handleAdicionarNode('customizado', camposCustos);
+
+    // Limpar formulário e fechar modal
+    setNovoCustomizado({ nome: '', descricao: '', valor1: '', valor2: '' });
+    setMostraModalCustomizado(false);
+  }, [novoCustomizado, handleAdicionarNode]);
+
   // Adicionar novo nó
   const handleAdicionarNode = useCallback(
-    (tipo) => {
+    (tipo, camposCustos = {}) => {
       // Gerar ID único
       const id = `${tipo}-${Date.now()}`;
       const yOffset = Math.random() * 200;
 
       const novoNode = {
         id,
-        type: tipo + 'Node',
+        type: usarRealista
+          ? (tipo === 'customizado' ? 'customNodeRealista' : tipo + 'NodeRealista')
+          : (tipo === 'customizado' ? 'customNode' : tipo + 'Node'),
         position: { x: 100 + Math.random() * 100, y: 50 + yOffset },
         data: {
           tipo: tipo,
-          nome: tipo.toUpperCase(),
-          label: tipo.toUpperCase(),
+          nome: camposCustos.nome || tipo.toUpperCase(),
+          label: camposCustos.nome || tipo.toUpperCase(),
           editable: true,
           onUpdate: (campo, valor) => handleUpdateNodeValue(id, campo, valor),
-          onDelete: () => handleDeleteNode(id)
+          onDelete: () => handleDeleteNode(id),
+          ...camposCustos // Mesclar campos customizados
         }
       };
 
@@ -345,6 +392,9 @@ export default function InteractiveDiagram({
         novoNode.data.corrente_projeto_a = 32.5;
       } else if (tipo === 'disjuntor') {
         novoNode.data.corrente_a = 32;
+      } else if (tipo === 'dps') {
+        novoNode.data.tensao_kv = 275;
+        novoNode.data.capacidade_a = 50;
       } else if (tipo === 'dr') {
         novoNode.data.ma = 30;
       } else if (tipo === 'cabo') {
@@ -353,6 +403,9 @@ export default function InteractiveDiagram({
       } else if (tipo === 'carregador') {
         novoNode.data.potencia_kw = 7;
         novoNode.data.tipo_carregador = 'AC Trifásico';
+      } else if (tipo === 'customizado') {
+        novoNode.data.customizado = true;
+        novoNode.data.valores = camposCustos.valores || {};
       }
 
       const nodesAtualizados = [...nodes, novoNode];
@@ -439,6 +492,13 @@ export default function InteractiveDiagram({
               DISJ.
             </button>
             <button
+              onClick={() => handleAdicionarNode('dps')}
+              className="btn-add btn-dps"
+              title="Adicionar DPS (Proteção contra Surtos) - OBRIGATÓRIO"
+            >
+              DPS ⚡
+            </button>
+            <button
               onClick={() => handleAdicionarNode('dr')}
               className="btn-add btn-dr"
               title="Adicionar DR"
@@ -459,12 +519,26 @@ export default function InteractiveDiagram({
             >
               CARR.
             </button>
+            <button
+              onClick={() => setMostraModalCustomizado(true)}
+              className="btn-add btn-custom"
+              title="Adicionar componente customizado/editável"
+            >
+              ➕ Customizado
+            </button>
           </div>
         )}
 
         <div className="toolbar-actions">
           {!readOnly && (
             <>
+              <button
+                onClick={() => setUsarRealista(!usarRealista)}
+                className="btn btn-secondary"
+                title={usarRealista ? 'Mostrar vista genérica' : 'Mostrar vista realista'}
+              >
+                {usarRealista ? '🎨 Realista' : '📐 Genérico'}
+              </button>
               <button
                 onClick={historioDiagrama.desfazer}
                 disabled={!historioDiagrama.podeDesfazer}
@@ -666,6 +740,103 @@ export default function InteractiveDiagram({
               <li key={idx}>{erro}</li>
             ))}
           </ul>
+        </div>
+      )}
+
+      {/* Modal para Adicionar Componente Customizado */}
+      {mostraModalCustomizado && (
+        <div className="modal-overlay" onClick={() => setMostraModalCustomizado(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>➕ Adicionar Componente Customizado</h3>
+              <button
+                className="modal-close"
+                onClick={() => setMostraModalCustomizado(false)}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="modal-body">
+              <div className="form-group">
+                <label>Nome do Componente *</label>
+                <input
+                  type="text"
+                  placeholder="Ex: Transformador, Protetor de surto adicional, etc"
+                  value={novoCustomizado.nome}
+                  onChange={e =>
+                    setNovoCustomizado({ ...novoCustomizado, nome: e.target.value })
+                  }
+                  className="form-input"
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Descrição</label>
+                <input
+                  type="text"
+                  placeholder="Ex: 10 kVA, 30mA, etc"
+                  value={novoCustomizado.descricao}
+                  onChange={e =>
+                    setNovoCustomizado({
+                      ...novoCustomizado,
+                      descricao: e.target.value
+                    })
+                  }
+                  className="form-input"
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Valor 1 (Especificação)</label>
+                <input
+                  type="text"
+                  placeholder="Ex: 50A, 200V, etc"
+                  value={novoCustomizado.valor1}
+                  onChange={e =>
+                    setNovoCustomizado({ ...novoCustomizado, valor1: e.target.value })
+                  }
+                  className="form-input"
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Valor 2 (Especificação)</label>
+                <input
+                  type="text"
+                  placeholder="Ex: Classe II, 5A, etc"
+                  value={novoCustomizado.valor2}
+                  onChange={e =>
+                    setNovoCustomizado({ ...novoCustomizado, valor2: e.target.value })
+                  }
+                  className="form-input"
+                />
+              </div>
+
+              <div className="modal-help">
+                <p>
+                  💡 <strong>Dica:</strong> Componentes customizados podem ser
+                  editados e movidos livremente no diagrama para se adaptar às
+                  suas necessidades específicas.
+                </p>
+              </div>
+            </div>
+
+            <div className="modal-footer">
+              <button
+                className="btn btn-primary"
+                onClick={handleSalvarCustomizado}
+              >
+                ➕ Adicionar Componente
+              </button>
+              <button
+                className="btn btn-secondary"
+                onClick={() => setMostraModalCustomizado(false)}
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

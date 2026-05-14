@@ -14,9 +14,10 @@ export function converterCalculosParaNodesEdges(calculos, projeto) {
   const nodePositions = {
     grid: { x: 100, y: 50 },
     breaker: { x: 100, y: 150 },
-    dr: { x: 100, y: 250 },
-    cable: { x: 100, y: 350 },
-    charger: { x: 100, y: 450 },
+    dps: { x: 100, y: 225 },
+    dr: { x: 100, y: 300 },
+    cable: { x: 100, y: 400 },
+    charger: { x: 100, y: 500 },
     specs: { x: 400, y: 50 }
   };
 
@@ -48,6 +49,22 @@ export function converterCalculosParaNodesEdges(calculos, projeto) {
       corrente_maxima_a: calculos.corrente_maxima_a,
       label: `DISJUNTOR\n${calculos.disjuntor_a}A`,
       editable: true
+    }
+  };
+
+  // Nó 2.5: DPS (Surge Protection) - OBRIGATÓRIO
+  const dpsNode = {
+    id: 'dps-1',
+    type: 'dpsNode',
+    position: nodePositions.dps,
+    data: {
+      tipo: 'dps',
+      nome: 'DPS',
+      tensao_kv: calculos.dps_kv,
+      capacidade_a: calculos.dps_capacidade_a,
+      label: `DPS\n${calculos.dps_kv}V`,
+      editable: true,
+      obrigatorio: true
     }
   };
 
@@ -117,7 +134,7 @@ export function converterCalculosParaNodesEdges(calculos, projeto) {
     }
   };
 
-  const nodes = [gridNode, breakerNode, drNode, cableNode, chargerNode, specsNode];
+  const nodes = [gridNode, breakerNode, dpsNode, drNode, cableNode, chargerNode, specsNode];
 
   // Edges: conexões lineares de cima para baixo
   const edges = [
@@ -130,8 +147,16 @@ export function converterCalculosParaNodesEdges(calculos, projeto) {
       data: { tipo: 'ca' }
     },
     {
-      id: 'breaker-dr',
+      id: 'breaker-dps',
       source: 'breaker-1',
+      target: 'dps-1',
+      type: 'smoothstep',
+      animated: false,
+      data: { tipo: 'ca' }
+    },
+    {
+      id: 'dps-dr',
+      source: 'dps-1',
       target: 'dr-1',
       type: 'smoothstep',
       animated: false,
@@ -175,6 +200,11 @@ export function obterEstiloNode(tipo) {
       border: '2px solid #1d4ed8',
       color: '#fff'
     },
+    dps: {
+      background: '#ff6b35',
+      border: '3px solid #e85922',
+      color: '#fff'
+    },
     dr: {
       background: '#8b5cf6',
       border: '2px solid #7c3aed',
@@ -194,6 +224,11 @@ export function obterEstiloNode(tipo) {
       background: '#f3f4f6',
       border: '2px solid #d1d5db',
       color: '#1f2937'
+    },
+    customizado: {
+      background: '#fbbf24',
+      border: '2px solid #f59e0b',
+      color: '#1f2937'
     }
   };
 
@@ -206,12 +241,17 @@ export function obterEstiloNode(tipo) {
  * @returns {Object} { valido: boolean, erros: [] }
  */
 export function validarDiagrama(nodes) {
-  const tiposObrigatorios = ['rede', 'disjuntor', 'dr', 'cabo', 'carregador'];
+  const tiposObrigatorios = ['rede', 'disjuntor', 'dps', 'dr', 'cabo', 'carregador'];
   const tiposPresentes = nodes.map(n => n.data.tipo);
 
   const erros = tiposObrigatorios.filter(
     tipo => !tiposPresentes.includes(tipo)
-  ).map(tipo => `Falta componente obrigatório: ${tipo}`);
+  ).map(tipo => {
+    if (tipo === 'dps') {
+      return `❌ Componente OBRIGATÓRIO faltando: DPS (Proteção contra Surtos)`;
+    }
+    return `Falta componente obrigatório: ${tipo}`;
+  });
 
   return {
     valido: erros.length === 0,
