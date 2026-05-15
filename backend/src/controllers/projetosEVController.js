@@ -42,6 +42,27 @@ export const buscarProjetoEV = async (req, res) => {
     }
 
     if (!p) return res.status(404).json({ mensagem: 'Projeto não encontrado' })
+
+    // Auto-calcular calculos_nbr se estiver vazio/faltando
+    if (!p.calculos_nbr || Object.keys(p.calculos_nbr).length === 0) {
+      if (p.carregadores && p.carregadores.length > 0) {
+        console.log('📊 Auto-calculando NBR para projeto:', req.params.id)
+        try {
+          const resultados = executarCalculosProjetoEV(p.toObject ? p.toObject() : p)
+          if (!resultados.erro && resultados.calculos_nbr) {
+            p.calculos_nbr = resultados.calculos_nbr
+            // Se não está em memory storage, salvar no MongoDB
+            if (!usarMemoryStorage()) {
+              await ProjetoEV.findByIdAndUpdate(req.params.id, { calculos_nbr: resultados.calculos_nbr })
+            }
+          }
+        } catch (calcErr) {
+          console.warn('⚠️  Erro ao auto-calcular NBR:', calcErr.message)
+          // Continua mesmo com erro nos cálculos
+        }
+      }
+    }
+
     res.json(p)
   } catch (err) {
     console.error('❌ Erro ao buscar projeto EV:', err)

@@ -358,6 +358,24 @@ export function determinarModoOperacao(tipo_carregador, potencia_kw = 0) {
  * @param {object} dados - Dados do projeto com potencia_kw, tensao_v, comprimento_m, resistencia_ohms
  * @returns {object} Objeto com cálculos_nbr e conformidade_norms
  */
+/**
+ * Gera lista de materiais necessários para instalação de carregador EV
+ */
+function gerarListaMaterialesNBRProjeto(potencia_kw, tipo_carregador, bitola_mm2, disjuntor_a, dr_ma, comprimento_m) {
+  return [
+    { item: 'Carregador EV', especificacao: `${tipo_carregador} ${potencia_kw}kW`, quantidade: 1 },
+    { item: 'Cabo de alimentação', especificacao: `${bitola_mm2} mm² (Cu, 0,6/1kV)`, quantidade: comprimento_m },
+    { item: 'Disjuntor termomagnético', especificacao: `${disjuntor_a}A Curva C`, quantidade: 1 },
+    { item: 'Dispositivo DR', especificacao: `${dr_ma}mA Tipo A`, quantidade: 1 },
+    { item: 'DPS (Proteção contra Surtos)', especificacao: '420V Classe II', quantidade: 1 },
+    { item: 'Eletroduto rígido/conduíte', especificacao: 'Proteção mecânica', quantidade: comprimento_m },
+    { item: 'Fita isolante', especificacao: 'Vedação de conexões', quantidade: 5 },
+    { item: 'Cinta de fixação', especificacao: 'Suporte do cabo', quantidade: 10 },
+    { item: 'Haste de aterramento', especificacao: '2,4m cobre 16mm dia', quantidade: 1 },
+    { item: 'Tomadas/conectores', especificacao: 'Conforme carregador', quantidade: 2 },
+  ]
+}
+
 export function executarCalculosProjetoEV(dados) {
   if (!dados.carregadores || dados.carregadores.length === 0) {
     return { erro: 'Nenhum carregador definido' }
@@ -404,6 +422,24 @@ export function executarCalculosProjetoEV(dados) {
     conforme: bitola_data.queda_tensao_ok && (!aterramento_data || aterramento_data.conforme),
   }
 
+  // Cálculo de tempo de seccionamento automático
+  // Para eletrocussão (< 50V): até 5s
+  // Para 120V a 230V: até 0.4s
+  // Para > 230V: até 0.2s
+  let tempo_seccionamento_s = 0.2
+  if (tensao_v <= 120) tempo_seccionamento_s = 0.4
+  if (tensao_v <= 50) tempo_seccionamento_s = 5
+
+  // Geração de lista de materiais
+  const materiais = gerarListaMaterialesNBRProjeto(
+    potencia_kw,
+    carregador.tipo || 'AC_Tri',
+    bitola_data.bitola_mm2,
+    disjuntor_data.disjuntor_a,
+    dr_data.corrente_fuga_max_ma,
+    comprimento_m
+  )
+
   return {
     calculos_nbr: {
       corrente_projeto_a: corrente_projeto,
@@ -411,7 +447,9 @@ export function executarCalculosProjetoEV(dados) {
       bitola_cabo_mm2: bitola_data.bitola_mm2,
       disjuntor_a: disjuntor_data.disjuntor_a,
       dr_ma: dr_data.corrente_fuga_max_ma,
+      tempo_seccionamento_s: tempo_seccionamento_s,
       queda_tensao_pct: bitola_data.queda_tensao_real,
+      materiais: materiais,
     },
     conformidade_norms: conformidade,
     detalhes: {
