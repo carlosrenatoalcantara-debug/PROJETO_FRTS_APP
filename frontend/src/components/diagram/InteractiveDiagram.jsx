@@ -113,7 +113,7 @@ export default function InteractiveDiagram({
         onDiagramChange({ nodes: nodesComCallbacks, edges: novoEdges });
       }
     }
-  }, []); // Apenas na montagem
+  }, [calculos, projeto, onDiagramChange]); // ✨ Atualizar quando props mudam!
 
   // Quando nó é selecionado
   const handleNodeClick = useCallback((event, node) => {
@@ -133,7 +133,7 @@ export default function InteractiveDiagram({
       }));
       setNodes(nodesAtualizados);
     }
-  }, []); // Apenas para inicializar os callbacks
+  }, [nodes, handleUpdateNodeValue, handleDeleteNode, setNodes]); // ✨ Dependências corretas
 
   // Keyboard shortcuts para Undo/Redo
   useEffect(() => {

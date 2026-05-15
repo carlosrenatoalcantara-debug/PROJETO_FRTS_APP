@@ -211,6 +211,11 @@ export default function NovaPropostaEV() {
 
       console.log('💾 Salvando unifilar no estado...')
       setUnifilar(unifilarSvg)
+
+      // ✨ Ativar automaticamente modo de edição quando unifilar é gerado
+      console.log('✨ Ativando editor interativo automaticamente...')
+      setModoEdicao(true)
+
       console.log('✅ Cálculo NBR concluído com sucesso!')
     } catch (err) {
       console.error('❌ Erro ao calcular NBR:', err)
