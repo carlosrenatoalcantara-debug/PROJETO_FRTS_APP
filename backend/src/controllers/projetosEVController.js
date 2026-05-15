@@ -43,8 +43,12 @@ export const buscarProjetoEV = async (req, res) => {
 
     if (!p) return res.status(404).json({ mensagem: 'Projeto não encontrado' })
 
-    // Auto-calcular calculos_nbr se estiver vazio/faltando
-    if (!p.calculos_nbr || Object.keys(p.calculos_nbr).length === 0) {
+    // Auto-calcular calculos_nbr se estiver vazio ou faltando campos essenciais (DPS, tempo_seccionamento)
+    const camposEssenciais = ['dps_kv', 'dps_capacidade_a', 'tempo_seccionamento_s']
+    const faltamCampos = !p.calculos_nbr ||
+                         camposEssenciais.some(campo => !(campo in (p.calculos_nbr || {})))
+
+    if (faltamCampos) {
       if (p.carregadores && p.carregadores.length > 0) {
         console.log('📊 Auto-calculando NBR para projeto:', req.params.id)
         try {

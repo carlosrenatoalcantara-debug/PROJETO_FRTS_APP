@@ -24,6 +24,9 @@
           "bitola_cabo_mm2": 10,
           "disjuntor_a": 40,
           "dr_ma": 30,
+          "dps_kv": 275,
+          "dps_capacidade_a": 52,
+          "tempo_seccionamento_s": 0.4,
           "queda_tensao_pct": 1.25,
           "materiais": [
             {
@@ -48,11 +51,37 @@
           "crea": "SP 123456/D",
           "tipo_profissional": "crea"
         },
-        "createdAt": "2026-05-13T13:34:36.650Z",
-        "updatedAt": "2026-05-13T13:34:36.650Z"
+        "createdAt": "2026-05-15T20:29:31.181Z",
+        "updatedAt": "2026-05-15T20:29:31.181Z"
       }
     ],
     "clientes": [
+      {
+        "_id": "cli-alice-farm",
+        "nome": "Fazenda Alice",
+        "email": "fazenda.alice@example.com",
+        "cpf_cnpj": "00.000.000/0001-00",
+        "numero_cliente": "2301040659",
+        "endereco_completo": "Rod BR 101, KM 250, São Paulo - SP",
+        "distribuidora": "Cosern",
+        "tipo_ligacao": "Trifásico",
+        "tags": [
+          "parecer-import"
+        ]
+      },
+      {
+        "_id": "cli-sarah-brasil",
+        "nome": "Sarah Rodrigues Brasil",
+        "email": "sarah.brasil@example.com",
+        "cpf_cnpj": "123.456.789-10",
+        "numero_cliente": "2409118802",
+        "endereco_completo": "Rua Principal, 123, Rio Grande do Norte",
+        "distribuidora": "Cosern",
+        "tipo_ligacao": "Monofásico",
+        "tags": [
+          "parecer-import"
+        ]
+      },
       {
         "_id": "cliente-teste-1",
         "nome": "João Silva",
@@ -63,12 +92,11 @@
         "cep": "59.054-550",
         "carga_instalada_w": 18140,
         "unidade_consumidora": "007028936405",
-        "createdAt": "2026-05-13T13:34:36.649Z",
-        "updatedAt": "2026-05-13T13:34:36.650Z"
+        "createdAt": "2026-05-15T20:29:31.180Z",
+        "updatedAt": "2026-05-15T20:29:31.181Z"
       }
     ],
     "projetos_fv": [],
-    "configuracoes": [],
     "equipamentos": [
       {
         "_id": "mod-neosolar-400",
@@ -215,13 +243,14 @@
         "preco_sugerido": 80000,
         "ativo": true
       }
-    ]
+    ],
+    "configuracoes": []
   },
   "idCounters": {
     "projetos_ev": 1,
     "clientes": 1,
     "projetos_fv": 1,
-    "equipamentos": 10
+    "equipamentos": 1
   },
-  "lastSaved": "2026-05-13T13:34:36.650Z"
+  "lastSaved": "2026-05-15T20:29:31.181Z"
 }

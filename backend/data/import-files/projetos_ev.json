@@ -1,0 +1,55 @@
+[
+  {
+    "_id": "proj-ev-teste-1",
+    "clienteId": "cliente-teste-1",
+    "nome": "Casa João Silva - Carregador EV",
+    "tipo_carregamento": "AC",
+    "status": "rascunho",
+    "carregadores": [
+      {
+        "tipo": "AC_Mono",
+        "potencia_kw": 7,
+        "marca": "EMOBI",
+        "modelo": "Evowatt Boreal Master 7kW",
+        "quantidade": 1,
+        "tensao_entrada_v": 220,
+        "corrente_entrada_a": 32
+      }
+    ],
+    "calculos_nbr": {
+      "corrente_projeto_a": 32,
+      "corrente_maxima_a": 32,
+      "bitola_cabo_mm2": 10,
+      "disjuntor_a": 40,
+      "dr_ma": 30,
+      "dps_kv": 275,
+      "dps_capacidade_a": 52,
+      "tempo_seccionamento_s": 0.4,
+      "queda_tensao_pct": 1.25,
+      "materiais": [
+        {
+          "item": "Disjuntor Bipolar",
+          "especificacao": "40A Curva C",
+          "quantidade": 1
+        },
+        {
+          "item": "Dispositivo DR",
+          "especificacao": "40A/30mA",
+          "quantidade": 1
+        },
+        {
+          "item": "Cabo PP",
+          "especificacao": "10mm² (Fase)",
+          "quantidade": 50
+        }
+      ]
+    },
+    "tecnico": {
+      "nome": "Carlos Renato Alcantara",
+      "crea": "SP 123456/D",
+      "tipo_profissional": "crea"
+    },
+    "createdAt": "2026-05-13T13:34:36.650Z",
+    "updatedAt": "2026-05-13T13:34:36.650Z"
+  }
+]

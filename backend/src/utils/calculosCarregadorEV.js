@@ -430,6 +430,10 @@ export function executarCalculosProjetoEV(dados) {
   if (tensao_v <= 120) tempo_seccionamento_s = 0.4
   if (tensao_v <= 50) tempo_seccionamento_s = 5
 
+  // Cálculo de DPS (Proteção contra Surtos)
+  const dps_kv = tensao_v >= 380 ? 420 : 275
+  const dps_capacidade_a = corrente_data.corrente_calculada + 20
+
   // Geração de lista de materiais
   const materiais = gerarListaMaterialesNBRProjeto(
     potencia_kw,
@@ -447,6 +451,8 @@ export function executarCalculosProjetoEV(dados) {
       bitola_cabo_mm2: bitola_data.bitola_mm2,
       disjuntor_a: disjuntor_data.disjuntor_a,
       dr_ma: dr_data.corrente_fuga_max_ma,
+      dps_kv: dps_kv,
+      dps_capacidade_a: dps_capacidade_a,
       tempo_seccionamento_s: tempo_seccionamento_s,
       queda_tensao_pct: bitola_data.queda_tensao_real,
       materiais: materiais,

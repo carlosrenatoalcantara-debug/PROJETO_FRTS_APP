@@ -54,6 +54,8 @@ const projetoEVSchema = new mongoose.Schema({
     bitola_cabo_mm2: Number,
     disjuntor_a: Number,
     dr_ma: Number,
+    dps_kv: Number,
+    dps_capacidade_a: Number,
     tempo_seccionamento_s: Number,
     queda_tensao_pct: Number,
     materiais: [{ item: String, especificacao: String, quantidade: Number }],

@@ -120,6 +120,9 @@ class MemoryStore {
         bitola_cabo_mm2: 10,
         disjuntor_a: 40,
         dr_ma: 30,
+        dps_kv: 275,
+        dps_capacidade_a: 52,
+        tempo_seccionamento_s: 0.4,
         queda_tensao_pct: 1.25,
         materiais: [
           { item: 'Disjuntor Bipolar', especificacao: '40A Curva C', quantidade: 1 },
