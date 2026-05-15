@@ -1,0 +1,15 @@
+[
+  {
+    "_id": "cliente-teste-1",
+    "nome": "João Silva",
+    "cpf": "123.456.789-00",
+    "email": "joao@example.com",
+    "telefone": "(84) 99999-9999",
+    "endereco_completo": "Rua dos Tororós, 730 Apto 801, Natal/RN",
+    "cep": "59.054-550",
+    "carga_instalada_w": 18140,
+    "unidade_consumidora": "007028936405",
+    "createdAt": "2026-05-13T13:34:36.649Z",
+    "updatedAt": "2026-05-13T13:34:36.650Z"
+  }
+]

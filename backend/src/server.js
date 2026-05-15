@@ -7,6 +7,10 @@ import { fileURLToPath } from 'url'
 import mongoose from './config/database.js'
 import { conectarBD } from './config/database.js'
 
+// 🔐 Security modules
+import { setupSecurityHeaders, secureErrorHandler } from './security/security-headers.js'
+import { authenticateToken, auditLogger } from './security/auth-middleware.js'
+
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 import { inicializarCRM } from './seeds/crmInitialData.js'
@@ -39,6 +43,8 @@ import rotasAuth         from './routes/auth.js'
 import rotasCalculadora  from './routes/calculadora.js'
 import rotasCarregadoresEV from './routes/carregadoresEV.js'
 import rotasParecerAcesso from './routes/pareceracesso.js'
+import rotasAuthSegura   from './routes/auth-security.js'  // 🔐 Novo sistema de autenticação seguro
+import rotasIntegrations from './routes/integrations.js'   // 🔐 Gerenciamento seguro de chaves de API
 import errorHandler      from './middleware/errorHandler.js'
 
 const app  = express()
@@ -77,6 +83,13 @@ const corsOptions = {
 }
 
 app.use(cors(corsOptions))
+
+// 🔐 Security headers (Helmet.js, HSTS, CSP, etc)
+setupSecurityHeaders(app)
+
+// 📋 Audit logging for all requests
+app.use(auditLogger)
+
 // Aumentar limite de payload para aceitar PDFs grandes (até 50MB)
 app.use(express.json({ limit: '50mb' }))
 app.use(express.urlencoded({ limit: '50mb', extended: true }))
@@ -125,7 +138,11 @@ app.use('/api/reconectar', async (_req, res) => {
     res.status(500).json({ status: 'falhou', erro: erro.message })
   }
 })
-app.use('/api/auth',         rotasAuth)
+// 🔐 Usar nova rota de autenticação segura
+app.use('/api/auth',         rotasAuthSegura)
+// 🔐 Gerenciamento seguro de integrações (APIs, chaves)
+app.use('/api/integrations', rotasIntegrations)
+// app.use('/api/auth-legacy', rotasAuth)  // Rota antiga desabilitada
 app.use('/api/calculadora',  rotasCalculadora)
 app.use('/api/carregadores-ev', rotasCarregadoresEV)
 app.use('/api/dashboard',    rotasDashboard)
@@ -166,6 +183,10 @@ app.get('*', (req, res) => {
   }
 })
 
+// 🔐 Secure error handler (não expõe stack traces em produção)
+app.use(secureErrorHandler)
+
+// Fallback do error handler padrão
 app.use(errorHandler)
 
 // Iniciar servidor e conectar ao banco de dados

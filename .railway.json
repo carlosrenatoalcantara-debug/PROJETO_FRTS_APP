@@ -1,0 +1,6 @@
+{
+  "builder": "nixpacks",
+  "variables": {
+    "NIXPACKS_NODE_VERSION": "24.15.0"
+  }
+}

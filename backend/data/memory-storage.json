@@ -51,8 +51,8 @@
           "crea": "SP 123456/D",
           "tipo_profissional": "crea"
         },
-        "createdAt": "2026-05-15T20:29:31.181Z",
-        "updatedAt": "2026-05-15T20:29:31.181Z"
+        "createdAt": "2026-05-15T20:47:37.529Z",
+        "updatedAt": "2026-05-15T20:47:37.529Z"
       }
     ],
     "clientes": [
@@ -92,8 +92,8 @@
         "cep": "59.054-550",
         "carga_instalada_w": 18140,
         "unidade_consumidora": "007028936405",
-        "createdAt": "2026-05-15T20:29:31.180Z",
-        "updatedAt": "2026-05-15T20:29:31.181Z"
+        "createdAt": "2026-05-15T20:47:37.528Z",
+        "updatedAt": "2026-05-15T20:47:37.529Z"
       }
     ],
     "projetos_fv": [],
@@ -252,5 +252,5 @@
     "projetos_fv": 1,
     "equipamentos": 1
   },
-  "lastSaved": "2026-05-15T20:29:31.181Z"
+  "lastSaved": "2026-05-15T20:47:37.529Z"
 }

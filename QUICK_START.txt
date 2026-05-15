@@ -1,0 +1,146 @@
+╔════════════════════════════════════════════════════════════════════════════╗
+║                                                                            ║
+║                    ⚡ FORTE SOLAR - QUICK START ⚡                         ║
+║                                                                            ║
+║                  Sistema 100% Online Pronto em 10 Minutos                ║
+║                                                                            ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+
+🟢 AGORA (Sistema Local Rodando):
+════════════════════════════════════════════════════════════════════════════
+
+BACKEND:      ✅ http://localhost:3000
+FRONTEND:     ✅ http://localhost:5173
+SEGURANÇA:    ✅ Implementada (AES-256, JWT, RBAC)
+STATUS:       ✅ PRONTO PARA USAR
+
+
+⚡ COMECE AGORA - 2 PASSOS:
+════════════════════════════════════════════════════════════════════════════
+
+PASSO 1: Abra seu navegador
+─────────────────────────────────────────────────────────────────────────
+
+   Copie e cole na barra de endereço:
+   
+   http://localhost:5173
+
+
+PASSO 2: Faça Login
+─────────────────────────────────────────────────────────────────────────
+
+   Email:    demo@fortesolar.com.br
+   Senha:    DemoPass123!
+   
+   [Clique em LOGIN]
+
+
+✨ VOCÊ JÁ ESTÁ DENTRO! Veja:
+─────────────────────────────────────────────────────────────────────────
+
+   • Menu (canto superior)
+   • ⚙️ Configurações
+   • 🔑 Chaves de API
+   • Seção "Google Gemini"
+   • Cole sua chave API (de https://ai.google.dev)
+   • Clique "Salvar todas as chaves"
+   • Veja em "🔒 Chaves Seguras (Servidor)" - CRIPTOGRAFADA!
+
+
+🚀 COLOCAR 100% ONLINE - 5 MINUTOS:
+════════════════════════════════════════════════════════════════════════════
+
+Se quer que QUALQUER PESSOA acesse seu app de qualquer lugar do mundo:
+
+PASSO 1: GitHub
+───────────────
+
+   a) Vá para https://github.com/signup (se não tem conta)
+   b) Crie sua conta
+   c) Vá para https://github.com/new
+   d) Crie novo repositório: "Forte-Solar-App"
+   e) Copie seu código para esse repositório
+
+
+PASSO 2: Railway.app
+───────────────────
+
+   a) Vá para https://railway.app
+   b) Clique "Login" → "Login with GitHub"
+   c) Autorize o acesso
+   d) Clique "New Project"
+   e) Selecione "Deploy from GitHub repo"
+   f) Escolha seu repositório "Forte-Solar-App"
+   g) Railway faz deploy automático!
+   
+   ⏱️ Espere 3-5 minutos
+   
+   h) Você verá uma URL: https://seu-app-xxxxx.railway.app
+   i) Acesse essa URL - seu app está ONLINE para o mundo! 🌍
+
+
+PRONTO! ✅
+════════════════════════════════════════════════════════════════════════════
+
+Seu Forte Solar agora está:
+
+✅ Rodando localmente em http://localhost:5173
+✅ Com segurança enterprise-grade (AES-256, JWT)
+✅ Com Gemini API armazenada de forma segura
+✅ Pronto para ir online em 5-10 minutos
+✅ 100% acessível para qualquer pessoa no mundo
+
+
+🎯 CHECKLIST:
+════════════════════════════════════════════════════════════════════════════
+
+   ☑️  Backend rodando (porta 3000)
+   ☑️  Frontend rodando (porta 5173)  
+   ☑️  Consegui fazer login
+   ☑️  Vi a página de Configurações
+   ☑️  Consegui adicionar uma chave de teste
+   
+   Próximo:
+   ☐ Fazer deploy em Railway.app
+   ☐ Compartilhar URL pública com seu time
+   ☐ Gerenciar APIs de forma segura
+
+
+❓ DÚVIDAS?
+════════════════════════════════════════════════════════════════════════════
+
+"Preciso de uma API real para testar?"
+→ Vá para https://ai.google.dev
+→ Sign in com sua conta Google
+→ Clique em "Get API Key"
+→ Copie a chave (começa com AIzaSy...)
+→ Cole em Configurações → Google Gemini
+→ Salve - está criptografada! 🔒
+
+
+"Como saber se minha API está segura?"
+→ Após salvar, procure "🔒 Chaves Seguras (Servidor)"
+→ Veja a chave mascarada: ****xyz123
+→ Isto significa: Criptografada com AES-256 ✅
+
+
+"Quantos usuários pode ter?"
+→ Ilimitado! Railway escalona automaticamente
+→ Cada usuário tem suas próprias chaves criptografadas
+
+
+"Preciso pagar?"
+→ Railway oferece $5 gratuitos por mês
+→ Isso cobre um app pequeno-médio
+→ Upgrade quando crescer
+
+
+════════════════════════════════════════════════════════════════════════════
+
+                    AGORA VIZE SUA APLICAÇÃO NO AR!
+
+        Local:  http://localhost:5173 (já funcionando!)
+        Online: https://seu-app.railway.app (em 5 minutos!)
+
+════════════════════════════════════════════════════════════════════════════

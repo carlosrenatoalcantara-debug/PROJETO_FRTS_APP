@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, Search, Phone, Mail, MapPin, X, Edit2, FileUp, Sun, Zap } from 'lucide-react'
+import { Plus, Search, Phone, Mail, MapPin, X, Edit2, FileUp, Sun, Zap, Trash2 } from 'lucide-react'
 import Card, { CardHeader, CardBody } from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import Badge from '../components/ui/Badge'
@@ -690,6 +690,7 @@ export default function Clientes() {
   const navigate = useNavigate()
   const [clienteSelecionado, setClienteSelecionado] = useState(null)
   const [clienteParaEditar, setClienteParaEditar] = useState(null)
+  const [clienteParaDeletar, setClienteParaDeletar] = useState(null)
   const [clientes, setClientes] = useState([])
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState('')
@@ -726,6 +727,28 @@ export default function Clientes() {
   function handleClienteEditado(clienteAtualizado) {
     setClientes(prev => prev.map(c => c._id === clienteAtualizado._id ? clienteAtualizado : c))
     setClienteParaEditar(null)
+  }
+
+  async function handleDeleteCliente(clienteId) {
+    setCarregando(true)
+    setErro('')
+    try {
+      const res = await fetch(`${API_URL}/api/clientes/${clienteId}`, {
+        method: 'DELETE',
+      })
+
+      if (!res.ok) {
+        throw new Error('Erro ao deletar cliente')
+      }
+
+      // Remove o cliente da lista
+      setClientes(prev => prev.filter(c => c._id !== clienteId))
+      setClienteParaDeletar(null)
+    } catch (err) {
+      setErro(`Erro ao deletar: ${err.message}`)
+    } finally {
+      setCarregando(false)
+    }
   }
 
   const clientesFiltrados = clientes.filter(c =>
@@ -803,6 +826,7 @@ export default function Clientes() {
                       </td>
                       <td className="px-6 py-4 text-right flex gap-2 justify-end">
                         <Button variante="fantasma" tamanho="sm" icone={Edit2} onClick={() => setClienteParaEditar(c)} />
+                        <Button variante="fantasma" tamanho="sm" icone={Trash2} onClick={() => setClienteParaDeletar(c)} />
                         <Button variante="fantasma" tamanho="sm" onClick={() => setClienteSelecionado(c)}>Ver</Button>
                       </td>
                     </tr>
@@ -827,6 +851,41 @@ export default function Clientes() {
           onClose={() => setClienteParaEditar(null)}
           onSalvo={handleClienteEditado}
         />
+      )}
+
+      {clienteParaDeletar && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-md">
+            <CardHeader className="flex items-center justify-between">
+              <h3 className="font-semibold text-slate-900">Confirmar Exclusão</h3>
+              <button onClick={() => setClienteParaDeletar(null)} className="text-slate-500 hover:text-slate-700">
+                <X size={18} />
+              </button>
+            </CardHeader>
+            <CardBody>
+              <div className="space-y-4">
+                <p className="text-sm text-slate-600">
+                  Tem certeza que deseja deletar o cliente <span className="font-semibold text-slate-900">{clienteParaDeletar.nome}</span>?
+                </p>
+                <p className="text-xs text-slate-500">
+                  Esta ação não pode ser desfeita.
+                </p>
+                <div className="flex gap-3 pt-4">
+                  <Button onClick={() => setClienteParaDeletar(null)} variante="secundario" className="flex-1">
+                    Cancelar
+                  </Button>
+                  <Button
+                    onClick={() => handleDeleteCliente(clienteParaDeletar._id)}
+                    disabled={carregando}
+                    className="flex-1 bg-red-500 hover:bg-red-600 text-white"
+                  >
+                    {carregando ? 'Deletando...' : 'Deletar'}
+                  </Button>
+                </div>
+              </div>
+            </CardBody>
+          </Card>
+        </div>
       )}
     </div>
   )
