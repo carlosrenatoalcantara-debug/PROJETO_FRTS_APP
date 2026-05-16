@@ -53,7 +53,7 @@ const PORT = process.env.PORT || 5001
 // Configuração CORS com mais detalhes
 const corsOptions = {
   origin: (origin, callback) => {
-    // Permite localhost em qualquer porta (3000, 3001, 3005, etc.)
+    // Permite localhost em qualquer porta (3000, 3001, 3005, 5173, etc.)
     // e também produção se necessário
     const allowedOrigins = [
       'http://localhost:3000',
@@ -65,6 +65,7 @@ const corsOptions = {
       'http://localhost:3006',
       'http://localhost:3007',
       'http://localhost:3008',
+      'http://localhost:5173',
       'http://127.0.0.1:3000',
       'https://projeto-frts-app.vercel.app',
     ]

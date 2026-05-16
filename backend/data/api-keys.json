@@ -1,0 +1,39 @@
+{
+  "apiKeys": [
+    {
+      "keyId": "GoogleMaps-1778958400427-uvo9ja2lz",
+      "userId": "test-user-123",
+      "integrationName": "GoogleMaps",
+      "description": "Test Google Maps API key",
+      "encrypted": {
+        "iv": "6d2709d1367411d04378877a392ebd54",
+        "encryptedValue": "QUl6YVN5REdXekhtSmtaQ3hLMmZtaFZxekpoNFFxNUMtOHhRMFhF",
+        "salt": "ee64192ea45d5763651039a14cbcbac0"
+      },
+      "isActive": true,
+      "createdAt": "2026-05-16T19:06:40.427Z",
+      "rotationDueAt": "2026-08-14T19:06:40.427Z",
+      "accessCount": 0,
+      "lastUsed": null,
+      "deactivatedAt": null
+    },
+    {
+      "keyId": "GoogleMaps-1778958403891-hhe5zo8wt",
+      "userId": "test-user-123",
+      "integrationName": "GoogleMaps",
+      "description": "Test Google Maps API key",
+      "encrypted": {
+        "iv": "8ab7d69b5c5b52ca0b641733436ad6e0",
+        "encryptedValue": "QUl6YVN5REdXekhtSmtaQ3hLMmZtaFZxekpoNFFxNUMtOHhRMFhF",
+        "salt": "98b24c910933f4352f9ce96620802e2c"
+      },
+      "isActive": true,
+      "createdAt": "2026-05-16T19:06:43.891Z",
+      "rotationDueAt": "2026-08-14T19:06:43.891Z",
+      "accessCount": 0,
+      "lastUsed": null,
+      "deactivatedAt": null
+    }
+  ],
+  "lastSaved": "2026-05-16T19:06:43.891Z"
+}
