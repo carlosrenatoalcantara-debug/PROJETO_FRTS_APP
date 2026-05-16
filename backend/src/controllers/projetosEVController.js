@@ -88,10 +88,11 @@ export const criarProjetoEV = async (req, res) => {
     if (usarMemoryStorage()) {
       console.log('⚠️  Criando projeto em memória')
       const novo = memoryStore.createProjetoEV({
+        ...req.body,
         clienteId,
         nome,
         tipo_carregamento: tipo_carregamento || 'AC',
-        status: 'rascunho',
+        status: req.body.status || 'rascunho',
       })
       console.log('✓ Projeto EV criado em memória:', novo._id)
       res.status(201).json(novo)
@@ -102,26 +103,49 @@ export const criarProjetoEV = async (req, res) => {
       return res.status(400).json({ erro: 'ClienteId inválido' })
     }
 
-    const novo = new ProjetoEV({
+    // Construir objeto com todos os dados que chegam do frontend
+    const novoProjetoData = {
       clienteId,
       nome,
       tipo_carregamento: tipo_carregamento || 'AC',
-      status: 'rascunho',
-    })
+      status: req.body.status || 'rascunho',
+      // Incluir todos os dados adicionais enviados pelo frontend
+      ...(req.body.endereco_completo && { endereco_completo: req.body.endereco_completo }),
+      ...(req.body.latitude && { latitude: req.body.latitude }),
+      ...(req.body.longitude && { longitude: req.body.longitude }),
+      ...(req.body.carregadores && { carregadores: req.body.carregadores }),
+      ...(req.body.quantidade_pontos && { quantidade_pontos: req.body.quantidade_pontos }),
+      ...(req.body.potencia_total_kw && { potencia_total_kw: req.body.potencia_total_kw }),
+      ...(req.body.comprimento_cabo_m && { comprimento_cabo_m: req.body.comprimento_cabo_m }),
+      ...(req.body.calculos_nbr && { calculos_nbr: req.body.calculos_nbr }),
+      ...(req.body.tecnico && { tecnico: req.body.tecnico }),
+      ...(req.body.modo_operacao && { modo_operacao: req.body.modo_operacao }),
+      ...(req.body.fases && { fases: req.body.fases }),
+      ...(req.body.tensao_sistema && { tensao_sistema: req.body.tensao_sistema }),
+    }
+
+    const novo = new ProjetoEV(novoProjetoData)
 
     await novo.save()
     await novo.populate('clienteId')
-    console.log('✓ Projeto EV criado:', novo._id)
+
+    console.log('✓ Projeto EV criado:', novo._id, {
+      nome: novo.nome,
+      quantidade_pontos: novo.quantidade_pontos,
+      potencia_total_kw: novo.potencia_total_kw,
+      carregadores: novo.carregadores?.length || 0,
+    })
     res.status(201).json(novo)
   } catch (err) {
     console.error('❌ Erro ao criar projeto EV:', err)
     // Fallback
     try {
       const novo = memoryStore.createProjetoEV({
+        ...req.body,
         clienteId: req.body.clienteId,
         nome: req.body.nome,
         tipo_carregamento: req.body.tipo_carregamento || 'AC',
-        status: 'rascunho',
+        status: req.body.status || 'rascunho',
       })
       res.status(201).json(novo)
     } catch (memErr) {
@@ -146,6 +170,18 @@ export const atualizarProjetoEV = async (req, res) => {
 
     // Merge dos dados
     const dadosAtualizacao = { ...req.body }
+
+    // Se carregadores são atualizados, recalcular quantidade_pontos e potencia_total_kw
+    if (dadosAtualizacao.carregadores && Array.isArray(dadosAtualizacao.carregadores)) {
+      const quantidade_pontos = dadosAtualizacao.carregadores.length
+      const potencia_total_kw = dadosAtualizacao.carregadores.reduce(
+        (sum, c) => sum + ((c.potencia_kw || 0) * (c.quantidade || 1)),
+        0
+      )
+      dadosAtualizacao.quantidade_pontos = quantidade_pontos
+      dadosAtualizacao.potencia_total_kw = potencia_total_kw
+      console.log(`✓ Recalculados: ${quantidade_pontos} pontos, ${potencia_total_kw}kW`)
+    }
 
     // Verificar se há mudanças nos campos que requerem recálculo
     const requerCalculos =
@@ -325,6 +361,56 @@ export const exportarPDFProjetoEV = async (req, res) => {
     console.log(`✓ PDF gerado para projeto: ${projeto.nome}`)
   } catch (err) {
     console.error('❌ Erro ao gerar PDF:', err)
+    res.status(500).json({ erro: err.message })
+  }
+}
+
+/**
+ * POST /api/projetos-ev/manutencao/recalcular-potencias
+ * Recalcular quantidade_pontos e potencia_total_kw de todos os projetos
+ * Útil para corrigir dados históricos
+ */
+export const recalcularPotenciasProjetosEV = async (_req, res) => {
+  try {
+    if (usarMemoryStorage()) {
+      return res.status(503).json({ erro: 'MongoDB não disponível para esta operação' })
+    }
+
+    const projetos = await ProjetoEV.find({ carregadores: { $exists: true, $ne: [] } })
+
+    let atualizados = 0
+    let erros = 0
+
+    for (const projeto of projetos) {
+      try {
+        const quantidade_pontos = projeto.carregadores.length
+        const potencia_total_kw = projeto.carregadores.reduce(
+          (sum, c) => sum + ((c.potencia_kw || 0) * (c.quantidade || 1)),
+          0
+        )
+
+        if (projeto.quantidade_pontos !== quantidade_pontos || projeto.potencia_total_kw !== potencia_total_kw) {
+          await ProjetoEV.findByIdAndUpdate(projeto._id, {
+            quantidade_pontos,
+            potencia_total_kw,
+          })
+          atualizados++
+          console.log(`✓ Atualizado ${projeto.nome}: ${quantidade_pontos} pontos, ${potencia_total_kw}kW`)
+        }
+      } catch (err) {
+        erros++
+        console.error(`❌ Erro ao atualizar ${projeto.nome}:`, err.message)
+      }
+    }
+
+    res.json({
+      mensagem: 'Recalculu concluído',
+      total_projetos: projetos.length,
+      atualizados,
+      erros,
+    })
+  } catch (err) {
+    console.error('❌ Erro ao recalcular potências:', err)
     res.status(500).json({ erro: err.message })
   }
 }

@@ -1,9 +1,24 @@
 import { Cliente } from '../models/Cliente.js'
+import mongoose from 'mongoose'
+import { memoryStore } from '../config/memoryStorage.js'
+
+const usarMemoryStorage = () => mongoose.connection.readyState !== 1
 
 export const listarClientes = async (_req, res) => {
   try {
-    const clientes = await Cliente.find().sort({ createdAt: -1 })
-    console.log(`✓ GET /api/clientes - Listando ${clientes.length} clientes`)
+    let clientes
+
+    // Usar memory storage se MongoDB está offline
+    if (usarMemoryStorage()) {
+      console.log('⚠️  MongoDB offline - Usando dados em memória')
+      clientes = memoryStore.findAllClientes().sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+      console.log(`✓ GET /api/clientes - Listando ${clientes.length} clientes (memory storage)`)
+      return res.json({ data: clientes, origem: 'memory' })
+    }
+
+    // Usar MongoDB se disponível
+    clientes = await Cliente.find().sort({ createdAt: -1 })
+    console.log(`✓ GET /api/clientes - Listando ${clientes.length} clientes (MongoDB)`)
     res.json(clientes)
   } catch (err) {
     console.error('❌ Erro ao listar clientes:', err)
@@ -13,7 +28,18 @@ export const listarClientes = async (_req, res) => {
 
 export const buscarCliente = async (req, res) => {
   try {
-    const cliente = await Cliente.findById(req.params.id)
+    let cliente
+
+    // Usar memory storage se MongoDB está offline
+    if (usarMemoryStorage()) {
+      console.log('⚠️  MongoDB offline - Usando dados em memória')
+      cliente = memoryStore.findClienteById(req.params.id)
+      if (!cliente) return res.status(404).json({ mensagem: 'Cliente não encontrado' })
+      return res.json(cliente)
+    }
+
+    // Usar MongoDB se disponível
+    cliente = await Cliente.findById(req.params.id)
     if (!cliente) return res.status(404).json({ mensagem: 'Cliente não encontrado' })
     res.json(cliente)
   } catch (err) {
@@ -36,7 +62,7 @@ export const criarCliente = async (req, res) => {
       return res.status(400).json({ mensagem: 'Nome e email são obrigatórios', campos: { nome, email } })
     }
 
-    const novo = new Cliente({
+    const clienteData = {
       nome: nome.trim(),
       email: email.toLowerCase().trim(),
       telefone: telefone || '',
@@ -55,10 +81,22 @@ export const criarCliente = async (req, res) => {
       valor_kwh: parseFloat(valor_kwh) || 0,
       consumo_kwh: parseFloat(consumo_kwh) || 0,
       status: 'ativo',
-    })
+    }
 
+    let novo
+
+    // Usar memory storage se MongoDB está offline
+    if (usarMemoryStorage()) {
+      console.log('⚠️  MongoDB offline - Salvando em memória')
+      novo = memoryStore.createCliente(clienteData)
+      console.log('✓ Cliente criado com sucesso (memory storage):', novo._id, `(${nome})`)
+      return res.status(201).json(novo)
+    }
+
+    // Usar MongoDB se disponível
+    novo = new Cliente(clienteData)
     await novo.save()
-    console.log('✓ Cliente criado com sucesso:', novo._id, `(${nome})`)
+    console.log('✓ Cliente criado com sucesso (MongoDB):', novo._id, `(${nome})`)
     res.status(201).json(novo)
   } catch (err) {
     if (err.code === 11000) {

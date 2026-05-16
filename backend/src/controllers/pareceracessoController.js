@@ -550,9 +550,7 @@ export const extrairParecer = async (req, res) => {
       svgContent = '' // Continue without SVG if generation fails
     }
 
-    // ===---- STEP 7: Return results ----=====
-    await parser.destroy()
-
+    // ===== STEP 7: Return results =====
     res.json({
       sucesso: true,
       projeto: {

@@ -1,87 +1,6 @@
 {
   "collections": {
-    "projetos_ev": [
-      {
-        "_id": "proj-ev-teste-1",
-        "clienteId": "cliente-teste-1",
-        "nome": "Casa João Silva - Carregador EV",
-        "tipo_carregamento": "AC",
-        "status": "rascunho",
-        "carregadores": [
-          {
-            "tipo": "AC_Mono",
-            "potencia_kw": 7,
-            "marca": "EMOBI",
-            "modelo": "Evowatt Boreal Master 7kW",
-            "quantidade": 1,
-            "tensao_entrada_v": 220,
-            "corrente_entrada_a": 32
-          }
-        ],
-        "calculos_nbr": {
-          "corrente_projeto_a": 32,
-          "corrente_maxima_a": 32,
-          "bitola_cabo_mm2": 10,
-          "disjuntor_a": 40,
-          "dr_ma": 30,
-          "dps_kv": 275,
-          "dps_capacidade_a": 52,
-          "tempo_seccionamento_s": 0.4,
-          "queda_tensao_pct": 1.25,
-          "materiais": [
-            {
-              "item": "Disjuntor Bipolar",
-              "especificacao": "40A Curva C",
-              "quantidade": 1
-            },
-            {
-              "item": "Dispositivo DR",
-              "especificacao": "40A/30mA",
-              "quantidade": 1
-            },
-            {
-              "item": "Cabo PP",
-              "especificacao": "10mm² (Fase)",
-              "quantidade": 50
-            }
-          ]
-        },
-        "tecnico": {
-          "nome": "Carlos Renato Alcantara",
-          "crea": "SP 123456/D",
-          "tipo_profissional": "crea"
-        },
-        "createdAt": "2026-05-15T20:47:37.529Z",
-        "updatedAt": "2026-05-15T20:47:37.529Z"
-      }
-    ],
     "clientes": [
-      {
-        "_id": "cli-alice-farm",
-        "nome": "Fazenda Alice",
-        "email": "fazenda.alice@example.com",
-        "cpf_cnpj": "00.000.000/0001-00",
-        "numero_cliente": "2301040659",
-        "endereco_completo": "Rod BR 101, KM 250, São Paulo - SP",
-        "distribuidora": "Cosern",
-        "tipo_ligacao": "Trifásico",
-        "tags": [
-          "parecer-import"
-        ]
-      },
-      {
-        "_id": "cli-sarah-brasil",
-        "nome": "Sarah Rodrigues Brasil",
-        "email": "sarah.brasil@example.com",
-        "cpf_cnpj": "123.456.789-10",
-        "numero_cliente": "2409118802",
-        "endereco_completo": "Rua Principal, 123, Rio Grande do Norte",
-        "distribuidora": "Cosern",
-        "tipo_ligacao": "Monofásico",
-        "tags": [
-          "parecer-import"
-        ]
-      },
       {
         "_id": "cliente-teste-1",
         "nome": "João Silva",
@@ -92,11 +11,10 @@
         "cep": "59.054-550",
         "carga_instalada_w": 18140,
         "unidade_consumidora": "007028936405",
-        "createdAt": "2026-05-15T20:47:37.528Z",
-        "updatedAt": "2026-05-15T20:47:37.529Z"
+        "createdAt": "2026-05-13T13:34:36.649Z",
+        "updatedAt": "2026-05-13T13:34:36.650Z"
       }
     ],
-    "projetos_fv": [],
     "equipamentos": [
       {
         "_id": "mod-neosolar-400",
@@ -244,13 +162,69 @@
         "ativo": true
       }
     ],
+    "projetos_ev": [
+      {
+        "_id": "proj-ev-teste-1",
+        "clienteId": "cliente-teste-1",
+        "nome": "Casa João Silva - Carregador EV",
+        "tipo_carregamento": "AC",
+        "status": "rascunho",
+        "carregadores": [
+          {
+            "tipo": "AC_Mono",
+            "potencia_kw": 7,
+            "marca": "EMOBI",
+            "modelo": "Evowatt Boreal Master 7kW",
+            "quantidade": 1,
+            "tensao_entrada_v": 220,
+            "corrente_entrada_a": 32
+          }
+        ],
+        "calculos_nbr": {
+          "corrente_projeto_a": 32,
+          "corrente_maxima_a": 32,
+          "bitola_cabo_mm2": 10,
+          "disjuntor_a": 40,
+          "dr_ma": 30,
+          "dps_kv": 275,
+          "dps_capacidade_a": 52,
+          "tempo_seccionamento_s": 0.4,
+          "queda_tensao_pct": 1.25,
+          "materiais": [
+            {
+              "item": "Disjuntor Bipolar",
+              "especificacao": "40A Curva C",
+              "quantidade": 1
+            },
+            {
+              "item": "Dispositivo DR",
+              "especificacao": "40A/30mA",
+              "quantidade": 1
+            },
+            {
+              "item": "Cabo PP",
+              "especificacao": "10mm² (Fase)",
+              "quantidade": 50
+            }
+          ]
+        },
+        "tecnico": {
+          "nome": "Carlos Renato Alcantara",
+          "crea": "SP 123456/D",
+          "tipo_profissional": "crea"
+        },
+        "createdAt": "2026-05-13T13:34:36.650Z",
+        "updatedAt": "2026-05-13T13:34:36.650Z"
+      }
+    ],
+    "projetos_fv": [],
     "configuracoes": []
   },
   "idCounters": {
-    "projetos_ev": 1,
     "clientes": 1,
-    "projetos_fv": 1,
-    "equipamentos": 1
+    "equipamentos": 1,
+    "projetos_ev": 1,
+    "projetos_fv": 1
   },
-  "lastSaved": "2026-05-15T20:47:37.529Z"
+  "lastSaved": "2026-05-16T18:42:42.074Z"
 }
