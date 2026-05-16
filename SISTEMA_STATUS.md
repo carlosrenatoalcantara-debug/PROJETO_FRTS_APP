@@ -65,10 +65,12 @@ Added DPS field values to test project:
 Changed `VITE_API_URL=http://localhost:5005` → `http://localhost:3000`
 - **Status**: ✓ Corrected
 
-## Known Issues
+## Issue Resolution
 
-### Issue: DPS Fields Missing from HTTP API Response
-**Status**: 🔴 **BLOCKING - NEEDS INVESTIGATION**
+### ✅ RESOLVED: DPS Fields Missing from HTTP API Response
+**Status**: 🟢 **FIXED** - May 16, 2026
+
+**Resolution**: After backend restart and proper memory store initialization, all DPS fields now appear in API responses.
 
 - **Symptom**: API returns project without `dps_kv`, `dps_capacidade_a`, `tempo_seccionamento_s`
 - **Data Flow Analysis**:
