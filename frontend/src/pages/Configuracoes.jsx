@@ -60,7 +60,6 @@ export default function Configuracoes() {
     description: '',
   })
   const [enviandoChave, setEnviandoChave] = useState(false)
-  const [mostrarChavesDescriptografadas, setMostrarChavesDescriptografadas] = useState({})
 
   useEffect(() => {
     carregarChaves()
