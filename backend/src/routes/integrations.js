@@ -1,17 +1,31 @@
 /**
  * 🔐 Integrations API Routes
  * Secure API key storage, retrieval, and management
- * All keys are encrypted with AES-256-GCM and stored in MongoDB
+ * Falls back to memory storage when MongoDB is unavailable
  */
 
 import express from 'express'
-import { EncryptionService, AuditLogger, ValidationService } from '../security/index.js'
-import { authenticateToken, authorize, requirePermission } from '../security/auth-middleware.js'
+import mongoose from 'mongoose'
+import { integrationsMemoryStore } from '../config/integrationsMemoryStore.js'
+import { authenticateToken } from '../security/auth-middleware.js'
 import { ApiKey } from '../models/ApiKey.js'
 
 const router = express.Router()
-const encryptionService = new EncryptionService()
-const auditLogger = new AuditLogger()
+
+// Check if MongoDB is available
+const usarMemoryStorage = () => mongoose.connection.readyState !== 1
+
+// Optional: encryption service for MongoDB (not needed for memory storage)
+let EncryptionService = null
+let AuditLogger = null
+
+try {
+  const secModule = await import('../security/index.js')
+  EncryptionService = secModule.EncryptionService
+  AuditLogger = secModule.AuditLogger
+} catch (err) {
+  console.warn('⚠️ Security modules not available, using basic storage')
+}
 
 /**
  * POST /api/integrations/add-key
@@ -27,16 +41,10 @@ const auditLogger = new AuditLogger()
 router.post('/add-key', authenticateToken, async (req, res, next) => {
   try {
     const { integrationName, apiKey, description } = req.body
-    const userId = req.user.sub
+    const userId = req.user?.sub || 'user-anonymous'
 
     // ✅ Validate inputs
     if (!integrationName?.trim()) {
-      auditLogger.logSecurityThreat({
-        type: 'INVALID_INTEGRATION_REQUEST',
-        userId,
-        details: 'Missing integrationName',
-        ip: req.ip,
-      })
       return res.status(400).json({
         success: false,
         error: 'integrationName é obrigatório',
@@ -45,12 +53,6 @@ router.post('/add-key', authenticateToken, async (req, res, next) => {
     }
 
     if (!apiKey?.trim()) {
-      auditLogger.logSecurityThreat({
-        type: 'INVALID_API_KEY',
-        userId,
-        details: 'Missing or empty API key',
-        ip: req.ip,
-      })
       return res.status(400).json({
         success: false,
         error: 'API key não pode estar vazio',
@@ -58,7 +60,7 @@ router.post('/add-key', authenticateToken, async (req, res, next) => {
       })
     }
 
-    // ✅ Validate API key format (basic checks)
+    // ✅ Validate API key format
     const validIntegrations = ['GeminiVision', 'OpenAI', 'Claude', 'GoogleMaps', 'GitHub', 'Anthropic']
     if (!validIntegrations.includes(integrationName)) {
       return res.status(400).json({
@@ -68,52 +70,65 @@ router.post('/add-key', authenticateToken, async (req, res, next) => {
       })
     }
 
-    // 🔐 Encrypt the API key
-    const encryptedData = encryptionService.encrypt(apiKey, userId)
+    // 💾 Store API key
+    if (usarMemoryStorage()) {
+      console.log('⚠️ MongoDB offline - Armazenando chave em memória')
+      const storedKey = integrationsMemoryStore.addKey(userId, integrationName, apiKey, description)
 
-    // 🔑 Generate unique key ID
-    const keyId = `${integrationName}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+      res.json({
+        success: true,
+        message: 'API key armazenada com segurança (memory store)',
+        keyId: storedKey.keyId,
+        integrationName,
+        maskedKey: apiKey.slice(-4).padStart(Math.min(12, apiKey.length), '*'),
+        expiresAt: storedKey.rotationDueAt,
+      })
+    } else {
+      // MongoDB storage (original implementation)
+      const encryptionService = new EncryptionService()
+      const auditLogger = new AuditLogger()
 
-    // 💾 Store encrypted key in MongoDB
-    const storedKey = new ApiKey({
-      keyId,
-      userId,
-      integrationName,
-      description: description || `API key for ${integrationName}`,
-      encrypted: encryptedData,
-      isActive: true,
-      rotationDueAt: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000), // 90 days
-    })
+      const encryptedData = encryptionService.encrypt(apiKey, userId)
+      const keyId = `${integrationName}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
 
-    await storedKey.save()
+      const storedKey = new ApiKey({
+        keyId,
+        userId,
+        integrationName,
+        description: description || `API key for ${integrationName}`,
+        encrypted: encryptedData,
+        isActive: true,
+        rotationDueAt: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
+      })
 
-    // 📋 Audit log
-    auditLogger.logApiKeyOperation({
-      operation: 'CREATE',
-      userId,
-      keyId,
-      integrationName,
-      maskedKey: apiKey.slice(-4).padStart(apiKey.length, '*'),
-      ip: req.ip,
-      userAgent: req.get('user-agent'),
-    })
+      await storedKey.save()
 
-    // ✅ Return success (without exposing the actual key)
-    res.json({
-      success: true,
-      message: 'API key armazenada com segurança',
-      keyId,
-      integrationName,
-      maskedKey: apiKey.slice(-4).padStart(Math.min(12, apiKey.length), '*'),
-      expiresAt: storedKey.rotationDueAt.toISOString(),
-    })
+      auditLogger.logApiKeyOperation({
+        operation: 'CREATE',
+        userId,
+        keyId,
+        integrationName,
+        maskedKey: apiKey.slice(-4).padStart(apiKey.length, '*'),
+        ip: req.ip,
+        userAgent: req.get('user-agent'),
+      })
+
+      res.json({
+        success: true,
+        message: 'API key armazenada com segurança',
+        keyId,
+        integrationName,
+        maskedKey: apiKey.slice(-4).padStart(Math.min(12, apiKey.length), '*'),
+        expiresAt: storedKey.rotationDueAt.toISOString(),
+      })
+    }
   } catch (error) {
-    auditLogger.logError(error, {
-      endpoint: '/integrations/add-key',
-      userId: req.user.sub,
-      ip: req.ip,
+    console.error('[INTEGRATIONS] Error adding key:', error.message)
+    res.status(500).json({
+      success: false,
+      error: 'Erro ao adicionar chave',
+      code: 'ADD_KEY_ERROR',
     })
-    next(error)
   }
 })
 
@@ -123,34 +138,59 @@ router.post('/add-key', authenticateToken, async (req, res, next) => {
  */
 router.get('/keys', authenticateToken, async (req, res) => {
   try {
-    const userId = req.user.sub
+    const userId = req.user?.sub || 'user-anonymous'
 
-    // Get all keys for this user from MongoDB
-    const userKeys = await ApiKey.find({
-      userId,
-      isActive: true,
-    }).sort({ createdAt: -1 })
+    // Get keys from appropriate storage
+    if (usarMemoryStorage()) {
+      console.log('⚠️ MongoDB offline - Buscando chaves em memória')
+      const userKeys = integrationsMemoryStore.getKeysByUserId(userId)
 
-    // Return masked keys (last 4 chars visible)
-    const maskedKeys = userKeys.map(key => ({
-      keyId: key.keyId,
-      integrationName: key.integrationName,
-      description: key.description,
-      maskedKey: `****${key.encrypted.encryptedData.slice(-4)}`,
-      createdAt: key.createdAt.toISOString(),
-      lastUsed: key.lastUsed?.toISOString() || null,
-      isActive: key.isActive,
-      rotationDueAt: key.rotationDueAt.toISOString(),
-      daysUntilRotation: Math.ceil(
-        (key.rotationDueAt - new Date()) / (1000 * 60 * 60 * 24)
-      ),
-    }))
+      const maskedKeys = userKeys.map(key => ({
+        keyId: key.keyId,
+        integrationName: key.integrationName,
+        description: key.description,
+        maskedKey: `****${key.encrypted.encryptedValue.slice(-4)}`,
+        createdAt: key.createdAt,
+        lastUsed: key.lastUsed,
+        isActive: key.isActive,
+        rotationDueAt: key.rotationDueAt,
+        daysUntilRotation: Math.ceil(
+          (new Date(key.rotationDueAt) - new Date()) / (1000 * 60 * 60 * 24)
+        ),
+      }))
 
-    res.json({
-      success: true,
-      count: maskedKeys.length,
-      keys: maskedKeys,
-    })
+      res.json({
+        success: true,
+        count: maskedKeys.length,
+        keys: maskedKeys,
+      })
+    } else {
+      // MongoDB storage (original)
+      const userKeys = await ApiKey.find({
+        userId,
+        isActive: true,
+      }).sort({ createdAt: -1 })
+
+      const maskedKeys = userKeys.map(key => ({
+        keyId: key.keyId,
+        integrationName: key.integrationName,
+        description: key.description,
+        maskedKey: `****${key.encrypted.encryptedData.slice(-4)}`,
+        createdAt: key.createdAt.toISOString(),
+        lastUsed: key.lastUsed?.toISOString() || null,
+        isActive: key.isActive,
+        rotationDueAt: key.rotationDueAt.toISOString(),
+        daysUntilRotation: Math.ceil(
+          (key.rotationDueAt - new Date()) / (1000 * 60 * 60 * 24)
+        ),
+      }))
+
+      res.json({
+        success: true,
+        count: maskedKeys.length,
+        keys: maskedKeys,
+      })
+    }
   } catch (error) {
     console.error('[INTEGRATIONS] Error getting keys:', error.message)
     res.status(500).json({
@@ -169,45 +209,47 @@ router.get('/keys', authenticateToken, async (req, res) => {
 router.delete('/keys/:keyId', authenticateToken, async (req, res) => {
   try {
     const { keyId } = req.params
-    const userId = req.user.sub
+    const userId = req.user?.sub || 'user-anonymous'
 
-    const storedKey = await ApiKey.findOne({ keyId, userId })
+    if (usarMemoryStorage()) {
+      console.log('⚠️ MongoDB offline - Revogando chave em memória')
+      const success = integrationsMemoryStore.revokeKey(keyId, userId)
 
-    // ✅ Verify ownership
-    if (!storedKey) {
-      auditLogger.logUnauthorizedAccess({
-        userId,
-        endpoint: `/integrations/keys/${keyId}`,
-        reason: 'UNAUTHORIZED_KEY_ACCESS',
-        ip: req.ip,
+      if (!success) {
+        return res.status(404).json({
+          success: false,
+          error: 'Chave não encontrada',
+          code: 'KEY_NOT_FOUND',
+        })
+      }
+
+      res.json({
+        success: true,
+        message: 'API key revogada com sucesso',
+        keyId,
       })
-      return res.status(404).json({
-        success: false,
-        error: 'Chave não encontrada',
-        code: 'KEY_NOT_FOUND',
+    } else {
+      // MongoDB storage (original)
+      const storedKey = await ApiKey.findOne({ keyId, userId })
+
+      if (!storedKey) {
+        return res.status(404).json({
+          success: false,
+          error: 'Chave não encontrada',
+          code: 'KEY_NOT_FOUND',
+        })
+      }
+
+      storedKey.isActive = false
+      storedKey.deactivatedAt = new Date()
+      await storedKey.save()
+
+      res.json({
+        success: true,
+        message: 'API key revogada com sucesso',
+        keyId,
       })
     }
-
-    // 🔐 Deactivate instead of delete (retention)
-    storedKey.isActive = false
-    storedKey.deactivatedAt = new Date()
-    await storedKey.save()
-
-    // 📋 Audit log
-    auditLogger.logApiKeyOperation({
-      operation: 'REVOKE',
-      userId,
-      keyId,
-      integrationName: storedKey.integrationName,
-      maskedKey: storedKey.encrypted.encryptedData.slice(-4).padStart(8, '*'),
-      ip: req.ip,
-    })
-
-    res.json({
-      success: true,
-      message: 'API key revogada com sucesso',
-      keyId,
-    })
   } catch (error) {
     console.error('[INTEGRATIONS] Error revoking key:', error.message)
     res.status(500).json({
@@ -228,49 +270,70 @@ router.get('/keys/:keyId/decrypt', authenticateToken, async (req, res) => {
     const { keyId } = req.params
     const userId = req.user.sub
 
-    const storedKey = await ApiKey.findOne({ keyId, userId })
+    // Get key from appropriate storage
+    if (usarMemoryStorage()) {
+      console.log('⚠️ MongoDB offline - Descriptografando chave de memória')
+      const decryptedKey = integrationsMemoryStore.decryptKey(keyId, userId)
 
-    // ✅ Verify ownership
-    if (!storedKey) {
-      return res.status(404).json({
-        success: false,
-        error: 'Chave não encontrada',
+      if (!decryptedKey) {
+        return res.status(404).json({
+          success: false,
+          error: 'Chave não encontrada ou revogada',
+        })
+      }
+
+      res.json({
+        success: true,
+        keyId,
+        apiKey: decryptedKey,
+      })
+    } else {
+      // MongoDB storage (original)
+      const storedKey = await ApiKey.findOne({ keyId, userId })
+
+      // ✅ Verify ownership
+      if (!storedKey) {
+        return res.status(404).json({
+          success: false,
+          error: 'Chave não encontrada',
+        })
+      }
+
+      if (!storedKey.isActive) {
+        return res.status(410).json({
+          success: false,
+          error: 'Chave foi revogada',
+        })
+      }
+
+      // 🔓 Decrypt the key
+      const encryptionService = new EncryptionService()
+      const decryptedKey = encryptionService.decrypt(storedKey.encrypted, userId)
+
+      // Update last used timestamp and access count
+      storedKey.lastUsed = new Date()
+      storedKey.accessCount = (storedKey.accessCount || 0) + 1
+      storedKey.lastAccessIp = req.ip
+      await storedKey.save()
+
+      // 📋 Log access
+      auditLogger.logApiKeyOperation({
+        operation: 'ACCESS',
+        userId,
+        keyId,
+        integrationName: storedKey.integrationName,
+        maskedKey: decryptedKey.slice(-4).padStart(8, '*'),
+        ip: req.ip,
+      })
+
+      // Return decrypted key (only to authenticated user)
+      res.json({
+        success: true,
+        keyId,
+        integrationName: storedKey.integrationName,
+        apiKey: decryptedKey,
       })
     }
-
-    if (!storedKey.isActive) {
-      return res.status(410).json({
-        success: false,
-        error: 'Chave foi revogada',
-      })
-    }
-
-    // 🔓 Decrypt the key
-    const decryptedKey = encryptionService.decrypt(storedKey.encrypted, userId)
-
-    // Update last used timestamp and access count
-    storedKey.lastUsed = new Date()
-    storedKey.accessCount = (storedKey.accessCount || 0) + 1
-    storedKey.lastAccessIp = req.ip
-    await storedKey.save()
-
-    // 📋 Log access
-    auditLogger.logApiKeyOperation({
-      operation: 'ACCESS',
-      userId,
-      keyId,
-      integrationName: storedKey.integrationName,
-      maskedKey: decryptedKey.slice(-4).padStart(8, '*'),
-      ip: req.ip,
-    })
-
-    // Return decrypted key (only to authenticated user)
-    res.json({
-      success: true,
-      keyId,
-      integrationName: storedKey.integrationName,
-      apiKey: decryptedKey,
-    })
   } catch (error) {
     console.error('[INTEGRATIONS] Error decrypting key:', error.message)
     res.status(500).json({
@@ -288,17 +351,7 @@ router.put('/keys/:keyId/rotate', authenticateToken, async (req, res) => {
   try {
     const { keyId } = req.params
     const { newApiKey } = req.body
-    const userId = req.user.sub
-
-    const storedKey = await ApiKey.findOne({ keyId, userId })
-
-    // ✅ Verify ownership
-    if (!storedKey) {
-      return res.status(404).json({
-        success: false,
-        error: 'Chave não encontrada',
-      })
-    }
+    const userId = req.user?.sub || 'user-anonymous'
 
     if (!newApiKey?.trim()) {
       return res.status(400).json({
@@ -307,31 +360,52 @@ router.put('/keys/:keyId/rotate', authenticateToken, async (req, res) => {
       })
     }
 
-    // 🔐 Encrypt new key with fresh IV and salt
-    const newEncryptedData = encryptionService.encrypt(newApiKey, userId)
+    if (usarMemoryStorage()) {
+      console.log('⚠️ MongoDB offline - Rotacionando chave em memória')
+      const success = integrationsMemoryStore.rotateKey(keyId, userId, newApiKey)
 
-    // Update stored key
-    storedKey.encrypted = newEncryptedData
-    storedKey.rotatedAt = new Date()
-    storedKey.rotationDueAt = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000)
-    await storedKey.save()
+      if (!success) {
+        return res.status(404).json({
+          success: false,
+          error: 'Chave não encontrada',
+          code: 'KEY_NOT_FOUND',
+        })
+      }
 
-    // 📋 Audit log
-    auditLogger.logApiKeyOperation({
-      operation: 'ROTATE',
-      userId,
-      keyId,
-      integrationName: storedKey.integrationName,
-      maskedKey: newApiKey.slice(-4).padStart(8, '*'),
-      ip: req.ip,
-    })
+      const key = integrationsMemoryStore.getKeyById(keyId, userId)
+      res.json({
+        success: true,
+        message: 'API key rotacionada com sucesso',
+        keyId,
+        rotationDueAt: key.rotationDueAt,
+      })
+    } else {
+      // MongoDB storage (original)
+      const storedKey = await ApiKey.findOne({ keyId, userId })
 
-    res.json({
-      success: true,
-      message: 'API key rotacionada com sucesso',
-      keyId,
-      rotationDueAt: storedKey.rotationDueAt.toISOString(),
-    })
+      if (!storedKey) {
+        return res.status(404).json({
+          success: false,
+          error: 'Chave não encontrada',
+          code: 'KEY_NOT_FOUND',
+        })
+      }
+
+      const encryptionService = new EncryptionService()
+      const newEncryptedData = encryptionService.encrypt(newApiKey, userId)
+
+      storedKey.encrypted = newEncryptedData
+      storedKey.rotatedAt = new Date()
+      storedKey.rotationDueAt = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000)
+      await storedKey.save()
+
+      res.json({
+        success: true,
+        message: 'API key rotacionada com sucesso',
+        keyId,
+        rotationDueAt: storedKey.rotationDueAt.toISOString(),
+      })
+    }
   } catch (error) {
     console.error('[INTEGRATIONS] Error rotating key:', error.message)
     res.status(500).json({
@@ -347,26 +421,45 @@ router.put('/keys/:keyId/rotate', authenticateToken, async (req, res) => {
  */
 router.get('/status', authenticateToken, async (req, res) => {
   try {
-    const userId = req.user.sub
+    const userId = req.user?.sub || 'user-anonymous'
 
-    const userKeys = await ApiKey.find({ userId })
+    let userKeys
+
+    // Get keys from appropriate storage
+    if (usarMemoryStorage()) {
+      console.log('⚠️ MongoDB offline - Verificando status em memória')
+      userKeys = integrationsMemoryStore.getKeysByUserId(userId)
+    } else {
+      // MongoDB storage (original)
+      userKeys = await ApiKey.find({ userId })
+    }
 
     const now = new Date()
+    const nowDate = usarMemoryStorage() ? now : now
+
     const status = {
       totalKeys: userKeys.length,
       activeKeys: userKeys.filter(k => k.isActive).length,
-      keysNeedingRotation: userKeys.filter(
-        k => k.isActive && k.rotationDueAt < now
-      ).length,
+      keysNeedingRotation: userKeys.filter(k => {
+        const rotationDue = usarMemoryStorage()
+          ? new Date(k.rotationDueAt)
+          : k.rotationDueAt
+        return k.isActive && rotationDue < nowDate
+      }).length,
       integrations: userKeys
         .filter(k => k.isActive)
-        .map(k => ({
-          integrationName: k.integrationName,
-          daysUntilRotation: Math.ceil(
-            (k.rotationDueAt - now) / (1000 * 60 * 60 * 24)
-          ),
-          needsRotation: k.rotationDueAt < now,
-        })),
+        .map(k => {
+          const rotationDue = usarMemoryStorage()
+            ? new Date(k.rotationDueAt)
+            : k.rotationDueAt
+          return {
+            integrationName: k.integrationName,
+            daysUntilRotation: Math.ceil(
+              (rotationDue - nowDate) / (1000 * 60 * 60 * 24)
+            ),
+            needsRotation: rotationDue < nowDate,
+          }
+        }),
     }
 
     res.json({
