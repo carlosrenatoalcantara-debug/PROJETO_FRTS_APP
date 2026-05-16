@@ -5,7 +5,7 @@ import Card, { CardHeader, CardBody } from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import Badge from '../components/ui/Badge'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005'
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
 
 const corStatus = {
   'rascunho': 'cinza',
@@ -129,12 +129,14 @@ export default function ProjetosEV() {
                   {projetos.map((p) => {
                     const carregador = p.carregadores?.[0]
                     const tipoLabel = carregador?.tipo || 'AC'
+                    const potenciaTotal = p.potencia_total_kw || carregador?.potencia_kw || 0
+                    const quantidadePontos = p.quantidade_pontos || p.carregadores?.length || 0
                     return (
                       <tr key={p._id} className="hover:bg-slate-50 transition-colors">
                         <td className="px-6 py-4 font-medium text-slate-900">{p.nome}</td>
-                        <td className="px-6 py-4 text-slate-600">{p.clienteId?.nome || 'N/A'}</td>
-                        <td className="px-6 py-4 text-slate-600 hidden md:table-cell">{p.quantidade_pontos || 0}</td>
-                        <td className="px-6 py-4 text-slate-600 hidden md:table-cell">{p.potencia_total_kw || 0} kW</td>
+                        <td className="px-6 py-4 text-slate-600">{p.clienteId || 'N/A'}</td>
+                        <td className="px-6 py-4 text-slate-600 hidden md:table-cell">{quantidadePontos}</td>
+                        <td className="px-6 py-4 text-slate-600 hidden md:table-cell">{potenciaTotal} kW</td>
                         <td className="px-6 py-4 hidden lg:table-cell">
                           <Badge cor={tipoLabel === 'DC' ? 'azul' : 'cinza'}>{tipoLabel}</Badge>
                         </td>

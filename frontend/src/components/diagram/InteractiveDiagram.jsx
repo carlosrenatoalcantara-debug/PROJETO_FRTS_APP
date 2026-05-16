@@ -45,9 +45,10 @@ export default function InteractiveDiagram({
     valor2: ''
   });
   const [usarRealista, setUsarRealista] = useState(true); // Usar componentes com desenhos realistas
+  const [erro, setErro] = useState(null);
 
   // Hook para Undo/Redo
-  const historioDiagrama = useHistorioDiagrama(projeto?.projeto_id || 'diagrama-sem-id');
+  const historioDiagrama = useHistorioDiagrama(projeto?.projeto_id || projeto?.projeto_nome || 'diagrama-sem-id');
 
   // Definir tipos de nós e edges com useMemo para evitar re-criação
   // CRÍTICO: Envolvido em useMemo para garantir que ComponentNode esteja completamente inicializado
@@ -78,40 +79,53 @@ export default function InteractiveDiagram({
 
   // Inicializar diagrama com dados de entrada
   useEffect(() => {
-    if (calculos && projeto) {
-      const { nodes: novoNodes, edges: novoEdges } = converterCalculosParaNodesEdges(
-        calculos,
-        projeto
-      );
+    try {
+      if (calculos && projeto) {
+        console.log('📊 Inicializando diagrama com:', { calculos, projeto });
 
-      // Adicionar callbacks aos nós
-      const nodesComCallbacks = novoNodes.map(node => ({
-        ...node,
-        data: {
-          ...node.data,
-          onUpdate: (campo, valor) => {
-            // Será atualizado via handleUpdateNodeValue
-          },
-          onDelete: () => {
-            // Será atualizado via handleDeleteNode
+        const { nodes: novoNodes, edges: novoEdges } = converterCalculosParaNodesEdges(
+          calculos,
+          projeto
+        );
+
+        console.log('✓ Nodes criados:', novoNodes.length, 'Edges:', novoEdges.length);
+
+        // Adicionar callbacks aos nós
+        const nodesComCallbacks = novoNodes.map(node => ({
+          ...node,
+          data: {
+            ...node.data,
+            onUpdate: (campo, valor) => {
+              // Será atualizado via handleUpdateNodeValue
+            },
+            onDelete: () => {
+              // Será atualizado via handleDeleteNode
+            }
           }
+        }));
+
+        setNodes(nodesComCallbacks);
+        setEdges(novoEdges);
+        setErro(null);
+
+        const val = validarDiagrama(nodesComCallbacks);
+        const valFluxo = validarFluxoEletricoCompleto(nodesComCallbacks);
+        setValidacao({
+          ...val,
+          valido: val.valido && valFluxo.valido,
+          erros: [...val.erros, ...valFluxo.erros]
+        });
+
+        if (onDiagramChange) {
+          onDiagramChange({ nodes: nodesComCallbacks, edges: novoEdges });
         }
-      }));
-
-      setNodes(nodesComCallbacks);
-      setEdges(novoEdges);
-
-      const val = validarDiagrama(nodesComCallbacks);
-      const valFluxo = validarFluxoEletricoCompleto(nodesComCallbacks);
-      setValidacao({
-        ...val,
-        valido: val.valido && valFluxo.valido,
-        erros: [...val.erros, ...valFluxo.erros]
-      });
-
-      if (onDiagramChange) {
-        onDiagramChange({ nodes: nodesComCallbacks, edges: novoEdges });
+      } else {
+        console.warn('⚠️ InteractiveDiagram: Faltam dados', { calculos, projeto });
+        setErro('Dados incompletos para inicializar diagrama');
       }
+    } catch (err) {
+      console.error('❌ Erro ao inicializar diagrama:', err);
+      setErro(`Erro ao inicializar diagrama: ${err.message}`);
     }
   }, [calculos, projeto, onDiagramChange]); // ✨ Atualizar quando props mudam!
 
@@ -516,6 +530,28 @@ export default function InteractiveDiagram({
 
     return avisos;
   };
+
+  // Guard clause - mostra erro se houver
+  if (erro) {
+    return (
+      <div className="p-8 bg-red-50 border border-red-200 rounded-lg text-red-800">
+        <h3 className="font-semibold mb-2">❌ Erro ao Carregar Diagrama</h3>
+        <p className="text-sm mb-4">{erro}</p>
+        <p className="text-xs text-red-600">
+          Abra o console (F12) para mais detalhes
+        </p>
+      </div>
+    );
+  }
+
+  if (!calculos || !projeto) {
+    return (
+      <div className="p-8 bg-yellow-50 border border-yellow-200 rounded-lg text-yellow-800">
+        <h3 className="font-semibold mb-2">⚠️ Dados Incompletos</h3>
+        <p className="text-sm">Faltam dados para inicializar o diagrama.</p>
+      </div>
+    );
+  }
 
   return (
     <ReactFlowProvider>
