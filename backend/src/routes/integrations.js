@@ -9,23 +9,12 @@ import mongoose from 'mongoose'
 import { integrationsMemoryStore } from '../config/integrationsMemoryStore.js'
 import { authenticateToken } from '../security/auth-middleware.js'
 import { ApiKey } from '../models/ApiKey.js'
+import { EncryptionService, AuditLogger } from '../security/index.js'
 
 const router = express.Router()
 
 // Check if MongoDB is available
 const usarMemoryStorage = () => mongoose.connection.readyState !== 1
-
-// Optional: encryption service for MongoDB (not needed for memory storage)
-let EncryptionService = null
-let AuditLogger = null
-
-try {
-  const secModule = await import('../security/index.js')
-  EncryptionService = secModule.EncryptionService
-  AuditLogger = secModule.AuditLogger
-} catch (err) {
-  console.warn('⚠️ Security modules not available, using basic storage')
-}
 
 /**
  * POST /api/integrations/add-key
@@ -85,8 +74,20 @@ router.post('/add-key', authenticateToken, async (req, res, next) => {
       })
     } else {
       // MongoDB storage (original implementation)
-      const encryptionService = new EncryptionService()
-      const auditLogger = new AuditLogger()
+      let encryptionService = null
+      let auditLogger = null
+
+      try {
+        encryptionService = new EncryptionService()
+        auditLogger = new AuditLogger()
+      } catch (err) {
+        console.error('❌ Erro ao instanciar serviços de segurança:', err.message)
+        return res.status(500).json({
+          success: false,
+          error: 'Erro ao preparar armazenamento seguro',
+          code: 'ENCRYPTION_SERVICE_ERROR',
+        })
+      }
 
       const encryptedData = encryptionService.encrypt(apiKey, userId)
       const keyId = `${integrationName}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
