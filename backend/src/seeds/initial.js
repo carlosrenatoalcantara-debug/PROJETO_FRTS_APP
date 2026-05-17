@@ -1,8 +1,28 @@
+import 'dotenv/config'
 import mongoose from 'mongoose'
 import { Cliente } from '../models/Cliente.js'
 import { Empresa } from '../models/Empresa.js'
 import { Equipamento } from '../models/Equipamento.js'
 import { conectarBD } from '../config/database.js'
+
+// 🛡️ GUARDS DE SEGURANÇA — este script faz deleteMany() em 3 coleções.
+// Bloqueio 1: nunca rodar em produção
+if (process.env.NODE_ENV === 'production') {
+  console.error('❌ BLOQUEADO: seed inicial não pode rodar em produção (NODE_ENV=production)')
+  console.error('   Este script chama deleteMany() em Cliente, Empresa e Equipamento.')
+  process.exit(1)
+}
+
+// Bloqueio 2: requer confirmação explícita via env var SEED_CONFIRM=YES
+if (process.env.SEED_CONFIRM !== 'YES') {
+  console.error('❌ BLOQUEADO: este script APAGA Cliente, Empresa e Equipamento (deleteMany).')
+  console.error('   Para confirmar a execução, rode:  SEED_CONFIRM=YES node src/seeds/initial.js')
+  console.error('   (Windows PowerShell:  $env:SEED_CONFIRM="YES"; node src/seeds/initial.js)')
+  process.exit(1)
+}
+
+console.warn('⚠️  SEED_CONFIRM=YES detectado — prosseguindo com deleteMany destrutivo em 3s...')
+await new Promise(r => setTimeout(r, 3000))
 
 async function seedBD() {
   try {

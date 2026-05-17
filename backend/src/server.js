@@ -102,7 +102,9 @@ app.use((req, res, next) => {
 })
 
 app.use('/api/health', (_req, res) => {
-  const mongoState = ['desconectado', 'conectando', 'conectado', 'desconectando']
+  // Mongoose readyState: 0=disconnected, 1=connected, 2=connecting, 3=disconnecting
+  // ⚠️ Mapeamento corrigido — versão anterior tinha 1↔2 invertidos (label dizia "conectando" para state CONECTADO)
+  const mongoState = ['desconectado', 'conectado', 'conectando', 'desconectando']
   const estado = mongoose.connection.readyState
   res.json({
     status: 'ok',

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Plus, Edit2, Trash2, ChevronDown } from 'lucide-react'
+import { Plus, Edit2, Trash2 } from 'lucide-react'
 import Card, { CardHeader, CardBody } from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import Input from '../components/ui/Input'
@@ -7,21 +7,40 @@ import Select from '../components/ui/Select'
 
 const API_URL = import.meta.env.VITE_API_URL || ''
 
+/**
+ * Catálogo de Equipamentos
+ *
+ * ⚠️ Restauração FASE 2A:
+ * - Endpoints antigos `/api/equipamentos/modulos|inversores|kits|fabricantes`
+ *   NÃO existem no backend (retornavam HTTP 500).
+ * - Agora usa `/api/equipamentos?tipo=modulo|inversor` (endpoint real).
+ * - "Fabricantes" é derivado de módulos+inversores (sem endpoint próprio).
+ * - "Kits" não tem backend correspondente — aba mantida só como placeholder.
+ *
+ * Para gestão completa, prefira /equipamentos/modulos e /equipamentos/inversores
+ * (Modulos.jsx / Inversores.jsx), que já estavam corretas.
+ */
 export default function Catalogo() {
   const [aba, setAba] = useState('modulos')
   const [modulos, setModulos] = useState([])
   const [inversores, setInversores] = useState([])
-  const [kits, setKits] = useState([])
   const [fabricantes, setFabricantes] = useState([])
   const [carregando, setCarregando] = useState(true)
+  const [erroCarga, setErroCarga] = useState(null)
 
   const [mostraFormModulo, setMostraFormModulo] = useState(false)
   const [mostraFormInversor, setMostraFormInversor] = useState(false)
-  const [mostraFormKit, setMostraFormKit] = useState(false)
 
-  const [formModulo, setFormModulo] = useState({ fabricanteId: '', modelo: '', potencia: '', voc: '', vmp: '', isc: '', garantia_produto: 12, garantia_performance: 25 })
-  const [formInversor, setFormInversor] = useState({ fabricanteId: '', modelo: '', potenciaKW: '', mppts: 1, vocMax: '', mpptMin: '', mpptMax: '', imaxMppt: '' })
-  const [formKit, setFormKit] = useState({ nome: '', distribuidor: 'Forte Solar', moduloId: '', inversorId: '', estrutura: 'Colonial', preco_total: '', potencia_total: '' })
+  const [formModulo, setFormModulo] = useState({
+    fabricante: '', modelo: '',
+    potencia: '', voc: '', vmp: '', isc: '',
+    garantia_produto: 12, garantia_performance: 25,
+  })
+  const [formInversor, setFormInversor] = useState({
+    fabricante: '', modelo: '',
+    potencia: '', mppts: 1,
+    voc_max: '', mppt_min: '', mppt_max: '',
+  })
 
   useEffect(() => {
     carregarDados()
@@ -30,123 +49,144 @@ export default function Catalogo() {
   async function carregarDados() {
     try {
       setCarregando(true)
-      const [fabRes, modRes, invRes, kitRes] = await Promise.all([
-        fetch(`${API_URL}/api/equipamentos/fabricantes`),
-        fetch(`${API_URL}/api/equipamentos/modulos`),
-        fetch(`${API_URL}/api/equipamentos/inversores`),
-        fetch(`${API_URL}/api/equipamentos/kits`),
+      setErroCarga(null)
+
+      const [modRes, invRes] = await Promise.all([
+        fetch(`${API_URL}/api/equipamentos?tipo=modulo`),
+        fetch(`${API_URL}/api/equipamentos?tipo=inversor`),
       ])
 
-      const fab = await fabRes.json()
-      const mod = await modRes.json()
-      const inv = await invRes.json()
-      const kit = await kitRes.json()
+      if (!modRes.ok || !invRes.ok) {
+        throw new Error(`Backend retornou erro (${modRes.status}/${invRes.status})`)
+      }
 
-      setFabricantes(fab)
+      // Endpoint retorna { total, equipamentos: [...] } OU array — suportar ambos
+      const modJson = await modRes.json()
+      const invJson = await invRes.json()
+
+      const mod = Array.isArray(modJson) ? modJson : (modJson.equipamentos || [])
+      const inv = Array.isArray(invJson) ? invJson : (invJson.equipamentos || [])
+
       setModulos(mod)
       setInversores(inv)
-      setKits(kit)
+
+      // Derivar fabricantes únicos a partir dos módulos + inversores
+      const nomesUnicos = [...new Set(
+        [...mod, ...inv]
+          .map(e => e.fabricante)
+          .filter(Boolean)
+      )].sort()
+      setFabricantes(nomesUnicos.map(nome => ({ id: nome, nome })))
     } catch (err) {
-      console.error('Erro ao carregar dados:', err)
+      console.error('Erro ao carregar catálogo:', err)
+      setErroCarga(err.message)
     } finally {
       setCarregando(false)
     }
   }
 
   async function criarModulo() {
-    if (!formModulo.fabricanteId || !formModulo.modelo || !formModulo.potencia) return
-
+    if (!formModulo.fabricante || !formModulo.modelo || !formModulo.potencia) return
     try {
-      const res = await fetch(`${API_URL}/api/equipamentos/modulos`, {
+      const payload = {
+        tipo: 'modulo',
+        fabricante: formModulo.fabricante,
+        modelo: formModulo.modelo,
+        especificacoes: {
+          potencia: Number(formModulo.potencia) || 0,
+          voc: Number(formModulo.voc) || 0,
+          vmp: Number(formModulo.vmp) || 0,
+          isc: Number(formModulo.isc) || 0,
+        },
+        garantia_produto: { value: Number(formModulo.garantia_produto) || 12, unit: 'anos' },
+        garantia_performance: { value: Number(formModulo.garantia_performance) || 25, unit: 'anos' },
+        ativo: true,
+      }
+      const res = await fetch(`${API_URL}/api/equipamentos`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formModulo),
+        body: JSON.stringify(payload),
       })
       if (res.ok) {
         await carregarDados()
-        setFormModulo({ fabricanteId: '', modelo: '', potencia: '', voc: '', vmp: '', isc: '', garantia_produto: 12, garantia_performance: 25 })
+        setFormModulo({ fabricante: '', modelo: '', potencia: '', voc: '', vmp: '', isc: '', garantia_produto: 12, garantia_performance: 25 })
         setMostraFormModulo(false)
+      } else {
+        alert('Erro ao criar módulo: ' + res.status)
       }
     } catch (err) {
       console.error('Erro:', err)
+      alert('Erro ao criar módulo: ' + err.message)
     }
   }
 
   async function criarInversor() {
-    if (!formInversor.fabricanteId || !formInversor.modelo || !formInversor.potenciaKW) return
-
+    if (!formInversor.fabricante || !formInversor.modelo || !formInversor.potencia) return
     try {
-      const res = await fetch(`${API_URL}/api/equipamentos/inversores`, {
+      const payload = {
+        tipo: 'inversor',
+        fabricante: formInversor.fabricante,
+        modelo: formInversor.modelo,
+        especificacoes: {
+          potencia: Number(formInversor.potencia) || 0,
+          mppts: Number(formInversor.mppts) || 1,
+          voc_max: Number(formInversor.voc_max) || 0,
+          mppt_min: Number(formInversor.mppt_min) || 0,
+          mppt_max: Number(formInversor.mppt_max) || 0,
+        },
+        ativo: true,
+      }
+      const res = await fetch(`${API_URL}/api/equipamentos`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formInversor),
+        body: JSON.stringify(payload),
       })
       if (res.ok) {
         await carregarDados()
-        setFormInversor({ fabricanteId: '', modelo: '', potenciaKW: '', mppts: 1, vocMax: '', mpptMin: '', mpptMax: '', imaxMppt: '' })
+        setFormInversor({ fabricante: '', modelo: '', potencia: '', mppts: 1, voc_max: '', mppt_min: '', mppt_max: '' })
         setMostraFormInversor(false)
+      } else {
+        alert('Erro ao criar inversor: ' + res.status)
       }
     } catch (err) {
       console.error('Erro:', err)
+      alert('Erro ao criar inversor: ' + err.message)
     }
   }
 
-  async function criarKit() {
-    if (!formKit.nome || !formKit.moduloId || !formKit.inversorId) return
-
+  async function deletarEquipamento(id, nome) {
+    if (!confirm(`Deletar "${nome}"?`)) return
     try {
-      const res = await fetch(`${API_URL}/api/equipamentos/kits`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formKit),
-      })
-      if (res.ok) {
-        await carregarDados()
-        setFormKit({ nome: '', distribuidor: 'Forte Solar', moduloId: '', inversorId: '', estrutura: 'Colonial', preco_total: '', potencia_total: '' })
-        setMostraFormKit(false)
-      }
+      const res = await fetch(`${API_URL}/api/equipamentos/${id}`, { method: 'DELETE' })
+      if (res.ok) await carregarDados()
+      else alert('Erro ao deletar: ' + res.status)
     } catch (err) {
       console.error('Erro:', err)
-    }
-  }
-
-  async function deletarModulo(id) {
-    if (!confirm('Deletar este módulo?')) return
-    try {
-      await fetch(`${API_URL}/api/equipamentos/modulos/${id}`, { method: 'DELETE' })
-      await carregarDados()
-    } catch (err) {
-      console.error('Erro:', err)
-    }
-  }
-
-  async function deletarInversor(id) {
-    if (!confirm('Deletar este inversor?')) return
-    try {
-      await fetch(`${API_URL}/api/equipamentos/inversores/${id}`, { method: 'DELETE' })
-      await carregarDados()
-    } catch (err) {
-      console.error('Erro:', err)
-    }
-  }
-
-  async function deletarKit(id) {
-    if (!confirm('Deletar este kit?')) return
-    try {
-      await fetch(`${API_URL}/api/equipamentos/kits/${id}`, { method: 'DELETE' })
-      await carregarDados()
-    } catch (err) {
-      console.error('Erro:', err)
+      alert('Erro ao deletar: ' + err.message)
     }
   }
 
   if (carregando) {
-    return <div className="p-6 text-center text-slate-500">Carregando...</div>
+    return <div className="p-6 text-center text-slate-500">Carregando catálogo...</div>
   }
 
-  const fabricantesOpcoes = fabricantes.map(f => ({ valor: f.id, rotulo: f.nome }))
-  const modulosOpcoes = modulos.map(m => ({ valor: m.id, rotulo: `${fabricantes.find(f => f.id === m.fabricanteId)?.nome} - ${m.modelo}` }))
-  const inversoresOpcoes = inversores.map(i => ({ valor: i.id, rotulo: `${fabricantes.find(f => f.id === i.fabricanteId)?.nome} - ${i.modelo}` }))
+  if (erroCarga) {
+    return (
+      <div className="p-6">
+        <Card>
+          <CardBody className="text-center py-12">
+            <div className="text-amber-600 font-medium mb-1">⚠️ Servidor temporariamente indisponível</div>
+            <div className="text-slate-500 text-sm mb-3">{erroCarga}</div>
+            <button onClick={carregarDados} className="text-sm text-blue-600 hover:text-blue-800 underline">
+              Tentar novamente
+            </button>
+          </CardBody>
+        </Card>
+      </div>
+    )
+  }
+
+  const fabricantesOpcoes = fabricantes.map(f => ({ valor: f.nome, rotulo: f.nome }))
 
   return (
     <div className="p-6 space-y-6">
@@ -154,9 +194,8 @@ export default function Catalogo() {
 
       <div className="flex gap-2 border-b border-slate-200">
         {[
-          { id: 'modulos', label: 'Módulos' },
-          { id: 'inversores', label: 'Inversores' },
-          { id: 'kits', label: 'Kits' },
+          { id: 'modulos',    label: `Módulos (${modulos.length})` },
+          { id: 'inversores', label: `Inversores (${inversores.length})` },
         ].map(tab => (
           <button
             key={tab.id}
@@ -183,7 +222,7 @@ export default function Catalogo() {
             <Card>
               <CardHeader>Adicionar Módulo</CardHeader>
               <CardBody className="space-y-3">
-                <Select rotulo="Fabricante" opcoes={fabricantesOpcoes} value={formModulo.fabricanteId} onChange={e => setFormModulo({...formModulo, fabricanteId: e.target.value})} />
+                <Input rotulo="Fabricante" value={formModulo.fabricante} onChange={e => setFormModulo({...formModulo, fabricante: e.target.value})} placeholder="Ex: Canadian Solar" />
                 <Input rotulo="Modelo" value={formModulo.modelo} onChange={e => setFormModulo({...formModulo, modelo: e.target.value})} placeholder="Ex: CS6W-550MS" />
                 <div className="grid grid-cols-3 gap-3">
                   <Input rotulo="Potência (W)" type="number" value={formModulo.potencia} onChange={e => setFormModulo({...formModulo, potencia: e.target.value})} />
@@ -204,27 +243,33 @@ export default function Catalogo() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {modulos.map(mod => {
-              const fab = fabricantes.find(f => f.id === mod.fabricanteId)
+              const esp = mod.especificacoes || {}
               return (
-                <Card key={mod.id}>
+                <Card key={mod._id}>
                   <CardHeader className="flex items-center justify-between">
                     <div>
-                      <p className="font-bold text-slate-900">{fab?.nome}</p>
+                      <p className="font-bold text-slate-900">{mod.fabricante || '—'}</p>
                       <p className="text-xs text-slate-500">{mod.modelo}</p>
                     </div>
-                    <button onClick={() => deletarModulo(mod.id)} className="text-red-500 hover:text-red-700">
+                    <button onClick={() => deletarEquipamento(mod._id, `${mod.fabricante} ${mod.modelo}`)} className="text-red-500 hover:text-red-700">
                       <Trash2 size={16} />
                     </button>
                   </CardHeader>
                   <CardBody className="space-y-2 text-sm">
-                    <div className="flex justify-between"><span className="text-slate-500">Potência:</span><span className="font-medium">{mod.potencia}W</span></div>
-                    {mod.voc && <div className="flex justify-between"><span className="text-slate-500">VOC:</span><span className="font-medium">{mod.voc}V</span></div>}
-                    {mod.isc && <div className="flex justify-between"><span className="text-slate-500">ISC:</span><span className="font-medium">{mod.isc}A</span></div>}
-                    <div className="flex justify-between"><span className="text-slate-500">Garantia:</span><span className="font-medium">{mod.garantia_performance} anos</span></div>
+                    {esp.potencia != null && <div className="flex justify-between"><span className="text-slate-500">Potência:</span><span className="font-medium">{esp.potencia}W</span></div>}
+                    {esp.voc != null && <div className="flex justify-between"><span className="text-slate-500">VOC:</span><span className="font-medium">{esp.voc}V</span></div>}
+                    {esp.isc != null && <div className="flex justify-between"><span className="text-slate-500">ISC:</span><span className="font-medium">{esp.isc}A</span></div>}
+                    {esp.eficiencia != null && <div className="flex justify-between"><span className="text-slate-500">Eficiência:</span><span className="font-medium">{esp.eficiencia}%</span></div>}
+                    {mod.garantia_performance?.value && <div className="flex justify-between"><span className="text-slate-500">Garantia perf.:</span><span className="font-medium">{mod.garantia_performance.value} {mod.garantia_performance.unit || 'anos'}</span></div>}
                   </CardBody>
                 </Card>
               )
             })}
+            {modulos.length === 0 && (
+              <div className="col-span-full text-center text-slate-500 py-8">
+                Nenhum módulo cadastrado.
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -240,16 +285,16 @@ export default function Catalogo() {
             <Card>
               <CardHeader>Adicionar Inversor</CardHeader>
               <CardBody className="space-y-3">
-                <Select rotulo="Fabricante" opcoes={fabricantesOpcoes} value={formInversor.fabricanteId} onChange={e => setFormInversor({...formInversor, fabricanteId: e.target.value})} />
-                <Input rotulo="Modelo" value={formInversor.modelo} onChange={e => setFormInversor({...formInversor, modelo: e.target.value})} placeholder="Ex: Primo 5.0-1" />
+                <Input rotulo="Fabricante" value={formInversor.fabricante} onChange={e => setFormInversor({...formInversor, fabricante: e.target.value})} placeholder="Ex: Growatt" />
+                <Input rotulo="Modelo" value={formInversor.modelo} onChange={e => setFormInversor({...formInversor, modelo: e.target.value})} placeholder="Ex: MIC 5000TL-X" />
                 <div className="grid grid-cols-2 gap-3">
-                  <Input rotulo="Potência (kW)" type="number" value={formInversor.potenciaKW} onChange={e => setFormInversor({...formInversor, potenciaKW: e.target.value})} />
+                  <Input rotulo="Potência (kW)" type="number" value={formInversor.potencia} onChange={e => setFormInversor({...formInversor, potencia: e.target.value})} />
                   <Input rotulo="MPPTs" type="number" value={formInversor.mppts} onChange={e => setFormInversor({...formInversor, mppts: e.target.value})} />
                 </div>
                 <div className="grid grid-cols-3 gap-3">
-                  <Input rotulo="VOC Max (V)" type="number" value={formInversor.vocMax} onChange={e => setFormInversor({...formInversor, vocMax: e.target.value})} />
-                  <Input rotulo="MPPT Min" type="number" value={formInversor.mpptMin} onChange={e => setFormInversor({...formInversor, mpptMin: e.target.value})} />
-                  <Input rotulo="MPPT Max" type="number" value={formInversor.mpptMax} onChange={e => setFormInversor({...formInversor, mpptMax: e.target.value})} />
+                  <Input rotulo="VOC Max (V)" type="number" value={formInversor.voc_max} onChange={e => setFormInversor({...formInversor, voc_max: e.target.value})} />
+                  <Input rotulo="MPPT Min" type="number" value={formInversor.mppt_min} onChange={e => setFormInversor({...formInversor, mppt_min: e.target.value})} />
+                  <Input rotulo="MPPT Max" type="number" value={formInversor.mppt_max} onChange={e => setFormInversor({...formInversor, mppt_max: e.target.value})} />
                 </div>
                 <div className="flex gap-2">
                   <Button variante="primario" onClick={criarInversor}>Criar</Button>
@@ -261,98 +306,31 @@ export default function Catalogo() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {inversores.map(inv => {
-              const fab = fabricantes.find(f => f.id === inv.fabricanteId)
+              const esp = inv.especificacoes || {}
               return (
-                <Card key={inv.id}>
+                <Card key={inv._id}>
                   <CardHeader className="flex items-center justify-between">
                     <div>
-                      <p className="font-bold text-slate-900">{fab?.nome}</p>
+                      <p className="font-bold text-slate-900">{inv.fabricante || '—'}</p>
                       <p className="text-xs text-slate-500">{inv.modelo}</p>
                     </div>
-                    <button onClick={() => deletarInversor(inv.id)} className="text-red-500 hover:text-red-700">
+                    <button onClick={() => deletarEquipamento(inv._id, `${inv.fabricante} ${inv.modelo}`)} className="text-red-500 hover:text-red-700">
                       <Trash2 size={16} />
                     </button>
                   </CardHeader>
                   <CardBody className="space-y-2 text-sm">
-                    <div className="flex justify-between"><span className="text-slate-500">Potência:</span><span className="font-medium">{inv.potenciaKW}kW</span></div>
-                    <div className="flex justify-between"><span className="text-slate-500">MPPTs:</span><span className="font-medium">{inv.mppts}</span></div>
-                    {inv.vocMax && <div className="flex justify-between"><span className="text-slate-500">VOC Max:</span><span className="font-medium">{inv.vocMax}V</span></div>}
+                    {esp.potencia != null && <div className="flex justify-between"><span className="text-slate-500">Potência:</span><span className="font-medium">{esp.potencia}kW</span></div>}
+                    {esp.mppts != null && <div className="flex justify-between"><span className="text-slate-500">MPPTs:</span><span className="font-medium">{esp.mppts}</span></div>}
+                    {esp.voc_max != null && <div className="flex justify-between"><span className="text-slate-500">VOC Max:</span><span className="font-medium">{esp.voc_max}V</span></div>}
                   </CardBody>
                 </Card>
               )
             })}
-          </div>
-        </div>
-      )}
-
-      {aba === 'kits' && (
-        <div className="space-y-4">
-          <div className="flex justify-between items-center">
-            <h2 className="text-xl font-bold text-slate-900">Kits Pré-montados</h2>
-            <Button icone={Plus} onClick={() => setMostraFormKit(!mostraFormKit)}>Novo Kit</Button>
-          </div>
-
-          {mostraFormKit && (
-            <Card>
-              <CardHeader>Adicionar Kit</CardHeader>
-              <CardBody className="space-y-3">
-                <Input rotulo="Nome do Kit" value={formKit.nome} onChange={e => setFormKit({...formKit, nome: e.target.value})} placeholder="Ex: Kit 5kWp Fronius" />
-                <Input rotulo="Distribuidor" value={formKit.distribuidor} onChange={e => setFormKit({...formKit, distribuidor: e.target.value})} />
-                <div className="grid grid-cols-2 gap-3">
-                  <Select rotulo="Módulo" opcoes={modulosOpcoes} value={formKit.moduloId} onChange={e => setFormKit({...formKit, moduloId: e.target.value})} />
-                  <Select rotulo="Inversor" opcoes={inversoresOpcoes} value={formKit.inversorId} onChange={e => setFormKit({...formKit, inversorId: e.target.value})} />
-                </div>
-                <Input rotulo="Estrutura" value={formKit.estrutura} onChange={e => setFormKit({...formKit, estrutura: e.target.value})} placeholder="Ex: Colonial" />
-                <div className="grid grid-cols-2 gap-3">
-                  <Input rotulo="Preço Total (R$)" type="number" value={formKit.preco_total} onChange={e => setFormKit({...formKit, preco_total: e.target.value})} />
-                  <Input rotulo="Potência Total (kWp)" type="number" value={formKit.potencia_total} onChange={e => setFormKit({...formKit, potencia_total: e.target.value})} />
-                </div>
-                <div className="flex gap-2">
-                  <Button variante="primario" onClick={criarKit}>Criar</Button>
-                  <Button variante="secundario" onClick={() => setMostraFormKit(false)}>Cancelar</Button>
-                </div>
-              </CardBody>
-            </Card>
-          )}
-
-          <div className="grid grid-cols-1 gap-4">
-            {kits.map(kit => {
-              const modulo = modulos.find(m => m.id === kit.moduloId)
-              const inversor = inversores.find(i => i.id === kit.inversorId)
-              return (
-                <Card key={kit.id}>
-                  <CardHeader className="flex items-center justify-between">
-                    <div>
-                      <p className="font-bold text-slate-900">{kit.nome}</p>
-                      <p className="text-xs text-slate-500">{kit.distribuidor}</p>
-                    </div>
-                    <button onClick={() => deletarKit(kit.id)} className="text-red-500 hover:text-red-700">
-                      <Trash2 size={16} />
-                    </button>
-                  </CardHeader>
-                  <CardBody>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                      <div>
-                        <p className="text-slate-500 font-semibold">Módulo</p>
-                        <p className="text-slate-900">{modulo?.modelo}</p>
-                      </div>
-                      <div>
-                        <p className="text-slate-500 font-semibold">Inversor</p>
-                        <p className="text-slate-900">{inversor?.modelo}</p>
-                      </div>
-                      <div>
-                        <p className="text-slate-500 font-semibold">Estrutura</p>
-                        <p className="text-slate-900">{kit.estrutura}</p>
-                      </div>
-                      <div>
-                        <p className="text-slate-500 font-semibold">Preço</p>
-                        <p className="text-slate-900 font-bold">R$ {kit.preco_total?.toLocaleString()}</p>
-                      </div>
-                    </div>
-                  </CardBody>
-                </Card>
-              )
-            })}
+            {inversores.length === 0 && (
+              <div className="col-span-full text-center text-slate-500 py-8">
+                Nenhum inversor cadastrado.
+              </div>
+            )}
           </div>
         </div>
       )}
