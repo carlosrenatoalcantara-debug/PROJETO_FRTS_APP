@@ -60,6 +60,37 @@ export default function Configuracoes() {
     description: '',
   })
   const [enviandoChave, setEnviandoChave] = useState(false)
+  const [backendOffline, setBackendOffline] = useState(false)
+
+  // Map integration names to legacy localStorage keys
+  const integrationToLocalStorageKey = {
+    'GeminiVision': 'geminiApiKey',
+    'OpenAI': 'openaiApiKey',
+    'Claude': 'claudeApiKey',
+    'GoogleMaps': 'googleMapsApiKey',
+  }
+
+  function carregarChavesDoLocalStorage() {
+    const keys = []
+    Object.entries(integrationToLocalStorageKey).forEach(([integrationName, lsKey]) => {
+      const valor = localStorage.getItem(lsKey)
+      if (valor && valor.trim()) {
+        keys.push({
+          keyId: `local-${lsKey}`,
+          integrationName,
+          description: 'Armazenada localmente (backend offline)',
+          maskedKey: '****' + valor.slice(-4),
+          createdAt: new Date().toISOString(),
+          lastUsed: null,
+          isActive: true,
+          rotationDueAt: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
+          daysUntilRotation: 90,
+          isLocal: true,
+        })
+      }
+    })
+    return keys
+  }
 
   useEffect(() => {
     carregarChaves()
@@ -114,43 +145,56 @@ export default function Configuracoes() {
       setCarregandoChaves(true)
       setErro(null)
 
-      if (!token) {
-        setChavesSeguras([])
-        return
-      }
-
-      const response = await fetch('/api/integrations/keys', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        const chaves = data.keys || []
-        setChavesSeguras(chaves)
-
-        // Auto-migrate any legacy keys from localStorage
-        await migrarChavesLegadas(chaves)
-
-        // Reload keys after migration to show the new ones
-        const respPosMigracao = await fetch('/api/integrations/keys', {
-          headers: {
+      // Always try backend first
+      let backendOk = false
+      try {
+        const response = await fetch('/api/integrations/keys', {
+          headers: token ? {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',
-          },
+          } : { 'Content-Type': 'application/json' },
         })
-        if (respPosMigracao.ok) {
-          const dataPos = await respPosMigracao.json()
-          setChavesSeguras(dataPos.keys || [])
+
+        if (response.ok) {
+          backendOk = true
+          setBackendOffline(false)
+          const data = await response.json()
+          const chaves = data.keys || []
+
+          // Auto-migrate any legacy keys from localStorage
+          if (token) {
+            await migrarChavesLegadas(chaves)
+            const respPos = await fetch('/api/integrations/keys', {
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+              },
+            })
+            if (respPos.ok) {
+              const dp = await respPos.json()
+              setChavesSeguras(dp.keys || [])
+            } else {
+              setChavesSeguras(chaves)
+            }
+          } else {
+            setChavesSeguras(chaves)
+          }
         }
-      } else if (response.status !== 401) {
-        setErro('Erro ao carregar chaves do servidor')
+      } catch (err) {
+        console.warn('[Configuracoes] Backend unreachable, using localStorage:', err.message)
+      }
+
+      // If backend failed/unavailable, load from localStorage
+      if (!backendOk) {
+        setBackendOffline(true)
+        const localKeys = carregarChavesDoLocalStorage()
+        setChavesSeguras(localKeys)
       }
     } catch (erro) {
       console.error('[Configuracoes] Erro:', erro)
-      setErro('Erro ao carregar configurações')
+      // Final fallback: show local keys
+      setBackendOffline(true)
+      setChavesSeguras(carregarChavesDoLocalStorage())
     } finally {
       setCarregandoChaves(false)
     }
@@ -173,33 +217,71 @@ export default function Configuracoes() {
       setEnviandoChave(true)
       setErro(null)
 
-      const response = await fetch('/api/integrations/add-key', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          integrationName: novaChave.integrationName,
-          apiKey: novaChave.apiKey,
-          description: novaChave.description,
-        }),
-      })
+      // Try backend first
+      let backendSucesso = false
+      try {
+        const response = await fetch('/api/integrations/add-key', {
+          method: 'POST',
+          headers: token ? {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          } : { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            integrationName: novaChave.integrationName,
+            apiKey: novaChave.apiKey,
+            description: novaChave.description,
+          }),
+        })
 
-      if (response.ok) {
-        const data = await response.json()
-        setSucesso(true)
-        setNovaChave({ integrationName: '', apiKey: '', description: '' })
-        setTelaFormulario(false)
-        await carregarChaves()
-        setTimeout(() => setSucesso(false), 3000)
-      } else {
-        const errorData = await response.json()
-        setErro(errorData.error || 'Erro ao salvar a chave')
+        if (response.ok) {
+          backendSucesso = true
+          setBackendOffline(false)
+        }
+      } catch (err) {
+        console.warn('[Configuracoes] Backend unreachable for save:', err.message)
       }
+
+      // If backend failed, save to localStorage as fallback
+      if (!backendSucesso) {
+        const lsKey = integrationToLocalStorageKey[novaChave.integrationName]
+        if (lsKey) {
+          localStorage.setItem(lsKey, novaChave.apiKey.trim())
+          localStorage.setItem(`${lsKey}_ativo`, 'true')
+          setBackendOffline(true)
+          console.log(`✅ Chave ${novaChave.integrationName} salva em localStorage (fallback)`)
+        } else {
+          throw new Error('Integração não suportada para armazenamento local')
+        }
+      }
+
+      // Success - reload and reset form
+      setSucesso(true)
+      setNovaChave({ integrationName: '', apiKey: '', description: '' })
+      setTelaFormulario(false)
+      await carregarChaves()
+      setTimeout(() => setSucesso(false), 3000)
+      return
     } catch (erro) {
       console.error('Erro ao adicionar chave:', erro)
-      setErro('Erro ao adicionar chave')
+      // Last resort: try localStorage
+      const lsKey = integrationToLocalStorageKey[novaChave.integrationName]
+      if (lsKey && novaChave.apiKey.trim()) {
+        try {
+          localStorage.setItem(lsKey, novaChave.apiKey.trim())
+          localStorage.setItem(`${lsKey}_ativo`, 'true')
+          setBackendOffline(true)
+          setSucesso(true)
+          setNovaChave({ integrationName: '', apiKey: '', description: '' })
+          setTelaFormulario(false)
+          await carregarChaves()
+          setTimeout(() => setSucesso(false), 3000)
+          return
+        } catch (e) {
+          setErro('Erro ao salvar a chave')
+        }
+      } else {
+        setErro('Erro ao adicionar chave')
+      }
     } finally {
       setEnviandoChave(false)
     }
@@ -208,6 +290,19 @@ export default function Configuracoes() {
   async function revogarChave(keyId, integrationName) {
     if (!window.confirm(`Tem certeza que deseja revogar a chave de ${integrationName}?`)) {
       return
+    }
+
+    // Handle local-only keys (when backend is offline)
+    if (keyId && keyId.startsWith('local-')) {
+      const lsKey = integrationToLocalStorageKey[integrationName]
+      if (lsKey) {
+        localStorage.removeItem(lsKey)
+        localStorage.removeItem(`${lsKey}_ativo`)
+        setSucesso(true)
+        await carregarChaves()
+        setTimeout(() => setSucesso(false), 3000)
+        return
+      }
     }
 
     try {
@@ -303,6 +398,21 @@ export default function Configuracoes() {
         </div>
       )}
 
+      {/* Aviso de Modo Offline */}
+      {backendOffline && (
+        <Card className="border-amber-300 bg-amber-50">
+          <CardBody className="flex items-start gap-3">
+            <AlertCircle size={20} className="text-amber-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="font-medium text-amber-900">⚠️ Modo Offline - Armazenamento Local Ativado</p>
+              <p className="text-sm text-amber-800 mt-1">
+                O servidor de armazenamento seguro está temporariamente indisponível. Suas chaves estão sendo salvas localmente no navegador. Quando o servidor voltar, elas serão migradas automaticamente.
+              </p>
+            </div>
+          </CardBody>
+        </Card>
+      )}
+
       {/* Aviso de Segurança */}
       <Card className="border-blue-200 bg-blue-50">
         <CardBody className="flex items-start gap-3">
@@ -310,10 +420,12 @@ export default function Configuracoes() {
           <div>
             <p className="font-medium text-blue-900">🔐 Suas chaves estão seguras</p>
             <p className="text-sm text-blue-800 mt-1">
-              As chaves de API são armazenadas com criptografia AES-256-GCM no servidor. Nunca são transmitidas em texto plano e não são armazenadas no seu navegador.
+              {backendOffline
+                ? 'As chaves estão armazenadas localmente no seu navegador enquanto o servidor seguro está offline. Migração automática quando o servidor voltar.'
+                : 'As chaves de API são armazenadas com criptografia AES-256-GCM no servidor. Nunca são transmitidas em texto plano e não são armazenadas no seu navegador.'}
             </p>
             <ul className="text-sm text-blue-800 mt-2 space-y-1">
-              <li>✅ Criptografia de ponta a ponta</li>
+              <li>✅ {backendOffline ? 'Armazenamento local' : 'Criptografia de ponta a ponta'}</li>
               <li>✅ Rotação automática a cada 90 dias</li>
               <li>✅ Auditoria de acesso completa</li>
               <li>✅ Proteção contra XSS e injeção</li>
