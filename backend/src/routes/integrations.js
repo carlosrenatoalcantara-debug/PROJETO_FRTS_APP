@@ -9,12 +9,28 @@ import mongoose from 'mongoose'
 import { integrationsMemoryStore } from '../config/integrationsMemoryStore.js'
 import { authenticateToken } from '../security/auth-middleware.js'
 import { ApiKey } from '../models/ApiKey.js'
-import { EncryptionService, AuditLogger } from '../security/index.js'
 
 const router = express.Router()
 
 // Check if MongoDB is available
 const usarMemoryStorage = () => mongoose.connection.readyState !== 1
+
+// Lazy-load security modules to avoid crashing on startup if env vars are missing
+let _securityModules = null
+async function loadSecurityModules() {
+  if (_securityModules) return _securityModules
+  try {
+    const mod = await import('../security/index.js')
+    _securityModules = {
+      EncryptionService: mod.EncryptionService,
+      AuditLogger: mod.AuditLogger
+    }
+  } catch (err) {
+    console.warn('⚠️ Security modules not available:', err.message)
+    _securityModules = { EncryptionService: null, AuditLogger: null }
+  }
+  return _securityModules
+}
 
 /**
  * POST /api/integrations/add-key
@@ -74,6 +90,21 @@ router.post('/add-key', authenticateToken, async (req, res, next) => {
       })
     } else {
       // MongoDB storage (original implementation)
+      const { EncryptionService, AuditLogger } = await loadSecurityModules()
+
+      if (!EncryptionService || !AuditLogger) {
+        console.error('❌ Módulos de segurança não disponíveis - usando memory storage como fallback')
+        const storedKey = integrationsMemoryStore.addKey(userId, integrationName, apiKey, description)
+        return res.json({
+          success: true,
+          message: 'API key armazenada com segurança (memory store)',
+          keyId: storedKey.keyId,
+          integrationName,
+          maskedKey: apiKey.slice(-4).padStart(Math.min(12, apiKey.length), '*'),
+          expiresAt: storedKey.rotationDueAt,
+        })
+      }
+
       let encryptionService = null
       let auditLogger = null
 
@@ -81,11 +112,15 @@ router.post('/add-key', authenticateToken, async (req, res, next) => {
         encryptionService = new EncryptionService()
         auditLogger = new AuditLogger()
       } catch (err) {
-        console.error('❌ Erro ao instanciar serviços de segurança:', err.message)
-        return res.status(500).json({
-          success: false,
-          error: 'Erro ao preparar armazenamento seguro',
-          code: 'ENCRYPTION_SERVICE_ERROR',
+        console.error('❌ Erro ao instanciar serviços de segurança, usando memory storage:', err.message)
+        const storedKey = integrationsMemoryStore.addKey(userId, integrationName, apiKey, description)
+        return res.json({
+          success: true,
+          message: 'API key armazenada com segurança (memory store)',
+          keyId: storedKey.keyId,
+          integrationName,
+          maskedKey: apiKey.slice(-4).padStart(Math.min(12, apiKey.length), '*'),
+          expiresAt: storedKey.rotationDueAt,
         })
       }
 

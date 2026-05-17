@@ -9,8 +9,13 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     // Try to load token from localStorage on mount
-    const storedToken = localStorage.getItem('accessToken')
+    // Support both 'accessToken' (new) and 'token' (legacy) for backwards compatibility
+    const storedToken = localStorage.getItem('accessToken') || localStorage.getItem('token')
     if (storedToken) {
+      // Migrate legacy 'token' to 'accessToken'
+      if (!localStorage.getItem('accessToken') && localStorage.getItem('token')) {
+        localStorage.setItem('accessToken', storedToken)
+      }
       setToken(storedToken)
       // Load user data
       verifyToken(storedToken)
