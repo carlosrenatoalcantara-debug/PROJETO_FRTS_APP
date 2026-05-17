@@ -21,6 +21,7 @@ router.get('/cliente/:clienteId',                     listarProjetosEVPorCliente
 router.post('/manutencao/recalcular-potencias',       recalcularPotenciasProjetosEV)
 router.post('/',                                      criarProjetoEV)
 router.put('/:id',                                    atualizarProjetoEV)
+router.patch('/:id',                                  atualizarProjetoEV)  // alias PATCH = PUT
 router.delete('/:id',                                 excluirProjetoEV)
 
 export default router

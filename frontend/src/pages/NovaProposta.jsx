@@ -928,7 +928,7 @@ export default function NovaProposta() {
   const clienteId = searchParams.get('clienteId')
   const leadId = searchParams.get('leadId')
   const tipoParam = searchParams.get('tipo')
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005'
+  const API_URL = import.meta.env.VITE_API_URL || ''
 
   const [etapa, setEtapa] = useState(1)
 

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ChevronLeft, Zap, Edit2, X } from 'lucide-react'
 import Card, { CardHeader, CardBody } from '../components/ui/Card'
@@ -7,7 +7,7 @@ import Badge from '../components/ui/Badge'
 import InteractiveDiagram from '../components/diagram/InteractiveDiagram'
 import { carregarDiagramaLocal, salvarDiagramaLocal, deletarDiagramaLocal } from '../components/diagram/utils/diagramPersistence'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005'
+const API_URL = import.meta.env.VITE_API_URL || ''
 
 const statusLabel = {
   'rascunho': 'Rascunho',
@@ -39,6 +39,11 @@ export default function ProjetosEVDetalhes() {
   const [diagramaEditado, setDiagramaEditado] = useState(null)
   const [salvandoDiagrama, setSalvandoDiagrama] = useState(false)
 
+  // Callback estável para evitar loop infinito no InteractiveDiagram
+  const handleDiagramChange = useCallback((diagramData) => {
+    setDiagramaEditado(diagramData)
+  }, [])
+
   useEffect(() => {
     carregarProjeto()
   }, [id])
@@ -69,10 +74,15 @@ export default function ProjetosEVDetalhes() {
 
   // Abrir editor de diagrama
   const abrirEditorDiagrama = () => {
-    // Carregar diagrama salvo localmente se existir
+    // Carregar diagrama salvo localmente se existir, ou do projeto (backend)
     const diagramaSalvo = carregarDiagramaLocal(`projeto-ev-${id}`)
     if (diagramaSalvo) {
       setDiagramaEditado(diagramaSalvo)
+    } else if (projeto?.diagrama_editado?.nodes) {
+      setDiagramaEditado(projeto.diagrama_editado)
+    } else {
+      // Inicia com estado vazio mas válido para habilitar o botão salvar
+      setDiagramaEditado({ nodes: [], edges: [] })
     }
     setModalEditorAberto(true)
   }
@@ -376,9 +386,7 @@ export default function ProjetosEVDetalhes() {
                   tecnico_nome: projeto?.tecnico?.nome,
                   tecnico_crea: projeto?.tecnico?.crea,
                 }}
-                onDiagramChange={(diagramData) => {
-                  setDiagramaEditado(diagramData)
-                }}
+                onDiagramChange={handleDiagramChange}
                 readOnly={false}
               />
             </div>

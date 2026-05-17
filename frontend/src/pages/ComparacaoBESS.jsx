@@ -5,7 +5,7 @@ import Button from '../components/ui/Button'
 import Input from '../components/ui/Input'
 import Badge from '../components/ui/Badge'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005'
+const API_URL = import.meta.env.VITE_API_URL || ''
 
 function GraficoEconomia({ fluxoCaixa }) {
   const maxSaldo = Math.max(...fluxoCaixa.map(d => d.saldo))

@@ -115,8 +115,16 @@ const projetoEVSchema = new mongoose.Schema({
   },
 
   observacoes: String,
+
+  // DIAGRAMA UNIFILAR (editado pelo usuário)
+  diagrama_editado: {
+    nodes: { type: mongoose.Schema.Types.Mixed, default: null },
+    edges: { type: mongoose.Schema.Types.Mixed, default: null },
+    timestamp: { type: Date, default: null },
+  },
 }, {
   timestamps: true,
+  strict: false,  // Permite campos extras sem erro silencioso
 })
 
 export const ProjetoEV = mongoose.model('ProjetoEV', projetoEVSchema)

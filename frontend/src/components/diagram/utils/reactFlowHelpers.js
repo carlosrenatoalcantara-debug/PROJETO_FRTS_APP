@@ -24,7 +24,7 @@ export function converterCalculosParaNodesEdges(calculos, projeto) {
   // Nó 1: REDE (Grid/Power Source)
   const gridNode = {
     id: 'grid-1',
-    type: 'gridNode',
+    type: 'gridNodeRealista',
     position: nodePositions.grid,
     data: {
       tipo: 'rede',
@@ -40,7 +40,7 @@ export function converterCalculosParaNodesEdges(calculos, projeto) {
   // Nó 2: DISJUNTOR (Main Breaker)
   const breakerNode = {
     id: 'breaker-1',
-    type: 'breakerNode',
+    type: 'breakerNodeRealista',
     position: nodePositions.breaker,
     data: {
       tipo: 'disjuntor',
@@ -55,7 +55,7 @@ export function converterCalculosParaNodesEdges(calculos, projeto) {
   // Nó 2.5: DPS (Surge Protection) - OBRIGATÓRIO
   const dpsNode = {
     id: 'dps-1',
-    type: 'dpsNode',
+    type: 'dpsNodeRealista',
     position: nodePositions.dps,
     data: {
       tipo: 'dps',
@@ -71,7 +71,7 @@ export function converterCalculosParaNodesEdges(calculos, projeto) {
   // Nó 3: DR (Differential Protection)
   const drNode = {
     id: 'dr-1',
-    type: 'drNode',
+    type: 'drNodeRealista',
     position: nodePositions.dr,
     data: {
       tipo: 'dr',
@@ -85,7 +85,7 @@ export function converterCalculosParaNodesEdges(calculos, projeto) {
   // Nó 4: CABO (Cable)
   const cableNode = {
     id: 'cable-1',
-    type: 'cableNode',
+    type: 'cableNodeRealista',
     position: nodePositions.cable,
     data: {
       tipo: 'cabo',
@@ -100,7 +100,7 @@ export function converterCalculosParaNodesEdges(calculos, projeto) {
   // Nó 5: CARREGADOR (EV Charger)
   const chargerNode = {
     id: 'charger-1',
-    type: 'chargerNode',
+    type: 'chargerNodeRealista',
     position: nodePositions.charger,
     data: {
       tipo: 'carregador',

@@ -4,7 +4,7 @@ import Card, { CardBody } from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import ModalNovoModulo from '../components/equipamentos/ModalNovoModulo'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005'
+const API_URL = import.meta.env.VITE_API_URL || ''
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 

@@ -149,7 +149,7 @@ function ResultadoSimulacao({ resultado, form, datasheetPainel, onNova }) {
 
   async function criarLeadAutomatico() {
     try {
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005'
+      const API_URL = import.meta.env.VITE_API_URL || ''
       const res = await fetch(`${API_URL}/api/crm/leads`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -555,7 +555,7 @@ export default function SimulacaoFV() {
     setEstado('calculando'); setErroGeral('')
 
     try {
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005'
+      const API_URL = import.meta.env.VITE_API_URL || ''
 
       const respOrquestrador = await fetch(`${API_URL}/api/projeto/simular`, {
         method: 'POST',

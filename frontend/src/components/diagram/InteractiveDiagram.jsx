@@ -134,20 +134,8 @@ export default function InteractiveDiagram({
     setSelectedNode(node.id);
   }, []);
 
-  // Atualizar callbacks nos nós sempre que as funções mudam
-  useEffect(() => {
-    if (nodes.length > 0) {
-      const nodesAtualizados = nodes.map(node => ({
-        ...node,
-        data: {
-          ...node.data,
-          onUpdate: (campo, valor) => handleUpdateNodeValue(node.id, campo, valor),
-          onDelete: () => handleDeleteNode(node.id)
-        }
-      }));
-      setNodes(nodesAtualizados);
-    }
-  }, [nodes, handleUpdateNodeValue, handleDeleteNode, setNodes]); // ✨ Dependências corretas
+  // REMOVIDO: useEffect que atualizava callbacks causava loop infinito
+  // Os callbacks onUpdate/onDelete são injetados diretamente no init e em handleAdicionarNode
 
   // Keyboard shortcuts para Undo/Redo
   useEffect(() => {

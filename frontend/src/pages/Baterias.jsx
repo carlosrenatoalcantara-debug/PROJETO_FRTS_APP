@@ -3,7 +3,7 @@ import { Plus, Edit2, Trash2, ChevronDown, ChevronUp, Battery, Upload } from 'lu
 import Card, { CardBody } from '../components/ui/Card'
 import Button from '../components/ui/Button'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005'
+const API_URL = import.meta.env.VITE_API_URL || ''
 
 function val(v, decimais = 2, sufixo = '') {
   if (v == null || v === '') return '—'
