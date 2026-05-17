@@ -1,5 +1,58 @@
 import { PDFParse } from 'pdf-parse'
 import { obterIrradianciaCity, obterIrradianciaFallback } from '../data/irradianciaRN.js'
+import { GoogleGenerativeAI } from '@google/generative-ai'
+
+// ─── Gemini Vision para imagens de fatura ────────────────────────────────────
+// Chave pode vir do env (Railway) ou do header X-Gemini-Key (enviado pelo frontend via localStorage)
+const GEMINI_API_KEY_ENV = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY
+
+const PROMPT_FATURA = `Você é especialista em faturas de energia elétrica brasileiras.
+Analise esta imagem de conta de energia e extraia os dados do cliente.
+
+Distribuidoras comuns: COSERN (RN), COELBA (BA), CELPE (PE), COELCE (CE), CEMIG (MG), COPEL (PR), ENEL, ENERGISA, EQUATORIAL, ELEKTRO, LIGHT, EDP.
+
+RETORNE APENAS JSON válido, sem markdown, sem explicação:
+{
+  "nome": "nome completo do cliente ou null",
+  "cpfCnpj": "CPF ou CNPJ do cliente (não da distribuidora) ou null",
+  "numeroCliente": "código/número do cliente ou null",
+  "codigoInstalacao": "código da instalação ou null",
+  "endereco": "endereço completo do cliente ou null",
+  "cep": "CEP formato 00000-000 ou null",
+  "cidade": "cidade ou null",
+  "estado": "sigla UF 2 letras ou null",
+  "distribuidora": "nome da distribuidora ou null",
+  "classificacao": "código tarifário (ex: B1, B2, B3, A4) ou null",
+  "subgrupo": "Residencial / Comercial / Industrial / Rural ou null",
+  "tipoLigacao": "Monofásico 220V / Bifásico 220V / Trifásico 380V ou null",
+  "consumoKwh": número médio de consumo mensal em kWh ou null,
+  "valorR": valor total da fatura em reais como número ou null,
+  "valorKwh": tarifa em R$/kWh como número decimal (ex: 0.987) ou null
+}`
+
+async function extrairComGeminiVision(buffer, mimeType, apiKeyFromHeader) {
+  const GEMINI_API_KEY = apiKeyFromHeader || GEMINI_API_KEY_ENV
+  if (!GEMINI_API_KEY) {
+    throw new Error('Chave Gemini não configurada. Acesse Configurações > Integrações e adicione a chave GeminiVision.')
+  }
+
+  const genAI = new GoogleGenerativeAI(GEMINI_API_KEY)
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' })
+
+  const imagePart = {
+    inlineData: {
+      data: buffer.toString('base64'),
+      mimeType,
+    },
+  }
+
+  const result = await model.generateContent([PROMPT_FATURA, imagePart])
+  const text = result.response.text().trim()
+
+  // Remove markdown se presente
+  const jsonStr = text.replace(/^```json\s*/i, '').replace(/```$/i, '').trim()
+  return JSON.parse(jsonStr)
+}
 
 // Endpoint de debug: retorna o texto bruto do PDF linha por linha
 export async function debugFatura(req, res) {
@@ -19,8 +72,53 @@ export async function extrairDadosFatura(req, res) {
   try {
     if (!req.file) return res.status(400).json({ erro: 'Nenhum arquivo enviado' })
 
-    console.log('📄 Processando PDF:', req.file.originalname)
+    const mimeType = req.file.mimetype || ''
+    const isImagem = mimeType.startsWith('image/') ||
+      /\.(jpg|jpeg|png|webp|gif|bmp)$/i.test(req.file.originalname || '')
 
+    console.log(`📄 Processando fatura: ${req.file.originalname} (${mimeType})`)
+
+    // ── Imagem → Gemini Vision ────────────────────────────────────────────────
+    if (isImagem) {
+      console.log('🖼️ Usando Gemini Vision para imagem...')
+      try {
+        const imgMime = mimeType.startsWith('image/') ? mimeType : 'image/jpeg'
+        const apiKeyFromHeader = req.headers['x-gemini-key'] || null
+        const dadosGemini = await extrairComGeminiVision(req.file.buffer, imgMime, apiKeyFromHeader)
+
+        // Complementar com dados calculados a partir do que Gemini extraiu
+        const { fase, tensao } = extrairFaseETensao(dadosGemini.tipoLigacao)
+        const grupoTarifario = mapeiaGrupoTarifario(dadosGemini.classificacao)
+        const cidade = dadosGemini.cidade || null
+        const estado = dadosGemini.estado || null
+        const irradiancia = (cidade && estado)
+          ? (obterIrradianciaCity(cidade, estado) || obterIrradianciaFallback(estado))
+          : null
+
+        console.log('✓ Gemini extraiu:', { nome: dadosGemini.nome, distribuidora: dadosGemini.distribuidora })
+
+        return res.json({
+          ...dadosGemini,
+          grupoTarifario,
+          fase,
+          tensao,
+          irradiancia,
+          mediaAnual: dadosGemini.consumoKwh || null,
+          historico12Meses: null,
+          periodoMeses: null,
+          valorR: dadosGemini.valorR || null,
+        })
+      } catch (geminiErr) {
+        console.warn('⚠️ Gemini Vision falhou:', geminiErr.message)
+        return res.status(422).json({
+          erro: geminiErr.message.includes('GOOGLE_API_KEY')
+            ? geminiErr.message
+            : 'Não foi possível extrair dados da imagem. Tente um PDF ou preencha manualmente.',
+        })
+      }
+    }
+
+    // ── PDF → PDFParse (lógica original) ────────────────────────────────────
     let textoOriginal = ''
     try {
       const parser = new PDFParse({ data: req.file.buffer })

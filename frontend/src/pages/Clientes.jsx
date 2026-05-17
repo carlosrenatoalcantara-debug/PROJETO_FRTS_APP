@@ -7,7 +7,7 @@ import Badge from '../components/ui/Badge'
 import Input from '../components/ui/Input'
 import Dropzone from '../components/ui/Dropzone'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005'
+const API_URL = import.meta.env.VITE_API_URL || ''
 
 function ModalNovoClienteComPDF({ onClose, onSalvo }) {
   const [step, setStep] = useState('upload') // 'upload' | 'manual'
@@ -50,12 +50,21 @@ function ModalNovoClienteComPDF({ onClose, onSalvo }) {
       const formDataUpload = new FormData()
       formDataUpload.append('fatura', file)
 
+      // Passa chave Gemini do localStorage para o backend processar imagens
+      const headers = {}
+      const geminiKey = localStorage.getItem('geminiApiKey')
+      if (geminiKey) headers['X-Gemini-Key'] = geminiKey
+
       const res = await fetch(`${API_URL}/api/fatura/extrair`, {
         method: 'POST',
+        headers,
         body: formDataUpload,
       })
 
-      if (!res.ok) throw new Error('Erro ao extrair')
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}))
+        throw new Error(errData.erro || 'Erro ao extrair dados da fatura')
+      }
 
       const dados = await res.json()
 
@@ -79,7 +88,14 @@ function ModalNovoClienteComPDF({ onClose, onSalvo }) {
 
       setStep('manual')
     } catch (err) {
-      setErro(`Erro ao extrair: ${err.message}`)
+      const msg = err.message || 'Erro desconhecido'
+      if (msg.toLowerCase().includes('gemini') || msg.toLowerCase().includes('chave')) {
+        setErro(`${msg} Clique em "Preencher manualmente" para continuar.`)
+      } else {
+        setErro(`Erro ao extrair: ${msg}`)
+      }
+      // Ainda abre o formulário manual para não bloquear o usuário
+      setStep('manual')
     } finally {
       setExtraindo(false)
     }
