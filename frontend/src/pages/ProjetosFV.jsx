@@ -391,8 +391,15 @@ export default function ProjetosFV() {
           )}
 
           {error && (
-            <div className="p-8 bg-red-50 border border-red-200 rounded text-red-700">
-              Erro ao carregar projetos: {error}
+            <div className="p-8 bg-amber-50 border border-amber-200 rounded text-center">
+              <div className="text-amber-700 font-medium mb-1">⚠️ Servidor temporariamente indisponível</div>
+              <div className="text-slate-500 text-sm mb-3">Os projetos serão exibidos assim que a conexão for restabelecida.</div>
+              <button
+                onClick={carregarProjetos}
+                className="text-sm text-blue-600 hover:text-blue-800 underline"
+              >
+                Tentar novamente
+              </button>
             </div>
           )}
 

@@ -4,12 +4,11 @@
  */
 
 import express from 'express'
-import { JWTService, EncryptionService, AuditLogger, ValidationService } from '../security/index.js'
+import { JWTService, AuditLogger, ValidationService } from '../security/index.js'
 import { createRateLimiter, authenticateToken } from '../security/auth-middleware.js'
 
 const router = express.Router()
 const jwtService = new JWTService()
-const encryptionService = new EncryptionService()
 const auditLogger = new AuditLogger()
 
 // Rate limiting for login (5 attempts per 15 minutes)

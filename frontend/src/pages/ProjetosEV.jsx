@@ -5,7 +5,7 @@ import Card, { CardHeader, CardBody } from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import Badge from '../components/ui/Badge'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
+const API_URL = import.meta.env.VITE_API_URL || ''
 
 const corStatus = {
   'rascunho': 'cinza',
@@ -96,8 +96,15 @@ export default function ProjetosEV() {
               Carregando projetos...
             </div>
           ) : erro ? (
-            <div className="p-6 text-center text-red-500">
-              Erro ao carregar projetos: {erro}
+            <div className="p-6 text-center">
+              <div className="text-amber-600 font-medium mb-1">⚠️ Servidor temporariamente indisponível</div>
+              <div className="text-slate-500 text-sm mb-3">Os projetos serão exibidos assim que a conexão for restabelecida.</div>
+              <button
+                onClick={carregarProjetos}
+                className="text-sm text-blue-600 hover:text-blue-800 underline"
+              >
+                Tentar novamente
+              </button>
             </div>
           ) : projetos.length === 0 ? (
             <div className="p-6 text-center text-slate-500">
