@@ -65,6 +65,50 @@ export default function Configuracoes() {
     carregarChaves()
   }, [token])
 
+  async function migrarChavesLegadas(chavesExistentes) {
+    if (!token) return
+
+    // Map legacy localStorage keys to backend integration names
+    const legacyKeyMap = [
+      { localStorageKey: 'geminiApiKey', integrationName: 'GeminiVision' },
+      { localStorageKey: 'openaiApiKey', integrationName: 'OpenAI' },
+      { localStorageKey: 'claudeApiKey', integrationName: 'Claude' },
+      { localStorageKey: 'googleMapsApiKey', integrationName: 'GoogleMaps' },
+    ]
+
+    const nomesExistentes = new Set(chavesExistentes.map(c => c.integrationName))
+
+    for (const { localStorageKey, integrationName } of legacyKeyMap) {
+      const valor = localStorage.getItem(localStorageKey)
+      if (!valor || !valor.trim()) continue
+      if (nomesExistentes.has(integrationName)) continue
+
+      try {
+        const response = await fetch('/api/integrations/add-key', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            integrationName,
+            apiKey: valor.trim(),
+            description: 'Migrada automaticamente do armazenamento local',
+          }),
+        })
+
+        if (response.ok) {
+          console.log(`✅ Chave ${integrationName} migrada com sucesso`)
+          // Remove legacy key after successful migration
+          localStorage.removeItem(localStorageKey)
+          localStorage.removeItem(`${localStorageKey}_ativo`)
+        }
+      } catch (err) {
+        console.warn(`⚠️ Falha ao migrar ${integrationName}:`, err.message)
+      }
+    }
+  }
+
   async function carregarChaves() {
     try {
       setCarregandoChaves(true)
@@ -84,7 +128,23 @@ export default function Configuracoes() {
 
       if (response.ok) {
         const data = await response.json()
-        setChavesSeguras(data.keys || [])
+        const chaves = data.keys || []
+        setChavesSeguras(chaves)
+
+        // Auto-migrate any legacy keys from localStorage
+        await migrarChavesLegadas(chaves)
+
+        // Reload keys after migration to show the new ones
+        const respPosMigracao = await fetch('/api/integrations/keys', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        })
+        if (respPosMigracao.ok) {
+          const dataPos = await respPosMigracao.json()
+          setChavesSeguras(dataPos.keys || [])
+        }
       } else if (response.status !== 401) {
         setErro('Erro ao carregar chaves do servidor')
       }
