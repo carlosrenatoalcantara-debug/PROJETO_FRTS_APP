@@ -7,7 +7,7 @@ import Badge from '../components/ui/Badge'
 import Input from '../components/ui/Input'
 import Dropzone from '../components/ui/Dropzone'
 
-const API_URL = import.meta.env.VITE_API_URL || ''
+const API_URL = '' /* URL relativa forçada — Vercel proxy → Railway. Não usar VITE_API_URL */
 
 function ModalNovoClienteComPDF({ onClose, onSalvo }) {
   const [step, setStep] = useState('upload') // 'upload' | 'manual'

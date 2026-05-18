@@ -171,13 +171,20 @@ export const securityHeaders = (req, res, next) => {
  */
 export const enforceJsonContentType = (req, res, next) => {
   if (['POST', 'PUT', 'PATCH'].includes(req.method)) {
-    const contentType = req.get('content-type');
+    const contentType = req.get('content-type') || '';
 
-    if (!contentType || !contentType.includes('application/json')) {
+    // Aceita JSON, multipart (uploads de PDF/imagem) e urlencoded (forms tradicionais)
+    const isAccepted =
+      contentType.includes('application/json') ||
+      contentType.includes('multipart/form-data') ||
+      contentType.includes('application/x-www-form-urlencoded');
+
+    if (!isAccepted) {
       return res.status(415).json({
         success: false,
-        error: 'Content-Type deve ser application/json',
+        error: 'Content-Type não suportado',
         code: 'UNSUPPORTED_MEDIA_TYPE',
+        accepted: ['application/json', 'multipart/form-data', 'application/x-www-form-urlencoded'],
       });
     }
   }
@@ -283,16 +290,19 @@ export const setupSecurityHeaders = (app, options = {}) => {
   // Security headers customizados
   app.use(securityHeaders);
 
-  // CORS
-  const corsMiddleware =
-    process.env.NODE_ENV === 'production' ? configureRestrictiveCors() : configureCors(options);
-  app.use(corsMiddleware);
+  // ⚠️ CORS NÃO é aplicado aqui — server.js:74 já aplica `cors(corsOptions)` permissivo
+  // que aceita Vercel + localhost. Aplicar uma 2ª camada restritiva aqui sobrescreveria
+  // a primeira e rejeitaria todos os origins (HTTP 500 sistêmico em produção).
+  //
+  // Se quiser CORS restritivo (apenas produção), use configureRestrictiveCors() diretamente
+  // em server.js NO LUGAR do cors(corsOptions), nunca em adição.
 
   // Content-Type validation
   app.use(enforceJsonContentType);
 
-  // Request size limit
-  app.use(requestSizeLimit(options.maxRequestSize || '10kb'));
+  // Request size limit — default 50mb para acomodar uploads de PDFs/imagens
+  // (datasheets, faturas, pareceres de acesso). express.json em server.js já limita a 50mb também.
+  app.use(requestSizeLimit(options.maxRequestSize || '50mb'));
 
   // Sanitize query params
   app.use(sanitizeQueryParams);

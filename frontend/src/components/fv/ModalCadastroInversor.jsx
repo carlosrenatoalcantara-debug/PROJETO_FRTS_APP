@@ -5,7 +5,7 @@ import Input from '../ui/Input'
 import Select from '../ui/Select'
 import AssistenteDatasheet from './AssistenteDatasheet'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005'
+const API_URL = '' /* URL relativa forçada — Vercel proxy → Railway */
 
 export default function ModalCadastroInversor({ onFechado, onSalvo }) {
   const [aba, setAba] = useState('manual')

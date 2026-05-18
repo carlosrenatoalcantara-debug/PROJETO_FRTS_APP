@@ -6,7 +6,7 @@ import Button from '../components/ui/Button'
 import Badge from '../components/ui/Badge'
 import Input from '../components/ui/Input'
 
-const API_URL = import.meta.env.VITE_API_URL || ''
+const API_URL = '' /* URL relativa forçada — Vercel proxy → Railway. Não usar VITE_API_URL */
 
 export default function ClienteGerenciamento() {
   const { clienteId } = useParams()

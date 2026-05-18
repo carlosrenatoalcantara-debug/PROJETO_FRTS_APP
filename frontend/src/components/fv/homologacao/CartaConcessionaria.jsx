@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Copy, Download } from 'lucide-react'
 import Button from '../../ui/Button'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005'
+const API_URL = '' /* URL relativa forçada — Vercel proxy → Railway */
 
 export default function CartaConcessionaria({ projetoId, projeto, cliente }) {
   const [carta, setCarta] = useState(null)

@@ -14,14 +14,12 @@ export default function UnifilarFV({ projeto }) {
       setCarregando(true)
       setErro(null)
 
-      const resposta = await fetch(`/api/projetos-fv/${projeto._id}/unifilar/gerar`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      })
-
-      if (!resposta.ok) throw new Error('Erro ao gerar unifilar')
-
-      const { svg } = await resposta.json()
+      // Gerador SVG local — não depende de backend (rota antiga
+      // /api/projetos-fv/:id/unifilar/gerar não existe). O backend possui
+      // /api/unifilar/fv/gerar mas com shape de payload diferente; pode ser
+      // exposto futuramente. Por ora, geramos no client.
+      const svg = gerarUnifilarSVG(projeto)
+      if (!svg) throw new Error('Não foi possível gerar o unifilar com os dados disponíveis')
       setUnifilar(svg)
     } catch (err) {
       setErro(err.message || 'Erro ao gerar unifilar')

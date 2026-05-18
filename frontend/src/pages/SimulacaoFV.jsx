@@ -149,7 +149,7 @@ function ResultadoSimulacao({ resultado, form, datasheetPainel, onNova }) {
 
   async function criarLeadAutomatico() {
     try {
-      const API_URL = import.meta.env.VITE_API_URL || ''
+      const API_URL = '' /* URL relativa forçada — Vercel proxy → Railway. Não usar VITE_API_URL */
       const res = await fetch(`${API_URL}/api/crm/leads`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -555,7 +555,7 @@ export default function SimulacaoFV() {
     setEstado('calculando'); setErroGeral('')
 
     try {
-      const API_URL = import.meta.env.VITE_API_URL || ''
+      const API_URL = '' /* URL relativa forçada — Vercel proxy → Railway. Não usar VITE_API_URL */
 
       const respOrquestrador = await fetch(`${API_URL}/api/projeto/simular`, {
         method: 'POST',

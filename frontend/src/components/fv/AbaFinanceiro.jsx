@@ -4,7 +4,7 @@ import Card, { CardHeader, CardBody } from '../ui/Card'
 import Button from '../ui/Button'
 import Input from '../ui/Input'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005'
+const API_URL = '' /* URL relativa forçada — Vercel proxy → Railway */
 
 function GraficoPayback({ fluxoCaixaSemBateria, fluxoCaixaComBateria }) {
   if (!fluxoCaixaSemBateria || !fluxoCaixaComBateria) return null

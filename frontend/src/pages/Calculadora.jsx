@@ -3,7 +3,7 @@ import { Sun, Zap, TrendingDown, MapPin, DollarSign } from 'lucide-react'
 import Card, { CardBody } from '../components/ui/Card'
 import Button from '../components/ui/Button'
 
-const API_URL = import.meta.env.VITE_API_URL || ''
+const API_URL = '' /* URL relativa forçada — Vercel proxy → Railway. Não usar VITE_API_URL */
 
 // Irradiância média por cidade brasileira (kWh/m²/dia)
 const IRRADIANCIA_CIDADES = {

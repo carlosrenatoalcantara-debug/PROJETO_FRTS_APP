@@ -3,7 +3,7 @@ import { Map, AdvancedMarker, useMap, useAdvancedMarkerRef } from '@vis.gl/react
 import { Plus, Trash2, Save, ZoomIn, ZoomOut } from 'lucide-react'
 
 const API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5005'
+const API_URL = '' /* URL relativa forçada — Vercel proxy → Railway */
 
 function MapComponent({ center, onMapClick, pontos }) {
   return (

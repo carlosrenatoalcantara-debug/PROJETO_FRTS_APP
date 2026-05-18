@@ -5,7 +5,7 @@ import Button from '../components/ui/Button'
 import Input from '../components/ui/Input'
 import Select from '../components/ui/Select'
 
-const API_URL = import.meta.env.VITE_API_URL || ''
+const API_URL = '' /* URL relativa forçada — Vercel proxy → Railway. Não usar VITE_API_URL */
 
 /**
  * Catálogo de Equipamentos

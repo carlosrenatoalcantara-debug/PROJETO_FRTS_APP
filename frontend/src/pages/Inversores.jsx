@@ -4,7 +4,7 @@ import Card, { CardHeader, CardBody } from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import ModalNovoInversor from '../components/equipamentos/ModalNovoInversor'
 
-const API_URL = import.meta.env.VITE_API_URL || ''
+const API_URL = '' /* URL relativa forçada — Vercel proxy → Railway. Não usar VITE_API_URL */
 
 // ── Dimensionamento elétrico NBR 5410 ────────────────────────────────────────
 

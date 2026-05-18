@@ -3,7 +3,7 @@ import { Download, AlertCircle, CheckCircle, Loader, Calendar } from 'lucide-rea
 import Card, { CardHeader, CardBody } from '../components/ui/Card'
 import Button from '../components/ui/Button'
 
-const API_URL = import.meta.env.VITE_API_URL || ''
+const API_URL = '' /* URL relativa forçada — Vercel proxy → Railway. Não usar VITE_API_URL */
 const ADMIN_API_KEY = import.meta.env.VITE_ADMIN_API_KEY || 'dev-key-123'
 
 export default function AdminCatalogo() {

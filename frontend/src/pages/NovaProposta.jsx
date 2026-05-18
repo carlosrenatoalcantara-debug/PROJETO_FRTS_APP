@@ -928,7 +928,7 @@ export default function NovaProposta() {
   const clienteId = searchParams.get('clienteId')
   const leadId = searchParams.get('leadId')
   const tipoParam = searchParams.get('tipo')
-  const API_URL = import.meta.env.VITE_API_URL || ''
+  const API_URL = '' /* URL relativa forçada — Vercel proxy → Railway. Não usar VITE_API_URL */
 
   const [etapa, setEtapa] = useState(1)
 

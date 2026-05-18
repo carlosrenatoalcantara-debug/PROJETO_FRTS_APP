@@ -4,7 +4,7 @@ import Card, { CardBody } from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import ModalNovoModulo from '../components/equipamentos/ModalNovoModulo'
 
-const API_URL = import.meta.env.VITE_API_URL || ''
+const API_URL = '' /* URL relativa forçada — Vercel proxy → Railway. Não usar VITE_API_URL */
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 

@@ -11,7 +11,7 @@ import { calcularParametrosNBR5410, validarNBR5410 } from '../services/calculosN
 import { gerarUnifilarEVSVG } from '../utils/gerarUnifilarEV'
 import { salvarDiagramaLocal } from '../components/diagram/utils/diagramPersistence'
 
-const API_URL = import.meta.env.VITE_API_URL || ''
+const API_URL = '' /* URL relativa forçada — Vercel proxy → Railway. Não usar VITE_API_URL */
 
 const ETAPAS = [
   { num: 1, rotulo: 'Localização', icone: MapPin },
