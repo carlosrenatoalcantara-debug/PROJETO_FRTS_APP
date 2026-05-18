@@ -28,6 +28,18 @@ const projetoFVSchema = new mongoose.Schema({
     type: Number,
     default: null,
   },
+  geocoding_origem: {
+    type: String,
+    default: null,
+  },
+  geocoding_confianca: {
+    type: Number,
+    default: null,
+  },
+  geocodificado_em: {
+    type: Date,
+    default: null,
+  },
   unidades_consumidoras: [{
     regra: {
       type: String,
@@ -167,6 +179,23 @@ const projetoFVSchema = new mongoose.Schema({
     estado: { type: String, default: null },
     latitude: { type: Number, default: null },
     longitude: { type: Number, default: null },
+
+    // S2.5 — Metadados do geocoding (frontend faz, backend persiste)
+    geocoding_origem: {
+      type: String,
+      enum: [
+        'gemini_vision',        // Gemini retornou coords direto
+        'nominatim_completo',   // OSM bateu com endereço completo
+        'nominatim_parcial',    // OSM bateu só com rua / fragmento
+        'cidade_estado',        // fallback: centróide da cidade/estado
+        'usuario_manual',       // ajuste manual no mapa
+        'nao_geocodificado',    // falha — coords null
+        null,
+      ],
+      default: null,
+    },
+    geocoding_confianca: { type: Number, min: 0, max: 1, default: null },
+    geocodificado_em: { type: Date, default: null },
 
     concessionaria: { type: String, default: null },
     grupo_tarifario: { type: String, default: null },     // "A" / "B"

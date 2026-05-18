@@ -129,8 +129,11 @@ export default function E8Orcamento() {
           clienteId: cliente._id,
           status: 'proposta',
           endereco_completo: localizacao.cidadeEstado || localizacao.endereco,
-          latitude: localizacao.latitude,
-          longitude: localizacao.longitude,
+          latitude: localizacao.lat ?? null,
+          longitude: localizacao.lon ?? null,
+          geocoding_origem: localizacao.geocoding_origem ?? null,
+          geocoding_confianca: localizacao.geocoding_confianca ?? null,
+          geocodificado_em: localizacao.geocodificado_em ?? null,
           potencia_kwp: dim.potenciaRealKwp,
         }),
       })

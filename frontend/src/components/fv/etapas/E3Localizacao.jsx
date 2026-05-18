@@ -41,6 +41,9 @@ export default function E3Localizacao() {
           cidadeEstado: res.cidadeEstado,
           endereco:     res.enderecoFormatado,
           uf:           uf,
+          geocoding_origem: res.geocoding_origem || 'nominatim',
+          geocoding_confianca: res.geocoding_confianca ?? null,
+          geocodificado_em: res.geocodificado_em || new Date().toISOString(),
         },
       })
       // Sugere concessionária e tensão baseada no estado
@@ -48,6 +51,16 @@ export default function E3Localizacao() {
         dispatch({ type: 'SET_CONSUMO', payload: { concessionaria: reg.concessionarias[0] } })
       }
     } catch (e) {
+      dispatch({
+        type: 'SET_LOCALIZACAO',
+        payload: {
+          lat: null,
+          lon: null,
+          geocoding_origem: 'nao_encontrado',
+          geocoding_confianca: 0,
+          geocodificado_em: new Date().toISOString(),
+        },
+      })
       setErroBusca(e.message)
     } finally {
       setBuscando(false)
@@ -56,8 +69,8 @@ export default function E3Localizacao() {
 
   function validar() {
     if (!loc.lat || !loc.lon) {
-      setErroForm('Pesquise e confirme o endereço antes de continuar.')
-      return false
+      setErroForm('Localização não definida automaticamente. Você pode continuar e ajustar depois.')
+      return true
     }
     setErroForm('')
     return true
@@ -82,7 +95,7 @@ export default function E3Localizacao() {
         <div className="flex gap-2">
           <input
             type="text"
-            placeholder="Ex: Rua das Flores, 100, São Paulo, SP"
+            placeholder="Ex: Rua das Flores, 100, Natal, RN"
             value={loc.endereco}
             onChange={e => { set('endereco', e.target.value); set('lat', null); set('lon', null) }}
             onKeyDown={e => e.key === 'Enter' && buscarEndereco()}
@@ -99,11 +112,17 @@ export default function E3Localizacao() {
           </Button>
         </div>
         {erroBusca && (
-          <p className="flex items-center gap-1.5 text-sm text-red-600">
+          <p className="flex items-center gap-1.5 text-sm text-amber-700">
             <AlertCircle size={14} /> {erroBusca}
           </p>
         )}
       </div>
+
+      {!loc.lat && !loc.lon && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-900">
+          Localização não definida automaticamente
+        </div>
+      )}
 
       {/* Resultado */}
       {loc.lat && (
@@ -143,14 +162,30 @@ export default function E3Localizacao() {
                 type="number"
                 step="0.000001"
                 value={loc.lat ?? ''}
-                onChange={e => set('lat', parseFloat(e.target.value))}
+                onChange={e => dispatch({
+                  type: 'SET_LOCALIZACAO',
+                  payload: {
+                    lat: parseFloat(e.target.value),
+                    geocoding_origem: 'manual_coordenadas',
+                    geocoding_confianca: 1,
+                    geocodificado_em: new Date().toISOString(),
+                  },
+                })}
               />
               <Input
                 rotulo="Longitude"
                 type="number"
                 step="0.000001"
                 value={loc.lon ?? ''}
-                onChange={e => set('lon', parseFloat(e.target.value))}
+                onChange={e => dispatch({
+                  type: 'SET_LOCALIZACAO',
+                  payload: {
+                    lon: parseFloat(e.target.value),
+                    geocoding_origem: 'manual_coordenadas',
+                    geocoding_confianca: 1,
+                    geocodificado_em: new Date().toISOString(),
+                  },
+                })}
               />
             </div>
           </details>

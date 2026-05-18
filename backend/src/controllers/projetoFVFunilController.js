@@ -309,6 +309,10 @@ export async function finalizarComFatura(req, res) {
         estado: faturaDados.estado || null,
         latitude: faturaDados.latitude || null,
         longitude: faturaDados.longitude || null,
+        // S2.5 — geocoding metadata
+        geocoding_origem: faturaDados.geocoding_origem || null,
+        geocoding_confianca: typeof faturaDados.geocoding_confianca === 'number' ? faturaDados.geocoding_confianca : null,
+        geocodificado_em: faturaDados.geocodificado_em ? new Date(faturaDados.geocodificado_em) : null,
         concessionaria: faturaDados.distribuidora || null,
         grupo_tarifario: faturaDados.grupoTarifario || null,
         classificacao: faturaDados.classificacao || null,

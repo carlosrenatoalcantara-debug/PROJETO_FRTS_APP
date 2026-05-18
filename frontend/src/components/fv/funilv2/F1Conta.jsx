@@ -5,6 +5,8 @@ import Button from '../../ui/Button'
 import Dropzone from '../../ui/Dropzone'
 import CardResumoSistema from './CardResumoSistema'
 import FormDadosExtraidos from './FormDadosExtraidos'
+import BadgeLocalizacao from './BadgeLocalizacao'
+import { geocodificarEndereco } from '../../../services/geocodingApi'
 
 const API_URL = '' /* URL relativa (Vercel proxy) */
 
@@ -55,9 +57,38 @@ export default function F1Conta({ onConcluido }) {
 
       const extraido = await res.json()
       extraido._arquivoOriginal = file.name
+
+      // 2. Geocoding no frontend (reuso do service Nominatim já existente).
+      //    Não bloqueia o avanço se falhar — apenas marca como "nao_geocodificado".
+      try {
+        if (extraido.endereco) {
+          const geo = await geocodificarEndereco(extraido.endereco)
+          if (geo) {
+            extraido.latitude = geo.lat
+            extraido.longitude = geo.lon
+            extraido.geocoding_origem = geo.geocoding_origem
+            extraido.geocoding_confianca = geo.geocoding_confianca
+            extraido.geocodificado_em = geo.geocodificado_em
+          } else {
+            extraido.latitude = null
+            extraido.longitude = null
+            extraido.geocoding_origem = 'nao_geocodificado'
+            extraido.geocoding_confianca = 0
+            extraido.geocodificado_em = new Date().toISOString()
+          }
+        }
+      } catch (geoErr) {
+        // Geocoding falhou — não bloqueia. Marca como pendente.
+        console.warn('[F1Conta] geocoding falhou:', geoErr?.message)
+        extraido.latitude = null
+        extraido.longitude = null
+        extraido.geocoding_origem = 'nao_geocodificado'
+        extraido.geocoding_confianca = 0
+      }
+
       setDados(extraido)
 
-      // 2. Chama /preparar-com-fatura para buscar candidatos + calcular dim.
+      // 3. Chama /preparar-com-fatura para buscar candidatos + calcular dim.
       const respPrep = await fetch(`${API_URL}/api/projetos-fv/preparar-com-fatura`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -188,8 +219,14 @@ export default function F1Conta({ onConcluido }) {
         {dimPreview && <CardResumoSistema resultado={dimPreview} />}
 
         <Card>
-          <CardHeader>
+          <CardHeader className="flex items-center justify-between flex-wrap gap-2">
             <h3 className="font-semibold">Dados extraídos da fatura</h3>
+            <BadgeLocalizacao
+              origem={dados.geocoding_origem}
+              confianca={dados.geocoding_confianca}
+              latitude={dados.latitude}
+              longitude={dados.longitude}
+            />
           </CardHeader>
           <CardBody>
             <FormDadosExtraidos dados={dados} onChange={setDados} />

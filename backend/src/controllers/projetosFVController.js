@@ -25,7 +25,17 @@ export const buscarProjetoFV = async (req, res) => {
 
 export const criarProjetoFV = async (req, res) => {
   try {
-    const { clienteId, nome, status } = req.body
+    const {
+      clienteId,
+      nome,
+      status,
+      endereco_completo,
+      latitude,
+      longitude,
+      geocoding_origem,
+      geocoding_confianca,
+      geocodificado_em,
+    } = req.body
 
     if (!clienteId || !nome) {
       return res.status(400).json({ erro: 'Campos clienteId e nome são obrigatórios' })
@@ -40,6 +50,12 @@ export const criarProjetoFV = async (req, res) => {
       clienteId,
       nome,
       status: status || 'rascunho',
+      endereco_completo: endereco_completo || '',
+      latitude: latitude === undefined || latitude === null || latitude === '' ? null : Number(latitude),
+      longitude: longitude === undefined || longitude === null || longitude === '' ? null : Number(longitude),
+      geocoding_origem: geocoding_origem || null,
+      geocoding_confianca: geocoding_confianca !== undefined && geocoding_confianca !== null ? Number(geocoding_confianca) : null,
+      geocodificado_em: geocodificado_em ? new Date(geocodificado_em) : null,
       irradiancia_local: 131.44,
     })
 
@@ -95,7 +111,15 @@ export const listarProjetosFVPorCliente = async (req, res) => {
 export const salvarTelhado = async (req, res) => {
   try {
     const { id } = req.params
-    const { endereco_completo, latitude, longitude, telhado } = req.body
+    const {
+      endereco_completo,
+      latitude,
+      longitude,
+      geocoding_origem,
+      geocoding_confianca,
+      geocodificado_em,
+      telhado,
+    } = req.body
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ erro: 'ID inválido' })
@@ -105,10 +129,17 @@ export const salvarTelhado = async (req, res) => {
     if (!projeto) return res.status(404).json({ erro: 'Projeto não encontrado' })
 
     if (endereco_completo) projeto.endereco_completo = endereco_completo
-    if (latitude !== undefined && longitude !== undefined) {
-      projeto.latitude = Number(latitude)
-      projeto.longitude = Number(longitude)
+    if (latitude !== undefined) {
+      projeto.latitude = latitude === null || latitude === '' ? null : Number(latitude)
     }
+    if (longitude !== undefined) {
+      projeto.longitude = longitude === null || longitude === '' ? null : Number(longitude)
+    }
+    if (geocoding_origem !== undefined) projeto.geocoding_origem = geocoding_origem || null
+    if (geocoding_confianca !== undefined) {
+      projeto.geocoding_confianca = geocoding_confianca === null || geocoding_confianca === '' ? null : Number(geocoding_confianca)
+    }
+    if (geocodificado_em !== undefined) projeto.geocodificado_em = geocodificado_em ? new Date(geocodificado_em) : null
     if (telhado) {
       projeto.telhado = {
         pontos: telhado.pontos || [],
@@ -142,6 +173,9 @@ export const obterTelhado = async (req, res) => {
       endereco_completo: projeto.endereco_completo,
       latitude: projeto.latitude,
       longitude: projeto.longitude,
+      geocoding_origem: projeto.geocoding_origem,
+      geocoding_confianca: projeto.geocoding_confianca,
+      geocodificado_em: projeto.geocodificado_em,
       telhado: projeto.telhado,
     })
   } catch (err) {

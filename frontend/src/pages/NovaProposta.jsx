@@ -58,7 +58,16 @@ function Etapa1Localizacao({ dados, setDados, proxima }) {
             latitude={dados.latitude}
             longitude={dados.longitude}
             onSave={(dadosTelhado) => {
-              setDados({ ...dados, areaDisponivel: dadosTelhado.area_m2 })
+              setDados({
+                ...dados,
+                endereco: dadosTelhado.endereco || dados.endereco,
+                latitude: dadosTelhado.latitude ?? null,
+                longitude: dadosTelhado.longitude ?? null,
+                areaDisponivel: dadosTelhado.area_m2,
+                geocoding_origem: dadosTelhado.geocoding_origem ?? dados.geocoding_origem ?? null,
+                geocoding_confianca: dadosTelhado.geocoding_confianca ?? dados.geocoding_confianca ?? null,
+                geocodificado_em: dadosTelhado.geocodificado_em ?? dados.geocodificado_em ?? null,
+              })
               setAreaDesenhada(true)
             }}
           />
@@ -540,11 +549,11 @@ function Etapa5Irradiancia({ dados, setDados, proxima, anterior }) {
         <CardBody className="space-y-3">
           <div className="p-4 bg-blue-50 border border-blue-200 rounded">
             <p className="text-sm text-blue-900">
-              <strong>Irradiância em {dados.endereco || 'São Paulo, SP'}:</strong> <br />
+              <strong>Irradiância em {dados.endereco || 'localização não definida'}:</strong> <br />
               <strong className="text-lg">{irradianciaCustom.toFixed(2)} kWh/m²/dia</strong>
             </p>
             <p className="text-xs text-blue-800 mt-2">
-              Localização: {dados.latitude?.toFixed(4) || '-23.5505'}° S, {dados.longitude?.toFixed(4) || '-46.6333'}° O
+              Localização: {dados.latitude != null ? dados.latitude.toFixed(4) : 'não definida'} / {dados.longitude != null ? dados.longitude.toFixed(4) : 'não definida'}
             </p>
             <p className="text-xs text-blue-700 mt-1 font-medium">
               Fonte: {fonte === 'extraida' ? '📍 Extraída da cidade (base de dados CRESESB)' : '🔄 Ajustada manualmente'}
@@ -952,8 +961,11 @@ export default function NovaProposta() {
   const [dados, setDados] = useState({
     clienteId,
     endereco: '',
-    latitude: -23.5505,
-    longitude: -46.6333,
+    latitude: null,
+    longitude: null,
+    geocoding_origem: null,
+    geocoding_confianca: null,
+    geocodificado_em: null,
     irradiancia: 5.5,
     areaDisponivel: null,
     gd: '',
@@ -983,8 +995,11 @@ export default function NovaProposta() {
           setDados(prev => ({
             ...prev,
             endereco: lead.endereco || `${lead.cidade || ''}, ${lead.estado || ''}`.trim(),
-            latitude: lead.latitude || -23.5505,
-            longitude: lead.longitude || -46.6333,
+            latitude: lead.latitude != null ? Number(lead.latitude) : null,
+            longitude: lead.longitude != null ? Number(lead.longitude) : null,
+            geocoding_origem: lead.latitude != null && lead.longitude != null ? 'crm_lead' : null,
+            geocoding_confianca: lead.latitude != null && lead.longitude != null ? 1 : null,
+            geocodificado_em: lead.latitude != null && lead.longitude != null ? new Date().toISOString() : null,
           }))
         } catch (err) {
           console.error('Erro ao carregar lead:', err)
@@ -1002,7 +1017,7 @@ export default function NovaProposta() {
 
           // Extrair dados da fatura se disponíveis
           const cidade = cliente.cidade || ''
-          const estado = cliente.estado || 'SP'
+          const estado = cliente.estado || ''
 
           // Lookup de irradiância pela cidade
           const irradiaciaCity = obterIrradianciaCity(cidade, estado)
@@ -1028,8 +1043,11 @@ export default function NovaProposta() {
           setDados(prev => ({
             ...prev,
             endereco: cliente.endereco_completo || `${cliente.cidade || ''}, ${cliente.estado || ''}`,
-            latitude: cliente.latitude ? parseFloat(cliente.latitude) : -23.5505,
-            longitude: cliente.longitude ? parseFloat(cliente.longitude) : -46.6333,
+            latitude: cliente.latitude != null ? parseFloat(cliente.latitude) : null,
+            longitude: cliente.longitude != null ? parseFloat(cliente.longitude) : null,
+            geocoding_origem: cliente.latitude != null && cliente.longitude != null ? 'cadastro_cliente' : null,
+            geocoding_confianca: cliente.latitude != null && cliente.longitude != null ? 1 : null,
+            geocodificado_em: cliente.latitude != null && cliente.longitude != null ? new Date().toISOString() : null,
             // Dados extraídos da fatura
             consumo: cliente.consumo_kwh ? Number(cliente.consumo_kwh) : '',
             tarifa: cliente.valor_kwh ? Number(cliente.valor_kwh) : '',
@@ -1040,13 +1058,15 @@ export default function NovaProposta() {
           }))
         } catch (err) {
           console.error('Erro ao carregar cliente:', err)
-          // Fallback com coordenadas padrão
+          // Sem fallback silencioso de coordenadas: o mapa abre no Brasil e o usuário ajusta.
           setDados(prev => ({
             ...prev,
-            endereco: 'São Paulo, SP',
-            latitude: -23.5505,
-            longitude: -46.6333,
-            irradiancia: obterIrradianciaFallback('SP'),
+            latitude: null,
+            longitude: null,
+            geocoding_origem: null,
+            geocoding_confianca: null,
+            geocodificado_em: null,
+            irradiancia: obterIrradianciaFallback(''),
           }))
         }
       }

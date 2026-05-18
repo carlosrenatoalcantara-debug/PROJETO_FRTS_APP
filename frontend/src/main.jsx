@@ -6,8 +6,9 @@ import { EmpresaProvider } from './contexts/EmpresaContext'
 import { AuthProvider } from './context/AuthContext'
 import App from './App'
 import './index.css'
+import { getGoogleMapsApiKey } from './utils/googleMapsKey'
 
-const apiKey = localStorage.getItem('googleMapsApiKey') || import.meta.env.VITE_GOOGLE_MAPS_API_KEY || ''
+const apiKey = getGoogleMapsApiKey()
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

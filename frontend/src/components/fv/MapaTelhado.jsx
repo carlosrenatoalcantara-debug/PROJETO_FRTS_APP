@@ -1,116 +1,105 @@
 import { useEffect, useRef, useState } from 'react'
-import { Map, AdvancedMarker, useMap, useAdvancedMarkerRef } from '@vis.gl/react-google-maps'
-import { Plus, Trash2, Save, ZoomIn, ZoomOut } from 'lucide-react'
+import { Map, AdvancedMarker } from '@vis.gl/react-google-maps'
+import { Plus, Trash2, Save, MapPin } from 'lucide-react'
+import { geocodificarEndereco } from '../../services/geocodingApi'
 
-const API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY
-const API_URL = '' /* URL relativa forçada — Vercel proxy → Railway */
+const API_URL = '' /* URL relativa forcada - Vercel proxy -> Railway */
+const BRASIL_CENTER = { lat: -14, lng: -54 }
+const BRASIL_ZOOM = 4
+const LOCAL_ZOOM = 15
 
-function MapComponent({ center, onMapClick, pontos }) {
+function temCoordenadasValidas(lat, lng) {
+  return Number.isFinite(Number(lat)) && Number.isFinite(Number(lng))
+}
+
+function criarMetadata(origem, confianca) {
+  return {
+    geocoding_origem: origem,
+    geocoding_confianca: confianca,
+    geocodificado_em: new Date().toISOString(),
+  }
+}
+
+function extrairLatLng(event) {
+  const latLng = event?.detail?.latLng || event?.latLng
+  if (!latLng) return null
+
+  const lat = typeof latLng.lat === 'function' ? latLng.lat() : latLng.lat
+  const lng = typeof latLng.lng === 'function' ? latLng.lng() : latLng.lng
+
+  if (!temCoordenadasValidas(lat, lng)) return null
+  return { lat: Number(lat), lng: Number(lng) }
+}
+
+function MapComponent({ center, zoom, onMapClick, pontos, markerPosition }) {
   return (
     <Map
       center={center}
+      zoom={zoom}
       mapId="telhado-map"
       style={{ width: '100%', height: '100%' }}
-      defaultCenter={center}
-      defaultZoom={15}
+      defaultCenter={BRASIL_CENTER}
+      defaultZoom={BRASIL_ZOOM}
+      onClick={(event) => {
+        const coords = extrairLatLng(event)
+        if (coords) onMapClick(coords.lat, coords.lng)
+      }}
     >
-      {pontos.length > 0 && (
-        pontos.map((ponto, idx) => (
-          <AdvancedMarker
-            key={idx}
-            position={{ lat: ponto.lat, lng: ponto.lng }}
-            title={`Ponto ${idx + 1}`}
-          >
-            <div className="bg-blue-600 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold shadow-lg">
-              {idx + 1}
-            </div>
-          </AdvancedMarker>
-        ))
+      {markerPosition && (
+        <AdvancedMarker position={markerPosition} title="Localizacao do projeto">
+          <div className="bg-emerald-600 text-white rounded-full w-9 h-9 flex items-center justify-center shadow-lg">
+            <MapPin size={18} />
+          </div>
+        </AdvancedMarker>
       )}
-      {/* Polyline temporariamente desabilitado */}
+
+      {pontos.map((ponto, idx) => (
+        <AdvancedMarker
+          key={idx}
+          position={{ lat: ponto.lat, lng: ponto.lng }}
+          title={`Ponto ${idx + 1}`}
+        >
+          <div className="bg-blue-600 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold shadow-lg">
+            {idx + 1}
+          </div>
+        </AdvancedMarker>
+      ))}
     </Map>
   )
 }
 
-function PolylineComponent({ pontos }) {
-  const map = useMap()
-
-  useEffect(() => {
-    if (!map || pontos.length < 2) return
-
-    const paths = pontos.map(p => new google.maps.LatLng(p.lat, p.lng))
-    paths.push(new google.maps.LatLng(pontos[0].lat, pontos[0].lng))
-
-    const polyline = new google.maps.Polyline({
-      path: paths,
-      geodesic: true,
-      strokeColor: '#3B82F6',
-      strokeOpacity: 0.7,
-      strokeWeight: 2,
-      fillColor: '#3B82F6',
-      fillOpacity: 0.2,
-      map: map,
-    })
-
-    return () => {
-      polyline.setMap(null)
-    }
-  }, [map, pontos])
-
-  return null
-}
-
-const COORDENADAS_CIDADES = {
-  'SP': { lat: -23.5505, lng: -46.6333 },
-  'RJ': { lat: -22.9068, lng: -43.1729 },
-  'MG': { lat: -19.9167, lng: -43.9345 },
-  'BA': { lat: -12.9714, lng: -38.5014 },
-  'PE': { lat: -8.0476, lng: -34.877 },
-  'CE': { lat: -3.731, lng: -38.5267 },
-  'RN': { lat: -5.795, lng: -35.2094 },
-  'PA': { lat: -1.4558, lng: -48.5044 },
-  'PR': { lat: -25.4284, lng: -49.2733 },
-  'SC': { lat: -27.2423, lng: -49.6439 },
-  'RS': { lat: -30.0346, lng: -51.2177 },
-  'GO': { lat: -15.827, lng: -48.9278 },
-  'DF': { lat: -15.8267, lng: -47.8711 },
-  'ES': { lat: -20.3155, lng: -40.3128 },
-  'MA': { lat: -2.9141, lng: -44.2170 },
-  'PI': { lat: -5.0892, lng: -42.8019 },
-  'AL': { lat: -9.6412, lng: -36.6822 },
-  'PB': { lat: -7.1219, lng: -34.8450 },
-  'AM': { lat: -3.1190, lng: -60.0217 },
-  'RO': { lat: -8.7608, lng: -63.9002 },
-  'AC': { lat: -9.9757, lng: -67.8250 },
-  'AP': { lat: 0.0356, lng: -51.0642 },
-  'RR': { lat: 2.8235, lng: -60.6758 },
-  'MT': { lat: -15.5994, lng: -56.0974 },
-  'MS': { lat: -20.4697, lng: -54.6201 },
-  'TO': { lat: -10.2623, lng: -48.2625 },
-}
-
 export default function MapaTelhado({ projetoId, onSave, endereco: enderecoProps, latitude: latitudeProps, longitude: longitudeProps }) {
   const [endereco, setEndereco] = useState(enderecoProps || '')
-  const [latitude, setLatitude] = useState(latitudeProps || -23.5505)
-  const [longitude, setLongitude] = useState(longitudeProps || -46.6333)
+  const [latitude, setLatitude] = useState(latitudeProps ?? null)
+  const [longitude, setLongitude] = useState(longitudeProps ?? null)
   const [pontos, setPontos] = useState([])
   const [areaTelhado, setAreaTelhado] = useState(0)
   const [desenhando, setDesenhando] = useState(false)
   const [salvando, setSalvando] = useState(false)
   const [salvo, setSalvo] = useState(false)
   const [erro, setErro] = useState('')
+  const [avisoGeocoding, setAvisoGeocoding] = useState('')
+  const [geocodificando, setGeocodificando] = useState(false)
   const [areaManual, setAreaManual] = useState('')
   const [usarAreaManual, setUsarAreaManual] = useState(false)
   const [irradiancia, setIrradiancia] = useState(null)
   const [buscandoIrradiancia, setBuscandoIrradiancia] = useState(false)
+  const [geocodingMeta, setGeocodingMeta] = useState({
+    geocoding_origem: null,
+    geocoding_confianca: null,
+    geocodificado_em: null,
+  })
   const autocompleteRef = useRef(null)
 
-  const center = { lat: latitude, lng: longitude }
+  const localizacaoDefinida = temCoordenadasValidas(latitude, longitude)
+  const markerPosition = localizacaoDefinida ? { lat: Number(latitude), lng: Number(longitude) } : null
+  const center = markerPosition || BRASIL_CENTER
+  const zoom = localizacaoDefinida ? LOCAL_ZOOM : BRASIL_ZOOM
 
   useEffect(() => {
-    if (enderecoProps) setEndereco(enderecoProps)
-    if (latitudeProps) setLatitude(latitudeProps)
-    if (longitudeProps) setLongitude(longitudeProps)
+    if (enderecoProps !== undefined) setEndereco(enderecoProps || '')
+    if (latitudeProps !== undefined) setLatitude(latitudeProps ?? null)
+    if (longitudeProps !== undefined) setLongitude(longitudeProps ?? null)
   }, [enderecoProps, latitudeProps, longitudeProps])
 
   useEffect(() => {
@@ -119,7 +108,7 @@ export default function MapaTelhado({ projetoId, onSave, endereco: enderecoProps
 
   async function initializeGoogleMaps() {
     if (typeof google === 'undefined') {
-      setErro('Google Maps API não carregada')
+      setErro('Google Maps API nao carregada')
       return
     }
 
@@ -138,7 +127,9 @@ export default function MapaTelhado({ projetoId, onSave, endereco: enderecoProps
           if (place.geometry) {
             setLatitude(place.geometry.location.lat())
             setLongitude(place.geometry.location.lng())
-            setEndereco(place.formatted_address)
+            setEndereco(place.formatted_address || inputElement.value)
+            setGeocodingMeta(criarMetadata('google_places', 0.95))
+            setAvisoGeocoding('')
             setPontos([])
             setAreaTelhado(0)
           }
@@ -150,51 +141,98 @@ export default function MapaTelhado({ projetoId, onSave, endereco: enderecoProps
   }
 
   const iniciarDesenho = () => {
-    setErro('💡 Função de desenho em breve. Use "Usar área manual" para agora.')
+    setErro('Funcao de desenho em breve. Use "Usar area manual" para agora.')
   }
 
   const limparDesenho = () => {
-    if (drawingManagerRef.current) {
-      drawingManagerRef.current.setMap(null)
-    }
     setPontos([])
     setAreaTelhado(0)
     setDesenhando(false)
   }
 
-  const obterCoordenadas = () => {
-    return { lat: latitude, lon: longitude }
+  const adicionarPonto = (lat, lng) => {
+    setPontos(prev => [...prev, { lat, lng }])
+  }
+
+  const selecionarLocalizacaoManual = (lat, lng) => {
+    if (desenhando) {
+      adicionarPonto(lat, lng)
+      return
+    }
+
+    setLatitude(lat)
+    setLongitude(lng)
+    setGeocodingMeta(criarMetadata('manual_mapa', 1))
+    setAvisoGeocoding('')
+    setErro('')
+  }
+
+  const regeocodificarEndereco = async () => {
+    if (!endereco?.trim()) {
+      setAvisoGeocoding('Informe um endereco para buscar a localizacao.')
+      return
+    }
+
+    setGeocodificando(true)
+    setAvisoGeocoding('')
+
+    try {
+      const resultado = await geocodificarEndereco(endereco)
+      setLatitude(resultado.lat)
+      setLongitude(resultado.lon)
+      setEndereco(resultado.enderecoFormatado || endereco)
+      setGeocodingMeta({
+        geocoding_origem: resultado.geocoding_origem || 'nominatim',
+        geocoding_confianca: resultado.geocoding_confianca ?? null,
+        geocodificado_em: resultado.geocodificado_em || new Date().toISOString(),
+      })
+      setPontos([])
+      setAreaTelhado(0)
+    } catch (err) {
+      console.error('Erro ao geocodificar endereco:', err)
+      setLatitude(null)
+      setLongitude(null)
+      setGeocodingMeta({
+        geocoding_origem: 'nao_encontrado',
+        geocoding_confianca: 0,
+        geocodificado_em: new Date().toISOString(),
+      })
+      setAvisoGeocoding('Localizacao nao encontrada. Voce pode continuar e selecionar manualmente no mapa.')
+    } finally {
+      setGeocodificando(false)
+    }
   }
 
   const buscarIrradiancia = async (lat, lon) => {
+    if (!temCoordenadasValidas(lat, lon)) return
+
     setBuscandoIrradiancia(true)
     try {
       const res = await fetch(`${API_URL}/api/irradiancia/local?latitude=${lat}&longitude=${lon}`)
-      if (!res.ok) throw new Error('Erro ao buscar irradiância')
+      if (!res.ok) throw new Error('Erro ao buscar irradiancia')
       const dados = await res.json()
       setIrradiancia(dados)
     } catch (err) {
-      console.error('Erro ao buscar irradiância:', err)
+      console.error('Erro ao buscar irradiancia:', err)
       setIrradiancia(null)
     } finally {
       setBuscandoIrradiancia(false)
     }
   }
 
-
   const salvarTelhado = async () => {
     if (!usarAreaManual) {
-      setErro('⚠️ Por enquanto, use a opção "Usar área manual" para prosseguir')
+      setErro('Por enquanto, use a opcao "Usar area manual" para prosseguir')
       return
     }
 
     if (!areaManual || areaManual <= 0) {
-      setErro('❌ Digite uma área válida em m² (maior que 0)')
+      setErro('Digite uma area valida em m2 (maior que 0)')
       return
     }
 
     if (!endereco || !endereco.trim()) {
-      setErro('❌ Preencha o endereço')
+      setErro('Preencha o endereco')
       return
     }
 
@@ -203,19 +241,27 @@ export default function MapaTelhado({ projetoId, onSave, endereco: enderecoProps
 
     try {
       const areaFinal = Number(areaManual)
-      const coords = obterCoordenadas()
       const enderecoFinal = endereco
-      const dadosTelhado = { endereco: enderecoFinal, latitude: coords.lat, longitude: coords.lon, pontos, area_m2: areaFinal }
+      const dadosTelhado = {
+        endereco: enderecoFinal,
+        latitude: localizacaoDefinida ? Number(latitude) : null,
+        longitude: localizacaoDefinida ? Number(longitude) : null,
+        pontos,
+        area_m2: areaFinal,
+        ...geocodingMeta,
+      }
 
-      // Se houver projetoId, salvar no backend; senão, apenas chamar callback
       if (projetoId) {
         const res = await fetch(`${API_URL}/api/projetos-fv/${projetoId}/telhado`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             endereco_completo: enderecoFinal,
-            latitude: coords.lat,
-            longitude: coords.lon,
+            latitude: dadosTelhado.latitude,
+            longitude: dadosTelhado.longitude,
+            geocoding_origem: geocodingMeta.geocoding_origem,
+            geocoding_confianca: geocodingMeta.geocoding_confianca,
+            geocodificado_em: geocodingMeta.geocodificado_em,
             telhado: {
               pontos,
               area_m2: areaFinal,
@@ -229,8 +275,7 @@ export default function MapaTelhado({ projetoId, onSave, endereco: enderecoProps
           throw new Error(msgErro)
         }
 
-        // Buscar irradiância após salvar com sucesso
-        await buscarIrradiancia(coords.lat, coords.lon)
+        await buscarIrradiancia(dadosTelhado.latitude, dadosTelhado.longitude)
       }
 
       setSalvo(true)
@@ -241,7 +286,7 @@ export default function MapaTelhado({ projetoId, onSave, endereco: enderecoProps
       setTimeout(() => setSalvo(false), 3000)
     } catch (err) {
       console.error('Erro ao salvar:', err)
-      setErro(`❌ ${err.message || 'Erro ao salvar telhado. Verifique o endereço e a área.'}`)
+      setErro(`${err.message || 'Erro ao salvar telhado. Verifique o endereco e a area.'}`)
     } finally {
       setSalvando(false)
     }
@@ -250,38 +295,58 @@ export default function MapaTelhado({ projetoId, onSave, endereco: enderecoProps
   return (
     <div className="space-y-4">
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <h3 className="font-semibold text-slate-900 mb-4">Localização e Desenho do Telhado</h3>
+        <h3 className="font-semibold text-slate-900 mb-4">Localizacao e Desenho do Telhado</h3>
 
         <div className="space-y-4">
-          {/* Endereço - Campo único preenchido do cliente */}
           <div>
             <label className="text-sm font-semibold text-slate-700 block mb-1">
-              Endereço do Imóvel
+              Endereco do Imovel
             </label>
-            <input
-              type="text"
-              value={endereco}
-              onChange={(e) => setEndereco(e.target.value)}
-              placeholder="Endereço do cliente"
-              className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <p className="text-xs text-slate-500 mt-1">Campo preenchido automaticamente com o endereço do cliente</p>
+            <div className="flex gap-2">
+              <input
+                id="endereco-input"
+                type="text"
+                value={endereco}
+                onChange={(e) => {
+                  setEndereco(e.target.value)
+                  setAvisoGeocoding('')
+                }}
+                placeholder="Endereco do cliente"
+                className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <button
+                type="button"
+                onClick={regeocodificarEndereco}
+                disabled={geocodificando}
+                className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-slate-300 text-sm font-medium whitespace-nowrap"
+              >
+                {geocodificando ? 'Buscando...' : 'Regeocodificar'}
+              </button>
+            </div>
+            <p className="text-xs text-slate-500 mt-1">Edite o endereco ou clique no mapa para ajustar a localizacao.</p>
           </div>
 
-          {/* Mapa */}
+          {!localizacaoDefinida && (
+            <div className="bg-amber-50 border border-amber-200 rounded p-3 text-sm text-amber-900">
+              Localizacao nao definida automaticamente
+            </div>
+          )}
+
+          {avisoGeocoding && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded p-3 text-sm text-yellow-900">
+              {avisoGeocoding}
+            </div>
+          )}
+
           <div className="rounded-lg overflow-hidden border border-slate-200 relative" style={{ height: '500px' }}>
             {typeof google !== 'undefined' ? (
-              <>
-                <MapComponent
-                  center={center}
-                  onMapClick={(lat, lng) => desenhando && adicionarPonto(lat, lng)}
-                  pontos={pontos}
-                />
-
-                {/* Zoom: use scroll do mouse ou touchpad */}
-
-                {/* Modo desenho desabilitado por enquanto */}
-              </>
+              <MapComponent
+                center={center}
+                zoom={zoom}
+                onMapClick={selecionarLocalizacaoManual}
+                pontos={pontos}
+                markerPosition={markerPosition}
+              />
             ) : (
               <div className="w-full h-full bg-slate-100 flex items-center justify-center text-slate-500">
                 Carregando mapa...
@@ -289,19 +354,17 @@ export default function MapaTelhado({ projetoId, onSave, endereco: enderecoProps
             )}
           </div>
 
-          {/* Informações de Área */}
           <div className="grid grid-cols-2 gap-3">
             <div className="bg-white p-3 rounded border border-slate-200">
               <p className="text-slate-500 text-xs font-semibold">Pontos Desenhados</p>
               <p className="text-2xl font-bold text-slate-900">{pontos.length}</p>
             </div>
             <div className="bg-white p-3 rounded border border-slate-200">
-              <p className="text-slate-500 text-xs font-semibold">Área Estimada</p>
-              <p className="text-2xl font-bold text-slate-900">{usarAreaManual ? areaManual : areaTelhado} m²</p>
+              <p className="text-slate-500 text-xs font-semibold">Area Estimada</p>
+              <p className="text-2xl font-bold text-slate-900">{usarAreaManual ? areaManual : areaTelhado} m2</p>
             </div>
           </div>
 
-          {/* Modo de Área */}
           <div className="bg-white border border-slate-200 rounded p-3">
             <label className="flex items-center gap-2 cursor-pointer">
               <input
@@ -313,7 +376,7 @@ export default function MapaTelhado({ projetoId, onSave, endereco: enderecoProps
                 }}
               />
               <span className="text-sm font-medium text-slate-700">
-                Usar área manual (sem desenho)
+                Usar area manual (sem desenho)
               </span>
             </label>
 
@@ -322,13 +385,12 @@ export default function MapaTelhado({ projetoId, onSave, endereco: enderecoProps
                 type="number"
                 value={areaManual}
                 onChange={(e) => setAreaManual(e.target.value)}
-                placeholder="Área em m²"
+                placeholder="Area em m2"
                 className="w-full mt-2 px-3 py-2 rounded border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             )}
           </div>
 
-          {/* Botões */}
           <div className="flex gap-2">
             {!usarAreaManual && (
               <button
@@ -359,44 +421,43 @@ export default function MapaTelhado({ projetoId, onSave, endereco: enderecoProps
             </button>
           </div>
 
-          {/* Feedback */}
           {erro && (
             <div className="bg-red-50 border border-red-200 rounded p-3 text-sm text-red-800">
-              ✗ {erro}
+              {erro}
             </div>
           )}
 
           {salvo && (
             <div className="space-y-3">
               <div className="bg-green-50 border border-green-200 rounded p-3 text-sm text-green-800">
-                ✓ Telhado salvo com sucesso! Área: {usarAreaManual ? areaManual : areaTelhado} m²
+                Telhado salvo com sucesso! Area: {usarAreaManual ? areaManual : areaTelhado} m2
               </div>
 
               {buscandoIrradiancia && (
                 <div className="bg-blue-50 border border-blue-200 rounded p-3 text-sm text-blue-800 flex items-center gap-2">
-                  <div className="animate-spin">⟳</div>
-                  Consultando irradiância local...
+                  <div className="animate-spin">...</div>
+                  Consultando irradiancia local...
                 </div>
               )}
 
               {irradiancia && !buscandoIrradiancia && (
                 <div className="bg-blue-50 border border-blue-200 rounded p-4 space-y-2">
-                  <p className="text-sm font-semibold text-blue-900">☀️ Irradiância Local</p>
+                  <p className="text-sm font-semibold text-blue-900">Irradiancia Local</p>
                   <div className="grid grid-cols-2 gap-3 text-sm">
                     <div className="bg-white p-2 rounded border border-blue-100">
-                      <p className="text-blue-600 text-xs font-medium">HSP Diária</p>
-                      <p className="text-lg font-bold text-blue-900">{irradiancia.hsp_dia} kWh/m²/dia</p>
+                      <p className="text-blue-600 text-xs font-medium">HSP Diaria</p>
+                      <p className="text-lg font-bold text-blue-900">{irradiancia.hsp_dia} kWh/m2/dia</p>
                     </div>
                     <div className="bg-white p-2 rounded border border-blue-100">
                       <p className="text-blue-600 text-xs font-medium">HSP Anual</p>
-                      <p className="text-lg font-bold text-blue-900">{irradiancia.hsp_anual} kWh/m²</p>
+                      <p className="text-lg font-bold text-blue-900">{irradiancia.hsp_anual} kWh/m2</p>
                     </div>
                   </div>
                   <p className="text-xs text-blue-700 pt-2">
-                    <strong>Localização:</strong> Lat: {irradiancia.latitude.toFixed(4)}, Lon: {irradiancia.longitude.toFixed(4)}
+                    <strong>Localizacao:</strong> Lat: {irradiancia.latitude.toFixed(4)}, Lon: {irradiancia.longitude.toFixed(4)}
                   </p>
                   <p className="text-xs text-blue-600">
-                    Fonte: {irradiancia.fonte === 'nasa-power' ? '🛰️ NASA POWER' : '📊 Padrão'}
+                    Fonte: {irradiancia.fonte === 'nasa-power' ? 'NASA POWER' : 'Padrao'}
                   </p>
                 </div>
               )}
@@ -405,7 +466,7 @@ export default function MapaTelhado({ projetoId, onSave, endereco: enderecoProps
 
           {!usarAreaManual && (
             <div className="bg-blue-50 border border-blue-200 rounded p-3 text-sm text-blue-800">
-              ℹ️ <strong>Como proceder:</strong> Marque a opção "Usar área manual" abaixo e digite a metragem do telhado em m² para continuar.
+              Marque a opcao "Usar area manual" abaixo e digite a metragem do telhado em m2 para continuar.
             </div>
           )}
         </div>
