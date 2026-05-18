@@ -141,7 +141,11 @@ export default function ProjetosEV() {
                     return (
                       <tr key={p._id} className="hover:bg-slate-50 transition-colors">
                         <td className="px-6 py-4 font-medium text-slate-900">{p.nome}</td>
-                        <td className="px-6 py-4 text-slate-600">{p.clienteId || 'N/A'}</td>
+                        <td className="px-6 py-4 text-slate-600">{
+                          typeof p.clienteId === 'object'
+                            ? (p.clienteId?.nome || 'N/A')
+                            : (p.clienteId || 'N/A')
+                        }</td>
                         <td className="px-6 py-4 text-slate-600 hidden md:table-cell">{quantidadePontos}</td>
                         <td className="px-6 py-4 text-slate-600 hidden md:table-cell">{potenciaTotal} kW</td>
                         <td className="px-6 py-4 hidden lg:table-cell">
