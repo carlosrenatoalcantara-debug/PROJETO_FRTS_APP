@@ -9,25 +9,33 @@ const GEMINI_API_KEY_ENV = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_
 const PROMPT_FATURA = `Você é especialista em faturas de energia elétrica brasileiras.
 Analise esta imagem de conta de energia e extraia os dados do cliente.
 
-Distribuidoras comuns: COSERN (RN), COELBA (BA), CELPE (PE), COELCE (CE), CEMIG (MG), COPEL (PR), ENEL, ENERGISA, EQUATORIAL, ELEKTRO, LIGHT, EDP.
+Distribuidoras comuns: COSERN (RN), COELBA (BA), CELPE (PE), COELCE (CE), CEMIG (MG), COPEL (PR), ENEL, ENERGISA, EQUATORIAL, ELEKTRO, LIGHT, EDP, NEOENERGIA.
 
-RETORNE APENAS JSON válido, sem markdown, sem explicação:
+RETORNE APENAS JSON válido, sem markdown, sem explicação. Use null para campos não encontrados:
 {
-  "nome": "nome completo do cliente ou null",
-  "cpfCnpj": "CPF ou CNPJ do cliente (não da distribuidora) ou null",
-  "numeroCliente": "código/número do cliente ou null",
-  "codigoInstalacao": "código da instalação ou null",
-  "endereco": "endereço completo do cliente ou null",
-  "cep": "CEP formato 00000-000 ou null",
-  "cidade": "cidade ou null",
-  "estado": "sigla UF 2 letras ou null",
-  "distribuidora": "nome da distribuidora ou null",
-  "classificacao": "código tarifário (ex: B1, B2, B3, A4) ou null",
-  "subgrupo": "Residencial / Comercial / Industrial / Rural ou null",
-  "tipoLigacao": "Monofásico 220V / Bifásico 220V / Trifásico 380V ou null",
-  "consumoKwh": número médio de consumo mensal em kWh ou null,
-  "valorR": valor total da fatura em reais como número ou null,
-  "valorKwh": tarifa em R$/kWh como número decimal (ex: 0.987) ou null
+  "nome": "nome completo do cliente",
+  "cpfCnpj": "CPF ou CNPJ do cliente (não da distribuidora)",
+  "telefone": "telefone do cliente no formato (XX) 9XXXX-XXXX",
+  "numeroCliente": "código/número do cliente",
+  "codigoInstalacao": "código da instalação ou UC",
+  "endereco": "endereço completo do cliente",
+  "cep": "CEP formato 00000-000",
+  "cidade": "cidade",
+  "estado": "sigla UF 2 letras",
+  "distribuidora": "nome curto da distribuidora (ex: COSERN, COELBA)",
+  "classificacao": "código tarifário exato (B1, B2, B3, A1, A2, A3, A3a, A4, AS)",
+  "subgrupo": "Residencial / Comercial / Industrial / Rural / Poder Público",
+  "grupoTarifario": "B (baixa tensão até 2,3kV) ou A (alta/média tensão acima)",
+  "tipoLigacao": "Monofásico / Bifásico / Trifásico",
+  "tensaoV": número da tensão de fornecimento em volts (ex: 127, 220, 380),
+  "demandaContratadaKw": número da demanda contratada em kW (só para grupo A, null para B),
+  "consumoKwh": número do consumo mensal atual em kWh,
+  "historico12meses": [
+    {"mes": "JAN/26", "consumo": 450},
+    {"mes": "FEV/26", "consumo": 480}
+  ],
+  "valorR": valor total da fatura em reais como número,
+  "valorKwh": tarifa em R$/kWh como número decimal (ex: 0.987)
 }`
 
 async function extrairComGeminiVision(buffer, mimeType, apiKeyFromHeader) {
@@ -88,25 +96,43 @@ export async function extrairDadosFatura(req, res) {
 
         // Complementar com dados calculados a partir do que Gemini extraiu
         const { fase, tensao } = extrairFaseETensao(dadosGemini.tipoLigacao)
-        const grupoTarifario = mapeiaGrupoTarifario(dadosGemini.classificacao)
+        // Se Gemini retornou grupoTarifario explícito, usa; senão deriva da classificação
+        const grupoTarifario = dadosGemini.grupoTarifario || mapeiaGrupoTarifario(dadosGemini.classificacao)
         const cidade = dadosGemini.cidade || null
         const estado = dadosGemini.estado || null
         const irradiancia = (cidade && estado)
           ? (obterIrradianciaCity(cidade, estado) || obterIrradianciaFallback(estado))
-          : null
+          : (estado ? obterIrradianciaFallback(estado) : null)
 
-        console.log('✓ Gemini extraiu:', { nome: dadosGemini.nome, distribuidora: dadosGemini.distribuidora })
+        // Calcular média anual a partir do histórico (se Gemini extraiu)
+        const historico = Array.isArray(dadosGemini.historico12meses)
+          ? dadosGemini.historico12meses.filter(h => h && typeof h.consumo === 'number' && h.consumo > 0)
+          : []
+        const mediaAnual = historico.length > 0
+          ? Math.round(historico.reduce((s, h) => s + h.consumo, 0) / historico.length)
+          : (dadosGemini.consumoKwh || null)
+
+        console.log('✓ Gemini extraiu:', {
+          nome: dadosGemini.nome,
+          distribuidora: dadosGemini.distribuidora,
+          consumo: dadosGemini.consumoKwh,
+          historico: historico.length,
+        })
 
         return res.json({
           ...dadosGemini,
+          // Campos derivados / enriquecidos
           grupoTarifario,
           fase,
-          tensao,
+          tensao: dadosGemini.tensaoV || tensao,  // prefere extração direta da fatura
           irradiancia,
-          mediaAnual: dadosGemini.consumoKwh || null,
-          historico12Meses: null,
-          periodoMeses: null,
+          mediaAnual,
+          historico12Meses: historico.length > 0 ? historico : null,
+          periodoMeses: historico.length || null,
           valorR: dadosGemini.valorR || null,
+          // Metadados da extração
+          _metodo: 'gemini_vision',
+          _extraidoEm: new Date().toISOString(),
         })
       } catch (geminiErr) {
         console.warn('⚠️ Gemini Vision falhou:', geminiErr.message)

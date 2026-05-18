@@ -140,8 +140,60 @@ const projetoFVSchema = new mongoose.Schema({
     },
   },
   observacoes: String,
+
+  // ─── S2: Extração da conta de energia ──────────────────────────────────────
+  // Schema ESTRITO no nível superior. Mixed APENAS nos campos que
+  // legitimamente precisam ser heterogêneos (dados_brutos do parser).
+  fatura_extracao: {
+    arquivo_original_nome: { type: String, default: null },
+    extraido_em: { type: Date, default: null },
+    metodo: {
+      type: String,
+      enum: ['gemini_vision', 'pdf_parse', 'manual', null],
+      default: null,
+    },
+    confianca: { type: Number, min: 0, max: 1, default: null },
+    confirmado_pelo_usuario: { type: Boolean, default: false },
+
+    // Campos extraídos — todos opcionais, tipos estritos
+    nome: { type: String, default: null },
+    cpf_cnpj: { type: String, default: null },
+    telefone: { type: String, default: null },
+    numero_cliente: { type: String, default: null },
+    codigo_instalacao: { type: String, default: null },
+    endereco: { type: String, default: null },
+    cep: { type: String, default: null },
+    cidade: { type: String, default: null },
+    estado: { type: String, default: null },
+    latitude: { type: Number, default: null },
+    longitude: { type: Number, default: null },
+
+    concessionaria: { type: String, default: null },
+    grupo_tarifario: { type: String, default: null },     // "A" / "B"
+    classificacao: { type: String, default: null },       // B1, A4, etc.
+    subgrupo: { type: String, default: null },            // Residencial / Comercial...
+    tipo_ligacao: { type: String, default: null },        // Monofásico / Bifásico / Trifásico
+    tensao_v: { type: Number, default: null },
+    demanda_contratada_kw: { type: Number, default: null },
+
+    consumo_mensal_kwh: { type: Number, default: null },
+    media_anual_kwh: { type: Number, default: null },
+    historico_12meses: [{
+      mes: { type: String },
+      consumo: { type: Number },
+    }],
+    periodo_meses: { type: Number, default: null },
+
+    valor_total_r: { type: Number, default: null },
+    valor_kwh: { type: Number, default: null },
+    irradiancia_local: { type: Number, default: null },
+
+    // Heterogêneo (snapshot do que o parser retornou — para auditoria/reprocessamento)
+    dados_brutos: { type: mongoose.Schema.Types.Mixed, default: null },
+  },
 }, {
   timestamps: true,
+  // strict permanece TRUE (default). Apenas dados_brutos é Mixed dentro do subdoc.
 })
 
 export const ProjetoFV = mongoose.model('ProjetoFV', projetoFVSchema)

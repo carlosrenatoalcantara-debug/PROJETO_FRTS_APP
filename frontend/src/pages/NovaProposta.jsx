@@ -12,6 +12,7 @@ import { calcularDimensionamentoAuto, selecionarKitsAuto, gerarOrcamentoAuto } f
 import { gerarUnifilarSVG } from '../utils/gerarUnifilarSVG'
 import { gerarPropostaPDF, abrirOuBaixarProposta } from '../utils/gerarPropostaPDF'
 import { obterIrradianciaCity, obterIrradianciaFallback } from '../data/irradianciaRN.js'
+import NovaPropostaV2 from './NovaPropostaV2'  // S2 — funil v2 (atrás da flag ?wizard=v2)
 
 const ETAPAS = [
   { num: 1, rotulo: 'Localização', icone: MapPin },
@@ -925,6 +926,15 @@ function Etapa8Proposta({ dados, anterior }) {
 export default function NovaProposta() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
+
+  // ─── S2: Feature flag ?wizard=v2 ─────────────────────────────────────────
+  // Quando ?wizard=v2 estiver presente, renderiza o funil v2 (S2+).
+  // Sem o param, fluxo legado abaixo é preservado 100% intacto.
+  if (searchParams.get('wizard') === 'v2') {
+    return <NovaPropostaV2 />
+  }
+  // ─────────────────────────────────────────────────────────────────────────
+
   const clienteId = searchParams.get('clienteId')
   const leadId = searchParams.get('leadId')
   const tipoParam = searchParams.get('tipo')
