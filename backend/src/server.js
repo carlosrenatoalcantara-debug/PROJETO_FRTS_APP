@@ -46,6 +46,7 @@ import rotasParecerAcesso from './routes/pareceracesso.js'
 import rotasAuthSegura   from './routes/auth-security.js'  // 🔐 Novo sistema de autenticação seguro
 import rotasIntegrations from './routes/integrations.js'   // 🔐 Gerenciamento seguro de chaves de API
 import rotasDimensionamento from './routes/dimensionamento.js'  // 🌞 Motor de dimensionamento FV (S1)
+import rotasAdminCatalogo from './routes/adminCatalogo.js'      // 🧪 Qualidade do catálogo técnico (S2.6.1)
 import errorHandler      from './middleware/errorHandler.js'
 
 const app  = express()
@@ -136,6 +137,8 @@ app.use('/api/auth',         rotasAuthSegura)
 app.use('/api/integrations', rotasIntegrations)
 // 🌞 Motor de dimensionamento FV (Sprint 1 — sem efeito em dados existentes)
 app.use('/api/dimensionamento', rotasDimensionamento)
+// 🧪 Catálogo técnico — qualidade (S2.6.1 — endpoint admin de leitura)
+app.use('/api/admin/catalogo', rotasAdminCatalogo)
 // app.use('/api/auth-legacy', rotasAuth)  // Rota antiga desabilitada
 app.use('/api/calculadora',  rotasCalculadora)
 app.use('/api/carregadores-ev', rotasCarregadoresEV)
