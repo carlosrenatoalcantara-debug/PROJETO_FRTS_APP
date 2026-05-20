@@ -126,20 +126,19 @@ const EquipamentoSchema = new mongoose.Schema(
 
 // ─── Hook pre('save') — síncrono, idempotente, defensivo ────────────────────
 
-EquipamentoSchema.pre('save', function preCalcularQualidade(next) {
+// Nota: async style (sem next callback) — compatível com Mongoose 6+/7+/8+/9+
+// O callback-style com `next` tem comportamento inconsistente em Mongoose 9.x + ESM.
+EquipamentoSchema.pre('save', async function preCalcularQualidade() {
   try {
     // Skip se for um doc novo sem dados mínimos (deixa as validações required cuidarem)
-    if (!this.tipo || !this.fabricante || !this.modelo) return next()
+    if (!this.tipo || !this.fabricante || !this.modelo) return
 
     const equipamento = this.toObject({ depopulate: true, getters: false, virtuals: false })
     const resultado = processarEquipamento(equipamento, { tipoEvento: 'validacao_automatica' })
     aplicarResultadoNoDoc(this, resultado)
-
-    next()
   } catch (err) {
     // Nunca derruba o save. Loga e prossegue — qualidade fica null se falhar.
     console.warn('[Equipamento.pre(save)] qualidade falhou:', err.message)
-    next()
   }
 })
 
