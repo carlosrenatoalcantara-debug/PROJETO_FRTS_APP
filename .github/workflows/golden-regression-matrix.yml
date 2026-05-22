@@ -38,7 +38,7 @@ jobs:
         working-directory: backend
 
       - name: Execute regression CLI
-        run: node ../backend/src/testing/goldenSuite.cli.js --json
+        run: node backend/src/testing/goldenSuite.cli.js --json
 
       - name: Upload regression artifact
         if: always()
