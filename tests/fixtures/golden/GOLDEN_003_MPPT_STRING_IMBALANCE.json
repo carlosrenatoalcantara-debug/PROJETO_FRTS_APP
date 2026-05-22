@@ -1,0 +1,73 @@
+{
+  "snapshot_version": "1.0.0",
+  "fixture_id": "GOLDEN_003_MPPT_STRING_IMBALANCE",
+  "description": "Two strings of different module models connected to the same MPPT input. Individual string physics pass. Balance fingerprint mismatch fires. Expected aprovado=true, score=0.7, WARN_FISICA_DESBALANCEAMENTO_MPPT.",
+  "input_payload": {
+    "engenharia": {
+      "temperatura_minima_projeto": 5,
+      "temperatura_maxima_projeto": 65
+    },
+    "geracao": {
+      "inversores": [
+        {
+          "modelo": "HUAWEI_SUN2000_10KTL",
+          "potencia_nominal_kw": 10.0,
+          "v_max_dc": 1100,
+          "v_mppt_min": 200,
+          "v_mppt_max": 1000,
+          "i_max_mppt": 26,
+          "mppts_disponiveis": 2
+        }
+      ],
+      "modulos": [
+        {
+          "modelo": "CANADIAN_CS3W_400",
+          "p_max": 400,
+          "v_oc": 49.2,
+          "i_sc": 10.5,
+          "v_mpp": 41.3,
+          "coef_temp_voc": -0.0028,
+          "coef_temp_pmax": -0.0037
+        },
+        {
+          "modelo": "RISEN_RSM144_7_410M",
+          "p_max": 410,
+          "v_oc": 49.5,
+          "i_sc": 10.62,
+          "v_mpp": 41.9,
+          "coef_temp_voc": -0.0027,
+          "coef_temp_pmax": -0.0035
+        }
+      ],
+      "strings": [
+        {
+          "quantidade_modulos": 12,
+          "quantidade_strings_paralelo": 1,
+          "inversor_index": 0,
+          "modulo_index": 0,
+          "mppt_index": 0
+        },
+        {
+          "quantidade_modulos": 12,
+          "quantidade_strings_paralelo": 1,
+          "inversor_index": 0,
+          "modulo_index": 1,
+          "mppt_index": 0
+        }
+      ],
+      "potencia_kwp": 9.72
+    }
+  },
+  "expected_output_snapshot": {
+    "alertas": ["WARN_FISICA_DESBALANCEAMENTO_MPPT"],
+    "aprovado": true,
+    "falhas": [],
+    "score_eletrico": 0.7,
+    "validacoes": {
+      "balanceamento": false,
+      "corrente": true,
+      "mppt": true,
+      "voc": true
+    }
+  }
+}

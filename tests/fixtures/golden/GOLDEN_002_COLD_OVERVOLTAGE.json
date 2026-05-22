@@ -1,0 +1,57 @@
+{
+  "snapshot_version": "1.0.0",
+  "fixture_id": "GOLDEN_002_COLD_OVERVOLTAGE",
+  "description": "Cold-temperature overvoltage: 18 modules at T_min=-5C produce Voc_string=973.6V exceeding v_max_dc=800V. Expected REJEITADO, aprovado=false, score=0.1.",
+  "input_payload": {
+    "engenharia": {
+      "temperatura_minima_projeto": -5,
+      "temperatura_maxima_projeto": 65
+    },
+    "geracao": {
+      "inversores": [
+        {
+          "modelo": "GROWATT_SPH6000TL",
+          "potencia_nominal_kw": 6.0,
+          "v_max_dc": 800,
+          "v_mppt_min": 200,
+          "v_mppt_max": 850,
+          "i_max_mppt": 20,
+          "mppts_disponiveis": 1
+        }
+      ],
+      "modulos": [
+        {
+          "modelo": "JINKO_JKM550M_72HL4",
+          "p_max": 550,
+          "v_oc": 49.9,
+          "i_sc": 13.91,
+          "v_mpp": 41.85,
+          "coef_temp_voc": -0.0028,
+          "coef_temp_pmax": -0.0035
+        }
+      ],
+      "strings": [
+        {
+          "quantidade_modulos": 18,
+          "quantidade_strings_paralelo": 1,
+          "inversor_index": 0,
+          "modulo_index": 0,
+          "mppt_index": 0
+        }
+      ],
+      "potencia_kwp": 9.9
+    }
+  },
+  "expected_output_snapshot": {
+    "alertas": [],
+    "aprovado": false,
+    "falhas": ["ERR_FISICA_OVERVOLTAGE_CRITICAL"],
+    "score_eletrico": 0.1,
+    "validacoes": {
+      "balanceamento": true,
+      "corrente": true,
+      "mppt": true,
+      "voc": false
+    }
+  }
+}

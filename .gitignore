@@ -34,6 +34,10 @@ yarn-debug.log*
 *.env.local
 *.env.*.local
 .env.production
+.env.development
+frontend/.env.development
+frontend/.env.production
+backend/.env
 MONGODB_CONFIG*.md
 MONGODB_*STATUS*.md
 DEPLOYMENT_MONGODB*.md
@@ -42,3 +46,8 @@ QUICK_START_MONGODB.md
 *MONGODB*.md
 setup-credentials.js
 CHANGELOG.md
+
+# Temporary API key files
+*.gmap_key_tmp
+*_key_tmp
+*_key.tmp

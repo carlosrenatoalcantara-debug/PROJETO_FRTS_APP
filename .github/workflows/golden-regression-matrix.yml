@@ -1,0 +1,46 @@
+name: Golden Regression Matrix
+
+permissions:
+  contents: read
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: [18, 20, 22]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Execute regression CLI
+        run: node backend/src/testing/goldenSuite.cli.js --json
+
+      - name: Upload regression artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: regression-report-node-${{ matrix.node-version }}
+          path: regression-report.json

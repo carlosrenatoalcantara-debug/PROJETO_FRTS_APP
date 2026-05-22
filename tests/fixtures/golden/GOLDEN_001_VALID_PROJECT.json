@@ -1,0 +1,57 @@
+{
+  "snapshot_version": "1.0.0",
+  "fixture_id": "GOLDEN_001_VALID_PROJECT",
+  "description": "Valid single-string project. All electrical limits respected. Expected OTIMIZADO status, aprovado=true, score=1.0.",
+  "input_payload": {
+    "engenharia": {
+      "temperatura_minima_projeto": 5,
+      "temperatura_maxima_projeto": 70
+    },
+    "geracao": {
+      "inversores": [
+        {
+          "modelo": "SMA_SB_6000TL",
+          "potencia_nominal_kw": 6.0,
+          "v_max_dc": 600,
+          "v_mppt_min": 125,
+          "v_mppt_max": 550,
+          "i_max_mppt": 18,
+          "mppts_disponiveis": 2
+        }
+      ],
+      "modulos": [
+        {
+          "modelo": "CANADIAN_CS3W_400",
+          "p_max": 400,
+          "v_oc": 49.2,
+          "i_sc": 10.5,
+          "v_mpp": 41.3,
+          "coef_temp_voc": -0.0028,
+          "coef_temp_pmax": -0.0037
+        }
+      ],
+      "strings": [
+        {
+          "quantidade_modulos": 10,
+          "quantidade_strings_paralelo": 1,
+          "inversor_index": 0,
+          "modulo_index": 0,
+          "mppt_index": 0
+        }
+      ],
+      "potencia_kwp": 4.0
+    }
+  },
+  "expected_output_snapshot": {
+    "alertas": [],
+    "aprovado": true,
+    "falhas": [],
+    "score_eletrico": 1,
+    "validacoes": {
+      "balanceamento": true,
+      "corrente": true,
+      "mppt": true,
+      "voc": true
+    }
+  }
+}
