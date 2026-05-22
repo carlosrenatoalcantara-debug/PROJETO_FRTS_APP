@@ -1,0 +1,57 @@
+{
+  "snapshot_version": "1.0.0",
+  "fixture_id": "GOLDEN_103_BESS_LOW_AUTONOMY",
+  "description": "BESS insufficient autonomy: 30 kWh bank at 70% DoD = 21 kWh useful, insufficient for 5h @ 5kW (25 kWh required).",
+  "input_payload": {
+    "engenharia": {
+      "temperatura_minima_projeto": 15,
+      "temperatura_maxima_projeto": 35
+    },
+    "geracao": {
+      "inversores": [],
+      "modulos": [],
+      "strings": []
+    },
+    "armazenamento": {
+      "banco_baterias_kwh": 30,
+      "profundidade_descarga": 0.7,
+      "autonomia_horas": 5,
+      "potencia_saida_kw": 5,
+      "tensao_banco": 650,
+      "eficiencia_sistema": 0.92,
+      "temperatura_minima_projeto": 15,
+      "temperatura_maxima_projeto": 35
+    }
+  },
+  "expected_output_snapshot": {
+    "aprovado": false,
+    "score_eletrico": 0.3,
+    "falhas": [
+      "ERR_BESS_INSUFFICIENT_CAPACITY"
+    ],
+    "alertas": [],
+    "validacoes": {
+      "tensao": true,
+      "profundidade_descarga": true,
+      "autonomia": false,
+      "corrente": true
+    },
+    "bess_score": {
+      "aprovado": false,
+      "score": 0.3,
+      "validacoes": {
+        "tensao": true,
+        "profundidade_descarga": true,
+        "autonomia": false,
+        "corrente": true
+      },
+      "alertas": [
+        {
+          "nivel": "CRITICO",
+          "code": "ERR_BESS_INSUFFICIENT_CAPACITY",
+          "mensagem": "Useful capacity (21.00 kWh) insufficient for 5h @ 5 kW"
+        }
+      ]
+    }
+  }
+}

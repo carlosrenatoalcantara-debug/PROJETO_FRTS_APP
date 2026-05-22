@@ -1,0 +1,57 @@
+{
+  "snapshot_version": "1.0.0",
+  "fixture_id": "GOLDEN_102_BESS_OVERCURRENT",
+  "description": "BESS overcurrent violation: 30 kW discharge from 400V bank produces 75A, exceeding 50A limit. Expected rejection.",
+  "input_payload": {
+    "engenharia": {
+      "temperatura_minima_projeto": 10,
+      "temperatura_maxima_projeto": 40
+    },
+    "geracao": {
+      "inversores": [],
+      "modulos": [],
+      "strings": []
+    },
+    "armazenamento": {
+      "banco_baterias_kwh": 150,
+      "profundidade_descarga": 0.8,
+      "autonomia_horas": 4,
+      "potencia_saida_kw": 30,
+      "tensao_banco": 400,
+      "eficiencia_sistema": 0.95,
+      "temperatura_minima_projeto": 10,
+      "temperatura_maxima_projeto": 40
+    }
+  },
+  "expected_output_snapshot": {
+    "aprovado": false,
+    "score_eletrico": 0.2,
+    "falhas": [
+      "ERR_BESS_OVERCURRENT"
+    ],
+    "alertas": [],
+    "validacoes": {
+      "tensao": true,
+      "profundidade_descarga": true,
+      "autonomia": true,
+      "corrente": false
+    },
+    "bess_score": {
+      "aprovado": false,
+      "score": 0.2,
+      "validacoes": {
+        "tensao": true,
+        "profundidade_descarga": true,
+        "autonomia": true,
+        "corrente": false
+      },
+      "alertas": [
+        {
+          "nivel": "CRITICO",
+          "code": "ERR_BESS_OVERCURRENT",
+          "mensagem": "Discharge current 75.00A exceeds safe limit 50A"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,49 @@
+{
+  "snapshot_version": "1.0.0",
+  "fixture_id": "GOLDEN_101_BESS_VALID",
+  "description": "Valid BESS system. All electrical limits respected. 50 kWh bank, 80% DoD, 6h autonomy, optimized configuration.",
+  "input_payload": {
+    "engenharia": {
+      "temperatura_minima_projeto": 10,
+      "temperatura_maxima_projeto": 40
+    },
+    "geracao": {
+      "inversores": [],
+      "modulos": [],
+      "strings": []
+    },
+    "armazenamento": {
+      "banco_baterias_kwh": 100,
+      "profundidade_descarga": 0.8,
+      "autonomia_horas": 6,
+      "potencia_saida_kw": 10,
+      "tensao_banco": 600,
+      "eficiencia_sistema": 0.95,
+      "temperatura_minima_projeto": 10,
+      "temperatura_maxima_projeto": 40
+    }
+  },
+  "expected_output_snapshot": {
+    "aprovado": true,
+    "score_eletrico": 1,
+    "falhas": [],
+    "alertas": [],
+    "validacoes": {
+      "tensao": true,
+      "profundidade_descarga": true,
+      "autonomia": true,
+      "corrente": true
+    },
+    "bess_score": {
+      "aprovado": true,
+      "score": 1,
+      "validacoes": {
+        "tensao": true,
+        "profundidade_descarga": true,
+        "autonomia": true,
+        "corrente": true
+      },
+      "alertas": []
+    }
+  }
+}

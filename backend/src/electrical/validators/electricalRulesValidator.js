@@ -7,6 +7,8 @@ import {
   ErrorCategory
 } from '../../utils/errors.js'
 import { calculateStringSizing } from '../calculators/stringSizingCalculator.js'
+import { calculateBessSizing } from '../calculators/bessSizingCalculator.js'
+import { validateBessProjectDTO } from '../dto/bessProjectDTO.js'
 
 export function validateElectricalRules(projectData, context = {}) {
   const safeContext = {
@@ -51,7 +53,11 @@ export function validateElectricalRules(projectData, context = {}) {
     })
   }
 
-  if (projectData.geracao.strings.length === 0) {
+  // Check if BESS-only project (no FV strings but has BESS data)
+  const hasBessData = projectData.armazenamento && typeof projectData.armazenamento === 'object' && !Array.isArray(projectData.armazenamento);
+  const hasFvStrings = projectData.geracao.strings.length > 0;
+
+  if (!hasFvStrings && !hasBessData) {
     return deepFreezeSafe({
       aprovado:       false,
       score_eletrico: 0,
@@ -59,6 +65,36 @@ export function validateElectricalRules(projectData, context = {}) {
       alertas:        [],
       validacoes:     { voc: false, corrente: false, mppt: false, balanceamento: false }
     })
+  }
+
+  // BESS-only validation path (skip FV validation if no strings)
+  if (!hasFvStrings && hasBessData) {
+    try {
+      const bessValidated = validateBessProjectDTO(projectData.armazenamento)
+      const bessResults = calculateBessSizing(bessValidated.data, projectData.engenharia)
+
+      return deepFreezeSafe({
+        aprovado: bessResults.aprovado,
+        score_eletrico: bessResults.score_eletrico,
+        falhas: bessResults.alertas.filter(a => a.nivel === 'CRITICO').map(a => a.code).sort(),
+        alertas: bessResults.alertas.filter(a => a.nivel === 'ADVERTENCIA').map(a => a.code).sort(),
+        validacoes: bessResults.validacoes,
+        bess_score: {
+          aprovado: bessResults.aprovado,
+          score: bessResults.score_eletrico,
+          validacoes: bessResults.validacoes,
+          alertas: bessResults.alertas
+        }
+      })
+    } catch (err) {
+      return deepFreezeSafe({
+        aprovado: false,
+        score_eletrico: 0,
+        falhas: ['ERR_BESS_VALIDATION_ERROR'],
+        alertas: [],
+        validacoes: { tensao: false, profundidade_descarga: false, autonomia: false, corrente: false }
+      })
+    }
   }
 
   const falhasTracking   = new Set()
@@ -175,11 +211,46 @@ export function validateElectricalRules(projectData, context = {}) {
 
   const aprovado = validacoes.voc && validacoes.corrente
 
-  return deepFreezeSafe({
+  // Optional BESS validation (only if BESS data provided, alongside FV validation)
+  let bessScore = null
+  if (projectData.armazenamento && typeof projectData.armazenamento === 'object' && !Array.isArray(projectData.armazenamento)) {
+    try {
+      const bessValidated = validateBessProjectDTO(projectData.armazenamento)
+      const bessResults = calculateBessSizing(bessValidated.data, projectData.engenharia)
+
+      bessScore = {
+        score: bessResults.score_eletrico,
+        aprovado: bessResults.aprovado,
+        validacoes: bessResults.validacoes,
+        alertas: bessResults.alertas
+      }
+
+      if (Array.isArray(bessResults.alertas)) {
+        for (const alert of bessResults.alertas) {
+          if (alert.nivel === 'CRITICO') {
+            falhasTracking.add(alert.code)
+          } else {
+            alertasTracking.add(alert.code)
+          }
+        }
+      }
+    } catch (err) {
+      alertasTracking.add('WARN_BESS_VALIDATION_SKIPPED')
+    }
+  }
+
+  const result = {
     aprovado,
     score_eletrico,
     falhas:     Array.from(falhasTracking).sort(),
     alertas:    Array.from(alertasTracking).sort(),
     validacoes
-  })
+  }
+
+  // Only include bess_score if BESS was validated (backward compatibility)
+  if (bessScore !== null) {
+    result.bess_score = bessScore
+  }
+
+  return deepFreezeSafe(result)
 }
