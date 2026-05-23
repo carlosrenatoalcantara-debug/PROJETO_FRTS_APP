@@ -23,6 +23,8 @@ import CarregadoresEV      from './pages/CarregadoresEV'
 import Baterias            from './pages/Baterias'
 import Calculadora         from './pages/Calculadora'
 import Login               from './pages/Login'
+import AdminCatalogoQualidade from './pages/AdminCatalogoQualidade'
+import RecomendacaoKits       from './pages/RecomendacaoKits'
 
 export default function App() {
   return (
@@ -52,6 +54,8 @@ export default function App() {
         <Route path="equipamentos/inversores"      element={<Inversores />} />
         <Route path="equipamentos/carregadores-ev" element={<CarregadoresEV />} />
         <Route path="equipamentos/baterias"        element={<Baterias />} />
+        <Route path="admin/catalogo/qualidade"     element={<AdminCatalogoQualidade />} />
+        <Route path="kits/recomendar"              element={<RecomendacaoKits />} />
       </Route>
     </Routes>
   )

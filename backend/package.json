@@ -7,7 +7,14 @@
   "scripts": {
     "dev": "node --watch src/server.js",
     "start": "node src/server.js",
-    "seed": "node src/seeds/initial.js"
+    "seed": "node src/seeds/initial.js",
+    "catalogo:enriquecer-datasheets": "node scripts/enriquecer-catalogo-datasheets.mjs",
+    "catalogo:cache:stats": "node -e \"import('dotenv/config').then(()=>import('./src/services/datasheetCacheService.js')).then(m=>m.obterEstatisticasCache()).then(s=>console.log(JSON.stringify(s,null,2)))\"",
+    "migrar:fv-v3:dry": "node scripts/migrate-projetos-v2-to-v3.mjs",
+    "migrar:fv-v3:apply": "node scripts/migrate-projetos-v2-to-v3.mjs --apply",
+    "sm:import:dry": "node scripts/importar-solarmarket.mjs",
+    "sm:import:apply": "node scripts/importar-solarmarket.mjs --apply",
+    "sm:import:verbose": "node scripts/importar-solarmarket.mjs --verbose"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.95.0",

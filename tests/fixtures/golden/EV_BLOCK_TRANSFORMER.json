@@ -1,0 +1,113 @@
+{
+  "snapshot_version": "1.0.0",
+  "fixture_id": "EV_BLOCK_TRANSFORMER",
+  "description": "EV infrastructure exceeds transformer capacity. Three chargers @ 11 kW each = 33 kW demand, grid limit 30 kW. Expected: aprovado=false, validacoes.transformador=false, validacoes.limite_rede=false.",
+  "input_payload": {
+    "engenharia": {
+      "temperatura_minima_projeto": 5,
+      "temperatura_maxima_projeto": 40
+    },
+    "mobilidade": {
+      "carregadores": [
+        {
+          "modelo": "WALLBOX_PULSAR_3PHASE",
+          "potencia_nominal_kw": 11,
+          "tipo": "AC",
+          "tensao_saida": 400,
+          "corrente_nominal_a": 16
+        },
+        {
+          "modelo": "WALLBOX_PULSAR_3PHASE",
+          "potencia_nominal_kw": 11,
+          "tipo": "AC",
+          "tensao_saida": 400,
+          "corrente_nominal_a": 16
+        },
+        {
+          "modelo": "WALLBOX_PULSAR_3PHASE",
+          "potencia_nominal_kw": 11,
+          "tipo": "AC",
+          "tensao_saida": 400,
+          "corrente_nominal_a": 16
+        }
+      ],
+      "demanda_simultanea_kw": 33.0,
+      "potencia_total_kw": 33.0,
+      "fator_simultaneidade": 1.0,
+      "estrategia_carregamento": "SIMULTANEO",
+      "limite_rede_kw": 30.0,
+      "prioridade_carga": 0.7,
+      "modo_operacao": "CARREGAMENTO",
+      "protecoes": {
+        "rcd_enabled": true,
+        "overvoltage_protection": true,
+        "overcurrent_protection": true,
+        "temperature_monitoring": true
+      },
+      "temperatura_minima_projeto": 5,
+      "temperatura_maxima_projeto": 40
+    }
+  },
+  "expected_output_snapshot": {
+    "aprovado": false,
+    "score_eletrico": 0.008000000000000002,
+    "falhas": [
+      "EV_CORRENTE_MAXIMA",
+      "EV_LIMITE_REDE",
+      "EV_TRANSFORMADOR_OVERLOAD"
+    ],
+    "alertas": [
+      "EV_QUEDA_TENSAO_LIMITE"
+    ],
+    "validacoes": {
+      "anti_islanding": true,
+      "corrente": false,
+      "fallback_seguranca": true,
+      "limite_rede": false,
+      "queda_tensao": false,
+      "ramal": true,
+      "seletividade": true,
+      "simultaneidade": true,
+      "transformador": false,
+      "trifasico": true
+    },
+    "ev_score": {
+      "aprovado": false,
+      "score": 0.008000000000000002,
+      "validacoes": {
+        "anti_islanding": true,
+        "corrente": false,
+        "fallback_seguranca": true,
+        "limite_rede": false,
+        "queda_tensao": false,
+        "ramal": true,
+        "seletividade": true,
+        "simultaneidade": true,
+        "transformador": false,
+        "trifasico": true
+      },
+      "alertas": [
+        {
+          "nivel": "CRITICO",
+          "code": "EV_CORRENTE_MAXIMA",
+          "mensagem": "Maximum current (82.50A) exceeds limit"
+        },
+        {
+          "nivel": "CRITICO",
+          "code": "EV_LIMITE_REDE",
+          "mensagem": "EV demand (33.00 kW) exceeds grid limit"
+        },
+        {
+          "nivel": "CRITICO",
+          "code": "EV_TRANSFORMADOR_OVERLOAD",
+          "mensagem": "EV simultaneous demand (33.00 kW) exceeds transformer safe limit (24.00 kW)"
+        },
+        {
+          "nivel": "ADVERTENCIA",
+          "code": "EV_QUEDA_TENSAO_LIMITE",
+          "mensagem": "High load ratio (110.0%) may cause voltage drop > 3%"
+        }
+      ]
+    }
+  }
+}

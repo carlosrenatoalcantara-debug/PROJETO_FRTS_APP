@@ -21,6 +21,7 @@ const itensMenu = [
     { rotulo: 'Inversores',  caminho: '/equipamentos/inversores' },
     { rotulo: 'Carregadores EV', caminho: '/equipamentos/carregadores-ev' },
     { rotulo: 'Baterias',    caminho: '/equipamentos/baterias' },
+    { rotulo: '🧪 Qualidade', caminho: '/admin/catalogo/qualidade' },
   ]},
   { rotulo: 'Configurações', caminho: '/configuracoes', icone: Settings        },
 ]

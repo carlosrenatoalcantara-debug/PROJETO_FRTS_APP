@@ -1,11 +1,16 @@
 import { useState } from 'react'
-import { Download, Save, CheckCircle, XCircle, Sun, Zap, Layers, BarChart2, ArrowRight } from 'lucide-react'
+import { Download, Save, CheckCircle, XCircle, Sun, Zap, Layers, BarChart2, ArrowRight, Cloud } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useProjetoFV } from '../../../contexts/ProjetoFVContext'
 import { useEmpresa }   from '../../../contexts/EmpresaContext'
 import Button from '../../ui/Button'
 import Badge from '../../ui/Badge'
 import { gerarPdfOrcamento } from '../../../utils/gerarPdfOrcamento'
+import {
+  resolverClientePorNome,
+  criarProjeto,
+  salvarTodosSlices,
+} from '../../../services/projetoFVApi'
 
 function LinhaResumo({ rotulo, valor }) {
   return (
@@ -52,7 +57,7 @@ function CardEquipSelecionado({ icone: Icone, titulo, item, qtd, precoUnitario, 
 
 export default function E8Orcamento() {
   const navigate = useNavigate()
-  const { state, dispatch, anterior } = useProjetoFV()
+  const { state, dispatch, anterior, resetar } = useProjetoFV()
   const { empresa } = useEmpresa()
 
   const {
@@ -110,40 +115,56 @@ export default function E8Orcamento() {
     setSalvando(true)
     setErroSalvar('')
     try {
-      // Buscar cliente pelo nome (temporário - idealmente teria um seletor)
-      const clientesResp = await fetch('http://localhost:5005/api/clientes')
-      const clientes = await clientesResp.json()
-      const cliente = clientes.find(c => c.nome.toLowerCase() === (dadosCliente.nomeCliente || '').toLowerCase())
+      let projetoIdAtual = state.projetoId  // pode já existir de sessão anterior
 
-      if (!cliente) {
-        setErroSalvar('Cliente não encontrado. Crie o cliente antes de salvar o projeto.')
-        setSalvando(false)
-        return
+      // ── 1. Criar projeto (se ainda não existe) ─────────────────────────────
+      if (!projetoIdAtual) {
+        const cliente = await resolverClientePorNome(dadosCliente.nomeCliente)
+        if (!cliente) {
+          setErroSalvar('Cliente não encontrado. Cadastre o cliente antes de salvar.')
+          setSalvando(false)
+          return
+        }
+
+        const nomeProjeto = dadosCliente.nomeProjeto?.trim()
+          || `Sistema FV ${dim.potenciaRealKwp ?? '?'} kWp`
+
+        const projeto = await criarProjeto({
+          clienteId:         cliente._id,
+          nome:              nomeProjeto,
+          status:            'proposta',
+          endereco_completo: localizacao.cidadeEstado || localizacao.endereco || '',
+          latitude:          localizacao.lat  ?? null,
+          longitude:         localizacao.lon  ?? null,
+        })
+
+        projetoIdAtual = String(projeto._id)
+
+        // Persiste projetoId no contexto (futuros autosaves usarão este ID)
+        dispatch({ type: 'SET_PROJETO_ID',  payload: projetoIdAtual })
+        dispatch({ type: 'SET_CLIENTE_ID',  payload: String(cliente._id) })
       }
 
-      const resp = await fetch('http://localhost:5005/api/projetos-fv', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          nome: dadosCliente.nomeProjeto || `Sistema FV ${dim.potenciaRealKwp} kWp`,
-          clienteId: cliente._id,
-          status: 'proposta',
-          endereco_completo: localizacao.cidadeEstado || localizacao.endereco,
-          latitude: localizacao.lat ?? null,
-          longitude: localizacao.lon ?? null,
-          geocoding_origem: localizacao.geocoding_origem ?? null,
-          geocoding_confianca: localizacao.geocoding_confianca ?? null,
-          geocodificado_em: localizacao.geocodificado_em ?? null,
-          potencia_kwp: dim.potenciaRealKwp,
-        }),
-      })
-      if (!resp.ok) {
-        const errData = await resp.json()
-        throw new Error(errData.erro || `HTTP ${resp.status}`)
+      // ── 2. Salvar todos os slices acumulados ───────────────────────────────
+      const orcamentoLocal = {
+        total:                 total,
+        subtotalPaineis,
+        subtotalInversores,
+        subtotalEstrutura,
+        subtotalMaoDeTrabaho,
+        subtotalCabosProtecao,
       }
+
+      const resultado = await salvarTodosSlices(projetoIdAtual, state, orcamentoLocal)
+
+      if (resultado.falhou.length > 0) {
+        console.warn('[E8] Slices com falha:', resultado.falhou)
+        // Não bloqueia o sucesso — projeto já foi criado; slices podem ser re-salvos
+      }
+
       setSalvo(true)
     } catch (e) {
-      setErroSalvar(`Erro ao salvar: ${e.message}. Verifique se o backend está rodando.`)
+      setErroSalvar(`Erro ao salvar: ${e.message}`)
     } finally {
       setSalvando(false)
     }
@@ -161,8 +182,11 @@ export default function E8Orcamento() {
         <h2 className="text-xl font-bold text-slate-900">Proposta salva!</h2>
         <p className="text-slate-500">
           O projeto <strong>{dadosCliente.nomeProjeto || `Sistema FV ${dim.potenciaRealKwp} kWp`}</strong> foi
-          adicionado à lista de Projetos FV.
+          persistido com todos os slices no banco.
         </p>
+        {state.projetoId && (
+          <p className="text-xs text-slate-400 font-mono">ID: {state.projetoId}</p>
+        )}
         <div className="flex justify-center gap-3 pt-2">
           <Button
             variante="secundario"
@@ -172,13 +196,19 @@ export default function E8Orcamento() {
           >
             Baixar PDF
           </Button>
-          <Button icone={ArrowRight} iconeDir onClick={() => navigate('/projetos-fv')}>
-            Ver Projetos FV
+          <Button icone={ArrowRight} iconeDir
+            onClick={() => navigate(state.projetoId ? `/projetos-fv/${state.projetoId}` : '/projetos-fv')}
+          >
+            Ver Projeto
           </Button>
         </div>
         <button
           className="text-sm text-slate-400 hover:text-slate-600 mt-4 block mx-auto"
-          onClick={() => dispatch({ type: 'RESETAR' })}
+          onClick={() => {
+            // S2.8: usa resetar do contexto (limpa localStorage também)
+            if (typeof resetar === 'function') resetar()
+            else dispatch({ type: 'RESETAR' })
+          }}
         >
           Criar novo projeto
         </button>

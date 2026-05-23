@@ -1,0 +1,421 @@
+{
+  "inicio": "2026-05-20T18:37:29.710Z",
+  "modo": "dry-run",
+  "datasheetsDir": "C:\\Users\\Forte Solar\\OneDrive\\Área de Trabalho\\datasheets",
+  "totalArquivos": 80,
+  "processados": 0,
+  "extraidos": 0,
+  "entradasTecnicas": 0,
+  "matches": 0,
+  "atualizaveis": 0,
+  "atualizados": 0,
+  "semMatch": 0,
+  "semCamposNovos": 0,
+  "validacaoCritica": 0,
+  "conflitos": 0,
+  "erros": 0,
+  "porTipo": {},
+  "itens": [
+    {
+      "arquivo": "Carregador EV\\[SOLPLANET] Datasheet - Evcharger 7.4kW (3).pdf",
+      "tipo": "carregador_ev",
+      "status": "scan"
+    },
+    {
+      "arquivo": "Carregador EV\\Datasheet_CVBE_MO_220V_7.4KW.pdf",
+      "tipo": "carregador_ev",
+      "status": "scan"
+    },
+    {
+      "arquivo": "Carregador EV\\EVE 0074B - Datasheet rev 1.6.pdf",
+      "tipo": "carregador_ev",
+      "status": "scan"
+    },
+    {
+      "arquivo": "Carregador EV\\EVE 0074C - Datasheet rev 1.6.pdf",
+      "tipo": "carregador_ev",
+      "status": "scan"
+    },
+    {
+      "arquivo": "Carregador EV\\EVE 0110C - Datasheet rev 1.6.pdf",
+      "tipo": "carregador_ev",
+      "status": "scan"
+    },
+    {
+      "arquivo": "Carregador EV\\EVE 0220B - Datasheet rev 1.6.pdf",
+      "tipo": "carregador_ev",
+      "status": "scan"
+    },
+    {
+      "arquivo": "Carregador EV\\Evowatt 7kw KS1207A21.pdf",
+      "tipo": "carregador_ev",
+      "status": "scan"
+    },
+    {
+      "arquivo": "inversor\\387056_DATASHEET 387056 - MICRO INVERSOR SOLAR DEYE SUN-M225G4 2,25KW.pdf",
+      "tipo": "inversor",
+      "status": "scan"
+    },
+    {
+      "arquivo": "inversor\\388433_DATASHEET MICRO INVERSOR SAJ M2-2,25K-S4.pdf",
+      "tipo": "inversor",
+      "status": "scan"
+    },
+    {
+      "arquivo": "inversor\\4303717201_APsystems Microinverter QT2D for Brazil Datasheet_ Rev1.2_2024-08-29 PT.pdf",
+      "tipo": "inversor",
+      "status": "scan"
+    },
+    {
+      "arquivo": "inversor\\Datasheet - DAH Solar DHN-SU1K5T-G0.pdf",
+      "tipo": "inversor",
+      "status": "scan"
+    },
+    {
+      "arquivo": "inversor\\Datasheet - Goodwe GW20KT-DT.pdf",
+      "tipo": "inversor",
+      "status": "scan"
+    },
+    {
+      "arquivo": "inversor\\Datasheet - Growatt MID25KTL3-X.pdf",
+      "tipo": "inversor",
+      "status": "scan"
+    },
+    {
+      "arquivo": "inversor\\Datasheet - Hoymiles HMS-2000DW-4T.pdf",
+      "tipo": "inversor",
+      "status": "scan"
+    },
+    {
+      "arquivo": "inversor\\Datasheet - MIC 1500TL-X.pdf",
+      "tipo": "inversor",
+      "status": "scan"
+    },
+    {
+      "arquivo": "inversor\\Datasheet - SAJ ELECTRIC M2-2.25K-S4.pdf",
+      "tipo": "inversor",
+      "status": "scan"
+    },
+    {
+      "arquivo": "inversor\\Datasheet - Solplanet ASW20K-LT-G2-Pro.pdf",
+      "tipo": "inversor",
+      "status": "scan"
+    },
+    {
+      "arquivo": "inversor\\Datasheet CHINT CPS SCA60KTL-T.EU.pdf",
+      "tipo": "inversor",
+      "status": "scan"
+    },
+    {
+      "arquivo": "inversor\\Datasheet Growatt Mid 25KTL3-X.pdf",
+      "tipo": "inversor",
+      "status": "scan"
+    },
+    {
+      "arquivo": "inversor\\Datasheet SAJ R5-3K-3.6K-4K-5K-6K-7K-8K-S2-20210703094900981.pdf",
+      "tipo": "inversor",
+      "status": "scan"
+    },
+    {
+      "arquivo": "inversor\\Datasheet SE 20.1K + SE27.6K.pdf",
+      "tipo": "inversor",
+      "status": "scan"
+    },
+    {
+      "arquivo": "inversor\\Datasheet Solis-1P5K-4G.pdf",
+      "tipo": "inversor",
+      "status": "scan"
+    },
+    {
+      "arquivo": "inversor\\Datasheet Sun1300G_em português_BR.pdf",
+      "tipo": "inversor",
+      "status": "scan"
+    },
+    {
+      "arquivo": "inversor\\Datasheet TSOL-MX2250.pdf",
+      "tipo": "inversor",
+      "status": "scan"
+    },
+    {
+      "arquivo": "inversor\\Datasheet Tsun G3.pdf",
+      "tipo": "inversor",
+      "status": "scan"
+    },
+    {
+      "arquivo": "inversor\\Datasheet_-_ASW_12K_15K_17K_20K_25K-LT-G2_Pro_Series_0831_BR_web.pdf",
+      "tipo": "inversor",
+      "status": "scan"
+    },
+    {
+      "arquivo": "inversor\\Datasheet_-_Solplanet_-_ASW7300-S.pdf",
+      "tipo": "inversor",
+      "status": "scan"
+    },
+    {
+      "arquivo": "inversor\\Datasheet_12k-18k_11A-DEYE.pdf",
+      "tipo": "inversor",
+      "status": "scan"
+    },
+    {
+      "arquivo": "inversor\\Datasheet_20k-25k-1.pdf",
+      "tipo": "inversor",
+      "status": "scan"
+    },
+    {
+      "arquivo": "inversor\\DATASHEET_MINVNEP_220V_2.25KW (1).pdf",
+      "tipo": "inversor",
+      "status": "scan"
+    },
+    {
+      "arquivo": "inversor\\DATASHEET_MINVNEP_220V_2.25KW (2).pdf",
+      "tipo": "inversor",
+      "status": "scan"
+    },
+    {
+      "arquivo": "inversor\\DATASHEET_MINVNEP_220V_2.25KW.pdf",
+      "tipo": "inversor",
+      "status": "scan"
+    },
+    {
+      "arquivo": "inversor\\Datasheet_Solis-1P7K-4G.pdf",
+      "tipo": "inversor",
+      "status": "scan"
+    },
+    {
+      "arquivo": "inversor\\Datasheet_Solis-1P7K-5G.pdf",
+      "tipo": "inversor",
+      "status": "scan"
+    },
+    {
+      "arquivo": "inversor\\Datasheet_solis-30K_3phase.pdf",
+      "tipo": "inversor",
+      "status": "scan"
+    },
+    {
+      "arquivo": "inversor\\datasheet_sun-23-30k-g04-lv_240809_pt.pdf",
+      "tipo": "inversor",
+      "status": "scan"
+    },
+    {
+      "arquivo": "inversor\\datasheet_sun-m220-225g4-eu-q0_241021_en.pdf",
+      "tipo": "inversor",
+      "status": "scan"
+    },
+    {
+      "arquivo": "inversor\\Datasheet-Micro-SAJ-2.250W.pdf",
+      "tipo": "inversor",
+      "status": "scan"
+    },
+    {
+      "arquivo": "inversor\\DS_20230228_SG5.0_6.0_7.0_8.0_10_12RT_Datasheet_V18_EN.pdf",
+      "tipo": "inversor",
+      "status": "scan"
+    },
+    {
+      "arquivo": "inversor\\HSSP6K-G01 Hopewind-datasheet1.pdf",
+      "tipo": "inversor",
+      "status": "scan"
+    },
+    {
+      "arquivo": "inversor\\INMETRO_MINVNEP_220V_2.25KW.pdf",
+      "tipo": "inversor",
+      "status": "scan"
+    },
+    {
+      "arquivo": "inversor\\Inversor Monofásico Goodwe 10 K.pdf",
+      "tipo": "inversor",
+      "status": "scan"
+    },
+    {
+      "arquivo": "inversor\\se-three-phase-inverter-setapp-datasheet-prt.pdf",
+      "tipo": "inversor",
+      "status": "scan"
+    },
+    {
+      "arquivo": "inversor\\SPI 6000-B2 inmetro.pdf",
+      "tipo": "inversor",
+      "status": "scan"
+    },
+    {
+      "arquivo": "inversor\\SUNGROW_SG15KTL_datasheet.pdf",
+      "tipo": "inversor",
+      "status": "scan"
+    },
+    {
+      "arquivo": "Modulo\\570595ASTRO-N5_CHSM72NDGF-HC_2278x1134x30_30x28-frame_EN_20240105-2.pdf",
+      "tipo": "modulo",
+      "status": "scan"
+    },
+    {
+      "arquivo": "Modulo\\DAH 440W_Datasheet.pdf",
+      "tipo": "modulo",
+      "status": "scan"
+    },
+    {
+      "arquivo": "Modulo\\DAH_585W.pdf",
+      "tipo": "modulo",
+      "status": "scan"
+    },
+    {
+      "arquivo": "Modulo\\Datasheet módulo ODA575-36V-MH.pdf",
+      "tipo": "modulo",
+      "status": "scan"
+    },
+    {
+      "arquivo": "Modulo\\datasheet znshine 650.pdf",
+      "tipo": "modulo",
+      "status": "scan"
+    },
+    {
+      "arquivo": "Modulo\\DATASHEET_MFAS_2.3_BF_132_600W.pdf",
+      "tipo": "modulo",
+      "status": "scan"
+    },
+    {
+      "arquivo": "Modulo\\DATASHEET_MFDA_1.2_BF_132_610W.pdf",
+      "tipo": "modulo",
+      "status": "scan"
+    },
+    {
+      "arquivo": "Modulo\\DATASHEET_MFMA_1.3_BF_115_545W.pdf",
+      "tipo": "modulo",
+      "status": "scan"
+    },
+    {
+      "arquivo": "Modulo\\DATASHEET_MFRI_1.4_BF_132_700W.pdf",
+      "tipo": "modulo",
+      "status": "scan"
+    },
+    {
+      "arquivo": "Modulo\\DATASHEET_MFVAS_MO_132_600W.pdf",
+      "tipo": "modulo",
+      "status": "scan"
+    },
+    {
+      "arquivo": "Modulo\\DATASHEET_MFVDA_MO_144_570W.pdf",
+      "tipo": "modulo",
+      "status": "scan"
+    },
+    {
+      "arquivo": "Modulo\\DATASHEET_MFVTR_MO_132_695W.pdf",
+      "tipo": "modulo",
+      "status": "scan"
+    },
+    {
+      "arquivo": "Modulo\\Datasheet_POLI DAH_400W a 415W.pdf",
+      "tipo": "modulo",
+      "status": "scan"
+    },
+    {
+      "arquivo": "Modulo\\Datasheet_Tsun_560w[1] Copy.pdf",
+      "tipo": "modulo",
+      "status": "scan"
+    },
+    {
+      "arquivo": "Modulo\\Datasheet-Modulo-Bifacial-545w-144-Halfcell-1.pdf",
+      "tipo": "modulo",
+      "status": "scan"
+    },
+    {
+      "arquivo": "Modulo\\Datasheet-Modulo-Bifacial-550w-144-Halfcell.pdf",
+      "tipo": "modulo",
+      "status": "scan"
+    },
+    {
+      "arquivo": "Modulo\\Datasheet-ZN-SHine-570-Bifacial.pdf",
+      "tipo": "modulo",
+      "status": "scan"
+    },
+    {
+      "arquivo": "Modulo\\Datasheet-ZN-SHine-600W-Bifacial.pdf",
+      "tipo": "modulo",
+      "status": "scan"
+    },
+    {
+      "arquivo": "Modulo\\DMxxxM10T-B72HSW.pdf",
+      "tipo": "modulo",
+      "status": "scan"
+    },
+    {
+      "arquivo": "Modulo\\DT-M-0022 A Datasheet_TallmaxM_DE18_PT_2023_A_web.pdf",
+      "tipo": "modulo",
+      "status": "scan"
+    },
+    {
+      "arquivo": "Modulo\\DT-M-0045-APAC-EN-K-Datasheet_Vertex_NEG19RC.20_625-650-2025_D-web-1.pdf",
+      "tipo": "modulo",
+      "status": "scan"
+    },
+    {
+      "arquivo": "Modulo\\DT-M-0093-APAC-EN-E-Datasheet_Vertex_NE19R_625-650-2025_C-web.pdf",
+      "tipo": "modulo",
+      "status": "scan"
+    },
+    {
+      "arquivo": "Modulo\\DT-M-0113-APAC-EN-A-Datasheet_Vertex_NEG19RC.70-625-645_2025_A-web.pdf",
+      "tipo": "modulo",
+      "status": "scan"
+    },
+    {
+      "arquivo": "Modulo\\EN- Datasheet - DHN-66Z16-DG-585~625W.pdf",
+      "tipo": "modulo",
+      "status": "scan"
+    },
+    {
+      "arquivo": "Modulo\\LUXNE Datasheet for 370W.pdf",
+      "tipo": "modulo",
+      "status": "scan"
+    },
+    {
+      "arquivo": "Modulo\\Módulo Renesola -  RS6-580NBG-E3.pdf",
+      "tipo": "modulo",
+      "status": "scan"
+    },
+    {
+      "arquivo": "Modulo\\Modulo ZN Shine 570W Bifacial com revestimento de grafeno.pdf",
+      "tipo": "modulo",
+      "status": "scan"
+    },
+    {
+      "arquivo": "Modulo\\MODULO-—-OSDA-575Wp.pdf",
+      "tipo": "modulo",
+      "status": "scan"
+    },
+    {
+      "arquivo": "Modulo\\Modulo-Risen-540w-Bifacial.-RSM110-8-540BMDG.pdf",
+      "tipo": "modulo",
+      "status": "scan"
+    },
+    {
+      "arquivo": "Modulo\\Nplux-570w-bifacial-datasheet-sp-n16-144hg-570-600w-2024v3-0.pdf",
+      "tipo": "modulo",
+      "status": "scan"
+    },
+    {
+      "arquivo": "Modulo\\ronma solar.pdf",
+      "tipo": "modulo",
+      "status": "scan"
+    },
+    {
+      "arquivo": "Modulo\\RS6-560580NBG-N-type-182-144-MODULO-BIFACIAL-COM-VIDRO-DUPLO.pdf",
+      "tipo": "modulo",
+      "status": "scan"
+    },
+    {
+      "arquivo": "Modulo\\TW-Solar-66HD-600625W.pdf",
+      "tipo": "modulo",
+      "status": "scan"
+    },
+    {
+      "arquivo": "Modulo\\ZN SHine 600W.pdf",
+      "tipo": "modulo",
+      "status": "scan"
+    },
+    {
+      "arquivo": "Modulo\\ZXM7-UPLDD144  182.2×183.75_2278×1134(30×32NH)_565-595W_350mm_20240731_E.pdf",
+      "tipo": "modulo",
+      "status": "scan"
+    }
+  ],
+  "fim": "2026-05-20T18:37:29.808Z"
+}

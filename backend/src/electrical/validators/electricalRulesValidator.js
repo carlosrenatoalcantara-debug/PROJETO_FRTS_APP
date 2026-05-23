@@ -9,6 +9,8 @@ import {
 import { calculateStringSizing } from '../calculators/stringSizingCalculator.js'
 import { calculateBessSizing } from '../calculators/bessSizingCalculator.js'
 import { validateBessProjectDTO } from '../dto/bessProjectDTO.js'
+import { validateEVDomain } from './evDomainValidator.js'
+import { validateMobilityProjectDTO } from '../dto/mobilityProjectDTO.js'
 
 export function validateElectricalRules(projectData, context = {}) {
   const safeContext = {
@@ -38,37 +40,45 @@ export function validateElectricalRules(projectData, context = {}) {
     })
   }
 
-  if (
-    !projectData.geracao ||
-    !Array.isArray(projectData.geracao.strings) ||
-    !Array.isArray(projectData.geracao.inversores) ||
-    !Array.isArray(projectData.geracao.modulos)
-  ) {
-    throw new StructuredEngineError({
-      code:     'ERR_ESTRUTURA_GERACAO_INVALIDA',
-      severity: ErrorSeverity.CRITICAL,
-      category: ErrorCategory.ELECTRICAL_PHYSICS,
-      message:  'ESTRUTURA DE GERACAO OU DTO DE EQUIPAMENTOS INVALIDA NO PROJETO',
-      context:  safeContext
-    })
-  }
-
-  // Check if BESS-only project (no FV strings but has BESS data)
+  // Domain detection: check for FV, BESS, EV data
   const hasBessData = projectData.armazenamento && typeof projectData.armazenamento === 'object' && !Array.isArray(projectData.armazenamento);
-  const hasFvStrings = projectData.geracao.strings.length > 0;
+  const hasMobilidadeData = projectData.mobilidade && typeof projectData.mobilidade === 'object' && !Array.isArray(projectData.mobilidade);
 
-  if (!hasFvStrings && !hasBessData) {
+  // Check FV structure (required only if FV strings are present)
+  const hasFvStructure = projectData.geracao &&
+                        Array.isArray(projectData.geracao.strings) &&
+                        Array.isArray(projectData.geracao.inversores) &&
+                        Array.isArray(projectData.geracao.modulos);
+
+  const hasFvStrings = hasFvStructure && projectData.geracao.strings.length > 0;
+
+  // If no domain data present at all, fail
+  if (!hasFvStrings && !hasBessData && !hasMobilidadeData) {
     return deepFreezeSafe({
       aprovado:       false,
       score_eletrico: 0,
-      falhas:         ['ERR_PROJETO_SEM_STRINGS'],
+      falhas:         ['ERR_PROJETO_SEM_DADOS'],
       alertas:        [],
       validacoes:     { voc: false, corrente: false, mppt: false, balanceamento: false }
     })
   }
 
+  // If FV structure is present but invalid (and FV strings expected), fail
+  if (!hasFvStrings && hasFvStructure === false && (projectData.geracao !== undefined || projectData.geracao !== null)) {
+    // Only fail if geracao is explicitly present but malformed (not just absent)
+    if (projectData.geracao && typeof projectData.geracao === 'object' && !Array.isArray(projectData.geracao)) {
+      throw new StructuredEngineError({
+        code:     'ERR_ESTRUTURA_GERACAO_INVALIDA',
+        severity: ErrorSeverity.CRITICAL,
+        category: ErrorCategory.ELECTRICAL_PHYSICS,
+        message:  'ESTRUTURA DE GERACAO OU DTO DE EQUIPAMENTOS INVALIDA NO PROJETO',
+        context:  safeContext
+      })
+    }
+  }
+
   // BESS-only validation path (skip FV validation if no strings)
-  if (!hasFvStrings && hasBessData) {
+  if (!hasFvStrings && hasBessData && !hasMobilidadeData) {
     try {
       const bessValidated = validateBessProjectDTO(projectData.armazenamento)
       const bessResults = calculateBessSizing(bessValidated.data, projectData.engenharia)
@@ -93,6 +103,122 @@ export function validateElectricalRules(projectData, context = {}) {
         falhas: ['ERR_BESS_VALIDATION_ERROR'],
         alertas: [],
         validacoes: { tensao: false, profundidade_descarga: false, autonomia: false, corrente: false }
+      })
+    }
+  }
+
+  // EV-only validation path (no FV strings, with EV mobilidade data, no BESS)
+  if (!hasFvStrings && hasMobilidadeData && !hasBessData) {
+    try {
+      const mobilityValidated = validateMobilityProjectDTO(projectData.mobilidade)
+      // Build minimal EnergyContext for EV-only validation
+      const energyContext = Object.freeze({
+        available_pv_kw: 0,
+        available_bess_kw: 0,
+        grid_limit_kw: projectData.mobilidade.limite_rede_kw || 30,
+        load_priority: 0.5,
+        operating_mode: projectData.mobilidade.modo_operacao || 'CARREGAMENTO'
+      })
+
+      const evResults = validateEVDomain(projectData.mobilidade, energyContext, projectData.engenharia)
+
+      return deepFreezeSafe({
+        aprovado: evResults.aprovado,
+        score_eletrico: evResults.ev_score,
+        falhas: evResults.alertas.filter(a => a.nivel === 'CRITICO').map(a => a.code).sort(),
+        alertas: evResults.alertas.filter(a => a.nivel !== 'CRITICO').map(a => a.code).sort(),
+        validacoes: evResults.validacoes,
+        ev_score: {
+          aprovado: evResults.aprovado,
+          score: evResults.ev_score,
+          validacoes: evResults.validacoes,
+          alertas: evResults.alertas
+        }
+      })
+    } catch (err) {
+      return deepFreezeSafe({
+        aprovado: false,
+        score_eletrico: 0,
+        falhas: [err.code || 'ERR_EV_VALIDATION_ERROR'],
+        alertas: [],
+        validacoes: { transformador: false, ramal: false, simultaneidade: false, corrente: false, limite_rede: false, fallback_seguranca: false, anti_islanding: false }
+      })
+    }
+  }
+
+  // BESS + EV hybrid path (no FV strings, with BESS and EV data)
+  if (!hasFvStrings && hasBessData && hasMobilidadeData) {
+    try {
+      const bessValidated = validateBessProjectDTO(projectData.armazenamento)
+      const bessResults = calculateBessSizing(bessValidated.data, projectData.engenharia)
+
+      const mobilityValidated = validateMobilityProjectDTO(projectData.mobilidade)
+      // Build EnergyContext from BESS results for EV validator
+      const energyContext = Object.freeze({
+        available_pv_kw: 0,
+        available_bess_kw: bessResults.score_eletrico > 0 ? bessResults.score_eletrico * 10 : 0,
+        grid_limit_kw: projectData.mobilidade.limite_rede_kw || 30,
+        load_priority: projectData.mobilidade.prioridade_carga || 0.5,
+        operating_mode: projectData.mobilidade.modo_operacao || 'CARREGAMENTO'
+      })
+
+      const evResults = validateEVDomain(projectData.mobilidade, energyContext, projectData.engenharia)
+
+      // Merge validacoes from both domains
+      const mergedValidacoes = {
+        ...bessResults.validacoes,
+        ...evResults.validacoes
+      }
+      // AND logic for corrente if both domains validate it
+      if ('corrente' in bessResults.validacoes && 'corrente' in evResults.validacoes) {
+        mergedValidacoes.corrente = bessResults.validacoes.corrente && evResults.validacoes.corrente
+      }
+
+      const mergedAlertas = new Set()
+      const mergedFalhas = new Set()
+
+      // Aggregate BESS alerts/failures
+      if (Array.isArray(bessResults.alertas)) {
+        bessResults.alertas.forEach(a => {
+          if (a.nivel === 'CRITICO') mergedFalhas.add(a.code)
+          else mergedAlertas.add(a.code)
+        })
+      }
+
+      // Aggregate EV alerts/failures
+      if (Array.isArray(evResults.alertas)) {
+        evResults.alertas.forEach(a => {
+          if (a.nivel === 'CRITICO') mergedFalhas.add(a.code)
+          else mergedAlertas.add(a.code)
+        })
+      }
+
+      return deepFreezeSafe({
+        aprovado: bessResults.aprovado && evResults.aprovado,
+        score_eletrico: bessResults.score_eletrico,
+        falhas: Array.from(mergedFalhas).sort(),
+        alertas: Array.from(mergedAlertas).sort(),
+        validacoes: mergedValidacoes,
+        bess_score: {
+          aprovado: bessResults.aprovado,
+          score: bessResults.score_eletrico,
+          validacoes: bessResults.validacoes,
+          alertas: bessResults.alertas
+        },
+        ev_score: {
+          aprovado: evResults.aprovado,
+          score: evResults.ev_score,
+          validacoes: evResults.validacoes,
+          alertas: evResults.alertas
+        }
+      })
+    } catch (err) {
+      return deepFreezeSafe({
+        aprovado: false,
+        score_eletrico: 0,
+        falhas: [err.code || 'ERR_BESS_EV_VALIDATION_ERROR'],
+        alertas: [],
+        validacoes: {}
       })
     }
   }
@@ -209,7 +335,8 @@ export function validateElectricalRules(projectData, context = {}) {
     ? Math.max(0, Math.min(score_eletrico, 1))
     : 0
 
-  const aprovado = validacoes.voc && validacoes.corrente
+  // Start with FV approval baseline
+  let aprovado = validacoes.voc && validacoes.corrente
 
   // Optional BESS validation (only if BESS data provided, alongside FV validation)
   let bessScore = null
@@ -225,6 +352,14 @@ export function validateElectricalRules(projectData, context = {}) {
         alertas: bessResults.alertas
       }
 
+      // Merge BESS validacoes into main validacoes object
+      validacoes.tensao = bessResults.validacoes.tensao
+      validacoes.profundidade_descarga = bessResults.validacoes.profundidade_descarga
+      validacoes.autonomia = bessResults.validacoes.autonomia
+      // Note: BESS also validates corrente; merge with AND logic (both must pass)
+      validacoes.corrente = validacoes.corrente && bessResults.validacoes.corrente
+
+      // Aggregate BESS alerts and failures
       if (Array.isArray(bessResults.alertas)) {
         for (const alert of bessResults.alertas) {
           if (alert.nivel === 'CRITICO') {
@@ -234,8 +369,62 @@ export function validateElectricalRules(projectData, context = {}) {
           }
         }
       }
+
+      // Update approval logic: for hybrid projects, both domains must pass if present
+      // Conditional AND: FV must pass (already checked), AND BESS must pass if provided
+      aprovado = aprovado && bessResults.aprovado
     } catch (err) {
       alertasTracking.add('WARN_BESS_VALIDATION_SKIPPED')
+    }
+  }
+
+  // Optional EV validation (only if EV mobilidade data provided, alongside FV/BESS)
+  let evScore = null
+  if (projectData.mobilidade && typeof projectData.mobilidade === 'object' && !Array.isArray(projectData.mobilidade)) {
+    try {
+      const mobilityValidated = validateMobilityProjectDTO(projectData.mobilidade)
+
+      // Build EnergyContext from FV+BESS results to pass to EV validator
+      // EV validator reads but never mutates this context
+      const energyContext = Object.freeze({
+        available_pv_kw: hasFvStrings ? (score_eletrico > 0 ? score_eletrico * 10 : 0) : 0, // Estimate from FV score
+        available_bess_kw: bessScore ? (bessScore.score > 0 ? bessScore.score * 10 : 0) : 0, // Estimate from BESS score
+        grid_limit_kw: projectData.mobilidade.limite_rede_kw || 30,
+        load_priority: projectData.mobilidade.prioridade_carga || 0.5,
+        operating_mode: projectData.mobilidade.modo_operacao || 'CARREGAMENTO'
+      })
+
+      const evResults = validateEVDomain(projectData.mobilidade, energyContext, projectData.engenharia)
+
+      evScore = {
+        score: evResults.ev_score,
+        aprovado: evResults.aprovado,
+        validacoes: evResults.validacoes,
+        alertas: evResults.alertas
+      }
+
+      // Merge EV validacoes into main validacoes object
+      if (evResults.validacoes && typeof evResults.validacoes === 'object') {
+        for (const [key, value] of Object.entries(evResults.validacoes)) {
+          validacoes[key] = value
+        }
+      }
+
+      // Aggregate EV alerts and failures
+      if (Array.isArray(evResults.alertas)) {
+        for (const alert of evResults.alertas) {
+          if (alert.nivel === 'CRITICO') {
+            falhasTracking.add(alert.code)
+          } else {
+            alertasTracking.add(alert.code)
+          }
+        }
+      }
+
+      // Update approval logic: EV must pass if provided (conditional AND)
+      aprovado = aprovado && evResults.aprovado
+    } catch (err) {
+      alertasTracking.add('WARN_EV_VALIDATION_SKIPPED')
     }
   }
 
@@ -250,6 +439,11 @@ export function validateElectricalRules(projectData, context = {}) {
   // Only include bess_score if BESS was validated (backward compatibility)
   if (bessScore !== null) {
     result.bess_score = bessScore
+  }
+
+  // Only include ev_score if EV was validated (backward compatibility)
+  if (evScore !== null) {
+    result.ev_score = evScore
   }
 
   return deepFreezeSafe(result)

@@ -1,0 +1,37 @@
+{
+  "collections": {
+    "usuarios": [
+      {
+        "id": "user-admin-001",
+        "email": "admin@fortesolar.com.br",
+        "nome": "Administrador",
+        "cpf": "00000000000",
+        "senha": "admin@2026",
+        "perfil": "admin",
+        "ativo": true,
+        "criado_em": "2026-05-23T21:55:21.969Z"
+      },
+      {
+        "id": "user-teste-001",
+        "email": "teste1@fortesolar.com.br",
+        "nome": "João Silva",
+        "cpf": "11111111111",
+        "senha": "teste123!",
+        "perfil": "user",
+        "ativo": true,
+        "criado_em": "2026-05-23T21:55:21.970Z"
+      },
+      {
+        "id": "user-teste-002",
+        "email": "teste2@fortesolar.com.br",
+        "nome": "Maria Santos",
+        "cpf": "22222222222",
+        "senha": "teste123!",
+        "perfil": "user",
+        "ativo": true,
+        "criado_em": "2026-05-23T21:55:21.970Z"
+      }
+    ]
+  },
+  "idCounters": {}
+}

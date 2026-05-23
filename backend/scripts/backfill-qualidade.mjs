@@ -1,4 +1,7 @@
 #!/usr/bin/env node
+import dns from 'dns'
+dns.setServers(['8.8.8.8', '1.1.1.1'])  // garante resolução SRV do MongoDB Atlas em rede local
+
 /**
  * 🧪 Backfill de qualidade do catálogo técnico — S2.6.1
  *

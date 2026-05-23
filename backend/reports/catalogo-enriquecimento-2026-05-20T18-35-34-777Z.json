@@ -1,0 +1,20 @@
+{
+  "inicio": "2026-05-20T18:35:34.774Z",
+  "modo": "dry-run",
+  "datasheetsDir": "C:/Users/Forte Solar/OneDrive/Área de Trabalho/datasheets",
+  "totalArquivos": 0,
+  "processados": 0,
+  "extraidos": 0,
+  "entradasTecnicas": 0,
+  "matches": 0,
+  "atualizaveis": 0,
+  "atualizados": 0,
+  "semMatch": 0,
+  "semCamposNovos": 0,
+  "validacaoCritica": 0,
+  "conflitos": 0,
+  "erros": 0,
+  "porTipo": {},
+  "itens": [],
+  "fim": "2026-05-20T18:35:34.776Z"
+}

@@ -47,6 +47,9 @@ import rotasAuthSegura   from './routes/auth-security.js'  // 🔐 Novo sistema 
 import rotasIntegrations from './routes/integrations.js'   // 🔐 Gerenciamento seguro de chaves de API
 import rotasDimensionamento from './routes/dimensionamento.js'  // 🌞 Motor de dimensionamento FV (S1)
 import rotasAdminCatalogo from './routes/adminCatalogo.js'      // 🧪 Qualidade do catálogo técnico (S2.6.1)
+import rotasKitsV1       from './routes/kitsV1.js'              // 🔍 Motor de Recomendação de Kits FV (S2.14)
+import rotasBillIntake   from './routes/billIntakeRoutes.js'   // 📋 Bill intake + parser (S3.1)
+import rotasAuthV2       from './routes/authv2.js'            // 🔐 Auth v2 - S3.7 (Login simplificado)
 import errorHandler      from './middleware/errorHandler.js'
 
 const app  = express()
@@ -133,12 +136,16 @@ app.use('/api/reconectar', async (_req, res) => {
 })
 // 🔐 Usar nova rota de autenticação segura
 app.use('/api/auth',         rotasAuthSegura)
+// 🔐 Auth v2 - S3.7 (Simplificado para multiuser pilot)
+app.use('/api/authv2',       rotasAuthV2)
 // 🔐 Gerenciamento seguro de integrações (APIs, chaves)
 app.use('/api/integrations', rotasIntegrations)
 // 🌞 Motor de dimensionamento FV (Sprint 1 — sem efeito em dados existentes)
 app.use('/api/dimensionamento', rotasDimensionamento)
 // 🧪 Catálogo técnico — qualidade (S2.6.1 — endpoint admin de leitura)
 app.use('/api/admin/catalogo', rotasAdminCatalogo)
+// 🔍 Motor de Recomendação de Kits FV (S2.14 — read-only analítico)
+app.use('/api/v1/kits',        rotasKitsV1)
 // app.use('/api/auth-legacy', rotasAuth)  // Rota antiga desabilitada
 app.use('/api/calculadora',  rotasCalculadora)
 app.use('/api/carregadores-ev', rotasCarregadoresEV)
@@ -167,6 +174,7 @@ app.use('/api/projetos-fv/:projetoId/proposta', rotasProposta)
 app.use('/api/projetos-fv/:id/beneficiarias', rotasBeneficiarias)
 app.use('/api/fatura', rotasFatura)
 app.use('/api/parecer-acesso', rotasParecerAcesso)
+app.use('/api/bills', rotasBillIntake)  // 📋 Bill intake + parser (S3.1 — operational)
 
 // ✅ Servir frontend compilado
 const distPath = path.join(__dirname, '../../frontend/dist')

@@ -1,0 +1,89 @@
+{
+  "snapshot_version": "1.0.0",
+  "fixture_id": "GOLDEN_202_HYBRID_BESS_FAIL",
+  "description": "Hybrid FV+BESS project where BESS domain fails. FV valid (single string, all limits ok). BESS invalid overcurrent: 30 kW discharge from 400V bank produces 75A, exceeds 50A limit. Expected: aprovado=false, FV passes but BESS overcurrent violation, merged validacoes.corrente=false, bess_score.aprovado=false with ERR_BESS_OVERCURRENT.",
+  "input_payload": {
+    "engenharia": {
+      "temperatura_minima_projeto": 5,
+      "temperatura_maxima_projeto": 40
+    },
+    "geracao": {
+      "inversores": [
+        {
+          "modelo": "SMA_SB_6000TL",
+          "potencia_nominal_kw": 6.0,
+          "v_max_dc": 600,
+          "v_mppt_min": 125,
+          "v_mppt_max": 550,
+          "i_max_mppt": 18,
+          "mppts_disponiveis": 2
+        }
+      ],
+      "modulos": [
+        {
+          "modelo": "CANADIAN_CS3W_400",
+          "p_max": 400,
+          "v_oc": 49.2,
+          "i_sc": 10.5,
+          "v_mpp": 41.3,
+          "coef_temp_voc": -0.0028,
+          "coef_temp_pmax": -0.0037
+        }
+      ],
+      "strings": [
+        {
+          "quantidade_modulos": 10,
+          "quantidade_strings_paralelo": 1,
+          "inversor_index": 0,
+          "modulo_index": 0,
+          "mppt_index": 0
+        }
+      ],
+      "potencia_kwp": 4.0
+    },
+    "armazenamento": {
+      "banco_baterias_kwh": 150,
+      "profundidade_descarga": 0.8,
+      "autonomia_horas": 4,
+      "potencia_saida_kw": 30,
+      "tensao_banco": 400,
+      "eficiencia_sistema": 0.95,
+      "temperatura_minima_projeto": 5,
+      "temperatura_maxima_projeto": 40
+    }
+  },
+  "expected_output_snapshot": {
+    "aprovado": false,
+    "score_eletrico": 1,
+    "falhas": [
+      "ERR_BESS_OVERCURRENT"
+    ],
+    "alertas": [],
+    "validacoes": {
+      "balanceamento": true,
+      "corrente": false,
+      "mppt": true,
+      "voc": true,
+      "tensao": true,
+      "profundidade_descarga": true,
+      "autonomia": true
+    },
+    "bess_score": {
+      "aprovado": false,
+      "score": 0.2,
+      "validacoes": {
+        "tensao": true,
+        "profundidade_descarga": true,
+        "autonomia": true,
+        "corrente": false
+      },
+      "alertas": [
+        {
+          "nivel": "CRITICO",
+          "code": "ERR_BESS_OVERCURRENT",
+          "mensagem": "Discharge current 75.00A exceeds safe limit 50A"
+        }
+      ]
+    }
+  }
+}

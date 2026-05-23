@@ -1,0 +1,83 @@
+{
+  "snapshot_version": "1.0.0",
+  "fixture_id": "GOLDEN_203_HYBRID_FV_FAIL",
+  "description": "Hybrid FV+BESS project where FV domain fails. FV invalid cold-temperature overvoltage: 18 modules at T_min=-5C exceed inverter max voltage. BESS valid (100 kWh @ 80% DoD, 6h autonomy, 10kW, 600V, current 16.67A). Expected: aprovado=false, FV overvoltage violation, BESS passes, validacoes.voc=false, bess_score.aprovado=true with ERR_FISICA_OVERVOLTAGE_CRITICAL.",
+  "input_payload": {
+    "engenharia": {
+      "temperatura_minima_projeto": -5,
+      "temperatura_maxima_projeto": 45
+    },
+    "geracao": {
+      "inversores": [
+        {
+          "modelo": "GROWATT_SPH6000TL",
+          "potencia_nominal_kw": 6.0,
+          "v_max_dc": 800,
+          "v_mppt_min": 200,
+          "v_mppt_max": 850,
+          "i_max_mppt": 20,
+          "mppts_disponiveis": 1
+        }
+      ],
+      "modulos": [
+        {
+          "modelo": "JINKO_JKM550M_72HL4",
+          "p_max": 550,
+          "v_oc": 49.9,
+          "i_sc": 13.91,
+          "v_mpp": 41.85,
+          "coef_temp_voc": -0.0028,
+          "coef_temp_pmax": -0.0035
+        }
+      ],
+      "strings": [
+        {
+          "quantidade_modulos": 18,
+          "quantidade_strings_paralelo": 1,
+          "inversor_index": 0,
+          "modulo_index": 0,
+          "mppt_index": 0
+        }
+      ],
+      "potencia_kwp": 9.9
+    },
+    "armazenamento": {
+      "banco_baterias_kwh": 100,
+      "profundidade_descarga": 0.8,
+      "autonomia_horas": 6,
+      "potencia_saida_kw": 10,
+      "tensao_banco": 600,
+      "eficiencia_sistema": 0.95,
+      "temperatura_minima_projeto": -5,
+      "temperatura_maxima_projeto": 45
+    }
+  },
+  "expected_output_snapshot": {
+    "aprovado": false,
+    "score_eletrico": 0.1,
+    "falhas": [
+      "ERR_FISICA_OVERVOLTAGE_CRITICAL"
+    ],
+    "alertas": [],
+    "validacoes": {
+      "balanceamento": true,
+      "corrente": true,
+      "mppt": true,
+      "voc": false,
+      "tensao": true,
+      "profundidade_descarga": true,
+      "autonomia": true
+    },
+    "bess_score": {
+      "aprovado": true,
+      "score": 1,
+      "validacoes": {
+        "tensao": true,
+        "profundidade_descarga": true,
+        "autonomia": true,
+        "corrente": true
+      },
+      "alertas": []
+    }
+  }
+}

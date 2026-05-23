@@ -17,7 +17,7 @@ import { processarEquipamento, aplicarResultadoNoDoc } from '../services/catalog
 const OrigemSchema = new mongoose.Schema({
   tipo: {
     type: String,
-    enum: ['manual','datasheet_gemini','datasheet_pdfparse','import_planilha','import_legado','desconhecido', null],
+    enum: ['manual','datasheet_gemini','datasheet_pdfparse','import_planilha','import_solarmarket','import_legado','desconhecido', null],
     default: null,
   },
   fonte: { type: String, default: null },

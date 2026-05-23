@@ -1,0 +1,31 @@
+{
+  "cliente": {
+    "nome_cliente": "TESTE OPERACIONAL S3.3",
+    "cpf_cnpj_parcial": "123.456.789-00",
+    "endereco": "Rua de Teste, 500",
+    "bairro": "Centro",
+    "cidade": "NATAL",
+    "estado": "RN",
+    "cep": "59000-000",
+    "distribuidora": "neoenergia_cosern"
+  },
+  "unidade": {
+    "codigo_cliente": "0123456789",
+    "codigo_instalacao": "987654321099",
+    "classe_tarifaria": "Residencial - B1",
+    "tipo_fornecimento": "Monofásico",
+    "tensao": 127,
+    "modalidade": "Ativa",
+    "referencia_fatura": "05/2024",
+    "leitura_atual": 45672,
+    "leitura_anterior": 45234,
+    "numero_dias": 30
+  },
+  "consumo": {
+    "consumo_medio": 150,
+    "consumo_12_meses": [120, 130, 140, 145, 150, 155, 160, 165, 170, 165, 155, 145],
+    "compensacao_energia": 0,
+    "tarifa": 0.95,
+    "confianca_extracao": 95
+  }
+}

@@ -7,6 +7,7 @@ import {
   atualizarChecklist,
   atualizarStatusHomologacao,
   obterStatusHomologacao,
+  testarFreezimento,
 } from '../controllers/homologacaoController.js'
 
 const router = Router({ mergeParams: true })
@@ -31,5 +32,8 @@ router.patch('/status', atualizarStatusHomologacao)
 
 // GET para obter status atual
 router.get('/status', obterStatusHomologacao)
+
+// POST para testar freezimento e ataques
+router.post('/test-freeze', testarFreezimento)
 
 export default router

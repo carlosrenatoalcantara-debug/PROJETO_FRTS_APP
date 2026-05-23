@@ -1,0 +1,7 @@
+{
+  "totalMutationAttempts": 10,
+  "successfulTypeErrors": 10,
+  "mutationsBypassers": [],
+  "deepFreezeIssues": [],
+  "runtimeLeaks": []
+}

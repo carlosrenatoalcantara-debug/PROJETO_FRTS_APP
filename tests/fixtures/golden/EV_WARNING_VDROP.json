@@ -1,0 +1,93 @@
+{
+  "snapshot_version": "1.0.0",
+  "fixture_id": "EV_WARNING_VDROP",
+  "description": "EV charging causes voltage drop warning. Two chargers @ 11 kW each = 22 kW, within grid 30 kW but high relative load triggers warnings. Expected: aprovado=true, but validacoes.queda_tensao=false, validacoes.trifasico=false (2 chargers not divisible by 3).",
+  "input_payload": {
+    "engenharia": {
+      "temperatura_minima_projeto": 5,
+      "temperatura_maxima_projeto": 40
+    },
+    "mobilidade": {
+      "carregadores": [
+        {
+          "modelo": "WALLBOX_PULSAR_3PHASE",
+          "potencia_nominal_kw": 11,
+          "tipo": "AC",
+          "tensao_saida": 400,
+          "corrente_nominal_a": 16
+        },
+        {
+          "modelo": "WALLBOX_PULSAR_3PHASE",
+          "potencia_nominal_kw": 11,
+          "tipo": "AC",
+          "tensao_saida": 400,
+          "corrente_nominal_a": 16
+        }
+      ],
+      "demanda_simultanea_kw": 22.0,
+      "potencia_total_kw": 22.0,
+      "fator_simultaneidade": 1.0,
+      "estrategia_carregamento": "SIMULTANEO",
+      "limite_rede_kw": 30.0,
+      "prioridade_carga": 0.5,
+      "modo_operacao": "CARREGAMENTO",
+      "protecoes": {
+        "rcd_enabled": true,
+        "overvoltage_protection": true,
+        "overcurrent_protection": true,
+        "temperature_monitoring": true
+      },
+      "temperatura_minima_projeto": 5,
+      "temperatura_maxima_projeto": 40
+    }
+  },
+  "expected_output_snapshot": {
+    "aprovado": true,
+    "score_eletrico": 1,
+    "falhas": [],
+    "alertas": [
+      "EV_QUEDA_TENSAO_LIMITE",
+      "EV_TRIFASICO_DESBALANÇO"
+    ],
+    "validacoes": {
+      "anti_islanding": true,
+      "corrente": true,
+      "fallback_seguranca": true,
+      "limite_rede": true,
+      "queda_tensao": false,
+      "ramal": true,
+      "seletividade": true,
+      "simultaneidade": true,
+      "transformador": true,
+      "trifasico": false
+    },
+    "ev_score": {
+      "aprovado": true,
+      "score": 1,
+      "validacoes": {
+        "anti_islanding": true,
+        "corrente": true,
+        "fallback_seguranca": true,
+        "limite_rede": true,
+        "queda_tensao": false,
+        "ramal": true,
+        "seletividade": true,
+        "simultaneidade": true,
+        "transformador": true,
+        "trifasico": false
+      },
+      "alertas": [
+        {
+          "nivel": "ADVERTENCIA",
+          "code": "EV_QUEDA_TENSAO_LIMITE",
+          "mensagem": "High load ratio (73.3%) may cause voltage drop > 3%"
+        },
+        {
+          "nivel": "ADVERTENCIA",
+          "code": "EV_TRIFASICO_DESBALANÇO",
+          "mensagem": "Charger count (2) not divisible by 3"
+        }
+      ]
+    }
+  }
+}

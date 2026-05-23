@@ -1,4 +1,6 @@
 import { PAINEIS } from '../data/catalogoPaineis.js'
+import { analisarCompatibilidade } from '../services/compatibilidadeEletricaService.js'
+import { otimizarArranjoFV } from '../services/optimizerArranjoFVService.js'
 
 const MESES_KEYS = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC']
 const MESES_PT   = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez']
@@ -198,6 +200,123 @@ export async function calcularFV(req, res) {
     res.status(ehNasa ? 503 : 500).json({
       erro:    e.message ?? 'Erro interno ao calcular',
       detalhe: ehNasa ? 'NASA POWER indisponível. Tente novamente em instantes.' : undefined,
+    })
+  }
+}
+
+// ── S2.11.1 — Motor de compatibilidade elétrica (read-only, sem efeitos colaterais) ──
+
+/**
+ * POST /api/engenharia/compatibilidade-eletrica
+ *
+ * Executa a análise de compatibilidade elétrica FV usando o motor puro
+ * `compatibilidadeEletricaService`. Zero persistência, zero side-effects.
+ *
+ * Body esperado:
+ *   dados_eletricos_modulo    — parâmetros elétricos do módulo FV
+ *   dados_eletricos_inversor  — parâmetros elétricos do inversor
+ *   arranjo_proposto          — quantidade módulos/string e strings paralelo
+ *   dados_climaticos_regiao   — Tmin/Tmax históricos (opcional — fallback automático)
+ *
+ * Erros de validação → 400
+ * Erros internos     → 500
+ */
+export async function analisarCompatibilidadeEletrica(req, res) {
+  try {
+    const {
+      dados_eletricos_modulo,
+      dados_eletricos_inversor,
+      arranjo_proposto,
+      dados_climaticos_regiao,
+    } = req.body
+
+    // Validação mínima de presença dos objetos obrigatórios
+    if (!dados_eletricos_modulo || typeof dados_eletricos_modulo !== 'object') {
+      return res.status(400).json({ erro: 'dados_eletricos_modulo é obrigatório e deve ser um objeto.' })
+    }
+    if (!dados_eletricos_inversor || typeof dados_eletricos_inversor !== 'object') {
+      return res.status(400).json({ erro: 'dados_eletricos_inversor é obrigatório e deve ser um objeto.' })
+    }
+    if (!arranjo_proposto || typeof arranjo_proposto !== 'object') {
+      return res.status(400).json({ erro: 'arranjo_proposto é obrigatório e deve ser um objeto.' })
+    }
+
+    // Motor puro — sem I/O, sem banco, determinístico
+    const resultado = analisarCompatibilidade({
+      dados_eletricos_modulo,
+      dados_eletricos_inversor,
+      arranjo_proposto,
+      dados_climaticos_regiao: dados_climaticos_regiao ?? null,
+    })
+
+    // Sempre 200 — mesmo quando compativel=false (é resultado, não erro HTTP)
+    return res.status(200).json(resultado)
+
+  } catch (err) {
+    console.error('[compatibilidade-eletrica] Erro interno:', err.message)
+    return res.status(500).json({
+      erro:    'Erro interno ao processar compatibilidade elétrica.',
+      detalhe: process.env.NODE_ENV !== 'production' ? err.message : undefined,
+    })
+  }
+}
+
+// ── S2.12 — Optimizer determinístico de arranjo FV (read-only, Grid Search) ──
+
+/**
+ * POST /api/engenharia/optimizer-arranjo
+ *
+ * Executa o Grid Search determinístico para encontrar o melhor par
+ * (módulos_por_string × strings_paralelo). 100% read-only — zero persistência,
+ * zero LLM, zero side-effects.
+ *
+ * Body esperado:
+ *   dados_eletricos_modulo    — parâmetros elétricos do módulo FV (obrigatório)
+ *   dados_eletricos_inversor  — parâmetros elétricos do inversor  (obrigatório)
+ *   dados_climaticos_regiao   — Tmin/Tmax históricos (opcional — fallback automático)
+ *   restricoes                — limites do grid (opcional — defaults aplicados)
+ *
+ * Saída: { melhor_configuracao, configuracoes_validas[10], configuracoes_descartadas, resumo_estatistico }
+ */
+export async function otimizarArranjoHandler(req, res) {
+  try {
+    const {
+      dados_eletricos_modulo,
+      dados_eletricos_inversor,
+      dados_climaticos_regiao,
+      restricoes,
+    } = req.body
+
+    // Validação mínima de presença dos objetos obrigatórios
+    if (!dados_eletricos_modulo || typeof dados_eletricos_modulo !== 'object') {
+      return res.status(400).json({ erro: 'dados_eletricos_modulo é obrigatório e deve ser um objeto.' })
+    }
+    if (!dados_eletricos_inversor || typeof dados_eletricos_inversor !== 'object') {
+      return res.status(400).json({ erro: 'dados_eletricos_inversor é obrigatório e deve ser um objeto.' })
+    }
+
+    // Serviço puro — determinístico, sem I/O, sem banco
+    const resultado = otimizarArranjoFV({
+      dados_eletricos_modulo,
+      dados_eletricos_inversor,
+      dados_climaticos_regiao: dados_climaticos_regiao ?? null,
+      restricoes:              restricoes ?? {},
+    })
+
+    console.log(
+      `[optimizer-arranjo] ${resultado.resumo_estatistico.total_testadas} combinações ` +
+      `testadas em ${resultado.resumo_estatistico.tempo_execucao_ms}ms — ` +
+      `${resultado.resumo_estatistico.total_validas} válidas`
+    )
+
+    // Sempre 200 — resultado vazio também é resultado válido
+    return res.status(200).json(resultado)
+
+  } catch (err) {
+    console.error('[optimizer-arranjo] Erro interno:', err.message)
+    return res.status(500).json({
+      erro:    'Erro interno ao executar optimizer de arranjo FV.',
+      detalhe: process.env.NODE_ENV !== 'production' ? err.message : undefined,
     })
   }
 }

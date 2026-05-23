@@ -310,6 +310,65 @@ class MemoryStore {
     this.saveToFile()
     return equip
   }
+
+  // ProjetoFV
+  findAllProjetoFV() {
+    return this.collections.projetos_fv || []
+  }
+
+  findProjetoFV(id) {
+    return (this.collections.projetos_fv || []).find(p => p._id === id)
+  }
+
+  createProjetoFV(data) {
+    if (!this.collections.projetos_fv) {
+      this.collections.projetos_fv = []
+    }
+    const id = `proj-fv-${this.idCounters.projetos_fv++}`
+    const projeto = {
+      _id: id,
+      ...data,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }
+    this.collections.projetos_fv.push(projeto)
+    this.saveToFile()
+    return projeto
+  }
+
+  updateProjetoFV(id, data) {
+    if (!this.collections.projetos_fv) {
+      this.collections.projetos_fv = []
+    }
+    const index = this.collections.projetos_fv.findIndex(p => p._id === id)
+    if (index === -1) return null
+
+    const projeto = {
+      ...this.collections.projetos_fv[index],
+      ...data,
+      updatedAt: new Date().toISOString(),
+    }
+    this.collections.projetos_fv[index] = projeto
+    this.saveToFile()
+    return projeto
+  }
+
+  deleteProjetoFV(id) {
+    if (!this.collections.projetos_fv) {
+      this.collections.projetos_fv = []
+    }
+    const index = this.collections.projetos_fv.findIndex(p => p._id === id)
+    if (index === -1) return null
+
+    const projeto = this.collections.projetos_fv[index]
+    this.collections.projetos_fv.splice(index, 1)
+    this.saveToFile()
+    return projeto
+  }
+
+  findProjetoFVByCliente(clienteId) {
+    return (this.collections.projetos_fv || []).filter(p => p.clienteId === clienteId)
+  }
 }
 
 export const memoryStore = new MemoryStore()

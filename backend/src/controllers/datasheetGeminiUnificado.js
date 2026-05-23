@@ -2,6 +2,21 @@ import { GoogleGenerativeAI } from '@google/generative-ai'
 import fs from 'fs'
 import path from 'path'
 
+// S2.6.3 — Cache semântico de datasheets
+import {
+  computarHashPDF,
+  consultarCache,
+  salvarCache,
+  VERSAO_PARSER_ATUAL,
+} from '../services/datasheetCacheService.js'
+
+/**
+ * Versão do parser — deve ser idêntica à VERSAO_PARSER_ATUAL no datasheetCacheService.
+ * Bump aqui (e no serviço) para invalidar o cache quando o prompt ou a
+ * lógica de extração mudar de forma incompatível.
+ */
+const VERSAO_PARSER = VERSAO_PARSER_ATUAL
+
 /**
  * CONTROLLER UNIFICADO GEMINI VISION API
  *
@@ -226,7 +241,61 @@ RETORNE EXATAMENTE ESTE JSON:
 // FUNÇÃO PRINCIPAL DE EXTRAÇÃO
 // ═══════════════════════════════════════════════════════════════════════════
 
-export async function extrairComGemini(pdfBuffer, tipoDocumento = 'auto') {
+/**
+ * Extrai dados de um PDF de datasheet usando Gemini Vision.
+ *
+ * S2.6.3 — Cache semântico transparente:
+ *  1. Computa SHA-256 do buffer (< 5 ms para PDFs típicos)
+ *  2. Consulta MongoDB: se cache hit → retorna sem chamar Gemini
+ *  3. Se cache miss → chama Gemini → salva resultado no cache → retorna
+ *
+ * Fallback seguro: se o banco estiver indisponível em qualquer etapa,
+ * o pipeline continua normalmente chamando o Gemini (degradação graciosa).
+ *
+ * @param {Buffer} pdfBuffer        Buffer do arquivo PDF
+ * @param {string} tipoDocumento    Tipo do documento ('modulo', 'inversor', ...)
+ * @param {object} [opcoes={}]      Opções opcionais (não altera lógica principal)
+ * @param {string} [opcoes.arquivo_nome]  Nome do arquivo para rastreabilidade
+ * @param {boolean} [opcoes.forcarReprocessamento]  Ignora cache mesmo se existir
+ */
+export async function extrairComGemini(pdfBuffer, tipoDocumento = 'auto', opcoes = {}) {
+  const { arquivo_nome = null, forcarReprocessamento = false } = opcoes
+
+  // ── STEP 1: Compute hash SHA-256 ─────────────────────────────────────────
+  let hashPdf = null
+  try {
+    hashPdf = computarHashPDF(pdfBuffer)
+  } catch (err) {
+    console.warn('[Cache] Falha ao calcular hash (fallback para Gemini):', err.message)
+  }
+
+  // ── STEP 2: Consulta de cache ──────────────────────────────────────────────
+  if (hashPdf && !forcarReprocessamento) {
+    try {
+      const cached = await consultarCache(hashPdf, VERSAO_PARSER)
+      if (cached) {
+        const fab    = cached.fabricante || '?'
+        const mod    = cached.modelo     || '?'
+        const hits   = cached.total_hits
+        console.log(
+          `[Cache Hit] hash:${hashPdf.slice(0, 12)} | ${fab} ${mod} | hits:${hits + 1}`
+        )
+        // Retorna o resultado armazenado, marcado como vindo do cache
+        // O restante do pipeline é 100% transparente a essa marcação
+        return {
+          ...cached.resultado_extraido,
+          _cache_hit:  true,
+          _hash_pdf:   hashPdf,
+          _hits:       hits + 1,
+        }
+      }
+      console.log(`[Cache Miss] hash:${hashPdf.slice(0, 12)} — chamando Gemini Vision...`)
+    } catch (err) {
+      console.warn('[Cache] Falha na consulta (fallback para Gemini):', err.message)
+    }
+  }
+
+  // ── STEP 3: Chamada real ao Gemini Vision ─────────────────────────────────
   try {
     // Se tipo não for especificado, tentar detectar
     if (tipoDocumento === 'auto') {
@@ -267,13 +336,25 @@ export async function extrairComGemini(pdfBuffer, tipoDocumento = 'auto') {
     const dados = JSON.parse(jsonLimpo)
     console.log('[Parse] JSON extraído com sucesso')
 
-    return {
+    const resultado = {
       sucesso: true,
       tipoDocumento,
       dados,
       fonte: 'gemini-vision',
       timestamp: new Date().toISOString(),
     }
+
+    // ── STEP 4: Persiste no cache ─────────────────────────────────────────────
+    if (hashPdf) {
+      salvarCache(hashPdf, resultado, {
+        arquivo_nome,
+        versao_parser: VERSAO_PARSER,
+      })
+        .then(() => console.log(`[Cache Salvo] hash:${hashPdf.slice(0, 12)} | ${dados.fabricante || '?'} ${dados.modelo || '?'}`))
+        .catch(err => console.warn('[Cache] Falha ao salvar (não bloqueante):', err.message))
+    }
+
+    return resultado
   } catch (erro) {
     console.error('[Gemini Error]', erro.message)
     return {

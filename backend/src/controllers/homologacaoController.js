@@ -200,3 +200,41 @@ export async function obterStatusHomologacao(req, res) {
     res.status(500).json({ erro: err.message })
   }
 }
+
+export async function testarFreezimento(req, res) {
+  try {
+    const { cliente, unidade, consumo, projeto, concessionariaProfile } = req.body
+
+    if (!cliente || !unidade || !consumo || !projeto) {
+      return res.status(400).json({
+        sucesso: false,
+        erro: 'Dados incompletos: cliente, unidade, consumo, projeto obrigatórios',
+      })
+    }
+
+    // Import the DTO creation and test functions
+    const { createHomologacaoDTO, testHomologacaoImmutability } = await import('../importadores/homologacaoDTO.js')
+
+    // Create frozen DTO
+    const frozenDTO = createHomologacaoDTO(cliente, unidade, consumo, projeto, concessionariaProfile)
+
+    // Run immutability attack tests
+    const attackResults = testHomologacaoImmutability(frozenDTO)
+
+    res.json({
+      sucesso: true,
+      tipo: 'homologacao_freeze_test',
+      homologacaoDTO: frozenDTO,
+      freezeTests: attackResults,
+      verdict: attackResults.testsFailed === 0 ? 'FREEZE_SUCCESSFUL' : 'FREEZE_COMPROMISED',
+      data_teste: new Date().toISOString(),
+    })
+  } catch (err) {
+    console.error('Erro ao testar freezimento:', err)
+    res.status(500).json({
+      sucesso: false,
+      erro: err.message,
+      tipo: 'homologacao_freeze_error',
+    })
+  }
+}

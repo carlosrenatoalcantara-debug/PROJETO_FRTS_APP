@@ -1,5 +1,268 @@
 import mongoose from 'mongoose'
 
+// ─── Subdoc schemas v3 ────────────────────────────────────────────────────────
+// Todos os subdocs abaixo são NOVOS (S2.7 additive).
+// Campos legados de v2 permanecem intocados imediatamente abaixo.
+// Compatibilidade total: documentos v2 existentes leem estes campos como null/[].
+
+/**
+ * Localização estruturada (v3).
+ * Espelha os campos flat de v2 (latitude/longitude/endereco_completo/geocoding_*)
+ * mas em subdoc próprio para o Wizard v2 salvar de forma atômica.
+ */
+const localizacaoV3Schema = new mongoose.Schema({
+  endereco_completo:    { type: String,  default: null },
+  latitude:             { type: Number,  default: null },
+  longitude:            { type: Number,  default: null },
+  cep:                  { type: String,  default: null },
+  cidade:               { type: String,  default: null },
+  estado:               { type: String,  default: null },
+  geocoding_origem: {
+    type: String,
+    enum: ['gemini_vision','nominatim_completo','nominatim_parcial',
+           'cidade_estado','usuario_manual','nao_geocodificado', null],
+    default: null,
+  },
+  geocoding_confianca:  { type: Number,  min: 0, max: 1, default: null },
+  geocodificado_em:     { type: Date,    default: null },
+  irradiancia_kwh_kwp_dia: { type: Number, default: null },
+  fonte_irradiancia: {
+    type: String,
+    enum: ['nasa_power', 'manual', 'padrao_regional', null],
+    default: null,
+  },
+
+  // ── S2.10-prep: Fundação Climática ───────────────────────────────────────
+  // Dados de temperatura histórica do local — usados pelo motor elétrico FV
+  // futuro para Voc corrigido, string sizing, validação MPPT e sobretensão.
+  //
+  // temperatura_min_historica_c: temperatura mínima absoluta do ano (°C)
+  //   → crítica para Voc_max (tensão em circuito aberto no frio)
+  //   → determina o PIOR CASO de tensão no string (maior Voc = mais perigoso)
+  //   → base do cálculo: Voc_corr = Voc_STC × [1 + αVoc × (Tmin − 25)]
+  //
+  // temperatura_max_historica_c: temperatura máxima absoluta do ano (°C)
+  //   → crítica para Pmax (potência real gerada no calor)
+  //   → afeta sizing de cabos e MPPT range no verão
+  //
+  // temperatura_media_c: temperatura média anual (°C)
+  //   → usada para cálculo de geração anual corrigida por temperatura
+  //
+  // temperatura_referencia_c: STC (Standard Test Conditions) = 25 °C
+  //   → valor fixo da norma IEC 61215; mantido aqui para rastreabilidade
+  //
+  // fonte_climatica: quem preencheu (manual, nasa_power, inmet, meteostat, etc.)
+  // fonte_climatica_confianca: 0–1 (1 = fonte oficial verificada)
+  // atualizado_clima_em: timestamp da última atualização dos dados climáticos
+
+  temperatura_min_historica_c: { type: Number, default: null },
+  temperatura_max_historica_c: { type: Number, default: null },
+  temperatura_media_c:         { type: Number, default: null },
+  temperatura_referencia_c:    { type: Number, default: 25   },
+  fonte_climatica:             { type: String, default: 'manual' },
+  fonte_climatica_confianca:   { type: Number, default: null },
+  atualizado_clima_em:         { type: Date,   default: null },
+}, { _id: false })
+
+/**
+ * Dimensionamento estruturado (v3).
+ * Substitui os campos flat potencia_kwp / geracao_mensal_kwh de v2.
+ * Os campos flat são mantidos para compatibilidade.
+ */
+const dimensionamentoV3Schema = new mongoose.Schema({
+  potencia_kwp:         { type: Number, default: null },
+  geracao_mensal_kwh:   { type: Number, default: null },
+  geracao_anual_kwh:    { type: Number, default: null },
+  num_paineis:          { type: Number, default: null },
+  num_strings:          { type: Number, default: null },
+  num_inversores:       { type: Number, default: null },
+  performance_ratio:    { type: Number, default: null },  // fator de desempenho (tipicamente 0.75-0.85)
+  fator_capacidade:     { type: Number, default: null },
+  area_total_m2:        { type: Number, default: null },
+  metodo: {
+    type: String,
+    enum: ['automatico', 'manual', null],
+    default: null,
+  },
+  calculado_em:         { type: Date,   default: null },
+}, { _id: false })
+
+/**
+ * Layout solar estruturado (v3).
+ * Espelha/expande o campo flat `telhado` de v2.
+ * O campo `telhado` original é mantido para compatibilidade com MapaTelhado/LayoutTelhado.
+ */
+const layoutSolarV3Schema = new mongoose.Schema({
+  pontos:               [[Number]],       // pares [lat, lng] dos vértices do telhado
+  area_util_m2:         { type: Number,  default: null },
+  orientacao:           { type: String,  default: null },  // 'Norte', 'Sul', 'Leste', 'Oeste', etc.
+  inclinacao_graus:     { type: Number,  default: null },
+  tipo_telhado: {
+    type: String,
+    enum: ['ceramico', 'metalico', 'fibrocimento', 'laje', 'madeira', 'outro', null],
+    default: null,
+  },
+  sombreamento_pct:     { type: Number,  min: 0, max: 100, default: null },
+  imagem_satelite_url:  { type: String,  default: null },
+}, { _id: false })
+
+/**
+ * Proteções elétricas (v3 — novo).
+ * Calculado pelo motor de dimensionamento (S2.9+).
+ */
+const protecoesV3Schema = new mongoose.Schema({
+  dps_string: {
+    tipo:        { type: String, default: null },
+    corrente_a:  { type: Number, default: null },
+    tensao_v:    { type: Number, default: null },
+    quantidade:  { type: Number, default: null },
+  },
+  disjuntor_ca: {
+    tipo:        { type: String, default: null },
+    corrente_a:  { type: Number, default: null },
+    fases:       { type: Number, default: null },
+  },
+  dps_ca: {
+    tipo:        { type: String, default: null },
+    corrente_a:  { type: Number, default: null },
+    tensao_v:    { type: Number, default: null },
+  },
+  seccionadora: {
+    corrente_a:  { type: Number, default: null },
+    tensao_v:    { type: Number, default: null },
+  },
+  cabo_string_mm2:     { type: Number, default: null },
+  cabo_ca_mm2:         { type: Number, default: null },
+}, { _id: false })
+
+/**
+ * Orçamento estruturado (v3).
+ * Expande e substitui o subdoc `financeiro` de v2 em novos projetos.
+ * O subdoc `financeiro` legado é mantido intocado.
+ */
+const orcamentoV3Schema = new mongoose.Schema({
+  custo_total_r:        { type: Number, default: null },
+  custo_equipamentos_r: { type: Number, default: null },
+  custo_mao_obra_r:     { type: Number, default: null },
+  custo_outros_r:       { type: Number, default: null },
+  margem_pct:           { type: Number, default: null },
+  preco_venda_r:        { type: Number, default: null },
+  irr_pct:              { type: Number, default: null },
+  npv_r:                { type: Number, default: null },
+  payback_anos:         { type: Number, default: null },
+  payback_meses:        { type: Number, default: null },
+  economia_mensal_r:    { type: Number, default: null },
+  economia_anual_r:     { type: Number, default: null },
+  economia_25anos_r:    { type: Number, default: null },
+  co2_evitado_t:        { type: Number, default: null },
+  tarifa_kwh:           { type: Number, default: null },
+  reajuste_anual_pct:   { type: Number, default: null },
+  calculado_em:         { type: Date,   default: null },
+}, { _id: false })
+
+/**
+ * Proposta comercial (v3 — novo).
+ * Gerada no Wizard v2 Etapa 8.
+ */
+const propostaV3Schema = new mongoose.Schema({
+  numero:          { type: String, default: null },
+  versao:          { type: Number, default: 1 },
+  status: {
+    type: String,
+    enum: ['rascunho', 'enviada', 'aceita', 'recusada', 'expirada', null],
+    default: null,
+  },
+  validade_dias:   { type: Number, default: 30 },
+  enviada_em:      { type: Date,   default: null },
+  aceita_em:       { type: Date,   default: null },
+  pdf_url:         { type: String, default: null },
+  template_id:     { type: String, default: null },
+  observacoes:     { type: String, default: null },
+}, { _id: false })
+
+/**
+ * Workflow do wizard (v3 — novo).
+ * Rastreia progresso do usuário no Wizard v2.
+ * Alimentado pelo endpoint PUT /etapa.
+ */
+const workflowV3Schema = new mongoose.Schema({
+  etapa_atual:          { type: Number, default: 1 },       // etapa corrente (1–8)
+  etapas_completas:     [{ type: Number }],                  // ex: [1, 2, 3]
+  iniciado_em:          { type: Date,   default: null },
+  ultima_atividade:     { type: Date,   default: null },
+  fluxo_origem: {
+    type: String,
+    enum: ['wizard_v2', 'funil_v2', 'manual', null],
+    default: null,
+  },
+  usuario_responsavel:  { type: String, default: null },     // userId ou email
+}, { _id: false })
+
+/**
+ * Unifilar (v3 — novo).
+ * Gerado pelo unifilarController; persistido aqui para cache e histórico.
+ */
+const unifilarV3Schema = new mongoose.Schema({
+  svg_data:     { type: String,  default: null },
+  gerado_em:    { type: Date,    default: null },
+  versao:       { type: Number,  default: null },
+  configuracao: { type: mongoose.Schema.Types.Mixed, default: null },
+}, { _id: false })
+
+/**
+ * Engenharia Elétrica FV (v3 — S2.11.2, additive).
+ *
+ * Persiste o resultado de compatibilidadeEletricaService após confirmação
+ * consciente pelo usuário (botão "Salvar"). Nunca auto-gravado.
+ *
+ * ── Subcampos ────────────────────────────────────────────────────────────────
+ *  arranjo              Configuração de strings escolhida
+ *  clima_utilizado      Dados climáticos enviados na análise
+ *  compatibilidade      Resultado do motor: compatível, diagnósticos, margens
+ *
+ * ── Retrocompatibilidade ─────────────────────────────────────────────────────
+ *  default: null → documentos v2/v3 sem este campo leem como null (sem erro)
+ */
+const engenhariaEletricaV3Schema = new mongoose.Schema({
+  // Arranjo de strings escolhido pelo engenheiro
+  arranjo: {
+    quantidade_modulos_por_string: { type: Number, default: null },
+    quantidade_strings_paralelo:   { type: Number, default: null },
+    total_modulos:                 { type: Number, default: null },
+  },
+
+  // Dados climáticos usados na análise (pode ser fallback ou dados reais)
+  clima_utilizado: {
+    cidade:                     { type: String,  default: null },
+    uf:                         { type: String,  default: null },
+    temperatura_min_historica_c:{ type: Number,  default: null },
+    temperatura_max_historica_c:{ type: Number,  default: null },
+    fonte:                      { type: String,  default: null },
+    usou_fallback:              { type: Boolean, default: null },
+  },
+
+  // Resultado da última análise de compatibilidade salva
+  compatibilidade: {
+    versao_motor:   { type: String,  default: null },
+    compativel:     { type: Boolean, default: null },
+
+    // Array de objetos { codigo, severidade, mensagem, explicacao_curta, valores }
+    // Mixed porque a estrutura interna varia por tipo de diagnóstico
+    diagnosticos:   { type: mongoose.Schema.Types.Mixed, default: null },
+
+    // Objeto com margem_tensao_percentual, margem_mppt_max_percentual, etc.
+    margens:        { type: mongoose.Schema.Types.Mixed, default: null },
+
+    // Subset dos cálculos principais (voc_string_max, vmpp_string_frio, fator_oversizing…)
+    calculos_principais: { type: mongoose.Schema.Types.Mixed, default: null },
+
+    // Timestamp da análise — permite detectar dados desatualizados
+    analisado_em:   { type: Date, default: null },
+  },
+}, { _id: false })
+
+// ─── Schema principal ─────────────────────────────────────────────────────────
+
 const projetoFVSchema = new mongoose.Schema({
   clienteId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -91,6 +354,12 @@ const projetoFVSchema = new mongoose.Schema({
       modelo: String,
       potencia_w: Number,
       quantidade: Number,
+      // S2.7: referência opcional ao CatalogoEquipamento (preenchida a partir de S2.9)
+      equipamento_id: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Equipamento',
+        default: null,
+      },
     }],
     inversor: {
       id: String,
@@ -152,6 +421,73 @@ const projetoFVSchema = new mongoose.Schema({
     },
   },
   observacoes: String,
+
+  // ─── S2.7: Campos v3 (additive — não alteram documentos existentes) ─────────
+  // Todos opcionais/null por padrão. Documentos v2 continuam válidos.
+
+  /** Versão do schema. v2 = legado (sem este campo). v3 = migrado/criado via wizard v2. */
+  schema_version: {
+    type: Number,
+    default: 2,
+  },
+
+  /** Localização estruturada. Espelha/substitui latitude/longitude/geocoding_* flat de v2. */
+  localizacao: {
+    type: localizacaoV3Schema,
+    default: null,
+  },
+
+  /** Dimensionamento estruturado. Espelha/expande potencia_kwp / geracao_mensal_kwh de v2. */
+  dimensionamento: {
+    type: dimensionamentoV3Schema,
+    default: null,
+  },
+
+  /** Layout solar estruturado. Espelha/expande `telhado` de v2. */
+  layout_solar: {
+    type: layoutSolarV3Schema,
+    default: null,
+  },
+
+  /** Proteções elétricas (DPS, disjuntores, cabos). */
+  protecoes: {
+    type: protecoesV3Schema,
+    default: null,
+  },
+
+  /** Orçamento estruturado. Expande o subdoc `financeiro` de v2. */
+  orcamento: {
+    type: orcamentoV3Schema,
+    default: null,
+  },
+
+  /** Proposta comercial gerada no Wizard v2 Etapa 8. */
+  proposta: {
+    type: propostaV3Schema,
+    default: null,
+  },
+
+  /** Rastreamento de progresso no Wizard v2. */
+  workflow: {
+    type: workflowV3Schema,
+    default: null,
+  },
+
+  /** SVG do diagrama unifilar persistido. */
+  unifilar: {
+    type: unifilarV3Schema,
+    default: null,
+  },
+
+  /**
+   * Engenharia elétrica FV (S2.11.2 — additive).
+   * Persiste arranjo, clima e resultado de compatibilidade confirmados pelo usuário.
+   * Projetos v2/v3 sem este campo leem null sem nenhum erro.
+   */
+  engenharia_eletrica: {
+    type: engenhariaEletricaV3Schema,
+    default: null,
+  },
 
   // ─── S2: Extração da conta de energia ──────────────────────────────────────
   // Schema ESTRITO no nível superior. Mixed APENAS nos campos que
