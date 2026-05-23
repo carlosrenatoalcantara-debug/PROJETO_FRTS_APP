@@ -21,6 +21,7 @@ class MemoryStore {
       projetos_fv: [],
       equipamentos: [],
       configuracoes: [],
+      usuarios: [],
     }
     this.idCounters = {
       projetos_ev: 1,
@@ -368,6 +369,87 @@ class MemoryStore {
 
   findProjetoFVByCliente(clienteId) {
     return (this.collections.projetos_fv || []).filter(p => p.clienteId === clienteId)
+  }
+
+  // Usuarios
+  findAllUsuarios() {
+    return this.collections.usuarios || []
+  }
+
+  findUsuarioByEmail(email) {
+    const usuarios = this.collections.usuarios || []
+    return usuarios.find(u => u.email === email.toLowerCase())
+  }
+
+  findUsuarioById(id) {
+    const usuarios = this.collections.usuarios || []
+    return usuarios.find(u => u.id === id || u._id === id)
+  }
+
+  createUsuario(data) {
+    if (!this.collections.usuarios) {
+      this.collections.usuarios = []
+    }
+    const usuario = {
+      id: `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      ...data,
+      email: data.email.toLowerCase(),
+      ativo: data.ativo !== undefined ? data.ativo : true,
+      criado_em: new Date().toISOString(),
+    }
+    this.collections.usuarios.push(usuario)
+    this.saveToFile()
+    return usuario
+  }
+
+  updateUsuario(id, data) {
+    if (!this.collections.usuarios) {
+      this.collections.usuarios = []
+    }
+    const index = this.collections.usuarios.findIndex(u => u.id === id || u._id === id)
+    if (index === -1) return null
+
+    const usuario = {
+      ...this.collections.usuarios[index],
+      ...data,
+      id: this.collections.usuarios[index].id, // Don't allow id change
+    }
+    this.collections.usuarios[index] = usuario
+    this.saveToFile()
+    return usuario
+  }
+
+  deleteUsuario(id) {
+    if (!this.collections.usuarios) {
+      this.collections.usuarios = []
+    }
+    const index = this.collections.usuarios.findIndex(u => u.id === id || u._id === id)
+    if (index === -1) return null
+
+    const usuario = this.collections.usuarios[index]
+    this.collections.usuarios.splice(index, 1)
+    this.saveToFile()
+    return usuario
+  }
+
+  // Generic collection methods (for flexibility)
+  findAll(collection) {
+    return this.collections[collection] || []
+  }
+
+  create(collection, data) {
+    if (!this.collections[collection]) {
+      this.collections[collection] = []
+    }
+    const id = `${collection}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+    const item = {
+      id,
+      ...data,
+      criado_em: new Date().toISOString(),
+    }
+    this.collections[collection].push(item)
+    this.saveToFile()
+    return item
   }
 }
 

@@ -28,8 +28,7 @@ export async function login(req, res) {
       usuario = await User.findOne({ email })
     } else {
       // Memory storage fallback
-      const usuarios = memoryStore.findAll('usuarios') || []
-      usuario = usuarios.find(u => u.email === email)
+      usuario = memoryStore.findUsuarioByEmail(email)
     }
 
     if (!usuario) {
@@ -45,7 +44,7 @@ export async function login(req, res) {
       senhaValida = await usuario.compararSenha(senha)
     } else {
       // Memory storage: simple comparison (should be hashed in production)
-      senhaValida = usuario.senha === senha
+      senhaValida = usuario.senha === senha || usuario.senha_hash === senha
     }
 
     if (!senhaValida) {
@@ -111,8 +110,7 @@ export async function registrar(req, res) {
     if (mongoose.connection.readyState === 1) {
       usuarioExistente = await User.findOne({ email })
     } else {
-      const usuarios = memoryStore.findAll('usuarios') || []
-      usuarioExistente = usuarios.find(u => u.email === email)
+      usuarioExistente = memoryStore.findUsuarioByEmail(email)
     }
 
     if (usuarioExistente) {
@@ -135,15 +133,13 @@ export async function registrar(req, res) {
       await usuario.save()
     } else {
       // Memory storage
-      usuario = {
-        id: `user-${Date.now()}`,
+      usuario = memoryStore.createUsuario({
         email,
         nome,
         cpf,
         senha, // In production, should be hashed
         perfil,
         ativo: true,
-        criado_em: new Date().toISOString(),
         permissoes: {
           criar_projetos: true,
           editar_projetos: true,
@@ -152,8 +148,7 @@ export async function registrar(req, res) {
           exportar_dados: false,
           gerenciar_usuarios: false
         }
-      }
-      memoryStore.create('usuarios', usuario)
+      })
     }
 
     // Generate JWT

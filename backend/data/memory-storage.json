@@ -245,7 +245,63 @@
         }
       }
     ],
-    "configuracoes": []
+    "configuracoes": [],
+    "usuarios": [
+      {
+        "id": "user-admin-001",
+        "email": "admin@fortesolar.com.br",
+        "nome": "Administrador",
+        "cpf": "00000000000",
+        "senha": "admin@2026",
+        "perfil": "admin",
+        "ativo": true,
+        "criado_em": "2026-05-23T22:12:06.262Z",
+        "permissoes": {
+          "criar_projetos": true,
+          "editar_projetos": true,
+          "deletar_projetos": true,
+          "visualizar_relatorios": true,
+          "exportar_dados": true,
+          "gerenciar_usuarios": true
+        }
+      },
+      {
+        "id": "user-teste1-002",
+        "email": "teste1@fortesolar.com.br",
+        "nome": "João Silva",
+        "cpf": "11111111111",
+        "senha": "teste123!",
+        "perfil": "user",
+        "ativo": true,
+        "criado_em": "2026-05-23T22:12:06.263Z",
+        "permissoes": {
+          "criar_projetos": true,
+          "editar_projetos": true,
+          "deletar_projetos": false,
+          "visualizar_relatorios": true,
+          "exportar_dados": false,
+          "gerenciar_usuarios": false
+        }
+      },
+      {
+        "id": "user-teste2-003",
+        "email": "teste2@fortesolar.com.br",
+        "nome": "Maria Santos",
+        "cpf": "22222222222",
+        "senha": "teste123!",
+        "perfil": "user",
+        "ativo": true,
+        "criado_em": "2026-05-23T22:12:06.263Z",
+        "permissoes": {
+          "criar_projetos": true,
+          "editar_projetos": true,
+          "deletar_projetos": false,
+          "visualizar_relatorios": true,
+          "exportar_dados": false,
+          "gerenciar_usuarios": false
+        }
+      }
+    ]
   },
   "idCounters": {
     "clientes": 1,
