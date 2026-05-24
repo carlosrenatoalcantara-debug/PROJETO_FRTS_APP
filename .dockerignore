@@ -1,3 +1,19 @@
+# Node modules and package managers
+node_modules
+*/node_modules
+**/node_modules
+.npm
+**/.npm
+yarn.lock
+package-lock.json
+
+# Build artifacts
+dist
+build
+coverage
+.next
+out
+
 # Test files and scripts
 **/*test*.js
 **/*test*.sh
@@ -11,24 +27,26 @@
 **/*.ps1
 **/scripts/test*
 
-# Logs and artifacts
+# Development and cache files
 **/logs
 **/snapshots
 **/backups
 **/temp
 **/tmp
 **/*.log
+.cache
+**/.cache
+
+# Environment files
+.env.local
+.env.*.local
+**/.env.local
+**/.env.*.local
 
 # Git files
 .git
 .gitignore
-
-# Development dependencies
-**/.env.local
-**/.env.*.local
-**/node_modules
-**/.npm
-**/.cache
+.gitattributes
 
 # IDE files
 .vscode
@@ -36,13 +54,25 @@
 *.swp
 *.swo
 *~
+.DS_Store
+Thumbs.db
+*.bak
+
+# CI/CD
+.github
+.gitlab-ci.yml
+.travis.yml
+
+# Documentation
+docs
+**/*.md
+CHANGELOG.md
+LICENSE
 
 # OS files
 .DS_Store
 Thumbs.db
 *.bak
-
-# Build artifacts (optional - keep if needed)
-dist
-build
-coverage
+.AppleDouble
+.LSOverride
+desktop.ini
