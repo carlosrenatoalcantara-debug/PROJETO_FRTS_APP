@@ -1,3 +1,61 @@
+// 🔧 POLYFILL BOOTSTRAP — MUST be FIRST, executes before imports
+// Minimal polyfills for pdfjs-dist DOM API requirements
+if (!globalThis.DOMMatrix) {
+  globalThis.DOMMatrix = class DOMMatrix {
+    constructor() { this.a = this.b = this.c = this.f = 0; this.d = this.e = 1 }
+    multiply() { return this }
+    inverse() { return this }
+    transformPoint() { return { x: 0, y: 0 } }
+  }
+}
+if (!globalThis.ImageData) {
+  globalThis.ImageData = class ImageData {
+    constructor(data, width, height) { this.data = data; this.width = width; this.height = height }
+  }
+}
+if (!globalThis.Path2D) {
+  globalThis.Path2D = class Path2D {
+    constructor() {}
+    addPath() {}
+    closePath() {}
+    moveTo() {}
+    lineTo() {}
+    bezierCurveTo() {}
+    quadraticCurveTo() {}
+    arc() {}
+    arcTo() {}
+    ellipse() {}
+    rect() {}
+  }
+}
+if (!globalThis.HTMLCanvasElement) {
+  globalThis.HTMLCanvasElement = class HTMLCanvasElement {
+    getContext() { return {} }
+    toDataURL() { return '' }
+  }
+}
+if (!globalThis.HTMLImageElement) {
+  globalThis.HTMLImageElement = class HTMLImageElement {
+    constructor() { this.src = ''; this.width = this.height = 0 }
+  }
+}
+if (!globalThis.CanvasRenderingContext2D) {
+  globalThis.CanvasRenderingContext2D = class CanvasRenderingContext2D {
+    fillRect() {}
+    clearRect() {}
+    fillText() {}
+    drawImage() {}
+    createImageData() { return new globalThis.ImageData([], 0, 0) }
+    getImageData() { return new globalThis.ImageData([], 0, 0) }
+    stroke() {}
+    fill() {}
+    beginPath() {}
+    closePath() {}
+    clip() {}
+  }
+}
+// ✅ Polyfills ready
+
 import 'dotenv/config'
 import express from 'express'
 import cors from 'cors'

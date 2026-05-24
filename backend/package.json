@@ -5,8 +5,8 @@
   "main": "src/server.js",
   "type": "module",
   "scripts": {
-    "dev": "node --watch src/startup.mjs",
-    "start": "node src/startup.mjs",
+    "dev": "node --watch src/server.js",
+    "start": "node src/server.js",
     "start:backend": "npm run start",
     "seed": "node src/seeds/initial.js",
     "catalogo:enriquecer-datasheets": "node scripts/enriquecer-catalogo-datasheets.mjs",
