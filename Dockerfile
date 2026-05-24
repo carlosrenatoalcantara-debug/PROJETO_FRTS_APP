@@ -22,7 +22,6 @@ COPY frontend/vite.config.js ./frontend/
 COPY frontend/tailwind.config.js ./frontend/
 COPY frontend/postcss.config.js ./frontend/
 COPY backend/src ./backend/src
-COPY backend/config ./backend/config
 
 # Build frontend
 WORKDIR /app/frontend
@@ -42,7 +41,6 @@ COPY --from=builder /app/frontend/dist ./public/dist
 
 # Copy backend source code
 COPY backend/src ./src
-COPY backend/config ./config
 
 # Expose port
 EXPOSE 3001
