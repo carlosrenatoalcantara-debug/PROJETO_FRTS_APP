@@ -78,8 +78,7 @@ import rotasProjetosFV from './routes/projetosFV.js'
 import rotasProjetosEV from './routes/projetosEV.js'
 import rotasDashboard  from './routes/dashboard.js'
 import rotasUpload      from './routes/upload.js'
-// ⚠️ TEMPORARILY DISABLED: pdf-parse startup blocker
-// import rotasEquipamentos from './routes/equipamentos.js'
+import rotasEquipamentos from './routes/equipamentos.js'
 import rotasEngenharia   from './routes/engenharia.js'
 import rotasString       from './routes/string.js'
 import rotasCarga        from './routes/carga.js'
@@ -90,13 +89,13 @@ import rotasCRM          from './routes/crm.js'
 import rotasProjeto      from './routes/projeto.js'
 import rotasRecomendacao from './routes/recomendacao.js'
 import rotasDecisao      from './routes/decisao.js'
-// import rotasDatasheet    from './routes/datasheet.js'
+import rotasDatasheet    from './routes/datasheet.js'
 import rotasAdmin        from './routes/admin.js'
 import rotasUnifilar     from './routes/unifilar.js'
 import rotasIrradiancia  from './routes/irradiancia.js'
 import rotasHomologacao  from './routes/homologacao.js'
 import rotasProposta     from './routes/proposta.js'
-// import rotasFatura       from './routes/fatura.js'
+import rotasFatura       from './routes/fatura.js'
 import rotasBeneficiarias from './routes/beneficiarias.js'
 import rotasAuth         from './routes/auth.js'
 import rotasCalculadora  from './routes/calculadora.js'
@@ -213,7 +212,7 @@ app.use('/api/clientes',     rotasClientes)
 app.use('/api/projetos-fv',  rotasProjetosFV)
 app.use('/api/projetos-ev',  rotasProjetosEV)
 app.use('/api/upload',       rotasUpload)
-// app.use('/api/equipamentos', rotasEquipamentos)  // ⚠️ DISABLED: pdfjs-dist blocker
+app.use('/api/equipamentos', rotasEquipamentos)
 app.use('/api/engenharia',   rotasEngenharia)
 app.use('/api/string',       rotasString)
 app.use('/api/carga',        rotasCarga)
@@ -224,19 +223,19 @@ app.use('/api/crm',          rotasCRM)
 app.use('/api/projeto',      rotasProjeto)
 app.use('/api/recomendacao', rotasRecomendacao)
 app.use('/api/decisao',      rotasDecisao)
-// app.use('/api/datasheet',    rotasDatasheet)  // ⚠️ DISABLED: pdfjs-dist blocker
+app.use('/api/datasheet',    rotasDatasheet)
 app.use('/api/admin',        rotasAdmin)
 app.use('/api/unifilar',     rotasUnifilar)
 app.use('/api/irradiancia',  rotasIrradiancia)
 app.use('/api/projetos-fv/:projetoId/homologacao', rotasHomologacao)
 app.use('/api/projetos-fv/:projetoId/proposta', rotasProposta)
 app.use('/api/projetos-fv/:id/beneficiarias', rotasBeneficiarias)
-// app.use('/api/fatura', rotasFatura)  // ⚠️ DISABLED: pdfjs-dist blocker
+app.use('/api/fatura', rotasFatura)
 // app.use('/api/parecer-acesso', rotasParecerAcesso)  // ⚠️ DISABLED: pdfjs-dist blocker
 // app.use('/api/bills', rotasBillIntake)  // ⚠️ DISABLED: pdfjs-dist blocker
 
 // ✅ Servir frontend compilado
-const distPath = path.join(__dirname, '../../frontend/dist')
+const distPath = path.join(__dirname, '../public/dist')
 app.use(express.static(distPath))
 
 // Rota catch-all para SPA - serve index.html para rotas não encontradas
