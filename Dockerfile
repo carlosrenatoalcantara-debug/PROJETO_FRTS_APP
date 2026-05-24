@@ -14,6 +14,9 @@ RUN npm ci --production=false
 WORKDIR /app/backend
 RUN npm ci --production=true
 
+# Change back to /app for copying source files
+WORKDIR /app
+
 # Copy only essential source code (node_modules excluded via .dockerignore)
 COPY frontend/src ./frontend/src
 COPY frontend/public ./frontend/public
