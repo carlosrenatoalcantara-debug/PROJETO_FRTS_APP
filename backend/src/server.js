@@ -1,3 +1,33 @@
+// 🔧 POLYFILLS FOR NODE.JS — pdfjs-dist compatibility
+// MUST be first, before any imports
+if (typeof global.DOMMatrix === 'undefined') {
+  global.DOMMatrix = class DOMMatrix {}
+}
+
+if (typeof global.ImageData === 'undefined') {
+  global.ImageData = class ImageData {
+    constructor(data, width, height) {
+      this.data = data
+      this.width = width
+      this.height = height
+    }
+  }
+}
+
+if (typeof global.Path2D === 'undefined') {
+  global.Path2D = class Path2D {}
+}
+
+if (typeof global.HTMLCanvasElement === 'undefined') {
+  global.HTMLCanvasElement = class HTMLCanvasElement {}
+}
+
+if (typeof global.HTMLImageElement === 'undefined') {
+  global.HTMLImageElement = class HTMLImageElement {}
+}
+
+// End polyfills
+
 import 'dotenv/config'
 import express from 'express'
 import cors from 'cors'
