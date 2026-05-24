@@ -54,3 +54,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
 
 # Start server (with embedded polyfills)
 CMD ["node", "src/server.js"]
+# Force rebuild timestamp: Sun May 24 16:24:28     2026
