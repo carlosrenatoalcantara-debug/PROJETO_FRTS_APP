@@ -6,7 +6,6 @@ WORKDIR /app
 # Copy only package files first (small, cacheable layer)
 COPY frontend/package*.json ./frontend/
 COPY backend/package*.json ./backend/
-COPY package.json .
 
 # Install dependencies
 WORKDIR /app/frontend
