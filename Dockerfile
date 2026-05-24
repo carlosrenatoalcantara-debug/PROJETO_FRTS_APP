@@ -3,30 +3,41 @@ FROM node:18-alpine AS builder
 
 WORKDIR /app
 
-# Copy both frontend and backend
+# Copy only package files first (small, cacheable layer)
+COPY frontend/package*.json ./frontend/
+COPY backend/package*.json ./backend/
+COPY package.json .
+
+# Install dependencies
+WORKDIR /app/frontend
+RUN npm ci --production=false
+
+WORKDIR /app/backend
+RUN npm ci --production=true
+
+# Copy source code (excluding node_modules via .dockerignore)
 COPY frontend ./frontend
 COPY backend ./backend
-COPY package.json .
 
 # Build frontend
 WORKDIR /app/frontend
-RUN npm install && npm run build
-
-# Prepare backend
-WORKDIR /app/backend
-RUN npm install
+RUN npm run build
 
 # Final production image
 FROM node:18-alpine
 
 WORKDIR /app/backend
 
-# Copy frontend build
+# Install only production dependencies
+COPY backend/package*.json ./
+RUN npm ci --production=true
+
+# Copy frontend build from builder
 COPY --from=builder /app/frontend/dist ./public/dist
 
-# Copy backend
-COPY --from=builder /app/backend/node_modules ./node_modules
-COPY --from=builder /app/backend ./
+# Copy backend source code
+COPY backend/src ./src
+COPY backend/config ./config
 
 # Expose port
 EXPOSE 3001
