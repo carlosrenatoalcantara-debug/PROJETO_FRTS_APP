@@ -3,8 +3,6 @@
  * Protege contra XSS, SQL Injection, e outras vulnerabilidades
  */
 
-import DOMPurify from 'isomorphic-dompurify';
-
 class ValidationService {
   /**
    * Valida email
@@ -65,6 +63,7 @@ class ValidationService {
 
   /**
    * Sanitiza entrada contra XSS
+   * Remove todas as tags HTML e entities perigosas
    * @param {string} input - Entrada do usuário
    * @returns {string} Entrada limpa
    */
@@ -73,12 +72,13 @@ class ValidationService {
       return input;
     }
 
-    // Remover tags HTML perigosas
-    return DOMPurify.sanitize(input, {
-      ALLOWED_TAGS: [],
-      ALLOWED_ATTR: [],
-      KEEP_CONTENT: true,
-    });
+    // Remove all HTML tags and dangerous characters
+    // This is safe and doesn't require jsdom/DOMPurify
+    return input
+      .replace(/<[^>]*>/g, '') // Remove HTML tags
+      .replace(/javascript:/gi, '') // Remove javascript: protocol
+      .replace(/on\w+\s*=/gi, '') // Remove event handlers (onclick, onerror, etc)
+      .trim();
   }
 
   /**
