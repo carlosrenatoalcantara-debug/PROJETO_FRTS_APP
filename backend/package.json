@@ -5,9 +5,9 @@
   "main": "src/server.js",
   "type": "module",
   "scripts": {
-    "dev": "node --watch src/server.js",
-    "start": "node src/server.js",
-        "start:backend": "npm run start",
+    "dev": "node --watch src/startup.mjs",
+    "start": "node src/startup.mjs",
+    "start:backend": "npm run start",
     "seed": "node src/seeds/initial.js",
     "catalogo:enriquecer-datasheets": "node scripts/enriquecer-catalogo-datasheets.mjs",
     "catalogo:cache:stats": "node -e \"import('dotenv/config').then(()=>import('./src/services/datasheetCacheService.js')).then(m=>m.obterEstatisticasCache()).then(s=>console.log(JSON.stringify(s,null,2)))\"",
