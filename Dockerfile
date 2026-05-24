@@ -15,9 +15,15 @@ RUN npm ci --production=false
 WORKDIR /app/backend
 RUN npm ci --production=true
 
-# Copy source code (excluding node_modules via .dockerignore)
-COPY frontend ./frontend
-COPY backend ./backend
+# Copy only essential source code (node_modules excluded via .dockerignore)
+COPY frontend/src ./frontend/src
+COPY frontend/public ./frontend/public
+COPY frontend/index.html ./frontend/
+COPY frontend/vite.config.js ./frontend/
+COPY frontend/tailwind.config.js ./frontend/
+COPY frontend/postcss.config.js ./frontend/
+COPY backend/src ./backend/src
+COPY backend/config ./backend/config
 
 # Build frontend
 WORKDIR /app/frontend

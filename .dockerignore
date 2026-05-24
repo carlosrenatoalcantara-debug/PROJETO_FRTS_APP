@@ -62,11 +62,19 @@ Thumbs.db
 .gitlab-ci.yml
 .travis.yml
 
-# Documentation
+# Documentation and reports
 docs
 **/*.md
 CHANGELOG.md
 LICENSE
+**/*REPORT*.md
+**/*RELATORIO*.md
+**/*ANALYSIS*.md
+**/*STATUS*.md
+**/*ANALYSIS*.docx
+**/LIMPEZA*
+**/SETUP_CLAUDE*
+**/DEPLOY_LIMPEZA*
 
 # OS files
 .DS_Store
