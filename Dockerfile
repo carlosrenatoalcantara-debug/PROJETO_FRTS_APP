@@ -1,6 +1,9 @@
 # Multi-stage build for frontend + backend
 FROM node:18-alpine AS builder
 
+# Force full rebuild - invalidate all cache layers
+ENV REBUILD_TIMESTAMP="2026-05-24T16:25:00Z"
+
 WORKDIR /app
 
 # Copy only package files first (small, cacheable layer)
