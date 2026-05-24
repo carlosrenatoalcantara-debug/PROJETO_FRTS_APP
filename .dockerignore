@@ -1,0 +1,48 @@
+# Test files and scripts
+**/*test*.js
+**/*test*.sh
+**/*test*.ps1
+**/test-*
+**/tests
+**/test
+
+# Development scripts
+**/*.sh
+**/*.ps1
+**/scripts/test*
+
+# Logs and artifacts
+**/logs
+**/snapshots
+**/backups
+**/temp
+**/tmp
+**/*.log
+
+# Git files
+.git
+.gitignore
+
+# Development dependencies
+**/.env.local
+**/.env.*.local
+**/node_modules
+**/.npm
+**/.cache
+
+# IDE files
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+*.bak
+
+# Build artifacts (optional - keep if needed)
+dist
+build
+coverage
