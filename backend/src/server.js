@@ -78,7 +78,8 @@ import rotasProjetosFV from './routes/projetosFV.js'
 import rotasProjetosEV from './routes/projetosEV.js'
 import rotasDashboard  from './routes/dashboard.js'
 import rotasUpload      from './routes/upload.js'
-import rotasEquipamentos from './routes/equipamentos.js'
+// ⚠️ TEMPORARILY DISABLED: pdf-parse startup blocker
+// import rotasEquipamentos from './routes/equipamentos.js'
 import rotasEngenharia   from './routes/engenharia.js'
 import rotasString       from './routes/string.js'
 import rotasCarga        from './routes/carga.js'
@@ -89,24 +90,24 @@ import rotasCRM          from './routes/crm.js'
 import rotasProjeto      from './routes/projeto.js'
 import rotasRecomendacao from './routes/recomendacao.js'
 import rotasDecisao      from './routes/decisao.js'
-import rotasDatasheet    from './routes/datasheet.js'
+// import rotasDatasheet    from './routes/datasheet.js'
 import rotasAdmin        from './routes/admin.js'
 import rotasUnifilar     from './routes/unifilar.js'
 import rotasIrradiancia  from './routes/irradiancia.js'
 import rotasHomologacao  from './routes/homologacao.js'
 import rotasProposta     from './routes/proposta.js'
-import rotasFatura       from './routes/fatura.js'
+// import rotasFatura       from './routes/fatura.js'
 import rotasBeneficiarias from './routes/beneficiarias.js'
 import rotasAuth         from './routes/auth.js'
 import rotasCalculadora  from './routes/calculadora.js'
-import rotasCarregadoresEV from './routes/carregadoresEV.js'
-import rotasParecerAcesso from './routes/pareceracesso.js'
+// import rotasCarregadoresEV from './routes/carregadoresEV.js'
+// import rotasParecerAcesso from './routes/pareceracesso.js'
 import rotasAuthSegura   from './routes/auth-security.js'  // 🔐 Novo sistema de autenticação seguro
 import rotasIntegrations from './routes/integrations.js'   // 🔐 Gerenciamento seguro de chaves de API
 import rotasDimensionamento from './routes/dimensionamento.js'  // 🌞 Motor de dimensionamento FV (S1)
 import rotasAdminCatalogo from './routes/adminCatalogo.js'      // 🧪 Qualidade do catálogo técnico (S2.6.1)
 import rotasKitsV1       from './routes/kitsV1.js'              // 🔍 Motor de Recomendação de Kits FV (S2.14)
-import rotasBillIntake   from './routes/billIntakeRoutes.js'   // 📋 Bill intake + parser (S3.1)
+// import rotasBillIntake   from './routes/billIntakeRoutes.js'   // 📋 Bill intake + parser (S3.1) — BLOCKED by pdfjs-dist
 import rotasAuthV2       from './routes/authv2.js'            // 🔐 Auth v2 - S3.7 (Login simplificado)
 import errorHandler      from './middleware/errorHandler.js'
 
@@ -206,13 +207,13 @@ app.use('/api/admin/catalogo', rotasAdminCatalogo)
 app.use('/api/v1/kits',        rotasKitsV1)
 // app.use('/api/auth-legacy', rotasAuth)  // Rota antiga desabilitada
 app.use('/api/calculadora',  rotasCalculadora)
-app.use('/api/carregadores-ev', rotasCarregadoresEV)
+// app.use('/api/carregadores-ev', rotasCarregadoresEV)  // ⚠️ DISABLED: pdfjs-dist blocker
 app.use('/api/dashboard',    rotasDashboard)
 app.use('/api/clientes',     rotasClientes)
 app.use('/api/projetos-fv',  rotasProjetosFV)
 app.use('/api/projetos-ev',  rotasProjetosEV)
 app.use('/api/upload',       rotasUpload)
-app.use('/api/equipamentos', rotasEquipamentos)
+// app.use('/api/equipamentos', rotasEquipamentos)  // ⚠️ DISABLED: pdfjs-dist blocker
 app.use('/api/engenharia',   rotasEngenharia)
 app.use('/api/string',       rotasString)
 app.use('/api/carga',        rotasCarga)
@@ -223,16 +224,16 @@ app.use('/api/crm',          rotasCRM)
 app.use('/api/projeto',      rotasProjeto)
 app.use('/api/recomendacao', rotasRecomendacao)
 app.use('/api/decisao',      rotasDecisao)
-app.use('/api/datasheet',    rotasDatasheet)
+// app.use('/api/datasheet',    rotasDatasheet)  // ⚠️ DISABLED: pdfjs-dist blocker
 app.use('/api/admin',        rotasAdmin)
 app.use('/api/unifilar',     rotasUnifilar)
 app.use('/api/irradiancia',  rotasIrradiancia)
 app.use('/api/projetos-fv/:projetoId/homologacao', rotasHomologacao)
 app.use('/api/projetos-fv/:projetoId/proposta', rotasProposta)
 app.use('/api/projetos-fv/:id/beneficiarias', rotasBeneficiarias)
-app.use('/api/fatura', rotasFatura)
-app.use('/api/parecer-acesso', rotasParecerAcesso)
-app.use('/api/bills', rotasBillIntake)  // 📋 Bill intake + parser (S3.1 — operational)
+// app.use('/api/fatura', rotasFatura)  // ⚠️ DISABLED: pdfjs-dist blocker
+// app.use('/api/parecer-acesso', rotasParecerAcesso)  // ⚠️ DISABLED: pdfjs-dist blocker
+// app.use('/api/bills', rotasBillIntake)  // ⚠️ DISABLED: pdfjs-dist blocker
 
 // ✅ Servir frontend compilado
 const distPath = path.join(__dirname, '../../frontend/dist')
