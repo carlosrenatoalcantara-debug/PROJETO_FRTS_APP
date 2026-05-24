@@ -233,24 +233,6 @@ app.use('/api/projetos-fv/:id/beneficiarias', rotasBeneficiarias)
 // app.use('/api/parecer-acesso', rotasParecerAcesso)  // ⚠️ DISABLED: pdfjs-dist blocker
 // app.use('/api/bills', rotasBillIntake)  // ⚠️ DISABLED: pdfjs-dist blocker
 
-// 🔄 Lazy load parser routes AFTER polyfills are established (prevents DOMMatrix ReferenceError)
-(async () => {
-  try {
-    const { default: rotasEquipamentos } = await import('./routes/equipamentos.js')
-    const { default: rotasDatasheet } = await import('./routes/datasheet.js')
-    const { default: rotasFatura } = await import('./routes/fatura.js')
-
-    app.use('/api/equipamentos', rotasEquipamentos)
-    app.use('/api/datasheet',    rotasDatasheet)
-    app.use('/api/fatura',       rotasFatura)
-
-    console.log('✅ Parser routes loaded successfully')
-  } catch (err) {
-    console.error('⚠️  Failed to load parser routes:', err.message)
-    // Non-critical: app continues without parser routes
-  }
-})()
-
 // ✅ Servir frontend compilado
 const distPath = path.join(__dirname, '../public/dist')
 app.use(express.static(distPath))
@@ -289,6 +271,23 @@ async function iniciarServidor() {
     } catch (erro) {
       console.error('❌ Erro ao agendar tarefas de manutenção:', erro.message)
     }
+  }
+
+  // 🔄 Lazy load parser routes AFTER polyfills + DB + all async initialization
+  // This prevents DOMMatrix ReferenceError when pdfjs-dist loads
+  try {
+    const { default: rotasEquipamentos } = await import('./routes/equipamentos.js')
+    const { default: rotasDatasheet } = await import('./routes/datasheet.js')
+    const { default: rotasFatura } = await import('./routes/fatura.js')
+
+    app.use('/api/equipamentos', rotasEquipamentos)
+    app.use('/api/datasheet',    rotasDatasheet)
+    app.use('/api/fatura',       rotasFatura)
+
+    console.log('✅ Parser routes loaded successfully before server start')
+  } catch (err) {
+    console.error('⚠️  Failed to load parser routes:', err.message)
+    console.log('ℹ️  Continuing without parser routes (non-critical)')
   }
 
   app.listen(PORT, () => {
