@@ -293,7 +293,7 @@ function Etapa2Unidades({ dados, setDados, proxima, anterior }) {
 
       {!dados.consumo || dados.consumo <= 0 ? (
         <div className="p-3 bg-amber-50 border border-amber-200 rounded text-sm text-amber-700">
-          ⚠️ Preencha o consumo (> 0) para prosseguir
+          ⚠️ Preencha o consumo ({'>'}0) para prosseguir
         </div>
       ) : null}
 
