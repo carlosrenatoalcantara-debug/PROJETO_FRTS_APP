@@ -238,11 +238,13 @@ const distPath = path.join(__dirname, '../public/dist')
 app.use(express.static(distPath))
 
 // Rota catch-all para SPA - serve index.html para rotas não encontradas
-app.get('*', (req, res) => {
-  // Se não for requisição de API, servir index.html (para roteamento SPA)
-  if (!req.path.startsWith('/api')) {
-    res.sendFile(path.join(distPath, 'index.html'))
+// ⚠️ FIX cirúrgico: rotas /api/* registradas via lazy load (equipamentos, datasheet, fatura)
+//    são adicionadas DEPOIS deste catch-all. Sem next(), ficavam pendurando.
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/api')) {
+    return next()
   }
+  return res.sendFile(path.join(distPath, 'index.html'))
 })
 
 // 🔐 Secure error handler (não expõe stack traces em produção)

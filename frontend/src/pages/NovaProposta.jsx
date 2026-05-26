@@ -1023,12 +1023,12 @@ export default function NovaProposta() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
 
-  // ─── S2: Feature flag ?wizard=v2 ─────────────────────────────────────────
-  // Quando ?wizard=v2 estiver presente, renderiza o funil v2 (S2+).
-  // Sem o param, fluxo legado abaixo é preservado 100% intacto.
-  if (searchParams.get('wizard') === 'v2') {
-    return <NovaPropostaV2 />
-  }
+  // ─── DEPRECATED_DO_NOT_USE — Funil v2 desabilitado ────────────────────────
+  // Substituído por ProjetosFVNovo (/projetos-fv/novo), que é o wizard oficial FV.
+  // Arquivo NovaPropostaV2.jsx mantido em disco para histórico — NÃO apagar.
+  // if (searchParams.get('wizard') === 'v2') {
+  //   return <NovaPropostaV2 />
+  // }
   // ─────────────────────────────────────────────────────────────────────────
 
   const clienteId = searchParams.get('clienteId')
