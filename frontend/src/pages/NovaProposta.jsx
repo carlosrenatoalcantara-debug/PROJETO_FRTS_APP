@@ -309,7 +309,102 @@ function Etapa2Unidades({ dados, setDados, proxima, anterior }) {
 }
 
 function Etapa3KitGerador({ dados, setDados, proxima, anterior }) {
-  const [tipoKitgerador, setTipoKit] = useState('disponivel')
+  const [tipoKitgerador, setTipoKit] = useState('manual')
+  const [modulos, setModulos] = useState([])
+  const [inversores, setInversores] = useState([])
+  const [carregandoEq, setCarregandoEq] = useState(true)
+  const [erroEq, setErroEq] = useState(null)
+
+  // Config kit
+  const [sistema, setSistema] = useState('on-grid')
+  const [topologia, setTopologia] = useState('tradicional')
+
+  // Módulo selecionado
+  const [moduloMarca, setModuloMarca] = useState('')
+  const [moduloId, setModuloId] = useState('')
+  const [quantidade, setQuantidade] = useState('')
+
+  // Inversor selecionado
+  const [inversorMarca, setInversorMarca] = useState('')
+  const [inversorId, setInversorId] = useState('')
+
+  // Buscar equipamentos reais do catálogo
+  useEffect(() => {
+    let cancelado = false
+    const carregar = async () => {
+      try {
+        setCarregandoEq(true)
+        const [resMod, resInv] = await Promise.all([
+          fetch('/api/equipamentos?tipo=modulo&ativo=true'),
+          fetch('/api/equipamentos?tipo=inversor&ativo=true'),
+        ])
+        if (!resMod.ok || !resInv.ok) throw new Error('Falha ao carregar catálogo')
+        const dadosMod = await resMod.json()
+        const dadosInv = await resInv.json()
+        if (cancelado) return
+        // API retorna { total, equipamentos: [...] } OU array direto
+        setModulos(Array.isArray(dadosMod) ? dadosMod : (dadosMod.equipamentos || []))
+        setInversores(Array.isArray(dadosInv) ? dadosInv : (dadosInv.equipamentos || []))
+        setErroEq(null)
+      } catch (err) {
+        if (!cancelado) setErroEq(err.message)
+      } finally {
+        if (!cancelado) setCarregandoEq(false)
+      }
+    }
+    carregar()
+    return () => { cancelado = true }
+  }, [])
+
+  // Listas derivadas (cascata)
+  const marcasModulo = [...new Set(modulos.map((m) => m.fabricante))].sort()
+  const modelosModulo = modulos.filter((m) => m.fabricante === moduloMarca)
+  const moduloSel = modulos.find((m) => m._id === moduloId)
+  const potenciaModuloW = moduloSel?.especificacoes?.potencia || moduloSel?.especificacoes?.potencia_w || 0
+
+  const marcasInversor = [...new Set(inversores.map((i) => i.fabricante))].sort()
+  const modelosInversor = inversores.filter((i) => i.fabricante === inversorMarca)
+  const inversorSel = inversores.find((i) => i._id === inversorId)
+  const potenciaInversorKW = inversorSel?.especificacoes?.potencia_kw || (inversorSel?.especificacoes?.potencia || 0) / 1000
+
+  // Reset modelo se a marca mudar
+  useEffect(() => { if (moduloMarca && moduloSel && moduloSel.fabricante !== moduloMarca) setModuloId('') }, [moduloMarca])
+  useEffect(() => { if (inversorMarca && inversorSel && inversorSel.fabricante !== inversorMarca) setInversorId('') }, [inversorMarca])
+
+  // Quando módulo+inversor+quantidade estão preenchidos, montar kitSelecionado
+  useEffect(() => {
+    const qtd = parseInt(quantidade) || 0
+    if (tipoKitgerador !== 'manual') return
+    if (!moduloSel || !inversorSel || qtd <= 0) {
+      // limpar caso usuário voltou a estado incompleto
+      if (dados.kitSelecionado) setDados((p) => ({ ...p, kitSelecionado: null, orcamento: null }))
+      return
+    }
+    const potenciaTotalKWp = (qtd * potenciaModuloW) / 1000
+    const precoModulos = (moduloSel.preco_sugerido || 0) * qtd
+    const precoInversor = inversorSel.preco_sugerido || 0
+    const subtotal = precoModulos + precoInversor
+    const instalacao = subtotal * 0.25
+    const total = subtotal + instalacao
+    setDados((prev) => ({
+      ...prev,
+      kitSelecionado: {
+        sistema, topologia,
+        modulo: { id: moduloSel._id, fabricante: moduloSel.fabricante, modelo: moduloSel.modelo, potencia_w: potenciaModuloW, quantidade: qtd },
+        inversor: { id: inversorSel._id, fabricante: inversorSel.fabricante, modelo: inversorSel.modelo, potencia_kw: potenciaInversorKW },
+        potencia_total_kwp: potenciaTotalKWp,
+      },
+      orcamento: {
+        modulos: precoModulos,
+        inversor: precoInversor,
+        instalacao,
+        total,
+      },
+    }))
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [moduloId, inversorId, quantidade, sistema, topologia, tipoKitgerador])
+
+  const kitMontado = !!(dados.kitSelecionado && dados.orcamento)
 
   return (
     <div className="space-y-6">
@@ -320,14 +415,8 @@ function Etapa3KitGerador({ dados, setDados, proxima, anterior }) {
 
       <div className="space-y-3">
         <label className="flex items-center gap-3 p-4 border-2 border-slate-200 rounded-lg cursor-pointer hover:border-blue-500"
-          style={{borderColor: tipoKitgerador === 'disponivel' ? '#3b82f6' : 'inherit'}}>
-          <input
-            type="radio"
-            name="tipoKit"
-            value="disponivel"
-            checked={tipoKitgerador === 'disponivel'}
-            onChange={(e) => setTipoKit(e.target.value)}
-          />
+          style={{ borderColor: tipoKitgerador === 'disponivel' ? '#3b82f6' : 'inherit' }}>
+          <input type="radio" name="tipoKit" value="disponivel" checked={tipoKitgerador === 'disponivel'} onChange={(e) => setTipoKit(e.target.value)} />
           <div>
             <p className="font-medium text-slate-900">Usar kit disponível</p>
             <p className="text-xs text-slate-500">Integração com SolarMarket ou catálogo</p>
@@ -335,17 +424,11 @@ function Etapa3KitGerador({ dados, setDados, proxima, anterior }) {
         </label>
 
         <label className="flex items-center gap-3 p-4 border-2 border-slate-200 rounded-lg cursor-pointer hover:border-blue-500"
-          style={{borderColor: tipoKitgerador === 'manual' ? '#3b82f6' : 'inherit'}}>
-          <input
-            type="radio"
-            name="tipoKit"
-            value="manual"
-            checked={tipoKitgerador === 'manual'}
-            onChange={(e) => setTipoKit(e.target.value)}
-          />
+          style={{ borderColor: tipoKitgerador === 'manual' ? '#3b82f6' : 'inherit' }}>
+          <input type="radio" name="tipoKit" value="manual" checked={tipoKitgerador === 'manual'} onChange={(e) => setTipoKit(e.target.value)} />
           <div>
             <p className="font-medium text-slate-900">Criar do zero</p>
-            <p className="text-xs text-slate-500">Configurar manualmente com equipamentos</p>
+            <p className="text-xs text-slate-500">Configurar manualmente com equipamentos do seu catálogo</p>
           </div>
         </label>
       </div>
@@ -354,25 +437,32 @@ function Etapa3KitGerador({ dados, setDados, proxima, anterior }) {
         <SeletorAutomaticoKits
           potenciakWp={dados.dimensionamento.potenciaArredondada}
           onSelecionarKit={(dadosKit) => {
-            setDados(prev => ({
-              ...prev,
-              kitSelecionado: dadosKit.kit,
-              orcamento: dadosKit.orcamento,
-            }))
+            setDados((prev) => ({ ...prev, kitSelecionado: dadosKit.kit, orcamento: dadosKit.orcamento }))
           }}
         />
       )}
 
       {tipoKitgerador === 'manual' && (
         <div className="space-y-4">
+          {erroEq && (
+            <div className="p-3 bg-amber-50 border border-amber-200 rounded text-sm text-amber-700">
+              ⚠️ Erro ao carregar catálogo: {erroEq}. Cadastre equipamentos em <b>Equipamentos</b> no menu lateral.
+            </div>
+          )}
+
+          {!carregandoEq && modulos.length === 0 && (
+            <div className="p-3 bg-blue-50 border border-blue-200 rounded text-sm text-blue-700">
+              ℹ️ Nenhum módulo cadastrado. Acesse <b>Equipamentos → Módulos</b> para adicionar.
+            </div>
+          )}
+
           <Card>
             <CardHeader>Configuração do Kit</CardHeader>
             <CardBody className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-sm font-medium text-slate-700 block mb-1">Sistema</label>
-                  <select className="w-full px-3 py-2 rounded border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <option value="">Selecione</option>
+                  <select value={sistema} onChange={(e) => setSistema(e.target.value)} className="w-full px-3 py-2 rounded border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
                     <option value="on-grid">On Grid</option>
                     <option value="hibrido">Híbrido</option>
                     <option value="off-grid">Off Grid</option>
@@ -380,8 +470,7 @@ function Etapa3KitGerador({ dados, setDados, proxima, anterior }) {
                 </div>
                 <div>
                   <label className="text-sm font-medium text-slate-700 block mb-1">Topologia</label>
-                  <select className="w-full px-3 py-2 rounded border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <option value="">Selecione</option>
+                  <select value={topologia} onChange={(e) => setTopologia(e.target.value)} className="w-full px-3 py-2 rounded border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
                     <option value="tradicional">Tradicional</option>
                     <option value="otimizador">Otimizador</option>
                     <option value="microinversor">Microinversor</option>
@@ -397,40 +486,31 @@ function Etapa3KitGerador({ dados, setDados, proxima, anterior }) {
               <div className="grid grid-cols-3 gap-3">
                 <div>
                   <label className="text-sm font-medium text-slate-700 block mb-1">Marca</label>
-                  <select className="w-full px-3 py-2 rounded border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <option value="">Selecione</option>
-                    <option value="jinko">Jinko Solar</option>
-                    <option value="canadian">Canadian Solar</option>
-                    <option value="trina">Trina Solar</option>
-                    <option value="bifocal">Bifocal</option>
-                    <option value="ja">JA Solar</option>
+                  <select value={moduloMarca} onChange={(e) => { setModuloMarca(e.target.value); setModuloId('') }} disabled={carregandoEq || marcasModulo.length === 0} className="w-full px-3 py-2 rounded border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-100">
+                    <option value="">{carregandoEq ? 'Carregando...' : 'Selecione'}</option>
+                    {marcasModulo.map((m) => <option key={m} value={m}>{m}</option>)}
                   </select>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-slate-700 block mb-1">Modelo</label>
-                  <select className="w-full px-3 py-2 rounded border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <option value="">Selecione</option>
-                    <option value="jkm">JKM 400M</option>
-                    <option value="jkm350">JKM 350M</option>
-                    <option value="jkm330">JKM 330M</option>
+                  <select value={moduloId} onChange={(e) => setModuloId(e.target.value)} disabled={!moduloMarca} className="w-full px-3 py-2 rounded border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-100">
+                    <option value="">{moduloMarca ? 'Selecione' : 'Escolha a marca'}</option>
+                    {modelosModulo.map((m) => <option key={m._id} value={m._id}>{m.modelo}</option>)}
                   </select>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-slate-700 block mb-1">Potência (Wp)</label>
-                  <select className="w-full px-3 py-2 rounded border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <option value="">Selecione</option>
-                    <option value="300">300 W</option>
-                    <option value="330">330 W</option>
-                    <option value="350">350 W</option>
-                    <option value="400">400 W</option>
-                    <option value="410">410 W</option>
-                    <option value="450">450 W</option>
-                  </select>
+                  <input type="text" value={potenciaModuloW ? `${potenciaModuloW} W` : ''} readOnly placeholder="—" className="w-full px-3 py-2 rounded border border-slate-300 bg-slate-50 text-slate-700" />
                 </div>
               </div>
               <div>
                 <label className="text-sm font-medium text-slate-700 block mb-1">Quantidade</label>
-                <input type="number" placeholder="Ex: 30" className="w-full px-3 py-2 rounded border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                <input type="number" min="1" value={quantidade} onChange={(e) => setQuantidade(e.target.value)} placeholder="Ex: 30" className="w-full px-3 py-2 rounded border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                {potenciaModuloW > 0 && parseInt(quantidade) > 0 && (
+                  <p className="text-xs text-slate-500 mt-1">
+                    Potência total: <b>{((potenciaModuloW * parseInt(quantidade)) / 1000).toFixed(2)} kWp</b>
+                  </p>
+                )}
               </div>
             </CardBody>
           </Card>
@@ -441,51 +521,58 @@ function Etapa3KitGerador({ dados, setDados, proxima, anterior }) {
               <div className="grid grid-cols-3 gap-3">
                 <div>
                   <label className="text-sm font-medium text-slate-700 block mb-1">Marca</label>
-                  <select className="w-full px-3 py-2 rounded border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <option value="">Selecione</option>
-                    <option value="fronius">Fronius</option>
-                    <option value="sma">SMA</option>
-                    <option value="growatt">Growatt</option>
-                    <option value="deye">Deye</option>
-                    <option value="huawei">Huawei</option>
+                  <select value={inversorMarca} onChange={(e) => { setInversorMarca(e.target.value); setInversorId('') }} disabled={carregandoEq || marcasInversor.length === 0} className="w-full px-3 py-2 rounded border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-100">
+                    <option value="">{carregandoEq ? 'Carregando...' : 'Selecione'}</option>
+                    {marcasInversor.map((m) => <option key={m} value={m}>{m}</option>)}
                   </select>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-slate-700 block mb-1">Modelo</label>
-                  <select className="w-full px-3 py-2 rounded border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <option value="">Selecione</option>
-                    <option value="fronius-25">Fronius Symo 25.0</option>
-                    <option value="sma-20">SMA STP 20000</option>
-                    <option value="growatt-10">Growatt 10000</option>
+                  <select value={inversorId} onChange={(e) => setInversorId(e.target.value)} disabled={!inversorMarca} className="w-full px-3 py-2 rounded border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-100">
+                    <option value="">{inversorMarca ? 'Selecione' : 'Escolha a marca'}</option>
+                    {modelosInversor.map((m) => <option key={m._id} value={m._id}>{m.modelo}</option>)}
                   </select>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-slate-700 block mb-1">Potência (kW)</label>
-                  <select className="w-full px-3 py-2 rounded border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <option value="">Selecione</option>
-                    <option value="5">5 kW</option>
-                    <option value="10">10 kW</option>
-                    <option value="15">15 kW</option>
-                    <option value="20">20 kW</option>
-                    <option value="25">25 kW</option>
-                  </select>
+                  <input type="text" value={potenciaInversorKW ? `${potenciaInversorKW} kW` : ''} readOnly placeholder="—" className="w-full px-3 py-2 rounded border border-slate-300 bg-slate-50 text-slate-700" />
                 </div>
               </div>
             </CardBody>
           </Card>
+
+          {kitMontado && (
+            <Card>
+              <CardHeader>Resumo do Kit</CardHeader>
+              <CardBody>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p className="text-slate-500">Potência Total</p>
+                    <p className="font-semibold text-slate-900">{dados.kitSelecionado.potencia_total_kwp.toFixed(2)} kWp</p>
+                  </div>
+                  <div>
+                    <p className="text-slate-500">Investimento Estimado</p>
+                    <p className="font-semibold text-emerald-700">
+                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(dados.orcamento.total)}
+                    </p>
+                  </div>
+                </div>
+              </CardBody>
+            </Card>
+          )}
         </div>
       )}
 
       <div className="flex justify-between gap-3">
         <Button variante="secundario" onClick={anterior}>← Anterior</Button>
-        <Button onClick={proxima} disabled={!dados.kitSelecionado || !dados.orcamento}>
-          Próxima →
-        </Button>
+        <Button onClick={proxima} disabled={!kitMontado}>Próxima →</Button>
       </div>
 
-      {(!dados.kitSelecionado || !dados.orcamento) && (
+      {!kitMontado && (
         <div className="p-3 bg-amber-50 border border-amber-200 rounded text-sm text-amber-700">
-          ⚠️ Selecione um kit para prosseguir
+          ⚠️ {tipoKitgerador === 'manual'
+            ? 'Selecione marca/modelo do módulo, do inversor e informe a quantidade para prosseguir.'
+            : 'Selecione um kit para prosseguir.'}
         </div>
       )}
     </div>
