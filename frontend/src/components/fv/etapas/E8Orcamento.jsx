@@ -83,10 +83,11 @@ export default function E8Orcamento() {
   //    para eliminar ReferenceError TDZ (Temporal Dead Zone).
   const { painel, inversor, estrutura } = equipamentos
 
-  // Preços editáveis
-  const [precoPainel,    setPrecoPainel]    = useState(painel?.precoUnitario || 2500)
-  const [precoInversor,  setPrecoInversor]  = useState(inversor?.precoUnitario || 4000)
-  const [precoEstrutura, setPrecoEstrutura] = useState(estrutura?.precoUnitario || 1200)
+  // FV-09: preços iniciais vêm do catálogo (precoUnitario dos seletores)
+  // O usuário pode ajustar livremente — são apenas sugestões de mercado.
+  const [precoPainel,    setPrecoPainel]    = useState(painel?.precoUnitario    || 620)
+  const [precoInversor,  setPrecoInversor]  = useState(inversor?.precoUnitario  || 4000)
+  const [precoEstrutura, setPrecoEstrutura] = useState(estrutura?.precoUnitario || 130)
   const [maoDeTrabaho,   setMaoDeTrabaho]   = useState(50) // R$ por painel
   const [cabosProtecao,  setCabosProtecao]  = useState(1500) // R$ subtotal
 
