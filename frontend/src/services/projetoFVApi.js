@@ -8,7 +8,12 @@
  *   - Chamadas CRUD e de slice
  */
 
-const API_URL = import.meta.env.VITE_API_URL || ''
+// ⚠️ FIX (FV-07): URL relativa forçada — Vercel proxy → Railway.
+// VITE_API_URL em .env.production apontava para https://fortesolar.com.br/api
+// (site institucional Wix), causando GET /api/api/clientes contra domínio errado
+// e falha "Erro ao salvar: Failed to fetch" no Salvar Proposta do E8.
+// Mesmo padrão usado em ProjetosEV.jsx, ProjetosEVDetalhes.jsx, E1Upload.jsx.
+const API_URL = ''
 
 // ─── Adapters camelCase → snake_case ─────────────────────────────────────────
 // Cada adapter recebe o slice do ProjetoFVContext e retorna o payload v3.
