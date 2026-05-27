@@ -56,31 +56,131 @@ function WizardInterno() {
     const clienteIdParam = params.get('clienteId')
 
     if (idParam) {
-      // Retomada via ?id=: carregar projeto do banco
+      // Retomada via ?id=: carregar projeto do banco e hidratar todos os slices
       buscarProjeto(idParam)
-        .then(projeto => {
+        .then(p => {
+          // FV-01: hidratação completa (fatura, localização, dimensionamento, área, equipamentos)
+          const fe  = p.fatura_extracao  || {}
+          const loc = p.localizacao      || {}
+          const dim = p.dimensionamento  || {}
+          const ls  = p.layout_solar     || {}
+          const eq  = p.equipamentos     || {}
+
+          // Normaliza tipo_ligacao: "Monofásico" → "monofasico"
+          const normalizarFase = (tipo) => {
+            if (!tipo) return 'monofasico'
+            const t = tipo.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+            if (t.includes('trifas')) return 'trifasico'
+            if (t.includes('bifas')) return 'bifasico'
+            return 'monofasico'
+          }
+
+          // Painel: paineis[0] → formato Context
+          const painelDB = eq.paineis?.[0] || null
+          const painel   = painelDB ? {
+            _id:       painelDB.equipamento_id || painelDB.id || null,
+            marca:     painelDB.marca          || '',
+            modelo:    painelDB.modelo         || '',
+            potenciaW: painelDB.potencia_w     || null,
+            quantidade: painelDB.quantidade    || null,
+          } : null
+
+          // Inversor
+          const invDB   = eq.inversor || null
+          const inversor = invDB ? {
+            marca:      invDB.marca       || '',
+            modelo:     invDB.modelo      || '',
+            potenciaKW: invDB.potencia_kw || null,
+            tipo:       invDB.tipo        || null,
+            fases:      invDB.fases       || null,
+          } : null
+
+          // Estrutura
+          const estDB    = eq.estrutura || null
+          const estrutura = estDB ? {
+            tipo:      estDB.tipo      || null,
+            descricao: estDB.descricao || null,
+          } : null
+
           dispatch({
             type: 'HIDRATAR',
             payload: {
-              projetoId: String(projeto._id),
-              clienteId: projeto.clienteId?._id ? String(projeto.clienteId._id) : null,
-              etapa:     projeto.workflow?.etapa_atual ?? 1,
+              projetoId: String(p._id),
+              clienteId: p.clienteId?._id ? String(p.clienteId._id) : null,
+              etapa:     p.workflow?.etapa_atual ?? 1,
+
+              // Dados do cliente
               dadosCliente: {
-                nomeCliente:  projeto.clienteId?.nome     || '',
-                nomeProjeto:  projeto.nome                || '',
-                telefone:     projeto.clienteId?.telefone || '',
-                email:        projeto.clienteId?.email    || '',
+                nomeCliente: p.clienteId?.nome     || '',
+                nomeProjeto: p.nome                || '',
+                telefone:    p.clienteId?.telefone || '',
+                email:       p.clienteId?.email    || '',
               },
-              localizacao: projeto.localizacao ? {
-                endereco:            projeto.localizacao.endereco_completo || '',
-                lat:                 projeto.localizacao.latitude          ?? null,
-                lon:                 projeto.localizacao.longitude         ?? null,
-                cidadeEstado:        [projeto.localizacao.cidade, projeto.localizacao.estado].filter(Boolean).join(', '),
-                uf:                  projeto.localizacao.estado            || null,
-                geocoding_origem:    projeto.localizacao.geocoding_origem  || null,
-                geocoding_confianca: projeto.localizacao.geocoding_confianca ?? null,
-                geocodificado_em:    projeto.localizacao.geocodificado_em  || null,
+
+              // Localização (v3 subdoc primeiro, fallback para campos flat)
+              localizacao: {
+                endereco:            loc.endereco_completo || p.endereco_completo || '',
+                lat:                 loc.latitude          ?? p.latitude  ?? null,
+                lon:                 loc.longitude         ?? p.longitude ?? null,
+                cidadeEstado:        [loc.cidade, loc.estado].filter(Boolean).join(', '),
+                uf:                  loc.estado            || null,
+                geocoding_origem:    loc.geocoding_origem  || null,
+                geocoding_confianca: loc.geocoding_confianca ?? null,
+                geocodificado_em:    loc.geocodificado_em  || null,
+              },
+
+              // Consumo (fatura_extracao)
+              dadosConsumo: {
+                consumoMensal:  String(fe.consumo_mensal_kwh || ''),
+                concessionaria: fe.concessionaria || '',
+                distribuidora:  fe.concessionaria || '',
+                tipoLigacao:    normalizarFase(fe.tipo_ligacao),
+                tensao:         fe.tensao_v ? String(fe.tensao_v) : '220',
+                valorKwh:       String(fe.valor_kwh || ''),
+                grupoTarifario: fe.grupo_tarifario || '',
+                fase:           fe.tipo_ligacao    || '',
+                usarMeses:      (fe.historico_12meses?.length || 0) > 0,
+                consumosMensais: fe.historico_12meses?.length > 0
+                  ? fe.historico_12meses.map(h => String(h.consumo ?? ''))
+                  : Array(12).fill(''),
+                mediaAnual:     fe.media_anual_kwh || null,
+                historico12Meses: fe.historico_12meses || null,
+              },
+
+              // Irradiância
+              irradiancia: {
+                mediaAnual: loc.irradiancia_kwh_kwp_dia ?? null,
+                mensal:     null,
+                carregando: false,
+                erro:       null,
+                fonte:      loc.fonte_irradiancia
+                  ? (loc.fonte_irradiancia === 'nasa_power' ? 'nasa' : 'cresesb')
+                  : null,
+              },
+
+              // Dimensionamento (v3 subdoc)
+              dimensionamento: dim.potencia_kwp ? {
+                potenciaKwp:          dim.potencia_kwp    ?? null,
+                potenciaRealKwp:      dim.potencia_kwp    ?? null,
+                numPaineis:           dim.num_paineis     ?? null,
+                numInversores:        dim.num_inversores  ?? null,
+                areaMinima:           dim.area_total_m2   ?? null,
+                potenciaPainelW:      painelDB?.potencia_w ?? 550,
+                capacidadeInversorKW: invDB?.potencia_kw  ?? 5,
+                energiaDiaria:        null,
+                energiaNecessaria:    null,
               } : undefined,
+
+              // Área / layout solar (v3 subdoc)
+              area: ls.area_util_m2 ? {
+                areaDisponivel: String(ls.area_util_m2),
+                orientacao:     ls.orientacao              || 'Norte',
+                inclinacao:     String(ls.inclinacao_graus ?? 15),
+                suficiente:     null,
+              } : undefined,
+
+              // Equipamentos
+              equipamentos: { painel, inversor, estrutura },
             },
           })
         })
