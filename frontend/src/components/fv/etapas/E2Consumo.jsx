@@ -8,9 +8,51 @@ import { consumoMedioDosMeses } from '../../../utils/calcDimensionamento'
 
 const MESES_LABELS = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez']
 
+// FV-03: lista completa das distribuidoras brasileiras por região
 const CONCESSIONARIAS = [
-  'CEMIG','COPEL','CPFL Energia','CELPE','COELBA','ENERGISA','ENEL','LIGHT',
-  'ELEKTRO','CELESC','AES Sul','RGE','AMPLA','COSERN','Outra',
+  // ── Norte ────────────────────────────────────────────────────────────────────
+  'Amazonas Energia (AM)',
+  'Boa Vista Energia (RR)',
+  'Eletroacre (AC)',
+  'Energisa Rondônia (RO)',
+  'Energisa Tocantins (TO)',
+  'Equatorial Amapá (AP)',
+  'Equatorial Pará (PA)',
+  // ── Nordeste ─────────────────────────────────────────────────────────────────
+  'CELPE / Neoenergia (PE)',
+  'COELBA / Neoenergia (BA)',
+  'COSERN / Neoenergia (RN)',
+  'Enel Ceará (CE)',
+  'Energisa Paraíba (PB)',
+  'Energisa Sergipe (SE)',
+  'Equatorial Alagoas (AL)',
+  'Equatorial Maranhão (MA)',
+  'Equatorial Piauí (PI)',
+  // ── Centro-Oeste ─────────────────────────────────────────────────────────────
+  'CEB Distribuição (DF)',
+  'Energisa Mato Grosso (MT)',
+  'Energisa Mato Grosso do Sul (MS)',
+  'Equatorial Goiás (GO)',
+  // ── Sudeste ──────────────────────────────────────────────────────────────────
+  'CEMIG (MG)',
+  'CPFL Energia (SP/RS)',
+  'CPFL Paulista (SP)',
+  'CPFL Piratininga (SP)',
+  'EDP Bandeirante / EDP SP (SP)',
+  'EDP Espírito Santo (ES)',
+  'Enel Rio (RJ)',
+  'Enel São Paulo (SP)',
+  'LIGHT (RJ)',
+  'Neoenergia Elektro (SP/MS)',
+  // ── Sul ──────────────────────────────────────────────────────────────────────
+  'CELESC (SC)',
+  'COPEL (PR)',
+  'Equatorial RS / CEEE (RS)',
+  'Neoenergia Gaúcha / RGE (RS)',
+  // ── Genéricos ────────────────────────────────────────────────────────────────
+  'ENEL (geral)',
+  'ENERGISA (geral)',
+  'Outra',
 ].map(v => ({ valor: v, rotulo: v }))
 
 const TIPOS_LIGACAO = [
