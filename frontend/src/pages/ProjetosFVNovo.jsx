@@ -45,25 +45,31 @@ function WizardInterno() {
   const EtapaAtual  = COMPONENTES[state.etapa]
   const etapaAnteriorRef = useRef(state.etapa)
 
-  // ── S2.8: restaurar do localStorage na montagem ───────────────────────────────
+  // ── FV-11 (fix): regra arquitetural de hidratação na montagem ───────────────
+  // - ?id=        → retomada de projeto existente: busca no banco e hidrata
+  // - ?clienteId= → novo projeto pré-preenchido: reset total + busca cliente
+  // - sem nada    → novo projeto em branco: reset total (Context + LocalStorage)
+  // NUNCA restaurar de localStorage sem ?id= explícito — isso causava
+  // contaminação entre projetos de clientes diferentes.
   useEffect(() => {
-    const idParam = params.get('id')
+    const idParam        = params.get('id')
+    const clienteIdParam = params.get('clienteId')
 
     if (idParam) {
       // Retomada via ?id=: carregar projeto do banco
       buscarProjeto(idParam)
         .then(projeto => {
-          // Hidrata o contexto com os campos v3 disponíveis
           dispatch({
             type: 'HIDRATAR',
             payload: {
               projetoId: String(projeto._id),
+              clienteId: projeto.clienteId?._id ? String(projeto.clienteId._id) : null,
               etapa:     projeto.workflow?.etapa_atual ?? 1,
               dadosCliente: {
-                nomeCliente:  projeto.clienteId?.nome   || '',
-                nomeProjeto:  projeto.nome              || '',
+                nomeCliente:  projeto.clienteId?.nome     || '',
+                nomeProjeto:  projeto.nome                || '',
                 telefone:     projeto.clienteId?.telefone || '',
-                email:        projeto.clienteId?.email  || '',
+                email:        projeto.clienteId?.email    || '',
               },
               localizacao: projeto.localizacao ? {
                 endereco:            projeto.localizacao.endereco_completo || '',
@@ -82,17 +88,55 @@ function WizardInterno() {
       return
     }
 
-    // Sem ?id=: tentar restaurar do localStorage
-    try {
-      const salvo = localStorage.getItem(LS_KEY)
-      if (salvo) {
-        const parsed = JSON.parse(salvo)
-        // Só restaura se tiver dados reais (não apenas o estado inicial)
-        if (parsed?.dadosCliente?.nomeCliente || parsed?.projetoId) {
-          dispatch({ type: 'HIDRATAR', payload: parsed })
-        }
-      }
-    } catch { /* storage corrompido — ignora */ }
+    // Sem ?id=: NOVO projeto — reset completo (LocalStorage + Context)
+    if (typeof resetar === 'function') resetar()
+    else {
+      try { localStorage.removeItem(LS_KEY) } catch { /* noop */ }
+      dispatch({ type: 'RESETAR' })
+    }
+
+    // Se veio ?clienteId=, pré-preencher SÓ dados básicos do cliente
+    // (sem restaurar projeto anterior — reset já foi feito acima)
+    if (clienteIdParam) {
+      fetch(`/api/clientes/${clienteIdParam}`)
+        .then(r => r.ok ? r.json() : null)
+        .then(cliente => {
+          if (!cliente || !cliente._id) return
+          dispatch({ type: 'SET_CLIENTE_ID', payload: String(cliente._id) })
+          dispatch({
+            type: 'SET_CLIENTE',
+            payload: {
+              nomeCliente: cliente.nome     || '',
+              telefone:    cliente.telefone || '',
+              email:       cliente.email    || '',
+            },
+          })
+          // Endereço básico do cadastro (geocoding real acontece na etapa 3)
+          if (cliente.endereco_completo || cliente.cidade || cliente.estado) {
+            dispatch({
+              type: 'SET_LOCALIZACAO',
+              payload: {
+                endereco:     cliente.endereco_completo || '',
+                cidadeEstado: [cliente.cidade, cliente.estado].filter(Boolean).join(', '),
+                uf:           cliente.estado || null,
+              },
+            })
+          }
+          // Concessionária / UC / classificação (dados de cadastro)
+          if (cliente.distribuidora || cliente.tipo_ligacao || cliente.numero_cliente) {
+            dispatch({
+              type: 'SET_CONSUMO',
+              payload: {
+                concessionaria: cliente.distribuidora || '',
+                distribuidora:  cliente.distribuidora || '',
+                tipoLigacao:    (cliente.tipo_ligacao || '').toLowerCase().replace('á','a').replace('í','i') || 'monofasico',
+                // numero_cliente fica em fatura_extracao quando fatura é processada
+              },
+            })
+          }
+        })
+        .catch(err => console.warn('[Wizard] Falha ao pré-preencher cliente:', err.message))
+    }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── S2.8: autosave de slice ao avançar etapa (só se projetoId existe) ────────
