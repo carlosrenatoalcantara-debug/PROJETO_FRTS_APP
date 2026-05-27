@@ -12,7 +12,7 @@ const ORIENTACOES = ['Norte','Sul','Leste','Oeste','Nordeste','Noroeste','Sudest
 
 export default function E6Area() {
   const { state, dispatch, proxima, anterior } = useProjetoFV()
-  const { area, dimensionamento: dim } = state
+  const { area, dimensionamento: dim, localizacao } = state
   const [erroForm, setErroForm] = useState('')
 
   function set(campo, valor) {
@@ -101,7 +101,12 @@ export default function E6Area() {
           <Map size={18} className="text-slate-600" />
           <p className="text-sm font-semibold text-slate-700">Desenhe a área no mapa</p>
         </div>
-        <MapaTelhado onAreaCalculada={(areaM2) => set('areaDisponivel', String(areaM2))} />
+        <MapaTelhado
+          onAreaCalculada={(areaM2) => set('areaDisponivel', String(areaM2))}
+          endereco={localizacao?.endereco}
+          latitude={localizacao?.lat}
+          longitude={localizacao?.lon}
+        />
       </div>
 
       {/* Resultado da verificação */}

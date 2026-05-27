@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Map, AdvancedMarker } from '@vis.gl/react-google-maps'
+import { Map, AdvancedMarker, useApiIsLoaded } from '@vis.gl/react-google-maps'
 import { Plus, Trash2, Save, MapPin } from 'lucide-react'
 import { geocodificarEndereco } from '../../services/geocodingApi'
 
@@ -31,12 +31,18 @@ function extrairLatLng(event) {
   return { lat: Number(lat), lng: Number(lng) }
 }
 
-function MapComponent({ center, zoom, onMapClick, pontos, markerPosition }) {
+function MapComponent({ center, zoom, onMapClick, pontos, markerPosition, onMarkerDrag }) {
   return (
     <Map
       center={center}
       zoom={zoom}
       mapId="telhado-map"
+      mapTypeId="hybrid"
+      gestureHandling="greedy"
+      mapTypeControl={true}
+      streetViewControl={false}
+      fullscreenControl={true}
+      zoomControl={true}
       style={{ width: '100%', height: '100%' }}
       defaultCenter={BRASIL_CENTER}
       defaultZoom={BRASIL_ZOOM}
@@ -46,8 +52,16 @@ function MapComponent({ center, zoom, onMapClick, pontos, markerPosition }) {
       }}
     >
       {markerPosition && (
-        <AdvancedMarker position={markerPosition} title="Localizacao do projeto">
-          <div className="bg-emerald-600 text-white rounded-full w-9 h-9 flex items-center justify-center shadow-lg">
+        <AdvancedMarker
+          position={markerPosition}
+          title="Localizacao do projeto (arraste para ajustar)"
+          draggable={true}
+          onDragEnd={(event) => {
+            const coords = extrairLatLng(event)
+            if (coords && onMarkerDrag) onMarkerDrag(coords.lat, coords.lng)
+          }}
+        >
+          <div className="bg-emerald-600 text-white rounded-full w-9 h-9 flex items-center justify-center shadow-lg ring-2 ring-white">
             <MapPin size={18} />
           </div>
         </AdvancedMarker>
@@ -90,6 +104,7 @@ export default function MapaTelhado({ projetoId, onSave, endereco: enderecoProps
     geocodificado_em: null,
   })
   const autocompleteRef = useRef(null)
+  const apiLoaded = useApiIsLoaded()
 
   const localizacaoDefinida = temCoordenadasValidas(latitude, longitude)
   const markerPosition = localizacaoDefinida ? { lat: Number(latitude), lng: Number(longitude) } : null
@@ -339,17 +354,18 @@ export default function MapaTelhado({ projetoId, onSave, endereco: enderecoProps
           )}
 
           <div className="rounded-lg overflow-hidden border border-slate-200 relative" style={{ height: '500px' }}>
-            {typeof google !== 'undefined' ? (
+            {apiLoaded ? (
               <MapComponent
                 center={center}
                 zoom={zoom}
                 onMapClick={selecionarLocalizacaoManual}
+                onMarkerDrag={selecionarLocalizacaoManual}
                 pontos={pontos}
                 markerPosition={markerPosition}
               />
             ) : (
               <div className="w-full h-full bg-slate-100 flex items-center justify-center text-slate-500">
-                Carregando mapa...
+                Carregando Google Maps...
               </div>
             )}
           </div>
