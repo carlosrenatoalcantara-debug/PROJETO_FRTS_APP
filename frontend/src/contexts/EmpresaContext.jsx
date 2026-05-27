@@ -24,6 +24,15 @@ export const PADRAO_EMPRESA = {
   estadoPrincipal:           'SP',
   tensaoPadrao:              '220',
   forcaFallbackIrradiancia:  false,
+  // CFG-04: Parâmetros financeiros padrão
+  financeiro: {
+    precoMaoDeObra:     50,    // R$/painel (mão de obra)
+    precoCabosProtecao: 1500,  // R$ fixo (cabos, proteções, DPS)
+    markupPct:          0,     // % de markup sobre custo de equipamentos
+    validadeProposta:   15,    // dias de validade da proposta
+    reajusteAnualPct:   5,     // % reajuste anual da tarifa (para payback)
+    tarifaKwhPadrao:    0.95,  // R$/kWh quando não extraído da fatura
+  },
 }
 
 const EmpresaCtx = createContext(null)
@@ -74,6 +83,11 @@ export function EmpresaProvider({ children }) {
     salvar({ responsavelTecnico: { ...empresa.responsavelTecnico, ...dados } })
   }
 
+  // CFG-04: salva subconjunto financeiro
+  function salvarFinanceiro(dados) {
+    salvar({ financeiro: { ...PADRAO_EMPRESA.financeiro, ...empresa.financeiro, ...dados } })
+  }
+
   function resetar() {
     setEmpresa(PADRAO_EMPRESA)
     localStorage.removeItem(CHAVE_LS)
@@ -81,7 +95,7 @@ export function EmpresaProvider({ children }) {
   }
 
   return (
-    <EmpresaCtx.Provider value={{ empresa, salvar, salvarRT, resetar }}>
+    <EmpresaCtx.Provider value={{ empresa, salvar, salvarRT, salvarFinanceiro, resetar }}>
       {children}
     </EmpresaCtx.Provider>
   )

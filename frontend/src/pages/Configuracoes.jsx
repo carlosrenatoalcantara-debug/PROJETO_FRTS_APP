@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
-import { ArrowLeft, Save, Check, ExternalLink, ToggleLeft, ToggleRight, Lock, AlertCircle, Loader, Eye, EyeOff, Trash2, Plus } from 'lucide-react'
+import { ArrowLeft, Save, Check, ExternalLink, ToggleLeft, ToggleRight, Lock, AlertCircle, Loader, Eye, EyeOff, Trash2, Plus, DollarSign } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import Card, { CardHeader, CardBody } from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import Input from '../components/ui/Input'
 import { useAuth } from '../context/AuthContext'
+import { useEmpresa, PADRAO_EMPRESA } from '../contexts/EmpresaContext'
 
 const API_INTEGRATIONS = [
   {
@@ -41,6 +42,85 @@ const API_INTEGRATIONS = [
     categoria: 'Inteligência Artificial',
   },
 ]
+
+// ─── CFG-04: Painel de configuração financeira ────────────────────────────────
+function ConfiguracaoFinanceira() {
+  const { empresa, salvarFinanceiro } = useEmpresa()
+  const fin = { ...PADRAO_EMPRESA.financeiro, ...empresa.financeiro }
+
+  const [form, setForm] = useState(fin)
+  const [salvo, setSalvo] = useState(false)
+
+  function set(campo, valor) {
+    setForm(prev => ({ ...prev, [campo]: Number(valor) }))
+  }
+
+  function salvar(e) {
+    e.preventDefault()
+    salvarFinanceiro(form)
+    setSalvo(true)
+    setTimeout(() => setSalvo(false), 2500)
+  }
+
+  const campo = (label, campo, suffix = '', min = 0, step = 1, helpText = '') => (
+    <div>
+      <label className="text-sm font-medium text-slate-700 block mb-1">{label}</label>
+      <div className="flex items-center gap-2">
+        <input
+          type="number"
+          min={min}
+          step={step}
+          value={form[campo]}
+          onChange={e => set(campo, e.target.value)}
+          className="flex-1 px-3 py-2 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+        />
+        {suffix && <span className="text-sm text-slate-500 whitespace-nowrap">{suffix}</span>}
+      </div>
+      {helpText && <p className="text-xs text-slate-400 mt-1">{helpText}</p>}
+    </div>
+  )
+
+  return (
+    <Card>
+      <CardHeader className="flex items-center gap-2">
+        <DollarSign size={18} className="text-emerald-600" />
+        <h3 className="font-semibold text-slate-900">Configurações Financeiras (CFG-04)</h3>
+      </CardHeader>
+      <CardBody>
+        <form onSubmit={salvar} className="space-y-4">
+          <p className="text-sm text-slate-500">
+            Parâmetros padrão usados na etapa de Orçamento (E8). Podem ser ajustados por proposta.
+          </p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {campo('Mão de obra por painel',   'precoMaoDeObra',     'R$/painel', 0, 0.5, 'Custo de instalação por módulo')}
+            {campo('Cabos e proteções (fixo)',  'precoCabosProtecao', 'R$',        0, 50,  'Custo fixo de cabeamento e DPS')}
+            {campo('Markup equipamentos',        'markupPct',         '%',          0, 0.5, 'Margem aplicada sobre custo de equipamentos')}
+            {campo('Validade da proposta',       'validadeProposta',  'dias',      7,  1,   'Prazo de validade para o cliente aceitar')}
+            {campo('Reajuste anual da tarifa',   'reajusteAnualPct',  '% a.a.',    0, 0.5, 'Para cálculo do payback descontado')}
+            {campo('Tarifa kWh padrão',          'tarifaKwhPadrao',   'R$/kWh',    0, 0.01,'Usada quando não extraída da fatura')}
+          </div>
+
+          <div className="flex items-center gap-3 pt-2">
+            <button
+              type="submit"
+              className="flex items-center gap-2 px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium transition-colors"
+            >
+              <Save size={16} />
+              Salvar configurações
+            </button>
+            {salvo && (
+              <span className="flex items-center gap-1 text-sm text-emerald-700 font-medium">
+                <Check size={16} />
+                Salvo!
+              </span>
+            )}
+          </div>
+        </form>
+      </CardBody>
+    </Card>
+  )
+}
 
 export default function Configuracoes() {
   const navigate = useNavigate()
@@ -622,6 +702,9 @@ export default function Configuracoes() {
           </CardBody>
         </Card>
       )}
+
+      {/* CFG-04: Configurações financeiras */}
+      <ConfiguracaoFinanceira />
 
       {/* Guia de Integração */}
       <Card>
