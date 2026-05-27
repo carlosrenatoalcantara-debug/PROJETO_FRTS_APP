@@ -36,6 +36,9 @@ export default function App() {
         <Route path="dashboard"               element={<Dashboard />} />
         <Route path="clientes"                element={<Clientes />} />
         <Route path="clientes/:clienteId"     element={<ClienteGerenciamento />} />
+        {/* DEPRECATED_DO_NOT_USE — Substituído por ProjetosFVNovo (/projetos-fv/novo).
+            Mantido temporariamente apenas para retrocompat de links salvos.
+            Ver auditoria: ProjetosFVNovo é o wizard oficial FV. */}
         <Route path="propostas/nova"          element={<NovaProposta />} />
         <Route path="propostas-ev/nova"       element={<NovaPropostaEV />} />
         <Route path="projetos-fv"             element={<ProjetosFV />} />

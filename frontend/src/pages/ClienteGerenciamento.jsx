@@ -276,7 +276,8 @@ export default function ClienteGerenciamento() {
           <div className="flex items-center gap-2">
             <Button icone={Plus} tamanho="sm" onClick={(e) => {
               e.stopPropagation()
-              navigate(`/propostas/nova?clienteId=${clienteId}&tipo=fv`)
+              // [AUDIT LOCAL] Apontando para wizard novo ProjetosFVNovo (era /propostas/nova - velho monolítico)
+              navigate(`/projetos-fv/novo?clienteId=${clienteId}`)
             }}>
               Novo
             </Button>

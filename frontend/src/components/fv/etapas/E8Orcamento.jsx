@@ -1,11 +1,14 @@
 import { useState } from 'react'
-import { Download, Save, CheckCircle, XCircle, Sun, Zap, Layers, BarChart2, ArrowRight, Cloud } from 'lucide-react'
+import { Download, Save, CheckCircle, XCircle, Sun, Zap, Layers, BarChart2, ArrowRight, Cloud, FileText, GitBranch } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useProjetoFV } from '../../../contexts/ProjetoFVContext'
 import { useEmpresa }   from '../../../contexts/EmpresaContext'
 import Button from '../../ui/Button'
 import Badge from '../../ui/Badge'
 import { gerarPdfOrcamento } from '../../../utils/gerarPdfOrcamento'
+// Portados de NovaProposta.jsx (consolidação do fluxo FV oficial)
+import { gerarUnifilarSVG, baixarUnifilarSVG } from '../../../utils/gerarUnifilarSVG'
+import { gerarPropostaPDF, abrirOuBaixarProposta } from '../../../utils/gerarPropostaPDF'
 import {
   resolverClientePorNome,
   criarProjeto,
@@ -70,6 +73,15 @@ export default function E8Orcamento() {
   const [salvo,      setSalvo]      = useState(false)
   const [erroPdf,    setErroPdf]    = useState('')
   const [erroSalvar, setErroSalvar] = useState('')
+  // Portados: estados para Unifilar SVG + Proposta HTML
+  const [gerandoUnifilar, setGerandoUnifilar] = useState(false)
+  const [gerandoProposta, setGerandoProposta] = useState(false)
+  const [erroUnifilar,    setErroUnifilar]    = useState('')
+  const [erroProposta,    setErroProposta]    = useState('')
+
+  // ⚠️ Destructuring movido para ANTES dos useState que referenciam painel/inversor/estrutura
+  //    para eliminar ReferenceError TDZ (Temporal Dead Zone).
+  const { painel, inversor, estrutura } = equipamentos
 
   // Preços editáveis
   const [precoPainel,    setPrecoPainel]    = useState(painel?.precoUnitario || 2500)
@@ -77,8 +89,6 @@ export default function E8Orcamento() {
   const [precoEstrutura, setPrecoEstrutura] = useState(estrutura?.precoUnitario || 1200)
   const [maoDeTrabaho,   setMaoDeTrabaho]   = useState(50) // R$ por painel
   const [cabosProtecao,  setCabosProtecao]  = useState(1500) // R$ subtotal
-
-  const { painel, inversor, estrutura } = equipamentos
 
   const subtotalPaineis    = dim.numPaineis * precoPainel
   const subtotalInversores = dim.numInversores * precoInversor
@@ -108,6 +118,88 @@ export default function E8Orcamento() {
       setErroPdf(`Erro ao gerar PDF: ${e.message ?? 'tente novamente'}`)
     } finally {
       setGerando(false)
+    }
+  }
+
+  // ── Portado: gera Unifilar SVG e baixa ─────────────────────────────────────
+  function baixarUnifilar() {
+    setGerandoUnifilar(true)
+    setErroUnifilar('')
+    try {
+      const svg = gerarUnifilarSVG({
+        nome:         dadosCliente.nomeProjeto || `Sistema FV ${dim.potenciaRealKwp ?? '?'} kWp`,
+        nomeCliente:  dadosCliente.nomeCliente || 'Cliente',
+        dimensionamento: {
+          numPaineis:          dim.numPaineis ?? 0,
+          numStrings:          dim.numStrings ?? 1,
+          potenciaArredondada: dim.potenciaRealKwp ?? dim.potenciaKwp ?? 0,
+        },
+        tipo_ligacao:  dadosConsumo.tipoLigacao || 'monofasico',
+        tensao:        dadosConsumo.tensao || '220',
+        distribuidora: dadosConsumo.concessionaria || dadosConsumo.distribuidora || 'Concessionária',
+        painel:        painel || null,
+        inversor:      inversor || null,
+      })
+      const nomeArq = `unifilar-${(dadosCliente.nomeCliente || 'projeto').replace(/\s+/g, '-').toLowerCase()}`
+      baixarUnifilarSVG(svg, nomeArq)
+    } catch (e) {
+      console.error('Erro ao gerar Unifilar:', e)
+      setErroUnifilar(`Erro ao gerar unifilar: ${e.message ?? 'tente novamente'}`)
+    } finally {
+      setGerandoUnifilar(false)
+    }
+  }
+
+  // ── Portado: gera Proposta HTML e abre em nova aba ─────────────────────────
+  function gerarProposta() {
+    setGerandoProposta(true)
+    setErroProposta('')
+    try {
+      // Estimativa simples de payback (anos) — pode ser refinada depois
+      const consumoMensalKwh = Number(dadosConsumo.consumoMensal) || 0
+      const valorKwh         = Number(dadosConsumo.valorKwh) || 0.95
+      const economiaAnual    = consumoMensalKwh * 12 * valorKwh
+      const payback          = economiaAnual > 0 ? +(total / economiaAnual).toFixed(1) : null
+      const precoWp          = dim.potenciaRealKwp > 0 ? +(total / (dim.potenciaRealKwp * 1000)).toFixed(2) : null
+
+      const htmlProposta = gerarPropostaPDF({
+        cliente: {
+          nome:     dadosCliente.nomeCliente,
+          email:    dadosCliente.email,
+          telefone: dadosCliente.telefone,
+          endereco: localizacao.endereco || localizacao.cidadeEstado || '',
+        },
+        sistema: {
+          potenciakWp:   dim.potenciaRealKwp ?? dim.potenciaKwp,
+          numPaineis:    dim.numPaineis,
+          numInversores: dim.numInversores,
+          economiaAnual,
+          payback,
+        },
+        orcamento: {
+          total,
+          precoWp,
+          itens: [
+            { descricao: `Módulos FV (${dim.numPaineis} × ${painel?.marca || ''} ${painel?.modelo || ''})`, valor: subtotalPaineis    },
+            { descricao: `Inversor(es) (${dim.numInversores} × ${inversor?.marca || ''} ${inversor?.modelo || ''})`, valor: subtotalInversores },
+            { descricao: `Estrutura de fixação`,        valor: subtotalEstrutura },
+            { descricao: `Mão de obra`,                 valor: subtotalMaoDeTrabaho },
+            { descricao: `Cabos e proteções`,           valor: subtotalCabosProtecao },
+          ],
+        },
+        empresa: {
+          nome:     empresa?.nomeEmpresa || 'Forte Solar',
+          logo:     empresa?.logo        || '',
+          telefone: empresa?.telefone    || '',
+          email:    empresa?.email       || '',
+        },
+      })
+      abrirOuBaixarProposta(htmlProposta)
+    } catch (e) {
+      console.error('Erro ao gerar Proposta:', e)
+      setErroProposta(`Erro ao gerar proposta: ${e.message ?? 'tente novamente'}`)
+    } finally {
+      setGerandoProposta(false)
     }
   }
 
@@ -358,8 +450,49 @@ export default function E8Orcamento() {
           <XCircle size={16} /> {erroSalvar}
         </div>
       )}
+      {erroUnifilar && (
+        <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+          <XCircle size={16} /> {erroUnifilar}
+        </div>
+      )}
+      {erroProposta && (
+        <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+          <XCircle size={16} /> {erroProposta}
+        </div>
+      )}
 
-      {/* Ações */}
+      {/* Entregáveis técnicos/comerciais */}
+      <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
+        <p className="text-sm font-semibold text-slate-700">Entregáveis</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <Button
+            variante="secundario"
+            icone={GitBranch}
+            onClick={baixarUnifilar}
+            carregando={gerandoUnifilar}
+            disabled={!painel || !inversor}
+            className="w-full justify-center"
+          >
+            Baixar Unifilar (SVG)
+          </Button>
+          <Button
+            variante="secundario"
+            icone={FileText}
+            onClick={gerarProposta}
+            carregando={gerandoProposta}
+            className="w-full justify-center"
+          >
+            Abrir Proposta Comercial
+          </Button>
+        </div>
+        {(!painel || !inversor) && (
+          <p className="text-xs text-slate-500">
+            ⚠️ Selecione painel e inversor na etapa anterior para habilitar o unifilar.
+          </p>
+        )}
+      </div>
+
+      {/* Ações principais */}
       <div className="flex flex-col sm:flex-row gap-3 pt-2">
         <Button variante="secundario" onClick={anterior} className="sm:mr-auto">
           ← Anterior
@@ -378,13 +511,13 @@ export default function E8Orcamento() {
           carregando={gerando}
           className="bg-emerald-600 hover:bg-emerald-700"
         >
-          Baixar PDF
+          Baixar Orçamento (PDF)
         </Button>
       </div>
 
       <div className="flex items-center gap-2 text-xs text-slate-400">
         <BarChart2 size={13} />
-        PDF gerado localmente com jsPDF · Proposta válida por 15 dias
+        Orçamento via jsPDF · Unifilar SVG conforme NBR 16274/5410 · Proposta válida por 15 dias
       </div>
     </div>
   )
