@@ -430,8 +430,24 @@ export const salvarEtapaProjetoFV = async (req, res) => {
         $set[etapa] = dados
     }
 
-    // Sempre atualiza workflow.ultima_atividade e schema_version
-    $set['workflow.ultima_atividade'] = new Date()
+    // ⚠️ FIX defensivo: garantir que `workflow` não seja null antes de tocar subcampos.
+    // Sem isso, MongoDB lança "Cannot create field 'ultima_atividade' in element {workflow: null}"
+    // pois $set em path dot-notation falha quando o ancestral é null.
+    const projetoAtual = await ProjetoFV.findById(id).select('workflow').lean()
+    if (!projetoAtual) return res.status(404).json({ erro: 'Projeto não encontrado' })
+    if (!projetoAtual.workflow) {
+      await ProjetoFV.updateOne({ _id: id }, { $set: { workflow: {} } })
+    }
+
+    // Sempre atualiza ultima_atividade + schema_version.
+    // Quando etapa === 'workflow', o switch default já fez $set.workflow = dados (objeto inteiro);
+    // nesse caso, embutimos ultima_atividade dentro do objeto para evitar conflito de path
+    // "Updating the path 'workflow.ultima_atividade' would create a conflict at 'workflow'".
+    if (etapa === 'workflow') {
+      $set.workflow = { ...dados, ultima_atividade: new Date() }
+    } else {
+      $set['workflow.ultima_atividade'] = new Date()
+    }
     $set.schema_version = 3  // documento passa a ser v3 a partir do primeiro save via wizard
 
     const projeto = await ProjetoFV.findByIdAndUpdate(
