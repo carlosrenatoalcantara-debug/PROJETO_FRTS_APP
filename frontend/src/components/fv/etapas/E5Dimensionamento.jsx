@@ -1,214 +1,360 @@
-import { useEffect, useState } from 'react'
-import { Zap, Sun, Grid, RefreshCw, AlertCircle } from 'lucide-react'
+/**
+ * E5Dimensionamento.jsx — Pré-Dimensionamento (refatorado)
+ *
+ * REMOVIDO: quantidade/modelo de painéis e inversores (hardware → E7)
+ * MANTIDO: consumo, irradiância, geração alvo, estimativa de potência
+ * ADICIONADO: slider de eficiência 70–100%, crescimento de carga, aviso de hardware
+ */
+
+import { useEffect, useMemo } from 'react'
+import { useState } from 'react'
+import { Zap, Sun, TrendingUp, AlertCircle, Info } from 'lucide-react'
 import { useProjetoFV } from '../../../contexts/ProjetoFVContext'
 import Button from '../../ui/Button'
-import Input from '../../ui/Input'
-import { calcularDimensionamento } from '../../../utils/calcDimensionamento'
 
-function CardResultado({ icone: Icone, titulo, valor, unidade, cor }) {
-  return (
-    <div className={`p-5 rounded-xl border-2 ${cor} flex items-center gap-4`}>
-      <div className="p-3 rounded-lg bg-white/60">
-        <Icone size={22} />
-      </div>
-      <div>
-        <p className="text-xs font-semibold uppercase tracking-wider opacity-70">{titulo}</p>
-        <p className="text-2xl font-bold mt-0.5">
-          {valor} <span className="text-sm font-normal opacity-70">{unidade}</span>
-        </p>
-      </div>
-    </div>
-  )
-}
+// Aparelhos com consumo típico mensal (kWh/mês) — valores conservadores
+const APARELHOS = [
+  { id: 'ar9',      label: 'Ar-cond. 9.000 BTU',   kwh: 120 },
+  { id: 'ar12',     label: 'Ar-cond. 12.000 BTU',  kwh: 160 },
+  { id: 'ar18',     label: 'Ar-cond. 18.000 BTU',  kwh: 240 },
+  { id: 'chuveiro', label: 'Chuveiro elétrico',     kwh: 150 },
+  { id: 'ev',       label: 'Veículo Elétrico (EV)', kwh: 280 },
+  { id: 'piscina',  label: 'Piscina / aquecedor',   kwh: 120 },
+  { id: 'bomba',    label: 'Bomba d\'água',         kwh:  60 },
+  { id: 'freezer',  label: 'Freezer comercial',     kwh:  90 },
+]
+
+// Faixa de módulos estimada usando potências mín/máx de mercado
+const PAINEL_MIN_W = 550
+const PAINEL_MAX_W = 620
+// Potência central para estimar numPaineis no contexto (sem exibir como hardware)
+const PAINEL_REF_W = 585
 
 export default function E5Dimensionamento() {
   const { state, dispatch, proxima, anterior } = useProjetoFV()
-  const { dadosConsumo, irradiancia, dimensionamento: dim } = state
+  const { dadosConsumo, irradiancia, localizacao, dimensionamento: dim } = state
 
-  const [potenciaW,   setPotenciaW]   = useState(String(dim.potenciaPainelW    || 550))
-  const [capInversor, setCapInversor] = useState(String(dim.capacidadeInversorKW || 5))
-  const [fatorConservadorismo, setFatorConservadorismo] = useState(0.95) // 95% (Realista)
-  const [erro,        setErro]        = useState('')
+  // ── Estado local (persiste em dim via _* campos ocultos) ─────────────────
+  const [fatorEficiencia, setFatorEficiencia] = useState(
+    dim._fatorEficiencia ?? 0.80
+  )
+  const [crescimentoKwh, setCrescimentoKwh] = useState(
+    dim._crescimentoKwh != null ? String(dim._crescimentoKwh) : ''
+  )
+  const [aparelhosSel, setAparelhosSel] = useState(
+    dim._aparelhos ?? []
+  )
 
-  const PERFIS = [
-    { valor: 1.0, label: 'Otimista', descricao: '100% - Máxima produção' },
-    { valor: 0.95, label: 'Realista', descricao: '95% - Sombreamento mínimo' },
-    { valor: 0.9, label: 'Conservador', descricao: '90% - Sombreamento e perdas' },
-  ]
+  // ── Entradas ─────────────────────────────────────────────────────────────
+  const consumoBase = Number(dadosConsumo.consumoMensal) || 0
+  const irrad       = irradiancia.mediaAnual || 0
+  const cidadeLabel = localizacao?.cidadeEstado || 'sua cidade'
 
-  function recalcular(pw = potenciaW, ci = capInversor) {
-    const consumo = Number(dadosConsumo.consumoMensal)
-    const irrad   = irradiancia.mediaAnual
+  const crescimentoAparelhos = useMemo(
+    () => aparelhosSel.reduce((sum, id) => {
+      const a = APARELHOS.find(x => x.id === id)
+      return sum + (a?.kwh ?? 0)
+    }, 0),
+    [aparelhosSel]
+  )
+  const crescimentoManual = Number(crescimentoKwh) || 0
+  const consumoTotal = consumoBase + crescimentoManual + crescimentoAparelhos
 
-    if (!consumo || !irrad) {
-      setErro('Dados de consumo ou irradiância incompletos. Volte e preencha as etapas anteriores.')
-      return
-    }
-    setErro('')
+  // ── Cálculos em tempo real ────────────────────────────────────────────────
+  // Geração por 1 kWp instalado nesta cidade/fator
+  const geracaoPor1kWp = irrad > 0
+    ? +(irrad * 30 * fatorEficiencia).toFixed(1)
+    : 0
 
-    const resultado = calcularDimensionamento({
-      consumoMensal:       consumo * fatorConservadorismo,
-      irradianciaMedia:    irrad,
-      potenciaPainelW:     Number(pw)  || 550,
-      capacidadeInversorKW:Number(ci)  || 5,
+  const energiaDiaria = consumoTotal > 0 ? +(consumoTotal / 30).toFixed(2) : 0
+
+  // Potência estimada = consumo_diário ÷ (fator_eficiência × irradiância)
+  const potenciaKwp = irrad > 0 && consumoTotal > 0
+    ? +(consumoTotal / 30 / fatorEficiencia / irrad).toFixed(2)
+    : null
+
+  // Faixa de módulos
+  const faixaMin = potenciaKwp ? Math.ceil(potenciaKwp * 1000 / PAINEL_MAX_W) : null
+  const faixaMax = potenciaKwp ? Math.ceil(potenciaKwp * 1000 / PAINEL_MIN_W) : null
+
+  // Geração estimada do sistema
+  const geracaoEstimada = potenciaKwp
+    ? +(potenciaKwp * geracaoPor1kWp).toFixed(0)
+    : null
+
+  // ── Dispatch ao contexto (autosave funciona normalmente) ─────────────────
+  useEffect(() => {
+    if (!potenciaKwp) return
+
+    const numPaineis    = Math.ceil(potenciaKwp * 1000 / PAINEL_REF_W)
+    const numInversores = Math.ceil(potenciaKwp / 5)
+    const areaMinima    = +(numPaineis * 2.0).toFixed(1)
+
+    dispatch({
+      type: 'SET_DIMENSIONAMENTO',
+      payload: {
+        // Valores principais (consumidos por E6, E7, E8)
+        potenciaKwp,
+        potenciaRealKwp:      potenciaKwp,       // sem arredondamento por painel
+        numPaineis,                               // estimativa central — E7 recalculará
+        numInversores,                            // estimativa central — E7 recalculará
+        energiaDiaria,
+        energiaNecessaria:    +(consumoTotal / 30 / fatorEficiencia).toFixed(2),
+        areaMinima,
+        potenciaPainelW:      PAINEL_REF_W,       // referência padrão para E7
+        capacidadeInversorKW: 5,                  // referência padrão para E7
+        // Estado interno do E5 para re-hidratação
+        _fatorEficiencia: fatorEficiencia,
+        _crescimentoKwh:  crescimentoManual,
+        _aparelhos:       aparelhosSel,
+      },
     })
+  }, [potenciaKwp, fatorEficiencia, crescimentoManual, aparelhosSel])
 
-    if (resultado) {
-      dispatch({
-        type: 'SET_DIMENSIONAMENTO',
-        payload: {
-          ...resultado,
-          potenciaPainelW:      Number(pw)  || 550,
-          capacidadeInversorKW: Number(ci)  || 5,
-        },
-      })
-    }
+  function toggleAparelho(id) {
+    setAparelhosSel(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    )
   }
 
-  // Recalcula SEMPRE que entrar na etapa ou mudar dados de entrada
-  // Remove a guarda "if (!dim.potenciaKwp)" para garantir recálculo
-  // quando o usuário volta de E2 ou E4 e altera valores
-  useEffect(() => {
-    recalcular()
-  }, [dadosConsumo.consumoMensal, irradiancia.mediaAnual, fatorConservadorismo])
+  // Label descritivo do fator
+  function labelEficiencia(f) {
+    if (f < 0.78) return '🌥️ Conservador — sombreamento significativo ou orientação não ideal'
+    if (f < 0.92) return '⛅ Realista — perdas típicas de cabos, conversão e sombreamento leve'
+    return '☀️ Otimista — telhado ideal, sem sombreamento, alta eficiência'
+  }
 
-  const podeAvancar = !!dim.potenciaKwp && !erro
+  const temDados    = consumoBase > 0 && irrad > 0
+  const podeAvancar = !!potenciaKwp
 
   return (
     <div className="space-y-6">
+
+      {/* Cabeçalho */}
       <div>
         <h2 className="text-lg font-semibold text-slate-900">Pré-Dimensionamento</h2>
         <p className="text-sm text-slate-500 mt-1">
-          Calculado para <strong>{dadosConsumo.consumoMensal} kWh/mês</strong> com
-          irradiância de{' '}
-          <strong>
-            {irradiancia.mediaAnual} kWh/m²/dia
-            {irradiancia.fonte === 'cresesb' && ' (CRESESB)'}
-          </strong>.
-        </p>
-        <p className="text-xs text-slate-400 mt-2">
-          💡 Se houver beneficiárias, o consumo será considerado na etapa anterior
+          Estimativa energética baseada no consumo e irradiância local.
+          Hardware (painéis, inversores) será escolhido na etapa de equipamentos.
         </p>
       </div>
 
-      {erro && (
-        <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
-          <AlertCircle size={16} />
-          {erro}
+      {/* Alerta de dados incompletos */}
+      {!temDados && (
+        <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-700">
+          <AlertCircle size={16} className="shrink-0" />
+          Dados de consumo ou irradiância incompletos. Volte e preencha as etapas anteriores.
         </div>
       )}
 
-      {/* Perfil de Geração */}
-      <div className="p-4 bg-blue-50 rounded-xl border border-blue-200 space-y-3">
-        <p className="text-sm font-semibold text-slate-700">Perfil de Geração</p>
-        <div className="space-y-2">
-          {PERFIS.map((perfil) => (
-            <label key={perfil.valor} className="flex items-center gap-3 p-3 bg-white rounded-lg border-2 cursor-pointer transition-all" style={{borderColor: fatorConservadorismo === perfil.valor ? '#3b82f6' : '#e2e8f0'}}>
-              <input
-                type="radio"
-                name="perfil"
-                value={perfil.valor}
-                checked={fatorConservadorismo === perfil.valor}
-                onChange={(e) => setFatorConservadorismo(Number(e.target.value))}
-                className="w-4 h-4"
-              />
-              <div className="flex-1">
-                <p className="font-medium text-slate-900">{perfil.label}</p>
-                <p className="text-xs text-slate-500">{perfil.descricao}</p>
+      {/* Resumo de entradas */}
+      {temDados && (
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
+            <p className="text-xs text-slate-500">Consumo atual</p>
+            <p className="text-xl font-bold text-slate-900">
+              {consumoBase}
+              <span className="text-xs font-normal ml-1 text-slate-400">kWh/mês</span>
+            </p>
+          </div>
+          <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
+            <p className="text-xs text-slate-500">Irradiância local</p>
+            <p className="text-xl font-bold text-slate-900">
+              {irrad.toFixed(2)}
+              <span className="text-xs font-normal ml-1 text-slate-400">kWh/m²/dia</span>
+            </p>
+          </div>
+          <div className="p-3 bg-blue-50 rounded-lg border border-blue-200 col-span-2 sm:col-span-1">
+            <p className="text-xs text-blue-600 font-medium">Cada 1 kWp gera</p>
+            <p className="text-xl font-bold text-blue-700">
+              {geracaoPor1kWp}
+              <span className="text-xs font-normal ml-1 text-blue-500">kWh/mês</span>
+            </p>
+            <p className="text-[11px] text-blue-400 mt-0.5">em {cidadeLabel}, neste cenário</p>
+          </div>
+        </div>
+      )}
+
+      {/* Slider de eficiência */}
+      {temDados && (
+        <div className="p-4 bg-blue-50 rounded-xl border border-blue-200 space-y-4">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-semibold text-slate-700">Fator de eficiência / sombreamento</p>
+            <span className="text-2xl font-bold text-blue-700">{Math.round(fatorEficiencia * 100)}%</span>
+          </div>
+
+          <input
+            type="range"
+            min="70"
+            max="100"
+            step="1"
+            value={Math.round(fatorEficiencia * 100)}
+            onChange={e => setFatorEficiencia(Number(e.target.value) / 100)}
+            className="w-full h-2 rounded-full appearance-none cursor-pointer"
+            style={{ accentColor: '#3b82f6' }}
+          />
+
+          <div className="flex justify-between text-[11px] text-slate-400 -mt-2">
+            <span>70% — Muito sombreado</span>
+            <span>85% — Típico</span>
+            <span>100% — Ideal</span>
+          </div>
+
+          <div className="bg-white rounded-lg border border-blue-100 p-3 text-xs text-slate-600">
+            <p>{labelEficiencia(fatorEficiencia)}</p>
+            <p className="text-slate-400 mt-1">
+              Engloba: perdas em cabos, conversão CC/CA, temperatura, sujeira e sombreamento.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Crescimento futuro da carga */}
+      {temDados && (
+        <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-4">
+          <div className="flex items-center gap-2">
+            <TrendingUp size={16} className="text-emerald-600" />
+            <p className="text-sm font-semibold text-slate-700">Crescimento futuro da carga</p>
+          </div>
+          <p className="text-xs text-slate-500 -mt-2">
+            Adicione equipamentos previstos para dimensionar com folga.
+          </p>
+
+          {/* Chips de aparelhos */}
+          <div className="flex flex-wrap gap-2">
+            {APARELHOS.map(a => {
+              const sel = aparelhosSel.includes(a.id)
+              return (
+                <button
+                  key={a.id}
+                  type="button"
+                  onClick={() => toggleAparelho(a.id)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all select-none ${
+                    sel
+                      ? 'bg-emerald-100 border-emerald-400 text-emerald-800 shadow-sm'
+                      : 'bg-white border-slate-300 text-slate-600 hover:border-slate-400'
+                  }`}
+                >
+                  {sel ? '✓ ' : '+ '}{a.label}
+                  <span className="ml-1 opacity-60">({a.kwh} kWh)</span>
+                </button>
+              )
+            })}
+          </div>
+
+          {/* Campo manual */}
+          <div className="flex items-center gap-3">
+            <div>
+              <label className="text-xs font-medium text-slate-700 block mb-1">
+                Adicionar kWh manual
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  min="0"
+                  placeholder="0"
+                  value={crescimentoKwh}
+                  onChange={e => setCrescimentoKwh(e.target.value)}
+                  className="w-28 px-3 py-2 text-sm rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-primary-400"
+                />
+                <span className="text-sm text-slate-500">kWh/mês</span>
               </div>
-            </label>
-          ))}
-        </div>
-        <p className="text-xs text-slate-600 bg-white p-2 rounded border border-blue-200">
-          💡 O fator {fatorConservadorismo * 100}% será aplicado ao dimensionamento para considerar sombreamento, perdas em cabos e conversão.
-        </p>
-      </div>
-
-      {/* Parâmetros ajustáveis */}
-      <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
-        <p className="text-sm font-semibold text-slate-700">Parâmetros (ajuste e recalcule)</p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <Input
-              rotulo="Potência do painel (W)"
-              type="number"
-              min="100"
-              max="1000"
-              value={potenciaW}
-              onChange={e => setPotenciaW(e.target.value)}
-            />
-            <p className="text-xs text-slate-400 mt-1">Padrão de mercado: 550–610 W</p>
+            </div>
           </div>
-          <div>
-            <Input
-              rotulo="Capacidade do inversor (kW)"
-              type="number"
-              min="1"
-              max="100"
-              step="0.5"
-              value={capInversor}
-              onChange={e => setCapInversor(e.target.value)}
-            />
-            <p className="text-xs text-slate-400 mt-1">Tamanhos comuns: 3, 5, 8, 10, 15 kW</p>
-          </div>
-        </div>
-        <Button
-          variante="secundario"
-          icone={RefreshCw}
-          tamanho="sm"
-          onClick={() => recalcular()}
-        >
-          Recalcular
-        </Button>
-      </div>
 
-      {/* Resultados */}
-      {dim.potenciaKwp && !erro && (
+          {/* Resumo de crescimento */}
+          {(crescimentoAparelhos + crescimentoManual) > 0 && (
+            <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-sm">
+              <p className="text-emerald-800 font-medium">
+                Crescimento total: +{crescimentoAparelhos + crescimentoManual} kWh/mês
+              </p>
+              <p className="text-emerald-600 text-xs mt-0.5">
+                Consumo dimensionado: <strong>{consumoTotal} kWh/mês</strong>
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Bloco de resultados */}
+      {potenciaKwp && (
         <div className="space-y-3">
+
+          {/* Cards principais */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <CardResultado
-              icone={Zap}
-              titulo="Potência do Sistema"
-              valor={dim.potenciaRealKwp}
-              unidade="kWp"
-              cor="border-amber-200 bg-amber-50 text-amber-800"
-            />
-            <CardResultado
-              icone={Sun}
-              titulo="Energia Necessária/Dia"
-              valor={dim.energiaNecessaria}
-              unidade="kWh/dia"
-              cor="border-blue-200 bg-blue-50 text-blue-800"
-            />
-            <CardResultado
-              icone={Grid}
-              titulo="Número de Painéis"
-              valor={dim.numPaineis}
-              unidade={`painéis de ${dim.potenciaPainelW} W`}
-              cor="border-emerald-200 bg-emerald-50 text-emerald-800"
-            />
-            <CardResultado
-              icone={Zap}
-              titulo="Número de Inversores"
-              valor={dim.numInversores}
-              unidade={`inversor(es) de ${dim.capacidadeInversorKW} kW`}
-              cor="border-primary-200 bg-primary-50 text-primary-800"
-            />
+            <div className="p-5 rounded-xl border-2 border-amber-200 bg-amber-50 text-amber-800 flex items-center gap-4">
+              <div className="p-3 rounded-lg bg-white/60">
+                <Zap size={22} />
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider opacity-70">Potência Estimada</p>
+                <p className="text-2xl font-bold mt-0.5">
+                  {potenciaKwp} <span className="text-sm font-normal opacity-70">kWp</span>
+                </p>
+              </div>
+            </div>
+
+            <div className="p-5 rounded-xl border-2 border-blue-200 bg-blue-50 text-blue-800 flex items-center gap-4">
+              <div className="p-3 rounded-lg bg-white/60">
+                <Sun size={22} />
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider opacity-70">Geração Estimada</p>
+                <p className="text-2xl font-bold mt-0.5">
+                  {geracaoEstimada} <span className="text-sm font-normal opacity-70">kWh/mês</span>
+                </p>
+              </div>
+            </div>
           </div>
 
+          {/* Faixa de módulos */}
+          <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between">
+            <div>
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
+                Faixa provável de módulos
+              </p>
+              <p className="text-xl font-bold text-slate-900">
+                {faixaMin === faixaMax ? faixaMin : `${faixaMin} a ${faixaMax}`} painéis
+              </p>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Estimativa para módulos de {PAINEL_MIN_W} W a {PAINEL_MAX_W} W
+              </p>
+            </div>
+            <div className="text-4xl opacity-20 font-bold text-slate-600 select-none">~</div>
+          </div>
+
+          {/* Aviso de hardware */}
+          <div className="flex items-start gap-3 p-4 bg-indigo-50 border border-indigo-200 rounded-xl">
+            <Info size={18} className="text-indigo-500 mt-0.5 shrink-0" />
+            <div>
+              <p className="text-sm font-semibold text-indigo-800">
+                Hardware será definido na etapa de equipamentos.
+              </p>
+              <p className="text-xs text-indigo-600 mt-1">
+                Modelos exatos de painéis, inversores e estrutura serão escolhidos na E7
+                com base nesta estimativa de {potenciaKwp} kWp.
+              </p>
+            </div>
+          </div>
+
+          {/* Detalhes colapsáveis */}
           <details className="text-sm">
-            <summary className="cursor-pointer text-slate-500 hover:text-slate-700 font-medium">
+            <summary className="cursor-pointer text-slate-500 hover:text-slate-700 font-medium select-none">
               Ver detalhes do cálculo
             </summary>
             <div className="mt-3 p-4 bg-slate-50 rounded-lg border border-slate-200 space-y-1.5 font-mono text-xs text-slate-600">
-              <p>Energia diária      = {dadosConsumo.consumoMensal} ÷ 30 = <strong>{dim.energiaDiaria} kWh/dia</strong></p>
-              <p>Perdas do sistema   = 20%</p>
-              <p>Energia necessária  = {dim.energiaDiaria} ÷ 0,80 = <strong>{dim.energiaNecessaria} kWh/dia</strong></p>
-              <p>Potência (kWp)      = {dim.energiaNecessaria} ÷ {irradiancia.mediaAnual} = <strong>{dim.potenciaKwp} kWp</strong></p>
-              <p>Nº painéis          = ⌈{dim.potenciaKwp} × 1000 ÷ {dim.potenciaPainelW}⌉ = <strong>{dim.numPaineis}</strong></p>
-              <p>Potência real       = {dim.numPaineis} × {dim.potenciaPainelW} ÷ 1000 = <strong>{dim.potenciaRealKwp} kWp</strong></p>
-              <p>Nº inversores       = ⌈{dim.potenciaRealKwp} ÷ {dim.capacidadeInversorKW}⌉ = <strong>{dim.numInversores}</strong></p>
-              <p>Área mínima         = {dim.numPaineis} × 2,0 m² = <strong>{dim.areaMinima} m²</strong></p>
+              <p>Consumo base        = <strong>{consumoBase} kWh/mês</strong></p>
+              {(crescimentoManual + crescimentoAparelhos) > 0 && (
+                <p>Crescimento         = +<strong>{crescimentoManual + crescimentoAparelhos} kWh/mês</strong></p>
+              )}
+              <p>Consumo total       = <strong>{consumoTotal} kWh/mês</strong></p>
+              <p>Energia diária      = {consumoTotal} ÷ 30 = <strong>{energiaDiaria} kWh/dia</strong></p>
+              <p>Fator de eficiência = <strong>{Math.round(fatorEficiencia * 100)}%</strong></p>
+              <p>Irradiância local   = <strong>{irrad} kWh/m²/dia</strong></p>
+              <p>Potência estimada   = {energiaDiaria} ÷ {fatorEficiencia} ÷ {irrad} = <strong>{potenciaKwp} kWp</strong></p>
+              <p>Geração por 1 kWp  = {irrad} × 30 × {fatorEficiencia} = <strong>{geracaoPor1kWp} kWh/mês</strong></p>
+              <p>Geração estimada    = {potenciaKwp} × {geracaoPor1kWp} = <strong>{geracaoEstimada} kWh/mês</strong></p>
+              <p>Faixa de módulos    = {potenciaKwp}×1000÷{PAINEL_MAX_W} a {potenciaKwp}×1000÷{PAINEL_MIN_W} = <strong>{faixaMin}–{faixaMax} painéis</strong></p>
             </div>
           </details>
         </div>
