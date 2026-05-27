@@ -33,14 +33,27 @@ export default function UnifilarFV({ projeto }) {
     baixarUnifilarSVG(unifilar, `unifilar_${projeto._id}.svg`)
   }
 
-  function handleBaixarPDF() {
+  function handleBaixarPNG() {
     if (!unifilar) return
-    const blob = new Blob([unifilar], { type: 'image/svg+xml' })
+    // Converte SVG para PNG via canvas
+    const img = new Image()
+    const blob = new Blob([unifilar], { type: 'image/svg+xml;charset=utf-8' })
     const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = `unifilar_${projeto._id}.pdf`
-    link.click()
+    img.onload = () => {
+      const canvas = document.createElement('canvas')
+      canvas.width  = 1400
+      canvas.height = img.naturalHeight || 950
+      const ctx = canvas.getContext('2d')
+      ctx.fillStyle = '#f8fafc'
+      ctx.fillRect(0, 0, canvas.width, canvas.height)
+      ctx.drawImage(img, 0, 0)
+      const link = document.createElement('a')
+      link.download = `unifilar_${projeto._id}.png`
+      link.href = canvas.toDataURL('image/png')
+      link.click()
+      URL.revokeObjectURL(url)
+    }
+    img.src = url
   }
 
   return (
@@ -115,21 +128,20 @@ export default function UnifilarFV({ projeto }) {
               <Button
                 size="sm"
                 variante="secundario"
-                onClick={handleBaixarPDF}
+                onClick={handleBaixarPNG}
                 className="flex items-center gap-1"
               >
                 <Download size={16} />
-                PDF
+                PNG
               </Button>
             </div>
           </CardHeader>
           <CardBody>
-            <div className="overflow-auto bg-slate-50 rounded-lg border border-slate-200 p-4">
-              <svg
-                dangerouslySetInnerHTML={{ __html: unifilar }}
-                className="mx-auto w-full max-w-4xl"
-              />
-            </div>
+            {/* FV-08: usar <div> e não <svg> para evitar SVG aninhado */}
+            <div
+              className="overflow-auto bg-slate-50 rounded-lg border border-slate-200 p-4"
+              dangerouslySetInnerHTML={{ __html: unifilar }}
+            />
           </CardBody>
         </Card>
       )}
