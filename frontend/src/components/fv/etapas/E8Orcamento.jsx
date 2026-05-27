@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Download, Save, CheckCircle, XCircle, Sun, Zap, Layers, BarChart2, ArrowRight, Cloud, FileText, GitBranch } from 'lucide-react'
+import { Download, Save, CheckCircle, XCircle, Sun, Zap, Layers, BarChart2, ArrowRight, Cloud, FileText, GitBranch, MessageCircle, Mail, Copy } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useProjetoFV } from '../../../contexts/ProjetoFVContext'
 import { useEmpresa }   from '../../../contexts/EmpresaContext'
@@ -9,6 +9,7 @@ import { gerarPdfOrcamento } from '../../../utils/gerarPdfOrcamento'
 // Portados de NovaProposta.jsx (consolidação do fluxo FV oficial)
 import { gerarUnifilarSVG, baixarUnifilarSVG } from '../../../utils/gerarUnifilarSVG'
 import { gerarPropostaPDF, abrirOuBaixarProposta } from '../../../utils/gerarPropostaPDF'
+import { gerarLinkWhatsAppBR } from '../../../utils/validacaoBR'
 import {
   resolverClientePorNome,
   criarProjeto,
@@ -263,42 +264,130 @@ export default function E8Orcamento() {
     }
   }
 
+  // ── FV-10: Ações de compartilhamento ────────────────────────────────────────
+  function abrirWhatsApp() {
+    const telefone = dadosCliente.telefone?.replace(/\D/g, '') || ''
+    const kWp      = dim.potenciaRealKwp ?? dim.potenciaKwp ?? '?'
+    const msgText  =
+      `Olá ${dadosCliente.nomeCliente?.split(' ')[0] || 'cliente'}, tudo bem?\n\n` +
+      `Segue a proposta do seu sistema fotovoltaico:\n` +
+      `• Sistema: *${kWp} kWp*\n` +
+      `• Módulos: *${dim.numPaineis} painéis*\n` +
+      `• Investimento: *R$ ${total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}*\n\n` +
+      `Fico à disposição para qualquer dúvida! 🌞`
+
+    const link = gerarLinkWhatsAppBR(telefone, msgText)
+    if (link) {
+      window.open(link, '_blank', 'noopener,noreferrer')
+    } else {
+      alert('Telefone do cliente não encontrado. Verifique os dados do cliente.')
+    }
+  }
+
+  function abrirEmail() {
+    const kWp     = dim.potenciaRealKwp ?? dim.potenciaKwp ?? '?'
+    const assunto = `Proposta Sistema Solar ${kWp} kWp — ${dadosCliente.nomeCliente || 'Cliente'}`
+    const corpo   =
+      `Olá ${dadosCliente.nomeCliente || 'Cliente'},\n\n` +
+      `Conforme combinado, segue a proposta do seu sistema fotovoltaico:\n\n` +
+      `  Sistema: ${kWp} kWp\n` +
+      `  Módulos: ${dim.numPaineis} painéis (${equipamentos.painel?.marca || ''} ${equipamentos.painel?.modelo || ''})\n` +
+      `  Inversor: ${equipamentos.inversor?.marca || ''} ${equipamentos.inversor?.modelo || ''}\n` +
+      `  Localização: ${localizacao.cidadeEstado || localizacao.endereco || ''}\n` +
+      `  Investimento total: R$ ${total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n\n` +
+      `Fico à disposição para qualquer dúvida.\n\nAtt.,\n${empresa?.nomeEmpresa || 'Forte Solar'}`
+
+    const mailto = `mailto:${dadosCliente.email || ''}?subject=${encodeURIComponent(assunto)}&body=${encodeURIComponent(corpo)}`
+    window.open(mailto, '_blank')
+  }
+
+  function copiarResumo() {
+    const kWp  = dim.potenciaRealKwp ?? dim.potenciaKwp ?? '?'
+    const texto =
+      `PROPOSTA — ${dadosCliente.nomeCliente || 'Cliente'}\n` +
+      `Sistema: ${kWp} kWp | ${dim.numPaineis} módulos | ${dim.numInversores} inversor(es)\n` +
+      `Local: ${localizacao.cidadeEstado || localizacao.endereco || ''}\n` +
+      `Total: R$ ${total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}\n` +
+      (state.projetoId ? `ID: ${state.projetoId}` : '')
+    navigator.clipboard?.writeText(texto).then(() => alert('Resumo copiado!')).catch(() => {})
+  }
+
   // Tela de sucesso após salvar
   if (salvo) {
     return (
-      <div className="text-center py-12 space-y-4">
+      <div className="py-10 space-y-6 max-w-lg mx-auto text-center">
         <div className="flex justify-center">
           <div className="p-4 bg-emerald-100 rounded-full">
             <CheckCircle size={40} className="text-emerald-600" />
           </div>
         </div>
-        <h2 className="text-xl font-bold text-slate-900">Proposta salva!</h2>
-        <p className="text-slate-500">
-          O projeto <strong>{dadosCliente.nomeProjeto || `Sistema FV ${dim.potenciaRealKwp} kWp`}</strong> foi
-          persistido com todos os slices no banco.
-        </p>
-        {state.projetoId && (
-          <p className="text-xs text-slate-400 font-mono">ID: {state.projetoId}</p>
-        )}
-        <div className="flex justify-center gap-3 pt-2">
+        <div>
+          <h2 className="text-xl font-bold text-slate-900">Proposta salva!</h2>
+          <p className="text-slate-500 mt-1">
+            O projeto <strong>{dadosCliente.nomeProjeto || `Sistema FV ${dim.potenciaRealKwp} kWp`}</strong>{' '}
+            foi persistido com todos os dados no banco.
+          </p>
+          {state.projetoId && (
+            <p className="text-xs text-slate-400 font-mono mt-1">ID: {state.projetoId}</p>
+          )}
+        </div>
+
+        {/* FV-10: ações de compartilhamento */}
+        <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 space-y-4 text-left">
+          <p className="text-sm font-semibold text-slate-700 text-center">Compartilhar proposta</p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {dadosCliente.telefone && (
+              <button
+                onClick={abrirWhatsApp}
+                className="flex items-center justify-center gap-2 px-4 py-3 bg-green-500 hover:bg-green-600 text-white rounded-xl text-sm font-medium transition-colors"
+              >
+                <MessageCircle size={18} />
+                WhatsApp
+              </button>
+            )}
+            <button
+              onClick={abrirEmail}
+              className="flex items-center justify-center gap-2 px-4 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl text-sm font-medium transition-colors"
+            >
+              <Mail size={18} />
+              E-mail
+            </button>
+            <button
+              onClick={copiarResumo}
+              className="flex items-center justify-center gap-2 px-4 py-3 bg-slate-500 hover:bg-slate-600 text-white rounded-xl text-sm font-medium transition-colors"
+            >
+              <Copy size={18} />
+              Copiar resumo
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 border-t border-slate-200">
+            <Button variante="secundario" icone={Download} onClick={baixarPdf} carregando={gerando} className="w-full justify-center">
+              Orçamento PDF
+            </Button>
+            <Button variante="secundario" icone={GitBranch} onClick={baixarUnifilar} carregando={gerandoUnifilar} disabled={!painel || !inversor} className="w-full justify-center">
+              Unifilar SVG
+            </Button>
+            <Button variante="secundario" icone={FileText} onClick={gerarProposta} carregando={gerandoProposta} className="w-full justify-center sm:col-span-2">
+              Abrir Proposta Comercial
+            </Button>
+          </div>
+        </div>
+
+        <div className="flex justify-center gap-3">
           <Button
-            variante="secundario"
-            icone={Download}
-            onClick={baixarPdf}
-            carregando={gerando}
-          >
-            Baixar PDF
-          </Button>
-          <Button icone={ArrowRight} iconeDir
+            icone={ArrowRight}
+            iconeDir
             onClick={() => navigate(state.projetoId ? `/projetos-fv/${state.projetoId}` : '/projetos-fv')}
           >
             Ver Projeto
           </Button>
         </div>
+
         <button
-          className="text-sm text-slate-400 hover:text-slate-600 mt-4 block mx-auto"
+          className="text-sm text-slate-400 hover:text-slate-600"
           onClick={() => {
-            // S2.8: usa resetar do contexto (limpa localStorage também)
             if (typeof resetar === 'function') resetar()
             else dispatch({ type: 'RESETAR' })
           }}
@@ -462,29 +551,32 @@ export default function E8Orcamento() {
         </div>
       )}
 
-      {/* Entregáveis técnicos/comerciais */}
+      {/* Entregáveis técnicos/comerciais — FV-10 */}
       <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
         <p className="text-sm font-semibold text-slate-700">Entregáveis</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <Button
-            variante="secundario"
-            icone={GitBranch}
-            onClick={baixarUnifilar}
-            carregando={gerandoUnifilar}
-            disabled={!painel || !inversor}
-            className="w-full justify-center"
-          >
+          <Button variante="secundario" icone={GitBranch} onClick={baixarUnifilar} carregando={gerandoUnifilar} disabled={!painel || !inversor} className="w-full justify-center">
             Baixar Unifilar (SVG)
           </Button>
-          <Button
-            variante="secundario"
-            icone={FileText}
-            onClick={gerarProposta}
-            carregando={gerandoProposta}
-            className="w-full justify-center"
-          >
-            Abrir Proposta Comercial
+          <Button variante="secundario" icone={FileText} onClick={gerarProposta} carregando={gerandoProposta} className="w-full justify-center">
+            Proposta Comercial
           </Button>
+          {dadosCliente.telefone && (
+            <button
+              onClick={abrirWhatsApp}
+              className="flex items-center justify-center gap-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm font-medium transition-colors w-full"
+            >
+              <MessageCircle size={16} />
+              Enviar por WhatsApp
+            </button>
+          )}
+          <button
+            onClick={abrirEmail}
+            className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-medium transition-colors w-full"
+          >
+            <Mail size={16} />
+            Enviar por E-mail
+          </button>
         </div>
         {(!painel || !inversor) && (
           <p className="text-xs text-slate-500">
