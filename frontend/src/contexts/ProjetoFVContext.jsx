@@ -79,6 +79,7 @@ const estadoInicial = {
     suficiente:     null,
   },
   equipamentos: { painel: null, inversor: null, estrutura: null },
+  beneficiarias: [],   // FV-04: local until projetoId exists; saved to DB at step 8
 }
 
 function reducer(state, action) {
@@ -101,6 +102,9 @@ function reducer(state, action) {
       return { ...state, area: { ...state.area, ...action.payload } }
     case 'SET_EQUIPAMENTO':
       return { ...state, equipamentos: { ...state.equipamentos, [action.payload.tipo]: action.payload.item } }
+    // FV-04: beneficiárias locais (array completo)
+    case 'SET_BENEFICIARIAS':
+      return { ...state, beneficiarias: action.payload }
     // S2.8: âncoras de persistência
     case 'SET_PROJETO_ID':
       return { ...state, projetoId: action.payload }

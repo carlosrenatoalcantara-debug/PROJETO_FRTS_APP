@@ -197,6 +197,32 @@ export function buscarProjeto(projetoId) {
 }
 
 /**
+ * FV-04: Persiste beneficiárias locais no DB (em lote) após criação do projeto.
+ * Recebe array do context (podem ter localId em vez de _id).
+ * Apenas registros sem _id são criados (os que têm _id já estão no DB).
+ */
+export async function criarBeneficiariasLote(projetoId, beneficiarias = []) {
+  const locais = beneficiarias.filter(b => !b._id)
+  const resultado = { salvo: [], falhou: [] }
+
+  for (const b of locais) {
+    const { localId, ...dados } = b   // remove localId antes de enviar
+    try {
+      await _fetch(`/api/projetos-fv/${projetoId}/beneficiarias`, {
+        method: 'POST',
+        body: JSON.stringify(dados),
+      })
+      resultado.salvo.push(b.contaContrato)
+    } catch (err) {
+      console.warn(`[projetoFVApi] Beneficiária "${b.contaContrato}" falhou:`, err.message)
+      resultado.falhou.push({ contaContrato: b.contaContrato, erro: err.message })
+    }
+  }
+
+  return resultado
+}
+
+/**
  * Lista todos os clientes.
  */
 export function buscarClientes() {
@@ -221,7 +247,7 @@ export async function resolverClientePorNome(nomeCliente) {
  * Retorna relatório de { salvo: [], falhou: [] }
  */
 export async function salvarTodosSlices(projetoId, state, orcamentoLocal) {
-  const { localizacao, irradiancia, dimensionamento, area, equipamentos, etapa } = state
+  const { localizacao, irradiancia, dimensionamento, area, equipamentos, etapa, beneficiarias } = state
 
   const slices = [
     { etapa: 'localizacao',     dados: adaptarLocalizacao(localizacao, irradiancia) },
@@ -241,6 +267,19 @@ export async function salvarTodosSlices(projetoId, state, orcamentoLocal) {
     } catch (err) {
       console.warn(`[projetoFVApi] Slice "${s.etapa}" falhou:`, err.message)
       resultado.falhou.push({ etapa: s.etapa, erro: err.message })
+    }
+  }
+
+  // FV-04: persiste beneficiárias locais no DB
+  if (Array.isArray(beneficiarias) && beneficiarias.length > 0) {
+    try {
+      const resBenef = await criarBeneficiariasLote(projetoId, beneficiarias)
+      if (resBenef.salvo.length > 0)
+        resultado.salvo.push(`beneficiarias(${resBenef.salvo.length})`)
+      if (resBenef.falhou.length > 0)
+        resultado.falhou.push(...resBenef.falhou.map(f => ({ etapa: 'beneficiaria', ...f })))
+    } catch (err) {
+      console.warn('[projetoFVApi] Beneficiárias em lote falharam:', err.message)
     }
   }
 
