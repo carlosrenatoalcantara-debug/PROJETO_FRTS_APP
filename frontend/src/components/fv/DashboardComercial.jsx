@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
-import { TrendingUp, Target, DollarSign, Percent, Filter as FunnelIcon } from 'lucide-react'
+import { TrendingUp, Target, DollarSign, Percent, Filter as FunnelIcon, Users } from 'lucide-react'
 import { WORKFLOW_COMERCIAL_CONFIG, getWorkflowConfig } from '../../utils/comercialGovernanca'
+import { CRM_PIPELINE_CONFIG, getPipelineConfig } from '../../utils/crmComercial'
 import Badge from '../ui/Badge'
 
 /**
@@ -38,13 +39,21 @@ export default function DashboardComercial({ projetos = [] }) {
       funil[s] = (funil[s] || 0) + 1
     }
 
-    return { total, comProjetos: comProjetos.length, taxaFechamento, ticketMedio, roiMedio, margemMedia, funil }
+    // S5: pipeline CRM
+    const pipeline = {}
+    for (const p of comProjetos) {
+      const s = p.governanca.comercial.crm_pipeline || 'LEAD'
+      pipeline[s] = (pipeline[s] || 0) + 1
+    }
+
+    return { total, comProjetos: comProjetos.length, taxaFechamento, ticketMedio, roiMedio, margemMedia, funil, pipeline }
   }, [projetos])
 
   // Só exibe se houver ao menos um projeto com dados comerciais
   if (m.comProjetos === 0) return null
 
   const funilEntries = Object.entries(m.funil).filter(([, v]) => v > 0)
+  const pipelineEntries = Object.entries(m.pipeline || {}).filter(([, v]) => v > 0)
 
   return (
     <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-3">
@@ -64,6 +73,23 @@ export default function DashboardComercial({ projetos = [] }) {
           <div className="flex flex-wrap gap-2">
             {funilEntries.map(([k, v]) => {
               const cfg = getWorkflowConfig(k)
+              return (
+                <span key={k} className="flex items-center gap-1.5">
+                  <Badge cor={cfg.cor}>{cfg.label}</Badge>
+                  <span className="text-xs font-semibold text-slate-700">{v}</span>
+                </span>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {pipelineEntries.length > 0 && (
+        <div>
+          <p className="text-xs text-slate-500 mb-1.5 flex items-center gap-1"><Users size={12} /> Pipeline CRM</p>
+          <div className="flex flex-wrap gap-2">
+            {pipelineEntries.map(([k, v]) => {
+              const cfg = getPipelineConfig(k)
               return (
                 <span key={k} className="flex items-center gap-1.5">
                   <Badge cor={cfg.cor}>{cfg.label}</Badge>

@@ -373,6 +373,37 @@ const comercialV3Schema = new mongoose.Schema({
   //   assinaturas:[], revisoes:[], timeline:[], revisao_atual, congelado_em } }
   cenarios_governanca: { type: mongoose.Schema.Types.Mixed, default: null },
 
+  // ── S5: CRM operacional leve (separado do workflow jurídico/comercial) ──────
+  crm_pipeline: {
+    type: String,
+    enum: ['LEAD', 'QUALIFICADO', 'PROPOSTA', 'NEGOCIACAO', 'FECHADO', 'PERDIDO', 'IMPLANTACAO', null],
+    default: 'LEAD',
+  },
+  followup: {
+    status:     { type: String, default: null },   // 'retorno_pendente' | 'aguardando_assinatura' | ...
+    data:       { type: Date,   default: null },
+    observacao: { type: String, default: null },
+  },
+  // Links públicos seguros — abrem o SNAPSHOT CONGELADO (somente leitura)
+  compartilhamentos: [{
+    share_id:      { type: String, default: null },
+    token:         { type: String, default: null },
+    cenario_id:    { type: String, default: null },
+    revisao:       { type: String, default: null },
+    snapshot_hash: { type: String, default: null },
+    criado_em:     { type: Date,   default: Date.now },
+    criado_por:    { type: String, default: null },
+    validade:      { type: Date,   default: null },
+    somente_leitura: { type: Boolean, default: true },
+    snapshot:      { type: mongoose.Schema.Types.Mixed, default: null }, // cópia congelada exibida
+    tracking: {
+      visualizacoes:   { type: Number, default: 0 },
+      primeiro_acesso: { type: Date,   default: null },
+      ultimo_acesso:   { type: Date,   default: null },
+      acessos: [{ timestamp: { type: Date }, ip: { type: String } }],
+    },
+  }],
+
   // Cenários financeiros comparados (Mixed — estrutura vem do comercialEngine)
   cenarios:      { type: mongoose.Schema.Types.Mixed, default: null },
   comparativos:  { type: mongoose.Schema.Types.Mixed, default: null },

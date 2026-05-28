@@ -336,6 +336,34 @@ export function revisaoCenario(projetoId, { scenario_id, usuario, motivo } = {})
   })
 }
 
+// ─── S5: CRM operacional leve + comunicação auditável ───────────────────────────
+
+/** Atualiza pipeline CRM e/ou follow-up. */
+export function atualizarCrm(projetoId, { crm_pipeline, followup, usuario } = {}) {
+  return _fetch(`/api/projetos-fv/${projetoId}/governanca/comercial/crm`, {
+    method: 'PUT', body: JSON.stringify({ crm_pipeline, followup, usuario }),
+  })
+}
+
+/** Registra comunicação auditável (whatsapp/email/compartilhamento/followup). */
+export function registrarComunicacao(projetoId, payload) {
+  return _fetch(`/api/projetos-fv/${projetoId}/governanca/comercial/comunicacao`, {
+    method: 'POST', body: JSON.stringify(payload),
+  })
+}
+
+/** Cria link público seguro (abre snapshot congelado). */
+export function criarCompartilhamento(projetoId, { cenario_id, validade_dias, usuario } = {}) {
+  return _fetch(`/api/projetos-fv/${projetoId}/governanca/comercial/compartilhar`, {
+    method: 'POST', body: JSON.stringify({ cenario_id, validade_dias, usuario }),
+  })
+}
+
+/** Leitura pública (sem auth) do snapshot congelado por token. */
+export function obterPropostaPublica(token) {
+  return _fetch(`/api/publico/proposta/${token}`)
+}
+
 /**
  * Resolve clienteId a partir do nome do cliente (mesmo comportamento de E8 legado).
  * Retorna null se não encontrado.

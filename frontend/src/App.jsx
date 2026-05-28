@@ -25,12 +25,14 @@ import Calculadora         from './pages/Calculadora'
 import Login               from './pages/Login'
 import AdminCatalogoQualidade from './pages/AdminCatalogoQualidade'
 import RecomendacaoKits       from './pages/RecomendacaoKits'
+import PropostaPublica        from './pages/PropostaPublica'
 
 export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/calculadora" element={<Calculadora />} />
+      <Route path="/p/:token" element={<PropostaPublica />} />
       <Route path="/" element={<Layout />}>
         <Route index element={<Navigate to="/dashboard" replace />} />
         <Route path="dashboard"               element={<Dashboard />} />

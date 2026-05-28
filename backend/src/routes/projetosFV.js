@@ -23,6 +23,9 @@ import {
   workflowCenarioComercial,
   assinarCenarioComercial,
   revisaoCenarioComercial,
+  atualizarCrm,                // S5 — CRM leve + comunicação
+  registrarComunicacao,
+  criarCompartilhamento,
 } from '../controllers/projetosFVController.js'
 import {
   prepararComFatura,
@@ -64,6 +67,11 @@ router.post('/:id/governanca/comercial/cenario/freeze',      congelarCenarioCome
 router.put('/:id/governanca/comercial/cenario/workflow',      workflowCenarioComercial)
 router.post('/:id/governanca/comercial/cenario/assinatura',   assinarCenarioComercial)
 router.post('/:id/governanca/comercial/cenario/revisao',      revisaoCenarioComercial)
+
+// ── S5: CRM operacional leve + comunicação auditável ────────────────────────
+router.put('/:id/governanca/comercial/crm',           atualizarCrm)
+router.post('/:id/governanca/comercial/comunicacao',  registrarComunicacao)
+router.post('/:id/governanca/comercial/compartilhar', criarCompartilhamento)
 
 // ── CRUD existente (preservado) ─────────────────────────────────────────────
 router.get('/',                    listarProjetosFV)

@@ -1409,3 +1409,216 @@ export const revisaoCenarioComercial = async (req, res) => {
     res.status(500).json({ erro: err.message })
   }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// S5 — CRM OPERACIONAL LEVE + COMUNICAÇÃO AUDITÁVEL
+// Reutiliza governanca.comercial.historico como timeline ÚNICA (sem paralelas).
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const CRM_PIPELINE = ['LEAD', 'QUALIFICADO', 'PROPOSTA', 'NEGOCIACAO', 'FECHADO', 'PERDIDO', 'IMPLANTACAO']
+
+/**
+ * PUT /:id/governanca/comercial/crm
+ * Atualiza pipeline CRM e follow-up. Alimenta o historico (timeline única).
+ * Body: { crm_pipeline, followup:{status,data,observacao}, usuario }
+ */
+export const atualizarCrm = async (req, res) => {
+  try {
+    if (!_exigirMongo(res)) return
+    const { id } = req.params
+    if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ erro: 'ID inválido' })
+    const { crm_pipeline = null, followup = null, usuario = null } = req.body || {}
+
+    const projeto = await ProjetoFV.findById(id)
+    if (!projeto) return res.status(404).json({ erro: 'Projeto não encontrado' })
+
+    const { govObj, com } = _carregarComercial(projeto.governanca)
+    const agora = new Date()
+
+    if (crm_pipeline) {
+      if (!CRM_PIPELINE.includes(crm_pipeline)) return res.status(400).json({ erro: `crm_pipeline inválido` })
+      const anterior = com.crm_pipeline || 'LEAD'
+      com.crm_pipeline = crm_pipeline
+      if (anterior !== crm_pipeline) {
+        com.historico.push({ timestamp: agora, usuario, acao: 'crm_pipeline', detalhe: `Pipeline CRM: ${anterior} → ${crm_pipeline}.` })
+      }
+    }
+    if (followup) {
+      com.followup = {
+        status: followup.status ?? com.followup?.status ?? null,
+        data: followup.data ?? com.followup?.data ?? null,
+        observacao: followup.observacao ?? com.followup?.observacao ?? null,
+      }
+      com.historico.push({ timestamp: agora, usuario, acao: 'followup', detalhe: `Follow-up: ${followup.status || ''}${followup.observacao ? ' — ' + followup.observacao : ''}.` })
+    }
+
+    projeto.governanca = { ...govObj, comercial: com }
+    await projeto.save()
+    res.json({ sucesso: true, comercial: projeto.governanca.comercial })
+  } catch (err) {
+    console.error('❌ Erro ao atualizar CRM:', err)
+    res.status(500).json({ erro: err.message })
+  }
+}
+
+/**
+ * POST /:id/governanca/comercial/comunicacao
+ * Registra uma comunicação auditável (whatsapp/email/share/followup).
+ * Body: { canal, destinatario, cenario_id, revisao, snapshot_hash, resumo, usuario }
+ */
+export const registrarComunicacao = async (req, res) => {
+  try {
+    if (!_exigirMongo(res)) return
+    const { id } = req.params
+    if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ erro: 'ID inválido' })
+    const { canal, destinatario = null, cenario_id = null, revisao = null, snapshot_hash = null, resumo = null, usuario = null } = req.body || {}
+    const CANAIS = ['whatsapp', 'email', 'compartilhamento', 'followup', 'outro']
+    if (!CANAIS.includes(canal)) return res.status(400).json({ erro: `canal deve ser: ${CANAIS.join(', ')}` })
+
+    const projeto = await ProjetoFV.findById(id)
+    if (!projeto) return res.status(404).json({ erro: 'Projeto não encontrado' })
+
+    const { govObj, com } = _carregarComercial(projeto.governanca)
+    const agora = new Date()
+    const partes = [`Comunicação via ${canal}`]
+    if (destinatario) partes.push(`para ${destinatario}`)
+    if (cenario_id) partes.push(`cenário ${cenario_id}`)
+    if (revisao) partes.push(`Rev ${revisao}`)
+    if (resumo) partes.push(`— ${resumo}`)
+
+    com.historico.push({
+      timestamp: agora, usuario, acao: `comunicacao_${canal}`,
+      detalhe: partes.join(' '),
+      contexto: { canal, destinatario, cenario_id, revisao, snapshot_hash },
+    })
+
+    projeto.governanca = { ...govObj, comercial: com }
+    await projeto.save()
+    res.json({ sucesso: true, comercial: projeto.governanca.comercial })
+  } catch (err) {
+    console.error('❌ Erro ao registrar comunicação:', err)
+    res.status(500).json({ erro: err.message })
+  }
+}
+
+/**
+ * POST /:id/governanca/comercial/compartilhar
+ * Cria um link público seguro que abre o SNAPSHOT CONGELADO (somente leitura).
+ * Engineering lock: exige snapshot congelado (global ou de cenário). Nunca dinâmico.
+ * Body: { cenario_id, validade_dias, usuario }
+ */
+export const criarCompartilhamento = async (req, res) => {
+  try {
+    if (!_exigirMongo(res)) return
+    const { id } = req.params
+    if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ erro: 'ID inválido' })
+    const { cenario_id = null, validade_dias = 30, usuario = null } = req.body || {}
+
+    const projeto = await ProjetoFV.findById(id)
+    if (!projeto) return res.status(404).json({ erro: 'Projeto não encontrado' })
+
+    const { govObj, com } = _carregarComercial(projeto.governanca)
+
+    // Determina o snapshot congelado a compartilhar
+    let snapshot = null, hash = null, revisao = com.revisao_comercial_atual || 'A', freezeOk = false
+    if (cenario_id) {
+      const cg = (com.cenarios_governanca || {})[cenario_id]
+      if (cg && cg.freeze_status === 'CONGELADO') {
+        snapshot = { tipo: 'cenario', cenario_id, comercial: cg.snapshot_comercial, financeiro: cg.snapshot_financeiro, regulatorio: cg.snapshot_regulatorio }
+        hash = cg.hash || null
+        revisao = cg.revisao_atual || revisao
+        freezeOk = true
+      }
+    } else if (com.snapshot_comercial && CONGELADOS_COMERCIAL.includes(com.workflow_status)) {
+      snapshot = { tipo: 'global', comercial: com.snapshot_comercial }
+      hash = com.snapshot_comercial?.hash || null
+      freezeOk = true
+    }
+
+    if (!freezeOk) {
+      return res.status(409).json({
+        erro: 'Congele a proposta (ou o cenário) antes de compartilhar. O link público sempre abre um snapshot congelado.',
+        codigo: 'SEM_SNAPSHOT_CONGELADO',
+      })
+    }
+
+    const agora = new Date()
+    const token = `${id.slice(-6)}${agora.getTime().toString(36)}${Math.random().toString(36).slice(2, 8)}`
+    const share_id = `SHARE-${agora.getTime().toString(36)}`
+    const validade = new Date(agora.getTime() + (Number(validade_dias) || 30) * 86400000)
+
+    com.compartilhamentos = Array.isArray(com.compartilhamentos) ? [...com.compartilhamentos] : []
+    com.compartilhamentos.push({
+      share_id, token, cenario_id, revisao, snapshot_hash: hash,
+      criado_em: agora, criado_por: usuario, validade, somente_leitura: true,
+      snapshot,
+      tracking: { visualizacoes: 0, primeiro_acesso: null, ultimo_acesso: null, acessos: [] },
+    })
+    com.historico.push({
+      timestamp: agora, usuario, acao: 'comunicacao_compartilhamento',
+      detalhe: `Link compartilhável criado${cenario_id ? ' (cenário ' + cenario_id + ')' : ''}, Rev ${revisao}, validade ${validade.toLocaleDateString('pt-BR')}.`,
+      contexto: { share_id, cenario_id, revisao, snapshot_hash: hash },
+    })
+
+    projeto.governanca = { ...govObj, comercial: com }
+    await projeto.save()
+    res.json({ sucesso: true, share_id, token, validade, comercial: projeto.governanca.comercial })
+  } catch (err) {
+    console.error('❌ Erro ao criar compartilhamento:', err)
+    res.status(500).json({ erro: err.message })
+  }
+}
+
+/**
+ * GET /api/publico/proposta/:token  (rota pública, sem auth)
+ * Retorna o snapshot CONGELADO do compartilhamento e registra tracking leve.
+ * NUNCA recalcula — apenas devolve o snapshot persistido.
+ */
+export const obterPropostaPublica = async (req, res) => {
+  try {
+    if (!_exigirMongo(res)) return
+    const { token } = req.params
+    if (!token) return res.status(400).json({ erro: 'token ausente' })
+
+    const projeto = await ProjetoFV.findOne(
+      { 'governanca.comercial.compartilhamentos.token': token }
+    ).populate('clienteId', 'nome email telefone')
+    if (!projeto) return res.status(404).json({ erro: 'Proposta não encontrada ou link inválido.' })
+
+    const com = projeto.governanca?.comercial
+    const share = (com?.compartilhamentos || []).find(s => s.token === token)
+    if (!share) return res.status(404).json({ erro: 'Compartilhamento não encontrado.' })
+
+    if (share.validade && new Date(share.validade) < new Date()) {
+      return res.status(410).json({ erro: 'Este link expirou.', codigo: 'LINK_EXPIRADO', expirado_em: share.validade })
+    }
+
+    // Tracking leve
+    const agora = new Date()
+    const ip = _ipReal(req).ip_real
+    share.tracking = share.tracking || { visualizacoes: 0, acessos: [] }
+    share.tracking.visualizacoes = (share.tracking.visualizacoes || 0) + 1
+    share.tracking.ultimo_acesso = agora
+    if (!share.tracking.primeiro_acesso) share.tracking.primeiro_acesso = agora
+    share.tracking.acessos = Array.isArray(share.tracking.acessos) ? share.tracking.acessos : []
+    if (share.tracking.acessos.length < 200) share.tracking.acessos.push({ timestamp: agora, ip })
+    projeto.markModified('governanca.comercial.compartilhamentos')
+    await projeto.save()
+
+    res.json({
+      sucesso: true,
+      somente_leitura: true,
+      cliente: projeto.clienteId ? { nome: projeto.clienteId.nome } : null,
+      projeto_nome: projeto.nome,
+      cenario_id: share.cenario_id,
+      revisao: share.revisao,
+      snapshot_hash: share.snapshot_hash,
+      criado_em: share.criado_em,
+      validade: share.validade,
+      snapshot: share.snapshot,   // snapshot congelado — fonte única de verdade
+    })
+  } catch (err) {
+    console.error('❌ Erro ao obter proposta pública:', err)
+    res.status(500).json({ erro: err.message })
+  }
+}

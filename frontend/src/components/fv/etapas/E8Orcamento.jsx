@@ -18,6 +18,7 @@ import {
 import GovernancaPainel from '../GovernancaPainel'
 import CentroFinanceiroFV from '../CentroFinanceiroFV'
 import PropostaEnterprise from '../PropostaEnterprise'
+import CrmPainel from '../CrmPainel'
 import { construirTodosSnapshots, construirSnapshotTecnico } from '../../../utils/engenhariaGovernanca'
 
 function LinhaResumo({ rotulo, valor }) {
@@ -486,6 +487,19 @@ export default function E8Orcamento() {
             tipoLigacao={dadosConsumo.tipoLigacao || 'monofasico'}
             config={fin}
             governancaComercial={comercialProj}
+            onAtualizar={setComercialProj}
+            usuario={empresa?.email || dadosCliente?.email || null}
+          />
+        )}
+
+        {/* S5: CRM operacional leve + comunicação auditável */}
+        {state.projetoId && (
+          <CrmPainel
+            projetoId={state.projetoId}
+            comercial={comercialProj}
+            cliente={{ nome: dadosCliente.nomeCliente, email: dadosCliente.email, telefone: dadosCliente.telefone }}
+            empresa={empresa}
+            resumo={{ potenciaKwp: dim.potenciaRealKwp ?? dim.potenciaKwp, valor: resultadoFinanceiro?.orcamento?.preco_venda ?? total }}
             onAtualizar={setComercialProj}
             usuario={empresa?.email || dadosCliente?.email || null}
           />

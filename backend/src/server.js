@@ -75,6 +75,7 @@ import { inicializarCRM } from './seeds/crmInitialData.js'
 import { agendarTarefasManutencao } from './utils/arquivamentoPolicy.js'
 import rotasClientes   from './routes/clientes.js'
 import rotasProjetosFV from './routes/projetosFV.js'
+import rotasPublico from './routes/publico.js'
 import rotasProjetosEV from './routes/projetosEV.js'
 import rotasDashboard  from './routes/dashboard.js'
 import rotasUpload      from './routes/upload.js'
@@ -216,6 +217,7 @@ app.use('/api/calculadora',  rotasCalculadora)
 app.use('/api/dashboard',    rotasDashboard)
 app.use('/api/clientes',     rotasClientes)
 app.use('/api/projetos-fv',  rotasProjetosFV)
+app.use('/api/publico',      rotasPublico)   // S5 — leitura pública de snapshots congelados
 app.use('/api/projetos-ev',  rotasProjetosEV)
 app.use('/api/upload',       rotasUpload)
 app.use('/api/engenharia',   rotasEngenharia)

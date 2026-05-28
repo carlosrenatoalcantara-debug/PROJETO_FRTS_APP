@@ -1,14 +1,16 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
-import { AlertCircle, BarChart3, Battery, FileText, Zap, Edit2, X, ShieldCheck, Briefcase } from 'lucide-react'
+import { AlertCircle, BarChart3, Battery, FileText, Zap, Edit2, X, ShieldCheck, Briefcase, Users } from 'lucide-react'
 import Card, { CardHeader, CardBody } from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import Badge from '../components/ui/Badge'
 import UnifilarFV from '../components/fv/UnifilarFV'
 import GovernancaPainel from '../components/fv/GovernancaPainel'
 import PropostaEnterprise from '../components/fv/PropostaEnterprise'
+import CrmPainel from '../components/fv/CrmPainel'
 import { getFreezeStatusConfig } from '../utils/engenhariaGovernanca'
 import { getWorkflowConfig } from '../utils/comercialGovernanca'
+import { getPipelineConfig } from '../utils/crmComercial'
 import InteractiveDiagram from '../components/diagram/InteractiveDiagram'
 import { carregarDiagramaLocal, salvarDiagramaLocal, deletarDiagramaLocal } from '../components/diagram/utils/diagramPersistence'
 
@@ -127,6 +129,7 @@ export default function ProjetosFVDetalhes() {
     { id: 'unifilar', label: 'Unifilar', icone: Zap },
     { id: 'governanca', label: 'Governança', icone: ShieldCheck },
     { id: 'comercial', label: 'Comercial', icone: Briefcase },
+    { id: 'crm', label: 'CRM', icone: Users },
     { id: 'homologacao', label: 'Homologação', icone: FileText },
   ]
 
@@ -134,6 +137,8 @@ export default function ProjetosFVDetalhes() {
   const cfgGov = statusGov ? getFreezeStatusConfig(statusGov) : null
   const statusCom = projeto.governanca?.comercial?.workflow_status
   const cfgCom = statusCom ? getWorkflowConfig(statusCom) : null
+  const pipelineCrm = projeto.governanca?.comercial?.crm_pipeline
+  const cfgCrm = pipelineCrm ? getPipelineConfig(pipelineCrm) : null
 
   return (
     <div className="space-y-6">
@@ -143,6 +148,7 @@ export default function ProjetosFVDetalhes() {
             <h1 className="text-3xl font-bold text-slate-900">{projeto.nomeCliente}</h1>
             {cfgGov && <Badge cor={cfgGov.cor}>{cfgGov.label}</Badge>}
             {cfgCom && <Badge cor={cfgCom.cor}>{cfgCom.label}</Badge>}
+            {cfgCrm && <Badge cor={cfgCrm.cor}>{cfgCrm.label}</Badge>}
           </div>
           <p className="text-slate-600 mt-1">{projeto.endereco}</p>
         </div>
@@ -197,6 +203,16 @@ export default function ProjetosFVDetalhes() {
             snapshotTecnico={projeto.governanca?.snapshot_tecnico}
             resultadoFinanceiro={null}
             governancaComercial={projeto.governanca?.comercial}
+            onAtualizar={(c) => setProjeto(p => ({ ...p, governanca: { ...p.governanca, comercial: c } }))}
+            usuario={null}
+          />
+        )}
+        {abaAtiva === 'crm' && (
+          <CrmPainel
+            projetoId={id}
+            comercial={projeto.governanca?.comercial}
+            cliente={{ nome: projeto.clienteId?.nome || projeto.nomeCliente, email: projeto.clienteId?.email, telefone: projeto.clienteId?.telefone }}
+            resumo={{ potenciaKwp: projeto.dimensionamento?.potenciaArredondada ?? projeto.potencia_kwp, valor: projeto.governanca?.snapshot_financeiro?.proposta_final }}
             onAtualizar={(c) => setProjeto(p => ({ ...p, governanca: { ...p.governanca, comercial: c } }))}
             usuario={null}
           />
