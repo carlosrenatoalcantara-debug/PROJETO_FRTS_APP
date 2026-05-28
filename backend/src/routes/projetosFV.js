@@ -19,6 +19,10 @@ import {
   registrarAssinaturaComercial,
   registrarAprovacaoComercial,
   criarRevisaoComercial,       // S4.3 — revisão comercial
+  congelarCenarioComercial,    // S4.3.1 — governança por cenário
+  workflowCenarioComercial,
+  assinarCenarioComercial,
+  revisaoCenarioComercial,
 } from '../controllers/projetosFVController.js'
 import {
   prepararComFatura,
@@ -54,6 +58,12 @@ router.put('/:id/governanca/comercial/workflow',     atualizarWorkflowComercial)
 router.post('/:id/governanca/comercial/assinatura',  registrarAssinaturaComercial)
 router.post('/:id/governanca/comercial/aprovacao',   registrarAprovacaoComercial)
 router.post('/:id/governanca/comercial/revisao',     criarRevisaoComercial)
+
+// ── S4.3.1: Governança individual por cenário ───────────────────────────────
+router.post('/:id/governanca/comercial/cenario/freeze',      congelarCenarioComercial)
+router.put('/:id/governanca/comercial/cenario/workflow',      workflowCenarioComercial)
+router.post('/:id/governanca/comercial/cenario/assinatura',   assinarCenarioComercial)
+router.post('/:id/governanca/comercial/cenario/revisao',      revisaoCenarioComercial)
 
 // ── CRUD existente (preservado) ─────────────────────────────────────────────
 router.get('/',                    listarProjetosFV)

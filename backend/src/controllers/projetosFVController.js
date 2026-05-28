@@ -1195,3 +1195,217 @@ export const criarRevisaoComercial = async (req, res) => {
     res.status(500).json({ erro: err.message })
   }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// S4.3.1 — GOVERNANÇA INDIVIDUAL POR CENÁRIO + AUDITORIA REAL DE IP
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// Extrai a trilha de IP real (trust proxy ativo → req.ip é o cliente).
+function _ipReal(req) {
+  const fwd = req.headers['x-forwarded-for'] || ''
+  const proxy_chain = fwd ? fwd.split(',').map(s => s.trim()).filter(Boolean) : []
+  const ip_real = req.ip || proxy_chain[0] || req.socket?.remoteAddress || null
+  return { ip_real, forwarded_for: fwd || null, proxy_chain, user_agent: req.headers['user-agent'] || null }
+}
+
+// Carrega/inicializa o objeto de governança de um cenário específico.
+function _carregarCenarioGov(com, scenarioId) {
+  const mapa = (com.cenarios_governanca && typeof com.cenarios_governanca === 'object')
+    ? { ...com.cenarios_governanca } : {}
+  const atual = mapa[scenarioId] || {
+    scenario_id: scenarioId,
+    freeze_status: 'EDITAVEL',          // EDITAVEL | CONGELADO
+    workflow_status: 'EM_ANALISE',
+    status_juridico: 'PENDENTE_ASSINATURA',
+    snapshot_comercial: null,
+    snapshot_financeiro: null,
+    snapshot_regulatorio: null,
+    hash: null,
+    assinaturas: [],
+    revisoes: [],
+    timeline: [],
+    revisao_atual: 'A',
+    congelado_em: null,
+  }
+  // Garante arrays
+  atual.assinaturas = Array.isArray(atual.assinaturas) ? [...atual.assinaturas] : []
+  atual.revisoes = Array.isArray(atual.revisoes) ? [...atual.revisoes] : []
+  atual.timeline = Array.isArray(atual.timeline) ? [...atual.timeline] : []
+  return { mapa, cen: atual }
+}
+
+async function _salvarCenario(projeto, govObj, com, mapa, cen, res) {
+  mapa[cen.scenario_id] = cen
+  com.cenarios_governanca = mapa
+  projeto.governanca = { ...govObj, comercial: com }
+  await projeto.save()
+  res.json({ sucesso: true, scenario_id: cen.scenario_id, cenario: cen, comercial: projeto.governanca.comercial })
+}
+
+/**
+ * POST /:id/governanca/comercial/cenario/freeze
+ * Congela UM cenário (os demais permanecem editáveis).
+ * Body: { scenario_id, snapshots:{comercial,financeiro,regulatorio}, hash, usuario }
+ */
+export const congelarCenarioComercial = async (req, res) => {
+  try {
+    if (!_exigirMongo(res)) return
+    const { id } = req.params
+    if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ erro: 'ID inválido' })
+    const { scenario_id, snapshots = {}, hash = null, usuario = null } = req.body || {}
+    if (!scenario_id) return res.status(400).json({ erro: 'scenario_id é obrigatório' })
+
+    const projeto = await ProjetoFV.findById(id)
+    if (!projeto) return res.status(404).json({ erro: 'Projeto não encontrado' })
+
+    const { govObj, com } = _carregarComercial(projeto.governanca)
+    const { mapa, cen } = _carregarCenarioGov(com, scenario_id)
+    const agora = new Date()
+
+    if (cen.freeze_status === 'CONGELADO') {
+      return res.status(409).json({ erro: `Cenário ${scenario_id} já está CONGELADO — crie revisão para alterar.`, codigo: 'CENARIO_CONGELADO' })
+    }
+
+    cen.freeze_status = 'CONGELADO'
+    cen.congelado_em = agora
+    cen.hash = hash || cen.hash
+    if (snapshots.comercial   != null) cen.snapshot_comercial   = snapshots.comercial
+    if (snapshots.financeiro  != null) cen.snapshot_financeiro  = snapshots.financeiro
+    if (snapshots.regulatorio != null) cen.snapshot_regulatorio = snapshots.regulatorio
+    cen.timeline.push({ timestamp: agora, usuario, acao: 'congelamento', detalhe: `Cenário ${scenario_id} congelado individualmente.` })
+    com.historico.push({ timestamp: agora, usuario, acao: 'cenario_congelado', detalhe: `Cenário ${scenario_id} congelado.` })
+
+    await _salvarCenario(projeto, govObj, com, mapa, cen, res)
+  } catch (err) {
+    console.error('❌ Erro ao congelar cenário:', err)
+    res.status(500).json({ erro: err.message })
+  }
+}
+
+/**
+ * PUT /:id/governanca/comercial/cenario/workflow
+ * Workflow individual do cenário (valida transição na mesma máquina de estados).
+ * Body: { scenario_id, status, usuario }
+ */
+export const workflowCenarioComercial = async (req, res) => {
+  try {
+    if (!_exigirMongo(res)) return
+    const { id } = req.params
+    if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ erro: 'ID inválido' })
+    const { scenario_id, status, usuario = null } = req.body || {}
+    if (!scenario_id) return res.status(400).json({ erro: 'scenario_id é obrigatório' })
+    if (!WORKFLOW_COMERCIAL.includes(status)) return res.status(400).json({ erro: `status inválido` })
+
+    const projeto = await ProjetoFV.findById(id)
+    if (!projeto) return res.status(404).json({ erro: 'Projeto não encontrado' })
+
+    const { govObj, com } = _carregarComercial(projeto.governanca)
+    const { mapa, cen } = _carregarCenarioGov(com, scenario_id)
+    const anterior = cen.workflow_status || 'EM_ANALISE'
+
+    const val = _validarTransicaoComercial(anterior, status)
+    if (!val.ok) return res.status(409).json({ erro: val.motivo, codigo: val.requer_revisao ? 'REQUER_REVISAO' : 'TRANSICAO_INVALIDA' })
+
+    const agora = new Date()
+    cen.workflow_status = status
+    cen.status_juridico = _statusJuridicoDeEstado(status)
+    if (CONGELADOS_COMERCIAL.includes(status)) { cen.freeze_status = 'CONGELADO'; cen.congelado_em = cen.congelado_em || agora }
+    cen.timeline.push({ timestamp: agora, usuario, acao: 'workflow', detalhe: `Cenário ${scenario_id}: ${anterior} → ${status}.` })
+
+    await _salvarCenario(projeto, govObj, com, mapa, cen, res)
+  } catch (err) {
+    console.error('❌ Erro no workflow do cenário:', err)
+    res.status(500).json({ erro: err.message })
+  }
+}
+
+/**
+ * POST /:id/governanca/comercial/cenario/assinatura
+ * Assinatura individual do cenário com IP real e cadeia de auditoria.
+ * Body: { scenario_id, papel, nome, hash, hash_documento, hash_snapshot, hash_cenario, usuario }
+ */
+export const assinarCenarioComercial = async (req, res) => {
+  try {
+    if (!_exigirMongo(res)) return
+    const { id } = req.params
+    if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ erro: 'ID inválido' })
+    const { scenario_id, papel, nome, hash, hash_documento = null, hash_snapshot = null, hash_cenario = null, algoritmo = 'sha256', usuario = null } = req.body || {}
+    const PAPEIS = ['cliente', 'vendedor', 'tecnico']
+    if (!scenario_id) return res.status(400).json({ erro: 'scenario_id é obrigatório' })
+    if (!PAPEIS.includes(papel)) return res.status(400).json({ erro: `papel deve ser: ${PAPEIS.join(', ')}` })
+    if (!nome || !hash) return res.status(400).json({ erro: 'nome e hash são obrigatórios' })
+
+    const projeto = await ProjetoFV.findById(id)
+    if (!projeto) return res.status(404).json({ erro: 'Projeto não encontrado' })
+
+    const { govObj, com } = _carregarComercial(projeto.governanca)
+    const { mapa, cen } = _carregarCenarioGov(com, scenario_id)
+    const agora = new Date()
+    const aud = _ipReal(req)
+    const assinatura_id = `SIG-${scenario_id}-${papel.toUpperCase()}-${agora.getTime().toString(36)}`
+
+    cen.assinaturas = cen.assinaturas.filter(a => a.papel !== papel)
+    cen.assinaturas.push({
+      assinatura_id, papel, nome, hash, algoritmo,
+      hash_documento, hash_snapshot, hash_cenario,
+      ip: aud.ip_real, ip_real: aud.ip_real, forwarded_for: aud.forwarded_for, proxy_chain: aud.proxy_chain,
+      user_agent: aud.user_agent, timestamp: agora,
+    })
+    cen.timeline.push({ timestamp: agora, usuario: usuario || nome, acao: 'assinatura', detalhe: `Assinatura ${papel} (${nome}) no cenário ${scenario_id}. IP ${aud.ip_real || '—'}.` })
+
+    const papeisAssinados = new Set(cen.assinaturas.map(a => a.papel))
+    if (PAPEIS.every(p => papeisAssinados.has(p))) {
+      cen.workflow_status = 'ASSINADO'
+      cen.status_juridico = 'ASSINADO'
+      cen.freeze_status = 'CONGELADO'
+      cen.congelado_em = cen.congelado_em || agora
+      cen.timeline.push({ timestamp: agora, usuario, acao: 'workflow', detalhe: `Cenário ${scenario_id} ASSINADO (todas as assinaturas).` })
+    }
+
+    await _salvarCenario(projeto, govObj, com, mapa, cen, res)
+  } catch (err) {
+    console.error('❌ Erro ao assinar cenário:', err)
+    res.status(500).json({ erro: err.message })
+  }
+}
+
+/**
+ * POST /:id/governanca/comercial/cenario/revisao
+ * Revisão individual do cenário (não afeta os outros cenários).
+ * Body: { scenario_id, usuario, motivo }
+ */
+export const revisaoCenarioComercial = async (req, res) => {
+  try {
+    if (!_exigirMongo(res)) return
+    const { id } = req.params
+    if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ erro: 'ID inválido' })
+    const { scenario_id, usuario = null, motivo = null } = req.body || {}
+    if (!scenario_id) return res.status(400).json({ erro: 'scenario_id é obrigatório' })
+
+    const projeto = await ProjetoFV.findById(id)
+    if (!projeto) return res.status(404).json({ erro: 'Projeto não encontrado' })
+
+    const { govObj, com } = _carregarComercial(projeto.governanca)
+    const { mapa, cen } = _carregarCenarioGov(com, scenario_id)
+    const agora = new Date()
+    const revAtual = cen.revisao_atual || 'A'
+    const novaRev = _proximaRevComercial(revAtual)
+
+    cen.revisoes.push({
+      rev: revAtual, timestamp: agora, usuario, motivo: motivo || 'Revisão de cenário',
+      snapshot_comercial: cen.snapshot_comercial || null,
+    })
+    cen.revisao_atual = novaRev
+    cen.freeze_status = 'EDITAVEL'
+    cen.workflow_status = 'EM_ANALISE'
+    cen.status_juridico = 'EM_REVISAO'
+    cen.congelado_em = null
+    cen.assinaturas = []
+    cen.timeline.push({ timestamp: agora, usuario, acao: 'revisao', detalhe: `Cenário ${scenario_id}: revisão ${revAtual} → ${novaRev}. Reaberto.` })
+
+    await _salvarCenario(projeto, govObj, com, mapa, cen, res)
+  } catch (err) {
+    console.error('❌ Erro na revisão do cenário:', err)
+    res.status(500).json({ erro: err.message })
+  }
+}

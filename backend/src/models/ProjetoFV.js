@@ -317,7 +317,11 @@ const assinaturaV3Schema = new mongoose.Schema({
   algoritmo: { type: String, default: 'sha256' },
   hash_documento: { type: String, default: null },   // hash do PDF/proposta
   hash_snapshot:  { type: String, default: null },   // hash do snapshot técnico
+  hash_cenario:   { type: String, default: null },   // S4.3.1: hash do cenário assinado
   ip:        { type: String, default: null },
+  ip_real:   { type: String, default: null },        // S4.3.1: IP real do cliente (trust proxy)
+  forwarded_for: { type: String, default: null },    // S4.3.1: cabeçalho X-Forwarded-For bruto
+  proxy_chain:   { type: [String], default: undefined }, // S4.3.1: cadeia de proxies
   user_agent:{ type: String, default: null },
   timestamp: { type: Date,   default: Date.now },
 }, { _id: false })
@@ -362,6 +366,12 @@ const comercialV3Schema = new mongoose.Schema({
   // S4.3: revisões comerciais (clones + diff)
   revisoes_comerciais: { type: [revisaoComercialV3Schema], default: [] },
   revisao_comercial_atual: { type: String, default: 'A' },
+
+  // S4.3.1: governança INDIVIDUAL por cenário (additive). Mixed:
+  // { [scenario_id]: { scenario_id, freeze_status, workflow_status, status_juridico,
+  //   snapshot_comercial, snapshot_financeiro, snapshot_regulatorio, hash,
+  //   assinaturas:[], revisoes:[], timeline:[], revisao_atual, congelado_em } }
+  cenarios_governanca: { type: mongoose.Schema.Types.Mixed, default: null },
 
   // Cenários financeiros comparados (Mixed — estrutura vem do comercialEngine)
   cenarios:      { type: mongoose.Schema.Types.Mixed, default: null },

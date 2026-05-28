@@ -23,12 +23,16 @@ import {
   avaliarMargem,
   estaCongelado,
 } from '../../utils/comercialStateMachine'
+import { hashTecnico } from '../../utils/engenhariaGovernanca'
 import {
   salvarComercial,
   atualizarWorkflowComercial as apiWorkflow,
   registrarAssinatura,
   registrarAprovacao,
   criarRevisaoComercial,
+  congelarCenario,
+  revisaoCenario,
+  assinarCenario,
 } from '../../services/projetoFVApi'
 
 /**
@@ -191,6 +195,52 @@ export default function PropostaEnterprise({
     } catch (e) { setErro(e.message) } finally { setAcao(false) }
   }
 
+  // ── S4.3.1: governança individual por cenário ──────────────────────────────
+  const cenGovMap = com.cenarios_governanca || {}
+
+  async function congelarCen(c) {
+    setAcao(true); setErro('')
+    try {
+      const snapComercial = { scenario_id: c.id, label: c.label, valores: c, desconto_pct: descontoPct }
+      const hash = hashTecnico(snapComercial)
+      const res = await congelarCenario(projetoId, {
+        scenario_id: c.id,
+        snapshots: {
+          comercial: snapComercial,
+          financeiro: resultadoFinanceiro?.retorno_realista || resultadoFinanceiro?.retorno || null,
+          regulatorio: resultadoFinanceiro?.regulatorio || null,
+        },
+        hash, usuario,
+      })
+      refresh(res.comercial)
+    } catch (e) { setErro(e.message) } finally { setAcao(false) }
+  }
+
+  async function revisarCen(c) {
+    const motivo = window.prompt(`Motivo da revisão do cenário ${c.label}:`, '')
+    if (motivo === null) return
+    setAcao(true); setErro('')
+    try {
+      const res = await revisaoCenario(projetoId, { scenario_id: c.id, usuario, motivo })
+      refresh(res.comercial)
+    } catch (e) { setErro(e.message) } finally { setAcao(false) }
+  }
+
+  async function assinarCen(c, papel) {
+    const nome = window.prompt(`Assinar cenário ${c.label} como ${papel} — nome:`, '')
+    if (!nome) return
+    setAcao(true); setErro('')
+    try {
+      const assinatura = await gerarAssinaturaSegura({
+        papel, nome,
+        hashDocumento: cenGovMap[c.id]?.hash || null,
+        hashSnapshot: snapshotTecnico?.hash || null,
+      })
+      const res = await assinarCenario(projetoId, { ...assinatura, hash_cenario: cenGovMap[c.id]?.hash || null, scenario_id: c.id, usuario })
+      refresh(res.comercial)
+    } catch (e) { setErro(e.message) } finally { setAcao(false) }
+  }
+
   // Cenários a exibir: live (comparacao) ou congelados (com.cenarios)
   const cenariosShow = comparacao || com.cenarios
   const histTimeline = [...(com.historico || [])].reverse()
@@ -256,6 +306,57 @@ export default function PropostaEnterprise({
               </tbody>
             </table>
           </div>
+        </div>
+      )}
+
+      {/* S4.3.1: Governança individual por cenário */}
+      {cenariosShow?.cenarios?.length > 0 && projetoId && (
+        <div className="border-t border-slate-100 pt-3">
+          <p className="text-xs font-semibold text-slate-500 mb-2 flex items-center gap-1"><Snowflake size={12} /> Governança por cenário</p>
+          <div className="space-y-2">
+            {cenariosShow.cenarios.map((c) => {
+              const g = cenGovMap[c.id] || {}
+              const cong = g.freeze_status === 'CONGELADO'
+              const wf = g.workflow_status || 'EDITÁVEL'
+              const nAssin = (g.assinaturas || []).length
+              return (
+                <div key={c.id} className="border border-slate-200 rounded-lg p-2.5 text-xs">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <div className="flex items-center gap-2">
+                      <Badge cor={c.cor}>{c.label}</Badge>
+                      <Badge cor={cong ? 'verde' : 'cinza'}>{cong ? 'CONGELADO' : 'EDITÁVEL'}</Badge>
+                      {g.workflow_status && <span className="text-slate-400">{wf}</span>}
+                      {g.revisao_atual && <span className="text-slate-400 font-mono">Rev {g.revisao_atual}</span>}
+                      {nAssin > 0 && <span className="text-slate-400 flex items-center gap-0.5"><PenLine size={10} />{nAssin}/3</span>}
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      {!cong ? (
+                        <>
+                          <button onClick={() => congelarCen(c)} disabled={acao} className="text-emerald-700 font-medium hover:underline">Congelar</button>
+                          {['cliente', 'vendedor', 'tecnico'].map((p) => (
+                            <button key={p} onClick={() => assinarCen(c, p)} disabled={acao} className="text-indigo-600 hover:underline" title={`Assinar como ${p}`}>{p[0].toUpperCase()}</button>
+                          ))}
+                        </>
+                      ) : (
+                        <button onClick={() => revisarCen(c)} disabled={acao} className="text-slate-600 font-medium hover:underline">Nova revisão</button>
+                      )}
+                    </div>
+                  </div>
+                  {g.timeline?.length > 0 && (
+                    <div className="mt-1.5 pl-1 border-l-2 border-slate-100 space-y-0.5">
+                      {[...g.timeline].reverse().slice(0, 3).map((t, i) => (
+                        <p key={i} className="text-slate-400">
+                          {t.detalhe}
+                          {t.timestamp && <span className="ml-1">· {new Date(t.timestamp).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</span>}
+                        </p>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+          <p className="text-[11px] text-slate-400 mt-1">Congele cenários individualmente — um pode estar ASSINADO enquanto outro segue em negociação.</p>
         </div>
       )}
 

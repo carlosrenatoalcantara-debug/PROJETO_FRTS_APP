@@ -306,6 +306,36 @@ export function criarRevisaoComercial(projetoId, { usuario, motivo, snapshot_com
   })
 }
 
+// ─── S4.3.1: Governança individual por cenário ──────────────────────────────────
+
+/** Congela UM cenário (demais permanecem editáveis). */
+export function congelarCenario(projetoId, payload) {
+  return _fetch(`/api/projetos-fv/${projetoId}/governanca/comercial/cenario/freeze`, {
+    method: 'POST', body: JSON.stringify(payload),
+  })
+}
+
+/** Workflow individual do cenário. */
+export function workflowCenario(projetoId, { scenario_id, status, usuario } = {}) {
+  return _fetch(`/api/projetos-fv/${projetoId}/governanca/comercial/cenario/workflow`, {
+    method: 'PUT', body: JSON.stringify({ scenario_id, status, usuario }),
+  })
+}
+
+/** Assinatura individual do cenário (IP real registrado no backend). */
+export function assinarCenario(projetoId, payload) {
+  return _fetch(`/api/projetos-fv/${projetoId}/governanca/comercial/cenario/assinatura`, {
+    method: 'POST', body: JSON.stringify(payload),
+  })
+}
+
+/** Revisão individual do cenário (não afeta os demais). */
+export function revisaoCenario(projetoId, { scenario_id, usuario, motivo } = {}) {
+  return _fetch(`/api/projetos-fv/${projetoId}/governanca/comercial/cenario/revisao`, {
+    method: 'POST', body: JSON.stringify({ scenario_id, usuario, motivo }),
+  })
+}
+
 /**
  * Resolve clienteId a partir do nome do cliente (mesmo comportamento de E8 legado).
  * Retorna null se não encontrado.

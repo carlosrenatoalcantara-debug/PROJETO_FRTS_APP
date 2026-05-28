@@ -67,8 +67,10 @@ export const gerarPropostaPDF = (dados) => {
         <p style="font-size:10px;color:#999;margin-bottom:20px;">Assinaturas com hash SHA-256, timestamp e trilha de auditoria (IP/dispositivo registrados no sistema).</p>
   ` : ''
 
-  // S4.2: tabela comparativa de cenários comerciais
+  // S4.2/4.3.1: tabela comparativa de cenários comerciais + freeze individual
   const listaCenarios = comercial?.cenarios?.cenarios || comercial?.snapshot_comercial?.cenarios?.cenarios || null
+  const cenGov = comercial?.cenarios_governanca || {}
+  const algumCongeladoInd = Object.values(cenGov).some(g => g?.freeze_status === 'CONGELADO')
   const secaoCenarios = (Array.isArray(listaCenarios) && listaCenarios.length > 0) ? `
         <h2 class="subtitulo">Comparação de Cenários</h2>
         <table class="orcamento-tabela">
@@ -76,20 +78,27 @@ export const gerarPropostaPDF = (dados) => {
             <tr>
               <th>Cenário</th><th class="orcamento-valor">Economia 25a</th>
               <th class="orcamento-valor">Payback</th><th class="orcamento-valor">ROI</th>
+              <th class="orcamento-valor">Status</th>
             </tr>
           </thead>
           <tbody>
-            ${listaCenarios.map(c => `
+            ${listaCenarios.map(c => {
+              const g = cenGov[c.id] || {}
+              const st = g.freeze_status === 'CONGELADO'
+                ? `Congelado${g.revisao_atual ? ' (Rev ' + g.revisao_atual + ')' : ''}`
+                : (g.workflow_status || '—')
+              return `
               <tr>
                 <td>${c.label}</td>
                 <td class="orcamento-valor">${brlFmt(c.economia_25_anos)}</td>
                 <td class="orcamento-valor">${c.payback_anos != null ? c.payback_anos + ' anos' : '—'}</td>
                 <td class="orcamento-valor">${c.roi_pct != null ? Math.round(c.roi_pct) + '%' : '—'}</td>
-              </tr>
-            `).join('')}
+                <td class="orcamento-valor">${st}</td>
+              </tr>`
+            }).join('')}
           </tbody>
         </table>
-        <p style="font-size:10px;color:#999;margin-bottom:20px;">Cenários conforme premissas regulatórias (Lei 14.300/2022). O cenário Realista é a base da proposta.</p>
+        <p style="font-size:10px;color:#999;margin-bottom:20px;">Cenários conforme premissas regulatórias (Lei 14.300/2022). O cenário Realista é a base da proposta.${algumCongeladoInd ? ' Cenários marcados como "Congelado" foram congelados individualmente, com hash e revisão próprios.' : ''}</p>
   ` : ''
 
   const secaoRegulatoria = premissasReg ? `

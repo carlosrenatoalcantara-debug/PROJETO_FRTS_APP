@@ -114,6 +114,11 @@ import errorHandler      from './middleware/errorHandler.js'
 const app  = express()
 const PORT = process.env.PORT || 5001
 
+// 🔐 S4.3.1: trust proxy — atrás de Vercel/Railway, req.ip passa a refletir o
+// IP real do cliente (primeiro item do X-Forwarded-For) em vez do proxy.
+// Necessário para a trilha de auditoria de assinaturas comerciais.
+app.set('trust proxy', true)
+
 // Configuração CORS com mais detalhes
 const corsOptions = {
   origin: (origin, callback) => {
