@@ -6,6 +6,7 @@ import Button from '../components/ui/Button'
 import Badge from '../components/ui/Badge'
 import UnifilarFV from '../components/fv/UnifilarFV'
 import PlanejadorTelhado from '../components/fv/PlanejadorTelhado'
+import PreviewLayoutPano from '../components/fv/PreviewLayoutPano'
 import GovernancaPainel from '../components/fv/GovernancaPainel'
 import PropostaEnterprise from '../components/fv/PropostaEnterprise'
 import CrmPainel from '../components/fv/CrmPainel'
@@ -368,6 +369,16 @@ function AbaLayout({ projeto }) {
               </div>
             )}
             <PlanejadorTelhado panos={panos} onChange={() => {}} bloqueado />
+            {panos.some(p => p.layout_preview) && (
+              <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {panos.filter(p => p.layout_preview).map((p, i) => (
+                  <div key={i} className="border border-slate-200 rounded-lg p-2">
+                    <p className="text-xs font-semibold text-slate-600 mb-1">{p.nome}</p>
+                    <PreviewLayoutPano pano={p} compacto />
+                  </div>
+                ))}
+              </div>
+            )}
           </>
         ) : (
           <p className="text-slate-600">Nenhum layout geoespacial registrado para este projeto.</p>

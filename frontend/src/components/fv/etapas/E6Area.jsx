@@ -6,16 +6,19 @@ import Select from '../../ui/Select'
 import Button from '../../ui/Button'
 import MapaTelhado from '../MapaTelhado'
 import PlanejadorTelhado from '../PlanejadorTelhado'
+import EditorTelhadoMapa from '../EditorTelhadoMapa'
 import { calcularAreaSuficiente } from '../../../utils/calcDimensionamento'
-import { consolidarPanos } from '../../../utils/geoEngine'
+import { consolidarPanos, dimensoesModulo } from '../../../utils/geoEngine'
 
 const ORIENTACOES = ['Norte','Sul','Leste','Oeste','Nordeste','Noroeste','Sudeste','Sudoeste','Plano']
   .map(v => ({ valor: v, rotulo: v }))
 
 export default function E6Area() {
   const { state, dispatch, proxima, anterior } = useProjetoFV()
-  const { area, dimensionamento: dim, localizacao } = state
+  const { area, dimensionamento: dim, localizacao, equipamentos } = state
   const [erroForm, setErroForm] = useState('')
+  const painelSel = equipamentos?.painel || null
+  const moduloDims = dimensoesModulo(painelSel)
 
   function set(campo, valor) {
     const novaArea = { ...area, [campo]: valor }
@@ -27,7 +30,7 @@ export default function E6Area() {
 
   // S6: atualiza panos e deriva área útil + capacidade máxima (alimenta E7/engenharia)
   function setPanos(panos) {
-    const c = consolidarPanos(panos)
+    const c = consolidarPanos(panos, { moduloDims })
     const novaArea = {
       ...area,
       panos,
@@ -136,8 +139,16 @@ export default function E6Area() {
       </div>
 
       {/* S6: Planejador geoespacial multi-pano */}
-      <div className="p-4 bg-white border border-slate-200 rounded-xl">
-        <PlanejadorTelhado panos={panos} onChange={setPanos} />
+      <div className="p-4 bg-white border border-slate-200 rounded-xl space-y-3">
+        <PlanejadorTelhado panos={panos} onChange={setPanos} painel={painelSel} />
+        {/* S6.1: desenho real dos polígonos no satélite */}
+        {panos.length > 0 && (
+          <EditorTelhadoMapa
+            panos={panos}
+            onChange={setPanos}
+            center={{ lat: localizacao?.lat, lng: localizacao?.lon }}
+          />
+        )}
       </div>
 
       {/* S6: sincronização layout ↔ engenharia */}

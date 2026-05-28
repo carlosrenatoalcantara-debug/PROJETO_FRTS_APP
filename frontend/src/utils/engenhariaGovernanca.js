@@ -13,7 +13,7 @@
 import { montarModeloEletrico } from './engenhariaNormativa'
 import { validarEquipamento } from './catalogQualityEngine'
 import { calcularFinanceiroCompleto } from './financeiroEngine'
-import { consolidarPanos } from './geoEngine'
+import { consolidarPanos, dimensoesModulo } from './geoEngine'
 
 /**
  * Versão do motor de engenharia.
@@ -55,9 +55,9 @@ export function hashTecnico(valor) {
  * máxima de módulos e fator de geração (orientação/inclinação/sombra). Alimenta
  * o snapshot técnico (engineering lock geoespacial).
  */
-export function construirSnapshotGeoespacial({ panos, lat, lon }) {
+export function construirSnapshotGeoespacial({ panos, lat, lon, painel }) {
   if (!Array.isArray(panos) || panos.length === 0) return null
-  const c = consolidarPanos(panos)
+  const c = consolidarPanos(panos, { moduloDims: dimensoesModulo(painel) })
   const snap = {
     criado_em: new Date().toISOString(),
     coordenadas: (lat != null && lon != null) ? { lat, lon } : null,
@@ -321,6 +321,7 @@ export function construirTodosSnapshots({ state, orcamentoLocal, unifilarSVG, re
     panos: area?.panos || [],
     lat: localizacao?.lat ?? null,
     lon: localizacao?.lon ?? null,
+    painel,
   })
 
   const tecnico = construirSnapshotTecnico({

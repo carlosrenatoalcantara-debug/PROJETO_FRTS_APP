@@ -1,6 +1,7 @@
-import { useMemo } from 'react'
-import { Plus, Trash2, Compass, Sun, Cloudy, Square } from 'lucide-react'
-import { consolidarPanos, ORIENTACOES_PANO, panoNovo } from '../../utils/geoEngine'
+import { useMemo, useState } from 'react'
+import { Plus, Trash2, Compass, Sun, Square, Eye } from 'lucide-react'
+import { consolidarPanos, ORIENTACOES_PANO, panoNovo, dimensoesModulo } from '../../utils/geoEngine'
+import PreviewLayoutPano from './PreviewLayoutPano'
 
 /**
  * PlanejadorTelhado — Sprint 6
@@ -14,8 +15,10 @@ import { consolidarPanos, ORIENTACOES_PANO, panoNovo } from '../../utils/geoEngi
  * @param {function} onChange  (panos) => void
  * @param {boolean}  [bloqueado]  — congelado: somente leitura
  */
-export default function PlanejadorTelhado({ panos = [], onChange, bloqueado = false }) {
-  const consolidado = useMemo(() => consolidarPanos(panos), [panos])
+export default function PlanejadorTelhado({ panos = [], onChange, bloqueado = false, painel = null }) {
+  const moduloDims = useMemo(() => dimensoesModulo(painel), [painel])
+  const consolidado = useMemo(() => consolidarPanos(panos, { moduloDims }), [panos, moduloDims])
+  const [previewAberto, setPreviewAberto] = useState({})
 
   function atualizar(i, campo, valor) {
     if (bloqueado) return
@@ -130,8 +133,13 @@ export default function PlanejadorTelhado({ panos = [], onChange, bloqueado = fa
               <span><Compass size={11} className="inline mr-0.5" />Azimute {calc.azimute}°</span>
               <span>Útil: <strong>{calc.area_util} m²</strong></span>
               <span><Sun size={11} className="inline mr-0.5" />Fator {calc.fator_geracao}</span>
+              <button onClick={() => setPreviewAberto((s) => ({ ...s, [i]: !s[i] }))}
+                className="text-slate-400 hover:text-slate-700 flex items-center gap-0.5"><Eye size={11} />preview</button>
               <span className="ml-auto font-semibold text-emerald-700">{calc.capacidade_modulos} módulos</span>
             </div>
+            {previewAberto[i] && (
+              <div className="pt-1"><PreviewLayoutPano pano={calc} /></div>
+            )}
           </div>
         )
       })}

@@ -246,7 +246,7 @@ export default function E8Orcamento() {
         // S4.2: cenários comerciais comparados
         comercial:    comercialProj || null,
         // S6: layout/telhado (panos, área útil, capacidade)
-        geoespacial:  construirSnapshotGeoespacial({ panos: state.area?.panos || [], lat: localizacao.lat, lon: localizacao.lon }),
+        geoespacial:  construirSnapshotGeoespacial({ panos: state.area?.panos || [], lat: localizacao.lat, lon: localizacao.lon, painel }),
         validadeDias: fin.validadeProposta || 15,
       })
       abrirOuBaixarProposta(htmlProposta)

@@ -20,6 +20,7 @@ import SeletorPaineis from '../SeletorPaineis'
 import SeletorInversores from '../SeletorInversores'
 import SeletorEstrutura from '../SeletorEstrutura'
 import ConfiguradorArranjoFV from '../ConfiguradorArranjoFV'
+import { consolidarPanos, dimensoesModulo } from '../../../utils/geoEngine'
 
 const TIPO_BADGE_COR = {
   string:     'azul',
@@ -94,8 +95,14 @@ export default function E7Equipamentos() {
   const areaNecess      = numPaineisReal * 2.0
   const areaInsuficiente = areaDisponivel > 0 && areaNecess > areaDisponivel
 
-  // S6: capacidade real do layout geoespacial (E6) limita os módulos
-  const capacidadeLayout = area?.capacidadeMaxModulos ?? 0
+  // S6/S6.1: capacidade real do layout — recalculada com o módulo SELECIONADO
+  const capacidadeLayout = (() => {
+    if (!Array.isArray(area?.panos) || area.panos.length === 0) return area?.capacidadeMaxModulos ?? 0
+    try {
+      const dims = dimensoesModulo(equipamentos.painel)
+      return consolidarPanos(area.panos, { moduloDims: dims }).max_modulos_total
+    } catch { return area?.capacidadeMaxModulos ?? 0 }
+  })()
   const capacidadeExcedida = capacidadeLayout > 0 && numPaineisReal > capacidadeLayout
 
   return (

@@ -77,6 +77,42 @@ export function maxModulosPorArea(areaUtil, { moduloAreaM2 = 2.4, packing = 0.82
   return Math.floor((n(areaUtil) * n(packing)) / n(moduloAreaM2))
 }
 
+// ─── 5b. Dimensões reais do módulo (S6.1) ───────────────────────────────────────
+// Lê do catálogo/painel selecionado; faz fallback por potência quando ausente.
+export function dimensoesModulo(painel) {
+  const mm = (v) => (Number.isFinite(Number(v)) ? Number(v) / 1000 : null)
+  let altura = mm(painel?.alturaMm ?? painel?.altura_mm ?? painel?.comprimentoMm ?? painel?.comprimento_mm)
+  let largura = mm(painel?.larguraMm ?? painel?.largura_mm)
+  if (!(altura && largura)) {
+    // Fallback por potência (dimensões típicas de mercado)
+    const p = n(painel?.potenciaW ?? painel?.potencia_w ?? painel?.potencia, 550)
+    if (p >= 600)      { altura = 2.382; largura = 1.134 } // ~580-620W
+    else if (p >= 540) { altura = 2.278; largura = 1.134 } // ~550W
+    else if (p >= 440) { altura = 2.094; largura = 1.038 } // ~450W
+    else               { altura = 1.722; largura = 1.134 } // ~330-400W
+  }
+  return { alturaM: +altura.toFixed(3), larguraM: +largura.toFixed(3), areaM2: +(altura * largura).toFixed(3) }
+}
+
+// ─── 5c. Packing refinado por geometria do retângulo (S6.1) ─────────────────────
+// Estima fileiras × colunas a partir da área útil e da orientação do módulo.
+// Não é otimização NP-hard — é uma grade regular com espaçamentos típicos.
+export function gerarLayoutPreview({ areaUtil, moduloDims, orientacao_modulo = 'retrato', aspecto = 1.4 } = {}) {
+  const dims = moduloDims || { alturaM: 2.278, larguraM: 1.134, areaM2: 2.58 }
+  // Footprint do módulo conforme orientação
+  const modW = orientacao_modulo === 'paisagem' ? dims.alturaM : dims.larguraM
+  const modH = orientacao_modulo === 'paisagem' ? dims.larguraM : dims.alturaM
+  const gapH = 0.02        // folga lateral entre módulos (m)
+  const gapFileira = 0.04  // folga entre fileiras (coplanar; sem sombra entre fileiras)
+  // Retângulo aproximado da área útil (assume proporção `aspecto` largura:altura)
+  const W = Math.sqrt(n(areaUtil) * aspecto)
+  const H = n(areaUtil) > 0 ? n(areaUtil) / W : 0
+  const colunas = Math.max(0, Math.floor((W + gapH) / (modW + gapH)))
+  const fileiras = Math.max(0, Math.floor((H + gapFileira) / (modH + gapFileira)))
+  const modulos = colunas * fileiras
+  return { fileiras, colunas, modulos, por_fileira: colunas, larguraRetangulo: +W.toFixed(1), alturaRetangulo: +H.toFixed(1) }
+}
+
 // ─── 6. Cálculo completo de um pano ─────────────────────────────────────────────
 /**
  * @param {object} pano { id, nome, poligono?, area_bruta?, orientacao, inclinacao,
@@ -99,26 +135,38 @@ export function calcularPano(pano = {}, opts = {}) {
   const fatorOrient = fatorOrientacaoTilt(pano.orientacao, pano.inclinacao)
   const fatorGeracao = +(fatorOrient * fatorSombra).toFixed(3)
 
+  // S6.1: área e dimensões REAIS do módulo (catálogo) — fallback p/ moduloAreaM2/2.4
+  const moduloDims = opts.moduloDims || null
+  const moduloAreaM2 = moduloDims?.areaM2 ?? opts.moduloAreaM2 ?? 2.4
+  const orientacaoModulo = pano.orientacao_modulo || 'retrato'
+
   // Sombra severa reduz a área aproveitável de módulos
   const areaUtilEfetiva = sombraPct >= 50 ? area_util * 0.6 : area_util
-  const capacidade = maxModulosPorArea(areaUtilEfetiva, {
-    moduloAreaM2: opts.moduloAreaM2 ?? 2.4,
-    packing: (pano.orientacao_modulo === 'paisagem' ? 0.80 : 0.82),
+  const capacidadeArea = maxModulosPorArea(areaUtilEfetiva, {
+    moduloAreaM2,
+    packing: (orientacaoModulo === 'paisagem' ? 0.80 : 0.82),
   })
+
+  // S6.1: packing geométrico (grade real) — usa o MENOR entre área e grade
+  const preview = gerarLayoutPreview({ areaUtil: areaUtilEfetiva, moduloDims, orientacao_modulo: orientacaoModulo })
+  const capacidade = Math.min(capacidadeArea, preview.modulos || capacidadeArea)
 
   return {
     id: pano.id,
     nome: pano.nome || 'Pano',
+    poligono: Array.isArray(pano.poligono) ? pano.poligono : null,
     area_bruta: round1(areaBruta),
     area_obstaculos,
     area_util: round1(area_util),
     azimute: orientacaoParaAzimute(pano.orientacao),
     orientacao: pano.orientacao || 'Norte',
     inclinacao: n(pano.inclinacao),
-    orientacao_modulo: pano.orientacao_modulo || 'retrato',
+    orientacao_modulo: orientacaoModulo,
     fator_sombra_pct: sombraPct,
     fator_geracao: fatorGeracao,
+    modulo_area_m2: +n(moduloAreaM2).toFixed(3),
     capacidade_modulos: capacidade,
+    layout_preview: { ...preview, modulos: capacidade },
   }
 }
 

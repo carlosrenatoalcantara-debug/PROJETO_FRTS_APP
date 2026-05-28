@@ -128,7 +128,7 @@ export const gerarPropostaPDF = (dados) => {
                 <td class="orcamento-valor">${p.inclinacao}°</td>
                 <td class="orcamento-valor">${p.area_util} m²</td>
                 <td class="orcamento-valor">${p.fator_sombra_pct}%</td>
-                <td class="orcamento-valor">${p.capacidade_modulos}</td>
+                <td class="orcamento-valor">${p.capacidade_modulos}${p.layout_preview ? ` (${p.layout_preview.fileiras}×${p.layout_preview.colunas})` : ''}</td>
               </tr>`).join('')}
           </tbody>
         </table>
