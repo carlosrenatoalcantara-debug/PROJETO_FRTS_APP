@@ -261,6 +261,76 @@ const engenhariaEletricaV3Schema = new mongoose.Schema({
   },
 }, { _id: false })
 
+/**
+ * Governança Técnica (v3 — S3.5, additive).
+ *
+ * Congela snapshots imutáveis do projeto no momento da proposta/homologação.
+ * Após CONGELADO, o projeto NÃO depende mais do catálogo vivo nem de
+ * recálculos automáticos: os snapshots são a fonte de verdade.
+ *
+ * ── Retrocompatibilidade ─────────────────────────────────────────────────────
+ *  default: null → projetos v2/v3 antigos leem governanca como null (sem erro).
+ *  Nada é recalculado ou congelado automaticamente — só via ação explícita.
+ */
+const snapshotUnifilarV3Schema = new mongoose.Schema({
+  svg:       { type: String, default: null },
+  hash:      { type: String, default: null },
+  criado_em: { type: Date,   default: null },
+  versao:    { type: String, default: null },
+}, { _id: false })
+
+const revisaoV3Schema = new mongoose.Schema({
+  rev:                 { type: String, default: null },   // 'A', 'B', 'C'...
+  timestamp:           { type: Date,   default: Date.now },
+  usuario:             { type: String, default: null },
+  motivo:              { type: String, default: null },
+  alteracoes:          { type: String, default: null },
+  engineering_version: { type: String, default: null },
+  // Cópia congelada dos snapshots no momento da revisão (auditoria)
+  snapshots:           { type: mongoose.Schema.Types.Mixed, default: null },
+}, { _id: false })
+
+const auditoriaV3Schema = new mongoose.Schema({
+  timestamp: { type: Date,   default: Date.now },
+  usuario:   { type: String, default: null },
+  acao:      { type: String, default: null },   // 'congelamento' | 'revisao_criada' | 'status_alterado' | 'divergencia_detectada'
+  detalhe:   { type: String, default: null },
+  contexto:  { type: mongoose.Schema.Types.Mixed, default: null },
+}, { _id: false })
+
+const historicoTimelineV3Schema = new mongoose.Schema({
+  timestamp: { type: Date,   default: Date.now },
+  tipo:      { type: String, default: null },   // 'criado' | 'engenharia_recalculada' | 'catalogo_atualizado' | 'revisao' | 'congelado' | 'homologado'
+  descricao: { type: String, default: null },
+}, { _id: false })
+
+const governancaV3Schema = new mongoose.Schema({
+  /** Versão do motor de engenharia que gerou os snapshots (ex: 'ENG-2.0'). */
+  engineering_version: { type: String, default: null },
+
+  /** Status do ciclo de vida da proposta. CONGELADO/HOMOLOGADO travam recálculo. */
+  freeze_status: {
+    type: String,
+    enum: ['RASCUNHO', 'EM_REVISAO', 'CONGELADO', 'HOMOLOGADO', null],
+    default: 'RASCUNHO',
+  },
+
+  revisao_atual: { type: String, default: 'A' },
+  congelado_em:  { type: Date,   default: null },
+  congelado_por: { type: String, default: null },
+
+  // Snapshots congelados — Mixed porque a estrutura espelha o motor de engenharia
+  snapshot_tecnico:    { type: mongoose.Schema.Types.Mixed, default: null },
+  snapshot_catalogo:   { type: mongoose.Schema.Types.Mixed, default: null },
+  snapshot_unifilar:   { type: snapshotUnifilarV3Schema,     default: null },
+  snapshot_memorial:   { type: mongoose.Schema.Types.Mixed, default: null },
+  snapshot_financeiro: { type: mongoose.Schema.Types.Mixed, default: null },
+
+  revisoes:  { type: [revisaoV3Schema],          default: [] },
+  auditoria: { type: [auditoriaV3Schema],        default: [] },
+  historico: { type: [historicoTimelineV3Schema], default: [] },
+}, { _id: false })
+
 // ─── Schema principal ─────────────────────────────────────────────────────────
 
 const projetoFVSchema = new mongoose.Schema({
@@ -486,6 +556,16 @@ const projetoFVSchema = new mongoose.Schema({
    */
   engenharia_eletrica: {
     type: engenhariaEletricaV3Schema,
+    default: null,
+  },
+
+  /**
+   * Governança técnica (S3.5 — additive).
+   * Snapshots congelados, versionamento de engenharia, revisões e auditoria.
+   * Projetos antigos sem este campo leem null — nada é congelado automaticamente.
+   */
+  governanca: {
+    type: governancaV3Schema,
     default: null,
   },
 

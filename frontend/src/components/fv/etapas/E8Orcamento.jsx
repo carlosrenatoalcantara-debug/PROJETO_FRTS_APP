@@ -15,6 +15,8 @@ import {
   criarProjeto,
   salvarTodosSlices,
 } from '../../../services/projetoFVApi'
+import GovernancaPainel from '../GovernancaPainel'
+import { construirTodosSnapshots } from '../../../utils/engenhariaGovernanca'
 
 function LinhaResumo({ rotulo, valor }) {
   return (
@@ -79,6 +81,8 @@ export default function E8Orcamento() {
   const [gerandoProposta, setGerandoProposta] = useState(false)
   const [erroUnifilar,    setErroUnifilar]    = useState('')
   const [erroProposta,    setErroProposta]    = useState('')
+  // S3.5: governança técnica (snapshots congelados)
+  const [governancaProj, setGovernancaProj]   = useState(null)
 
   // ⚠️ Destructuring movido para ANTES dos useState que referenciam painel/inversor/estrutura
   //    para eliminar ReferenceError TDZ (Temporal Dead Zone).
@@ -318,6 +322,44 @@ export default function E8Orcamento() {
     navigator.clipboard?.writeText(texto).then(() => alert('Resumo copiado!')).catch(() => {})
   }
 
+  // ── S3.5: monta o SVG do unifilar (mesma config do baixarUnifilar) ──────────
+  function gerarUnifilarSVGString() {
+    try {
+      return gerarUnifilarSVG({
+        nome:         dadosCliente.nomeProjeto || `Sistema FV ${dim.potenciaRealKwp ?? '?'} kWp`,
+        nomeCliente:  dadosCliente.nomeCliente || 'Cliente',
+        dimensionamento: {
+          numPaineis:          dim.numPaineis ?? 0,
+          numStrings:          dim.numStrings ?? 1,
+          potenciaArredondada: dim.potenciaRealKwp ?? dim.potenciaKwp ?? 0,
+        },
+        tipo_ligacao:  dadosConsumo.tipoLigacao || 'monofasico',
+        tensao:        dadosConsumo.tensao || '220',
+        distribuidora: dadosConsumo.concessionaria || dadosConsumo.distribuidora || 'Concessionária',
+        painel:        painel || null,
+        inversor:      inversor || null,
+        arranjoMPPTs:  equipamentos.arranjoMPPTs || null,
+        uf:            localizacao.uf || null,
+      })
+    } catch (e) {
+      console.warn('[E8] unifilar para snapshot falhou:', e.message)
+      return null
+    }
+  }
+
+  // ── S3.5: constrói todos os snapshots para congelamento ─────────────────────
+  function construirSnapshotsE8() {
+    const orcamentoLocal = {
+      total, subtotalPaineis, subtotalInversores,
+      subtotalEstrutura, subtotalMaoDeTrabaho, subtotalCabosProtecao,
+    }
+    return construirTodosSnapshots({
+      state,
+      orcamentoLocal,
+      unifilarSVG: (painel && inversor) ? gerarUnifilarSVGString() : null,
+    })
+  }
+
   // Tela de sucesso após salvar
   if (salvo) {
     return (
@@ -380,6 +422,17 @@ export default function E8Orcamento() {
             </Button>
           </div>
         </div>
+
+        {/* S3.5: Governança técnica — congelar/homologar snapshots */}
+        {state.projetoId && (
+          <GovernancaPainel
+            projetoId={state.projetoId}
+            governanca={governancaProj}
+            construirSnapshots={construirSnapshotsE8}
+            onAtualizar={setGovernancaProj}
+            usuario={empresa?.email || dadosCliente?.email || null}
+          />
+        )}
 
         <div className="flex justify-center gap-3">
           <Button

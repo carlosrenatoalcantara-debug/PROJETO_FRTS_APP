@@ -1,4 +1,5 @@
 import { ProjetoFV } from '../models/ProjetoFV.js'
+import { Equipamento } from '../models/Equipamento.js'
 import mongoose from 'mongoose'
 import { memoryStore } from '../config/memoryStorage.js'
 
@@ -433,8 +434,24 @@ export const salvarEtapaProjetoFV = async (req, res) => {
     // ⚠️ FIX defensivo: garantir que `workflow` não seja null antes de tocar subcampos.
     // Sem isso, MongoDB lança "Cannot create field 'ultima_atividade' in element {workflow: null}"
     // pois $set em path dot-notation falha quando o ancestral é null.
-    const projetoAtual = await ProjetoFV.findById(id).select('workflow').lean()
+    const projetoAtual = await ProjetoFV.findById(id).select('workflow governanca.freeze_status').lean()
     if (!projetoAtual) return res.status(404).json({ erro: 'Projeto não encontrado' })
+
+    // ── S3.5: Freeze guard ─────────────────────────────────────────────────────
+    // Projetos CONGELADO/HOMOLOGADO não aceitam recálculo nem alteração silenciosa
+    // de engenharia. Apenas a etapa 'workflow' (progresso/visita) é tolerada para
+    // não travar navegação. Snapshots e mudança de status passam por endpoints
+    // dedicados de governança, não por esta rota.
+    const freezeStatus = projetoAtual.governanca?.freeze_status
+    if ((freezeStatus === 'CONGELADO' || freezeStatus === 'HOMOLOGADO') && etapa !== 'workflow') {
+      return res.status(409).json({
+        erro: `Projeto ${freezeStatus} — alteração de "${etapa}" bloqueada.`,
+        codigo: 'PROJETO_CONGELADO',
+        freeze_status: freezeStatus,
+        dica: 'Crie uma revisão (Rev B/C) para reabrir a engenharia antes de editar.',
+      })
+    }
+
     if (!projetoAtual.workflow) {
       await ProjetoFV.updateOne({ _id: id }, { $set: { workflow: {} } })
     }
@@ -514,6 +531,335 @@ export const gerarUnifilarProjeto = async (req, res) => {
     )
   } catch (err) {
     console.error('❌ Erro ao gerar unifilar:', err)
+    res.status(500).json({ erro: err.message })
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// S3.5 — GOVERNANÇA TÉCNICA
+//
+// Congelamento de snapshots, versionamento de engenharia, revisões, auditoria e
+// detecção de divergência com o catálogo vivo. Tudo additive: projetos antigos
+// (governanca === null) seguem funcionando sem nenhuma alteração de comportamento.
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function _exigirMongo(res) {
+  if (mongoose.connection.readyState !== 1) {
+    res.status(503).json({ erro: 'MongoDB indisponível.', codigo: 'DB_OFFLINE' })
+    return false
+  }
+  return true
+}
+
+// Próxima letra de revisão: A→B→C... (após Z, usa AA, AB... improvável mas seguro)
+function _proximaRevisao(atual) {
+  if (!atual) return 'A'
+  const ultima = String(atual).trim().toUpperCase()
+  const cod = ultima.charCodeAt(ultima.length - 1)
+  if (cod >= 65 && cod < 90) return ultima.slice(0, -1) + String.fromCharCode(cod + 1)
+  if (cod === 90) return ultima + 'A' // Z → ZA
+  return 'A'
+}
+
+/**
+ * POST /:id/governanca/congelar
+ * Congela os snapshots enviados pelo frontend e trava o projeto.
+ * Body: { snapshots: { tecnico, catalogo, unifilar, memorial, financeiro },
+ *         engineering_version, usuario, motivo, novo_status }
+ */
+export const congelarProjetoFV = async (req, res) => {
+  try {
+    if (!_exigirMongo(res)) return
+    const { id } = req.params
+    if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ erro: 'ID inválido' })
+
+    const {
+      snapshots = {},
+      engineering_version = null,
+      usuario = null,
+      motivo = null,
+      novo_status = 'CONGELADO',
+    } = req.body || {}
+
+    const STATUS_VALIDOS = ['CONGELADO', 'HOMOLOGADO']
+    if (!STATUS_VALIDOS.includes(novo_status)) {
+      return res.status(400).json({ erro: `novo_status deve ser um de: ${STATUS_VALIDOS.join(', ')}` })
+    }
+
+    const projeto = await ProjetoFV.findById(id)
+    if (!projeto) return res.status(404).json({ erro: 'Projeto não encontrado' })
+
+    const gov = projeto.governanca || {}
+    const agora = new Date()
+    const revAtual = gov.revisao_atual || 'A'
+
+    // Monta o subdoc de governança congelado
+    const novaGovernanca = {
+      ...((projeto.governanca && projeto.governanca.toObject?.()) || gov),
+      engineering_version: engineering_version || gov.engineering_version || null,
+      freeze_status: novo_status,
+      revisao_atual: revAtual,
+      congelado_em: agora,
+      congelado_por: usuario,
+      snapshot_tecnico:    snapshots.tecnico    ?? gov.snapshot_tecnico    ?? null,
+      snapshot_catalogo:   snapshots.catalogo   ?? gov.snapshot_catalogo   ?? null,
+      snapshot_unifilar:   snapshots.unifilar   ?? gov.snapshot_unifilar   ?? null,
+      snapshot_memorial:   snapshots.memorial   ?? gov.snapshot_memorial   ?? null,
+      snapshot_financeiro: snapshots.financeiro ?? gov.snapshot_financeiro ?? null,
+    }
+
+    // Garante arrays existentes
+    novaGovernanca.revisoes  = Array.isArray(gov.revisoes)  ? [...gov.revisoes]  : []
+    novaGovernanca.auditoria = Array.isArray(gov.auditoria) ? [...gov.auditoria] : []
+    novaGovernanca.historico = Array.isArray(gov.historico) ? [...gov.historico] : []
+
+    // Registra/atualiza a revisão atual com cópia dos snapshots
+    const idxRev = novaGovernanca.revisoes.findIndex(r => r.rev === revAtual)
+    const registroRev = {
+      rev: revAtual,
+      timestamp: agora,
+      usuario,
+      motivo: motivo || `Proposta ${novo_status.toLowerCase()}`,
+      alteracoes: 'Snapshots técnicos, catálogo, unifilar, memorial e financeiro congelados.',
+      engineering_version: novaGovernanca.engineering_version,
+      snapshots: {
+        tecnico:    novaGovernanca.snapshot_tecnico,
+        catalogo:   novaGovernanca.snapshot_catalogo,
+        unifilar:   novaGovernanca.snapshot_unifilar,
+        memorial:   novaGovernanca.snapshot_memorial,
+        financeiro: novaGovernanca.snapshot_financeiro,
+      },
+    }
+    if (idxRev >= 0) novaGovernanca.revisoes[idxRev] = registroRev
+    else novaGovernanca.revisoes.push(registroRev)
+
+    novaGovernanca.auditoria.push({
+      timestamp: agora, usuario, acao: 'congelamento',
+      detalhe: `Projeto ${novo_status} na revisão ${revAtual} (motor ${novaGovernanca.engineering_version || '—'}).`,
+      contexto: { motivo },
+    })
+    novaGovernanca.historico.push({
+      timestamp: agora,
+      tipo: novo_status === 'HOMOLOGADO' ? 'homologado' : 'congelado',
+      descricao: `Rev ${revAtual} — proposta ${novo_status.toLowerCase()}.`,
+    })
+
+    projeto.governanca = novaGovernanca
+    await projeto.save()
+
+    console.log(`🔒 Projeto ${id} ${novo_status} (Rev ${revAtual})`)
+    res.json({ sucesso: true, governanca: projeto.governanca })
+  } catch (err) {
+    console.error('❌ Erro ao congelar projeto:', err)
+    res.status(500).json({ erro: err.message })
+  }
+}
+
+/**
+ * POST /:id/governanca/revisao
+ * Cria nova revisão (Rev A→B→C) e reabre a engenharia (volta a EM_REVISAO).
+ * Body: { usuario, motivo, alteracoes }
+ */
+export const criarRevisaoProjetoFV = async (req, res) => {
+  try {
+    if (!_exigirMongo(res)) return
+    const { id } = req.params
+    if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ erro: 'ID inválido' })
+
+    const { usuario = null, motivo = null, alteracoes = null } = req.body || {}
+
+    const projeto = await ProjetoFV.findById(id)
+    if (!projeto) return res.status(404).json({ erro: 'Projeto não encontrado' })
+
+    const gov = (projeto.governanca && projeto.governanca.toObject?.()) || projeto.governanca || {}
+    const agora = new Date()
+    const novaRev = _proximaRevisao(gov.revisao_atual || 'A')
+
+    const revisoes  = Array.isArray(gov.revisoes)  ? [...gov.revisoes]  : []
+    const auditoria = Array.isArray(gov.auditoria) ? [...gov.auditoria] : []
+    const historico = Array.isArray(gov.historico) ? [...gov.historico] : []
+
+    revisoes.push({
+      rev: novaRev, timestamp: agora, usuario,
+      motivo: motivo || 'Revisão aberta para edição',
+      alteracoes,
+      engineering_version: gov.engineering_version || null,
+      snapshots: null, // ainda não congelada
+    })
+    auditoria.push({
+      timestamp: agora, usuario, acao: 'revisao_criada',
+      detalhe: `Revisão ${novaRev} criada. Engenharia reaberta (EM_REVISAO).`,
+      contexto: { motivo, alteracoes },
+    })
+    historico.push({
+      timestamp: agora, tipo: 'revisao',
+      descricao: `Rev ${novaRev} criada — projeto reaberto para edição.`,
+    })
+
+    projeto.governanca = {
+      ...gov,
+      freeze_status: 'EM_REVISAO',
+      revisao_atual: novaRev,
+      revisoes, auditoria, historico,
+    }
+    await projeto.save()
+
+    console.log(`📝 Projeto ${id} reaberto — Rev ${novaRev}`)
+    res.json({ sucesso: true, revisao_atual: novaRev, governanca: projeto.governanca })
+  } catch (err) {
+    console.error('❌ Erro ao criar revisão:', err)
+    res.status(500).json({ erro: err.message })
+  }
+}
+
+/**
+ * PUT /:id/governanca/status
+ * Altera o status de governança manualmente (RASCUNHO/EM_REVISAO/CONGELADO/HOMOLOGADO).
+ * Body: { status, usuario }
+ */
+export const alterarStatusGovernanca = async (req, res) => {
+  try {
+    if (!_exigirMongo(res)) return
+    const { id } = req.params
+    if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ erro: 'ID inválido' })
+
+    const { status, usuario = null } = req.body || {}
+    const STATUS_VALIDOS = ['RASCUNHO', 'EM_REVISAO', 'CONGELADO', 'HOMOLOGADO']
+    if (!STATUS_VALIDOS.includes(status)) {
+      return res.status(400).json({ erro: `status deve ser um de: ${STATUS_VALIDOS.join(', ')}` })
+    }
+
+    const projeto = await ProjetoFV.findById(id)
+    if (!projeto) return res.status(404).json({ erro: 'Projeto não encontrado' })
+
+    const gov = (projeto.governanca && projeto.governanca.toObject?.()) || projeto.governanca || {}
+    const agora = new Date()
+    const auditoria = Array.isArray(gov.auditoria) ? [...gov.auditoria] : []
+    const historico = Array.isArray(gov.historico) ? [...gov.historico] : []
+    const anterior = gov.freeze_status || 'RASCUNHO'
+
+    auditoria.push({
+      timestamp: agora, usuario, acao: 'status_alterado',
+      detalhe: `Status: ${anterior} → ${status}.`,
+    })
+    historico.push({
+      timestamp: agora, tipo: status === 'HOMOLOGADO' ? 'homologado' : status.toLowerCase(),
+      descricao: `Status alterado para ${status}.`,
+    })
+
+    projeto.governanca = {
+      ...gov,
+      freeze_status: status,
+      ...(status === 'HOMOLOGADO' ? {} : {}),
+      auditoria, historico,
+    }
+    await projeto.save()
+
+    res.json({ sucesso: true, freeze_status: status, governanca: projeto.governanca })
+  } catch (err) {
+    console.error('❌ Erro ao alterar status de governança:', err)
+    res.status(500).json({ erro: err.message })
+  }
+}
+
+/**
+ * GET /:id/governanca/divergencia
+ * Compara o snapshot_catalogo congelado com o catálogo vivo (Equipamento).
+ * Detecta equipamentos que mudaram de specs/score/validação desde o congelamento.
+ */
+export const detectarDivergenciaProjetoFV = async (req, res) => {
+  try {
+    if (!_exigirMongo(res)) return
+    const { id } = req.params
+    if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ erro: 'ID inválido' })
+
+    const projeto = await ProjetoFV.findById(id).lean()
+    if (!projeto) return res.status(404).json({ erro: 'Projeto não encontrado' })
+
+    const snapCat = projeto.governanca?.snapshot_catalogo
+    if (!snapCat) {
+      return res.json({
+        sucesso: true,
+        tem_snapshot: false,
+        mensagem: 'Projeto sem snapshot de catálogo — nada para comparar.',
+        divergencias: [],
+      })
+    }
+
+    // snapshot_catalogo: { modulo: {...}, inversor: {...}, ... }
+    const divergencias = []
+
+    for (const [chave, snap] of Object.entries(snapCat)) {
+      if (!snap || typeof snap !== 'object') continue
+
+      // Localiza o equipamento atual: por id, senão por fabricante+modelo
+      let atual = null
+      if (snap.equipamento_id && mongoose.Types.ObjectId.isValid(snap.equipamento_id)) {
+        atual = await Equipamento.findById(snap.equipamento_id).lean()
+      }
+      if (!atual && snap.fabricante && snap.modelo) {
+        atual = await Equipamento.findOne({
+          fabricante: snap.fabricante,
+          modelo: snap.modelo,
+        }).lean()
+      }
+
+      if (!atual) {
+        divergencias.push({
+          chave, fabricante: snap.fabricante, modelo: snap.modelo,
+          tipo_divergencia: 'removido_do_catalogo',
+          impacto: 'Equipamento não encontrado no catálogo atual.',
+          mudancas: [],
+        })
+        continue
+      }
+
+      // Compara campos relevantes
+      const mudancas = []
+      const hashAtual = atual.identificacao?.hash_unico ?? null
+      if (snap.hash_tecnico && hashAtual && snap.hash_tecnico !== hashAtual) {
+        mudancas.push({ campo: 'hash_tecnico', de: snap.hash_tecnico, para: hashAtual })
+      }
+      const scoreAtual = atual.qualidade?.score_global ?? null
+      if (snap.score != null && scoreAtual != null && snap.score !== scoreAtual) {
+        mudancas.push({ campo: 'score_qualidade', de: snap.score, para: scoreAtual })
+      }
+      const nivelAtual = atual.qualidade?.nivel ?? null
+      if (snap.nivel && nivelAtual && snap.nivel !== nivelAtual) {
+        mudancas.push({ campo: 'nivel_qualidade', de: snap.nivel, para: nivelAtual })
+      }
+      // Specs elétricas
+      const espSnap = snap.especificacoes || {}
+      const espAtual = atual.especificacoes || {}
+      for (const campo of Object.keys(espSnap)) {
+        if (espAtual[campo] !== undefined && espSnap[campo] !== espAtual[campo]) {
+          mudancas.push({ campo: `especificacoes.${campo}`, de: espSnap[campo], para: espAtual[campo] })
+        }
+      }
+
+      if (mudancas.length > 0) {
+        divergencias.push({
+          chave, fabricante: snap.fabricante, modelo: snap.modelo,
+          tipo_divergencia: 'specs_alteradas',
+          impacto: mudancas.some(m => m.campo.startsWith('especificacoes'))
+            ? 'Specs elétricas mudaram — recálculo necessário para refletir o catálogo atual.'
+            : 'Qualidade/score do equipamento mudou no catálogo.',
+          mudancas,
+        })
+      }
+    }
+
+    res.json({
+      sucesso: true,
+      tem_snapshot: true,
+      congelado_em: projeto.governanca?.congelado_em ?? null,
+      engineering_version: projeto.governanca?.engineering_version ?? null,
+      total_divergencias: divergencias.length,
+      divergente: divergencias.length > 0,
+      divergencias,
+    })
+  } catch (err) {
+    console.error('❌ Erro ao detectar divergência:', err)
     res.status(500).json({ erro: err.message })
   }
 }

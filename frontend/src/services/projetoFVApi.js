@@ -229,6 +229,41 @@ export function buscarClientes() {
   return _fetch('/api/clientes')
 }
 
+// ─── S3.5: Governança técnica ───────────────────────────────────────────────────
+
+/**
+ * Congela os snapshots do projeto e trava recálculo.
+ * @param {string} projetoId
+ * @param {{ snapshots, engineering_version, usuario, motivo, novo_status }} payload
+ */
+export function congelarProjeto(projetoId, payload) {
+  return _fetch(`/api/projetos-fv/${projetoId}/governanca/congelar`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+}
+
+/** Cria nova revisão (Rev A→B) e reabre a engenharia (EM_REVISAO). */
+export function criarRevisao(projetoId, { usuario, motivo, alteracoes } = {}) {
+  return _fetch(`/api/projetos-fv/${projetoId}/governanca/revisao`, {
+    method: 'POST',
+    body: JSON.stringify({ usuario, motivo, alteracoes }),
+  })
+}
+
+/** Altera manualmente o status de governança. */
+export function alterarStatusGovernanca(projetoId, status, usuario = null) {
+  return _fetch(`/api/projetos-fv/${projetoId}/governanca/status`, {
+    method: 'PUT',
+    body: JSON.stringify({ status, usuario }),
+  })
+}
+
+/** Detecta divergência entre o snapshot congelado e o catálogo vivo. */
+export function buscarDivergencia(projetoId) {
+  return _fetch(`/api/projetos-fv/${projetoId}/governanca/divergencia`)
+}
+
 /**
  * Resolve clienteId a partir do nome do cliente (mesmo comportamento de E8 legado).
  * Retorna null se não encontrado.

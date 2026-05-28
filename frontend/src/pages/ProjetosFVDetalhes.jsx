@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
-import { AlertCircle, BarChart3, Battery, FileText, Zap, Edit2, X } from 'lucide-react'
+import { AlertCircle, BarChart3, Battery, FileText, Zap, Edit2, X, ShieldCheck } from 'lucide-react'
 import Card, { CardHeader, CardBody } from '../components/ui/Card'
 import Button from '../components/ui/Button'
+import Badge from '../components/ui/Badge'
 import UnifilarFV from '../components/fv/UnifilarFV'
+import GovernancaPainel from '../components/fv/GovernancaPainel'
+import { getFreezeStatusConfig } from '../utils/engenhariaGovernanca'
 import InteractiveDiagram from '../components/diagram/InteractiveDiagram'
 import { carregarDiagramaLocal, salvarDiagramaLocal, deletarDiagramaLocal } from '../components/diagram/utils/diagramPersistence'
 
@@ -120,14 +123,21 @@ export default function ProjetosFVDetalhes() {
     { id: 'bess', label: 'BESS', icone: Battery },
     { id: 'financeiro', label: 'Financeiro', icone: BarChart3 },
     { id: 'unifilar', label: 'Unifilar', icone: Zap },
+    { id: 'governanca', label: 'Governança', icone: ShieldCheck },
     { id: 'homologacao', label: 'Homologação', icone: FileText },
   ]
+
+  const statusGov = projeto.governanca?.freeze_status
+  const cfgGov = statusGov ? getFreezeStatusConfig(statusGov) : null
 
   return (
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">{projeto.nomeCliente}</h1>
+          <div className="flex items-center gap-3 flex-wrap">
+            <h1 className="text-3xl font-bold text-slate-900">{projeto.nomeCliente}</h1>
+            {cfgGov && <Badge cor={cfgGov.cor}>{cfgGov.label}</Badge>}
+          </div>
           <p className="text-slate-600 mt-1">{projeto.endereco}</p>
         </div>
         <Button
@@ -167,6 +177,14 @@ export default function ProjetosFVDetalhes() {
         {abaAtiva === 'bess' && <AbaBESS />}
         {abaAtiva === 'financeiro' && <AbaFinanceiro projeto={projeto} />}
         {abaAtiva === 'unifilar' && <UnifilarFV projeto={projeto} />}
+        {abaAtiva === 'governanca' && (
+          <GovernancaPainel
+            projetoId={id}
+            governanca={projeto.governanca}
+            onAtualizar={(g) => setProjeto(p => ({ ...p, governanca: g }))}
+            usuario={null}
+          />
+        )}
         {abaAtiva === 'homologacao' && <AbaHomologacao />}
       </div>
 

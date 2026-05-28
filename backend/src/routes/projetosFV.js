@@ -10,6 +10,10 @@ import {
   obterTelhado,
   gerarUnifilarProjeto,
   salvarEtapaProjetoFV,  // S2.7 — persistência incremental por slice do Wizard v2
+  congelarProjetoFV,           // S3.5 — governança
+  criarRevisaoProjetoFV,
+  alterarStatusGovernanca,
+  detectarDivergenciaProjetoFV,
 } from '../controllers/projetosFVController.js'
 import {
   prepararComFatura,
@@ -32,6 +36,12 @@ router.post('/finalizar-com-fatura', finalizarComFatura)
 
 // ── S2.7: Persistência incremental por etapa (Wizard v2) ────────────────────
 router.put('/:id/etapa',           salvarEtapaProjetoFV)
+
+// ── S3.5: Governança técnica (snapshots, revisões, divergência) ─────────────
+router.post('/:id/governanca/congelar',    congelarProjetoFV)
+router.post('/:id/governanca/revisao',      criarRevisaoProjetoFV)
+router.put('/:id/governanca/status',        alterarStatusGovernanca)
+router.get('/:id/governanca/divergencia',   detectarDivergenciaProjetoFV)
 
 // ── CRUD existente (preservado) ─────────────────────────────────────────────
 router.get('/',                    listarProjetosFV)
