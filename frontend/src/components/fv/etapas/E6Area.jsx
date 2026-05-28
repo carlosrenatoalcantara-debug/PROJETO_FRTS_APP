@@ -5,7 +5,9 @@ import Input from '../../ui/Input'
 import Select from '../../ui/Select'
 import Button from '../../ui/Button'
 import MapaTelhado from '../MapaTelhado'
+import PlanejadorTelhado from '../PlanejadorTelhado'
 import { calcularAreaSuficiente } from '../../../utils/calcDimensionamento'
+import { consolidarPanos } from '../../../utils/geoEngine'
 
 const ORIENTACOES = ['Norte','Sul','Leste','Oeste','Nordeste','Noroeste','Sudeste','Sudoeste','Plano']
   .map(v => ({ valor: v, rotulo: v }))
@@ -22,6 +24,30 @@ export default function E6Area() {
     }
     dispatch({ type: 'SET_AREA', payload: novaArea })
   }
+
+  // S6: atualiza panos e deriva área útil + capacidade máxima (alimenta E7/engenharia)
+  function setPanos(panos) {
+    const c = consolidarPanos(panos)
+    const novaArea = {
+      ...area,
+      panos,
+      areaUtil: c.area_util_total,
+      areaBruta: c.area_bruta_total,
+      capacidadeMaxModulos: c.max_modulos_total,
+      fatorGeracaoMedio: c.fator_geracao_medio,
+      fatorSombraMedio: c.fator_sombra_medio,
+    }
+    // Mantém compatibilidade: areaDisponivel reflete a área bruta total dos panos
+    if (c.area_bruta_total > 0) {
+      novaArea.areaDisponivel = String(c.area_bruta_total)
+      if (dim.areaMinima) novaArea.suficiente = calcularAreaSuficiente(c.area_bruta_total, dim.areaMinima)
+    }
+    dispatch({ type: 'SET_AREA', payload: novaArea })
+  }
+
+  const panos = area.panos || []
+  const capacidade = area.capacidadeMaxModulos ?? 0
+  const capacidadeExcedida = capacidade > 0 && dim.numPaineis > capacidade
 
   function validar() {
     if (!area.areaDisponivel || Number(area.areaDisponivel) <= 0) {
@@ -95,19 +121,39 @@ export default function E6Area() {
         </div>
       </div>
 
-      {/* Google Maps Interativo */}
+      {/* Google Maps — pino de localização */}
       <div>
         <div className="flex items-center gap-2 mb-2">
           <Map size={18} className="text-slate-600" />
-          <p className="text-sm font-semibold text-slate-700">Desenhe a área no mapa</p>
+          <p className="text-sm font-semibold text-slate-700">Localização (satélite)</p>
         </div>
         <MapaTelhado
-          onAreaCalculada={(areaM2) => set('areaDisponivel', String(areaM2))}
+          onAreaCalculada={(areaM2) => { if (panos.length === 0) set('areaDisponivel', String(areaM2)) }}
           endereco={localizacao?.endereco}
           latitude={localizacao?.lat}
           longitude={localizacao?.lon}
         />
       </div>
+
+      {/* S6: Planejador geoespacial multi-pano */}
+      <div className="p-4 bg-white border border-slate-200 rounded-xl">
+        <PlanejadorTelhado panos={panos} onChange={setPanos} />
+      </div>
+
+      {/* S6: sincronização layout ↔ engenharia */}
+      {capacidade > 0 && (
+        <div className={`flex items-start gap-2 p-3 rounded-lg text-sm border ${
+          capacidadeExcedida ? 'bg-red-50 border-red-200 text-red-800' : 'bg-emerald-50 border-emerald-200 text-emerald-800'
+        }`}>
+          {capacidadeExcedida ? <XCircle size={16} className="shrink-0 mt-0.5" /> : <CheckCircle size={16} className="shrink-0 mt-0.5" />}
+          <div>
+            <strong>Capacidade do telhado: {capacidade} módulos.</strong>
+            {capacidadeExcedida
+              ? ` A engenharia (E5/E7) prevê ${dim.numPaineis} módulos — excede o layout em ${dim.numPaineis - capacidade}. Ajuste os panos ou reduza o sistema.`
+              : ` Comporta os ${dim.numPaineis} módulos previstos (${Math.round((dim.numPaineis / capacidade) * 100)}% de ocupação).`}
+          </div>
+        </div>
+      )}
 
       {/* Resultado da verificação */}
       {area.areaDisponivel && suficiente !== null && (

@@ -104,6 +104,15 @@ const layoutSolarV3Schema = new mongoose.Schema({
   },
   sombreamento_pct:     { type: Number,  min: 0, max: 100, default: null },
   imagem_satelite_url:  { type: String,  default: null },
+
+  // ── S6: Geoespacial multi-pano (additive) ────────────────────────────────
+  // roof_planes e obstaculos são Mixed (estrutura definida no geoEngine).
+  roof_planes:          { type: mongoose.Schema.Types.Mixed, default: null },
+  obstaculos:           { type: mongoose.Schema.Types.Mixed, default: null },
+  area_bruta_m2:        { type: Number,  default: null },
+  capacidade_max_modulos: { type: Number, default: null },
+  fator_sombra_medio:   { type: Number,  default: null },
+  fator_geracao_medio:  { type: Number,  default: null },
 }, { _id: false })
 
 /**
@@ -447,6 +456,7 @@ const governancaV3Schema = new mongoose.Schema({
 
   // Snapshots congelados — Mixed porque a estrutura espelha o motor de engenharia
   snapshot_tecnico:    { type: mongoose.Schema.Types.Mixed, default: null },
+  snapshot_geoespacial:{ type: mongoose.Schema.Types.Mixed, default: null }, // S6
   snapshot_catalogo:   { type: mongoose.Schema.Types.Mixed, default: null },
   snapshot_unifilar:   { type: snapshotUnifilarV3Schema,     default: null },
   snapshot_memorial:   { type: mongoose.Schema.Types.Mixed, default: null },

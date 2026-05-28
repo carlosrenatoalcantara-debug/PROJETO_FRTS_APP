@@ -19,7 +19,7 @@ import GovernancaPainel from '../GovernancaPainel'
 import CentroFinanceiroFV from '../CentroFinanceiroFV'
 import PropostaEnterprise from '../PropostaEnterprise'
 import CrmPainel from '../CrmPainel'
-import { construirTodosSnapshots, construirSnapshotTecnico } from '../../../utils/engenhariaGovernanca'
+import { construirTodosSnapshots, construirSnapshotTecnico, construirSnapshotGeoespacial } from '../../../utils/engenhariaGovernanca'
 
 function LinhaResumo({ rotulo, valor }) {
   return (
@@ -245,6 +245,8 @@ export default function E8Orcamento() {
         financeiro:   resultadoFinanceiro || null,
         // S4.2: cenários comerciais comparados
         comercial:    comercialProj || null,
+        // S6: layout/telhado (panos, área útil, capacidade)
+        geoespacial:  construirSnapshotGeoespacial({ panos: state.area?.panos || [], lat: localizacao.lat, lon: localizacao.lon }),
         validadeDias: fin.validadeProposta || 15,
       })
       abrirOuBaixarProposta(htmlProposta)

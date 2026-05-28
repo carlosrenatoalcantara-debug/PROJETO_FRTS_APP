@@ -6,6 +6,7 @@ export const gerarPropostaPDF = (dados) => {
     empresa = {},
     financeiro = null,   // S4: resultado do centro financeiro EPC (opcional)
     comercial = null,    // S4.2: cenários comerciais comparados (opcional)
+    geoespacial = null,  // S6: layout/telhado (panos, área útil, capacidade)
     validadeDias = 30,
   } = dados
 
@@ -99,6 +100,38 @@ export const gerarPropostaPDF = (dados) => {
           </tbody>
         </table>
         <p style="font-size:10px;color:#999;margin-bottom:20px;">Cenários conforme premissas regulatórias (Lei 14.300/2022). O cenário Realista é a base da proposta.${algumCongeladoInd ? ' Cenários marcados como "Congelado" foram congelados individualmente, com hash e revisão próprios.' : ''}</p>
+  ` : ''
+
+  // S6: seção de layout/telhado (área útil + panos)
+  const geoPanos = Array.isArray(geoespacial?.panos) ? geoespacial.panos : []
+  const secaoLayout = (geoespacial && geoPanos.length > 0) ? `
+        <h2 class="subtitulo">Layout no Telhado</h2>
+        <div class="resumo">
+          <div class="resumo-card">
+            <div class="resumo-card-titulo">Área útil</div>
+            <div class="resumo-card-valor">${geoespacial.area_util_total} m²</div>
+            <div class="resumo-card-sub">${geoespacial.total_panos} pano(s) · sombra média ${geoespacial.fator_sombra_medio}%</div>
+          </div>
+          <div class="resumo-card">
+            <div class="resumo-card-titulo">Capacidade máxima</div>
+            <div class="resumo-card-valor">${geoespacial.max_modulos_total} módulos</div>
+            <div class="resumo-card-sub">Fator de geração médio ${geoespacial.fator_geracao_medio}</div>
+          </div>
+        </div>
+        <table class="orcamento-tabela">
+          <thead><tr><th>Pano</th><th class="orcamento-valor">Orientação</th><th class="orcamento-valor">Inclin.</th><th class="orcamento-valor">Área útil</th><th class="orcamento-valor">Sombra</th><th class="orcamento-valor">Módulos</th></tr></thead>
+          <tbody>
+            ${geoPanos.map(p => `
+              <tr>
+                <td>${p.nome}</td>
+                <td class="orcamento-valor">${p.orientacao}</td>
+                <td class="orcamento-valor">${p.inclinacao}°</td>
+                <td class="orcamento-valor">${p.area_util} m²</td>
+                <td class="orcamento-valor">${p.fator_sombra_pct}%</td>
+                <td class="orcamento-valor">${p.capacidade_modulos}</td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
   ` : ''
 
   const secaoRegulatoria = premissasReg ? `
@@ -265,6 +298,8 @@ export const gerarPropostaPDF = (dados) => {
             <span class="especificacoes-valor">10 anos</span>
           </div>
         </div>
+
+        ${secaoLayout}
 
         <h2 class="subtitulo">Orçamento Detalhado</h2>
         <table class="orcamento-tabela">

@@ -13,6 +13,7 @@
 import { montarModeloEletrico } from './engenhariaNormativa'
 import { validarEquipamento } from './catalogQualityEngine'
 import { calcularFinanceiroCompleto } from './financeiroEngine'
+import { consolidarPanos } from './geoEngine'
 
 /**
  * Versão do motor de engenharia.
@@ -47,7 +48,32 @@ export function hashTecnico(valor) {
  * Reaproveita montarModeloEletrico (mesma engenharia da Sprint 2.5) para
  * garantir que o snapshot reflita exatamente o que o unifilar/memorial mostram.
  */
-export function construirSnapshotTecnico({ painel, inversor, arranjoMPPTs, dimensionamento, dadosConsumo, uf, irradiancia }) {
+// ─── Snapshot geoespacial (S6) ──────────────────────────────────────────────────
+
+/**
+ * Congela a geometria do telhado: panos, área útil real, obstáculos, capacidade
+ * máxima de módulos e fator de geração (orientação/inclinação/sombra). Alimenta
+ * o snapshot técnico (engineering lock geoespacial).
+ */
+export function construirSnapshotGeoespacial({ panos, lat, lon }) {
+  if (!Array.isArray(panos) || panos.length === 0) return null
+  const c = consolidarPanos(panos)
+  const snap = {
+    criado_em: new Date().toISOString(),
+    coordenadas: (lat != null && lon != null) ? { lat, lon } : null,
+    total_panos: c.total_panos,
+    area_bruta_total: c.area_bruta_total,
+    area_util_total: c.area_util_total,
+    max_modulos_total: c.max_modulos_total,
+    fator_geracao_medio: c.fator_geracao_medio,
+    fator_sombra_medio: c.fator_sombra_medio,
+    panos: c.panos,
+  }
+  snap.hash = hashTecnico(snap)
+  return snap
+}
+
+export function construirSnapshotTecnico({ painel, inversor, arranjoMPPTs, dimensionamento, dadosConsumo, uf, irradiancia, geoespacial }) {
   let modelo = null
   try {
     modelo = montarModeloEletrico({ painel, inversor, arranjoMPPTs, dimensionamento, dadosConsumo, uf })
@@ -63,8 +89,10 @@ export function construirSnapshotTecnico({ painel, inversor, arranjoMPPTs, dimen
   // potenciaCC (kWp) × irradiância média (kWh/m²/dia) × 365 × PR(0.80).
   const irradDia = irradiancia?.mediaAnual ?? dimensionamento?.irradianciaMediaDia ?? null
   const PR = 0.80
+  // S6: fator de geração geoespacial (orientação/inclinação/sombra) ajusta a geração
+  const fatorGeo = geoespacial?.fator_geracao_medio ?? 1
   const geracaoAnualKwh = (potCC && irradDia)
-    ? +(potCC * irradDia * 365 * PR).toFixed(0)
+    ? +(potCC * irradDia * 365 * PR * fatorGeo).toFixed(0)
     : (dimensionamento?.geracao_anual_kwh ?? null)
 
   const snapshot = {
@@ -79,6 +107,14 @@ export function construirSnapshotTecnico({ painel, inversor, arranjoMPPTs, dimen
     oversizing,
     geracao_anual_kwh: geracaoAnualKwh,
     performance_ratio: PR,
+    // S6: resumo geoespacial embutido no snapshot técnico (engineering lock)
+    geoespacial: geoespacial ? {
+      area_util_total: geoespacial.area_util_total,
+      max_modulos_total: geoespacial.max_modulos_total,
+      fator_geracao_medio: geoespacial.fator_geracao_medio,
+      fator_sombra_medio: geoespacial.fator_sombra_medio,
+      total_panos: geoespacial.total_panos,
+    } : null,
     cabos: modelo?.cabos ?? null,
     protecoes: modelo?.protecoes ?? null,
     normas_aplicadas: ['NBR 16690', 'NBR 5410', 'NBR 16274', 'PRODIST Módulo 3'],
@@ -276,9 +312,16 @@ export function construirSnapshotFinanceiro({ resultadoFinanceiro, orcamento, sn
  * Retorna o payload pronto para POST /governanca/congelar.
  */
 export function construirTodosSnapshots({ state, orcamentoLocal, unifilarSVG, resultadoFinanceiro, tarifa }) {
-  const { equipamentos, dimensionamento, dadosConsumo, localizacao, irradiancia } = state
+  const { equipamentos, dimensionamento, dadosConsumo, localizacao, irradiancia, area } = state
   const painel = equipamentos?.painel || null
   const inversor = equipamentos?.inversor || null
+
+  // S6: snapshot geoespacial (panos) → alimenta o snapshot técnico
+  const geoespacial = construirSnapshotGeoespacial({
+    panos: area?.panos || [],
+    lat: localizacao?.lat ?? null,
+    lon: localizacao?.lon ?? null,
+  })
 
   const tecnico = construirSnapshotTecnico({
     painel, inversor,
@@ -286,10 +329,12 @@ export function construirTodosSnapshots({ state, orcamentoLocal, unifilarSVG, re
     dimensionamento, dadosConsumo,
     uf: localizacao?.uf || null,
     irradiancia,
+    geoespacial,
   })
 
   return {
     tecnico,
+    geoespacial,
     catalogo: construirSnapshotCatalogo({ painel, inversor, dimensionamento }),
     unifilar: construirSnapshotUnifilar(unifilarSVG),
     memorial: construirSnapshotMemorial({ snapshotTecnico: tecnico, dadosConsumo, localizacao }),

@@ -605,6 +605,7 @@ export const congelarProjetoFV = async (req, res) => {
       congelado_em: agora,
       congelado_por: usuario,
       snapshot_tecnico:    snapshots.tecnico    ?? gov.snapshot_tecnico    ?? null,
+      snapshot_geoespacial: snapshots.geoespacial ?? gov.snapshot_geoespacial ?? null,
       snapshot_catalogo:   snapshots.catalogo   ?? gov.snapshot_catalogo   ?? null,
       snapshot_unifilar:   snapshots.unifilar   ?? gov.snapshot_unifilar   ?? null,
       snapshot_memorial:   snapshots.memorial   ?? gov.snapshot_memorial   ?? null,
@@ -627,6 +628,7 @@ export const congelarProjetoFV = async (req, res) => {
       engineering_version: novaGovernanca.engineering_version,
       snapshots: {
         tecnico:    novaGovernanca.snapshot_tecnico,
+        geoespacial: novaGovernanca.snapshot_geoespacial,
         catalogo:   novaGovernanca.snapshot_catalogo,
         unifilar:   novaGovernanca.snapshot_unifilar,
         memorial:   novaGovernanca.snapshot_memorial,

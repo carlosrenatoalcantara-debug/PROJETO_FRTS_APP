@@ -94,6 +94,10 @@ export default function E7Equipamentos() {
   const areaNecess      = numPaineisReal * 2.0
   const areaInsuficiente = areaDisponivel > 0 && areaNecess > areaDisponivel
 
+  // S6: capacidade real do layout geoespacial (E6) limita os módulos
+  const capacidadeLayout = area?.capacidadeMaxModulos ?? 0
+  const capacidadeExcedida = capacidadeLayout > 0 && numPaineisReal > capacidadeLayout
+
   return (
     <div className="space-y-8">
 
@@ -106,8 +110,19 @@ export default function E7Equipamentos() {
           {' '}· {numPaineisReal > 0 ? `${numPaineisReal} módulos configurados` : `~${dim.numPaineis ?? '?'} módulos estimados`}
         </p>
 
-        {/* Aviso área insuficiente */}
-        {areaInsuficiente && (
+        {/* S6: bloqueio de capacidade do layout (precede o aviso de área bruta) */}
+        {capacidadeExcedida && (
+          <div className="flex items-center gap-2 mt-3 p-3 bg-red-50 border border-red-300 rounded-lg text-sm text-red-800">
+            <AlertTriangle size={16} className="shrink-0" />
+            <span>
+              <strong>Capacidade do layout excedida:</strong> o telhado (E6) comporta {capacidadeLayout} módulos,
+              mas a configuração tenta usar {numPaineisReal}. Ajuste os panos em E6 ou reduza os módulos.
+            </span>
+          </div>
+        )}
+
+        {/* Aviso área insuficiente (fallback por área bruta quando não há panos) */}
+        {!capacidadeLayout && areaInsuficiente && (
           <div className="flex items-center gap-2 mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
             <AlertTriangle size={16} className="shrink-0" />
             Área insuficiente: {numPaineisReal} módulos precisam de ~{areaNecess.toFixed(0)} m²,

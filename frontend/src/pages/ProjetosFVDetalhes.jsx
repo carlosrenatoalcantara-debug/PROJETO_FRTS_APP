@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
-import { AlertCircle, BarChart3, Battery, FileText, Zap, Edit2, X, ShieldCheck, Briefcase, Users } from 'lucide-react'
+import { AlertCircle, BarChart3, Battery, FileText, Zap, Edit2, X, ShieldCheck, Briefcase, Users, Map } from 'lucide-react'
 import Card, { CardHeader, CardBody } from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import Badge from '../components/ui/Badge'
 import UnifilarFV from '../components/fv/UnifilarFV'
+import PlanejadorTelhado from '../components/fv/PlanejadorTelhado'
 import GovernancaPainel from '../components/fv/GovernancaPainel'
 import PropostaEnterprise from '../components/fv/PropostaEnterprise'
 import CrmPainel from '../components/fv/CrmPainel'
@@ -123,7 +124,7 @@ export default function ProjetosFVDetalhes() {
 
   const abas = [
     { id: 'resumo', label: 'Resumo', icone: BarChart3 },
-    { id: 'layout', label: 'Layout', icone: FileText },
+    { id: 'layout', label: 'Layout', icone: Map },
     { id: 'bess', label: 'BESS', icone: Battery },
     { id: 'financeiro', label: 'Financeiro', icone: BarChart3 },
     { id: 'unifilar', label: 'Unifilar', icone: Zap },
@@ -185,7 +186,7 @@ export default function ProjetosFVDetalhes() {
 
       <div>
         {abaAtiva === 'resumo' && <AbaResumo projeto={projeto} />}
-        {abaAtiva === 'layout' && <AbaLayout />}
+        {abaAtiva === 'layout' && <AbaLayout projeto={projeto} />}
         {abaAtiva === 'bess' && <AbaBESS />}
         {abaAtiva === 'financeiro' && <AbaFinanceiro projeto={projeto} />}
         {abaAtiva === 'unifilar' && <UnifilarFV projeto={projeto} />}
@@ -344,12 +345,33 @@ function AbaResumo({ projeto }) {
   )
 }
 
-function AbaLayout() {
+function AbaLayout({ projeto }) {
+  const geo = projeto?.governanca?.snapshot_geoespacial
+  const panos = geo?.panos || projeto?.layout_solar?.roof_planes || []
+  const congelado = ['CONGELADO', 'HOMOLOGADO'].includes(projeto?.governanca?.freeze_status)
+
   return (
     <Card>
-      <CardHeader>Layout do Sistema</CardHeader>
+      <CardHeader className="flex items-center gap-2">
+        Layout no Telhado
+        {congelado && <span className="text-xs text-emerald-600">· geoespacial congelado</span>}
+      </CardHeader>
       <CardBody>
-        <p className="text-slate-600">Layout em desenvolvimento...</p>
+        {panos.length > 0 ? (
+          <>
+            {geo && (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                <div className="text-center p-3 bg-slate-50 rounded"><p className="text-xs text-slate-500">Área útil</p><p className="text-xl font-bold text-slate-800">{geo.area_util_total} m²</p></div>
+                <div className="text-center p-3 bg-emerald-50 rounded"><p className="text-xs text-slate-500">Capacidade</p><p className="text-xl font-bold text-emerald-700">{geo.max_modulos_total}</p></div>
+                <div className="text-center p-3 bg-slate-50 rounded"><p className="text-xs text-slate-500">Panos</p><p className="text-xl font-bold text-slate-800">{geo.total_panos}</p></div>
+                <div className="text-center p-3 bg-slate-50 rounded"><p className="text-xs text-slate-500">Fator geração</p><p className="text-xl font-bold text-slate-800">{geo.fator_geracao_medio}</p></div>
+              </div>
+            )}
+            <PlanejadorTelhado panos={panos} onChange={() => {}} bloqueado />
+          </>
+        ) : (
+          <p className="text-slate-600">Nenhum layout geoespacial registrado para este projeto.</p>
+        )}
       </CardBody>
     </Card>
   )

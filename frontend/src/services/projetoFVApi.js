@@ -117,9 +117,15 @@ export function adaptarEquipamentos(equip, dim) {
 export function adaptarLayoutSolar(area) {
   if (!area || !area.areaDisponivel) return null
   return {
-    area_util_m2:     parseFloat(area.areaDisponivel) || null,
+    area_util_m2:     area.areaUtil ?? (parseFloat(area.areaDisponivel) || null),
     orientacao:       area.orientacao   || null,
     inclinacao_graus: parseFloat(area.inclinacao) || null,
+    // S6: geoespacial multi-pano
+    roof_planes:           Array.isArray(area.panos) && area.panos.length ? area.panos : undefined,
+    area_bruta_m2:         area.areaBruta ?? (parseFloat(area.areaDisponivel) || null),
+    capacidade_max_modulos: area.capacidadeMaxModulos ?? undefined,
+    fator_sombra_medio:    area.fatorSombraMedio ?? undefined,
+    fator_geracao_medio:   area.fatorGeracaoMedio ?? undefined,
   }
 }
 
