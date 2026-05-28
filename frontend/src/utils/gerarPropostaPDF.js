@@ -4,7 +4,11 @@ export const gerarPropostaPDF = (dados) => {
     sistema = {},
     orcamento = {},
     empresa = {},
+    financeiro = null,   // S4: resultado do centro financeiro EPC (opcional)
+    validadeDias = 30,
   } = dados
+
+  const brlFmt = (v) => 'R$ ' + Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
   const {
     nome = 'Cliente',
@@ -33,6 +37,35 @@ export const gerarPropostaPDF = (dados) => {
     telefone: telefoneEmpresa = '(11) 3000-0000',
     email: emailEmpresa = 'contato@fortesolar.com.br',
   } = empresa
+
+  // S4: seção de condições de pagamento (somente se houver dados financeiros)
+  const vc = financeiro?.visao_cliente || null
+  const finBanco = financeiro?.financiamento || null
+  const parcel = financeiro?.parcelamento || null
+  const roiPct = financeiro?.retorno?.roi_pct ?? null
+  const economia25 = financeiro?.retorno?.economia_25_anos ?? null
+
+  const secaoPagamento = (finBanco || parcel) ? `
+        <h2 class="subtitulo">Condições de Pagamento</h2>
+        <div class="analise-financeira">
+          ${finBanco ? `
+          <div class="analise-card">
+            <div class="analise-card-titulo">Financiamento</div>
+            <div class="analise-card-valor">${finBanco.parcelas}× ${brlFmt(finBanco.parcela)}</div>
+            <div class="resumo-card-sub">Entrada ${brlFmt(finBanco.entrada)} · CET ~${finBanco.cet_aa_pct}% a.a.</div>
+          </div>` : ''}
+          ${parcel ? `
+          <div class="analise-card">
+            <div class="analise-card-titulo">Parcelamento (${parcel.tipo})</div>
+            <div class="analise-card-valor">${parcel.parcelas}× ${brlFmt(parcel.parcela)}</div>
+            <div class="resumo-card-sub">${parcel.juros > 0 ? `Total ${brlFmt(parcel.total)}` : 'Sem juros'}</div>
+          </div>` : ''}
+          <div class="analise-card">
+            <div class="analise-card-titulo">À vista</div>
+            <div class="analise-card-valor">${brlFmt(total)}</div>
+          </div>
+        </div>
+  ` : ''
 
   const htmlContent = `
     <!DOCTYPE html>
@@ -189,6 +222,8 @@ export const gerarPropostaPDF = (dados) => {
           <div class="total-preco-wp">Preço por Wp: R$ ${precoWp}</div>
         </div>
 
+        ${secaoPagamento}
+
         <h2 class="subtitulo">Análise Financeira</h2>
         <div class="analise-financeira">
           <div class="analise-card">
@@ -201,8 +236,13 @@ export const gerarPropostaPDF = (dados) => {
           </div>
           <div class="analise-card">
             <div class="analise-card-titulo">Economia em 25 anos</div>
-            <div class="analise-card-valor">R$ ${(economiaAnual * 25 / 1000).toFixed(0)}k</div>
+            <div class="analise-card-valor">R$ ${economia25 != null ? (economia25 / 1000).toFixed(0) : (economiaAnual * 25 / 1000).toFixed(0)}k</div>
           </div>
+          ${roiPct != null ? `
+          <div class="analise-card">
+            <div class="analise-card-titulo">ROI (25 anos)</div>
+            <div class="analise-card-valor">${Number(roiPct).toFixed(0)}%</div>
+          </div>` : ''}
         </div>
 
         <div class="garantias">
@@ -229,7 +269,7 @@ export const gerarPropostaPDF = (dados) => {
         </div>
 
         <div class="footer">
-          <p>Esta proposta é válida por 30 dias. Após esse período, será necessária nova cotação.</p>
+          <p>Esta proposta é válida por ${validadeDias} dias. Após esse período, será necessária nova cotação.</p>
           <div class="footer-contato">
             ${nomeEmpresa} | ${emailEmpresa} | ${telefoneEmpresa}
           </div>

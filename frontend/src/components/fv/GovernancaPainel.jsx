@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Lock, GitBranch, AlertTriangle, CheckCircle, RefreshCw, Clock, ShieldCheck } from 'lucide-react'
+import { Lock, GitBranch, AlertTriangle, CheckCircle, RefreshCw, Clock, ShieldCheck, TrendingUp } from 'lucide-react'
 import Badge from '../ui/Badge'
 import Button from '../ui/Button'
 import {
@@ -7,6 +7,7 @@ import {
   getHistoricoTipoConfig,
   ENGINEERING_VERSION,
 } from '../../utils/engenhariaGovernanca'
+import { compararRevisoesFinanceiras } from '../../utils/financeiroEngine'
 import {
   congelarProjeto,
   criarRevisao,
@@ -87,6 +88,8 @@ export default function GovernancaPainel({ projetoId, governanca, construirSnaps
   }
 
   const timeline = [...(gov.historico || [])].reverse()
+  const brl = (v) => 'R$ ' + Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  const cmpFin = compararRevisoesFinanceiras(gov.revisoes || [])
 
   return (
     <div className="bg-white border border-slate-200 rounded-xl p-5 space-y-4 text-left">
@@ -177,6 +180,30 @@ export default function GovernancaPainel({ projetoId, governanca, construirSnaps
               )
             })}
           </div>
+        </div>
+      )}
+
+      {/* Comparativo de revisões financeiras */}
+      {cmpFin.pontos.length >= 2 && (
+        <div>
+          <p className="text-xs font-semibold text-slate-500 mb-2 flex items-center gap-1">
+            <TrendingUp size={12} /> Comparativo financeiro de revisões
+          </p>
+          <div className="space-y-1">
+            {cmpFin.pontos.map((p) => (
+              <div key={p.rev} className="flex items-center justify-between text-xs">
+                <span className="font-mono text-slate-500">Rev {p.rev}</span>
+                <span className="font-semibold text-slate-800">{brl(p.preco)}</span>
+              </div>
+            ))}
+          </div>
+          {cmpFin.comparacoes.map((c, i) => (
+            <p key={i} className={`text-xs mt-1 ${c.diferenca >= 0 ? 'text-orange-600' : 'text-emerald-600'}`}>
+              Rev {c.de} → {c.para}: {c.diferenca >= 0 ? '+' : ''}{brl(c.diferenca)}
+              {c.diferenca_pct != null ? ` (${c.diferenca_pct >= 0 ? '+' : ''}${c.diferenca_pct}%)` : ''}
+              {c.motivo ? ` — ${c.motivo}` : ''}
+            </p>
+          ))}
         </div>
       )}
 

@@ -12,6 +12,7 @@
 
 import { montarModeloEletrico } from './engenhariaNormativa'
 import { validarEquipamento } from './catalogQualityEngine'
+import { calcularFinanceiroCompleto } from './financeiroEngine'
 
 /**
  * Versão do motor de engenharia.
@@ -46,7 +47,7 @@ export function hashTecnico(valor) {
  * Reaproveita montarModeloEletrico (mesma engenharia da Sprint 2.5) para
  * garantir que o snapshot reflita exatamente o que o unifilar/memorial mostram.
  */
-export function construirSnapshotTecnico({ painel, inversor, arranjoMPPTs, dimensionamento, dadosConsumo, uf }) {
+export function construirSnapshotTecnico({ painel, inversor, arranjoMPPTs, dimensionamento, dadosConsumo, uf, irradiancia }) {
   let modelo = null
   try {
     modelo = montarModeloEletrico({ painel, inversor, arranjoMPPTs, dimensionamento, dadosConsumo, uf })
@@ -58,6 +59,14 @@ export function construirSnapshotTecnico({ painel, inversor, arranjoMPPTs, dimen
   const potCA = modelo?.sistema?.potenciaCA ?? null
   const oversizing = (potCC && potCA) ? +(potCC / potCA).toFixed(3) : null
 
+  // Geração anual congelada (engineering lock p/ ROI/payback no módulo financeiro).
+  // potenciaCC (kWp) × irradiância média (kWh/m²/dia) × 365 × PR(0.80).
+  const irradDia = irradiancia?.mediaAnual ?? dimensionamento?.irradianciaMediaDia ?? null
+  const PR = 0.80
+  const geracaoAnualKwh = (potCC && irradDia)
+    ? +(potCC * irradDia * 365 * PR).toFixed(0)
+    : (dimensionamento?.geracao_anual_kwh ?? null)
+
   const snapshot = {
     engineering_version: ENGINEERING_VERSION,
     criado_em: new Date().toISOString(),
@@ -68,6 +77,8 @@ export function construirSnapshotTecnico({ painel, inversor, arranjoMPPTs, dimen
     mppts: modelo?.mppts ?? null,
     resumo: modelo?.resumo ?? null,
     oversizing,
+    geracao_anual_kwh: geracaoAnualKwh,
+    performance_ratio: PR,
     cabos: modelo?.cabos ?? null,
     protecoes: modelo?.protecoes ?? null,
     normas_aplicadas: ['NBR 16690', 'NBR 5410', 'NBR 16274', 'PRODIST Módulo 3'],
@@ -177,29 +188,76 @@ export function construirSnapshotMemorial({ snapshotTecnico, dadosConsumo, local
   }
 }
 
-// ─── Snapshot financeiro (arquitetura — Sprint 4) ───────────────────────────────
+// ─── Snapshot financeiro (Sprint 4 — módulo financeiro EPC) ──────────────────────
 
 /**
- * Congela a estrutura financeira da proposta. NÃO recalcula ROI/payback
- * avançado (isso é Sprint 4) — apenas persiste o que o E8 já tem disponível.
+ * Congela a análise financeira completa da proposta.
+ *
+ * ENGINEERING LOCK: o resultado financeiro é calculado a partir do
+ * snapshotTecnico (geração/potência congeladas), nunca do state vivo.
+ *
+ * Aceita DUAS formas:
+ *  1. `resultadoFinanceiro` já calculado pelo CentroFinanceiroFV (preferido) —
+ *     apenas congela e normaliza.
+ *  2. `orcamento` legado do E8 (precos/subtotais) — recalcula via engine para
+ *     manter compatibilidade com o fluxo antigo.
  */
-export function construirSnapshotFinanceiro({ orcamento, dadosConsumo, dimensionamento }) {
+export function construirSnapshotFinanceiro({ resultadoFinanceiro, orcamento, snapshotTecnico, tarifa, dimensionamento }) {
+  // Caminho 1: já temos o resultado do centro financeiro
+  if (resultadoFinanceiro && resultadoFinanceiro.orcamento) {
+    const r = resultadoFinanceiro
+    return {
+      criado_em: new Date().toISOString(),
+      modo: r.modo,
+      composicao: r.orcamento.composicao ?? null,
+      custos: r.orcamento.composicao?.itens ?? null,
+      custo_total: r.orcamento.custo_total ?? r.margem?.custo_total ?? null,
+      markup_percentual: r.orcamento.markup_percentual ?? null,
+      desconto_percentual: r.orcamento.desconto_percentual ?? null,
+      margem: r.margem ?? null,
+      financiamento: r.financiamento ?? null,
+      parcelamento: r.parcelamento ?? null,
+      retorno: r.retorno ?? null,
+      tarifa: r.tarifa ?? null,
+      proposta_final: r.orcamento.preco_venda ?? null,
+      visao_cliente: r.visao_cliente ?? null,
+      preco_wp: (r.orcamento.preco_venda && snapshotTecnico?.sistema?.potenciaCC)
+        ? +(r.orcamento.preco_venda / (snapshotTecnico.sistema.potenciaCC * 1000)).toFixed(2)
+        : null,
+    }
+  }
+
+  // Caminho 2: compatibilidade com o orçamento legado do E8
   const o = orcamento || {}
+  const custos = {
+    custo_painel:    o.subtotalPaineis ?? 0,
+    custo_inversor:  o.subtotalInversores ?? 0,
+    custo_estrutura: o.subtotalEstrutura ?? 0,
+    custo_mao_obra:  o.subtotalMaoDeTrabaho ?? 0,
+    custo_cabos:     o.subtotalCabosProtecao ?? 0,
+  }
+  let calc = null
+  try {
+    calc = calcularFinanceiroCompleto({
+      modo: 'kit_fechado',
+      valorVendaKit: o.total ?? 0,
+      custos,
+      snapshotTecnico,
+      tarifa: tarifa || {},
+    })
+  } catch { /* ignora — snapshot básico abaixo */ }
+
   return {
     criado_em: new Date().toISOString(),
-    custo_kit: o.subtotalPaineis != null
-      ? +(((o.subtotalPaineis || 0) + (o.subtotalInversores || 0) + (o.subtotalEstrutura || 0))).toFixed(2)
-      : null,
-    custo_mao_obra: o.subtotalMaoDeTrabaho ?? null,
-    custo_cabos_protecao: o.subtotalCabosProtecao ?? null,
-    custo_total: o.total ?? null,
-    // Campos arquiteturais reservados para Sprint 4 (preenchidos quando houver motor)
-    margem_pct: o.margem_pct ?? null,
-    impostos_pct: o.impostos_pct ?? null,
-    desconto_pct: o.desconto_pct ?? null,
-    roi_pct: o.roi_pct ?? null,
-    payback_anos: o.payback_anos ?? null,
-    proposta_cliente: o.preco_venda ?? o.total ?? null,
+    modo: 'kit_fechado',
+    composicao: calc?.orcamento?.composicao ?? null,
+    custos,
+    custo_total: calc?.orcamento?.custo_total ?? null,
+    margem: calc?.margem ?? null,
+    retorno: calc?.retorno ?? null,
+    tarifa: calc?.tarifa ?? null,
+    proposta_final: o.total ?? null,
+    visao_cliente: calc?.visao_cliente ?? null,
     preco_wp: (o.total && dimensionamento?.potenciaRealKwp)
       ? +(o.total / (dimensionamento.potenciaRealKwp * 1000)).toFixed(2)
       : null,
@@ -212,8 +270,8 @@ export function construirSnapshotFinanceiro({ orcamento, dadosConsumo, dimension
  * Constrói todos os snapshots a partir do estado do wizard + SVG do unifilar.
  * Retorna o payload pronto para POST /governanca/congelar.
  */
-export function construirTodosSnapshots({ state, orcamentoLocal, unifilarSVG }) {
-  const { equipamentos, dimensionamento, dadosConsumo, localizacao } = state
+export function construirTodosSnapshots({ state, orcamentoLocal, unifilarSVG, resultadoFinanceiro, tarifa }) {
+  const { equipamentos, dimensionamento, dadosConsumo, localizacao, irradiancia } = state
   const painel = equipamentos?.painel || null
   const inversor = equipamentos?.inversor || null
 
@@ -222,6 +280,7 @@ export function construirTodosSnapshots({ state, orcamentoLocal, unifilarSVG }) 
     arranjoMPPTs: equipamentos?.arranjoMPPTs || null,
     dimensionamento, dadosConsumo,
     uf: localizacao?.uf || null,
+    irradiancia,
   })
 
   return {
@@ -229,7 +288,13 @@ export function construirTodosSnapshots({ state, orcamentoLocal, unifilarSVG }) 
     catalogo: construirSnapshotCatalogo({ painel, inversor, dimensionamento }),
     unifilar: construirSnapshotUnifilar(unifilarSVG),
     memorial: construirSnapshotMemorial({ snapshotTecnico: tecnico, dadosConsumo, localizacao }),
-    financeiro: construirSnapshotFinanceiro({ orcamento: orcamentoLocal, dadosConsumo, dimensionamento }),
+    financeiro: construirSnapshotFinanceiro({
+      resultadoFinanceiro,
+      orcamento: orcamentoLocal,
+      snapshotTecnico: tecnico,
+      tarifa,
+      dimensionamento,
+    }),
   }
 }
 

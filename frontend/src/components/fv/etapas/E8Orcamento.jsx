@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { Download, Save, CheckCircle, XCircle, Sun, Zap, Layers, BarChart2, ArrowRight, Cloud, FileText, GitBranch, MessageCircle, Mail, Copy } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useProjetoFV } from '../../../contexts/ProjetoFVContext'
@@ -16,7 +16,8 @@ import {
   salvarTodosSlices,
 } from '../../../services/projetoFVApi'
 import GovernancaPainel from '../GovernancaPainel'
-import { construirTodosSnapshots } from '../../../utils/engenhariaGovernanca'
+import CentroFinanceiroFV from '../CentroFinanceiroFV'
+import { construirTodosSnapshots, construirSnapshotTecnico } from '../../../utils/engenhariaGovernanca'
 
 function LinhaResumo({ rotulo, valor }) {
   return (
@@ -83,6 +84,8 @@ export default function E8Orcamento() {
   const [erroProposta,    setErroProposta]    = useState('')
   // S3.5: governança técnica (snapshots congelados)
   const [governancaProj, setGovernancaProj]   = useState(null)
+  // S4: resultado do centro financeiro EPC (alimenta freeze + PDF)
+  const [resultadoFinanceiro, setResultadoFinanceiro] = useState(null)
 
   // ⚠️ Destructuring movido para ANTES dos useState que referenciam painel/inversor/estrutura
   //    para eliminar ReferenceError TDZ (Temporal Dead Zone).
@@ -105,6 +108,35 @@ export default function E8Orcamento() {
   const subtotalMaoDeTrabaho = dim.numPaineis * maoDeTrabaho
   const subtotalCabosProtecao = cabosProtecao
   const total              = subtotalPaineis + subtotalInversores + subtotalEstrutura + subtotalMaoDeTrabaho + subtotalCabosProtecao
+
+  // ── S4: snapshot técnico LIVE (engineering lock p/ o módulo financeiro) ──────
+  // Calculado de forma determinística pelo mesmo motor que congela em S3.5.
+  const snapshotTecnicoLive = useMemo(() => construirSnapshotTecnico({
+    painel, inversor,
+    arranjoMPPTs: equipamentos.arranjoMPPTs || null,
+    dimensionamento: dim,
+    dadosConsumo,
+    uf: localizacao.uf || null,
+    irradiancia,
+  }), [painel, inversor, equipamentos.arranjoMPPTs, dim, dadosConsumo, localizacao.uf, irradiancia])
+
+  const tarifaFin = useMemo(() => ({
+    tarifaKwh:          Number(dadosConsumo.valorKwh) || fin.tarifaKwhPadrao || 0.95,
+    reajusteAnualPct:   fin.reajusteAnualPct ?? 5,
+    inflacaoEnergiaPct: fin.inflacaoEnergiaPct ?? 2,
+    bandeira:           fin.bandeiraPadrao || 'verde',
+  }), [dadosConsumo.valorKwh, fin])
+
+  const custosInicaisFin = useMemo(() => ({
+    custo_painel:    subtotalPaineis,
+    custo_inversor:  subtotalInversores,
+    custo_estrutura: subtotalEstrutura,
+    custo_cabos:     subtotalCabosProtecao,
+    custo_mao_obra:  subtotalMaoDeTrabaho,
+    total,
+  }), [subtotalPaineis, subtotalInversores, subtotalEstrutura, subtotalCabosProtecao, subtotalMaoDeTrabaho, total])
+
+  const onResultadoFinanceiro = useCallback((r) => setResultadoFinanceiro(r), [])
 
   function baixarPdf() {
     setGerando(true)
@@ -205,6 +237,9 @@ export default function E8Orcamento() {
           telefone: empresa?.telefone    || '',
           email:    empresa?.email       || '',
         },
+        // S4: dados do centro financeiro EPC (parcelamento, ROI, economia 25a)
+        financeiro:   resultadoFinanceiro || null,
+        validadeDias: fin.validadeProposta || 15,
       })
       abrirOuBaixarProposta(htmlProposta)
     } catch (e) {
@@ -357,6 +392,8 @@ export default function E8Orcamento() {
       state,
       orcamentoLocal,
       unifilarSVG: (painel && inversor) ? gerarUnifilarSVGString() : null,
+      resultadoFinanceiro,
+      tarifa: tarifaFin,
     })
   }
 
@@ -587,6 +624,15 @@ export default function E8Orcamento() {
           * Não inclui projeto elétrico, ART, homologação na concessionária e outros serviços.
         </p>
       </div>
+
+      {/* S4: Centro Financeiro EPC (camada profissional opcional) */}
+      <CentroFinanceiroFV
+        snapshotTecnico={snapshotTecnicoLive}
+        config={fin}
+        custosIniciais={custosInicaisFin}
+        tarifaInicial={tarifaFin}
+        onResultado={onResultadoFinanceiro}
+      />
 
       {/* Erros */}
       {erroPdf && (

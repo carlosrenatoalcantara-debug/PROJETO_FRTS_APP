@@ -32,6 +32,27 @@ export const PADRAO_EMPRESA = {
     validadeProposta:   15,    // dias de validade da proposta
     reajusteAnualPct:   5,     // % reajuste anual da tarifa (para payback)
     tarifaKwhPadrao:    0.95,  // R$/kWh quando não extraído da fatura
+
+    // ── S4: Módulo financeiro EPC ────────────────────────────────────────────
+    // Markup / rentabilidade
+    markupPadraoPct:    30,    // % markup padrão sobre CMV (modo composição)
+    lucroDesejadoPct:   20,    // % lucro-alvo (referência para o operador)
+    descontoMaximoPct:  10,    // % desconto máximo autorizado
+    impostosPct:        6,     // % impostos sobre a venda (Simples/ISS médio)
+    comissaoPct:        3,     // % comissão de venda
+    // Financiamento (Tabela Price)
+    finTaxaJurosMesPct: 1.49,  // % a.m.
+    finParcelasPadrao:  60,    // nº de parcelas
+    finCarenciaMeses:   3,     // meses de carência
+    // Parcelamento
+    cartaoTaxaMesPct:   2.99,  // % a.m. (cartão)
+    boletoTaxaMesPct:   1.99,  // % a.m. (boleto)
+    proprioTaxaMesPct:  0,     // % a.m. (parcelamento próprio sem juros)
+    parcelasPadraoCartao: 12,
+    // Tarifa / energia
+    bandeiraPadrao:     'verde',
+    inflacaoEnergiaPct: 2,     // % a.a. adicional ao reajuste tarifário
+    degradacaoAnualPct: 0.5,   // % perda de geração a.a. (módulos)
   },
 }
 

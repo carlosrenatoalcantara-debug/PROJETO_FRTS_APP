@@ -101,6 +101,38 @@ function ConfiguracaoFinanceira() {
             {campo('Tarifa kWh padrão',          'tarifaKwhPadrao',   'R$/kWh',    0, 0.01,'Usada quando não extraída da fatura')}
           </div>
 
+          {/* S4: Módulo financeiro EPC */}
+          <div className="pt-4 border-t border-slate-100">
+            <p className="text-sm font-semibold text-slate-700 mb-3">Markup & Rentabilidade (EPC)</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {campo('Markup padrão (composição)', 'markupPadraoPct',   '%',     0, 0.5, 'Aplicado sobre o CMV no modo composição')}
+              {campo('Lucro desejado',             'lucroDesejadoPct',  '%',     0, 0.5, 'Meta de lucro de referência')}
+              {campo('Desconto máximo',            'descontoMaximoPct', '%',     0, 0.5, 'Limite de desconto autorizado')}
+              {campo('Impostos sobre venda',       'impostosPct',       '%',     0, 0.1, 'Simples/ISS médio')}
+              {campo('Comissão de venda',          'comissaoPct',       '%',     0, 0.1, 'Comissão do vendedor')}
+            </div>
+          </div>
+
+          <div className="pt-4 border-t border-slate-100">
+            <p className="text-sm font-semibold text-slate-700 mb-3">Financiamento & Parcelamento</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {campo('Juros financiamento',  'finTaxaJurosMesPct', '% a.m.',  0, 0.01, 'Tabela Price')}
+              {campo('Parcelas padrão',       'finParcelasPadrao',  'x',       1, 1,    'Nº de parcelas do financiamento')}
+              {campo('Carência',              'finCarenciaMeses',   'meses',   0, 1,    'Carência antes da 1ª parcela')}
+              {campo('Taxa cartão',           'cartaoTaxaMesPct',   '% a.m.',  0, 0.01, 'Parcelamento no cartão')}
+              {campo('Taxa boleto',           'boletoTaxaMesPct',   '% a.m.',  0, 0.01, 'Parcelamento via boleto')}
+              {campo('Parcelas cartão',       'parcelasPadraoCartao','x',      1, 1,    'Nº padrão de parcelas no cartão')}
+            </div>
+          </div>
+
+          <div className="pt-4 border-t border-slate-100">
+            <p className="text-sm font-semibold text-slate-700 mb-3">Energia & Projeção</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {campo('Inflação energética',  'inflacaoEnergiaPct', '% a.a.', 0, 0.1, 'Adicional ao reajuste tarifário')}
+              {campo('Degradação módulos',    'degradacaoAnualPct', '% a.a.', 0, 0.1, 'Perda de geração anual')}
+            </div>
+          </div>
+
           <div className="flex items-center gap-3 pt-2">
             <button
               type="submit"
