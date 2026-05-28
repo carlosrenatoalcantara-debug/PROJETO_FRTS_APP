@@ -144,6 +144,9 @@ export default function E8Orcamento() {
         distribuidora: dadosConsumo.concessionaria || dadosConsumo.distribuidora || 'Concessionária',
         painel:        painel || null,
         inversor:      inversor || null,
+        // Sprint 2.5: dados para topologia multi-MPPT e temperatura por UF
+        arranjoMPPTs: equipamentos.arranjoMPPTs || null,
+        uf:           localizacao.uf || null,
       })
       const nomeArq = `unifilar-${(dadosCliente.nomeCliente || 'projeto').replace(/\s+/g, '-').toLowerCase()}`
       baixarUnifilarSVG(svg, nomeArq)
