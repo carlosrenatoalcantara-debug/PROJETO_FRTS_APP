@@ -304,6 +304,52 @@ const historicoTimelineV3Schema = new mongoose.Schema({
   descricao: { type: String, default: null },
 }, { _id: false })
 
+/**
+ * Comercial enterprise (S4.2 — additive dentro de governanca).
+ * Workflow comercial, cenários multi-comparados, desconto/aprovação,
+ * assinaturas digitais (hash+timestamp) e snapshot comercial congelável.
+ */
+const assinaturaV3Schema = new mongoose.Schema({
+  papel:     { type: String, default: null },   // 'cliente' | 'vendedor' | 'tecnico'
+  nome:      { type: String, default: null },
+  hash:      { type: String, default: null },
+  timestamp: { type: Date,   default: Date.now },
+}, { _id: false })
+
+const comercialV3Schema = new mongoose.Schema({
+  // Workflow: EM_ANALISE | AGUARDANDO_CLIENTE | NEGOCIACAO | APROVADO | REPROVADO | ASSINADO
+  workflow_status: {
+    type: String,
+    enum: ['EM_ANALISE', 'AGUARDANDO_CLIENTE', 'NEGOCIACAO', 'APROVADO', 'REPROVADO', 'ASSINADO', null],
+    default: 'EM_ANALISE',
+  },
+
+  // Cenários financeiros comparados (Mixed — estrutura vem do comercialEngine)
+  cenarios:      { type: mongoose.Schema.Types.Mixed, default: null },
+  comparativos:  { type: mongoose.Schema.Types.Mixed, default: null },
+
+  // Controle de desconto/aprovação
+  desconto_pct:          { type: Number, default: 0 },
+  desconto_limite_pct:   { type: Number, default: 10 },
+  desconto_aprovado_por: { type: String, default: null },
+  desconto_excecao:      { type: Boolean, default: false },
+  aprovacao: { type: mongoose.Schema.Types.Mixed, default: null }, // { tipo, aprovado_por, em, observacao }
+
+  assinaturas: { type: [assinaturaV3Schema], default: [] },
+
+  // Snapshot comercial congelado (cenários, descontos, aprovação, PDF, assinaturas)
+  snapshot_comercial: { type: mongoose.Schema.Types.Mixed, default: null },
+  congelado_em:  { type: Date,   default: null },
+
+  // Histórico comercial (quem alterou/aprovou/assinou/revisou)
+  historico: [{
+    timestamp: { type: Date,   default: Date.now },
+    usuario:   { type: String, default: null },
+    acao:      { type: String, default: null },
+    detalhe:   { type: String, default: null },
+  }],
+}, { _id: false })
+
 const governancaV3Schema = new mongoose.Schema({
   /** Versão do motor de engenharia que gerou os snapshots (ex: 'ENG-2.0'). */
   engineering_version: { type: String, default: null },
@@ -329,6 +375,9 @@ const governancaV3Schema = new mongoose.Schema({
   revisoes:  { type: [revisaoV3Schema],          default: [] },
   auditoria: { type: [auditoriaV3Schema],        default: [] },
   historico: { type: [historicoTimelineV3Schema], default: [] },
+
+  /** Comercial enterprise (S4.2). */
+  comercial: { type: comercialV3Schema, default: null },
 }, { _id: false })
 
 // ─── Schema principal ─────────────────────────────────────────────────────────

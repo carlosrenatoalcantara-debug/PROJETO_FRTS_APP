@@ -4,6 +4,7 @@ import { Plus, Sun, Filter, Eye, Calculator, Upload, Download, X, Loader } from 
 import Card, { CardHeader, CardBody } from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import Badge from '../components/ui/Badge'
+import DashboardComercial from '../components/fv/DashboardComercial'
 
 const corStatus = {
   'concluido': 'verde',
@@ -214,6 +215,9 @@ export default function ProjetosFV() {
           </Button>
         </div>
       </div>
+
+      {/* S4.2: Dashboard comercial (aparece quando há propostas com dados comerciais) */}
+      <DashboardComercial projetos={projetos} />
 
       {/* Parecer Upload Section */}
       <Card className="bg-gradient-to-r from-blue-50 to-cyan-50 border-2 border-blue-200">

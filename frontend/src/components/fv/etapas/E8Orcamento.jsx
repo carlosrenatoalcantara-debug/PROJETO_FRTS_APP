@@ -17,6 +17,7 @@ import {
 } from '../../../services/projetoFVApi'
 import GovernancaPainel from '../GovernancaPainel'
 import CentroFinanceiroFV from '../CentroFinanceiroFV'
+import PropostaEnterprise from '../PropostaEnterprise'
 import { construirTodosSnapshots, construirSnapshotTecnico } from '../../../utils/engenhariaGovernanca'
 
 function LinhaResumo({ rotulo, valor }) {
@@ -86,6 +87,8 @@ export default function E8Orcamento() {
   const [governancaProj, setGovernancaProj]   = useState(null)
   // S4: resultado do centro financeiro EPC (alimenta freeze + PDF)
   const [resultadoFinanceiro, setResultadoFinanceiro] = useState(null)
+  // S4.2: governança comercial (workflow, assinaturas, cenários)
+  const [comercialProj, setComercialProj] = useState(null)
 
   // ⚠️ Destructuring movido para ANTES dos useState que referenciam painel/inversor/estrutura
   //    para eliminar ReferenceError TDZ (Temporal Dead Zone).
@@ -239,6 +242,8 @@ export default function E8Orcamento() {
         },
         // S4: dados do centro financeiro EPC (parcelamento, ROI, economia 25a)
         financeiro:   resultadoFinanceiro || null,
+        // S4.2: cenários comerciais comparados
+        comercial:    comercialProj || null,
         validadeDias: fin.validadeProposta || 15,
       })
       abrirOuBaixarProposta(htmlProposta)
@@ -467,6 +472,21 @@ export default function E8Orcamento() {
             governanca={governancaProj}
             construirSnapshots={construirSnapshotsE8}
             onAtualizar={setGovernancaProj}
+            usuario={empresa?.email || dadosCliente?.email || null}
+          />
+        )}
+
+        {/* S4.2: Proposta enterprise — multi-cenário, workflow, assinaturas */}
+        {state.projetoId && (
+          <PropostaEnterprise
+            projetoId={state.projetoId}
+            snapshotTecnico={snapshotTecnicoLive}
+            resultadoFinanceiro={resultadoFinanceiro}
+            consumoAnualKwh={(Number(dadosConsumo.consumoMensal) || 0) * 12}
+            tipoLigacao={dadosConsumo.tipoLigacao || 'monofasico'}
+            config={fin}
+            governancaComercial={comercialProj}
+            onAtualizar={setComercialProj}
             usuario={empresa?.email || dadosCliente?.email || null}
           />
         )}

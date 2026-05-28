@@ -14,6 +14,10 @@ import {
   criarRevisaoProjetoFV,
   alterarStatusGovernanca,
   detectarDivergenciaProjetoFV,
+  salvarComercialProjetoFV,    // S4.2 — comercial enterprise
+  atualizarWorkflowComercial,
+  registrarAssinaturaComercial,
+  registrarAprovacaoComercial,
 } from '../controllers/projetosFVController.js'
 import {
   prepararComFatura,
@@ -42,6 +46,12 @@ router.post('/:id/governanca/congelar',    congelarProjetoFV)
 router.post('/:id/governanca/revisao',      criarRevisaoProjetoFV)
 router.put('/:id/governanca/status',        alterarStatusGovernanca)
 router.get('/:id/governanca/divergencia',   detectarDivergenciaProjetoFV)
+
+// ── S4.2: Comercial enterprise ──────────────────────────────────────────────
+router.post('/:id/governanca/comercial/snapshot',   salvarComercialProjetoFV)
+router.put('/:id/governanca/comercial/workflow',     atualizarWorkflowComercial)
+router.post('/:id/governanca/comercial/assinatura',  registrarAssinaturaComercial)
+router.post('/:id/governanca/comercial/aprovacao',   registrarAprovacaoComercial)
 
 // ── CRUD existente (preservado) ─────────────────────────────────────────────
 router.get('/',                    listarProjetosFV)

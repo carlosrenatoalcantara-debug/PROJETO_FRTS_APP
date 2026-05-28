@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
-import { AlertCircle, BarChart3, Battery, FileText, Zap, Edit2, X, ShieldCheck } from 'lucide-react'
+import { AlertCircle, BarChart3, Battery, FileText, Zap, Edit2, X, ShieldCheck, Briefcase } from 'lucide-react'
 import Card, { CardHeader, CardBody } from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import Badge from '../components/ui/Badge'
 import UnifilarFV from '../components/fv/UnifilarFV'
 import GovernancaPainel from '../components/fv/GovernancaPainel'
+import PropostaEnterprise from '../components/fv/PropostaEnterprise'
 import { getFreezeStatusConfig } from '../utils/engenhariaGovernanca'
+import { getWorkflowConfig } from '../utils/comercialGovernanca'
 import InteractiveDiagram from '../components/diagram/InteractiveDiagram'
 import { carregarDiagramaLocal, salvarDiagramaLocal, deletarDiagramaLocal } from '../components/diagram/utils/diagramPersistence'
 
@@ -124,11 +126,14 @@ export default function ProjetosFVDetalhes() {
     { id: 'financeiro', label: 'Financeiro', icone: BarChart3 },
     { id: 'unifilar', label: 'Unifilar', icone: Zap },
     { id: 'governanca', label: 'Governança', icone: ShieldCheck },
+    { id: 'comercial', label: 'Comercial', icone: Briefcase },
     { id: 'homologacao', label: 'Homologação', icone: FileText },
   ]
 
   const statusGov = projeto.governanca?.freeze_status
   const cfgGov = statusGov ? getFreezeStatusConfig(statusGov) : null
+  const statusCom = projeto.governanca?.comercial?.workflow_status
+  const cfgCom = statusCom ? getWorkflowConfig(statusCom) : null
 
   return (
     <div className="space-y-6">
@@ -137,6 +142,7 @@ export default function ProjetosFVDetalhes() {
           <div className="flex items-center gap-3 flex-wrap">
             <h1 className="text-3xl font-bold text-slate-900">{projeto.nomeCliente}</h1>
             {cfgGov && <Badge cor={cfgGov.cor}>{cfgGov.label}</Badge>}
+            {cfgCom && <Badge cor={cfgCom.cor}>{cfgCom.label}</Badge>}
           </div>
           <p className="text-slate-600 mt-1">{projeto.endereco}</p>
         </div>
@@ -182,6 +188,16 @@ export default function ProjetosFVDetalhes() {
             projetoId={id}
             governanca={projeto.governanca}
             onAtualizar={(g) => setProjeto(p => ({ ...p, governanca: g }))}
+            usuario={null}
+          />
+        )}
+        {abaAtiva === 'comercial' && (
+          <PropostaEnterprise
+            projetoId={id}
+            snapshotTecnico={projeto.governanca?.snapshot_tecnico}
+            resultadoFinanceiro={null}
+            governancaComercial={projeto.governanca?.comercial}
+            onAtualizar={(c) => setProjeto(p => ({ ...p, governanca: { ...p.governanca, comercial: c } }))}
             usuario={null}
           />
         )}

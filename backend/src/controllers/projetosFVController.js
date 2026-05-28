@@ -434,21 +434,24 @@ export const salvarEtapaProjetoFV = async (req, res) => {
     // ⚠️ FIX defensivo: garantir que `workflow` não seja null antes de tocar subcampos.
     // Sem isso, MongoDB lança "Cannot create field 'ultima_atividade' in element {workflow: null}"
     // pois $set em path dot-notation falha quando o ancestral é null.
-    const projetoAtual = await ProjetoFV.findById(id).select('workflow governanca.freeze_status').lean()
+    const projetoAtual = await ProjetoFV.findById(id).select('workflow governanca.freeze_status governanca.comercial.workflow_status').lean()
     if (!projetoAtual) return res.status(404).json({ erro: 'Projeto não encontrado' })
 
-    // ── S3.5: Freeze guard ─────────────────────────────────────────────────────
-    // Projetos CONGELADO/HOMOLOGADO não aceitam recálculo nem alteração silenciosa
-    // de engenharia. Apenas a etapa 'workflow' (progresso/visita) é tolerada para
-    // não travar navegação. Snapshots e mudança de status passam por endpoints
-    // dedicados de governança, não por esta rota.
+    // ── S3.5/S4.2: Freeze guard ────────────────────────────────────────────────
+    // Projetos CONGELADO/HOMOLOGADO (técnico) ou ASSINADO (comercial) não aceitam
+    // recálculo nem alteração silenciosa. Apenas a etapa 'workflow' é tolerada.
+    // Snapshots e mudança de status passam por endpoints dedicados.
     const freezeStatus = projetoAtual.governanca?.freeze_status
-    if ((freezeStatus === 'CONGELADO' || freezeStatus === 'HOMOLOGADO') && etapa !== 'workflow') {
+    const comStatus    = projetoAtual.governanca?.comercial?.workflow_status
+    const travado = freezeStatus === 'CONGELADO' || freezeStatus === 'HOMOLOGADO' || comStatus === 'ASSINADO'
+    if (travado && etapa !== 'workflow') {
+      const motivo = comStatus === 'ASSINADO' ? 'ASSINADO (comercial)' : freezeStatus
       return res.status(409).json({
-        erro: `Projeto ${freezeStatus} — alteração de "${etapa}" bloqueada.`,
+        erro: `Projeto ${motivo} — alteração de "${etapa}" bloqueada.`,
         codigo: 'PROJETO_CONGELADO',
         freeze_status: freezeStatus,
-        dica: 'Crie uma revisão (Rev B/C) para reabrir a engenharia antes de editar.',
+        workflow_comercial: comStatus,
+        dica: 'Crie uma revisão (técnica ou comercial) para reabrir antes de editar.',
       })
     }
 
@@ -860,6 +863,191 @@ export const detectarDivergenciaProjetoFV = async (req, res) => {
     })
   } catch (err) {
     console.error('❌ Erro ao detectar divergência:', err)
+    res.status(500).json({ erro: err.message })
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// S4.2 — COMERCIAL ENTERPRISE
+// Workflow comercial, cenários, desconto/aprovação, assinaturas e snapshot
+// comercial congelável. Additive: projetos sem governanca.comercial seguem iguais.
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function _carregarComercial(gov) {
+  const govObj = (gov && gov.toObject?.()) || gov || {}
+  const com = govObj.comercial || {}
+  return {
+    govObj,
+    com: {
+      ...com,
+      assinaturas: Array.isArray(com.assinaturas) ? [...com.assinaturas] : [],
+      historico: Array.isArray(com.historico) ? [...com.historico] : [],
+    },
+  }
+}
+
+const WORKFLOW_COMERCIAL = ['EM_ANALISE', 'AGUARDANDO_CLIENTE', 'NEGOCIACAO', 'APROVADO', 'REPROVADO', 'ASSINADO']
+
+/**
+ * POST /:id/governanca/comercial/snapshot
+ * Salva/congela o snapshot comercial: cenários, comparativos, desconto, PDF.
+ * Body: { snapshot_comercial, cenarios, comparativos, desconto_pct, congelar, usuario }
+ */
+export const salvarComercialProjetoFV = async (req, res) => {
+  try {
+    if (!_exigirMongo(res)) return
+    const { id } = req.params
+    if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ erro: 'ID inválido' })
+
+    const { snapshot_comercial = null, cenarios = null, comparativos = null,
+      desconto_pct, desconto_limite_pct, congelar = false, usuario = null } = req.body || {}
+
+    const projeto = await ProjetoFV.findById(id)
+    if (!projeto) return res.status(404).json({ erro: 'Projeto não encontrado' })
+
+    const { govObj, com } = _carregarComercial(projeto.governanca)
+    const agora = new Date()
+
+    if (com.workflow_status === 'ASSINADO') {
+      return res.status(409).json({ erro: 'Proposta ASSINADA — crie uma revisão comercial antes de alterar.', codigo: 'COMERCIAL_ASSINADO' })
+    }
+
+    if (cenarios != null)            com.cenarios = cenarios
+    if (comparativos != null)        com.comparativos = comparativos
+    if (snapshot_comercial != null)  com.snapshot_comercial = snapshot_comercial
+    if (desconto_pct != null)        com.desconto_pct = desconto_pct
+    if (desconto_limite_pct != null) com.desconto_limite_pct = desconto_limite_pct
+    if (congelar)                    com.congelado_em = agora
+
+    com.historico.push({
+      timestamp: agora, usuario, acao: congelar ? 'snapshot_comercial_congelado' : 'snapshot_comercial_salvo',
+      detalhe: `Cenários e comparativos ${congelar ? 'congelados' : 'atualizados'}.`,
+    })
+
+    projeto.governanca = { ...govObj, comercial: com }
+    await projeto.save()
+    res.json({ sucesso: true, comercial: projeto.governanca.comercial })
+  } catch (err) {
+    console.error('❌ Erro ao salvar comercial:', err)
+    res.status(500).json({ erro: err.message })
+  }
+}
+
+/**
+ * PUT /:id/governanca/comercial/workflow
+ * Altera o status do workflow comercial. ASSINADO congela (freeze comercial).
+ * Body: { status, usuario }
+ */
+export const atualizarWorkflowComercial = async (req, res) => {
+  try {
+    if (!_exigirMongo(res)) return
+    const { id } = req.params
+    if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ erro: 'ID inválido' })
+
+    const { status, usuario = null } = req.body || {}
+    if (!WORKFLOW_COMERCIAL.includes(status)) {
+      return res.status(400).json({ erro: `status deve ser um de: ${WORKFLOW_COMERCIAL.join(', ')}` })
+    }
+
+    const projeto = await ProjetoFV.findById(id)
+    if (!projeto) return res.status(404).json({ erro: 'Projeto não encontrado' })
+
+    const { govObj, com } = _carregarComercial(projeto.governanca)
+    const agora = new Date()
+    const anterior = com.workflow_status || 'EM_ANALISE'
+
+    com.workflow_status = status
+    if (status === 'ASSINADO') com.congelado_em = com.congelado_em || agora
+    com.historico.push({
+      timestamp: agora, usuario, acao: 'workflow_alterado',
+      detalhe: `Workflow comercial: ${anterior} → ${status}.`,
+    })
+
+    projeto.governanca = { ...govObj, comercial: com }
+    await projeto.save()
+    res.json({ sucesso: true, workflow_status: status, comercial: projeto.governanca.comercial })
+  } catch (err) {
+    console.error('❌ Erro no workflow comercial:', err)
+    res.status(500).json({ erro: err.message })
+  }
+}
+
+/**
+ * POST /:id/governanca/comercial/assinatura
+ * Registra assinatura digital simples (hash + timestamp).
+ * Body: { papel, nome, hash, usuario }
+ */
+export const registrarAssinaturaComercial = async (req, res) => {
+  try {
+    if (!_exigirMongo(res)) return
+    const { id } = req.params
+    if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ erro: 'ID inválido' })
+
+    const { papel, nome, hash, usuario = null } = req.body || {}
+    const PAPEIS = ['cliente', 'vendedor', 'tecnico']
+    if (!PAPEIS.includes(papel)) return res.status(400).json({ erro: `papel deve ser: ${PAPEIS.join(', ')}` })
+    if (!nome || !hash) return res.status(400).json({ erro: 'nome e hash são obrigatórios' })
+
+    const projeto = await ProjetoFV.findById(id)
+    if (!projeto) return res.status(404).json({ erro: 'Projeto não encontrado' })
+
+    const { govObj, com } = _carregarComercial(projeto.governanca)
+    const agora = new Date()
+
+    // Substitui assinatura existente do mesmo papel (re-assinatura)
+    com.assinaturas = com.assinaturas.filter(a => a.papel !== papel)
+    com.assinaturas.push({ papel, nome, hash, timestamp: agora })
+    com.historico.push({ timestamp: agora, usuario: usuario || nome, acao: 'assinatura', detalhe: `Assinatura ${papel}: ${nome}.` })
+
+    // Se as três assinaturas estão presentes, marca ASSINADO
+    const papeisAssinados = new Set(com.assinaturas.map(a => a.papel))
+    if (PAPEIS.every(p => papeisAssinados.has(p))) {
+      com.workflow_status = 'ASSINADO'
+      com.congelado_em = com.congelado_em || agora
+      com.historico.push({ timestamp: agora, usuario, acao: 'workflow_alterado', detalhe: 'Workflow comercial: ASSINADO (todas as assinaturas coletadas).' })
+    }
+
+    projeto.governanca = { ...govObj, comercial: com }
+    await projeto.save()
+    res.json({ sucesso: true, comercial: projeto.governanca.comercial })
+  } catch (err) {
+    console.error('❌ Erro ao registrar assinatura:', err)
+    res.status(500).json({ erro: err.message })
+  }
+}
+
+/**
+ * POST /:id/governanca/comercial/aprovacao
+ * Registra aprovação gerencial de desconto/margem/exceção.
+ * Body: { tipo, aprovado_por, observacao, usuario }
+ */
+export const registrarAprovacaoComercial = async (req, res) => {
+  try {
+    if (!_exigirMongo(res)) return
+    const { id } = req.params
+    if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ erro: 'ID inválido' })
+
+    const { tipo, aprovado_por, observacao = null, usuario = null } = req.body || {}
+    const TIPOS = ['aprovacao_desconto', 'aprovacao_margem', 'aprovacao_excecao']
+    if (!TIPOS.includes(tipo)) return res.status(400).json({ erro: `tipo deve ser: ${TIPOS.join(', ')}` })
+    if (!aprovado_por) return res.status(400).json({ erro: 'aprovado_por é obrigatório' })
+
+    const projeto = await ProjetoFV.findById(id)
+    if (!projeto) return res.status(404).json({ erro: 'Projeto não encontrado' })
+
+    const { govObj, com } = _carregarComercial(projeto.governanca)
+    const agora = new Date()
+
+    com.aprovacao = { tipo, aprovado_por, em: agora, observacao }
+    com.desconto_aprovado_por = aprovado_por
+    if (tipo === 'aprovacao_excecao') com.desconto_excecao = true
+    com.historico.push({ timestamp: agora, usuario: usuario || aprovado_por, acao: 'aprovacao', detalhe: `${tipo} por ${aprovado_por}.` })
+
+    projeto.governanca = { ...govObj, comercial: com }
+    await projeto.save()
+    res.json({ sucesso: true, comercial: projeto.governanca.comercial })
+  } catch (err) {
+    console.error('❌ Erro ao registrar aprovação:', err)
     res.status(500).json({ erro: err.message })
   }
 }

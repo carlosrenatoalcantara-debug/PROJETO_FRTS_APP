@@ -264,6 +264,40 @@ export function buscarDivergencia(projetoId) {
   return _fetch(`/api/projetos-fv/${projetoId}/governanca/divergencia`)
 }
 
+// ─── S4.2: Comercial enterprise ─────────────────────────────────────────────────
+
+/** Salva/congela o snapshot comercial (cenários, comparativos, desconto, PDF). */
+export function salvarComercial(projetoId, payload) {
+  return _fetch(`/api/projetos-fv/${projetoId}/governanca/comercial/snapshot`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+}
+
+/** Altera o status do workflow comercial. */
+export function atualizarWorkflowComercial(projetoId, status, usuario = null) {
+  return _fetch(`/api/projetos-fv/${projetoId}/governanca/comercial/workflow`, {
+    method: 'PUT',
+    body: JSON.stringify({ status, usuario }),
+  })
+}
+
+/** Registra assinatura digital (papel cliente/vendedor/tecnico). */
+export function registrarAssinatura(projetoId, assinatura) {
+  return _fetch(`/api/projetos-fv/${projetoId}/governanca/comercial/assinatura`, {
+    method: 'POST',
+    body: JSON.stringify(assinatura),
+  })
+}
+
+/** Registra aprovação gerencial (desconto/margem/exceção). */
+export function registrarAprovacao(projetoId, payload) {
+  return _fetch(`/api/projetos-fv/${projetoId}/governanca/comercial/aprovacao`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+}
+
 /**
  * Resolve clienteId a partir do nome do cliente (mesmo comportamento de E8 legado).
  * Retorna null se não encontrado.

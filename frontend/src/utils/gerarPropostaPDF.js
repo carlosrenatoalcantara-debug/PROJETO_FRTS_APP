@@ -5,6 +5,7 @@ export const gerarPropostaPDF = (dados) => {
     orcamento = {},
     empresa = {},
     financeiro = null,   // S4: resultado do centro financeiro EPC (opcional)
+    comercial = null,    // S4.2: cenários comerciais comparados (opcional)
     validadeDias = 30,
   } = dados
 
@@ -47,6 +48,31 @@ export const gerarPropostaPDF = (dados) => {
   const roiPct = retShow?.roi_pct ?? null
   const economia25 = retShow?.economia_25_anos ?? null
   const premissasReg = financeiro?.regulatorio || null
+
+  // S4.2: tabela comparativa de cenários comerciais
+  const listaCenarios = comercial?.cenarios?.cenarios || comercial?.snapshot_comercial?.cenarios?.cenarios || null
+  const secaoCenarios = (Array.isArray(listaCenarios) && listaCenarios.length > 0) ? `
+        <h2 class="subtitulo">Comparação de Cenários</h2>
+        <table class="orcamento-tabela">
+          <thead>
+            <tr>
+              <th>Cenário</th><th class="orcamento-valor">Economia 25a</th>
+              <th class="orcamento-valor">Payback</th><th class="orcamento-valor">ROI</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${listaCenarios.map(c => `
+              <tr>
+                <td>${c.label}</td>
+                <td class="orcamento-valor">${brlFmt(c.economia_25_anos)}</td>
+                <td class="orcamento-valor">${c.payback_anos != null ? c.payback_anos + ' anos' : '—'}</td>
+                <td class="orcamento-valor">${c.roi_pct != null ? Math.round(c.roi_pct) + '%' : '—'}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+        <p style="font-size:10px;color:#999;margin-bottom:20px;">Cenários conforme premissas regulatórias (Lei 14.300/2022). O cenário Realista é a base da proposta.</p>
+  ` : ''
 
   const secaoRegulatoria = premissasReg ? `
         <h2 class="subtitulo">Premissas Regulatórias (Lei 14.300/2022)</h2>
@@ -261,6 +287,8 @@ export const gerarPropostaPDF = (dados) => {
         </div>
 
         ${secaoRegulatoria}
+
+        ${secaoCenarios}
 
         <div class="garantias">
           <h4>Garantias Incluídas</h4>
