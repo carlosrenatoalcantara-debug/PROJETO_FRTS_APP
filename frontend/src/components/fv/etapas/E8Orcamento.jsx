@@ -631,6 +631,8 @@ export default function E8Orcamento() {
         config={fin}
         custosIniciais={custosInicaisFin}
         tarifaInicial={tarifaFin}
+        consumoAnualKwh={(Number(dadosConsumo.consumoMensal) || 0) * 12}
+        tipoLigacao={dadosConsumo.tipoLigacao || 'monofasico'}
         onResultado={onResultadoFinanceiro}
       />
 

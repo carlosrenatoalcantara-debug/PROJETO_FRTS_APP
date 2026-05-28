@@ -42,8 +42,23 @@ export const gerarPropostaPDF = (dados) => {
   const vc = financeiro?.visao_cliente || null
   const finBanco = financeiro?.financiamento || null
   const parcel = financeiro?.parcelamento || null
-  const roiPct = financeiro?.retorno?.roi_pct ?? null
-  const economia25 = financeiro?.retorno?.economia_25_anos ?? null
+  // S4.1: usa cenário realista (Lei 14.300) quando disponível — proposta honesta
+  const retShow = financeiro?.retorno_realista || financeiro?.retorno || null
+  const roiPct = retShow?.roi_pct ?? null
+  const economia25 = retShow?.economia_25_anos ?? null
+  const premissasReg = financeiro?.regulatorio || null
+
+  const secaoRegulatoria = premissasReg ? `
+        <h2 class="subtitulo">Premissas Regulatórias (Lei 14.300/2022)</h2>
+        <div class="especificacoes">
+          <div class="especificacoes-item"><span class="especificacoes-label">Modalidade</span><span class="especificacoes-valor">${premissasReg.modalidade} — ${premissasReg.modalidade_descricao || ''}</span></div>
+          <div class="especificacoes-item"><span class="especificacoes-label">Ano de instalação</span><span class="especificacoes-valor">${premissasReg.ano_instalacao}${premissasReg.grandfathered ? ' (direito adquirido até 2045)' : ''}</span></div>
+          <div class="especificacoes-item"><span class="especificacoes-label">Fator de compensação</span><span class="especificacoes-valor">${Math.round((premissasReg.fator_compensacao || 0) * 100)}%</span></div>
+          <div class="especificacoes-item"><span class="especificacoes-label">Simultaneidade (autoconsumo)</span><span class="especificacoes-valor">${Math.round((premissasReg.simultaneidade || 0) * 100)}%</span></div>
+          <div class="especificacoes-item"><span class="especificacoes-label">Tarifa considerada</span><span class="especificacoes-valor">R$ ${Number(premissasReg.tarifa_cheia_kwh || 0).toFixed(2)}/kWh + reajuste ${premissasReg.reajuste_anual_pct}% a.a.</span></div>
+        </div>
+        <p style="font-size:10px;color:#999;margin-bottom:20px;">Economia projetada considera a cobrança gradual do Fio B (TUSD) sobre a energia compensada, conforme a Lei 14.300/2022.</p>
+  ` : ''
 
   const secaoPagamento = (finBanco || parcel) ? `
         <h2 class="subtitulo">Condições de Pagamento</h2>
@@ -244,6 +259,8 @@ export const gerarPropostaPDF = (dados) => {
             <div class="analise-card-valor">${Number(roiPct).toFixed(0)}%</div>
           </div>` : ''}
         </div>
+
+        ${secaoRegulatoria}
 
         <div class="garantias">
           <h4>Garantias Incluídas</h4>

@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react'
-import { DollarSign, TrendingUp, Eye, EyeOff, CreditCard, Landmark, Package, Layers } from 'lucide-react'
+import { DollarSign, TrendingUp, Eye, EyeOff, CreditCard, Landmark, Package, Layers, Scale, Info } from 'lucide-react'
 import { calcularFinanceiroCompleto } from '../../utils/financeiroEngine'
+import { calcularRetornoRegulatorio, construirPremissasRegulatorias, GD_MODALIDADES } from '../../utils/financeiroRegulatorioBR'
 
 /**
  * CentroFinanceiroFV — Sprint 4
@@ -42,10 +43,21 @@ function CardKPI({ titulo, valor, sub, destaque }) {
 }
 
 export default function CentroFinanceiroFV({
-  snapshotTecnico, config = {}, custosIniciais = {}, tarifaInicial = {}, onResultado,
+  snapshotTecnico, config = {}, custosIniciais = {}, tarifaInicial = {}, consumoAnualKwh = 0, tipoLigacao = 'monofasico', onResultado,
 }) {
   const [modo, setModo] = useState('composicao')
   const [modoCliente, setModoCliente] = useState(false)
+  // S4.1: simulação regulatória Lei 14.300
+  const [modoAvancado, setModoAvancado] = useState(false)
+  const [reg, setReg] = useState(() => ({
+    anoInstalacao: new Date().getFullYear(),
+    modalidade: 'GD_I',
+    fatorCompensacao: 100,        // %
+    simultaneidade: 30,           // %
+    fioBFracaoTarifa: 28,         // % da tarifa cheia
+    consumoAnualKwh: consumoAnualKwh || 0,
+  }))
+  const setRegC = (k) => (v) => setReg((r) => ({ ...r, [k]: k === 'modalidade' ? v : Number(v) }))
 
   const [custos, setCustos] = useState(() => ({
     custo_painel:       custosIniciais.custo_painel ?? 0,
@@ -91,21 +103,48 @@ export default function CentroFinanceiroFV({
     : parcelTipo === 'boleto' ? (config.boletoTaxaMesPct ?? 1.99)
     : (config.proprioTaxaMesPct ?? 0)
 
-  const resultado = useMemo(() => calcularFinanceiroCompleto({
-    modo,
-    custos,
-    valorVendaKit,
-    markupPct,
-    descontoPct,
-    snapshotTecnico,
-    tarifa,
-    financiamento: usarFinanciamento ? financiamento : null,
-    parcelamento: { tipo: parcelTipo, parcelas, taxaMesPct: taxaParcelMes },
-  }), [modo, custos, valorVendaKit, markupPct, descontoPct, snapshotTecnico, tarifa, usarFinanciamento, financiamento, parcelTipo, parcelas, taxaParcelMes])
+  const resultado = useMemo(() => {
+    const comum = {
+      modo, custos, valorVendaKit, markupPct, descontoPct, snapshotTecnico, tarifa,
+      financiamento: usarFinanciamento ? financiamento : null,
+      parcelamento: { tipo: parcelTipo, parcelas, taxaMesPct: taxaParcelMes },
+    }
+    // 1ª passada: obtém o preço de venda
+    const base = calcularFinanceiroCompleto(comum)
+
+    if (!modoAvancado) return base
+
+    // 2ª passada: motor regulatório Lei 14.300 (engineering lock via snapshot técnico)
+    const premissas = construirPremissasRegulatorias({
+      anoInstalacao: reg.anoInstalacao,
+      modalidade: reg.modalidade,
+      fatorCompensacao: reg.fatorCompensacao / 100,
+      simultaneidade: reg.simultaneidade / 100,
+      fioBFracaoTarifa: reg.fioBFracaoTarifa / 100,
+      tipoLigacao,
+      tarifaKwh: tarifa.tarifaKwh,
+      reajusteAnualPct: tarifa.reajusteAnualPct,
+      inflacaoEnergiaPct: tarifa.inflacaoEnergiaPct,
+      degradacaoAnualPct: config.degradacaoAnualPct ?? 0.5,
+    })
+    const retornoRealista = calcularRetornoRegulatorio({
+      geracaoAnualKwh: snapshotTecnico?.geracao_anual_kwh,
+      consumoAnualKwh: reg.consumoAnualKwh || snapshotTecnico?.geracao_anual_kwh,
+      precoVenda: base.orcamento.preco_venda,
+      premissas,
+    })
+    return calcularFinanceiroCompleto({
+      ...comum,
+      regulatorio: { ativo: true, retorno_realista: retornoRealista },
+    })
+  }, [modo, custos, valorVendaKit, markupPct, descontoPct, snapshotTecnico, tarifa, usarFinanciamento, financiamento, parcelTipo, parcelas, taxaParcelMes, modoAvancado, reg, tipoLigacao, config.degradacaoAnualPct])
 
   useEffect(() => { onResultado?.(resultado) }, [resultado, onResultado])
 
-  const { orcamento, margem, retorno, financiamento: fin, parcelamento: parc } = resultado
+  const { orcamento, margem, retorno, financiamento: fin, parcelamento: parc, comparacao } = resultado
+  // Cenário exibido nos KPIs: realista (Lei 14.300) quando avançado, senão otimista
+  const ret = resultado.retorno_realista || retorno
+  const det = resultado.retorno_realista?.detalhe_ano1 || null
 
   return (
     <div className="bg-white border border-slate-200 rounded-xl p-5 space-y-5">
@@ -114,26 +153,115 @@ export default function CentroFinanceiroFV({
         <div className="flex items-center gap-2">
           <DollarSign size={18} className="text-emerald-600" />
           <span className="text-sm font-semibold text-slate-800">Centro Financeiro EPC</span>
+          {modoAvancado && (
+            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700" title="Cenário realista sob a Lei 14.300/2022">
+              LEI 14.300
+            </span>
+          )}
         </div>
-        <button
-          onClick={() => setModoCliente((v) => !v)}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-            modoCliente ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600'
-          }`}
-        >
-          {modoCliente ? <Eye size={14} /> : <EyeOff size={14} />}
-          {modoCliente ? 'Visão Cliente' : 'Visão Interna'}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setModoAvancado((v) => !v)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+              modoAvancado ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-600'
+            }`}
+            title="Alterna entre modelo simples (compensação integral) e realista (Lei 14.300, Fio B, compensação parcial)"
+          >
+            <Scale size={14} />
+            {modoAvancado ? 'Avançado (real)' : 'Simples'}
+          </button>
+          <button
+            onClick={() => setModoCliente((v) => !v)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+              modoCliente ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600'
+            }`}
+          >
+            {modoCliente ? <Eye size={14} /> : <EyeOff size={14} />}
+            {modoCliente ? 'Visão Cliente' : 'Visão Interna'}
+          </button>
+        </div>
       </div>
 
       {/* Resumo executivo (sempre visível) */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <CardKPI titulo="Valor final" valor={brl(orcamento.preco_venda)} destaque />
-        <CardKPI titulo="Economia/ano" valor={retorno.calc_possivel ? brl(retorno.economia_anual_1ano) : '—'} />
-        <CardKPI titulo="Payback" valor={retorno.calc_possivel && retorno.payback_anos ? `${retorno.payback_anos} anos` : '—'} />
-        <CardKPI titulo="ROI 25 anos" valor={retorno.calc_possivel ? pctf(retorno.roi_pct) : '—'}
-          sub={retorno.calc_possivel ? `TIR ~${pctf(retorno.tir_estimada_aa_pct)} a.a.` : null} />
+        <CardKPI titulo={modoAvancado ? 'Economia/ano (real)' : 'Economia/ano'} valor={ret.calc_possivel ? brl(ret.economia_anual_1ano) : '—'} />
+        <CardKPI titulo="Payback" valor={ret.calc_possivel && ret.payback_anos ? `${ret.payback_anos} anos` : '—'} />
+        <CardKPI titulo="ROI 25 anos" valor={ret.calc_possivel ? pctf(ret.roi_pct) : '—'}
+          sub={ret.calc_possivel ? `TIR ~${pctf(ret.tir_estimada_aa_pct)} a.a.` : null} />
       </div>
+
+      {/* S4.1: Simulador regulatório (modo avançado) */}
+      {modoAvancado && (
+        <div className="border border-emerald-200 bg-emerald-50/40 rounded-lg p-4 space-y-3">
+          <p className="text-xs font-semibold text-emerald-800 flex items-center gap-1">
+            <Scale size={13} /> Premissas regulatórias (Lei 14.300/2022)
+          </p>
+          {!modoCliente && (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+              <MiniInput label="Ano instalação" value={reg.anoInstalacao} onChange={setRegC('anoInstalacao')} step={1} />
+              <div>
+                <label className="text-xs font-medium text-slate-600 block mb-1">Modalidade GD</label>
+                <select value={reg.modalidade} onChange={(e) => setRegC('modalidade')(e.target.value)}
+                  className="w-full px-2 py-1.5 text-sm border border-slate-300 rounded focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                  {Object.entries(GD_MODALIDADES).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+                </select>
+              </div>
+              <MiniInput label="Compensação" value={reg.fatorCompensacao} onChange={setRegC('fatorCompensacao')} suffix="%" step={1} />
+              <MiniInput label="Simultaneidade" value={reg.simultaneidade} onChange={setRegC('simultaneidade')} suffix="%" step={1} />
+              <MiniInput label="Fio B (% tarifa)" value={reg.fioBFracaoTarifa} onChange={setRegC('fioBFracaoTarifa')} suffix="%" step={1} />
+              <MiniInput label="Consumo anual" value={reg.consumoAnualKwh} onChange={setRegC('consumoAnualKwh')} suffix="kWh" step={100} />
+            </div>
+          )}
+
+          {/* Comparação otimista × realista */}
+          {comparacao && (
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
+              <div className="bg-white rounded-lg p-3 border border-slate-200">
+                <p className="text-xs text-slate-500">Economia 25a (otimista)</p>
+                <p className="font-semibold text-slate-400 line-through">{brl(comparacao.economia_25_otimista)}</p>
+              </div>
+              <div className="bg-white rounded-lg p-3 border border-emerald-200">
+                <p className="text-xs text-slate-500">Economia 25a (realista)</p>
+                <p className="font-bold text-emerald-700">{brl(comparacao.economia_25_realista)}</p>
+              </div>
+              <div className="bg-white rounded-lg p-3 border border-slate-200">
+                <p className="text-xs text-slate-500">Impacto regulatório</p>
+                <p className="font-semibold text-orange-600">{brl(comparacao.diferenca_25_anos)} ({comparacao.diferenca_pct}%)</p>
+              </div>
+            </div>
+          )}
+
+          {/* Breakdown energético do ano 1 */}
+          {det && (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 text-sm pt-1">
+              <div title="Energia gerada e consumida no mesmo instante — economiza tarifa cheia.">
+                <p className="text-xs text-slate-500 flex items-center gap-0.5">Autoconsumida <Info size={10} /></p>
+                <p className="font-semibold text-slate-800">{det.energia_autoconsumida_kwh} kWh</p>
+              </div>
+              <div title="Energia injetada na rede para compensação futura.">
+                <p className="text-xs text-slate-500">Exportada</p>
+                <p className="font-semibold text-slate-800">{det.energia_exportada_kwh} kWh</p>
+              </div>
+              <div title="Energia que efetivamente abateu o consumo (após fator de compensação).">
+                <p className="text-xs text-slate-500">Compensada</p>
+                <p className="font-semibold text-slate-800">{det.energia_compensada_kwh} kWh</p>
+              </div>
+              <div title="Custo do Fio B (TUSD) sobre a energia compensada — Lei 14.300.">
+                <p className="text-xs text-slate-500 flex items-center gap-0.5">Custo Fio B <Info size={10} /></p>
+                <p className="font-semibold text-orange-600">{brl(det.custo_fio_b)} ({Math.round(det.percentual_fio_b * 100)}%)</p>
+              </div>
+              <div title="Perda de economia vs cenário de compensação integral.">
+                <p className="text-xs text-slate-500">Perda regulatória</p>
+                <p className="font-semibold text-orange-600">{brl(resultado.retorno_realista.perda_regulatoria_ano1)}/ano</p>
+              </div>
+            </div>
+          )}
+          <p className="text-[11px] text-slate-500">
+            Fio B cobrado gradualmente: 2023→15%, 2024→30%… 2029→100%. Sistemas até 2022 têm direito adquirido até 2045.
+          </p>
+        </div>
+      )}
 
       {!modoCliente && (
         <>

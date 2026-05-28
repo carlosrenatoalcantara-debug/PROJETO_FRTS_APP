@@ -218,6 +218,11 @@ export function construirSnapshotFinanceiro({ resultadoFinanceiro, orcamento, sn
       financiamento: r.financiamento ?? null,
       parcelamento: r.parcelamento ?? null,
       retorno: r.retorno ?? null,
+      // S4.1: cenário regulatório congelado (Lei 14.300)
+      retorno_realista: r.retorno_realista ?? null,
+      regulatorio: r.regulatorio ?? null,
+      comparacao: r.comparacao ?? null,
+      cenario_exibicao: r.cenario_exibicao ?? 'otimista',
       tarifa: r.tarifa ?? null,
       proposta_final: r.orcamento.preco_venda ?? null,
       visao_cliente: r.visao_cliente ?? null,

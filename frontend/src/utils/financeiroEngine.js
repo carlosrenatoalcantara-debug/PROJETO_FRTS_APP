@@ -292,11 +292,15 @@ export function calcularTIR(fluxos, { iteracoes = 200, lo = -0.95, hi = 2 } = {}
  * @param {object} p.tarifa              — { tarifaKwh, reajusteAnualPct, inflacaoEnergiaPct, bandeira }
  * @param {object} [p.financiamento]     — { entrada, parcelas, taxaJurosMesPct, carenciaMeses }
  * @param {object} [p.parcelamento]      — { tipo, parcelas, taxaMesPct }
+ * @param {object} [p.regulatorio]       — S4.1: ativa o motor Lei 14.300.
+ *        { ativo, consumoAnualKwh, premissas|params } — quando ativo, calcula
+ *        `retorno_realista` e `comparacao` sem alterar o `retorno` otimista.
  */
 export function calcularFinanceiroCompleto({
   modo = 'composicao', custos = {}, valorVendaKit = 0,
   markupPct = 0, descontoPct = 0,
   snapshotTecnico = null, tarifa = {}, financiamento = null, parcelamento = null,
+  regulatorio = null,
 }) {
   const orcamento = modo === 'kit_fechado'
     ? calcularModoKitFechado({ valorVendaKit, custos })
@@ -326,12 +330,41 @@ export function calcularFinanceiroCompleto({
     ? calcularParcelamento({ valor: orcamento.preco_venda, ...parcelamento })
     : null
 
+  // S4.1: retorno realista (Lei 14.300) — precomputado pelo chamador para evitar
+  // dependência circular com o motor regulatório. Quando presente, vira a base
+  // da visão do cliente (mais honesta) e gera a comparação otimista×realista.
+  const retornoRealista = (regulatorio?.ativo && regulatorio?.retorno_realista?.calc_possivel)
+    ? regulatorio.retorno_realista
+    : null
+
+  let comparacao = null
+  if (retornoRealista && retorno.calc_possivel) {
+    const dif = round2((retornoRealista.economia_25_anos || 0) - (retorno.economia_25_anos || 0))
+    comparacao = {
+      economia_25_otimista: retorno.economia_25_anos,
+      economia_25_realista: retornoRealista.economia_25_anos,
+      diferenca_25_anos: dif,
+      diferenca_pct: pct(dif, retorno.economia_25_anos),
+      payback_otimista: retorno.payback_anos,
+      payback_realista: retornoRealista.payback_anos,
+      roi_otimista: retorno.roi_pct,
+      roi_realista: retornoRealista.roi_pct,
+    }
+  }
+
+  // Base de exibição ao cliente: realista quando disponível, senão otimista
+  const base = retornoRealista || (retorno.calc_possivel ? retorno : null)
+
   return {
     calculado_em: new Date().toISOString(),
     modo,
     orcamento,
     margem,
-    retorno,
+    retorno,                       // otimista (compat Sprint 4)
+    retorno_realista: retornoRealista,   // S4.1
+    regulatorio: retornoRealista ? regulatorio.retorno_realista.premissas : null,
+    comparacao,
+    cenario_exibicao: retornoRealista ? 'realista' : 'otimista',
     financiamento: fin,
     parcelamento: parc,
     tarifa: {
@@ -343,10 +376,11 @@ export function calcularFinanceiroCompleto({
     // Visão resumida para o cliente (sem custos/margem/markup/comissão)
     visao_cliente: {
       valor_final: orcamento.preco_venda,
-      economia_anual: retorno.calc_possivel ? retorno.economia_anual_1ano : null,
-      economia_25_anos: retorno.calc_possivel ? retorno.economia_25_anos : null,
-      roi_pct: retorno.calc_possivel ? retorno.roi_pct : null,
-      payback_anos: retorno.calc_possivel ? retorno.payback_anos : null,
+      cenario: retornoRealista ? 'realista' : 'otimista',
+      economia_anual: base ? base.economia_anual_1ano : null,
+      economia_25_anos: base ? base.economia_25_anos : null,
+      roi_pct: base ? base.roi_pct : null,
+      payback_anos: base ? base.payback_anos : null,
       financiamento: fin ? { entrada: fin.entrada, parcelas: fin.parcelas, parcela: fin.parcela } : null,
       parcelamento: parc ? { tipo: parc.tipo, parcelas: parc.parcelas, parcela: parc.parcela } : null,
     },
