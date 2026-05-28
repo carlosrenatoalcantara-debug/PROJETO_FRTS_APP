@@ -298,6 +298,14 @@ export function registrarAprovacao(projetoId, payload) {
   })
 }
 
+/** S4.3: cria revisão comercial (clona snapshot, gera diff, reabre workflow). */
+export function criarRevisaoComercial(projetoId, { usuario, motivo, snapshot_comercial } = {}) {
+  return _fetch(`/api/projetos-fv/${projetoId}/governanca/comercial/revisao`, {
+    method: 'POST',
+    body: JSON.stringify({ usuario, motivo, snapshot_comercial }),
+  })
+}
+
 /**
  * Resolve clienteId a partir do nome do cliente (mesmo comportamento de E8 legado).
  * Retorna null se não encontrado.

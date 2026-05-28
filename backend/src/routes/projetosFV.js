@@ -18,6 +18,7 @@ import {
   atualizarWorkflowComercial,
   registrarAssinaturaComercial,
   registrarAprovacaoComercial,
+  criarRevisaoComercial,       // S4.3 — revisão comercial
 } from '../controllers/projetosFVController.js'
 import {
   prepararComFatura,
@@ -52,6 +53,7 @@ router.post('/:id/governanca/comercial/snapshot',   salvarComercialProjetoFV)
 router.put('/:id/governanca/comercial/workflow',     atualizarWorkflowComercial)
 router.post('/:id/governanca/comercial/assinatura',  registrarAssinaturaComercial)
 router.post('/:id/governanca/comercial/aprovacao',   registrarAprovacaoComercial)
+router.post('/:id/governanca/comercial/revisao',     criarRevisaoComercial)
 
 // ── CRUD existente (preservado) ─────────────────────────────────────────────
 router.get('/',                    listarProjetosFV)

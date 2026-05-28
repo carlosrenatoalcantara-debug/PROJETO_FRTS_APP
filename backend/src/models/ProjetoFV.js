@@ -310,19 +310,58 @@ const historicoTimelineV3Schema = new mongoose.Schema({
  * assinaturas digitais (hash+timestamp) e snapshot comercial congelável.
  */
 const assinaturaV3Schema = new mongoose.Schema({
-  papel:     { type: String, default: null },   // 'cliente' | 'vendedor' | 'tecnico'
+  assinatura_id: { type: String, default: null },   // S4.3: id único da assinatura
+  papel:     { type: String, default: null },        // 'cliente' | 'vendedor' | 'tecnico'
   nome:      { type: String, default: null },
-  hash:      { type: String, default: null },
+  hash:      { type: String, default: null },        // S4.3: SHA-256 (hex)
+  algoritmo: { type: String, default: 'sha256' },
+  hash_documento: { type: String, default: null },   // hash do PDF/proposta
+  hash_snapshot:  { type: String, default: null },   // hash do snapshot técnico
+  ip:        { type: String, default: null },
+  user_agent:{ type: String, default: null },
   timestamp: { type: Date,   default: Date.now },
 }, { _id: false })
 
+// S4.3: revisão comercial (clona snapshot, preserva histórico, gera diff)
+const revisaoComercialV3Schema = new mongoose.Schema({
+  rev:        { type: String, default: null },
+  timestamp:  { type: Date,   default: Date.now },
+  usuario:    { type: String, default: null },
+  motivo:     { type: String, default: null },
+  diff:       { type: mongoose.Schema.Types.Mixed, default: null },
+  snapshot_comercial: { type: mongoose.Schema.Types.Mixed, default: null },
+}, { _id: false })
+
 const comercialV3Schema = new mongoose.Schema({
-  // Workflow: EM_ANALISE | AGUARDANDO_CLIENTE | NEGOCIACAO | APROVADO | REPROVADO | ASSINADO
+  // S4.3: máquina de estados completa (validada no controller)
   workflow_status: {
     type: String,
-    enum: ['EM_ANALISE', 'AGUARDANDO_CLIENTE', 'NEGOCIACAO', 'APROVADO', 'REPROVADO', 'ASSINADO', null],
+    enum: ['RASCUNHO', 'EM_ANALISE', 'NEGOCIACAO', 'AGUARDANDO_CLIENTE', 'APROVADO',
+           'ASSINADO', 'IMPLANTACAO', 'CONCLUIDO', 'REPROVADO', 'CANCELADO', 'EXPIRADO', null],
     default: 'EM_ANALISE',
   },
+
+  // S4.3: status jurídico (separado do operacional)
+  status_juridico: {
+    type: String,
+    enum: ['PENDENTE_ASSINATURA', 'ASSINADO', 'EXPIRADO', 'CANCELADO', 'EM_REVISAO', null],
+    default: 'PENDENTE_ASSINATURA',
+  },
+
+  // S4.3: políticas de aprovação/margem
+  politicas: {
+    margem_minima_pct:  { type: Number, default: 8 },
+    margem_alerta_pct:  { type: Number, default: 12 },
+    margem_bloqueio_pct:{ type: Number, default: 0 },
+    desconto_limite_pct:{ type: Number, default: 10 },
+  },
+
+  // S4.3: congelamento por cenário { [idCenario]: { ...valores, congelado_em } }
+  cenarios_congelados: { type: mongoose.Schema.Types.Mixed, default: null },
+
+  // S4.3: revisões comerciais (clones + diff)
+  revisoes_comerciais: { type: [revisaoComercialV3Schema], default: [] },
+  revisao_comercial_atual: { type: String, default: 'A' },
 
   // Cenários financeiros comparados (Mixed — estrutura vem do comercialEngine)
   cenarios:      { type: mongoose.Schema.Types.Mixed, default: null },

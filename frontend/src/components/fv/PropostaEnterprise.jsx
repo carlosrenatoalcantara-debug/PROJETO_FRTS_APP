@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback } from 'react'
-import { Briefcase, PenLine, BadgeCheck, GitCompare, Battery, Cpu, ShieldAlert, Clock } from 'lucide-react'
+import { Briefcase, PenLine, BadgeCheck, GitCompare, Battery, Cpu, ShieldAlert, Clock, Scale, GitBranch, Lock, Snowflake } from 'lucide-react'
 import Badge from '../ui/Badge'
 import Button from '../ui/Button'
 import {
@@ -12,16 +12,23 @@ import {
 import {
   getWorkflowConfig,
   PAPEIS_ASSINATURA,
-  gerarAssinatura,
+  gerarAssinaturaSegura,
   construirSnapshotComercial,
   getAprovacaoConfig,
-  WORKFLOW_COMERCIAL_CONFIG,
 } from '../../utils/comercialGovernanca'
+import {
+  getEstadoConfig,
+  transicoesValidas,
+  getStatusJuridicoConfig,
+  avaliarMargem,
+  estaCongelado,
+} from '../../utils/comercialStateMachine'
 import {
   salvarComercial,
   atualizarWorkflowComercial as apiWorkflow,
   registrarAssinatura,
   registrarAprovacao,
+  criarRevisaoComercial,
 } from '../../services/projetoFVApi'
 
 /**
@@ -45,8 +52,12 @@ export default function PropostaEnterprise({
 }) {
   const com = governancaComercial || {}
   const status = com.workflow_status || 'EM_ANALISE'
-  const wfCfg = getWorkflowConfig(status)
+  const wfCfg = getEstadoConfig(status)
+  const congelado = estaCongelado(status)
   const assinado = status === 'ASSINADO'
+  const statusJuridico = com.status_juridico || 'PENDENTE_ASSINATURA'
+  const sjCfg = getStatusJuridicoConfig(statusJuridico)
+  const proximosEstados = transicoesValidas(status)
 
   const precoVenda = resultadoFinanceiro?.orcamento?.preco_venda ?? com.snapshot_comercial?.proposta_final ?? null
   const margemLiq = resultadoFinanceiro?.margem?.margem_liquida_pct ?? null
@@ -96,6 +107,14 @@ export default function PropostaEnterprise({
     margemMinimaPct: config.margemMinimaPct ?? 8,
   }), [descontoPct, config, margemLiq])
 
+  // S4.3: proteção de margem
+  const margemGuard = useMemo(() => avaliarMargem({
+    margemLiquidaPct: margemLiq,
+    margemMinima: config.margemMinimaPct ?? 8,
+    margemAlerta: config.margemAlertaPct ?? 12,
+    margemBloqueio: config.margemBloqueioPct ?? 0,
+  }), [margemLiq, config])
+
   // ── Ações ──────────────────────────────────────────────────────────────────────
   const refresh = useCallback((c) => onAtualizar?.(c), [onAtualizar])
 
@@ -122,13 +141,29 @@ export default function PropostaEnterprise({
     if (!nome) return
     setAcao(true); setErro('')
     try {
-      const assinatura = gerarAssinatura({ papel, nome, contextoHash: snapshotTecnico?.hash })
+      // S4.3: assinatura SHA-256 com hash do snapshot técnico e da proposta
+      const assinatura = await gerarAssinaturaSegura({
+        papel, nome,
+        hashDocumento: com.snapshot_comercial?.hash || null,
+        hashSnapshot: snapshotTecnico?.hash || null,
+      })
       const res = await registrarAssinatura(projetoId, { ...assinatura, usuario })
       refresh(res.comercial)
     } catch (e) { setErro(e.message) } finally { setAcao(false) }
   }
 
+  async function revisar() {
+    const motivo = window.prompt('Motivo da nova revisão comercial (reabre a proposta):', '')
+    if (motivo === null) return
+    setAcao(true); setErro('')
+    try {
+      const res = await criarRevisaoComercial(projetoId, { usuario, motivo, snapshot_comercial: com.snapshot_comercial || null })
+      refresh(res.comercial)
+    } catch (e) { setErro(e.message) } finally { setAcao(false) }
+  }
+
   async function congelarComercial() {
+    if (margemGuard.nivel === 'bloqueio') { setErro(margemGuard.mensagem); return }
     setAcao(true); setErro('')
     try {
       const snapshot_comercial = construirSnapshotComercial({
@@ -148,6 +183,7 @@ export default function PropostaEnterprise({
         comparativos: { tecnologias, tarifarios, bess },
         desconto_pct: descontoPct,
         desconto_limite_pct: config.descontoMaximoPct ?? 10,
+        margem_liquida_pct: margemLiq,
         congelar: true,
         usuario,
       })
@@ -164,13 +200,26 @@ export default function PropostaEnterprise({
     <div className="bg-white border border-slate-200 rounded-xl p-5 space-y-5 text-left">
       {/* Cabeçalho */}
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <Briefcase size={18} className="text-indigo-600" />
           <span className="text-sm font-semibold text-slate-800">Proposta Enterprise</span>
           <Badge cor={wfCfg.cor}>{wfCfg.label}</Badge>
+          <span className="text-[11px] text-slate-400">jurídico:</span>
+          <Badge cor={sjCfg.cor}>{sjCfg.label}</Badge>
+          {com.revisao_comercial_atual && <span className="text-xs text-slate-400 font-mono">Rev {com.revisao_comercial_atual}</span>}
         </div>
-        {assinado && <span className="text-xs text-emerald-600 font-medium flex items-center gap-1"><BadgeCheck size={14} /> Congelado comercialmente</span>}
+        {congelado && <span className="text-xs text-emerald-600 font-medium flex items-center gap-1"><Lock size={14} /> Congelado comercialmente</span>}
       </div>
+
+      {/* Proteção de margem */}
+      {margemGuard.mensagem && (
+        <div className={`text-xs rounded px-2 py-1.5 flex items-center gap-1 ${
+          margemGuard.nivel === 'bloqueio' ? 'bg-red-50 text-red-700 border border-red-200'
+            : 'bg-amber-50 text-amber-700 border border-amber-200'
+        }`}>
+          <Scale size={12} /> {margemGuard.mensagem}
+        </div>
+      )}
 
       {/* Comparação multi-cenário */}
       {cenariosShow?.cenarios?.length > 0 && (
@@ -322,25 +371,51 @@ export default function PropostaEnterprise({
         </div>
       )}
 
+      {/* Revisões comerciais (diff) */}
+      {(com.revisoes_comerciais?.length > 0) && (
+        <div className="border-t border-slate-100 pt-3">
+          <p className="text-xs font-semibold text-slate-500 mb-2 flex items-center gap-1"><GitBranch size={12} /> Revisões comerciais</p>
+          <div className="space-y-1.5">
+            {[...com.revisoes_comerciais].reverse().map((r, i) => (
+              <div key={i} className="text-xs bg-slate-50 rounded px-2 py-1.5">
+                <span className="font-mono text-slate-600">Rev {r.rev}</span>
+                {r.motivo && <span className="text-slate-500"> · {r.motivo}</span>}
+                {r.diff?.length > 0 && (
+                  <ul className="ml-3 mt-0.5 list-disc text-slate-500">
+                    {r.diff.map((d, j) => (
+                      <li key={j}>{d.campo}: {String(d.de)} → {String(d.para)}</li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {erro && <div className="text-xs text-red-700 bg-red-50 border border-red-200 rounded px-2 py-1.5">{erro}</div>}
 
-      {/* Ações de workflow */}
+      {/* Ações de workflow (state-machine: só transições válidas) */}
       <div className="flex flex-wrap items-center gap-2 border-t border-slate-100 pt-3">
-        {!assinado && (
-          <select
-            value={status}
-            onChange={(e) => mudarWorkflow(e.target.value)}
-            disabled={acao}
-            className="text-sm border border-slate-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          >
-            {Object.entries(WORKFLOW_COMERCIAL_CONFIG).map(([k, v]) => (
-              <option key={k} value={k}>{v.label}</option>
+        {proximosEstados.length > 0 && (
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs text-slate-400">Avançar para:</span>
+            {proximosEstados.map((e) => (
+              <button key={e} onClick={() => mudarWorkflow(e)} disabled={acao}
+                className="text-xs font-medium px-2.5 py-1 rounded bg-slate-100 text-slate-700 hover:bg-slate-200 disabled:opacity-50">
+                {getEstadoConfig(e).label}
+              </button>
             ))}
-          </select>
+          </div>
         )}
-        {podeCalcular && !assinado && (
-          <Button variante="secundario" tamanho="sm" icone={GitCompare} onClick={congelarComercial} carregando={acao}>
+        {podeCalcular && !congelado && (
+          <Button variante="secundario" tamanho="sm" icone={Snowflake} onClick={congelarComercial} carregando={acao}>
             Congelar comercial
+          </Button>
+        )}
+        {congelado && (
+          <Button variante="secundario" tamanho="sm" icone={GitBranch} onClick={revisar} carregando={acao}>
+            Nova revisão comercial
           </Button>
         )}
       </div>

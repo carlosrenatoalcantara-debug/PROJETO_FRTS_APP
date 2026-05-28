@@ -10,6 +10,35 @@
 
 import { hashTecnico, ENGINEERING_VERSION } from './engenhariaGovernanca'
 
+// ─── SHA-256 (assinatura comercial auditável — S4.3) ─────────────────────────────
+// Usa Web Crypto (assíncrono). Mantém djb2 (hashTecnico) para snapshots/legado.
+export async function sha256Hex(str) {
+  try {
+    const data = new TextEncoder().encode(String(str ?? ''))
+    const buf = await crypto.subtle.digest('SHA-256', data)
+    return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, '0')).join('')
+  } catch {
+    // Fallback determinístico se Web Crypto indisponível (ex.: contexto inseguro)
+    return 'djb2:' + hashTecnico(str)
+  }
+}
+
+/**
+ * Gera assinatura comercial auditável com SHA-256 (S4.3).
+ * Inclui hash do documento e do snapshot técnico para trilha jurídica.
+ */
+export async function gerarAssinaturaSegura({ papel, nome, hashDocumento, hashSnapshot }) {
+  const timestamp = new Date().toISOString()
+  const payload = `${papel}|${nome}|${timestamp}|${hashDocumento || ''}|${hashSnapshot || ''}`
+  const hash = await sha256Hex(payload)
+  return {
+    papel, nome, hash, algoritmo: 'sha256',
+    hash_documento: hashDocumento || null,
+    hash_snapshot: hashSnapshot || null,
+    timestamp,
+  }
+}
+
 // ─── Workflow comercial ──────────────────────────────────────────────────────────
 export const WORKFLOW_COMERCIAL_CONFIG = {
   EM_ANALISE:         { label: 'EM ANÁLISE',         cor: 'cinza',   ordem: 1 },

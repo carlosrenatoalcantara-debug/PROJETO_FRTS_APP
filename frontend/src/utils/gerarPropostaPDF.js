@@ -49,6 +49,24 @@ export const gerarPropostaPDF = (dados) => {
   const economia25 = retShow?.economia_25_anos ?? null
   const premissasReg = financeiro?.regulatorio || null
 
+  // S4.3: versão, status jurídico, código de verificação e assinaturas
+  const revCom = comercial?.revisao_comercial_atual || 'A'
+  const statusJur = comercial?.status_juridico || null
+  const codigoVerificacao = comercial?.snapshot_comercial?.hash || null
+  const assinaturasCom = Array.isArray(comercial?.assinaturas) ? comercial.assinaturas : []
+  const secaoAssinaturasDigitais = assinaturasCom.length > 0 ? `
+        <h2 class="subtitulo">Assinaturas Digitais</h2>
+        <div class="especificacoes">
+          ${assinaturasCom.map(a => `
+            <div class="especificacoes-item">
+              <span class="especificacoes-label">${(a.papel || '').toUpperCase()} — ${a.nome || ''}</span>
+              <span class="especificacoes-valor" style="font-family:monospace;font-size:10px;">${(a.hash || '').slice(0, 16)}… · ${a.timestamp ? new Date(a.timestamp).toLocaleString('pt-BR') : ''}</span>
+            </div>
+          `).join('')}
+        </div>
+        <p style="font-size:10px;color:#999;margin-bottom:20px;">Assinaturas com hash SHA-256, timestamp e trilha de auditoria (IP/dispositivo registrados no sistema).</p>
+  ` : ''
+
   // S4.2: tabela comparativa de cenários comerciais
   const listaCenarios = comercial?.cenarios?.cenarios || comercial?.snapshot_comercial?.cenarios?.cenarios || null
   const secaoCenarios = (Array.isArray(listaCenarios) && listaCenarios.length > 0) ? `
@@ -183,6 +201,8 @@ export const gerarPropostaPDF = (dados) => {
           <div class="data">
             <div class="data-valor">PROPOSTA COMERCIAL</div>
             <div style="font-size: 11px; margin-top: 5px;">${new Date().toLocaleDateString('pt-BR')}</div>
+            <div style="font-size: 10px; margin-top: 3px; color:#888;">Revisão ${revCom}${statusJur ? ' · ' + statusJur.replace(/_/g, ' ') : ''}</div>
+            ${codigoVerificacao ? `<div style="font-size: 9px; margin-top: 2px; color:#aaa; font-family:monospace;">cód.: ${String(codigoVerificacao).slice(0, 12)}</div>` : ''}
           </div>
         </div>
 
@@ -299,6 +319,8 @@ export const gerarPropostaPDF = (dados) => {
             <li>Monitoramento: Acesso vitalício</li>
           </ul>
         </div>
+
+        ${secaoAssinaturasDigitais}
 
         <div class="assinatura">
           <div class="assinatura-box">

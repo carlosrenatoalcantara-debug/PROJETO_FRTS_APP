@@ -886,7 +886,48 @@ function _carregarComercial(gov) {
   }
 }
 
-const WORKFLOW_COMERCIAL = ['EM_ANALISE', 'AGUARDANDO_CLIENTE', 'NEGOCIACAO', 'APROVADO', 'REPROVADO', 'ASSINADO']
+const WORKFLOW_COMERCIAL = ['RASCUNHO', 'EM_ANALISE', 'NEGOCIACAO', 'AGUARDANDO_CLIENTE', 'APROVADO',
+  'ASSINADO', 'IMPLANTACAO', 'CONCLUIDO', 'REPROVADO', 'CANCELADO', 'EXPIRADO']
+
+// S4.3: máquina de estados (espelho de comercialStateMachine.js no frontend)
+const TRANSICOES_COMERCIAL = {
+  RASCUNHO:           ['EM_ANALISE', 'CANCELADO'],
+  EM_ANALISE:         ['NEGOCIACAO', 'AGUARDANDO_CLIENTE', 'REPROVADO', 'CANCELADO'],
+  NEGOCIACAO:         ['AGUARDANDO_CLIENTE', 'APROVADO', 'REPROVADO', 'CANCELADO'],
+  AGUARDANDO_CLIENTE: ['APROVADO', 'NEGOCIACAO', 'REPROVADO', 'EXPIRADO', 'CANCELADO'],
+  APROVADO:           ['ASSINADO', 'NEGOCIACAO', 'CANCELADO', 'EXPIRADO'],
+  ASSINADO:           ['IMPLANTACAO', 'CANCELADO'],
+  IMPLANTACAO:        ['CONCLUIDO', 'CANCELADO'],
+  CONCLUIDO:          [],
+  REPROVADO:          ['EM_ANALISE'],
+  CANCELADO:          [],
+  EXPIRADO:           ['EM_ANALISE'],
+}
+const ORDEM_COMERCIAL = { RASCUNHO: 1, EM_ANALISE: 2, NEGOCIACAO: 3, AGUARDANDO_CLIENTE: 4, APROVADO: 5, ASSINADO: 6, IMPLANTACAO: 7, CONCLUIDO: 8 }
+const CONGELADOS_COMERCIAL = ['ASSINADO', 'IMPLANTACAO', 'CONCLUIDO']
+
+function _statusJuridicoDeEstado(estado) {
+  if (['ASSINADO', 'IMPLANTACAO', 'CONCLUIDO'].includes(estado)) return 'ASSINADO'
+  if (estado === 'CANCELADO') return 'CANCELADO'
+  if (estado === 'EXPIRADO') return 'EXPIRADO'
+  if (estado === 'REPROVADO') return 'EM_REVISAO'
+  return 'PENDENTE_ASSINATURA'
+}
+
+function _validarTransicaoComercial(de, para) {
+  if (de === para) return { ok: false, motivo: 'Estado de origem e destino iguais.' }
+  if (!WORKFLOW_COMERCIAL.includes(para)) return { ok: false, motivo: `Estado "${para}" inválido.` }
+  const permitidas = TRANSICOES_COMERCIAL[de] || []
+  if (permitidas.includes(para)) return { ok: true }
+  if (CONGELADOS_COMERCIAL.includes(de) && (ORDEM_COMERCIAL[para] || 0) < (ORDEM_COMERCIAL[de] || 0)) {
+    return { ok: false, requer_revisao: true, motivo: `${de}: retroceder para ${para} exige nova revisão comercial.` }
+  }
+  return { ok: false, motivo: `Transição ${de} → ${para} não permitida.` }
+}
+
+function _proximaRevComercial(atual) {
+  return _proximaRevisao(atual || 'A')
+}
 
 /**
  * POST /:id/governanca/comercial/snapshot
@@ -900,7 +941,8 @@ export const salvarComercialProjetoFV = async (req, res) => {
     if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ erro: 'ID inválido' })
 
     const { snapshot_comercial = null, cenarios = null, comparativos = null,
-      desconto_pct, desconto_limite_pct, congelar = false, usuario = null } = req.body || {}
+      desconto_pct, desconto_limite_pct, margem_liquida_pct = null,
+      cenarios_congelados = null, congelar = false, usuario = null } = req.body || {}
 
     const projeto = await ProjetoFV.findById(id)
     if (!projeto) return res.status(404).json({ erro: 'Projeto não encontrado' })
@@ -908,9 +950,23 @@ export const salvarComercialProjetoFV = async (req, res) => {
     const { govObj, com } = _carregarComercial(projeto.governanca)
     const agora = new Date()
 
-    if (com.workflow_status === 'ASSINADO') {
-      return res.status(409).json({ erro: 'Proposta ASSINADA — crie uma revisão comercial antes de alterar.', codigo: 'COMERCIAL_ASSINADO' })
+    if (CONGELADOS_COMERCIAL.includes(com.workflow_status)) {
+      return res.status(409).json({ erro: `Proposta ${com.workflow_status} — crie uma revisão comercial antes de alterar.`, codigo: 'COMERCIAL_CONGELADO' })
     }
+
+    // S4.3: proteção de margem ao congelar (impede venda destrutiva)
+    if (congelar && margem_liquida_pct != null) {
+      const pol = com.politicas || {}
+      const bloqueio = pol.margem_bloqueio_pct ?? 0
+      const minima = pol.margem_minima_pct ?? 8
+      if (Number(margem_liquida_pct) < bloqueio) {
+        return res.status(422).json({ erro: `Margem ${margem_liquida_pct}% abaixo do bloqueio (${bloqueio}%). Congelamento impedido.`, codigo: 'MARGEM_BLOQUEIO' })
+      }
+      if (Number(margem_liquida_pct) < minima && !com.aprovacao) {
+        return res.status(422).json({ erro: `Margem ${margem_liquida_pct}% abaixo da mínima (${minima}%). Requer aprovação gerencial antes de congelar.`, codigo: 'MARGEM_REQUER_APROVACAO' })
+      }
+    }
+    if (cenarios_congelados != null) com.cenarios_congelados = cenarios_congelados
 
     if (cenarios != null)            com.cenarios = cenarios
     if (comparativos != null)        com.comparativos = comparativos
@@ -944,7 +1000,7 @@ export const atualizarWorkflowComercial = async (req, res) => {
     const { id } = req.params
     if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ erro: 'ID inválido' })
 
-    const { status, usuario = null } = req.body || {}
+    const { status, usuario = null, motivo = null } = req.body || {}
     if (!WORKFLOW_COMERCIAL.includes(status)) {
       return res.status(400).json({ erro: `status deve ser um de: ${WORKFLOW_COMERCIAL.join(', ')}` })
     }
@@ -956,11 +1012,21 @@ export const atualizarWorkflowComercial = async (req, res) => {
     const agora = new Date()
     const anterior = com.workflow_status || 'EM_ANALISE'
 
+    // S4.3: valida transição na máquina de estados
+    const val = _validarTransicaoComercial(anterior, status)
+    if (!val.ok) {
+      return res.status(409).json({
+        erro: val.motivo, codigo: val.requer_revisao ? 'REQUER_REVISAO' : 'TRANSICAO_INVALIDA',
+        de: anterior, para: status,
+      })
+    }
+
     com.workflow_status = status
+    com.status_juridico = _statusJuridicoDeEstado(status)
     if (status === 'ASSINADO') com.congelado_em = com.congelado_em || agora
     com.historico.push({
       timestamp: agora, usuario, acao: 'workflow_alterado',
-      detalhe: `Workflow comercial: ${anterior} → ${status}.`,
+      detalhe: `Workflow: ${anterior} → ${status}.${motivo ? ' Motivo: ' + motivo : ''}`,
     })
 
     projeto.governanca = { ...govObj, comercial: com }
@@ -983,7 +1049,7 @@ export const registrarAssinaturaComercial = async (req, res) => {
     const { id } = req.params
     if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ erro: 'ID inválido' })
 
-    const { papel, nome, hash, usuario = null } = req.body || {}
+    const { papel, nome, hash, hash_documento = null, hash_snapshot = null, algoritmo = 'sha256', usuario = null } = req.body || {}
     const PAPEIS = ['cliente', 'vendedor', 'tecnico']
     if (!PAPEIS.includes(papel)) return res.status(400).json({ erro: `papel deve ser: ${PAPEIS.join(', ')}` })
     if (!nome || !hash) return res.status(400).json({ erro: 'nome e hash são obrigatórios' })
@@ -994,17 +1060,23 @@ export const registrarAssinaturaComercial = async (req, res) => {
     const { govObj, com } = _carregarComercial(projeto.governanca)
     const agora = new Date()
 
+    // S4.3: trilha auditável — ip, user-agent, hashes, id único
+    const ip = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.ip || req.socket?.remoteAddress || null
+    const user_agent = req.headers['user-agent'] || null
+    const assinatura_id = `SIG-${papel.toUpperCase()}-${agora.getTime().toString(36)}`
+
     // Substitui assinatura existente do mesmo papel (re-assinatura)
     com.assinaturas = com.assinaturas.filter(a => a.papel !== papel)
-    com.assinaturas.push({ papel, nome, hash, timestamp: agora })
-    com.historico.push({ timestamp: agora, usuario: usuario || nome, acao: 'assinatura', detalhe: `Assinatura ${papel}: ${nome}.` })
+    com.assinaturas.push({ assinatura_id, papel, nome, hash, algoritmo, hash_documento, hash_snapshot, ip, user_agent, timestamp: agora })
+    com.historico.push({ timestamp: agora, usuario: usuario || nome, acao: 'assinatura', detalhe: `Assinatura ${papel}: ${nome} (${assinatura_id}).` })
 
     // Se as três assinaturas estão presentes, marca ASSINADO
     const papeisAssinados = new Set(com.assinaturas.map(a => a.papel))
-    if (PAPEIS.every(p => papeisAssinados.has(p))) {
+    if (PAPEIS.every(p => papeisAssinados.has(p)) && com.workflow_status !== 'ASSINADO') {
       com.workflow_status = 'ASSINADO'
+      com.status_juridico = 'ASSINADO'
       com.congelado_em = com.congelado_em || agora
-      com.historico.push({ timestamp: agora, usuario, acao: 'workflow_alterado', detalhe: 'Workflow comercial: ASSINADO (todas as assinaturas coletadas).' })
+      com.historico.push({ timestamp: agora, usuario, acao: 'workflow_alterado', detalhe: 'Workflow: ASSINADO (todas as assinaturas coletadas).' })
     }
 
     projeto.governanca = { ...govObj, comercial: com }
@@ -1048,6 +1120,78 @@ export const registrarAprovacaoComercial = async (req, res) => {
     res.json({ sucesso: true, comercial: projeto.governanca.comercial })
   } catch (err) {
     console.error('❌ Erro ao registrar aprovação:', err)
+    res.status(500).json({ erro: err.message })
+  }
+}
+
+// Diff raso entre dois snapshots comerciais (campos-chave)
+function _diffComercial(antigo, novo) {
+  const campos = [
+    ['proposta_final', 'Proposta final'],
+    ['desconto_pct', 'Desconto'],
+    ['cenario_exibicao', 'Cenário base'],
+  ]
+  const diff = []
+  const a = antigo || {}, b = novo || {}
+  for (const [campo, rotulo] of campos) {
+    if (a[campo] !== b[campo]) diff.push({ campo: rotulo, de: a[campo] ?? null, para: b[campo] ?? null })
+  }
+  return diff
+}
+
+/**
+ * POST /:id/governanca/comercial/revisao
+ * Cria nova revisão comercial: clona o snapshot atual, gera diff, preserva
+ * histórico e reabre o workflow (EM_ANALISE). Permite reabrir proposta ASSINADA.
+ * Body: { usuario, motivo, snapshot_comercial (novo, opcional) }
+ */
+export const criarRevisaoComercial = async (req, res) => {
+  try {
+    if (!_exigirMongo(res)) return
+    const { id } = req.params
+    if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ erro: 'ID inválido' })
+
+    const { usuario = null, motivo = null, snapshot_comercial: novoSnap = null } = req.body || {}
+
+    const projeto = await ProjetoFV.findById(id)
+    if (!projeto) return res.status(404).json({ erro: 'Projeto não encontrado' })
+
+    const { govObj, com } = _carregarComercial(projeto.governanca)
+    const agora = new Date()
+    const revAtual = com.revisao_comercial_atual || 'A'
+    const novaRev = _proximaRevComercial(revAtual)
+
+    const revisoes = Array.isArray(com.revisoes_comerciais) ? [...com.revisoes_comerciais] : []
+    const snapAnterior = com.snapshot_comercial || null
+    const diff = _diffComercial(snapAnterior, novoSnap || snapAnterior)
+
+    // Arquiva a revisão anterior (clone do snapshot)
+    revisoes.push({
+      rev: revAtual, timestamp: agora, usuario,
+      motivo: motivo || 'Revisão comercial',
+      diff,
+      snapshot_comercial: snapAnterior,
+    })
+
+    com.revisoes_comerciais = revisoes
+    com.revisao_comercial_atual = novaRev
+    com.workflow_status = 'EM_ANALISE'
+    com.status_juridico = 'EM_REVISAO'
+    com.congelado_em = null
+    com.aprovacao = null
+    com.desconto_excecao = false
+    com.assinaturas = []   // assinaturas anteriores ficam arquivadas na revisão
+    if (novoSnap) com.snapshot_comercial = novoSnap
+    com.historico.push({
+      timestamp: agora, usuario, acao: 'revisao_comercial',
+      detalhe: `Revisão comercial ${revAtual} → ${novaRev}. Proposta reaberta (EM_ANALISE).${motivo ? ' Motivo: ' + motivo : ''}`,
+    })
+
+    projeto.governanca = { ...govObj, comercial: com }
+    await projeto.save()
+    res.json({ sucesso: true, revisao_atual: novaRev, comercial: projeto.governanca.comercial })
+  } catch (err) {
+    console.error('❌ Erro ao criar revisão comercial:', err)
     res.status(500).json({ erro: err.message })
   }
 }
