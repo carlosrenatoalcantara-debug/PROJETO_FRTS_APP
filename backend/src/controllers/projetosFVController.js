@@ -606,6 +606,8 @@ export const congelarProjetoFV = async (req, res) => {
       congelado_por: usuario,
       snapshot_tecnico:    snapshots.tecnico    ?? gov.snapshot_tecnico    ?? null,
       snapshot_geoespacial: snapshots.geoespacial ?? gov.snapshot_geoespacial ?? null,
+      snapshot_empresa:    snapshots.empresa    ?? gov.snapshot_empresa    ?? null,
+      snapshot_tecnico_identificacao: snapshots.tecnico_identificacao ?? gov.snapshot_tecnico_identificacao ?? null,
       snapshot_catalogo:   snapshots.catalogo   ?? gov.snapshot_catalogo   ?? null,
       snapshot_unifilar:   snapshots.unifilar   ?? gov.snapshot_unifilar   ?? null,
       snapshot_memorial:   snapshots.memorial   ?? gov.snapshot_memorial   ?? null,
@@ -1612,6 +1614,9 @@ export const obterPropostaPublica = async (req, res) => {
       somente_leitura: true,
       cliente: projeto.clienteId ? { nome: projeto.clienteId.nome } : null,
       projeto_nome: projeto.nome,
+      // S7.1: identidade institucional congelada (logo/nome/RT)
+      empresa: projeto.governanca?.snapshot_empresa ?? null,
+      responsavel_tecnico: projeto.governanca?.snapshot_tecnico_identificacao ?? null,
       cenario_id: share.cenario_id,
       revisao: share.revisao,
       snapshot_hash: share.snapshot_hash,

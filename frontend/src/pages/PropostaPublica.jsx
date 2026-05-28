@@ -52,12 +52,14 @@ export default function PropostaPublica() {
   return (
     <div className="min-h-screen bg-slate-50 py-8 px-4">
       <div className="max-w-2xl mx-auto space-y-5">
-        {/* Cabeçalho */}
+        {/* Cabeçalho institucional (S7.1) */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="p-2 rounded-lg bg-amber-100"><Sun size={20} className="text-amber-600" /></div>
+            {dados.empresa?.logo
+              ? <img src={dados.empresa.logo} alt={dados.empresa.nome_fantasia || 'Empresa'} className="h-10 w-auto max-w-[120px] object-contain" />
+              : <div className="p-2 rounded-lg bg-amber-100"><Sun size={20} className="text-amber-600" /></div>}
             <div>
-              <h1 className="text-xl font-bold text-slate-900">Proposta de Energia Solar</h1>
+              <h1 className="text-xl font-bold text-slate-900">{dados.empresa?.nome_fantasia || 'Proposta de Energia Solar'}</h1>
               <p className="text-sm text-slate-500">{dados.projeto_nome}{dados.cliente?.nome ? ` · ${dados.cliente.nome}` : ''}</p>
             </div>
           </div>

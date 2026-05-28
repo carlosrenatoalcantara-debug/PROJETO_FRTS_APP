@@ -38,7 +38,14 @@ export const gerarPropostaPDF = (dados) => {
     logo = '',
     telefone: telefoneEmpresa = '(11) 3000-0000',
     email: emailEmpresa = 'contato@fortesolar.com.br',
+    razaoSocial = '',
+    cnpj: cnpjEmpresa = '',
+    endereco: enderecoEmpresa = '',
+    responsavelTecnico: rtEmpresa = null,
   } = empresa
+  const rtLinha = rtEmpresa?.nome
+    ? `${rtEmpresa.nome}${rtEmpresa.registro ? ` — ${rtEmpresa.tipoRegistro || 'CREA'} ${rtEmpresa.registro}${rtEmpresa.uf ? '/' + rtEmpresa.uf : ''}` : ''}`
+    : 'Responsável Técnico'
 
   // S4: seção de condições de pagamento (somente se houver dados financeiros)
   const vc = financeiro?.visao_cliente || null
@@ -374,15 +381,16 @@ export const gerarPropostaPDF = (dados) => {
           </div>
           <div class="assinatura-box">
             <div class="assinatura-linha"></div>
-            <div class="assinatura-nome">${nomeEmpresa}</div>
-            <div class="assinatura-cargo">Responsável Técnico</div>
+            <div class="assinatura-nome">${rtLinha}</div>
+            <div class="assinatura-cargo">Responsável Técnico${rtEmpresa?.modalidade ? ' · ' + rtEmpresa.modalidade : ''}</div>
           </div>
         </div>
 
         <div class="footer">
           <p>Esta proposta é válida por ${validadeDias} dias. Após esse período, será necessária nova cotação.</p>
           <div class="footer-contato">
-            ${nomeEmpresa} | ${emailEmpresa} | ${telefoneEmpresa}
+            ${razaoSocial || nomeEmpresa}${cnpjEmpresa ? ' · CNPJ ' + cnpjEmpresa : ''} | ${emailEmpresa} | ${telefoneEmpresa}
+            ${enderecoEmpresa ? '<br>' + enderecoEmpresa : ''}
           </div>
         </div>
       </div>

@@ -236,10 +236,14 @@ export default function E8Orcamento() {
           ],
         },
         empresa: {
-          nome:     empresa?.nomeEmpresa || 'Forte Solar',
-          logo:     empresa?.logo        || '',
-          telefone: empresa?.telefone    || '',
-          email:    empresa?.email       || '',
+          nome:        empresa?.nomeEmpresa || empresa?.nomeFantasia || 'Forte Solar',
+          razaoSocial: empresa?.razaoSocial || '',
+          cnpj:        empresa?.cnpj || '',
+          logo:        empresa?.logo || '',
+          telefone:    empresa?.telefone || '',
+          email:       empresa?.email || '',
+          endereco:    [empresa?.endereco, empresa?.cidade, empresa?.estado].filter(Boolean).join(', '),
+          responsavelTecnico: empresa?.responsavelTecnico || null,
         },
         // S4: dados do centro financeiro EPC (parcelamento, ROI, economia 25a)
         financeiro:   resultadoFinanceiro || null,
@@ -402,6 +406,7 @@ export default function E8Orcamento() {
       unifilarSVG: (painel && inversor) ? gerarUnifilarSVGString() : null,
       resultadoFinanceiro,
       tarifa: tarifaFin,
+      empresa,
     })
   }
 

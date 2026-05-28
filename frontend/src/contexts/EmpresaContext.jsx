@@ -3,14 +3,20 @@ import { createContext, useContext, useEffect, useState } from 'react'
 const CHAVE_LS = 'forte_solar_empresa_v1'
 
 export const PADRAO_EMPRESA = {
-  logo:          null,           // base64 string
-  nomeEmpresa:   'Forte Solar',
+  logo:          null,           // base64 string (logomarca principal)
+  logoReduzida:  null,           // S7.1 — logomarca reduzida (ícone/favicon)
+  // Institucional (S7.1)
+  razaoSocial:   '',
+  nomeFantasia:  'Forte Solar',
+  nomeEmpresa:   'Forte Solar',  // mantido p/ compat (= nome fantasia)
   cnpj:          '',
+  ie:            '',             // inscrição estadual
   endereco:      '',
   cidade:        '',
   estado:        'SP',
   cep:           '',
   telefone:      '',
+  whatsapp:      '',             // S7.1
   email:         '',
   site:          '',
   corPrimaria:   '#f97316',
@@ -20,6 +26,17 @@ export const PADRAO_EMPRESA = {
     registro:      '',
     tipoRegistro:  'CREA',      // 'CREA' | 'CFT' | 'CFMV'
     uf:            'SP',
+    modalidade:    '',          // S7.1 — ex.: Eletricista, Eletrotécnica
+    cargo:         '',          // S7.1
+    telefone:      '',          // S7.1
+    email:         '',          // S7.1
+  },
+  // S7.1 — documentos técnicos (base64 ou URL)
+  uploads: {
+    assinatura:  null,
+    carimbo:     null,
+    artPadrao:   null,
+    documentos:  [],            // [{ nome, dados }]
   },
   estadoPrincipal:           'SP',
   tensaoPadrao:              '220',
@@ -75,6 +92,51 @@ function aplicarCSSVars(cor1, cor2) {
   r.setProperty('--cor-secundaria',      cor2)
 }
 
+// ─── S7.1: mapeamento estado plano ⇄ grupos do banco ────────────────────────────
+function paraGrupos(e) {
+  return {
+    empresa_config: {
+      razaoSocial: e.razaoSocial, nomeFantasia: e.nomeFantasia || e.nomeEmpresa,
+      cnpj: e.cnpj, ie: e.ie, endereco: e.endereco, cidade: e.cidade,
+      uf: e.estado, cep: e.cep, telefone: e.telefone, whatsapp: e.whatsapp,
+      email: e.email, website: e.site,
+    },
+    responsavel_tecnico: { ...(e.responsavelTecnico || {}) },
+    branding: {
+      logo: e.logo, logoReduzida: e.logoReduzida,
+      corPrimaria: e.corPrimaria, corSecundaria: e.corSecundaria,
+    },
+    uploads: { ...(e.uploads || {}) },
+  }
+}
+function deGrupos(doc) {
+  if (!doc) return {}
+  const ec = doc.empresa_config || {}
+  const rt = doc.responsavel_tecnico || {}
+  const br = doc.branding || {}
+  const up = doc.uploads || {}
+  const flat = {}
+  if (ec.razaoSocial != null) flat.razaoSocial = ec.razaoSocial
+  if (ec.nomeFantasia != null) { flat.nomeFantasia = ec.nomeFantasia; flat.nomeEmpresa = ec.nomeFantasia }
+  if (ec.cnpj != null) flat.cnpj = ec.cnpj
+  if (ec.ie != null) flat.ie = ec.ie
+  if (ec.endereco != null) flat.endereco = ec.endereco
+  if (ec.cidade != null) flat.cidade = ec.cidade
+  if (ec.uf != null) flat.estado = ec.uf
+  if (ec.cep != null) flat.cep = ec.cep
+  if (ec.telefone != null) flat.telefone = ec.telefone
+  if (ec.whatsapp != null) flat.whatsapp = ec.whatsapp
+  if (ec.email != null) flat.email = ec.email
+  if (ec.website != null) flat.site = ec.website
+  if (Object.keys(rt).length) flat.responsavelTecnico = { ...PADRAO_EMPRESA.responsavelTecnico, ...rt }
+  if (br.logo != null) flat.logo = br.logo
+  if (br.logoReduzida != null) flat.logoReduzida = br.logoReduzida
+  if (br.corPrimaria != null) flat.corPrimaria = br.corPrimaria
+  if (br.corSecundaria != null) flat.corSecundaria = br.corSecundaria
+  if (Object.keys(up).length) flat.uploads = { ...PADRAO_EMPRESA.uploads, ...up }
+  return flat
+}
+
 export function EmpresaProvider({ children }) {
   const [empresa, setEmpresa] = useState(() => {
     try {
@@ -94,10 +156,36 @@ export function EmpresaProvider({ children }) {
     aplicarCSSVars(empresa.corPrimaria, empresa.corSecundaria)
   }, [])
 
+  // S7.1: carrega a configuração persistida no banco (singleton), com fallback localStorage
+  useEffect(() => {
+    let vivo = true
+    fetch('/api/empresa')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (!vivo || !data?.config) return
+        const flat = deGrupos(data.config)
+        if (Object.keys(flat).length) setEmpresa(prev => ({ ...prev, ...flat }))
+      })
+      .catch(() => { /* offline → mantém localStorage */ })
+    return () => { vivo = false }
+  }, [])
+
+  // S7.1: persiste no banco (fire-and-forget; localStorage é o cache imediato)
+  function persistirBackend(estado) {
+    try {
+      fetch('/api/empresa', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(paraGrupos(estado)),
+      }).catch(() => {})
+    } catch { /* silencioso */ }
+  }
+
   function salvar(dados) {
     const novo = { ...empresa, ...dados }
     setEmpresa(novo)
     localStorage.setItem(CHAVE_LS, JSON.stringify(novo))
+    persistirBackend(novo)
   }
 
   function salvarRT(dados) {
@@ -109,6 +197,19 @@ export function EmpresaProvider({ children }) {
     salvar({ financeiro: { ...PADRAO_EMPRESA.financeiro, ...empresa.financeiro, ...dados } })
   }
 
+  // S7.1: salvadores institucionais
+  function salvarEmpresa(dados) {
+    const novo = { ...dados }
+    if (dados.nomeFantasia != null) novo.nomeEmpresa = dados.nomeFantasia
+    salvar(novo)
+  }
+  function salvarBranding(dados) {
+    salvar(dados)
+  }
+  function salvarUploads(dados) {
+    salvar({ uploads: { ...PADRAO_EMPRESA.uploads, ...empresa.uploads, ...dados } })
+  }
+
   function resetar() {
     setEmpresa(PADRAO_EMPRESA)
     localStorage.removeItem(CHAVE_LS)
@@ -116,7 +217,7 @@ export function EmpresaProvider({ children }) {
   }
 
   return (
-    <EmpresaCtx.Provider value={{ empresa, salvar, salvarRT, salvarFinanceiro, resetar }}>
+    <EmpresaCtx.Provider value={{ empresa, salvar, salvarRT, salvarFinanceiro, salvarEmpresa, salvarBranding, salvarUploads, resetar }}>
       {children}
     </EmpresaCtx.Provider>
   )

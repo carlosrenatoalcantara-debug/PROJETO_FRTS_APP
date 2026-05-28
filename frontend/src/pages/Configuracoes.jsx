@@ -43,6 +43,146 @@ const API_INTEGRATIONS = [
   },
 ]
 
+// ─── S7.1: leitura de arquivo → base64 ─────────────────────────────────────────
+function lerArquivoBase64(file) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader()
+    r.onload = () => resolve(r.result)
+    r.onerror = reject
+    r.readAsDataURL(file)
+  })
+}
+
+// ─── S7.1: Configuração institucional (Empresa + RT + Identidade Visual) ───────
+function ConfiguracaoEmpresa() {
+  const { empresa, salvarEmpresa, salvarRT, salvarBranding, salvarUploads } = useEmpresa()
+  const [form, setForm] = useState({
+    razaoSocial: empresa.razaoSocial || '', nomeFantasia: empresa.nomeFantasia || empresa.nomeEmpresa || '',
+    cnpj: empresa.cnpj || '', ie: empresa.ie || '', endereco: empresa.endereco || '',
+    cidade: empresa.cidade || '', estado: empresa.estado || '', cep: empresa.cep || '',
+    telefone: empresa.telefone || '', whatsapp: empresa.whatsapp || '', email: empresa.email || '', site: empresa.site || '',
+  })
+  const [rt, setRt] = useState({ ...PADRAO_EMPRESA.responsavelTecnico, ...empresa.responsavelTecnico })
+  const [salvo, setSalvo] = useState('')
+
+  const up = { ...PADRAO_EMPRESA.uploads, ...empresa.uploads }
+
+  function setF(k, v) { setForm(p => ({ ...p, [k]: v })) }
+  function setR(k, v) { setRt(p => ({ ...p, [k]: v })) }
+  function flash(msg) { setSalvo(msg); setTimeout(() => setSalvo(''), 2500) }
+
+  function salvarTudo(e) {
+    e.preventDefault()
+    salvarEmpresa(form)
+    salvarRT(rt)
+    flash('Dados institucionais salvos!')
+  }
+
+  async function onUpload(campo, file) {
+    if (!file) return
+    const dados = await lerArquivoBase64(file)
+    if (campo === 'logo' || campo === 'logoReduzida') salvarBranding({ [campo]: dados })
+    else if (campo === 'documentos') {
+      salvarUploads({ documentos: [...(up.documentos || []), { nome: file.name, dados }] })
+    } else salvarUploads({ [campo]: dados })
+    flash('Arquivo carregado!')
+  }
+
+  const inp = 'w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500'
+  const lab = 'text-sm font-medium text-slate-700 block mb-1'
+
+  return (
+    <Card>
+      <CardHeader className="flex items-center gap-2">
+        <DollarSign size={18} className="text-blue-600" />
+        <h3 className="font-semibold text-slate-900">Empresa & Responsável Técnico (S7.1)</h3>
+      </CardHeader>
+      <CardBody>
+        <form onSubmit={salvarTudo} className="space-y-5">
+          {/* Empresa */}
+          <div>
+            <p className="text-sm font-semibold text-slate-700 mb-2">Dados da Empresa</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div><label className={lab}>Razão Social</label><input className={inp} value={form.razaoSocial} onChange={e => setF('razaoSocial', e.target.value)} /></div>
+              <div><label className={lab}>Nome Fantasia</label><input className={inp} value={form.nomeFantasia} onChange={e => setF('nomeFantasia', e.target.value)} /></div>
+              <div><label className={lab}>CNPJ</label><input className={inp} value={form.cnpj} onChange={e => setF('cnpj', e.target.value)} /></div>
+              <div><label className={lab}>Inscrição Estadual</label><input className={inp} value={form.ie} onChange={e => setF('ie', e.target.value)} /></div>
+              <div className="sm:col-span-2"><label className={lab}>Endereço</label><input className={inp} value={form.endereco} onChange={e => setF('endereco', e.target.value)} /></div>
+              <div><label className={lab}>Cidade</label><input className={inp} value={form.cidade} onChange={e => setF('cidade', e.target.value)} /></div>
+              <div className="grid grid-cols-2 gap-3">
+                <div><label className={lab}>UF</label><input className={inp} maxLength={2} value={form.estado} onChange={e => setF('estado', e.target.value.toUpperCase())} /></div>
+                <div><label className={lab}>CEP</label><input className={inp} value={form.cep} onChange={e => setF('cep', e.target.value)} /></div>
+              </div>
+              <div><label className={lab}>Telefone</label><input className={inp} value={form.telefone} onChange={e => setF('telefone', e.target.value)} /></div>
+              <div><label className={lab}>WhatsApp</label><input className={inp} value={form.whatsapp} onChange={e => setF('whatsapp', e.target.value)} /></div>
+              <div><label className={lab}>Email</label><input className={inp} type="email" value={form.email} onChange={e => setF('email', e.target.value)} /></div>
+              <div><label className={lab}>Website</label><input className={inp} value={form.site} onChange={e => setF('site', e.target.value)} /></div>
+            </div>
+          </div>
+
+          {/* Responsável Técnico */}
+          <div className="pt-4 border-t border-slate-100">
+            <p className="text-sm font-semibold text-slate-700 mb-2">Responsável Técnico</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div><label className={lab}>Nome</label><input className={inp} value={rt.nome} onChange={e => setR('nome', e.target.value)} /></div>
+              <div className="grid grid-cols-2 gap-3">
+                <div><label className={lab}>Registro</label><input className={inp} value={rt.tipoRegistro} onChange={e => setR('tipoRegistro', e.target.value)} placeholder="CREA/CFT" /></div>
+                <div><label className={lab}>Nº</label><input className={inp} value={rt.registro} onChange={e => setR('registro', e.target.value)} /></div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div><label className={lab}>UF do registro</label><input className={inp} maxLength={2} value={rt.uf} onChange={e => setR('uf', e.target.value.toUpperCase())} /></div>
+                <div><label className={lab}>Modalidade</label><input className={inp} value={rt.modalidade} onChange={e => setR('modalidade', e.target.value)} placeholder="Eletrotécnica" /></div>
+              </div>
+              <div><label className={lab}>Cargo</label><input className={inp} value={rt.cargo} onChange={e => setR('cargo', e.target.value)} /></div>
+              <div><label className={lab}>Telefone</label><input className={inp} value={rt.telefone} onChange={e => setR('telefone', e.target.value)} /></div>
+              <div><label className={lab}>Email</label><input className={inp} type="email" value={rt.email} onChange={e => setR('email', e.target.value)} /></div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <button type="submit" className="flex items-center gap-2 px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium"><Save size={16} /> Salvar dados</button>
+            {salvo && <span className="flex items-center gap-1 text-sm text-emerald-700 font-medium"><Check size={16} /> {salvo}</span>}
+          </div>
+        </form>
+
+        {/* Identidade Visual + Uploads */}
+        <div className="pt-5 mt-5 border-t border-slate-100">
+          <p className="text-sm font-semibold text-slate-700 mb-2">Identidade Visual & Documentos</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <UploadCampo label="Logomarca" valor={empresa.logo} onFile={f => onUpload('logo', f)} accept="image/*" />
+            <UploadCampo label="Logomarca reduzida" valor={empresa.logoReduzida} onFile={f => onUpload('logoReduzida', f)} accept="image/*" />
+            <div className="flex items-center gap-3">
+              <div><label className={lab}>Cor principal</label><input type="color" value={empresa.corPrimaria} onChange={e => salvarBranding({ corPrimaria: e.target.value })} className="h-9 w-16 rounded border border-slate-300" /></div>
+              <div><label className={lab}>Cor secundária</label><input type="color" value={empresa.corSecundaria} onChange={e => salvarBranding({ corSecundaria: e.target.value })} className="h-9 w-16 rounded border border-slate-300" /></div>
+            </div>
+            <UploadCampo label="Assinatura digital" valor={up.assinatura} onFile={f => onUpload('assinatura', f)} accept="image/*" />
+            <UploadCampo label="Carimbo técnico" valor={up.carimbo} onFile={f => onUpload('carimbo', f)} accept="image/*" />
+            <UploadCampo label="ART padrão" valor={up.artPadrao} onFile={f => onUpload('artPadrao', f)} accept="application/pdf,image/*" arquivo />
+            <UploadCampo label="Documento técnico (+)" onFile={f => onUpload('documentos', f)} accept="application/pdf,image/*" arquivo />
+          </div>
+          {up.documentos?.length > 0 && (
+            <p className="text-xs text-slate-500 mt-2">{up.documentos.length} documento(s) técnico(s) anexado(s).</p>
+          )}
+        </div>
+      </CardBody>
+    </Card>
+  )
+}
+
+function UploadCampo({ label, valor, onFile, accept, arquivo }) {
+  return (
+    <div>
+      <label className="text-sm font-medium text-slate-700 block mb-1">{label}</label>
+      <div className="flex items-center gap-2">
+        {valor && !arquivo && <img src={valor} alt={label} className="h-9 w-9 object-contain rounded border border-slate-200 bg-white" />}
+        {valor && arquivo && <span className="text-xs text-emerald-600">✓ enviado</span>}
+        <input type="file" accept={accept} onChange={e => onFile(e.target.files?.[0])}
+          className="text-xs file:mr-2 file:px-2 file:py-1 file:rounded file:border-0 file:bg-slate-100 file:text-slate-600" />
+      </div>
+    </div>
+  )
+}
+
 // ─── CFG-04: Painel de configuração financeira ────────────────────────────────
 function ConfiguracaoFinanceira() {
   const { empresa, salvarFinanceiro } = useEmpresa()
@@ -736,6 +876,8 @@ export default function Configuracoes() {
       )}
 
       {/* CFG-04: Configurações financeiras */}
+      <ConfiguracaoEmpresa />
+
       <ConfiguracaoFinanceira />
 
       {/* Guia de Integração */}

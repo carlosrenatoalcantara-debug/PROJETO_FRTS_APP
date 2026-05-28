@@ -123,6 +123,60 @@ export function construirSnapshotTecnico({ painel, inversor, arranjoMPPTs, dimen
   return snapshot
 }
 
+// ─── Snapshot institucional (S7.1) ──────────────────────────────────────────────
+
+/**
+ * Congela os dados da empresa no momento da proposta. Projetos congelados
+ * continuam exibindo a identidade institucional da época (governança).
+ */
+export function construirSnapshotEmpresa(empresa) {
+  if (!empresa) return null
+  const snap = {
+    criado_em: new Date().toISOString(),
+    razao_social: empresa.razaoSocial ?? null,
+    nome_fantasia: empresa.nomeFantasia ?? empresa.nomeEmpresa ?? null,
+    cnpj: empresa.cnpj ?? null,
+    ie: empresa.ie ?? null,
+    endereco: empresa.endereco ?? null,
+    cidade: empresa.cidade ?? null,
+    uf: empresa.estado ?? null,
+    cep: empresa.cep ?? null,
+    telefone: empresa.telefone ?? null,
+    whatsapp: empresa.whatsapp ?? null,
+    email: empresa.email ?? null,
+    website: empresa.site ?? null,
+    logo: empresa.logo ?? null,
+    cor_primaria: empresa.corPrimaria ?? null,
+    cor_secundaria: empresa.corSecundaria ?? null,
+  }
+  snap.hash = hashTecnico(snap)
+  return snap
+}
+
+/**
+ * Congela a identificação do responsável técnico (CREA/CFT, modalidade) —
+ * rastreabilidade de quem respondeu tecnicamente pela proposta congelada.
+ */
+export function construirSnapshotTecnicoIdentificacao(empresa) {
+  const rt = empresa?.responsavelTecnico
+  if (!rt) return null
+  const snap = {
+    criado_em: new Date().toISOString(),
+    nome: rt.nome ?? null,
+    tipo_registro: rt.tipoRegistro ?? null,
+    registro: rt.registro ?? null,
+    uf_registro: rt.uf ?? null,
+    modalidade: rt.modalidade ?? null,
+    cargo: rt.cargo ?? null,
+    telefone: rt.telefone ?? null,
+    email: rt.email ?? null,
+    assinatura: empresa?.uploads?.assinatura ?? null,
+    carimbo: empresa?.uploads?.carimbo ?? null,
+  }
+  snap.hash = hashTecnico(snap)
+  return snap
+}
+
 // ─── Snapshot do catálogo ───────────────────────────────────────────────────────
 
 /**
@@ -311,7 +365,7 @@ export function construirSnapshotFinanceiro({ resultadoFinanceiro, orcamento, sn
  * Constrói todos os snapshots a partir do estado do wizard + SVG do unifilar.
  * Retorna o payload pronto para POST /governanca/congelar.
  */
-export function construirTodosSnapshots({ state, orcamentoLocal, unifilarSVG, resultadoFinanceiro, tarifa }) {
+export function construirTodosSnapshots({ state, orcamentoLocal, unifilarSVG, resultadoFinanceiro, tarifa, empresa }) {
   const { equipamentos, dimensionamento, dadosConsumo, localizacao, irradiancia, area } = state
   const painel = equipamentos?.painel || null
   const inversor = equipamentos?.inversor || null
@@ -336,6 +390,8 @@ export function construirTodosSnapshots({ state, orcamentoLocal, unifilarSVG, re
   return {
     tecnico,
     geoespacial,
+    empresa: construirSnapshotEmpresa(empresa),
+    tecnico_identificacao: construirSnapshotTecnicoIdentificacao(empresa),
     catalogo: construirSnapshotCatalogo({ painel, inversor, dimensionamento }),
     unifilar: construirSnapshotUnifilar(unifilarSVG),
     memorial: construirSnapshotMemorial({ snapshotTecnico: tecnico, dadosConsumo, localizacao }),

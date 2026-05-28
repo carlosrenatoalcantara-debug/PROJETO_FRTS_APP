@@ -457,6 +457,8 @@ const governancaV3Schema = new mongoose.Schema({
   // Snapshots congelados — Mixed porque a estrutura espelha o motor de engenharia
   snapshot_tecnico:    { type: mongoose.Schema.Types.Mixed, default: null },
   snapshot_geoespacial:{ type: mongoose.Schema.Types.Mixed, default: null }, // S6
+  snapshot_empresa:    { type: mongoose.Schema.Types.Mixed, default: null }, // S7.1
+  snapshot_tecnico_identificacao: { type: mongoose.Schema.Types.Mixed, default: null }, // S7.1
   snapshot_catalogo:   { type: mongoose.Schema.Types.Mixed, default: null },
   snapshot_unifilar:   { type: snapshotUnifilarV3Schema,     default: null },
   snapshot_memorial:   { type: mongoose.Schema.Types.Mixed, default: null },
