@@ -12,6 +12,7 @@ import {
   NIVEL_CONFIG,
 } from '../utils/catalogQualityEngine'
 import { avaliarUtilizavel } from '../utils/utilizavelProjeto'
+import FichaTecnicaModal from '../components/fv/FichaTecnicaModal'
 
 const API_URL = '' /* URL relativa forçada — Vercel proxy → Railway */
 
@@ -810,6 +811,7 @@ function AbaEquipamentos({ tipo, equipamentos, carregarDados }) {
   // S8.0: seleção múltipla + ações em lote
   const [selecionados, setSelecionados] = useState({})
   const [emLote, setEmLote] = useState(false)
+  const [fichaEq, setFichaEq] = useState(null) // S8.0.2: equipamento na ficha técnica
 
   const isMod = tipo === 'modulo'
 
@@ -1012,7 +1014,7 @@ function AbaEquipamentos({ tipo, equipamentos, carregarDados }) {
             onReprocessar={onReprocessar}
             selecionado={!!selecionados[eq._id]}
             onToggleSel={() => toggleSel(eq._id)}
-            onEditar={() => editarManual(eq)}
+            onEditar={() => setFichaEq(eq)}
             onCompletarIA={() => completarIA(eq)}
           />
         ))}
@@ -1022,6 +1024,15 @@ function AbaEquipamentos({ tipo, equipamentos, carregarDados }) {
           </div>
         )}
       </div>
+
+      {/* S8.0.2: ficha técnica profissional */}
+      {fichaEq && (
+        <FichaTecnicaModal
+          equipamento={fichaEq}
+          onFechar={() => setFichaEq(null)}
+          onSalvo={async () => { await carregarDados(); setFichaEq(null) }}
+        />
+      )}
     </div>
   )
 }

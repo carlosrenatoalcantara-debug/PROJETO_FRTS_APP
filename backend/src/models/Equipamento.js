@@ -135,6 +135,34 @@ const EquipamentoSchema = new mongoose.Schema(
     // Flag de uso seguro em projeto (orçamento) — calculada por regras de campos
     utilizavel_em_projeto: { type: Boolean, default: true },
     bloqueio_engenharia:   { type: [String], default: [] },
+
+    // === S8.0.2: biblioteca documental + certificação ====================
+    // documentos_tecnicos: datasheet/manual/INMETRO/IEC/declaração/garantia
+    documentos_tecnicos: { type: [{
+      tipo:         { type: String, default: null },   // datasheet|manual|inmetro|iec|declaracao|garantia
+      nome:         { type: String, default: null },
+      hash:         { type: String, default: null },
+      data_upload:  { type: Date,   default: Date.now },
+      origem:       { type: String, default: null },
+      validade:     { type: Date,   default: null },
+      modelo_relacionado: { type: String, default: null },
+      conteudo_base64:    { type: String, default: null },
+      // métricas de otimização (documentOptimizerService)
+      tamanho_original: { type: Number, default: null },
+      tamanho_final:    { type: Number, default: null },
+      reducao_pct:      { type: Number, default: null },
+      dpi_final:        { type: Number, default: null },
+    }], default: [] },
+    // Certificação inteligente (INMETRO p/ pequenos; IEC p/ maiores/trifásicos)
+    certificacao: {
+      inmetro: {
+        numero:      { type: String, default: null },
+        validade:    { type: Date,   default: null },
+        certificado: { type: String, default: null },  // ref/base64
+      },
+      // normas internacionais identificadas: [{ norma, laboratorio, validade, modelos }]
+      normas_iec: { type: mongoose.Schema.Types.Mixed, default: [] },
+    },
   },
   { timestamps: true }
 )

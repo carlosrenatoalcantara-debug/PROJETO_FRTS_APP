@@ -16,7 +16,26 @@ import { processarEquipamento } from '../services/catalogoQualidade.js'
 import crypto from 'crypto'
 import { ingerir } from '../services/catalogIntelligenceService.js'
 import { avaliarUtilizavel } from '../services/utilizavelProjeto.js'
+import { otimizarDocumento } from '../services/documentOptimizerService.js'
 import { AuditLog } from '../models/AuditLog.js'
+
+// S8.0.2: documentos exigidos para homologação por tipo (preparação — não gera nada)
+export function obterDocumentosHomologacao(eq) {
+  const docs = eq?.documentos_tecnicos || []
+  const tem = (t) => docs.filter(d => d.tipo === t)
+  if (eq?.tipo === 'modulo') {
+    return { tipo: 'modulo', exigidos: ['datasheet'], presentes: tem('datasheet'),
+      completo: tem('datasheet').length > 0 }
+  }
+  if (eq?.tipo === 'inversor') {
+    const inmetro = eq?.certificacao?.inmetro?.numero || tem('inmetro').length > 0
+    const iec = (Array.isArray(eq?.certificacao?.normas_iec) && eq.certificacao.normas_iec.length > 0) || tem('iec').length > 0
+    return { tipo: 'inversor', exigidos: ['datasheet', 'inmetro OU certificados IEC'],
+      presentes: { datasheet: tem('datasheet'), inmetro, iec },
+      completo: tem('datasheet').length > 0 && (inmetro || iec) }
+  }
+  return { tipo: eq?.tipo, exigidos: ['datasheet'], presentes: tem('datasheet'), completo: tem('datasheet').length > 0 }
+}
 
 const router = Router()
 const uploadDS = multer({ storage: multer.memoryStorage(), limits: { fileSize: 15 * 1024 * 1024 } })
@@ -461,7 +480,7 @@ router.patch('/equipamento/:id', async (req, res) => {
     if (mongoose.connection.readyState !== 1) return res.status(503).json({ sucesso: false, erro: 'DB_OFFLINE' })
     const { id } = req.params
     if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ sucesso: false, erro: 'ID inválido' })
-    const { campos = {}, usuario = null, datasheet_original = null } = req.body || {}
+    const { campos = {}, usuario = null, datasheet_original = null, certificacao = null } = req.body || {}
 
     const eq = await Equipamento.findById(id)
     if (!eq) return res.status(404).json({ sucesso: false, erro: 'Equipamento não encontrado' })
@@ -469,6 +488,11 @@ router.patch('/equipamento/:id', async (req, res) => {
     if (datasheet_original && datasheet_original.hash && eq.datasheet_original?.hash !== datasheet_original.hash) {
       eq.datasheet_original = datasheet_original
       eq.markModified('datasheet_original')
+    }
+    // S8.0.2: certificação (INMETRO / normas IEC)
+    if (certificacao && typeof certificacao === 'object') {
+      eq.certificacao = { ...(eq.certificacao || {}), ...certificacao }
+      eq.markModified('certificacao')
     }
 
     const antes = {}
@@ -593,6 +617,58 @@ router.post('/completar-ia/:id', async (req, res) => {
     res.json({ sucesso: true, tipo: resultado.tipo, sugestoes, faltantes: resultado.faltantes, revisao_humana: true })
   } catch (err) {
     console.error('[adminCatalogo] completar-ia:', err)
+    res.status(500).json({ sucesso: false, erro: err.message })
+  }
+})
+
+// POST /equipamento/:id/documento — anexa documento técnico (otimizado + dedupe)
+router.post('/equipamento/:id/documento', uploadDS.single('arquivo'), async (req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) return res.status(503).json({ sucesso: false, erro: 'DB_OFFLINE' })
+    const { id } = req.params
+    if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ sucesso: false, erro: 'ID inválido' })
+    const eq = await Equipamento.findById(id)
+    if (!eq) return res.status(404).json({ sucesso: false, erro: 'Equipamento não encontrado' })
+
+    const { tipo = 'datasheet', validade = null, modelo_relacionado = null } = req.body || {}
+    if (!req.file) return res.status(400).json({ sucesso: false, erro: 'Envie o arquivo no campo "arquivo".' })
+
+    const hash = crypto.createHash('sha256').update(req.file.buffer).digest('hex')
+    eq.documentos_tecnicos = Array.isArray(eq.documentos_tecnicos) ? eq.documentos_tecnicos : []
+    if (eq.documentos_tecnicos.some(d => d.hash === hash)) {
+      return res.status(409).json({ sucesso: false, codigo: 'DUPLICADO', erro: 'Documento idêntico já anexado.' })
+    }
+
+    const dataUrl = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`
+    const otim = otimizarDocumento(dataUrl, { nome: req.file.originalname })
+
+    eq.documentos_tecnicos.push({
+      tipo, nome: req.file.originalname, hash, data_upload: new Date(), origem: 'upload',
+      validade: validade ? new Date(validade) : null, modelo_relacionado,
+      conteudo_base64: otim.conteudo,
+      tamanho_original: otim.tamanho_original, tamanho_final: otim.tamanho_final,
+      reducao_pct: otim.reducao_pct, dpi_final: otim.dpi_final,
+    })
+    eq.markModified('documentos_tecnicos')
+    await eq.save()
+    await _auditCatalogo(req, 'upload_documento', `${eq.fabricante} ${eq.modelo} — ${tipo}/${req.file.originalname}`)
+    res.json({ sucesso: true, documento: { tipo, nome: req.file.originalname, hash, otimizacao: otim }, total: eq.documentos_tecnicos.length })
+  } catch (err) {
+    console.error('[adminCatalogo] documento:', err)
+    res.status(500).json({ sucesso: false, erro: err.message })
+  }
+})
+
+// GET /equipamento/:id/homologacao — documentos exigidos p/ homologação (preparação)
+router.get('/equipamento/:id/homologacao', async (req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) return res.status(503).json({ sucesso: false, erro: 'DB_OFFLINE' })
+    const { id } = req.params
+    if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ sucesso: false, erro: 'ID inválido' })
+    const eq = await Equipamento.findById(id).lean()
+    if (!eq) return res.status(404).json({ sucesso: false, erro: 'Equipamento não encontrado' })
+    res.json({ sucesso: true, homologacao: obterDocumentosHomologacao(eq) })
+  } catch (err) {
     res.status(500).json({ sucesso: false, erro: err.message })
   }
 })
