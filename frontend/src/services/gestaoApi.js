@@ -26,3 +26,8 @@ export const tecnicosApi   = recurso('tecnicos')
 export const vendedoresApi = recurso('vendedores')
 
 export const buscarMatrizRBAC = () => _f('/api/gestao/rbac/matriz')
+
+/** S7.3.1: registra evento de documento na trilha de auditoria. */
+export function registrarEventoPainel(acao, detalhe = null, projeto_id = null, modulo = 'documentos') {
+  return _f('/api/painel/evento', { method: 'POST', body: JSON.stringify({ acao, detalhe, projeto_id, modulo }) }).catch(() => {})
+}

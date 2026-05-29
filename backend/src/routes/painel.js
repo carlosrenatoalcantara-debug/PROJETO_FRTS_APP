@@ -116,6 +116,10 @@ router.get('/health', async (_req, res) => {
     ])
     const comSnapshot = await ProjetoFV.countDocuments({ 'governanca.snapshot_tecnico': { $ne: null } })
     const congelados = await ProjetoFV.countDocuments({ 'governanca.freeze_status': { $in: ['CONGELADO', 'HOMOLOGADO'] } })
+    // S7.3.1: métricas documentais (documento ≈ unifilar/proposta congelados)
+    const docsGerados = await ProjetoFV.countDocuments({ 'governanca.snapshot_unifilar': { $ne: null } })
+    const docsCongelados = congelados
+    const semDocumentos = projetos - docsGerados
 
     res.json({
       sucesso: true,
@@ -125,6 +129,11 @@ router.get('/health', async (_req, res) => {
         projetos_sem_snapshot: projetos - comSnapshot, projetos_congelados: congelados,
         // divergência técnica é detectada sob demanda (endpoint /divergencia); aqui é indicativo
         projetos_com_divergencia: null,
+        // S7.3.1: documentos
+        documentos_gerados: docsGerados,
+        documentos_congelados: docsCongelados,
+        documentos_pendentes: projetos - docsGerados,
+        projetos_sem_documentos: semDocumentos,
       },
     })
   } catch (err) {
@@ -153,6 +162,30 @@ router.get('/auditoria', async (req, res) => {
     res.json({ sucesso: true, total: itens.length, itens })
   } catch (err) {
     console.error('[painel] auditoria:', err)
+    res.status(500).json({ erro: err.message })
+  }
+})
+
+// ─── POST /api/painel/evento ─────────────────────────────────────────────────
+// Registra eventos de documento (download/visualização/geração/comparação) na
+// MESMA trilha de auditoria (AuditLog) — sem sistema paralelo.
+router.post('/evento', async (req, res) => {
+  try {
+    if (!_dbOk(res)) return
+    const { acao, modulo = 'documentos', detalhe = null, projeto_id = null } = req.body || {}
+    if (!acao) return res.status(400).json({ erro: 'acao é obrigatória' })
+    const ip = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.ip || null
+    await AuditLog.create({
+      timestamp: new Date(),
+      usuario: req.auth?.id || req.auth?.email || 'anonymous',
+      perfil: req.auth?.perfil || null,
+      empresa: req.auth?.empresa_id || null,
+      modulo, acao, metodo: 'EVENT',
+      path: `${detalhe || ''}${projeto_id ? ' #' + projeto_id : ''}`.trim() || acao,
+      status: 200, ip,
+    })
+    res.json({ sucesso: true })
+  } catch (err) {
     res.status(500).json({ erro: err.message })
   }
 })

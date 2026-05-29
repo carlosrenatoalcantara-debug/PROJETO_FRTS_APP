@@ -9,11 +9,13 @@ import PlanejadorTelhado from '../components/fv/PlanejadorTelhado'
 import PreviewLayoutPano from '../components/fv/PreviewLayoutPano'
 import GovernancaPainel from '../components/fv/GovernancaPainel'
 import PropostaEnterprise from '../components/fv/PropostaEnterprise'
+import ComparadorRevisoes from '../components/fv/ComparadorRevisoes'
+import DocumentCenter from '../components/fv/DocumentCenter'
 import CrmPainel from '../components/fv/CrmPainel'
 import { getFreezeStatusConfig } from '../utils/engenhariaGovernanca'
 import { getWorkflowConfig } from '../utils/comercialGovernanca'
 import { getPipelineConfig } from '../utils/crmComercial'
-import { tecnicosApi, vendedoresApi } from '../services/gestaoApi'
+import { tecnicosApi, vendedoresApi, registrarEventoPainel } from '../services/gestaoApi'
 import InteractiveDiagram from '../components/diagram/InteractiveDiagram'
 import { carregarDiagramaLocal, salvarDiagramaLocal, deletarDiagramaLocal } from '../components/diagram/utils/diagramPersistence'
 
@@ -131,6 +133,7 @@ export default function ProjetosFVDetalhes() {
     { id: 'financeiro', label: 'Financeiro', icone: BarChart3 },
     { id: 'unifilar', label: 'Unifilar', icone: Zap },
     { id: 'governanca', label: 'Governança', icone: ShieldCheck },
+    { id: 'documentos', label: 'Documentos', icone: FileText },
     { id: 'comercial', label: 'Comercial', icone: Briefcase },
     { id: 'crm', label: 'CRM', icone: Users },
     { id: 'homologacao', label: 'Homologação', icone: FileText },
@@ -193,13 +196,20 @@ export default function ProjetosFVDetalhes() {
         {abaAtiva === 'financeiro' && <AbaFinanceiro projeto={projeto} />}
         {abaAtiva === 'unifilar' && <UnifilarFV projeto={projeto} />}
         {abaAtiva === 'governanca' && (
-          <GovernancaPainel
-            projetoId={id}
-            governanca={projeto.governanca}
-            onAtualizar={(g) => setProjeto(p => ({ ...p, governanca: g }))}
-            usuario={null}
-          />
+          <div className="space-y-6">
+            <GovernancaPainel
+              projetoId={id}
+              governanca={projeto.governanca}
+              onAtualizar={(g) => setProjeto(p => ({ ...p, governanca: g }))}
+              usuario={null}
+            />
+            <ComparadorRevisoes
+              governanca={projeto.governanca}
+              onEvento={(acao, detalhe) => registrarEventoPainel(acao, detalhe, id, 'governanca')}
+            />
+          </div>
         )}
+        {abaAtiva === 'documentos' && <DocumentCenter projeto={projeto} />}
         {abaAtiva === 'comercial' && (
           <PropostaEnterprise
             projetoId={id}
