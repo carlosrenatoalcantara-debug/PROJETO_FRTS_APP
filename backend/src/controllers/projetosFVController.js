@@ -4,6 +4,37 @@ import { Tecnico } from '../models/Tecnico.js'
 import mongoose from 'mongoose'
 import { memoryStore } from '../config/memoryStorage.js'
 import { montarSnapshotRT } from '../utils/snapshotRT.js'
+import {
+  derivarStatusSeguro, paraModel, podeExcluirDefinitivo, avaliarLegacy, MOTIVOS_ARQUIVAMENTO,
+} from '../utils/statusLifecycle.js'
+import { AuditLog } from '../models/AuditLog.js'
+
+// S8.4 — auditoria de ciclo de vida (reaproveita AuditLog; nunca quebra a request)
+async function auditarCiclo(req, acao, projetoId, detalhe = null) {
+  try {
+    if (mongoose.connection.readyState !== 1) return
+    await AuditLog.create({
+      timestamp: new Date(), usuario: req.auth?.id || req.auth?.email || req.body?.usuario || 'anonymous',
+      perfil: req.auth?.perfil || null, empresa: req.auth?.empresa_id || null,
+      modulo: 'fv', acao, metodo: 'EVENT',
+      path: `projeto:${projetoId}${detalhe ? ' ' + String(detalhe).slice(0, 240) : ''}`, status: 200,
+      ip: (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.ip || null,
+    })
+  } catch { /* silencioso */ }
+}
+
+// S8.4 — enriquece o projeto com derivados não-persistidos (status_display, legacy)
+function enriquecer(p) {
+  if (!p) return p
+  const obj = typeof p.toObject === 'function' ? p.toObject() : { ...p }
+  const av = avaliarLegacy(obj)
+  obj.status_display = derivarStatusSeguro(obj)
+  obj.legacy = obj.legacy || av.legacy
+  obj.necessita_revisao = obj.necessita_revisao || av.necessita_revisao
+  obj.legacy_motivos = av.motivos
+  obj.pode_excluir_definitivo = podeExcluirDefinitivo(obj)
+  return obj
+}
 
 export const listarProjetosFV = async (req, res) => {
   try {
@@ -11,20 +42,26 @@ export const listarProjetosFV = async (req, res) => {
     // S7.2.1: filtro multiempresa opcional (?empresa_id=). Sem filtro → todos
     // (projetos antigos com empresa_id null permanecem acessíveis na empresa default).
     const empresaId = req?.query?.empresa_id || null
-    const filtroEmpresa = empresaId ? { $or: [{ empresa_id: empresaId }, { empresa_id: null }] } : {}
+    // S8.4: por padrão esconde excluídos; ?incluir_excluidos=1 mostra (lixeira).
+    const incluirExcluidos = ['1', 'true', 'yes'].includes(String(req?.query?.incluir_excluidos || '').toLowerCase())
+    const incluirArquivados = ['1', 'true', 'yes'].includes(String(req?.query?.incluir_arquivados || '1').toLowerCase()) // default mostra arquivados
+    const filtro = {}
+    if (empresaId) filtro.$or = [{ empresa_id: empresaId }, { empresa_id: null }]
+    if (!incluirExcluidos) filtro.excluido = { $ne: true }
+    if (!incluirArquivados) filtro.status = { $ne: 'arquivado' }
+
     if (mongoose.connection.readyState === 1) {
-      projetos = await ProjetoFV.find(filtroEmpresa).populate('clienteId').sort({ createdAt: -1 })
+      projetos = await ProjetoFV.find(filtro).populate('clienteId').sort({ createdAt: -1 })
     } else {
       // Memory storage fallback
       projetos = memoryStore.findAllProjetoFV().sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-      // Enriquecer com dados do cliente
-      projetos = projetos.map(p => ({
-        ...p,
-        clienteId: memoryStore.findClienteById(p.clienteId)
-      }))
+      projetos = projetos.filter(p => incluirExcluidos || p.excluido !== true)
+      projetos = projetos.map(p => ({ ...p, clienteId: memoryStore.findClienteById(p.clienteId) }))
     }
-    console.log(`✓ GET /api/projetos-fv - Listando ${projetos.length} projetos`)
-    res.json(projetos)
+    // S8.4: enriquecer com status_display + legacy (não persiste; só leitura)
+    const enriquecidos = projetos.map(enriquecer)
+    console.log(`✓ GET /api/projetos-fv - Listando ${enriquecidos.length} projetos (excluidos=${incluirExcluidos})`)
+    res.json(enriquecidos)
   } catch (err) {
     console.error('❌ Erro ao listar projetos FV:', err)
     res.status(500).json({ erro: err.message })
@@ -47,7 +84,7 @@ export const buscarProjetoFV = async (req, res) => {
       }
     }
     if (!p) return res.status(404).json({ mensagem: 'Projeto não encontrado' })
-    res.json(p)
+    res.json(enriquecer(p))
   } catch (err) {
     console.error('❌ Erro ao buscar projeto FV:', err)
     res.status(500).json({ erro: err.message })
@@ -154,20 +191,155 @@ export const atualizarProjetoFV = async (req, res) => {
   }
 }
 
+/**
+ * S8.4 — EXCLUIR. Regra:
+ *  - Se rascunho + sem freeze + sem assinatura + sem documentos → HARD DELETE.
+ *  - Senão → SOFT DELETE (excluido=true, fica preservado p/ histórico/auditoria).
+ *  - ?definitivo=1 força tentativa de hard; rejeita se a regra não permite.
+ */
 export const excluirProjetoFV = async (req, res) => {
   try {
-    let projeto
-    if (mongoose.connection.readyState === 1) {
-      projeto = await ProjetoFV.findByIdAndDelete(req.params.id)
-    } else {
-      // Memory storage fallback
-      projeto = memoryStore.deleteProjetoFV(req.params.id)
+    const definitivo = ['1', 'true', 'yes'].includes(String(req.query?.definitivo || '').toLowerCase())
+    if (mongoose.connection.readyState !== 1) {
+      // Memory storage: soft delete não disponível → mantém comportamento legado
+      const removido = memoryStore.deleteProjetoFV(req.params.id)
+      if (!removido) return res.status(404).json({ mensagem: 'Projeto não encontrado' })
+      return res.status(204).end()
     }
+    const projeto = await ProjetoFV.findById(req.params.id)
     if (!projeto) return res.status(404).json({ mensagem: 'Projeto não encontrado' })
-    console.log('✓ Projeto FV excluído:', req.params.id)
-    res.status(204).end()
+
+    if (podeExcluirDefinitivo(projeto)) {
+      await ProjetoFV.findByIdAndDelete(projeto._id)
+      auditarCiclo(req, 'PROJETO_EXCLUIDO', projeto._id, 'hard delete (regra ok)')
+      return res.status(204).end()
+    }
+    if (definitivo) {
+      return res.status(409).json({
+        erro: 'Exclusão definitiva bloqueada (projeto possui freeze, assinatura ou documentos).',
+        sugestao: 'Use arquivamento — preserva histórico.',
+      })
+    }
+    // Soft delete
+    projeto.excluido = true
+    projeto.excluido_em = new Date()
+    projeto.excluido_por = req.auth?.id || req.auth?.email || req.body?.usuario || null
+    await projeto.save()
+    auditarCiclo(req, 'PROJETO_EXCLUIDO', projeto._id, 'soft delete')
+    res.json({ sucesso: true, soft: true, item: enriquecer(projeto) })
   } catch (err) {
     console.error('❌ Erro ao excluir projeto FV:', err)
+    res.status(500).json({ erro: err.message })
+  }
+}
+
+/**
+ * S8.4 — DUPLICAR. Copia cliente/consumo/localização/equipamentos/layout/dimensionamento.
+ * Reseta: _id, freeze, assinaturas, auditoria, documentos congelados. Status: RASCUNHO.
+ */
+export const duplicarProjetoFV = async (req, res) => {
+  try {
+    if (!_exigirMongo(res)) return
+    const orig = await ProjetoFV.findById(req.params.id).lean()
+    if (!orig) return res.status(404).json({ mensagem: 'Projeto não encontrado' })
+    if (orig.excluido) return res.status(400).json({ erro: 'Não é possível duplicar projeto excluído.' })
+
+    // Campos a NÃO copiar (resetar)
+    const {
+      _id, createdAt, updatedAt, __v,
+      governanca, // contém freeze + assinaturas + auditoria + revisoes
+      documentos, documentos_tecnicos,
+      excluido, excluido_em, excluido_por,
+      arquivado_em, arquivado_por, motivo_arquivamento,
+      ...resto
+    } = orig
+
+    const copia = {
+      ...resto,
+      status: 'rascunho',
+      excluido: false, excluido_em: null, excluido_por: null,
+      arquivado_em: null, arquivado_por: null, motivo_arquivamento: null,
+      legacy: false, necessita_revisao: false,
+      // governança zerada (sem snapshots, sem assinaturas, sem revisões)
+      governanca: null,
+      // marca a origem na descrição (não-funcional)
+      nome: `${resto.nome || 'Projeto'} (cópia)`,
+    }
+    const novo = await ProjetoFV.create(copia)
+    auditarCiclo(req, 'PROJETO_DUPLICADO', novo._id, `origem=${_id}`)
+    res.status(201).json({ sucesso: true, item: enriquecer(novo), origem: _id })
+  } catch (err) {
+    console.error('❌ Erro ao duplicar projeto FV:', err)
+    res.status(500).json({ erro: err.message })
+  }
+}
+
+// S8.4 — ARQUIVAR (obriga motivo)
+export const arquivarProjetoFV = async (req, res) => {
+  try {
+    if (!_exigirMongo(res)) return
+    const { motivo, usuario } = req.body || {}
+    if (!motivo) return res.status(400).json({ erro: 'motivo obrigatório', motivos_validos: MOTIVOS_ARQUIVAMENTO })
+    if (!MOTIVOS_ARQUIVAMENTO.includes(motivo)) {
+      return res.status(400).json({ erro: `motivo inválido (use um de: ${MOTIVOS_ARQUIVAMENTO.join(', ')})` })
+    }
+    const projeto = await ProjetoFV.findById(req.params.id)
+    if (!projeto) return res.status(404).json({ mensagem: 'Projeto não encontrado' })
+    projeto.status = 'arquivado'
+    projeto.arquivado_em = new Date()
+    projeto.arquivado_por = req.auth?.id || req.auth?.email || usuario || null
+    projeto.motivo_arquivamento = motivo
+    await projeto.save()
+    auditarCiclo(req, 'PROJETO_ARQUIVADO', projeto._id, `motivo=${motivo}`)
+    res.json({ sucesso: true, item: enriquecer(projeto) })
+  } catch (err) {
+    console.error('❌ Erro ao arquivar projeto FV:', err)
+    res.status(500).json({ erro: err.message })
+  }
+}
+
+// S8.4 — RESTAURAR (volta a RASCUNHO se vinha de arquivado/excluído; preserva histórico)
+export const restaurarProjetoFV = async (req, res) => {
+  try {
+    if (!_exigirMongo(res)) return
+    const projeto = await ProjetoFV.findById(req.params.id)
+    if (!projeto) return res.status(404).json({ mensagem: 'Projeto não encontrado' })
+    const veioDe = projeto.excluido ? 'excluido' : (projeto.status === 'arquivado' ? 'arquivado' : 'nada')
+    if (veioDe === 'nada') return res.status(400).json({ erro: 'Projeto não está arquivado nem excluído.' })
+
+    projeto.excluido = false
+    projeto.excluido_em = null
+    projeto.excluido_por = null
+    if (projeto.status === 'arquivado') projeto.status = 'rascunho'
+    projeto.arquivado_em = null
+    projeto.arquivado_por = null
+    projeto.motivo_arquivamento = null
+    await projeto.save()
+    auditarCiclo(req, 'PROJETO_RESTAURADO', projeto._id, `de=${veioDe}`)
+    res.json({ sucesso: true, item: enriquecer(projeto) })
+  } catch (err) {
+    console.error('❌ Erro ao restaurar projeto FV:', err)
+    res.status(500).json({ erro: err.message })
+  }
+}
+
+// S8.4 — Alterar status do ciclo (rascunho/em_analise/proposta/aprovado/em_execucao/concluido/perdido/cancelado)
+export const alterarStatusCiclo = async (req, res) => {
+  try {
+    if (!_exigirMongo(res)) return
+    const { status } = req.body || {}
+    if (!status) return res.status(400).json({ erro: 'status obrigatório' })
+    const novo = paraModel(String(status).toUpperCase())
+    const projeto = await ProjetoFV.findById(req.params.id)
+    if (!projeto) return res.status(404).json({ mensagem: 'Projeto não encontrado' })
+    const antes = projeto.status
+    if (antes === novo) return res.json({ sucesso: true, item: enriquecer(projeto), inalterado: true })
+    projeto.status = novo
+    await projeto.save()
+    auditarCiclo(req, 'STATUS_ALTERADO', projeto._id, `${antes} → ${novo}`)
+    res.json({ sucesso: true, item: enriquecer(projeto), alteracao: { antes, depois: novo } })
+  } catch (err) {
+    console.error('❌ Erro ao alterar status FV:', err)
     res.status(500).json({ erro: err.message })
   }
 }

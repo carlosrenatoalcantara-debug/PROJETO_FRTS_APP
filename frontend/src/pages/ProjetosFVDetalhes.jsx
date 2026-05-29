@@ -18,6 +18,7 @@ import { getPipelineConfig } from '../utils/crmComercial'
 import { tecnicosApi, vendedoresApi, registrarEventoPainel } from '../services/gestaoApi'
 import { usePermissao } from '../hooks/usePermissao'
 import { apenasAtivos } from '../utils/gestaoUtils'
+import { formatarDataSegura } from '../utils/dataSegura'
 import InteractiveDiagram from '../components/diagram/InteractiveDiagram'
 import { carregarDiagramaLocal, salvarDiagramaLocal, deletarDiagramaLocal } from '../components/diagram/utils/diagramPersistence'
 
@@ -406,6 +407,24 @@ function EquipeProjeto({ projeto, onAtualizar }) {
 function AbaResumo({ projeto }) {
   return (
     <div className="space-y-6">
+      {/* S8.4: Bandeira de projeto legado / pendente de revisão */}
+      {(projeto.legacy || projeto.necessita_revisao) && (
+        <div className="border border-amber-300 bg-amber-50 rounded p-3 flex items-start gap-2">
+          <span className="text-amber-600 mt-0.5">⚠</span>
+          <div className="flex-1 text-sm text-amber-900">
+            <p className="font-medium">Projeto criado em versão antiga</p>
+            {Array.isArray(projeto.legacy_motivos) && projeto.legacy_motivos.length > 0 && (
+              <p className="text-xs mt-0.5">Sinalizadores: {projeto.legacy_motivos.join(', ')}</p>
+            )}
+            <div className="flex gap-2 mt-2">
+              <button onClick={() => window.location.assign(`/projetos-fv/${projeto._id}?wizard=1`)}
+                className="px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded text-xs">Completar dados</button>
+              <button onClick={() => { /* no-op: o usuário continua visualizando */ }}
+                className="px-3 py-1 border border-amber-400 text-amber-800 hover:bg-amber-100 rounded text-xs">Continuar</button>
+            </div>
+          </div>
+        </div>
+      )}
       <Card>
         <CardHeader>Informações Básicas</CardHeader>
         <CardBody>
@@ -424,7 +443,7 @@ function AbaResumo({ projeto }) {
             </div>
             <div>
               <p className="text-sm text-slate-600">Data Criação</p>
-              <p className="font-semibold text-slate-900">{new Date(projeto.dataCriacao).toLocaleDateString('pt-BR')}</p>
+              <p className="font-semibold text-slate-900">{formatarDataSegura(projeto.dataCriacao ?? projeto.createdAt)}</p>
             </div>
           </div>
         </CardBody>

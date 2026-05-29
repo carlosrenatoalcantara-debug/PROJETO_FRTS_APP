@@ -26,6 +26,10 @@ import {
   atualizarCrm,                // S5 — CRM leve + comunicação
   registrarComunicacao,
   criarCompartilhamento,
+  duplicarProjetoFV,           // S8.4 — ciclo de vida
+  arquivarProjetoFV,
+  restaurarProjetoFV,
+  alterarStatusCiclo,
 } from '../controllers/projetosFVController.js'
 import {
   prepararComFatura,
@@ -84,5 +88,11 @@ router.post('/:id/unifilar/gerar', gerarUnifilarProjeto)
 router.put('/:id',                 atualizarProjetoFV)
 router.patch('/:id',               atualizarProjetoFV)  // alias para consistência com EV
 router.delete('/:id',              excluirProjetoFV)
+
+// ── S8.4: Ciclo de vida ─────────────────────────────────────────────────────
+router.post('/:id/duplicar',  duplicarProjetoFV)
+router.post('/:id/arquivar',  arquivarProjetoFV)
+router.post('/:id/restaurar', restaurarProjetoFV)
+router.put('/:id/status',     alterarStatusCiclo)
 
 export default router

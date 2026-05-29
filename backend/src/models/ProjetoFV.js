@@ -494,9 +494,19 @@ const projetoFVSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['rascunho', 'em_simulacao', 'dimensionado', 'proposta', 'aprovado', 'em_execucao', 'concluido'],
+    // S8.4 — ciclo de vida estendido (mantém valores legados para compat):
+    enum: ['rascunho', 'em_simulacao', 'em_analise', 'dimensionado', 'proposta', 'aprovado', 'em_execucao', 'concluido', 'perdido', 'cancelado', 'arquivado'],
     default: 'rascunho',
   },
+  // S8.4 — soft delete + arquivamento + flags de saúde
+  excluido:               { type: Boolean, default: false, index: true },
+  excluido_em:            { type: Date,    default: null },
+  excluido_por:           { type: String,  default: null },
+  arquivado_em:           { type: Date,    default: null },
+  arquivado_por:          { type: String,  default: null },
+  motivo_arquivamento:    { type: String,  default: null },
+  legacy:                 { type: Boolean, default: false },
+  necessita_revisao:      { type: Boolean, default: false },
   endereco_completo: {
     type: String,
     default: '',

@@ -121,6 +121,15 @@ router.get('/health', async (_req, res) => {
     const docsCongelados = congelados
     const semDocumentos = projetos - docsGerados
 
+    // S8.4 — ciclo de vida e saúde do dataset
+    const [arquivados, excluidos, legados, pendentesRev] = await Promise.all([
+      ProjetoFV.countDocuments({ status: 'arquivado' }),
+      ProjetoFV.countDocuments({ excluido: true }),
+      ProjetoFV.countDocuments({ legacy: true }),
+      ProjetoFV.countDocuments({ necessita_revisao: true }),
+    ])
+    const ativos = projetos - arquivados - excluidos
+
     res.json({
       sucesso: true,
       plataforma: {
@@ -134,6 +143,12 @@ router.get('/health', async (_req, res) => {
         documentos_congelados: docsCongelados,
         documentos_pendentes: projetos - docsGerados,
         projetos_sem_documentos: semDocumentos,
+        // S8.4: ciclo de vida
+        projetos_ativos: ativos,
+        projetos_arquivados: arquivados,
+        projetos_excluidos: excluidos,
+        projetos_legados: legados,
+        projetos_pendentes_revisao: pendentesRev,
       },
     })
   } catch (err) {
