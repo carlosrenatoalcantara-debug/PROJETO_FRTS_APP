@@ -9,6 +9,7 @@ import { useState, useMemo, useEffect } from 'react'
 import { Search, X, Lock, Database, AlertTriangle } from 'lucide-react'
 import { buscarEquipamentosEngenharia, registrarFallback } from '../../services/catalogoEngenhariaApi'
 import { agruparPaineis } from '../../utils/catalogoEngenhariaAdapter'
+import { usePermissao } from '../../hooks/usePermissao'
 
 // ─── Catálogo completo de módulos ─────────────────────────────────────────────
 // Campos: id, modelo, potenciaW, tecnologia, bifacial, eficiencia(%),
@@ -187,6 +188,11 @@ export default function SeletorPaineis({ onSelecionar, selecionado }) {
     return () => { vivo = false }
   }, [incluirBloqueados])
 
+  // S8.1.1: em contingência, só Admin/Diretor podem operar
+  const { perfil, anonimo } = usePermissao()
+  const podeContingencia = anonimo || ['administrador', 'diretor', 'admin'].includes(perfil)
+  const contingenciaBloqueada = fonte === 'local' && !podeContingencia
+
   const todosModelos = useMemo(() => Object.entries(dataset).flatMap(([mk, ms]) => ms.map(m => ({ ...m, marca: m.marca ?? mk }))), [dataset])
   const marcas = Object.keys(dataset)
   const faixa  = FAIXAS_POTENCIA[faixaIdx]
@@ -214,6 +220,16 @@ export default function SeletorPaineis({ onSelecionar, selecionado }) {
       pmpp: painel.potenciaW,   // compat gerarUnifilarSVG
       garantia: painel.garantiaProduto,
     })
+  }
+
+  if (contingenciaBloqueada) {
+    return (
+      <div className="p-6 bg-red-50 border-2 border-red-200 rounded-xl text-center space-y-2">
+        <Lock size={28} className="text-red-500 mx-auto" />
+        <p className="font-semibold text-red-800">Catálogo técnico temporariamente indisponível</p>
+        <p className="text-sm text-red-700">Contate engenharia/administração. Apenas Admin/Diretor podem operar em modo de contingência.</p>
+      </div>
+    )
   }
 
   return (

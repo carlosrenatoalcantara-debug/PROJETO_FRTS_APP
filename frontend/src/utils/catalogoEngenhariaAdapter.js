@@ -29,6 +29,15 @@ export function adaptarModulo(eq) {
     isc: pick(e, ['isc', 'isc_a']) ?? 0,
     coef_temp_voc: pick(e, ['coef_temp_voc', 'coef_temp_voc_pct_c']),  // engine usa este
     temp_noct: pick(e, ['noct', 'noct_c']),
+    imp: pick(e, ['imp', 'impp', 'imp_a']),                          // audit S8.1.1
+    coef_temp_pmax: pick(e, ['coef_temp_pmax', 'coef_temp_potencia']), // audit S8.1.1
+    dimensoes: {
+      comprimento: pick(e, ['comprimento', 'comprimento_mm', 'alturaMm']),
+      largura: pick(e, ['largura', 'largura_mm', 'larguraMm']),
+      espessura: pick(e, ['espessura', 'espessura_mm']),
+      peso: pick(e, ['peso', 'peso_kg']),
+    },
+    registro_inmetro: eq.certificacao?.inmetro?.numero ?? null,        // audit S8.1.1
     garantiaProduto: anos(eq.garantia_produto) ?? pick(e, ['garantia_produto']) ?? 12,
     garantiaPerformance: anos(eq.garantia_performance) ?? pick(e, ['garantia_performance']) ?? 25,
     percentualPerformance: pick(e, ['percentual_performance']) ?? 80,
@@ -71,9 +80,12 @@ export function adaptarInversor(eq) {
       mppt_min: pick(e, ['faixa_mppt_min', 'mppt_min']),
       mppt_max: pick(e, ['faixa_mppt_max', 'mppt_max']),
       corrente_max_mppt: pick(e, ['corrente_max_mppt', 'isc_max_mppt', 'ipv_max']),
+      isc_max_mppt: pick(e, ['isc_max_mppt', 'corrente_curto_mppt', 'isc_max']),  // audit S8.1.1
+      potencia_fv_max: pick(e, ['potencia_cc_max', 'potencia_dc_max', 'pdc_max']), // audit S8.1.1
       oversizing_max: pick(e, ['oversizing_max']) ?? 1.30,
       entradas_por_mppt: pick(e, ['strings_por_mppt', 'entradas_por_mppt']) ?? 1,
     },
+    registro_inmetro: eq.certificacao?.inmetro?.numero ?? null,
     _fases: fases,
   }
 }
@@ -94,6 +106,12 @@ export function agruparInversores(equipamentos) {
 }
 
 // ─── Snapshot do equipamento no momento da seleção (versão congelada) ─────────────
+// Clona em profundidade (snapshot IMUTÁVEL — independente de mudanças futuras no catálogo)
+function clonar(v) {
+  if (v == null) return v
+  try { return structuredClone(v) } catch { return JSON.parse(JSON.stringify(v)) }
+}
+
 export function snapshotEquipamentoSelecao(obj) {
   const orig = obj?._catalogo_original || null
   return {
@@ -103,12 +121,16 @@ export function snapshotEquipamentoSelecao(obj) {
     versao_catalogo: orig?._schema_versao || null,
     fonte: obj?._fonte || 'local',
     data_selecao: new Date().toISOString(),
-    dados_eletricos: orig ? (orig.especificacoes || null) : {
+    // CÓPIA PROFUNDA — nunca referência ao documento vivo do catálogo
+    dados_eletricos: orig ? clonar(orig.especificacoes || null) : {
       voc: obj?.voc, vmpp: obj?.vmpp, isc: obj?.isc, potenciaW: obj?.potenciaW,
       potenciaKW: obj?.potenciaKW, nMppts: obj?.nMppts,
     },
-    // Referência (não cópia) aos documentos técnicos p/ homologação futura
+    // Prova documental futura: datasheet/hashes/versão (cópia de metadados)
+    datasheet_original_url: orig?.datasheet_original?.nome || orig?.datasheet_url || null,
+    hash_documento: orig?.datasheet_original?.hash || null,
+    hash_certificado: orig?.certificacao?.inmetro?.certificado || null,
     documentos_tecnicos: (orig?.documentos_tecnicos || []).map((d) => ({ document_id: d._id || null, hash: d.hash, tipo: d.tipo })),
-    certificacao: orig?.certificacao || null,
+    certificacao: clonar(orig?.certificacao || null),
   }
 }

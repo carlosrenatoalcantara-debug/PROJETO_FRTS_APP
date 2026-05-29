@@ -10,6 +10,7 @@ import { AlertCircle, Lock, Database, AlertTriangle } from 'lucide-react'
 import { DADOS_ELETRICOS_INVERSORES } from '../../data/catalogoEletrico'
 import { buscarEquipamentosEngenharia, registrarFallback } from '../../services/catalogoEngenhariaApi'
 import { agruparInversores } from '../../utils/catalogoEngenhariaAdapter'
+import { usePermissao } from '../../hooks/usePermissao'
 
 // ─── Catálogo de inversores ───────────────────────────────────────────────────
 // Estrutura: tipo → marca → fase → [modelos]
@@ -203,6 +204,11 @@ export default function SeletorInversores({ onSelecionar, selecionado }) {
     return () => { vivo = false }
   }, [incluirBloqueados])
 
+  // S8.1.1: em contingência, só Admin/Diretor operam
+  const { perfil, anonimo } = usePermissao()
+  const podeContingencia = anonimo || ['administrador', 'diretor', 'admin'].includes(perfil)
+  const contingenciaBloqueada = fonte === 'local' && !podeContingencia
+
   const marcas  = tipo  ? Object.keys(dataset[tipo] ?? {}) : []
   const redes   = marca ? Object.keys(dataset[tipo]?.[marca] ?? {}) : []
   const modelos = (marca && rede) ? (dataset[tipo]?.[marca]?.[rede] ?? []) : []
@@ -235,6 +241,16 @@ export default function SeletorInversores({ onSelecionar, selecionado }) {
       _fonte:            inv._fonte || 'local',
       _catalogo_original: inv._catalogo_original || null,
     })
+  }
+
+  if (contingenciaBloqueada) {
+    return (
+      <div className="p-6 bg-red-50 border-2 border-red-200 rounded-xl text-center space-y-2">
+        <Lock size={28} className="text-red-500 mx-auto" />
+        <p className="font-semibold text-red-800">Catálogo técnico temporariamente indisponível</p>
+        <p className="text-sm text-red-700">Contate engenharia/administração. Apenas Admin/Diretor podem operar em modo de contingência.</p>
+      </div>
+    )
   }
 
   return (

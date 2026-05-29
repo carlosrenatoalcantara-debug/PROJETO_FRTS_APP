@@ -5,7 +5,10 @@ import Button from '../ui/Button'
 import { gerarUnifilarSVG, baixarUnifilarSVG } from '@/utils/gerarUnifilarSVG'
 
 export default function UnifilarFV({ projeto }) {
-  const [unifilar, setUnifilar] = useState(null)
+  // S8.1.1: origem explícita (sem fallback silencioso). Prioridade: snapshot congelado.
+  const svgCongelado = projeto?.governanca?.snapshot_unifilar?.svg || null
+  const [unifilar, setUnifilar] = useState(svgCongelado)
+  const [origem, setOrigem] = useState(svgCongelado ? 'snapshot' : null)
   const [carregando, setCarregando] = useState(false)
   const [erro, setErro] = useState(null)
 
@@ -13,14 +16,11 @@ export default function UnifilarFV({ projeto }) {
     try {
       setCarregando(true)
       setErro(null)
-
-      // Gerador SVG local — não depende de backend (rota antiga
-      // /api/projetos-fv/:id/unifilar/gerar não existe). O backend possui
-      // /api/unifilar/fv/gerar mas com shape de payload diferente; pode ser
-      // exposto futuramente. Por ora, geramos no client.
+      // S8.1.1: gera a partir dos dados ATUAIS do projeto (origem declarada)
       const svg = gerarUnifilarSVG(projeto)
       if (!svg) throw new Error('Não foi possível gerar o unifilar com os dados disponíveis')
       setUnifilar(svg)
+      setOrigem('dados_atuais')
     } catch (err) {
       setErro(err.message || 'Erro ao gerar unifilar')
     } finally {
@@ -92,15 +92,18 @@ export default function UnifilarFV({ projeto }) {
         </Card>
       )}
 
-      <div className="flex gap-2">
+      <div className="flex items-center gap-3 flex-wrap">
         <Button
           onClick={handleGerarUnifilar}
           disabled={carregando}
           className="flex items-center gap-2"
         >
           <RefreshCw size={18} className={carregando ? 'animate-spin' : ''} />
-          {carregando ? 'Gerando...' : 'Gerar Unifilar Automático'}
+          {carregando ? 'Gerando...' : (origem === 'snapshot' ? 'Regerar a partir dos dados atuais' : 'Gerar Unifilar Automático')}
         </Button>
+        {/* S8.1.1: origem explícita (sem fallback silencioso) */}
+        {origem === 'snapshot' && <span className="text-xs text-emerald-700">A partir do snapshot congelado ✓</span>}
+        {origem === 'dados_atuais' && <span className="text-xs text-amber-700">Gerado dos dados atuais (não é o snapshot congelado)</span>}
       </div>
 
       {erro && (

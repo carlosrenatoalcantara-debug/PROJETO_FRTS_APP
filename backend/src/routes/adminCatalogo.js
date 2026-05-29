@@ -659,6 +659,29 @@ router.post('/equipamento/:id/documento', uploadDS.single('arquivo'), async (req
   }
 })
 
+// GET /health-check — diagnóstico técnico do catálogo (S8.1.1)
+router.get('/health-check', async (req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) return res.status(503).json({ sucesso: false, erro: 'DB_OFFLINE' })
+    const eqs = await Equipamento.find({ ativo: { $ne: false } })
+      .select('tipo utilizavel_em_projeto bloqueio_engenharia certificacao').lean()
+    const total = eqs.length
+    const liberados = eqs.filter(e => e.utilizavel_em_projeto !== false).length
+    const bloqueados = total - liberados
+    // Motivos agregados
+    const motivos = {}
+    for (const e of eqs) {
+      for (const m of (e.bloqueio_engenharia || [])) motivos[m] = (motivos[m] || 0) + 1
+      if (e.tipo === 'inversor' && !e.certificacao?.inmetro?.numero &&
+          !(Array.isArray(e.certificacao?.normas_iec) && e.certificacao.normas_iec.length))
+        motivos['Sem INMETRO/IEC'] = (motivos['Sem INMETRO/IEC'] || 0) + 1
+    }
+    res.json({ sucesso: true, total, liberados_engenharia: liberados, bloqueados, motivos })
+  } catch (err) {
+    res.status(500).json({ sucesso: false, erro: err.message })
+  }
+})
+
 // GET /equipamento/:id/homologacao — documentos exigidos p/ homologação (preparação)
 router.get('/equipamento/:id/homologacao', async (req, res) => {
   try {
