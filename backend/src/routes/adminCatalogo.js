@@ -22,6 +22,7 @@ import { migrarStorage, PROVIDERS_DISPONIVEIS } from '../services/storageProvide
 import { analisarDocumentoTecnico } from '../services/geminiDocumentAnalyzer.js'
 import { DocumentoTecnico } from '../models/DocumentoTecnico.js'
 import { AuditLog } from '../models/AuditLog.js'
+import { montarFichaTecnica, diagnosticarFicha, STATUS_APROVACAO } from '../utils/catalogo/fichaTecnicaMap.js'
 
 // S8.2: status documental do equipamento (COMPLETO/PENDENTE/INCOMPLETO)
 export function statusDocumental(eq) {
@@ -829,6 +830,108 @@ router.get('/equipamento/:id/homologacao', async (req, res) => {
     if (!eq) return res.status(404).json({ sucesso: false, erro: 'Equipamento não encontrado' })
     res.json({ sucesso: true, homologacao: obterDocumentosHomologacao(eq) })
   } catch (err) {
+    res.status(500).json({ sucesso: false, erro: err.message })
+  }
+})
+
+// ─── S8.6: Ficha técnica completa ────────────────────────────────────────
+router.get('/equipamento/:id/ficha', async (req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) return res.status(503).json({ sucesso: false, erro: 'DB_OFFLINE' })
+    const eq = await Equipamento.findById(req.params.id).lean()
+    if (!eq) return res.status(404).json({ sucesso: false, erro: 'Equipamento não encontrado' })
+    const ficha = montarFichaTecnica(eq)
+    const diag = diagnosticarFicha(eq)
+    res.json({
+      sucesso: true,
+      equipamento: { _id: eq._id, fabricante: eq.fabricante, modelo: eq.modelo, tipo: eq.tipo },
+      ficha, diagnostico: diag,
+      aprovacao_tecnica: eq.aprovacao_tecnica || { status: 'aprovado' },
+    })
+  } catch (err) {
+    console.error('[adminCatalogo] ficha:', err)
+    res.status(500).json({ sucesso: false, erro: err.message })
+  }
+})
+
+// ─── S8.6: Aprovação técnica (workflow) ──────────────────────────────────
+router.patch('/equipamento/:id/aprovacao', async (req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) return res.status(503).json({ sucesso: false, erro: 'DB_OFFLINE' })
+    const { status, motivo = null } = req.body || {}
+    if (!STATUS_APROVACAO.includes(String(status))) {
+      return res.status(400).json({ sucesso: false, erro: `status inválido (use: ${STATUS_APROVACAO.join(', ')})` })
+    }
+    const eq = await Equipamento.findById(req.params.id)
+    if (!eq) return res.status(404).json({ sucesso: false, erro: 'Equipamento não encontrado' })
+    const anterior = eq.aprovacao_tecnica?.status || 'aprovado'
+    const usuario = req.auth?.id || req.auth?.email || req.body?.usuario || 'anonymous'
+
+    if (!eq.aprovacao_tecnica) eq.aprovacao_tecnica = { status, historico: [] }
+    eq.aprovacao_tecnica.status = status
+    eq.aprovacao_tecnica.motivo = motivo
+    eq.aprovacao_tecnica.aprovado_em = status === 'aprovado' ? new Date() : null
+    eq.aprovacao_tecnica.aprovado_por = status === 'aprovado' ? usuario : null
+    eq.aprovacao_tecnica.historico = [...(eq.aprovacao_tecnica.historico || []), { de: anterior, para: status, por: usuario, motivo }]
+    // Reflete no flag de engenharia: bloqueado → não selecionável
+    if (status === 'bloqueado') eq.utilizavel_em_projeto = false
+    if (status === 'aprovado')   eq.utilizavel_em_projeto = true
+    await eq.save()
+
+    try {
+      await AuditLog.create({
+        timestamp: new Date(), usuario, perfil: req.auth?.perfil || null, empresa: req.auth?.empresa_id || null,
+        modulo: 'catalogo', acao: 'CATALOGO_APROVACAO_ALTERADA', metodo: 'EVENT',
+        path: `equip:${eq._id} ${anterior}→${status}${motivo ? ' (' + motivo + ')' : ''}`, status: 200,
+        ip: (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.ip || null,
+      })
+    } catch { /* silencioso */ }
+
+    res.json({ sucesso: true, aprovacao_tecnica: eq.aprovacao_tecnica })
+  } catch (err) {
+    console.error('[adminCatalogo] aprovacao:', err)
+    res.status(500).json({ sucesso: false, erro: err.message })
+  }
+})
+
+// ─── S8.6: Diagnóstico (Saúde do Catálogo) ───────────────────────────────
+router.get('/diagnostico', async (_req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) return res.status(503).json({ sucesso: false, erro: 'DB_OFFLINE' })
+    const eqs = await Equipamento.find({}).lean()
+    let aprovados = 0, pendentes = 0, bloqueados = 0, rascunhos = 0
+    let semDatasheet = 0, semCertificacao = 0, semGarantia = 0
+    let somaCompletude = 0
+    const porTipo = {}
+    for (const eq of eqs) {
+      const st = eq?.aprovacao_tecnica?.status || 'aprovado'
+      if (st === 'aprovado')  aprovados++
+      if (st === 'pendente')  pendentes++
+      if (st === 'bloqueado') bloqueados++
+      if (st === 'rascunho')  rascunhos++
+      const d = diagnosticarFicha(eq)
+      if (d.sem_datasheet)    semDatasheet++
+      if (d.sem_certificacao) semCertificacao++
+      if (d.sem_garantia)     semGarantia++
+      somaCompletude += d.completude_pct
+      const t = eq.tipo || 'outro'
+      porTipo[t] = (porTipo[t] || 0) + 1
+    }
+    const total = eqs.length
+    res.json({
+      sucesso: true,
+      diagnostico: {
+        total_equipamentos: total,
+        aprovados, pendentes, bloqueados, rascunhos,
+        sem_datasheet: semDatasheet,
+        sem_certificacao: semCertificacao,
+        sem_garantia: semGarantia,
+        completude_media_pct: total > 0 ? Math.round(somaCompletude / total) : 0,
+        por_tipo: porTipo,
+      },
+    })
+  } catch (err) {
+    console.error('[adminCatalogo] diagnostico:', err)
     res.status(500).json({ sucesso: false, erro: err.message })
   }
 })

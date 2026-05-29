@@ -13,6 +13,7 @@ import {
 } from '../utils/catalogQualityEngine'
 import { avaliarUtilizavel } from '../utils/utilizavelProjeto'
 import FichaTecnicaModal from '../components/fv/FichaTecnicaModal'
+import { montarFichaTecnica } from '../../../backend/src/utils/catalogo/fichaTecnicaMap.js'
 
 const API_URL = '' /* URL relativa forçada — Vercel proxy → Railway */
 
@@ -164,18 +165,66 @@ function EquipamentoCard({ eq, onDeletar, onReprocessar, selecionado, onToggleSe
           </>
         )}
 
-        {alertas.length > 0 && (
-          <button
-            onClick={() => setExpandido(v => !v)}
-            className="w-full text-left text-xs text-slate-500 hover:text-slate-700 flex items-center gap-1 mt-1"
-          >
-            {expandido ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-            {expandido ? 'Ocultar alertas' : `Ver ${alertas.length} alerta${alertas.length > 1 ? 's' : ''}`}
-          </button>
-        )}
-        {expandido && <AlertasLista alertas={alertas} />}
+        {/* S8.6: expansão da ficha técnica COMPLETA (causa raiz do bug "card vazio") */}
+        <button
+          onClick={() => setExpandido(v => !v)}
+          className="w-full text-left text-xs text-slate-500 hover:text-slate-700 flex items-center gap-1 mt-1"
+        >
+          {expandido ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+          {expandido ? 'Ocultar ficha técnica' : 'Ver ficha técnica completa'}
+        </button>
+        {expandido && <FichaTecnicaExpandida eq={eq} alertas={alertas} />}
       </CardBody>
     </Card>
+  )
+}
+
+/** S8.6 — Ficha técnica completa agrupada (Identificação / Entrada CC / Saída CA / Eficiência / Garantia / Certificações). */
+function FichaTecnicaExpandida({ eq, alertas }) {
+  const ficha = montarFichaTecnica(eq)
+  const ap = eq.aprovacao_tecnica?.status || 'aprovado'
+  const corStatus = { rascunho: 'bg-slate-100 text-slate-600', pendente: 'bg-amber-100 text-amber-800', aprovado: 'bg-emerald-100 text-emerald-800', bloqueado: 'bg-red-100 text-red-800' }
+  return (
+    <div className="mt-2 space-y-3 border-t border-slate-100 pt-2">
+      <div className="flex items-center justify-between">
+        <span className={`text-[10px] font-medium px-2 py-0.5 rounded ${corStatus[ap]}`}>Status técnico: {ap.toUpperCase()}</span>
+        {eq.datasheet_original?.hash && (
+          <span className="text-[10px] text-violet-700">📄 Datasheet original salvo</span>
+        )}
+      </div>
+      {ficha.grupos.map((g) => (
+        <div key={g.titulo}>
+          <p className="text-[11px] font-semibold text-slate-600 uppercase tracking-wide mb-1">{g.titulo}</p>
+          <div className="grid grid-cols-1 gap-0.5">
+            {(g.campos || []).length === 0 && <p className="text-[11px] text-slate-400">— sem dados —</p>}
+            {(g.campos || []).map((c) => (
+              <div key={c.chave || c.tipo || c.rotulo} className="flex items-center justify-between text-[11px] py-0.5 border-b border-slate-50 last:border-0">
+                <span className="text-slate-500 flex items-center gap-1">
+                  {c.ausente
+                    ? <AlertTriangle size={10} className="text-amber-500" />
+                    : <CheckCircle size={10} className="text-emerald-500" />}
+                  {c.rotulo}
+                </span>
+                <span className="font-medium text-slate-700 text-right">
+                  {c.ausente
+                    ? <span className="text-amber-600">⚠ ausente</span>
+                    : <>{String(c.valor)}{c.unidade ? ` ${c.unidade}` : ''}</>}
+                  {c.fonte && !c.ausente && (
+                    <span className="text-[9px] text-slate-400 ml-1">· {c.fonte}{c.confianca != null ? ` ${(c.confianca * 100).toFixed(0)}%` : ''}</span>
+                  )}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+      {alertas?.length > 0 && (
+        <div>
+          <p className="text-[11px] font-semibold text-slate-600 uppercase tracking-wide mb-1">Alertas ({alertas.length})</p>
+          <AlertasLista alertas={alertas} />
+        </div>
+      )}
+    </div>
   )
 }
 

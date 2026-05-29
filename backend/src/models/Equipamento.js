@@ -136,6 +136,20 @@ const EquipamentoSchema = new mongoose.Schema(
     utilizavel_em_projeto: { type: Boolean, default: true },
     bloqueio_engenharia:   { type: [String], default: [] },
 
+    // === S8.6: Aprovação técnica (workflow) ==============================
+    // RASCUNHO → PENDENTE → APROVADO / BLOQUEADO. Default 'aprovado' p/ compat com
+    // equipamentos legados — engenharia continua usando `utilizavel_em_projeto`.
+    aprovacao_tecnica: {
+      status:      { type: String, enum: ['rascunho', 'pendente', 'aprovado', 'bloqueado'], default: 'aprovado' },
+      aprovado_em: { type: Date, default: null },
+      aprovado_por:{ type: String, default: null },
+      motivo:      { type: String, default: null },
+      historico:   { type: [{
+        em: { type: Date, default: Date.now },
+        de: String, para: String, por: String, motivo: String,
+      }], default: [] },
+    },
+
     // === S8.0.2: biblioteca documental + certificação ====================
     // documentos_tecnicos: datasheet/manual/INMETRO/IEC/declaração/garantia
     documentos_tecnicos: { type: [{
