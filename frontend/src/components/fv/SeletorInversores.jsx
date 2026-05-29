@@ -5,9 +5,11 @@
  * Exibe: MPPTs, Vmáx, Imáx CA, oversizing, entradas por MPPT
  * Puxa dados elétricos do catalogoEletrico para exibição e propagação
  */
-import { useState } from 'react'
-import { AlertCircle } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { AlertCircle, Lock, Database, AlertTriangle } from 'lucide-react'
 import { DADOS_ELETRICOS_INVERSORES } from '../../data/catalogoEletrico'
+import { buscarEquipamentosEngenharia, registrarFallback } from '../../services/catalogoEngenhariaApi'
+import { agruparInversores } from '../../utils/catalogoEngenhariaAdapter'
 
 // ─── Catálogo de inversores ───────────────────────────────────────────────────
 // Estrutura: tipo → marca → fase → [modelos]
@@ -184,12 +186,34 @@ export default function SeletorInversores({ onSelecionar, selecionado }) {
   const [marca, setMarca] = useState(selecionado?.marca ?? '')
   const [rede,  setRede]  = useState('')
 
-  const marcas  = tipo  ? Object.keys(INVERSORES_DATA[tipo] ?? {}) : []
-  const redes   = marca ? Object.keys(INVERSORES_DATA[tipo]?.[marca] ?? {}) : []
-  const modelos = (marca && rede) ? (INVERSORES_DATA[tipo]?.[marca]?.[rede] ?? []) : []
+  // S8.1: catálogo Mongo como fonte; INVERSORES_DATA vira contingência
+  const [dataset, setDataset] = useState(INVERSORES_DATA)
+  const [fonte, setFonte] = useState('local')
+  const [incluirBloqueados, setIncluirBloqueados] = useState(false)
+
+  useEffect(() => {
+    let vivo = true
+    buscarEquipamentosEngenharia('inversor', incluirBloqueados)
+      .then((eqs) => {
+        if (!vivo) return
+        if (Array.isArray(eqs) && eqs.length > 0) { setDataset(agruparInversores(eqs)); setFonte('catalogo') }
+        else { setDataset(INVERSORES_DATA); setFonte('local') }
+      })
+      .catch((e) => { if (!vivo) return; setDataset(INVERSORES_DATA); setFonte('local'); registrarFallback('inversor', e.message) })
+    return () => { vivo = false }
+  }, [incluirBloqueados])
+
+  const marcas  = tipo  ? Object.keys(dataset[tipo] ?? {}) : []
+  const redes   = marca ? Object.keys(dataset[tipo]?.[marca] ?? {}) : []
+  const modelos = (marca && rede) ? (dataset[tipo]?.[marca]?.[rede] ?? []) : []
 
   function handleSelect(inv) {
-    const eletrico = DADOS_ELETRICOS_INVERSORES[inv.id] ?? null
+    if (inv.utilizavel_em_projeto === false) {
+      alert(`Inversor não liberado para engenharia.\nFalta: ${(inv.bloqueio_engenharia || []).join(', ') || 'dados técnicos'}.`)
+      return
+    }
+    // S8.1: dados elétricos inline (catálogo) têm prioridade sobre a base local
+    const eletrico = inv._eletrico ?? DADOS_ELETRICOS_INVERSORES[inv.id] ?? null
     onSelecionar({
       id:            inv.id,
       tipo,
@@ -207,17 +231,31 @@ export default function SeletorInversores({ onSelecionar, selecionado }) {
       correnteMaxA:  eletrico?.corrente_max_mppt  ?? null,
       oversizingMax: eletrico?.oversizing_max     ?? 1.30,
       entradasPorMppt: eletrico?.entradas_por_mppt ?? 1,
+      // S8.1: proveniência (snapshot/unifilar/homologação futura)
+      _fonte:            inv._fonte || 'local',
+      _catalogo_original: inv._catalogo_original || null,
     })
   }
 
   return (
     <div className="space-y-4 pt-2">
 
+      {/* S8.1: fonte + contingência + bloqueados */}
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        {fonte === 'catalogo'
+          ? <span className="text-xs text-emerald-700 flex items-center gap-1"><Database size={13} /> Fonte: Catálogo Forte Solar ✓</span>
+          : <span className="text-xs text-amber-700 flex items-center gap-1"><AlertTriangle size={13} /> Modo contingência — usando base local.</span>}
+        <label className="text-xs text-slate-500 flex items-center gap-1.5 cursor-pointer">
+          <input type="checkbox" checked={incluirBloqueados} onChange={e => setIncluirBloqueados(e.target.checked)} className="accent-blue-500" disabled={fonte !== 'catalogo'} />
+          Mostrar equipamentos incompletos
+        </label>
+      </div>
+
       {/* Passo 1: Tipo */}
       <div>
         <h4 className="font-semibold text-slate-700 text-sm mb-2">Tipo de Inversor</h4>
         <div className="flex flex-wrap gap-2">
-          {Object.keys(INVERSORES_DATA).map(t => {
+          {Object.keys(dataset).map(t => {
             const sel = tipo === t
             const cor = sel ? TIPO_CORES[t] : 'border-slate-200 text-slate-700 hover:border-slate-300 hover:bg-slate-50'
             return (
@@ -273,7 +311,7 @@ export default function SeletorInversores({ onSelecionar, selecionado }) {
           <h4 className="font-semibold text-slate-700 text-sm mb-2">Fase da Rede</h4>
           <div className="flex flex-wrap gap-3">
             {redes.map(r => {
-              const temModelos = (INVERSORES_DATA[tipo]?.[marca]?.[r]?.length ?? 0) > 0
+              const temModelos = (dataset[tipo]?.[marca]?.[r]?.length ?? 0) > 0
               return (
                 <label key={r} className={`flex items-center gap-2 cursor-pointer ${!temModelos ? 'opacity-40' : ''}`}>
                   <input
@@ -299,16 +337,24 @@ export default function SeletorInversores({ onSelecionar, selecionado }) {
           <h4 className="font-semibold text-slate-700 text-sm mb-2">Modelo</h4>
           <div className="grid grid-cols-1 gap-2">
             {modelos.map(inv => {
-              const eletrico = DADOS_ELETRICOS_INVERSORES[inv.id] ?? null
+              const eletrico = inv._eletrico ?? DADOS_ELETRICOS_INVERSORES[inv.id] ?? null
               const sel = selecionado?.id === inv.id
+              const bloqueado = inv.utilizavel_em_projeto === false
               return (
                 <div
                   key={inv.id}
                   onClick={() => handleSelect(inv)}
-                  className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
-                    sel ? 'border-blue-500 bg-blue-50 shadow-sm' : 'border-slate-200 hover:border-blue-300 hover:bg-blue-50/40'
+                  className={`p-4 rounded-xl border-2 transition-all ${
+                    bloqueado ? 'border-slate-200 bg-slate-50 opacity-70 cursor-not-allowed'
+                      : sel ? 'border-blue-500 bg-blue-50 shadow-sm cursor-pointer'
+                      : 'border-slate-200 hover:border-blue-300 hover:bg-blue-50/40 cursor-pointer'
                   }`}
                 >
+                  {bloqueado && (
+                    <div className="flex items-center gap-1 text-xs text-red-600 mb-1">
+                      <Lock size={12} /> Não liberado — Falta: {(inv.bloqueio_engenharia || []).join(', ') || 'dados técnicos'}
+                    </div>
+                  )}
                   <div className="flex justify-between items-start gap-2">
                     <div className="flex-1">
                       {/* Linha 1: Modelo + potência */}

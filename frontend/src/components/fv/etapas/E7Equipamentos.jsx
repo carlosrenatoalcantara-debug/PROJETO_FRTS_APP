@@ -21,6 +21,7 @@ import SeletorInversores from '../SeletorInversores'
 import SeletorEstrutura from '../SeletorEstrutura'
 import ConfiguradorArranjoFV from '../ConfiguradorArranjoFV'
 import { consolidarPanos, dimensoesModulo } from '../../../utils/geoEngine'
+import { snapshotEquipamentoSelecao } from '../../../utils/catalogoEngenhariaAdapter'
 
 const TIPO_BADGE_COR = {
   string:     'azul',
@@ -59,12 +60,15 @@ export default function E7Equipamentos() {
   const [estruturaExp, setEstruturaExp] = useState(true)
 
   function selecionarPainel(painel) {
-    dispatch({ type: 'SET_EQUIPAMENTO', payload: { tipo: 'painel', item: painel } })
+    // S8.1: snapshot do equipamento no momento da seleção (versão congelada)
+    const item = { ...painel, snapshot_equipamento: snapshotEquipamentoSelecao(painel) }
+    dispatch({ type: 'SET_EQUIPAMENTO', payload: { tipo: 'painel', item } })
     setPainelExp(false)
     setErro('')
   }
   function selecionarInversor(inversor) {
-    dispatch({ type: 'SET_EQUIPAMENTO', payload: { tipo: 'inversor', item: inversor } })
+    const item = { ...inversor, snapshot_equipamento: snapshotEquipamentoSelecao(inversor) }
+    dispatch({ type: 'SET_EQUIPAMENTO', payload: { tipo: 'inversor', item } })
     setInversorExp(false)
     setErro('')
   }

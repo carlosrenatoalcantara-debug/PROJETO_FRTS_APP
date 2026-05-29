@@ -5,8 +5,10 @@
  * Novos campos: tecnologia (N/P-type), bifacial, eficiência, Voc, Vmpp, Isc
  * Filtros: busca textual, tecnologia, faixa de potência
  */
-import { useState, useMemo } from 'react'
-import { Search, X } from 'lucide-react'
+import { useState, useMemo, useEffect } from 'react'
+import { Search, X, Lock, Database, AlertTriangle } from 'lucide-react'
+import { buscarEquipamentosEngenharia, registrarFallback } from '../../services/catalogoEngenhariaApi'
+import { agruparPaineis } from '../../utils/catalogoEngenhariaAdapter'
 
 // ─── Catálogo completo de módulos ─────────────────────────────────────────────
 // Campos: id, modelo, potenciaW, tecnologia, bifacial, eficiencia(%),
@@ -128,11 +130,6 @@ const PAINEIS_DATA = {
   ],
 }
 
-// Todos os modelos em lista flat para filtros
-const TODOS_MODELOS = Object.entries(PAINEIS_DATA).flatMap(([marca, modelos]) =>
-  modelos.map(m => ({ ...m, marca }))
-)
-
 const FAIXAS_POTENCIA = [
   { label: 'Todas',    min: 0,   max: 9999 },
   { label: '< 500 W', min: 0,   max: 499  },
@@ -169,21 +166,47 @@ export default function SeletorPaineis({ onSelecionar, selecionado }) {
   const [faixaIdx, setFaixaIdx] = useState(0)   // índice em FAIXAS_POTENCIA
   const [filtroTec, setFiltroTec] = useState('') // '' | 'N-type' | 'P-type'
 
-  const marcas = Object.keys(PAINEIS_DATA)
+  // S8.1: catálogo Mongo como fonte; PAINEIS_DATA vira contingência
+  const [dataset, setDataset] = useState(PAINEIS_DATA)
+  const [fonte, setFonte] = useState('local')   // 'catalogo' | 'local'
+  const [incluirBloqueados, setIncluirBloqueados] = useState(false)
+
+  useEffect(() => {
+    let vivo = true
+    buscarEquipamentosEngenharia('modulo', incluirBloqueados)
+      .then((eqs) => {
+        if (!vivo) return
+        if (Array.isArray(eqs) && eqs.length > 0) { setDataset(agruparPaineis(eqs)); setFonte('catalogo') }
+        else { setDataset(PAINEIS_DATA); setFonte('local') }  // catálogo vazio → contingência
+      })
+      .catch((e) => {
+        if (!vivo) return
+        setDataset(PAINEIS_DATA); setFonte('local')
+        registrarFallback('modulo', e.message)
+      })
+    return () => { vivo = false }
+  }, [incluirBloqueados])
+
+  const todosModelos = useMemo(() => Object.entries(dataset).flatMap(([mk, ms]) => ms.map(m => ({ ...m, marca: m.marca ?? mk }))), [dataset])
+  const marcas = Object.keys(dataset)
   const faixa  = FAIXAS_POTENCIA[faixaIdx]
 
   // Modelos filtrados (aplica marca, busca, potência, tecnologia)
   const modelos = useMemo(() => {
-    const base = marca ? PAINEIS_DATA[marca] : TODOS_MODELOS
+    const base = marca ? (dataset[marca] || []) : todosModelos
     return base.filter(p => {
       const okBusca = !busca || p.modelo.toLowerCase().includes(busca.toLowerCase())
       const okPot   = p.potenciaW >= faixa.min && p.potenciaW <= faixa.max
       const okTec   = !filtroTec || p.tecnologia === filtroTec
       return okBusca && okPot && okTec
     })
-  }, [marca, busca, faixaIdx, filtroTec])
+  }, [marca, busca, faixaIdx, filtroTec, dataset, todosModelos])
 
   function handleSelect(painel) {
+    if (painel.utilizavel_em_projeto === false) {
+      alert(`Módulo não liberado para engenharia.\nFalta: ${(painel.bloqueio_engenharia || []).join(', ') || 'dados técnicos'}.\nComplete a ficha técnica no Catálogo.`)
+      return
+    }
     const m = painel.marca ?? marca
     onSelecionar({
       ...painel,
@@ -195,6 +218,19 @@ export default function SeletorPaineis({ onSelecionar, selecionado }) {
 
   return (
     <div className="space-y-4 pt-2">
+
+      {/* S8.1: indicador de fonte + contingência + bloqueados */}
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        {fonte === 'catalogo' ? (
+          <span className="text-xs text-emerald-700 flex items-center gap-1"><Database size={13} /> Fonte: Catálogo Forte Solar ✓</span>
+        ) : (
+          <span className="text-xs text-amber-700 flex items-center gap-1"><AlertTriangle size={13} /> Modo contingência — catálogo online indisponível, usando base local.</span>
+        )}
+        <label className="text-xs text-slate-500 flex items-center gap-1.5 cursor-pointer">
+          <input type="checkbox" checked={incluirBloqueados} onChange={e => setIncluirBloqueados(e.target.checked)} className="accent-amber-500" disabled={fonte !== 'catalogo'} />
+          Mostrar equipamentos incompletos
+        </label>
+      </div>
 
       {/* ── Filtro: Marca ───────────────────────────────────────────────────── */}
       <div>
@@ -290,16 +326,24 @@ export default function SeletorPaineis({ onSelecionar, selecionado }) {
       <div className="grid grid-cols-1 gap-3 max-h-[540px] overflow-y-auto pr-1">
         {modelos.map(painel => {
           const sel = selecionado?.id === painel.id
+          const bloqueado = painel.utilizavel_em_projeto === false
           return (
             <div
               key={painel.id}
               onClick={() => handleSelect(painel)}
-              className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
-                sel
-                  ? 'border-amber-500 bg-amber-50 shadow-sm'
-                  : 'border-slate-200 hover:border-amber-300 hover:bg-amber-50/40'
+              className={`p-4 rounded-xl border-2 transition-all ${
+                bloqueado
+                  ? 'border-slate-200 bg-slate-50 opacity-70 cursor-not-allowed'
+                  : sel
+                    ? 'border-amber-500 bg-amber-50 shadow-sm cursor-pointer'
+                    : 'border-slate-200 hover:border-amber-300 hover:bg-amber-50/40 cursor-pointer'
               }`}
             >
+              {bloqueado && (
+                <div className="flex items-center gap-1 text-xs text-red-600 mb-1">
+                  <Lock size={12} /> Não liberado — Falta: {(painel.bloqueio_engenharia || []).join(', ') || 'dados técnicos'}
+                </div>
+              )}
               {/* Linha 1: Modelo + potência + badges */}
               <div className="flex items-start justify-between gap-2">
                 <div className="flex-1 min-w-0">
