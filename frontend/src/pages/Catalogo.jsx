@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Plus, Trash2, RefreshCw, AlertTriangle, CheckCircle, ChevronDown, ChevronUp, Search, BarChart2, Copy, Zap } from 'lucide-react'
+import { Plus, Trash2, RefreshCw, AlertTriangle, CheckCircle, ChevronDown, ChevronUp, Search, BarChart2, Copy, Zap, Edit2 } from 'lucide-react'
 import Card, { CardHeader, CardBody } from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import Input from '../components/ui/Input'
@@ -67,7 +67,7 @@ function AlertasLista({ alertas }) {
 }
 
 // Card de equipamento com badge de qualidade e score
-function EquipamentoCard({ eq, onDeletar, onReprocessar }) {
+function EquipamentoCard({ eq, onDeletar, onReprocessar, selecionado, onToggleSel, onEditar }) {
   const [expandido, setExpandido] = useState(false)
 
   // Qualidade: prefere dados calculados pelo backend, fallback ao engine local
@@ -83,14 +83,25 @@ function EquipamentoCard({ eq, onDeletar, onReprocessar }) {
   return (
     <Card className="flex flex-col">
       <CardHeader className="flex items-start justify-between gap-2">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <p className="font-bold text-slate-900 truncate">{eq.fabricante || '—'}</p>
-            <QualidadeBadge nivel={nivel} pequeno />
+        <div className="flex items-start gap-2 flex-1 min-w-0">
+          {onToggleSel && (
+            <input type="checkbox" checked={!!selecionado} onChange={onToggleSel} className="mt-1 accent-orange-500" title="Selecionar" />
+          )}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <p className="font-bold text-slate-900 truncate">{eq.fabricante || '—'}</p>
+              <QualidadeBadge nivel={nivel} pequeno />
+            </div>
+            <p className="text-xs text-slate-500 truncate mt-0.5">{eq.modelo}</p>
           </div>
-          <p className="text-xs text-slate-500 truncate mt-0.5">{eq.modelo}</p>
         </div>
         <div className="flex items-center gap-1 shrink-0">
+          {onEditar && (
+            <button onClick={onEditar} title="Editar ficha técnica"
+              className="text-slate-400 hover:text-emerald-600 p-1 rounded">
+              <Edit2 size={13} />
+            </button>
+          )}
           {onReprocessar && (
             <button onClick={() => onReprocessar(eq._id)} title="Reprocessar qualidade"
               className="text-slate-400 hover:text-blue-600 p-1 rounded">
@@ -236,6 +247,27 @@ function AbaQualidade({ modulos, inversores }) {
     }
   }
 
+  // S8.0: limpeza segura por status (inválidos/suspeitos), com proteção a aprovados
+  async function limparPorStatus(status) {
+    const incluiAprovados = status.some(s => ['validado', 'utilizavel'].includes(s))
+    if (!confirm(`Excluir equipamentos com status: ${status.join(', ')}?`)) return
+    if (incluiAprovados && !confirm('⚠️ Você está incluindo APROVADOS. Confirma a exclusão definitiva?')) return
+    setReprocessando(true)
+    try {
+      const res = await fetch(`${API_URL}/api/admin/catalogo/por-status`, {
+        method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status, confirmarAprovados: incluiAprovados }),
+      })
+      const data = await res.json()
+      setMsgReprocessamento(data.sucesso ? `🗑️ ${data.excluidos} excluído(s).` : `❌ ${data.erro}`)
+      await carregarRelatorio()
+    } catch (err) {
+      setMsgReprocessamento(`❌ ${err.message}`)
+    } finally {
+      setReprocessando(false)
+    }
+  }
+
   if (carregandoRel) return <div className="p-8 text-center text-slate-500">Carregando relatório de qualidade...</div>
   if (erroRel) return (
     <div className="p-4">
@@ -276,6 +308,10 @@ function AbaQualidade({ modulos, inversores }) {
           >
             Reprocessar Todos
           </Button>
+          <button onClick={() => limparPorStatus(['invalido', 'suspeito'])} disabled={reprocessando}
+            className="flex items-center gap-1.5 px-3 py-2 text-sm bg-red-50 hover:bg-red-100 text-red-700 rounded-lg font-medium">
+            <Trash2 size={14} /> Limpar inválidos/suspeitos
+          </button>
         </div>
       </div>
 
@@ -754,6 +790,9 @@ function AbaEquipamentos({ tipo, equipamentos, carregarDados }) {
   const [busca, setBusca]             = useState('')
   const [filtroNivel, setFiltroNivel] = useState('')
   const [reprocessandoId, setReprocessandoId] = useState(null)
+  // S8.0: seleção múltipla + ações em lote
+  const [selecionados, setSelecionados] = useState({})
+  const [emLote, setEmLote] = useState(false)
 
   const isMod = tipo === 'modulo'
 
@@ -807,6 +846,61 @@ function AbaEquipamentos({ tipo, equipamentos, carregarDados }) {
     return acc
   }, {})
 
+  // S8.0: seleção e ações em lote
+  const idsSelecionados = Object.keys(selecionados).filter(id => selecionados[id])
+  function toggleSel(id) { setSelecionados(s => ({ ...s, [id]: !s[id] })) }
+  function selecionarTodos() {
+    const todos = {}
+    filtrados.forEach(eq => { todos[eq._id] = true })
+    setSelecionados(todos)
+  }
+  function limparSelecao() { setSelecionados({}) }
+
+  async function acaoLote(acao) {
+    if (idsSelecionados.length === 0) return
+    if (acao === 'excluir' && !confirm(`Excluir ${idsSelecionados.length} equipamento(s)?`)) return
+    setEmLote(true)
+    try {
+      const res = await fetch(`${API_URL}/api/admin/catalogo/lote`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: idsSelecionados, acao }),
+      })
+      const d = await res.json()
+      if (d.sucesso) { limparSelecao(); await carregarDados() }
+      else alert('Erro: ' + (d.erro || res.status))
+    } catch (e) { alert('Erro: ' + e.message) } finally { setEmLote(false) }
+  }
+
+  async function editarManual(eq) {
+    // Edição rápida dos campos elétricos principais via prompt (modal completo: futuro)
+    const esp = eq.especificacoes || {}
+    const campo = (label, atual) => {
+      const v = window.prompt(`${label}:`, atual ?? '')
+      return v === null ? undefined : (v === '' ? null : (isNaN(Number(v)) ? v : Number(v)))
+    }
+    const campos = {}
+    const fab = window.prompt('Fabricante:', eq.fabricante ?? ''); if (fab !== null) campos.fabricante = fab
+    const mod = window.prompt('Modelo:', eq.modelo ?? ''); if (mod !== null) campos.modelo = mod
+    if (isMod) {
+      const p = campo('Potência (Wp)', esp.potencia); if (p !== undefined) campos.potencia = p
+      const voc = campo('Voc (V)', esp.voc); if (voc !== undefined) campos.voc = voc
+      const isc = campo('Isc (A)', esp.isc); if (isc !== undefined) campos.isc = isc
+    } else {
+      const p = campo('Potência CA (kW)', esp.potencia); if (p !== undefined) campos.potencia = p
+      const vm = campo('Voc máx DC (V)', esp.voc_max); if (vm !== undefined) campos.voc_max = vm
+    }
+    if (Object.keys(campos).length === 0) return
+    try {
+      const res = await fetch(`${API_URL}/api/admin/catalogo/equipamento/${eq._id}`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ campos }),
+      })
+      const d = await res.json()
+      if (d.sucesso) await carregarDados()
+      else alert('Erro: ' + (d.erro || res.status))
+    } catch (e) { alert('Erro: ' + e.message) }
+  }
+
   return (
     <div className="space-y-4">
       {/* Cabeçalho */}
@@ -852,6 +946,21 @@ function AbaEquipamentos({ tipo, equipamentos, carregarDados }) {
         </select>
       </div>
 
+      {/* S8.0: barra de seleção/ações em lote */}
+      <div className="flex items-center gap-2 flex-wrap text-sm">
+        <button onClick={selecionarTodos} className="text-slate-600 hover:underline">Selecionar todos ({filtrados.length})</button>
+        {idsSelecionados.length > 0 && (
+          <>
+            <span className="text-slate-400">·</span>
+            <span className="font-medium text-slate-700">{idsSelecionados.length} selecionado(s)</span>
+            <button onClick={() => acaoLote('reprocessar')} disabled={emLote} className="px-2 py-1 bg-slate-100 hover:bg-slate-200 rounded text-xs">Reprocessar</button>
+            <button onClick={() => acaoLote('validar')} disabled={emLote} className="px-2 py-1 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded text-xs">Validar</button>
+            <button onClick={() => acaoLote('excluir')} disabled={emLote} className="px-2 py-1 bg-red-100 hover:bg-red-200 text-red-700 rounded text-xs">Excluir</button>
+            <button onClick={limparSelecao} className="text-slate-400 hover:text-slate-600 text-xs">limpar</button>
+          </>
+        )}
+      </div>
+
       {/* Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filtrados.map(eq => (
@@ -860,6 +969,9 @@ function AbaEquipamentos({ tipo, equipamentos, carregarDados }) {
             eq={eq}
             onDeletar={onDeletar}
             onReprocessar={onReprocessar}
+            selecionado={!!selecionados[eq._id]}
+            onToggleSel={() => toggleSel(eq._id)}
+            onEditar={() => editarManual(eq)}
           />
         ))}
         {filtrados.length === 0 && (

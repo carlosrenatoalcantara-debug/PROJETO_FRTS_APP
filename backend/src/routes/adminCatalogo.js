@@ -9,11 +9,28 @@
  */
 
 import { Router } from 'express'
+import multer from 'multer'
 import mongoose from 'mongoose'
 import { Equipamento } from '../models/Equipamento.js'
 import { processarEquipamento } from '../services/catalogoQualidade.js'
+import { ingerir } from '../services/catalogIntelligenceService.js'
+import { AuditLog } from '../models/AuditLog.js'
 
 const router = Router()
+const uploadDS = multer({ storage: multer.memoryStorage(), limits: { fileSize: 15 * 1024 * 1024 } })
+
+// S8.0: auditoria leve do catálogo (mesma trilha AuditLog)
+async function _auditCatalogo(req, acao, detalhe) {
+  try {
+    if (mongoose.connection.readyState !== 1) return
+    await AuditLog.create({
+      timestamp: new Date(), usuario: req.auth?.id || req.auth?.email || 'anonymous',
+      perfil: req.auth?.perfil || null, empresa: req.auth?.empresa_id || null,
+      modulo: 'catalogo', acao, metodo: 'EVENT', path: detalhe || acao, status: 200,
+      ip: (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.ip || null,
+    })
+  } catch { /* silencioso */ }
+}
 
 // ─── GET /api/admin/catalogo/qualidade-relatorio ─────────────────────────
 //
@@ -405,6 +422,125 @@ router.post('/reprocessar/:id', async (req, res) => {
     res.json({ sucesso: true, qualidade: resultado.qualidade, identificacao: resultado.identificacao })
   } catch (err) {
     console.error('[adminCatalogo] reprocessar/:id:', err)
+    res.status(500).json({ sucesso: false, erro: err.message })
+  }
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// S8.0 — INTELIGÊNCIA DE INGESTÃO + REVISÃO HUMANA + LOTE + LIMPEZA
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// POST /analisar — analisa datasheet (IA) e devolve campos para REVISÃO HUMANA
+// (não salva nada). multipart: campo 'pdf'; query/body: tipo
+router.post('/analisar', uploadDS.single('pdf'), async (req, res) => {
+  try {
+    const tipo = req.body?.tipo || req.query?.tipo || 'auto'
+    if (!req.file) return res.status(400).json({ sucesso: false, erro: 'Envie o datasheet no campo "pdf".' })
+    const resultado = await ingerir({ buffer: req.file.buffer, tipo })
+    await _auditCatalogo(req, 'analise_ia', `${resultado.tipo} · ${Object.keys(resultado.campos).length} campos · conf ${resultado.confianca_global}`)
+    res.json({ sucesso: true, ...resultado, revisao_humana: true })
+  } catch (err) {
+    console.error('[adminCatalogo] analisar:', err)
+    res.status(500).json({ sucesso: false, erro: err.message })
+  }
+})
+
+// PATCH /equipamento/:id — edição manual com antes/depois + fonte=Manual + reprocess
+router.patch('/equipamento/:id', async (req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) return res.status(503).json({ sucesso: false, erro: 'DB_OFFLINE' })
+    const { id } = req.params
+    if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ sucesso: false, erro: 'ID inválido' })
+    const { campos = {}, usuario = null } = req.body || {}
+
+    const eq = await Equipamento.findById(id)
+    if (!eq) return res.status(404).json({ sucesso: false, erro: 'Equipamento não encontrado' })
+
+    const antes = {}
+    const depois = {}
+    // Campos de topo permitidos + especificacoes.*
+    const TOPO = ['fabricante', 'modelo', 'tipo']
+    for (const [k, v] of Object.entries(campos)) {
+      if (TOPO.includes(k)) { antes[k] = eq[k]; eq[k] = v; depois[k] = v }
+      else { // vai para especificacoes
+        eq.especificacoes = eq.especificacoes || {}
+        antes[`especificacoes.${k}`] = eq.especificacoes[k]
+        eq.especificacoes[k] = v
+        depois[`especificacoes.${k}`] = v
+      }
+    }
+    eq.markModified('especificacoes')
+
+    // Marca proveniência manual dos campos alterados
+    eq.fonte_dados = eq.fonte_dados || {}
+    for (const k of Object.keys(campos)) eq.fonte_dados[k] = { fonte: 'Manual', em: new Date(), por: usuario }
+    eq.markModified('fonte_dados')
+
+    // Reprocessa qualidade após edição
+    const resultado = processarEquipamento(eq.toObject(), { tipoEvento: 'edicao_manual' })
+    eq.specs_canonicas = resultado.specs_canonicas
+    eq.identificacao = resultado.identificacao
+    eq.qualidade = resultado.qualidade
+    eq.status_operacional = resultado.status_operacional
+    await eq.save()
+
+    await _auditCatalogo(req, 'edicao_manual', `${eq.fabricante} ${eq.modelo} — ${Object.keys(campos).join(', ')}`)
+    res.json({ sucesso: true, equipamento: eq, alteracoes: { antes, depois }, qualidade: resultado.qualidade })
+  } catch (err) {
+    console.error('[adminCatalogo] edicao manual:', err)
+    res.status(500).json({ sucesso: false, erro: err.message })
+  }
+})
+
+// POST /lote — ações em lote: reprocessar | validar | excluir
+router.post('/lote', async (req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) return res.status(503).json({ sucesso: false, erro: 'DB_OFFLINE' })
+    const { ids = [], acao } = req.body || {}
+    if (!Array.isArray(ids) || ids.length === 0) return res.status(400).json({ sucesso: false, erro: 'ids vazio' })
+    if (!['reprocessar', 'validar', 'excluir'].includes(acao)) return res.status(400).json({ sucesso: false, erro: 'acao inválida' })
+    const validos = ids.filter(i => mongoose.Types.ObjectId.isValid(i))
+
+    let afetados = 0
+    if (acao === 'excluir') {
+      const r = await Equipamento.deleteMany({ _id: { $in: validos } })
+      afetados = r.deletedCount
+    } else {
+      const eqs = await Equipamento.find({ _id: { $in: validos } }).lean()
+      for (const eq of eqs) {
+        const resultado = processarEquipamento(eq, { tipoEvento: acao === 'validar' ? 'validacao_lote' : 'reprocessamento_lote' })
+        const update = { $set: { specs_canonicas: resultado.specs_canonicas, identificacao: resultado.identificacao, qualidade: resultado.qualidade, status_operacional: resultado.status_operacional } }
+        await Equipamento.updateOne({ _id: eq._id }, update)
+        afetados++
+      }
+    }
+    await _auditCatalogo(req, `lote_${acao}`, `${afetados} equipamento(s)`)
+    res.json({ sucesso: true, acao, afetados })
+  } catch (err) {
+    console.error('[adminCatalogo] lote:', err)
+    res.status(500).json({ sucesso: false, erro: err.message })
+  }
+})
+
+// DELETE /por-status — limpeza segura. Body: { status:[...], confirmarAprovados }
+router.delete('/por-status', async (req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) return res.status(503).json({ sucesso: false, erro: 'DB_OFFLINE' })
+    const { status = [], confirmarAprovados = false } = req.body || {}
+    const PERMITIDOS = ['invalido', 'suspeito', 'incompleto', 'validado', 'utilizavel']
+    const alvos = status.filter(s => PERMITIDOS.includes(s))
+    if (alvos.length === 0) return res.status(400).json({ sucesso: false, erro: 'Informe status válidos.' })
+
+    // Proteção: aprovados (validado/utilizavel) só com confirmação dupla
+    const incluiAprovados = alvos.some(s => ['validado', 'utilizavel'].includes(s))
+    if (incluiAprovados && !confirmarAprovados) {
+      return res.status(409).json({ sucesso: false, codigo: 'CONFIRMAR_APROVADOS', erro: 'Exclusão de aprovados requer confirmação dupla (confirmarAprovados=true).' })
+    }
+    const r = await Equipamento.deleteMany({ 'qualidade.nivel': { $in: alvos } })
+    await _auditCatalogo(req, 'limpeza_por_status', `${r.deletedCount} excluídos (${alvos.join(',')})`)
+    res.json({ sucesso: true, excluidos: r.deletedCount, status: alvos })
+  } catch (err) {
+    console.error('[adminCatalogo] por-status:', err)
     res.status(500).json({ sucesso: false, erro: err.message })
   }
 })
