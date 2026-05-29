@@ -6,6 +6,7 @@ import Button from '../components/ui/Button'
 import Input from '../components/ui/Input'
 import { useAuth } from '../context/AuthContext'
 import { useEmpresa, PADRAO_EMPRESA } from '../contexts/EmpresaContext'
+import ConfiguracaoGestao from '../components/config/ConfiguracaoGestao'
 
 const API_INTEGRATIONS = [
   {
@@ -877,6 +878,8 @@ export default function Configuracoes() {
 
       {/* CFG-04: Configurações financeiras */}
       <ConfiguracaoEmpresa />
+
+      <ConfiguracaoGestao />
 
       <ConfiguracaoFinanceira />
 

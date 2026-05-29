@@ -1053,7 +1053,7 @@ export const registrarAssinaturaComercial = async (req, res) => {
     const { id } = req.params
     if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ erro: 'ID inválido' })
 
-    const { papel, nome, hash, hash_documento = null, hash_snapshot = null, algoritmo = 'sha256', usuario = null } = req.body || {}
+    const { papel, nome, hash, hash_documento = null, hash_snapshot = null, algoritmo = 'sha256', usuario = null, usuario_id = null } = req.body || {}
     const PAPEIS = ['cliente', 'vendedor', 'tecnico']
     if (!PAPEIS.includes(papel)) return res.status(400).json({ erro: `papel deve ser: ${PAPEIS.join(', ')}` })
     if (!nome || !hash) return res.status(400).json({ erro: 'nome e hash são obrigatórios' })
@@ -1071,7 +1071,7 @@ export const registrarAssinaturaComercial = async (req, res) => {
 
     // Substitui assinatura existente do mesmo papel (re-assinatura)
     com.assinaturas = com.assinaturas.filter(a => a.papel !== papel)
-    com.assinaturas.push({ assinatura_id, papel, nome, hash, algoritmo, hash_documento, hash_snapshot, ip, user_agent, timestamp: agora })
+    com.assinaturas.push({ assinatura_id, usuario_id, papel, nome, hash, algoritmo, hash_documento, hash_snapshot, ip, user_agent, timestamp: agora })
     com.historico.push({ timestamp: agora, usuario: usuario || nome, acao: 'assinatura', detalhe: `Assinatura ${papel}: ${nome} (${assinatura_id}).` })
 
     // Se as três assinaturas estão presentes, marca ASSINADO

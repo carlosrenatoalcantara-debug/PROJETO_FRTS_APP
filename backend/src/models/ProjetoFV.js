@@ -320,6 +320,7 @@ const historicoTimelineV3Schema = new mongoose.Schema({
  */
 const assinaturaV3Schema = new mongoose.Schema({
   assinatura_id: { type: String, default: null },   // S4.3: id único da assinatura
+  usuario_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null }, // S7.2
   papel:     { type: String, default: null },        // 'cliente' | 'vendedor' | 'tecnico'
   nome:      { type: String, default: null },
   hash:      { type: String, default: null },        // S4.3: SHA-256 (hex)
@@ -480,6 +481,11 @@ const projetoFVSchema = new mongoose.Schema({
     ref: 'Cliente',
     required: true,
   },
+  // ── S7.2: organização multiempresa/equipe (additive, default null = "default") ──
+  empresa_id:            { type: mongoose.Schema.Types.ObjectId, ref: 'Empresa',  default: null },
+  vendedor_id:           { type: mongoose.Schema.Types.ObjectId, ref: 'Vendedor', default: null },
+  tecnico_principal_id:  { type: mongoose.Schema.Types.ObjectId, ref: 'Tecnico',  default: null },
+  tecnico_secundario_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Tecnico',  default: null },
   nome: {
     type: String,
     required: true,

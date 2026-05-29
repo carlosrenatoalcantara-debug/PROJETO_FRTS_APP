@@ -26,9 +26,14 @@ const userSchema = new mongoose.Schema(
     },
     perfil: {
       type: String,
-      enum: ['admin', 'user'],
+      // S7.2: perfis RBAC (legado 'admin'/'user' mantidos p/ compat)
+      enum: ['admin', 'user', 'administrador', 'diretor', 'engenheiro', 'tecnico', 'comercial', 'financeiro', 'visualizador'],
       default: 'user'
     },
+    // S7.2: campos corporativos (additive)
+    telefone: { type: String, default: null },
+    cargo: { type: String, default: null },
+    empresa_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Empresa', default: null },
     ativo: {
       type: Boolean,
       default: true
