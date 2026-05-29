@@ -6,6 +6,7 @@
 export const PERFIS = ['administrador', 'diretor', 'engenheiro', 'tecnico', 'comercial', 'financeiro', 'visualizador']
 export const MODULOS = ['fv', 'ev', 'financeiro', 'crm', 'governanca', 'catalogo', 'configuracoes']
 export const ACOES = ['visualizar', 'editar', 'aprovar', 'administrar']
+export const NIVEIS = ['nenhum', ...ACOES]
 const NIVEL = { nenhum: 0, visualizar: 1, editar: 2, aprovar: 3, administrar: 4 }
 
 export const LABEL_PERFIL = {
@@ -29,7 +30,27 @@ export function normalizarPerfil(p) {
   if (PERFIS.includes(p)) return p
   return PERFIL_LEGADO[p] || 'visualizador'
 }
-export function pode(perfil, modulo, acao) {
-  const concedido = MATRIZ_RBAC[normalizarPerfil(perfil)]?.[modulo] || 'nenhum'
+
+/**
+ * S8.3.2 — mescla a matriz padrão com permissoes_customizadas por empresa.
+ * Fallback: custom vazio → matriz padrão intacta (não quebra usuários existentes).
+ */
+export function mesclarMatriz(custom) {
+  if (!custom || typeof custom !== 'object') return MATRIZ_RBAC
+  const out = {}
+  for (const p of PERFIS) {
+    out[p] = { ...MATRIZ_RBAC[p] }
+    const cp = custom[p]
+    if (cp && typeof cp === 'object') {
+      for (const m of MODULOS) {
+        if (cp[m] != null && NIVEL[cp[m]] != null) out[p][m] = cp[m]
+      }
+    }
+  }
+  return out
+}
+
+export function pode(perfil, modulo, acao, matriz = MATRIZ_RBAC) {
+  const concedido = matriz?.[normalizarPerfil(perfil)]?.[modulo] || 'nenhum'
   return (NIVEL[concedido] || 0) >= (NIVEL[acao] || 99)
 }

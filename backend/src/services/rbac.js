@@ -13,6 +13,7 @@ export const PERFIS = ['administrador', 'diretor', 'engenheiro', 'tecnico', 'com
 export const MODULOS = ['fv', 'ev', 'financeiro', 'crm', 'governanca', 'catalogo', 'configuracoes']
 
 export const ACOES = ['visualizar', 'editar', 'aprovar', 'administrar']
+export const NIVEIS = ['nenhum', ...ACOES]
 const NIVEL = { nenhum: 0, visualizar: 1, editar: 2, aprovar: 3, administrar: 4 }
 
 // Mapa de compatibilidade com o User legado (perfil 'admin'|'user')
@@ -36,11 +37,32 @@ export function normalizarPerfil(perfil) {
 }
 
 /**
- * @returns {boolean} se o perfil pode executar `acao` no `modulo`.
+ * S8.3.2 — RBAC FLEXÍVEL.
+ * Mescla a matriz padrão com `permissoes_customizadas` por empresa.
+ * `custom` = { perfil: { modulo: nivel } } (parcial). Só níveis válidos sobrescrevem.
+ * Fallback total: se `custom` vazio/ausente → devolve a matriz padrão intacta.
  */
-export function pode(perfil, modulo, acao) {
+export function mesclarMatriz(custom) {
+  if (!custom || typeof custom !== 'object') return MATRIZ_RBAC
+  const out = {}
+  for (const p of PERFIS) {
+    out[p] = { ...MATRIZ_RBAC[p] }
+    const cp = custom[p]
+    if (cp && typeof cp === 'object') {
+      for (const m of MODULOS) {
+        if (cp[m] != null && NIVEL[cp[m]] != null) out[p][m] = cp[m]
+      }
+    }
+  }
+  return out
+}
+
+/**
+ * @returns {boolean} se o perfil pode executar `acao` no `modulo` (matriz custom opcional).
+ */
+export function pode(perfil, modulo, acao, matriz = MATRIZ_RBAC) {
   const p = normalizarPerfil(perfil)
-  const concedido = MATRIZ_RBAC[p]?.[modulo] || 'nenhum'
+  const concedido = matriz?.[p]?.[modulo] || 'nenhum'
   return (NIVEL[concedido] || 0) >= (NIVEL[acao] || 99)
 }
 

@@ -38,6 +38,8 @@ export const PADRAO_EMPRESA = {
     artPadrao:   null,
     documentos:  [],            // [{ nome, dados }]
   },
+  // S8.3.2 — dados bancários (múltiplas contas) p/ propostas/contratos/financeiro
+  dadosBancarios: [],           // [{ banco, agencia, conta, tipo_conta, pix, titular, documento }]
   estadoPrincipal:           'SP',
   tensaoPadrao:              '220',
   forcaFallbackIrradiancia:  false,
@@ -107,6 +109,8 @@ function paraGrupos(e) {
       corPrimaria: e.corPrimaria, corSecundaria: e.corSecundaria,
     },
     uploads: { ...(e.uploads || {}) },
+    // S8.3.2 — array de contas (substituído inteiro no backend)
+    dados_bancarios: Array.isArray(e.dadosBancarios) ? e.dadosBancarios : [],
   }
 }
 function deGrupos(doc) {
@@ -134,6 +138,7 @@ function deGrupos(doc) {
   if (br.corPrimaria != null) flat.corPrimaria = br.corPrimaria
   if (br.corSecundaria != null) flat.corSecundaria = br.corSecundaria
   if (Object.keys(up).length) flat.uploads = { ...PADRAO_EMPRESA.uploads, ...up }
+  if (Array.isArray(doc.dados_bancarios)) flat.dadosBancarios = doc.dados_bancarios
   return flat
 }
 
@@ -210,6 +215,11 @@ export function EmpresaProvider({ children }) {
     salvar({ uploads: { ...PADRAO_EMPRESA.uploads, ...empresa.uploads, ...dados } })
   }
 
+  // S8.3.2 — salva o array de contas bancárias (substitui inteiro)
+  function salvarDadosBancarios(contas) {
+    salvar({ dadosBancarios: Array.isArray(contas) ? contas : [] })
+  }
+
   function resetar() {
     setEmpresa(PADRAO_EMPRESA)
     localStorage.removeItem(CHAVE_LS)
@@ -217,7 +227,7 @@ export function EmpresaProvider({ children }) {
   }
 
   return (
-    <EmpresaCtx.Provider value={{ empresa, salvar, salvarRT, salvarFinanceiro, salvarEmpresa, salvarBranding, salvarUploads, resetar }}>
+    <EmpresaCtx.Provider value={{ empresa, salvar, salvarRT, salvarFinanceiro, salvarEmpresa, salvarBranding, salvarUploads, salvarDadosBancarios, resetar }}>
       {children}
     </EmpresaCtx.Provider>
   )

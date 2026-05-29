@@ -8,6 +8,8 @@ import { useAuth } from '../context/AuthContext'
 import { useEmpresa, PADRAO_EMPRESA } from '../contexts/EmpresaContext'
 import ConfiguracaoGestao from '../components/config/ConfiguracaoGestao'
 import { usePermissao } from '../hooks/usePermissao'
+import { mascararDadosBancarios, podeVerBancoCompleto } from '../utils/gestaoUtils'
+import { registrarEventoPainel } from '../services/gestaoApi'
 
 const API_INTEGRATIONS = [
   {
@@ -182,6 +184,102 @@ function UploadCampo({ label, valor, onFile, accept, arquivo }) {
           className="text-xs file:mr-2 file:px-2 file:py-1 file:rounded file:border-0 file:bg-slate-100 file:text-slate-600" />
       </div>
     </div>
+  )
+}
+
+// ─── S8.3.2: Dados bancários da empresa (múltiplas contas + máscara por perfil) ──
+const TIPOS_CONTA = ['Corrente', 'Poupança', 'Pagamento']
+function DadosBancariosCard() {
+  const { empresa, salvarDadosBancarios } = useEmpresa()
+  const { perfil, anonimo } = usePermissao()
+  const completo = podeVerBancoCompleto(perfil, anonimo)
+  const contas = Array.isArray(empresa.dadosBancarios) ? empresa.dadosBancarios : []
+  const [editando, setEditando] = useState(false)
+  const [rascunho, setRascunho] = useState(contas)
+  const [salvo, setSalvo] = useState('')
+
+  const inp = 'w-full px-2 py-1.5 rounded border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500'
+
+  function iniciar() { setRascunho(contas.length ? contas : [contaVazia()]); setEditando(true) }
+  function contaVazia() { return { banco: '', agencia: '', conta: '', tipo_conta: 'Corrente', pix: '', titular: '', documento: '' } }
+  function setCampo(i, k, v) { setRascunho((p) => p.map((c, idx) => (idx === i ? { ...c, [k]: v } : c))) }
+  function adicionar() { setRascunho((p) => [...p, contaVazia()]) }
+  function remover(i) { setRascunho((p) => p.filter((_, idx) => idx !== i)) }
+  function cancelar() { setEditando(false); setRascunho(contas) }
+  function salvar() {
+    const limpas = rascunho.filter((c) => c.banco || c.conta || c.pix)
+    salvarDadosBancarios(limpas)
+    registrarEventoPainel('BANCO_ALTERADO', `${limpas.length} conta(s) salva(s)`, null, 'configuracoes')
+    setEditando(false)
+    setSalvo('Dados bancários salvos!'); setTimeout(() => setSalvo(''), 2500)
+  }
+
+  return (
+    <Card>
+      <CardHeader className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <DollarSign size={18} className="text-emerald-600" />
+          <h3 className="font-semibold text-slate-900">Dados Bancários</h3>
+        </div>
+        {!editando && completo && (
+          <button onClick={iniciar} className="flex items-center gap-1 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-sm font-medium"><Plus size={14} /> Gerenciar</button>
+        )}
+      </CardHeader>
+      <CardBody>
+        {!completo && (
+          <p className="text-xs text-amber-600 mb-2 flex items-center gap-1"><Lock size={12} /> Você vê apenas dados mascarados. Acesso completo: Administrador, Diretor e Financeiro.</p>
+        )}
+
+        {!editando && (
+          contas.length === 0 ? (
+            <p className="text-sm text-slate-400">Nenhuma conta cadastrada.</p>
+          ) : (
+            <div className="space-y-2">
+              {contas.map((c, i) => {
+                const v = mascararDadosBancarios(c, perfil, anonimo)
+                return (
+                  <div key={i} className="text-sm border border-slate-100 rounded p-2 flex flex-wrap gap-x-4 gap-y-1">
+                    <span className="font-medium text-slate-700">{v.banco || '—'}</span>
+                    <span className="text-slate-500">Ag. {v.agencia || '—'}</span>
+                    <span className="text-slate-500">Conta {v.conta || '—'} ({v.tipo_conta || '—'})</span>
+                    {v.pix && <span className="text-slate-500">PIX {v.pix}</span>}
+                    {v.titular && <span className="text-slate-500">{v.titular}</span>}
+                  </div>
+                )
+              })}
+            </div>
+          )
+        )}
+
+        {editando && (
+          <div className="space-y-3">
+            {rascunho.map((c, i) => (
+              <div key={i} className="grid grid-cols-2 sm:grid-cols-4 gap-2 border border-slate-100 rounded p-2">
+                <div><label className="text-[11px] text-slate-500">Banco</label><input className={inp} value={c.banco} onChange={(e) => setCampo(i, 'banco', e.target.value)} /></div>
+                <div><label className="text-[11px] text-slate-500">Agência</label><input className={inp} value={c.agencia} onChange={(e) => setCampo(i, 'agencia', e.target.value)} /></div>
+                <div><label className="text-[11px] text-slate-500">Conta</label><input className={inp} value={c.conta} onChange={(e) => setCampo(i, 'conta', e.target.value)} /></div>
+                <div>
+                  <label className="text-[11px] text-slate-500">Tipo</label>
+                  <select className={inp} value={c.tipo_conta} onChange={(e) => setCampo(i, 'tipo_conta', e.target.value)}>
+                    {TIPOS_CONTA.map((t) => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                </div>
+                <div><label className="text-[11px] text-slate-500">PIX</label><input className={inp} value={c.pix} onChange={(e) => setCampo(i, 'pix', e.target.value)} /></div>
+                <div><label className="text-[11px] text-slate-500">Titular</label><input className={inp} value={c.titular} onChange={(e) => setCampo(i, 'titular', e.target.value)} /></div>
+                <div><label className="text-[11px] text-slate-500">CPF/CNPJ</label><input className={inp} value={c.documento} onChange={(e) => setCampo(i, 'documento', e.target.value)} /></div>
+                <div className="flex items-end"><button onClick={() => remover(i)} className="text-red-500 hover:text-red-700 text-xs flex items-center gap-1"><Trash2 size={14} /> Remover</button></div>
+              </div>
+            ))}
+            <div className="flex items-center gap-3">
+              <button onClick={adicionar} className="text-sm text-emerald-700 hover:text-emerald-800 flex items-center gap-1"><Plus size={14} /> Adicionar conta</button>
+              <button onClick={salvar} className="flex items-center gap-1 px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-sm font-medium"><Save size={14} /> Salvar</button>
+              <button onClick={cancelar} className="text-sm text-slate-500 hover:text-slate-700">Cancelar</button>
+            </div>
+          </div>
+        )}
+        {salvo && <span className="flex items-center gap-1 text-sm text-emerald-700 font-medium mt-2"><Check size={16} /> {salvo}</span>}
+      </CardBody>
+    </Card>
   )
 }
 
@@ -880,6 +978,9 @@ export default function Configuracoes() {
 
       {/* CFG-04: Configurações financeiras */}
       <ConfiguracaoEmpresa />
+
+      {/* S8.3.2: Dados bancários (múltiplas contas, máscara por perfil) */}
+      <DadosBancariosCard />
 
       {podePerm('configuracoes', 'administrar') && <ConfiguracaoGestao />}
 

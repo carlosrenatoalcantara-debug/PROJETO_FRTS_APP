@@ -17,6 +17,7 @@ import { getWorkflowConfig } from '../utils/comercialGovernanca'
 import { getPipelineConfig } from '../utils/crmComercial'
 import { tecnicosApi, vendedoresApi, registrarEventoPainel } from '../services/gestaoApi'
 import { usePermissao } from '../hooks/usePermissao'
+import { apenasAtivos } from '../utils/gestaoUtils'
 import InteractiveDiagram from '../components/diagram/InteractiveDiagram'
 import { carregarDiagramaLocal, salvarDiagramaLocal, deletarDiagramaLocal } from '../components/diagram/utils/diagramPersistence'
 
@@ -376,7 +377,7 @@ function EquipeProjeto({ projeto, onAtualizar }) {
             <label className="text-xs text-slate-500 block mb-1">Vendedor</label>
             <select className={sel} disabled={salvando} value={projeto.vendedor_id?._id || projeto.vendedor_id || ''} onChange={e => patch('vendedor_id', e.target.value)}>
               <option value="">—</option>
-              {vendedores.filter(v => v.ativo !== false).map(v => <option key={v._id} value={v._id}>{v.nome}</option>)}
+              {apenasAtivos(vendedores).map(v => <option key={v._id} value={v._id}>{v.nome}</option>)}
             </select>
           </div>
           {['tecnico_principal_id', 'tecnico_secundario_id'].map((campo, i) => (
@@ -386,7 +387,7 @@ function EquipeProjeto({ projeto, onAtualizar }) {
                 value={projeto[campo]?._id || projeto[campo] || ''}
                 onChange={e => selecionarTecnico(campo, e.target.value)}>
                 <option value="">—</option>
-                {tecnicos.filter(t => t.ativo !== false).map(t => {
+                {apenasAtivos(tecnicos).map(t => {
                   const { vencido } = avaliarTecnico(t)
                   return <option key={t._id} value={t._id} disabled={vencido}>{optLabel(t)}</option>
                 })}

@@ -22,6 +22,12 @@ const empresaConfigSchema = new mongoose.Schema({
   branding: { type: mongoose.Schema.Types.Mixed, default: () => ({}) },
   // Uploads: { assinatura, carimbo, art_padrao, documentos: [] } (base64/URL)
   uploads: { type: mongoose.Schema.Types.Mixed, default: () => ({}) },
+
+  // S8.3.2 — RBAC flexível por empresa: { perfil: { modulo: nivel } }. Vazio → matriz padrão.
+  permissoes_customizadas: { type: mongoose.Schema.Types.Mixed, default: () => ({}) },
+  // S8.3.2 — dados bancários (múltiplas contas) p/ propostas/contratos/financeiro.
+  // [{ banco, agencia, conta, tipo_conta, pix, titular, documento }]
+  dados_bancarios: { type: [mongoose.Schema.Types.Mixed], default: () => ([]) },
 }, { timestamps: true })
 
 export const EmpresaConfig = mongoose.model('EmpresaConfig', empresaConfigSchema)

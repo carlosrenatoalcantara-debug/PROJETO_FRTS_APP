@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Users, Building2, HardHat, Briefcase, Plus, ShieldCheck, Pencil, Check, X, Power, PowerOff } from 'lucide-react'
+import { Users, Building2, HardHat, Briefcase, Plus, ShieldCheck, Pencil, Check, X, Power, PowerOff, Save } from 'lucide-react'
 import Card, { CardHeader, CardBody } from '../ui/Card'
 import { usuariosApi, empresasApi, tecnicosApi, vendedoresApi } from '../../services/gestaoApi'
-import { PERFIS, LABEL_PERFIL, MODULOS, MATRIZ_RBAC } from '../../utils/rbac'
+import { PERFIS, LABEL_PERFIL, MODULOS, MATRIZ_RBAC, NIVEIS, mesclarMatriz } from '../../utils/rbac'
+import { usePermissao } from '../../hooks/usePermissao'
 
 /**
  * ConfiguracaoGestao — Sprint 7.2 / 8.3.1
@@ -17,9 +18,12 @@ const CARGOS = ['Diretor', 'Gerente', 'Comercial', 'Engenheiro Eletricista', 'En
 
 export default function ConfiguracaoGestao() {
   const [aba, setAba] = useState('usuarios')
+  const { perfil, anonimo } = usePermissao()
+  // S8.3.2: Organizações = tenant/ambiente, não fornecedor. Só admin opera.
+  const podeOrganizacoes = anonimo || ['administrador', 'admin'].includes(perfil)
   const abas = [
     { id: 'usuarios', label: 'Usuários', icone: Users },
-    { id: 'empresas', label: 'Empresas', icone: Building2 },
+    ...(podeOrganizacoes ? [{ id: 'empresas', label: 'Organizações', icone: Building2 }] : []),
     { id: 'tecnicos', label: 'Técnicos', icone: HardHat },
     { id: 'vendedores', label: 'Vendedores', icone: Briefcase },
     { id: 'rbac', label: 'Permissões', icone: ShieldCheck },
@@ -58,17 +62,23 @@ export default function ConfiguracaoGestao() {
           />
         )}
         {aba === 'empresas' && (
-          <CrudLista
-            api={empresasApi}
-            campos={[
-              { k: 'nome', label: 'Nome', req: true },
-              { k: 'cnpj', label: 'CNPJ' },
-              { k: 'email', label: 'Email', type: 'email' },
-              { k: 'telefone', label: 'Telefone' },
-            ]}
-            colunas={['nome', 'cnpj', 'email']}
-            editaveis={['nome', 'cnpj', 'email', 'telefone']}
-          />
+          <div className="space-y-3">
+            <p className="text-xs text-slate-500 bg-slate-50 border border-slate-100 rounded p-2">
+              <strong>Organizações</strong> são ambientes independentes da plataforma (tenants) — não são fornecedores.
+              Cada organização isola usuários, projetos e configurações.
+            </p>
+            <CrudLista
+              api={empresasApi}
+              campos={[
+                { k: 'nome', label: 'Nome', req: true },
+                { k: 'cnpj', label: 'CNPJ' },
+                { k: 'email', label: 'Email', type: 'email' },
+                { k: 'telefone', label: 'Telefone' },
+              ]}
+              colunas={['nome', 'cnpj', 'email']}
+              editaveis={['nome', 'cnpj', 'email', 'telefone']}
+            />
+          </div>
         )}
         {aba === 'tecnicos' && <TecnicosPainel />}
         {aba === 'vendedores' && (
@@ -402,11 +412,62 @@ function TecnicoModal({ tecnico, onFechar, onSalvo }) {
   )
 }
 
+/**
+ * MatrizRBAC — S8.3.2: RBAC FLEXÍVEL (editável por empresa).
+ * Cada célula vira seletor (nenhum→administrar). Salva permissoes_customizadas
+ * via PUT /api/empresa/permissoes (auditoria delta no backend). Fallback: matriz padrão.
+ */
+const corNivel = { administrar: 'bg-emerald-50 text-emerald-800', aprovar: 'bg-blue-50 text-blue-800', editar: 'bg-amber-50 text-amber-800', visualizar: 'bg-slate-50 text-slate-600', nenhum: 'bg-red-50 text-red-400' }
 function MatrizRBAC() {
-  const cor = { administrar: 'bg-emerald-100 text-emerald-800', aprovar: 'bg-blue-100 text-blue-800', editar: 'bg-amber-100 text-amber-800', visualizar: 'bg-slate-100 text-slate-600', nenhum: 'bg-red-50 text-red-400' }
+  const [matriz, setMatriz] = useState(() => mesclarMatriz(null))
+  const [salvo, setSalvo] = useState('')
+  const [salvando, setSalvando] = useState(false)
+
+  // Carrega permissoes_customizadas da empresa (singleton); fallback matriz padrão.
+  useEffect(() => {
+    let vivo = true
+    fetch('/api/empresa')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (vivo && d?.config) setMatriz(mesclarMatriz(d.config.permissoes_customizadas)) })
+      .catch(() => { /* offline → mantém padrão */ })
+    return () => { vivo = false }
+  }, [])
+
+  function setCelula(p, m, nivel) {
+    setMatriz((prev) => ({ ...prev, [p]: { ...prev[p], [m]: nivel } }))
+  }
+
+  async function salvar() {
+    setSalvando(true); setSalvo('')
+    try {
+      // Envia apenas o que difere da matriz padrão (permissoes_customizadas)
+      const custom = {}
+      for (const p of PERFIS) {
+        for (const m of MODULOS) {
+          if (matriz[p]?.[m] !== MATRIZ_RBAC[p][m]) {
+            custom[p] = { ...(custom[p] || {}), [m]: matriz[p][m] }
+          }
+        }
+      }
+      const res = await fetch('/api/empresa/permissoes', {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ permissoes_customizadas: custom }),
+      })
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).erro || `HTTP ${res.status}`)
+      const d = await res.json()
+      setSalvo(`Permissões salvas (${d.alteracoes ?? 0} alteração(ões) auditada(s)).`)
+      setTimeout(() => setSalvo(''), 3000)
+    } catch (e) { setSalvo(`Erro: ${e.message}`) } finally { setSalvando(false) }
+  }
+
+  function resetarPadrao() { setMatriz(mesclarMatriz(null)) }
+
   return (
-    <div className="overflow-x-auto">
-      <p className="text-xs text-slate-500 mb-2">Matriz centralizada de permissões (módulo × perfil). Conceder um nível inclui os inferiores.</p>
+    <div className="overflow-x-auto space-y-3">
+      <p className="text-xs text-slate-500">
+        Matriz de permissões (perfil × módulo). Conceder um nível inclui os inferiores.
+        Empresas pequenas podem acumular funções (ex.: técnico editar catálogo). Vazio = matriz padrão.
+      </p>
       <table className="w-full text-xs">
         <thead>
           <tr className="text-slate-500 border-b border-slate-100">
@@ -419,13 +480,28 @@ function MatrizRBAC() {
             <tr key={p} className="border-b border-slate-50">
               <td className="py-1.5 pr-2 font-medium text-slate-700">{LABEL_PERFIL[p]}</td>
               {MODULOS.map((m) => {
-                const n = MATRIZ_RBAC[p][m]
-                return <td key={m} className="py-1 px-1 text-center"><span className={`inline-block px-1.5 py-0.5 rounded ${cor[n]}`}>{n}</span></td>
+                const n = matriz[p]?.[m] || 'nenhum'
+                return (
+                  <td key={m} className="py-1 px-1 text-center">
+                    <select value={n} onChange={(e) => setCelula(p, m, e.target.value)}
+                      className={`rounded border border-slate-200 px-1 py-0.5 text-[11px] ${corNivel[n]}`}>
+                      {NIVEIS.map((nv) => <option key={nv} value={nv}>{nv}</option>)}
+                    </select>
+                  </td>
+                )
               })}
             </tr>
           ))}
         </tbody>
       </table>
+      <div className="flex items-center gap-3">
+        <button onClick={salvar} disabled={salvando}
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded text-sm font-medium">
+          <Save size={14} /> {salvando ? 'Salvando…' : 'Salvar permissões'}
+        </button>
+        <button onClick={resetarPadrao} className="text-xs text-slate-500 hover:text-slate-700">Restaurar padrão</button>
+        {salvo && <span className="text-xs text-emerald-700">{salvo}</span>}
+      </div>
     </div>
   )
 }

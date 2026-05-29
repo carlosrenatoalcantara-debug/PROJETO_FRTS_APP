@@ -1,7 +1,9 @@
 import { ProjetoFV } from '../models/ProjetoFV.js'
 import { Equipamento } from '../models/Equipamento.js'
+import { Tecnico } from '../models/Tecnico.js'
 import mongoose from 'mongoose'
 import { memoryStore } from '../config/memoryStorage.js'
+import { montarSnapshotRT } from '../utils/snapshotRT.js'
 
 export const listarProjetosFV = async (req, res) => {
   try {
@@ -600,6 +602,19 @@ export const congelarProjetoFV = async (req, res) => {
     const agora = new Date()
     const revAtual = gov.revisao_atual || 'A'
 
+    // S8.3.2 — snapshot imutável do Responsável Técnico (congela o cadastro no momento
+    // do freeze; documentos futuros usam o snapshot, não o cadastro vivo).
+    let snapshotRT = snapshots.responsavel_tecnico ?? gov.snapshot_responsavel_tecnico ?? null
+    if (!snapshotRT) {
+      const tecnicoId = projeto.tecnico_principal_id || projeto.tecnico_id || null
+      if (tecnicoId && mongoose.Types.ObjectId.isValid(tecnicoId)) {
+        try {
+          const tec = await Tecnico.findById(tecnicoId).lean()
+          if (tec) snapshotRT = montarSnapshotRT(tec, agora)
+        } catch { /* segue sem snapshot RT */ }
+      }
+    }
+
     // Monta o subdoc de governança congelado
     const novaGovernanca = {
       ...((projeto.governanca && projeto.governanca.toObject?.()) || gov),
@@ -608,6 +623,7 @@ export const congelarProjetoFV = async (req, res) => {
       revisao_atual: revAtual,
       congelado_em: agora,
       congelado_por: usuario,
+      snapshot_responsavel_tecnico: snapshotRT,
       snapshot_tecnico:    snapshots.tecnico    ?? gov.snapshot_tecnico    ?? null,
       snapshot_geoespacial: snapshots.geoespacial ?? gov.snapshot_geoespacial ?? null,
       snapshot_empresa:    snapshots.empresa    ?? gov.snapshot_empresa    ?? null,
@@ -633,6 +649,7 @@ export const congelarProjetoFV = async (req, res) => {
       alteracoes: 'Snapshots técnicos, catálogo, unifilar, memorial e financeiro congelados.',
       engineering_version: novaGovernanca.engineering_version,
       snapshots: {
+        responsavel_tecnico: novaGovernanca.snapshot_responsavel_tecnico,
         tecnico:    novaGovernanca.snapshot_tecnico,
         geoespacial: novaGovernanca.snapshot_geoespacial,
         catalogo:   novaGovernanca.snapshot_catalogo,
@@ -649,6 +666,14 @@ export const congelarProjetoFV = async (req, res) => {
       detalhe: `Projeto ${novo_status} na revisão ${revAtual} (motor ${novaGovernanca.engineering_version || '—'}).`,
       contexto: { motivo },
     })
+    // S8.3.2 — auditoria do snapshot do RT (quando houver técnico atribuído)
+    if (snapshotRT) {
+      novaGovernanca.auditoria.push({
+        timestamp: agora, usuario, acao: 'SNAPSHOT_RT_CRIADO',
+        detalhe: `RT congelado: ${snapshotRT.nome || '—'} (${snapshotRT.tipo_registro || ''} ${snapshotRT.numero_registro || ''}).`,
+        contexto: { uf: snapshotRT.uf, modalidade: snapshotRT.modalidade },
+      })
+    }
     novaGovernanca.historico.push({
       timestamp: agora,
       tipo: novo_status === 'HOMOLOGADO' ? 'homologado' : 'congelado',

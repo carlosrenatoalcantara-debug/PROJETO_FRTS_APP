@@ -460,6 +460,7 @@ const governancaV3Schema = new mongoose.Schema({
   snapshot_geoespacial:{ type: mongoose.Schema.Types.Mixed, default: null }, // S6
   snapshot_empresa:    { type: mongoose.Schema.Types.Mixed, default: null }, // S7.1
   snapshot_tecnico_identificacao: { type: mongoose.Schema.Types.Mixed, default: null }, // S7.1
+  snapshot_responsavel_tecnico:   { type: mongoose.Schema.Types.Mixed, default: null }, // S8.3.2 (RT congelado)
   snapshot_catalogo:   { type: mongoose.Schema.Types.Mixed, default: null },
   snapshot_unifilar:   { type: snapshotUnifilarV3Schema,     default: null },
   snapshot_memorial:   { type: mongoose.Schema.Types.Mixed, default: null },
