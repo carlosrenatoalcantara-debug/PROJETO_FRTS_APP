@@ -59,16 +59,12 @@ const userSchema = new mongoose.Schema(
   { collection: 'usuarios', timestamps: true }
 )
 
-// Hash password before saving
-userSchema.pre('save', async function (next) {
-  if (!this.isModified('senha_hash')) return next()
-
-  try {
-    this.senha_hash = await bcrypt.hash(this.senha_hash, 10)
-    next()
-  } catch (error) {
-    next(error)
-  }
+// Hash password before saving (S8.3.0.1: estilo async moderno — sem `next`).
+// Mongoose atual invoca middleware async SEM callback `next`; chamar next() aqui
+// lançava "TypeError: next is not a function" no User.create() (visível no front).
+userSchema.pre('save', async function () {
+  if (!this.isModified('senha_hash')) return
+  this.senha_hash = await bcrypt.hash(this.senha_hash, 10)
 })
 
 // Compare password method
