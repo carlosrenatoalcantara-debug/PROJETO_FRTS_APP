@@ -11,7 +11,7 @@ const jwtService = new JWTService();
  * Middleware: Valida JWT token
  * Requer: Authorization: Bearer <token>
  */
-export const authenticateToken = (req, res, next) => {
+export const authenticateToken = async (req, res, next) => {
   try {
     const authHeader = req.headers['authorization'];
     const token = jwtService.extractTokenFromHeader(authHeader);
@@ -27,7 +27,18 @@ export const authenticateToken = (req, res, next) => {
     const decoded = jwtService.verifyAccessToken(token);
     req.user = decoded;
 
-    // Log de sucesso em auditoria (opcional)
+    // S8.3.1: usuário inativo → 401 mesmo com JWT válido (não-bloqueante se DB off)
+    try {
+      const mongoose = (await import('mongoose')).default;
+      if (mongoose.connection.readyState === 1 && (decoded.sub || decoded.id)) {
+        const { default: User } = await import('../models/User.js');
+        const u = await User.findById(decoded.sub || decoded.id).select('ativo').lean();
+        if (u && u.ativo === false) {
+          return res.status(401).json({ success: false, error: 'Usuário inativo', code: 'USER_INACTIVE' });
+        }
+      }
+    } catch { /* DB indisponível → não bloqueia (compat) */ }
+
     console.log(`[AUTH] Usuário ${decoded.sub} autenticado`);
 
     next();
