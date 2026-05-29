@@ -298,10 +298,13 @@ async function iniciarServidor() {
     const { default: rotasEquipamentos } = await import('./routes/equipamentos.js')
     const { default: rotasDatasheet } = await import('./routes/datasheet.js')
     const { default: rotasFatura } = await import('./routes/fatura.js')
+    // S8.5 — Inteligência de fatura (camada normalizada com revisão humana)
+    const { default: rotasFaturasInteligente } = await import('./routes/faturasInteligente.js')
 
     app.use('/api/equipamentos', rotasEquipamentos)
     app.use('/api/datasheet',    rotasDatasheet)
     app.use('/api/fatura',       rotasFatura)
+    app.use('/api/faturas',      rotasFaturasInteligente)
 
     console.log('✅ Parser routes loaded successfully before server start')
   } catch (err) {

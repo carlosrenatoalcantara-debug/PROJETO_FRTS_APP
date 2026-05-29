@@ -28,6 +28,7 @@ import RecomendacaoKits       from './pages/RecomendacaoKits'
 import PropostaPublica        from './pages/PropostaPublica'
 import PainelExecutivo        from './pages/PainelExecutivo'
 import Auditoria              from './pages/Auditoria'
+import FaturaRevisao          from './pages/FaturaRevisao'
 
 export default function App() {
   return (
@@ -48,6 +49,8 @@ export default function App() {
         <Route path="propostas/nova"          element={<NovaProposta />} />
         <Route path="propostas-ev/nova"       element={<NovaPropostaEV />} />
         <Route path="projetos-fv"             element={<ProjetosFV />} />
+        <Route path="faturas/revisao"         element={<FaturaRevisao />} />
+        <Route path="faturas/revisao/:id"     element={<FaturaRevisao />} />
         <Route path="projetos-fv/novo"        element={<ProjetosFVNovo />} />
         <Route path="projetos-fv/simulacao"   element={<SimulacaoFV />} />
         <Route path="projetos-fv/:id"         element={<ProjetosFVDetalhes />} />
