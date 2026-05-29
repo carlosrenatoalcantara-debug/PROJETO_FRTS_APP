@@ -83,6 +83,13 @@ export default function PropostaPublica() {
           {dados.snapshot_hash && <Linha rotulo="Código de verificação" valor={<span className="font-mono text-xs">{dados.snapshot_hash}</span>} />}
         </div>
 
+        {(dados.tecnico || dados.vendedor) && (
+          <div className="bg-white border border-slate-200 rounded-xl p-4 text-sm grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {dados.tecnico && <Linha rotulo="Responsável Técnico" valor={`${dados.tecnico.nome}${dados.tecnico.registro ? ' · ' + dados.tecnico.registro : ''}`} />}
+            {dados.vendedor && <Linha rotulo="Consultor" valor={dados.vendedor.nome} />}
+          </div>
+        )}
+
         <div className="flex items-center gap-2 text-xs text-slate-400 justify-center">
           <CheckCircle size={13} className="text-emerald-500" />
           Documento somente leitura, gerado a partir de uma versão congelada e auditável.

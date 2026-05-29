@@ -3,11 +3,15 @@ import { Equipamento } from '../models/Equipamento.js'
 import mongoose from 'mongoose'
 import { memoryStore } from '../config/memoryStorage.js'
 
-export const listarProjetosFV = async (_req, res) => {
+export const listarProjetosFV = async (req, res) => {
   try {
     let projetos
+    // S7.2.1: filtro multiempresa opcional (?empresa_id=). Sem filtro → todos
+    // (projetos antigos com empresa_id null permanecem acessíveis na empresa default).
+    const empresaId = req?.query?.empresa_id || null
+    const filtroEmpresa = empresaId ? { $or: [{ empresa_id: empresaId }, { empresa_id: null }] } : {}
     if (mongoose.connection.readyState === 1) {
-      projetos = await ProjetoFV.find().populate('clienteId').sort({ createdAt: -1 })
+      projetos = await ProjetoFV.find(filtroEmpresa).populate('clienteId').sort({ createdAt: -1 })
     } else {
       // Memory storage fallback
       projetos = memoryStore.findAllProjetoFV().sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
@@ -1586,7 +1590,10 @@ export const obterPropostaPublica = async (req, res) => {
 
     const projeto = await ProjetoFV.findOne(
       { 'governanca.comercial.compartilhamentos.token': token }
-    ).populate('clienteId', 'nome email telefone')
+    )
+      .populate('clienteId', 'nome email telefone')
+      .populate('vendedor_id', 'nome telefone email')
+      .populate('tecnico_principal_id', 'nome tipo_registro registro uf modalidade')
     if (!projeto) return res.status(404).json({ erro: 'Proposta não encontrada ou link inválido.' })
 
     const com = projeto.governanca?.comercial
@@ -1617,6 +1624,12 @@ export const obterPropostaPublica = async (req, res) => {
       // S7.1: identidade institucional congelada (logo/nome/RT)
       empresa: projeto.governanca?.snapshot_empresa ?? null,
       responsavel_tecnico: projeto.governanca?.snapshot_tecnico_identificacao ?? null,
+      // S7.2.1: equipe responsável (técnico/vendedor do projeto)
+      vendedor: projeto.vendedor_id ? { nome: projeto.vendedor_id.nome } : null,
+      tecnico: projeto.tecnico_principal_id ? {
+        nome: projeto.tecnico_principal_id.nome,
+        registro: `${projeto.tecnico_principal_id.tipo_registro || ''} ${projeto.tecnico_principal_id.registro || ''}`.trim(),
+      } : null,
       cenario_id: share.cenario_id,
       revisao: share.revisao,
       snapshot_hash: share.snapshot_hash,

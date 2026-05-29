@@ -13,6 +13,7 @@ import CrmPainel from '../components/fv/CrmPainel'
 import { getFreezeStatusConfig } from '../utils/engenhariaGovernanca'
 import { getWorkflowConfig } from '../utils/comercialGovernanca'
 import { getPipelineConfig } from '../utils/crmComercial'
+import { tecnicosApi, vendedoresApi } from '../services/gestaoApi'
 import InteractiveDiagram from '../components/diagram/InteractiveDiagram'
 import { carregarDiagramaLocal, salvarDiagramaLocal, deletarDiagramaLocal } from '../components/diagram/utils/diagramPersistence'
 
@@ -186,7 +187,7 @@ export default function ProjetosFVDetalhes() {
       </div>
 
       <div>
-        {abaAtiva === 'resumo' && <AbaResumo projeto={projeto} />}
+        {abaAtiva === 'resumo' && <><AbaResumo projeto={projeto} /><EquipeProjeto projeto={projeto} onAtualizar={carregarProjeto} /></>}
         {abaAtiva === 'layout' && <AbaLayout projeto={projeto} />}
         {abaAtiva === 'bess' && <AbaBESS />}
         {abaAtiva === 'financeiro' && <AbaFinanceiro projeto={projeto} />}
@@ -287,6 +288,67 @@ export default function ProjetosFVDetalhes() {
         </div>
       )}
     </div>
+  )
+}
+
+// S7.2.1: seleção de técnico responsável e vendedor do projeto
+function EquipeProjeto({ projeto, onAtualizar }) {
+  const [tecnicos, setTecnicos] = useState([])
+  const [vendedores, setVendedores] = useState([])
+  const [salvando, setSalvando] = useState(false)
+  const [msg, setMsg] = useState('')
+
+  useEffect(() => {
+    tecnicosApi.listar().then(setTecnicos).catch(() => {})
+    vendedoresApi.listar().then(setVendedores).catch(() => {})
+  }, [])
+
+  async function patch(campo, valor) {
+    setSalvando(true); setMsg('')
+    try {
+      const res = await fetch(`/api/projetos-fv/${projeto._id}`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [campo]: valor || null }),
+      })
+      if (!res.ok) throw new Error('Falha ao salvar')
+      setMsg('Salvo!'); setTimeout(() => setMsg(''), 2000)
+      onAtualizar?.()
+    } catch (e) { setMsg(e.message) } finally { setSalvando(false) }
+  }
+
+  const sel = 'w-full px-2 py-1.5 rounded border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500'
+  return (
+    <Card className="mt-6">
+      <CardHeader className="flex items-center gap-2">
+        <Users size={16} className="text-indigo-600" /> Equipe do Projeto
+        {msg && <span className="text-xs text-emerald-600 ml-2">{msg}</span>}
+      </CardHeader>
+      <CardBody>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <label className="text-xs text-slate-500 block mb-1">Vendedor</label>
+            <select className={sel} disabled={salvando} value={projeto.vendedor_id?._id || projeto.vendedor_id || ''} onChange={e => patch('vendedor_id', e.target.value)}>
+              <option value="">—</option>
+              {vendedores.filter(v => v.ativo !== false).map(v => <option key={v._id} value={v._id}>{v.nome}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="text-xs text-slate-500 block mb-1">Técnico principal</label>
+            <select className={sel} disabled={salvando} value={projeto.tecnico_principal_id?._id || projeto.tecnico_principal_id || ''} onChange={e => patch('tecnico_principal_id', e.target.value)}>
+              <option value="">—</option>
+              {tecnicos.filter(t => t.ativo !== false).map(t => <option key={t._id} value={t._id}>{t.nome} {t.registro ? `(${t.tipo_registro} ${t.registro})` : ''}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="text-xs text-slate-500 block mb-1">Técnico secundário</label>
+            <select className={sel} disabled={salvando} value={projeto.tecnico_secundario_id?._id || projeto.tecnico_secundario_id || ''} onChange={e => patch('tecnico_secundario_id', e.target.value)}>
+              <option value="">—</option>
+              {tecnicos.filter(t => t.ativo !== false).map(t => <option key={t._id} value={t._id}>{t.nome}</option>)}
+            </select>
+          </div>
+        </div>
+      </CardBody>
+    </Card>
   )
 }
 

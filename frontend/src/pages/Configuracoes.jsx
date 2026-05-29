@@ -7,6 +7,7 @@ import Input from '../components/ui/Input'
 import { useAuth } from '../context/AuthContext'
 import { useEmpresa, PADRAO_EMPRESA } from '../contexts/EmpresaContext'
 import ConfiguracaoGestao from '../components/config/ConfiguracaoGestao'
+import { usePermissao } from '../hooks/usePermissao'
 
 const API_INTEGRATIONS = [
   {
@@ -298,6 +299,7 @@ function ConfiguracaoFinanceira() {
 export default function Configuracoes() {
   const navigate = useNavigate()
   const { token } = useAuth()
+  const { pode: podePerm } = usePermissao()
 
   // Estado de chaves seguras do backend
   const [chavesSeguras, setChavesSeguras] = useState([])
@@ -879,7 +881,7 @@ export default function Configuracoes() {
       {/* CFG-04: Configurações financeiras */}
       <ConfiguracaoEmpresa />
 
-      <ConfiguracaoGestao />
+      {podePerm('configuracoes', 'administrar') && <ConfiguracaoGestao />}
 
       <ConfiguracaoFinanceira />
 

@@ -78,6 +78,7 @@ import rotasProjetosFV from './routes/projetosFV.js'
 import rotasPublico from './routes/publico.js'
 import rotasEmpresa from './routes/empresa.js'
 import rotasGestao from './routes/gestao.js'
+import { decodificarUsuario, protegerModulo } from './middleware/rbacMiddleware.js'
 import rotasProjetosEV from './routes/projetosEV.js'
 import rotasDashboard  from './routes/dashboard.js'
 import rotasUpload      from './routes/upload.js'
@@ -148,12 +149,15 @@ app.use(cors(corsOptions))
 // 🔐 Security headers (Helmet.js, HSTS, CSP, etc)
 setupSecurityHeaders(app)
 
-// 📋 Audit logging for all requests
-app.use(auditLogger)
-
 // Aumentar limite de payload para aceitar PDFs grandes (até 50MB)
 app.use(express.json({ limit: '50mb' }))
 app.use(express.urlencoded({ limit: '50mb', extended: true }))
+
+// 🔑 S7.2.1: decodifica usuário (JWT) de forma não-bloqueante → req.auth
+app.use(decodificarUsuario)
+
+// 📋 Audit logging for all requests (já enriquecido com req.auth quando presente)
+app.use(auditLogger)
 
 // Header CORS explícito como fallback
 app.use((req, res, next) => {
@@ -210,7 +214,7 @@ app.use('/api/integrations', rotasIntegrations)
 // 🌞 Motor de dimensionamento FV (Sprint 1 — sem efeito em dados existentes)
 app.use('/api/dimensionamento', rotasDimensionamento)
 // 🧪 Catálogo técnico — qualidade (S2.6.1 — endpoint admin de leitura)
-app.use('/api/admin/catalogo', rotasAdminCatalogo)
+app.use('/api/admin/catalogo', protegerModulo('catalogo'), rotasAdminCatalogo)
 // 🔍 Motor de Recomendação de Kits FV (S2.14 — read-only analítico)
 app.use('/api/v1/kits',        rotasKitsV1)
 // app.use('/api/auth-legacy', rotasAuth)  // Rota antiga desabilitada
@@ -218,19 +222,19 @@ app.use('/api/calculadora',  rotasCalculadora)
 // app.use('/api/carregadores-ev', rotasCarregadoresEV)  // ⚠️ DISABLED: pdfjs-dist blocker
 app.use('/api/dashboard',    rotasDashboard)
 app.use('/api/clientes',     rotasClientes)
-app.use('/api/projetos-fv',  rotasProjetosFV)
-app.use('/api/publico',      rotasPublico)   // S5 — leitura pública de snapshots congelados
-app.use('/api/empresa',      rotasEmpresa)   // S7.1 — configuração institucional (singleton)
-app.use('/api/gestao',       rotasGestao)    // S7.2 — usuários, empresas, técnicos, vendedores, RBAC
-app.use('/api/projetos-ev',  rotasProjetosEV)
+app.use('/api/projetos-fv',  protegerModulo('fv'), rotasProjetosFV)
+app.use('/api/publico',      rotasPublico)   // S5 — leitura pública (sem RBAC, é público)
+app.use('/api/empresa',      protegerModulo('configuracoes'), rotasEmpresa)   // S7.1
+app.use('/api/gestao',       protegerModulo('configuracoes'), rotasGestao)    // S7.2
+app.use('/api/projetos-ev',  protegerModulo('ev'), rotasProjetosEV)
 app.use('/api/upload',       rotasUpload)
 app.use('/api/engenharia',   rotasEngenharia)
 app.use('/api/string',       rotasString)
 app.use('/api/carga',        rotasCarga)
 app.use('/api/bess',         rotasBESS)
-app.use('/api/financeiro',   rotasFinanceiro)
+app.use('/api/financeiro',   protegerModulo('financeiro'), rotasFinanceiro)
 app.use('/api/orcamento',    rotasOrcamento)
-app.use('/api/crm',          rotasCRM)
+app.use('/api/crm',          protegerModulo('crm'), rotasCRM)
 app.use('/api/projeto',      rotasProjeto)
 app.use('/api/recomendacao', rotasRecomendacao)
 app.use('/api/decisao',      rotasDecisao)

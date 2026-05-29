@@ -218,7 +218,10 @@ export const auditLogger = (req, res, next) => {
 
     const auditEntry = {
       timestamp: new Date().toISOString(),
-      userId: req.user?.sub || 'anonymous',
+      userId: req.auth?.id || req.user?.sub || 'anonymous',
+      // S7.2.1: trilha enriquecida com perfil e empresa
+      perfil: req.auth?.perfil || req.user?.role || null,
+      empresa: req.auth?.empresa_id || null,
       method: req.method,
       path: req.path,
       ip: req.ip,

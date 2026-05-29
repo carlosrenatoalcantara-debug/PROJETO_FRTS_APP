@@ -6,30 +6,40 @@ import {
 } from 'lucide-react'
 import { useState } from 'react'
 import { useEmpresa } from '../../contexts/EmpresaContext'
+import { usePermissao } from '../../hooks/usePermissao'
 
 const itensMenu = [
   { rotulo: 'Dashboard',     caminho: '/dashboard',     icone: LayoutDashboard },
-  { rotulo: 'Clientes',      caminho: '/clientes',      icone: Users           },
-  { rotulo: 'Financeiro',    caminho: '/financeiro',    icone: TrendingUp      },
-  { rotulo: 'CRM',           caminho: '/crm',           icone: Briefcase       },
+  { rotulo: 'Clientes',      caminho: '/clientes',      icone: Users,      modulo: 'crm'         },
+  { rotulo: 'Financeiro',    caminho: '/financeiro',    icone: TrendingUp, modulo: 'financeiro'  },
+  { rotulo: 'CRM',           caminho: '/crm',           icone: Briefcase,  modulo: 'crm'         },
   { rotulo: 'Projetos',      icone: Sun, submenu: [
-    { rotulo: 'Fotovoltaico',  caminho: '/projetos-fv' },
-    { rotulo: 'Elétrico-Veicular', caminho: '/projetos-ev' },
+    { rotulo: 'Fotovoltaico',  caminho: '/projetos-fv', modulo: 'fv' },
+    { rotulo: 'Elétrico-Veicular', caminho: '/projetos-ev', modulo: 'ev' },
   ]},
-  { rotulo: 'Equipamentos',  icone: Package, submenu: [
-    { rotulo: 'Módulos',     caminho: '/equipamentos/modulos' },
-    { rotulo: 'Inversores',  caminho: '/equipamentos/inversores' },
-    { rotulo: 'Carregadores EV', caminho: '/equipamentos/carregadores-ev' },
-    { rotulo: 'Baterias',    caminho: '/equipamentos/baterias' },
-    { rotulo: '🧪 Qualidade', caminho: '/admin/catalogo/qualidade' },
+  { rotulo: 'Equipamentos',  icone: Package, modulo: 'catalogo', submenu: [
+    { rotulo: 'Módulos',     caminho: '/equipamentos/modulos', modulo: 'catalogo' },
+    { rotulo: 'Inversores',  caminho: '/equipamentos/inversores', modulo: 'catalogo' },
+    { rotulo: 'Carregadores EV', caminho: '/equipamentos/carregadores-ev', modulo: 'catalogo' },
+    { rotulo: 'Baterias',    caminho: '/equipamentos/baterias', modulo: 'catalogo' },
+    { rotulo: '🧪 Qualidade', caminho: '/admin/catalogo/qualidade', modulo: 'catalogo' },
   ]},
-  { rotulo: 'Configurações', caminho: '/configuracoes', icone: Settings        },
+  { rotulo: 'Configurações', caminho: '/configuracoes', icone: Settings, modulo: 'configuracoes' },
 ]
 
 export default function Sidebar() {
   const [recolhida, setRecolhida] = useState(false)
   const [menuAberto, setMenuAberto] = useState({})
   const { empresa } = useEmpresa()
+  const { pode } = usePermissao()
+
+  // S7.2.1: filtra menu por permissão (módulo sem 'visualizar' some)
+  const menuVisivel = itensMenu
+    .filter(it => !it.modulo || pode(it.modulo, 'visualizar'))
+    .map(it => it.submenu
+      ? { ...it, submenu: it.submenu.filter(s => !s.modulo || pode(s.modulo, 'visualizar')) }
+      : it)
+    .filter(it => !it.submenu || it.submenu.length > 0)
 
   const corBg     = empresa.corSecundaria || '#0f172a'
   const corAtivo  = empresa.corPrimaria   || '#f97316'
@@ -67,7 +77,7 @@ export default function Sidebar() {
 
       {/* Navegação */}
       <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto">
-        {itensMenu.map((item) => {
+        {menuVisivel.map((item) => {
           const { rotulo, caminho, icone: Icone, submenu } = item
           const temSubmenu = submenu && submenu.length > 0
 
