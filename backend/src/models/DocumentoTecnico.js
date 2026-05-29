@@ -14,8 +14,10 @@ const documentoTecnicoSchema = new mongoose.Schema({
   nome:        { type: String, default: null },
 
   hash_sha256: { type: String, required: true, unique: true, index: true },
+  document_path: { type: String, default: null, index: true }, // referência oficial (S8.2.1)
   url_storage: { type: String, default: null },
-  storage_provider: { type: String, default: 'local' }, // local|s3|r2
+  storage_provider: { type: String, default: 'local' }, // local|onedrive|google_drive|dropbox|s3|r2
+  ref_externa: { type: String, default: null },          // cache opcional do id no provider (NUNCA chave)
 
   tamanho_original: { type: Number, default: null },
   tamanho_final:    { type: Number, default: null },

@@ -1,35 +1,43 @@
 /**
- * documentStorageService.js — Sprint 8.2
+ * documentStorageService.js — Sprint 8.2 / 8.2.1
  *
- * Camada de armazenamento de documentos preparada para Object Storage (S3/R2).
- * Enquanto o storage externo não estiver configurado, usa um ADAPTER LOCAL
- * temporário (data URL base64) — não quebra o ambiente atual. O Mongo guarda
- * apenas a referência (url_storage), nunca o binário grande direto no doc.
+ * Fachada de armazenamento. Delega ao StorageProvider configurado pela empresa
+ * (Local/OneDrive/GoogleDrive/Dropbox/S3) via storageProviders. A aplicação
+ * nunca conhece o provider concreto; referência oficial = document_path + hash.
  */
-const CONFIG = {
-  provider: process.env.DOC_STORAGE_PROVIDER || 'local', // 'local' | 's3' | 'r2'
-  bucket: process.env.DOC_STORAGE_BUCKET || null,
-  endpoint: process.env.DOC_STORAGE_ENDPOINT || null,
+import { getProvider, PROVIDERS_DISPONIVEIS } from './storageProviders.js'
+
+export function statusStorage(armazenamento = null) {
+  const provider = armazenamento?.provider || 'local'
+  return { provider, disponiveis: PROVIDERS_DISPONIVEIS, configurado: provider === 'local' || Boolean(armazenamento?.config) }
 }
 
-export function statusStorage() {
-  return { provider: CONFIG.provider, configurado: Boolean(CONFIG.bucket), modo: CONFIG.provider === 'local' ? 'adapter_local' : 'object_storage' }
+// Monta um document_path determinístico /ForteSolar/Catalogo/<tipo>/<fabricante>/<arquivo>
+export function montarDocumentPath({ tipo = 'documento', fabricante = 'geral', nome = 'arquivo', hash = '' }) {
+  const slug = (s) => String(s || '').replace(/[^\w.-]+/g, '_').slice(0, 60)
+  const sufixo = hash ? `_${hash.slice(0, 8)}` : ''
+  return `/ForteSolar/Catalogo/${slug(tipo)}/${slug(fabricante)}/${slug(nome)}${sufixo}`
 }
 
 /**
- * Salva o conteúdo e devolve a referência de storage.
- * @param {object} p { hash, mimetype, buffer | dataUrl, nome }
- * @returns {Promise<{ url_storage, provider }>}
+ * Salva via provider configurado.
+ * @returns {Promise<{ url_storage, storage_provider, document_path }>}
  */
-export async function salvar({ hash, mimetype = 'application/octet-stream', buffer = null, dataUrl = null, nome = null }) {
-  if (CONFIG.provider !== 'local' && CONFIG.bucket) {
-    // TODO (futuro): PutObject no S3/R2; retornar URL pública/assinada.
-    // const key = `documentos/${hash}-${nome}`; await s3.putObject(...)
-    // return { url_storage: `${CONFIG.endpoint}/${CONFIG.bucket}/${key}`, provider: CONFIG.provider }
-  }
-  // Adapter local: mantém o conteúdo como data URL (referência inline).
-  const conteudo = dataUrl || (buffer ? `data:${mimetype};base64,${buffer.toString('base64')}` : null)
-  return { url_storage: conteudo, provider: 'local' }
+export async function salvar({ hash, mimetype = 'application/octet-stream', buffer = null, dataUrl = null, nome = null, tipo = 'documento', fabricante = 'geral', armazenamento = null }) {
+  const provider = getProvider(armazenamento)
+  const document_path = montarDocumentPath({ tipo, fabricante, nome, hash })
+  const r = await provider.upload({ document_path, hash, buffer, mimetype, dataUrl, nome })
+  return { url_storage: r.url_storage ?? null, storage_provider: r.storage_provider || provider.nome, document_path }
 }
 
-export default { salvar, statusStorage }
+/** Verifica existência física antes do download. */
+export async function existe(ref, armazenamento = null) {
+  return getProvider(armazenamento).exists(ref)
+}
+
+/** Baixa o conteúdo (buffer + mimetype) via provider. */
+export async function baixar(ref, armazenamento = null) {
+  return getProvider(armazenamento).download(ref)
+}
+
+export default { salvar, existe, baixar, statusStorage, montarDocumentPath }
