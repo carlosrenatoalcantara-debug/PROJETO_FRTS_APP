@@ -13,7 +13,9 @@ import multer from 'multer'
 import mongoose from 'mongoose'
 import { Equipamento } from '../models/Equipamento.js'
 import { processarEquipamento } from '../services/catalogoQualidade.js'
+import crypto from 'crypto'
 import { ingerir } from '../services/catalogIntelligenceService.js'
+import { avaliarUtilizavel } from '../services/utilizavelProjeto.js'
 import { AuditLog } from '../models/AuditLog.js'
 
 const router = Router()
@@ -437,8 +439,16 @@ router.post('/analisar', uploadDS.single('pdf'), async (req, res) => {
     const tipo = req.body?.tipo || req.query?.tipo || 'auto'
     if (!req.file) return res.status(400).json({ sucesso: false, erro: 'Envie o datasheet no campo "pdf".' })
     const resultado = await ingerir({ buffer: req.file.buffer, tipo })
+    // S8.0.1: devolve o datasheet original (hash + base64) p/ persistir na aprovação
+    const hash = crypto.createHash('sha256').update(req.file.buffer).digest('hex')
+    const datasheet_original = {
+      nome: req.file.originalname || 'datasheet.pdf',
+      hash, data_upload: new Date(), origem: 'upload_revisao',
+      conteudo_base64: req.file.buffer.length <= 8 * 1024 * 1024
+        ? `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}` : null,
+    }
     await _auditCatalogo(req, 'analise_ia', `${resultado.tipo} · ${Object.keys(resultado.campos).length} campos · conf ${resultado.confianca_global}`)
-    res.json({ sucesso: true, ...resultado, revisao_humana: true })
+    res.json({ sucesso: true, ...resultado, datasheet_original, revisao_humana: true })
   } catch (err) {
     console.error('[adminCatalogo] analisar:', err)
     res.status(500).json({ sucesso: false, erro: err.message })
@@ -451,10 +461,15 @@ router.patch('/equipamento/:id', async (req, res) => {
     if (mongoose.connection.readyState !== 1) return res.status(503).json({ sucesso: false, erro: 'DB_OFFLINE' })
     const { id } = req.params
     if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ sucesso: false, erro: 'ID inválido' })
-    const { campos = {}, usuario = null } = req.body || {}
+    const { campos = {}, usuario = null, datasheet_original = null } = req.body || {}
 
     const eq = await Equipamento.findById(id)
     if (!eq) return res.status(404).json({ sucesso: false, erro: 'Equipamento não encontrado' })
+    // S8.0.1: anexa/atualiza o datasheet original (dedupe por hash)
+    if (datasheet_original && datasheet_original.hash && eq.datasheet_original?.hash !== datasheet_original.hash) {
+      eq.datasheet_original = datasheet_original
+      eq.markModified('datasheet_original')
+    }
 
     const antes = {}
     const depois = {}
@@ -482,6 +497,10 @@ router.patch('/equipamento/:id', async (req, res) => {
     eq.identificacao = resultado.identificacao
     eq.qualidade = resultado.qualidade
     eq.status_operacional = resultado.status_operacional
+    // S8.0.1: liberação para engenharia
+    const av = avaliarUtilizavel(eq.tipo, eq.especificacoes)
+    eq.utilizavel_em_projeto = av.utilizavel
+    eq.bloqueio_engenharia = av.faltando
     await eq.save()
 
     await _auditCatalogo(req, 'edicao_manual', `${eq.fabricante} ${eq.modelo} — ${Object.keys(campos).join(', ')}`)
@@ -541,6 +560,39 @@ router.delete('/por-status', async (req, res) => {
     res.json({ sucesso: true, excluidos: r.deletedCount, status: alvos })
   } catch (err) {
     console.error('[adminCatalogo] por-status:', err)
+    res.status(500).json({ sucesso: false, erro: err.message })
+  }
+})
+
+// POST /completar-ia/:id — reanalisa o datasheet salvo e devolve SOMENTE os campos
+// vazios (revisão humana). Nunca sobrescreve dado manual aprovado.
+router.post('/completar-ia/:id', async (req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) return res.status(503).json({ sucesso: false, erro: 'DB_OFFLINE' })
+    const { id } = req.params
+    if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ sucesso: false, erro: 'ID inválido' })
+    const eq = await Equipamento.findById(id)
+    if (!eq) return res.status(404).json({ sucesso: false, erro: 'Equipamento não encontrado' })
+
+    const b64 = eq.datasheet_original?.conteudo_base64
+    if (!b64) return res.status(409).json({ sucesso: false, codigo: 'SEM_DATASHEET', erro: 'Sem datasheet original salvo para reprocessar.' })
+
+    const buffer = Buffer.from(String(b64).split(',').pop(), 'base64')
+    const resultado = await ingerir({ buffer, tipo: eq.tipo, fabricante: eq.fabricante, modelo: eq.modelo })
+
+    // Mantém o que já existe (manual/aprovado); sugere apenas para campos vazios
+    const esp = eq.especificacoes || {}
+    const fonteDados = eq.fonte_dados || {}
+    const sugestoes = {}
+    for (const [k, v] of Object.entries(resultado.campos)) {
+      const ehManual = fonteDados[k]?.fonte === 'Manual'
+      const vazio = esp[k] == null || esp[k] === ''
+      if (!ehManual && vazio) sugestoes[k] = v   // {valor,fonte,confianca}
+    }
+    await _auditCatalogo(req, 'completar_ia', `${eq.fabricante} ${eq.modelo} — ${Object.keys(sugestoes).length} sugestão(ões)`)
+    res.json({ sucesso: true, tipo: resultado.tipo, sugestoes, faltantes: resultado.faltantes, revisao_humana: true })
+  } catch (err) {
+    console.error('[adminCatalogo] completar-ia:', err)
     res.status(500).json({ sucesso: false, erro: err.message })
   }
 })

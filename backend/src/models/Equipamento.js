@@ -120,6 +120,21 @@ const EquipamentoSchema = new mongoose.Schema(
     status_operacional: { type: StatusOperacionalSchema, default: () => ({ pode_ser_selecionado: true }) },
     validacao:          { type: ValidacaoSchema, default: () => ({ historico: [] }) },
     specs_canonicas:    { type: mongoose.Schema.Types.Mixed, default: null },
+
+    // === S8.0.1: datasheet original + liberação de engenharia ============
+    // Guarda o PDF/imagem original (base64) p/ reprocessar com IA depois.
+    datasheet_original: {
+      nome:           { type: String, default: null },
+      hash:           { type: String, default: null, index: true },
+      data_upload:    { type: Date,   default: null },
+      origem:         { type: String, default: null },
+      conteudo_base64:{ type: String, default: null },   // dataURL (cap ~8MB)
+    },
+    // Proveniência por campo: { campo: { fonte, confianca } }
+    fonte_dados: { type: mongoose.Schema.Types.Mixed, default: null },
+    // Flag de uso seguro em projeto (orçamento) — calculada por regras de campos
+    utilizavel_em_projeto: { type: Boolean, default: true },
+    bloqueio_engenharia:   { type: [String], default: [] },
   },
   { timestamps: true }
 )

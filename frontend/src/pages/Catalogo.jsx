@@ -11,6 +11,7 @@ import {
   podeUsarEmProjeto,
   NIVEL_CONFIG,
 } from '../utils/catalogQualityEngine'
+import { avaliarUtilizavel } from '../utils/utilizavelProjeto'
 
 const API_URL = '' /* URL relativa forçada — Vercel proxy → Railway */
 
@@ -67,7 +68,7 @@ function AlertasLista({ alertas }) {
 }
 
 // Card de equipamento com badge de qualidade e score
-function EquipamentoCard({ eq, onDeletar, onReprocessar, selecionado, onToggleSel, onEditar }) {
+function EquipamentoCard({ eq, onDeletar, onReprocessar, selecionado, onToggleSel, onEditar, onCompletarIA }) {
   const [expandido, setExpandido] = useState(false)
 
   // Qualidade: prefere dados calculados pelo backend, fallback ao engine local
@@ -96,6 +97,12 @@ function EquipamentoCard({ eq, onDeletar, onReprocessar, selecionado, onToggleSe
           </div>
         </div>
         <div className="flex items-center gap-1 shrink-0">
+          {onCompletarIA && (
+            <button onClick={onCompletarIA} title="Completar com IA (datasheet salvo)"
+              className="text-slate-400 hover:text-violet-600 p-1 rounded">
+              <Zap size={13} />
+            </button>
+          )}
           {onEditar && (
             <button onClick={onEditar} title="Editar ficha técnica"
               className="text-slate-400 hover:text-emerald-600 p-1 rounded">
@@ -127,6 +134,16 @@ function EquipamentoCard({ eq, onDeletar, onReprocessar, selecionado, onToggleSe
             <ScoreBar score={score} />
           </div>
         )}
+
+        {/* S8.0.1: liberação para engenharia */}
+        {(() => {
+          const av = eq.utilizavel_em_projeto != null
+            ? { utilizavel: eq.utilizavel_em_projeto, faltando: eq.bloqueio_engenharia || [] }
+            : avaliarUtilizavel(eq.tipo, esp)
+          return av.utilizavel
+            ? <div className="text-xs text-emerald-700 bg-emerald-50 rounded px-2 py-1">Engenharia: Liberado ✓</div>
+            : <div className="text-xs text-red-700 bg-red-50 rounded px-2 py-1">Engenharia: Bloqueado — Falta: {av.faltando.join(', ')}</div>
+        })()}
 
         {isMod ? (
           <>
@@ -901,6 +918,30 @@ function AbaEquipamentos({ tipo, equipamentos, carregarDados }) {
     } catch (e) { alert('Erro: ' + e.message) }
   }
 
+  // S8.0.1: completar com IA usando o datasheet salvo → revisão humana → PATCH
+  async function completarIA(eq) {
+    try {
+      const res = await fetch(`${API_URL}/api/admin/catalogo/completar-ia/${eq._id}`, { method: 'POST' })
+      const d = await res.json()
+      if (!d.sucesso) { alert('Erro: ' + (d.erro || (d.codigo === 'SEM_DATASHEET' ? 'Sem datasheet salvo.' : res.status))); return }
+      const sug = d.sugestoes || {}
+      const chaves = Object.keys(sug)
+      if (chaves.length === 0) { alert('IA não encontrou campos vazios para sugerir.'); return }
+      // Revisão humana simples: confirma cada sugestão
+      const campos = {}
+      for (const k of chaves) {
+        const s = sug[k]
+        if (window.confirm(`Confirmar "${k}" = ${s.valor} (${s.fonte}, ${Math.round((s.confianca || 0) * 100)}%)?`)) campos[k] = s.valor
+      }
+      if (Object.keys(campos).length === 0) return
+      const pr = await fetch(`${API_URL}/api/admin/catalogo/equipamento/${eq._id}`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ campos }),
+      })
+      const pd = await pr.json()
+      if (pd.sucesso) await carregarDados(); else alert('Erro ao salvar: ' + (pd.erro || pr.status))
+    } catch (e) { alert('Erro: ' + e.message) }
+  }
+
   return (
     <div className="space-y-4">
       {/* Cabeçalho */}
@@ -972,6 +1013,7 @@ function AbaEquipamentos({ tipo, equipamentos, carregarDados }) {
             selecionado={!!selecionados[eq._id]}
             onToggleSel={() => toggleSel(eq._id)}
             onEditar={() => editarManual(eq)}
+            onCompletarIA={() => completarIA(eq)}
           />
         ))}
         {filtrados.length === 0 && (
