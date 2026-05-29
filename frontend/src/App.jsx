@@ -26,6 +26,8 @@ import Login               from './pages/Login'
 import AdminCatalogoQualidade from './pages/AdminCatalogoQualidade'
 import RecomendacaoKits       from './pages/RecomendacaoKits'
 import PropostaPublica        from './pages/PropostaPublica'
+import PainelExecutivo        from './pages/PainelExecutivo'
+import Auditoria              from './pages/Auditoria'
 
 export default function App() {
   return (
@@ -36,6 +38,8 @@ export default function App() {
       <Route path="/" element={<Layout />}>
         <Route index element={<Navigate to="/dashboard" replace />} />
         <Route path="dashboard"               element={<Dashboard />} />
+        <Route path="painel-executivo"        element={<PainelExecutivo />} />
+        <Route path="auditoria"               element={<Auditoria />} />
         <Route path="clientes"                element={<Clientes />} />
         <Route path="clientes/:clienteId"     element={<ClienteGerenciamento />} />
         {/* DEPRECATED_DO_NOT_USE — Substituído por ProjetosFVNovo (/projetos-fv/novo).

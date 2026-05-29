@@ -42,9 +42,12 @@ export const gerarPropostaPDF = (dados) => {
     cnpj: cnpjEmpresa = '',
     endereco: enderecoEmpresa = '',
     responsavelTecnico: rtEmpresa = null,
+    responsavelTecnicoProjeto: rtProjeto = null,  // S7.3: técnico do projeto (prioritário)
   } = empresa
-  const rtLinha = rtEmpresa?.nome
-    ? `${rtEmpresa.nome}${rtEmpresa.registro ? ` — ${rtEmpresa.tipoRegistro || 'CREA'} ${rtEmpresa.registro}${rtEmpresa.uf ? '/' + rtEmpresa.uf : ''}` : ''}`
+  // Prioridade: técnico do projeto → responsável técnico da empresa → fallback
+  const rt = rtProjeto?.nome ? rtProjeto : rtEmpresa
+  const rtLinha = rt?.nome
+    ? `${rt.nome}${rt.registro ? ` — ${rt.tipoRegistro || rt.tipo_registro || 'CREA'} ${rt.registro}${rt.uf ? '/' + rt.uf : ''}` : ''}`
     : 'Responsável Técnico'
 
   // S4: seção de condições de pagamento (somente se houver dados financeiros)
@@ -382,7 +385,7 @@ export const gerarPropostaPDF = (dados) => {
           <div class="assinatura-box">
             <div class="assinatura-linha"></div>
             <div class="assinatura-nome">${rtLinha}</div>
-            <div class="assinatura-cargo">Responsável Técnico${rtEmpresa?.modalidade ? ' · ' + rtEmpresa.modalidade : ''}</div>
+            <div class="assinatura-cargo">Responsável Técnico${rt?.modalidade ? ' · ' + rt.modalidade : ''}</div>
           </div>
         </div>
 

@@ -208,6 +208,32 @@ export const csrfProtection = (req, res, next) => {
  * Middleware: Logging de auditoria
  * Registra todas as ações críticas
  */
+// S7.3: deriva o módulo a partir do path (para filtros de auditoria)
+function _moduloDoPath(p = '') {
+  if (p.includes('/projetos-fv')) return 'fv'
+  if (p.includes('/projetos-ev')) return 'ev'
+  if (p.includes('/financeiro')) return 'financeiro'
+  if (p.includes('/crm')) return 'crm'
+  if (p.includes('/governanca')) return 'governanca'
+  if (p.includes('/catalogo') || p.includes('/equipamentos')) return 'catalogo'
+  if (p.includes('/gestao') || p.includes('/empresa') || p.includes('/configuracoes')) return 'configuracoes'
+  return 'outro'
+}
+
+// S7.3: grava a entrada de auditoria (lazy import p/ evitar ciclos; só se Mongo on)
+async function persistirAuditoria(entry, req) {
+  try {
+    const mongoose = (await import('mongoose')).default
+    if (mongoose.connection.readyState !== 1) return
+    const { AuditLog } = await import('../models/AuditLog.js')
+    await AuditLog.create({
+      timestamp: entry.timestamp, usuario: entry.userId, perfil: entry.perfil,
+      empresa: entry.empresa, modulo: _moduloDoPath(req.path), acao: req.method,
+      metodo: req.method, path: req.path, status: entry.statusCode, ip: entry.ip,
+    })
+  } catch { /* silencioso */ }
+}
+
 export const auditLogger = (req, res, next) => {
   const startTime = Date.now();
 
@@ -231,8 +257,10 @@ export const auditLogger = (req, res, next) => {
     };
 
     // Logar eventos críticos
-    if (res.statusCode >= 400 || ['POST', 'PUT', 'DELETE'].includes(req.method)) {
+    if (res.statusCode >= 400 || ['POST', 'PUT', 'DELETE', 'PATCH'].includes(req.method)) {
       console.log('[AUDIT]', JSON.stringify(auditEntry));
+      // S7.3: persiste a trilha (consultável). Não-bloqueante e tolerante a falha.
+      persistirAuditoria(auditEntry, req).catch(() => {});
     }
 
     res.send = originalSend;

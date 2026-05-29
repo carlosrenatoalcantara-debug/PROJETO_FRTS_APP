@@ -78,6 +78,7 @@ import rotasProjetosFV from './routes/projetosFV.js'
 import rotasPublico from './routes/publico.js'
 import rotasEmpresa from './routes/empresa.js'
 import rotasGestao from './routes/gestao.js'
+import rotasPainel from './routes/painel.js'
 import { decodificarUsuario, protegerModulo } from './middleware/rbacMiddleware.js'
 import rotasProjetosEV from './routes/projetosEV.js'
 import rotasDashboard  from './routes/dashboard.js'
@@ -226,6 +227,7 @@ app.use('/api/projetos-fv',  protegerModulo('fv'), rotasProjetosFV)
 app.use('/api/publico',      rotasPublico)   // S5 — leitura pública (sem RBAC, é público)
 app.use('/api/empresa',      protegerModulo('configuracoes'), rotasEmpresa)   // S7.1
 app.use('/api/gestao',       protegerModulo('configuracoes'), rotasGestao)    // S7.2
+app.use('/api/painel',       rotasPainel)    // S7.3 — painel executivo, health, auditoria
 app.use('/api/projetos-ev',  protegerModulo('ev'), rotasProjetosEV)
 app.use('/api/upload',       rotasUpload)
 app.use('/api/engenharia',   rotasEngenharia)

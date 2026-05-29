@@ -2,7 +2,7 @@ import { NavLink } from 'react-router-dom'
 import {
   LayoutDashboard, Users, Sun, Zap, Settings,
   ChevronLeft, ChevronRight, TrendingUp, Briefcase,
-  Package, ChevronDown,
+  Package, ChevronDown, BarChart3, Shield,
 } from 'lucide-react'
 import { useState } from 'react'
 import { useEmpresa } from '../../contexts/EmpresaContext'
@@ -10,6 +10,7 @@ import { usePermissao } from '../../hooks/usePermissao'
 
 const itensMenu = [
   { rotulo: 'Dashboard',     caminho: '/dashboard',     icone: LayoutDashboard },
+  { rotulo: 'Painel Executivo', caminho: '/painel-executivo', icone: BarChart3, modulo: 'financeiro' },
   { rotulo: 'Clientes',      caminho: '/clientes',      icone: Users,      modulo: 'crm'         },
   { rotulo: 'Financeiro',    caminho: '/financeiro',    icone: TrendingUp, modulo: 'financeiro'  },
   { rotulo: 'CRM',           caminho: '/crm',           icone: Briefcase,  modulo: 'crm'         },
@@ -24,6 +25,7 @@ const itensMenu = [
     { rotulo: 'Baterias',    caminho: '/equipamentos/baterias', modulo: 'catalogo' },
     { rotulo: '🧪 Qualidade', caminho: '/admin/catalogo/qualidade', modulo: 'catalogo' },
   ]},
+  { rotulo: 'Auditoria',     caminho: '/auditoria',     icone: Shield, modulo: 'configuracoes' },
   { rotulo: 'Configurações', caminho: '/configuracoes', icone: Settings, modulo: 'configuracoes' },
 ]
 
