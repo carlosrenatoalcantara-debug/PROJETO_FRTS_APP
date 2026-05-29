@@ -17,6 +17,24 @@ function tamanhoBase64(dataUrl) {
   return Math.floor(b64.length * 3 / 4) // bytes aproximados
 }
 
+/**
+ * S8.2: detecta assinatura digital em PDF (PAdES / ICP-Brasil / assinatura PDF).
+ * Heurística por marcadores no binário — não valida criptograficamente, mas
+ * é suficiente para PRESERVAR o arquivo (nunca recomprimir documento assinado).
+ * @param {Buffer} buffer
+ * @returns {{ assinado: boolean, tipo: string|null }}
+ */
+export function detectarAssinatura(buffer) {
+  if (!buffer || !buffer.length) return { assinado: false, tipo: null }
+  const txt = buffer.toString('latin1')
+  if (/adbe\.pkcs7\.detached|adbe\.pkcs7\.sha1/i.test(txt)) return { assinado: true, tipo: 'PAdES/PKCS7' }
+  if (/ETSI\.CAdES\.detached/i.test(txt)) return { assinado: true, tipo: 'PAdES-CAdES' }
+  if (/ICP-Brasil|AC\s+Raiz|Autoridade Certificadora/i.test(txt) && /\/Sig|\/ByteRange/i.test(txt)) return { assinado: true, tipo: 'ICP-Brasil' }
+  if (/\/Type\s*\/Sig|\/ByteRange\s*\[/.test(txt)) return { assinado: true, tipo: 'PDF Signature' }
+  if (/<(ds:)?Signature[\s>]/.test(txt) && /XAdES|xmldsig/i.test(txt)) return { assinado: true, tipo: 'XAdES' }
+  return { assinado: false, tipo: null }
+}
+
 function detectarTipo(dataUrl, nome = '') {
   const mime = /^data:([^;]+)/.exec(dataUrl || '')?.[1] || ''
   if (mime.includes('pdf') || /\.pdf$/i.test(nome)) return 'pdf'

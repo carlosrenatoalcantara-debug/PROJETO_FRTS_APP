@@ -16,8 +16,26 @@ import { processarEquipamento } from '../services/catalogoQualidade.js'
 import crypto from 'crypto'
 import { ingerir } from '../services/catalogIntelligenceService.js'
 import { avaliarUtilizavel } from '../services/utilizavelProjeto.js'
-import { otimizarDocumento } from '../services/documentOptimizerService.js'
+import { otimizarDocumento, detectarAssinatura } from '../services/documentOptimizerService.js'
+import { salvar as salvarStorage } from '../services/documentStorageService.js'
+import { analisarDocumentoTecnico } from '../services/geminiDocumentAnalyzer.js'
+import { DocumentoTecnico } from '../models/DocumentoTecnico.js'
 import { AuditLog } from '../models/AuditLog.js'
+
+// S8.2: status documental do equipamento (COMPLETO/PENDENTE/INCOMPLETO)
+export function statusDocumental(eq) {
+  const docs = eq?.documentos_tecnicos || []
+  const tem = (t) => docs.some(d => d.tipo === t)
+  const temDatasheet = tem('datasheet') || !!eq?.datasheet_original?.hash
+  if (eq?.tipo === 'inversor') {
+    const inmetro = !!eq?.certificacao?.inmetro?.numero || tem('inmetro')
+    const iec = (Array.isArray(eq?.certificacao?.normas_iec) && eq.certificacao.normas_iec.length > 0) || tem('iec')
+    if (temDatasheet && (inmetro || iec)) return 'COMPLETO'
+    if (temDatasheet || inmetro || iec) return 'PENDENTE'
+    return 'INCOMPLETO'
+  }
+  return temDatasheet ? 'COMPLETO' : 'INCOMPLETO'
+}
 
 // S8.0.2: documentos exigidos para homologação por tipo (preparação — não gera nada)
 export function obterDocumentosHomologacao(eq) {
@@ -657,6 +675,74 @@ router.post('/equipamento/:id/documento', uploadDS.single('arquivo'), async (req
     console.error('[adminCatalogo] documento:', err)
     res.status(500).json({ sucesso: false, erro: err.message })
   }
+})
+
+// POST /documento-enterprise — upload com dedup GLOBAL + assinatura + storage (S8.2)
+router.post('/documento-enterprise', uploadDS.single('arquivo'), async (req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) return res.status(503).json({ sucesso: false, erro: 'DB_OFFLINE' })
+    if (!req.file) return res.status(400).json({ sucesso: false, erro: 'Envie o arquivo no campo "arquivo".' })
+    const { tipo = 'datasheet', fabricante = null, modelo = null } = req.body || {}
+    const buffer = req.file.buffer
+    const hash = crypto.createHash('sha256').update(buffer).digest('hex')
+
+    // Dedup global: mesmo arquivo → reaproveita o documento existente
+    let doc = await DocumentoTecnico.findOne({ hash_sha256: hash })
+    if (doc) {
+      await _auditCatalogo(req, 'UPLOAD_DOCUMENTO', `dedup ${tipo}/${req.file.originalname} (ref existente)`)
+      return res.json({ sucesso: true, deduplicado: true, documento: doc })
+    }
+
+    // Assinatura digital → preserva binário (não recomprime)
+    const assinatura = detectarAssinatura(buffer)
+    const dataUrl = `data:${req.file.mimetype};base64,${buffer.toString('base64')}`
+    let otim
+    if (assinatura.assinado) {
+      otim = { conteudo: dataUrl, tamanho_original: buffer.length, tamanho_final: buffer.length, reducao_pct: 0, dpi_final: null }
+      await _auditCatalogo(req, 'DOCUMENTO_PRESERVADO_ASSINATURA', `${req.file.originalname} (${assinatura.tipo})`)
+    } else {
+      otim = otimizarDocumento(dataUrl, { nome: req.file.originalname })
+      await _auditCatalogo(req, 'DOCUMENTO_OTIMIZADO', `${req.file.originalname} ${otim.reducao_pct}%`)
+    }
+
+    const { url_storage, provider } = await salvarStorage({ hash, mimetype: req.file.mimetype, dataUrl: otim.conteudo, nome: req.file.originalname })
+
+    doc = await DocumentoTecnico.create({
+      tipo, fabricante, modelo, nome: req.file.originalname, hash_sha256: hash,
+      url_storage, storage_provider: provider,
+      tamanho_original: otim.tamanho_original, tamanho_final: otim.tamanho_final,
+      economia_pct: otim.reducao_pct, dpi_final: otim.dpi_final,
+      documento_assinado: assinatura.assinado, otimizacao_pulada: assinatura.assinado,
+      motivo_preservacao: assinatura.assinado ? 'Preservada validade jurídica' : null,
+    })
+    res.json({ sucesso: true, deduplicado: false, assinatura, documento: doc })
+  } catch (err) {
+    console.error('[adminCatalogo] documento-enterprise:', err)
+    res.status(500).json({ sucesso: false, erro: err.message })
+  }
+})
+
+// POST /analisar-documento — Gemini interpreta certificado/manual (revisão humana)
+router.post('/analisar-documento', uploadDS.single('arquivo'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ sucesso: false, erro: 'Envie o arquivo no campo "arquivo".' })
+    const resultado = await analisarDocumentoTecnico(req.file.buffer)
+    await _auditCatalogo(req, 'ANALISE_CERTIFICADO', `${resultado.tipo} · ${resultado.modelos_mapeados.length} modelo(s)`)
+    res.json({ sucesso: true, ...resultado })
+  } catch (err) {
+    console.error('[adminCatalogo] analisar-documento:', err)
+    res.status(500).json({ sucesso: false, erro: err.message })
+  }
+})
+
+// GET /equipamento/:id/pacote-homologacao + /status-documental
+router.get('/equipamento/:id/status-documental', async (req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) return res.status(503).json({ sucesso: false, erro: 'DB_OFFLINE' })
+    const eq = await Equipamento.findById(req.params.id).lean()
+    if (!eq) return res.status(404).json({ sucesso: false, erro: 'Não encontrado' })
+    res.json({ sucesso: true, status_documental: statusDocumental(eq), homologacao: obterDocumentosHomologacao(eq) })
+  } catch (err) { res.status(500).json({ sucesso: false, erro: err.message }) }
 })
 
 // GET /health-check — diagnóstico técnico do catálogo (S8.1.1)
