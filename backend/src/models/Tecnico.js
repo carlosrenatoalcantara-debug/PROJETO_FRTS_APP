@@ -14,6 +14,14 @@ const tecnicoSchema = new mongoose.Schema({
   telefone:    { type: String, default: null },
   empresa_id:  { type: mongoose.Schema.Types.ObjectId, ref: 'Empresa', default: null },
   ativo:       { type: Boolean, default: true },
+
+  // === S8.3: atribuição profissional ===================================
+  formacao:                       { type: String, default: null },
+  especialidades:                 { type: [String], default: [] },   // FV | EV | BESS
+  potencia_max_kw:                { type: Number, default: null },    // limite de atribuição (ex.: CFT 75kW)
+  validade_carteira_profissional: { type: Date,   default: null },
+  numero_art_padrao:              { type: String, default: null },
+  assinatura:                     { type: String, default: null },    // base64/URL
 }, { timestamps: true })
 
 export const Tecnico = mongoose.model('Tecnico', tecnicoSchema)

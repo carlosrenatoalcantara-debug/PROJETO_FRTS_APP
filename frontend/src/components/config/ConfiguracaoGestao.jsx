@@ -10,6 +10,8 @@ import { PERFIS, LABEL_PERFIL, MODULOS, MATRIZ_RBAC } from '../../utils/rbac'
  * CRUD leve (criar/listar/desativar). Sem auth/permissões impostas ainda.
  */
 const inp = 'px-2 py-1.5 rounded border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500'
+// S8.3: cargo = função (≠ perfil = permissão)
+const CARGOS = ['Diretor', 'Gerente', 'Comercial', 'Engenheiro Eletricista', 'Engenheiro Civil', 'Eletrotécnico', 'Instalador', 'Projetista', 'Administrativo', 'Financeiro']
 
 export default function ConfiguracaoGestao() {
   const [aba, setAba] = useState('usuarios')
@@ -46,7 +48,7 @@ export default function ConfiguracaoGestao() {
               { k: 'nome', label: 'Nome', req: true },
               { k: 'email', label: 'Email', req: true, type: 'email' },
               { k: 'telefone', label: 'Telefone' },
-              { k: 'cargo', label: 'Cargo' },
+              { k: 'cargo', label: 'Cargo', type: 'select', opcoes: CARGOS, def: 'Comercial' },
               { k: 'perfil', label: 'Perfil', type: 'select', opcoes: PERFIS, labels: LABEL_PERFIL, def: 'visualizador' },
             ]}
             colunas={['nome', 'email', 'perfil', 'cargo']}
@@ -73,8 +75,10 @@ export default function ConfiguracaoGestao() {
               { k: 'registro', label: 'Nº' },
               { k: 'uf', label: 'UF' },
               { k: 'modalidade', label: 'Modalidade' },
+              { k: 'potencia_max_kw', label: 'Limite (kW)', type: 'number' },
+              { k: 'validade_carteira_profissional', label: 'Validade carteira', type: 'date' },
             ]}
-            colunas={['nome', 'tipo_registro', 'registro', 'uf', 'modalidade']}
+            colunas={['nome', 'tipo_registro', 'registro', 'uf', 'potencia_max_kw']}
           />
         )}
         {aba === 'vendedores' && (

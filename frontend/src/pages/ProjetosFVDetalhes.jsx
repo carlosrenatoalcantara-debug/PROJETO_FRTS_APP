@@ -16,6 +16,7 @@ import { getFreezeStatusConfig } from '../utils/engenhariaGovernanca'
 import { getWorkflowConfig } from '../utils/comercialGovernanca'
 import { getPipelineConfig } from '../utils/crmComercial'
 import { tecnicosApi, vendedoresApi, registrarEventoPainel } from '../services/gestaoApi'
+import { usePermissao } from '../hooks/usePermissao'
 import InteractiveDiagram from '../components/diagram/InteractiveDiagram'
 import { carregarDiagramaLocal, salvarDiagramaLocal, deletarDiagramaLocal } from '../components/diagram/utils/diagramPersistence'
 
@@ -301,19 +302,30 @@ export default function ProjetosFVDetalhes() {
   )
 }
 
-// S7.2.1: seleção de técnico responsável e vendedor do projeto
+// S7.2.1 / S8.3: equipe + validação de atribuição do RT (limite de potência/validade)
 function EquipeProjeto({ projeto, onAtualizar }) {
   const [tecnicos, setTecnicos] = useState([])
   const [vendedores, setVendedores] = useState([])
   const [salvando, setSalvando] = useState(false)
   const [msg, setMsg] = useState('')
+  const { perfil, anonimo } = usePermissao()
+  const podeExcecao = anonimo || ['administrador', 'diretor', 'admin'].includes(perfil)
+
+  const projetoKwp = Number(projeto?.dimensionamento?.potenciaArredondada ?? projeto?.dimensionamento?.potencia_kwp ?? projeto?.potencia_kwp ?? 0)
 
   useEffect(() => {
     tecnicosApi.listar().then(setTecnicos).catch(() => {})
     vendedoresApi.listar().then(setVendedores).catch(() => {})
   }, [])
 
-  async function patch(campo, valor) {
+  // Avalia a atribuição de um técnico ao projeto
+  function avaliarTecnico(t) {
+    const venc = t.validade_carteira_profissional && new Date(t.validade_carteira_profissional) < new Date()
+    const acimaLimite = t.potencia_max_kw && projetoKwp > Number(t.potencia_max_kw)
+    return { vencido: !!venc, acimaLimite: !!acimaLimite }
+  }
+
+  async function patch(campo, valor, extra = {}) {
     setSalvando(true); setMsg('')
     try {
       const res = await fetch(`/api/projetos-fv/${projeto._id}`, {
@@ -326,12 +338,37 @@ function EquipeProjeto({ projeto, onAtualizar }) {
     } catch (e) { setMsg(e.message) } finally { setSalvando(false) }
   }
 
+  function selecionarTecnico(campo, id) {
+    if (!id) return patch(campo, '')
+    const t = tecnicos.find(x => x._id === id)
+    if (!t) return
+    const { vencido, acimaLimite } = avaliarTecnico(t)
+    if (vencido) { setMsg('⚠ Registro profissional vencido — seleção bloqueada.'); return }
+    if (acimaLimite) {
+      if (!podeExcecao) { setMsg(`⚠ Responsável fora do limite (${t.potencia_max_kw} kW < ${projetoKwp} kWp).`); return }
+      const just = window.prompt(`Atribuição EXCEDE o limite do RT (${t.potencia_max_kw} kW) para um projeto de ${projetoKwp} kWp.\nJustificativa (exceção Admin/Diretor):`, '')
+      if (!just) return
+      registrarEventoPainel('EXCECAO_RT', `${t.nome}: projeto ${projetoKwp}kWp > limite ${t.potencia_max_kw}kW — ${just}`, projeto._id, 'governanca')
+    }
+    registrarEventoPainel('RT_ALTERADO', `${campo}=${t.nome}`, projeto._id, 'governanca')
+    patch(campo, id)
+  }
+
   const sel = 'w-full px-2 py-1.5 rounded border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500'
+  const optLabel = (t) => {
+    const { vencido, acimaLimite } = avaliarTecnico(t)
+    let s = `${t.nome}${t.registro ? ` (${t.tipo_registro} ${t.registro})` : ''}`
+    if (t.potencia_max_kw) s += ` · até ${t.potencia_max_kw}kW`
+    if (vencido) s += ' · VENCIDO'
+    else if (acimaLimite) s += ' · ⚠ acima do limite'
+    return s
+  }
+
   return (
     <Card className="mt-6">
       <CardHeader className="flex items-center gap-2">
-        <Users size={16} className="text-indigo-600" /> Equipe do Projeto
-        {msg && <span className="text-xs text-emerald-600 ml-2">{msg}</span>}
+        <Users size={16} className="text-indigo-600" /> Equipe do Projeto ({projetoKwp} kWp)
+        {msg && <span className="text-xs text-amber-600 ml-2">{msg}</span>}
       </CardHeader>
       <CardBody>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -342,21 +379,24 @@ function EquipeProjeto({ projeto, onAtualizar }) {
               {vendedores.filter(v => v.ativo !== false).map(v => <option key={v._id} value={v._id}>{v.nome}</option>)}
             </select>
           </div>
-          <div>
-            <label className="text-xs text-slate-500 block mb-1">Técnico principal</label>
-            <select className={sel} disabled={salvando} value={projeto.tecnico_principal_id?._id || projeto.tecnico_principal_id || ''} onChange={e => patch('tecnico_principal_id', e.target.value)}>
-              <option value="">—</option>
-              {tecnicos.filter(t => t.ativo !== false).map(t => <option key={t._id} value={t._id}>{t.nome} {t.registro ? `(${t.tipo_registro} ${t.registro})` : ''}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="text-xs text-slate-500 block mb-1">Técnico secundário</label>
-            <select className={sel} disabled={salvando} value={projeto.tecnico_secundario_id?._id || projeto.tecnico_secundario_id || ''} onChange={e => patch('tecnico_secundario_id', e.target.value)}>
-              <option value="">—</option>
-              {tecnicos.filter(t => t.ativo !== false).map(t => <option key={t._id} value={t._id}>{t.nome}</option>)}
-            </select>
-          </div>
+          {['tecnico_principal_id', 'tecnico_secundario_id'].map((campo, i) => (
+            <div key={campo}>
+              <label className="text-xs text-slate-500 block mb-1">{i === 0 ? 'Técnico principal' : 'Técnico secundário'}</label>
+              <select className={sel} disabled={salvando}
+                value={projeto[campo]?._id || projeto[campo] || ''}
+                onChange={e => selecionarTecnico(campo, e.target.value)}>
+                <option value="">—</option>
+                {tecnicos.filter(t => t.ativo !== false).map(t => {
+                  const { vencido } = avaliarTecnico(t)
+                  return <option key={t._id} value={t._id} disabled={vencido}>{optLabel(t)}</option>
+                })}
+              </select>
+            </div>
+          ))}
         </div>
+        <p className="text-[11px] text-slate-400 mt-2">
+          RT acima do limite só pode ser atribuído por Admin/Diretor com justificativa (auditada). Registro vencido bloqueia a seleção.
+        </p>
       </CardBody>
     </Card>
   )
