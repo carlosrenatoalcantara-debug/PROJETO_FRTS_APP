@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { MapPin, Zap, Wrench, FileText, Download, Plus, X, Edit2 } from 'lucide-react'
 import Card, { CardHeader, CardBody } from '../components/ui/Card'
@@ -768,35 +768,11 @@ export default function NovaPropostaEV() {
                 {modoEdicao ? (
                   // Modo de Edição: Diagrama Interativo
                   <div className="border-2 border-blue-300 rounded-lg overflow-hidden bg-white" style={{ height: '600px' }}>
-                    <InteractiveDiagram
+                    <InteractiveDiagramWrapper
                       calculos={calculos}
-                      projeto={{
-                        projeto_nome: dados.nome_projeto,
-                        cliente_nome: dados.cliente_nome,
-                        endereco: dados.endereco,
-                        carregador_potencia_kw: carregadores.reduce((sum, c) => sum + c.potencia_kw * c.quantidade, 0),
-                        carregador_tipo: carregadores[0]?.tipo || 'AC Trifásico',
-                        carregador_marca: carregadores[0]?.marca || '',
-                        carregador_modelo: carregadores[0]?.modelo || '',
-                        comprimento_cabo: dados.comprimento_cabo_m,
-                        tecnico_nome: dados.tecnico_nome,
-                        tecnico_crea: dados.tecnico_crea,
-                      }}
-                      onDiagramChange={(diagramData) => {
-                        setDiagramaEditado(diagramData)
-                        // Salvar localmente para persistência
-                        salvarDiagramaLocal(
-                          `proposta-${dados.nome_projeto}`,
-                          diagramData.nodes,
-                          diagramData.edges,
-                          {
-                            projeto_nome: dados.nome_projeto,
-                            cliente_nome: dados.cliente_nome,
-                            timestamp: new Date().toISOString()
-                          }
-                        )
-                      }}
-                      readOnly={false}
+                      dados={dados}
+                      carregadores={carregadores}
+                      onChange={setDiagramaEditado}
                     />
                   </div>
                 ) : (
@@ -855,5 +831,66 @@ export default function NovaPropostaEV() {
         />
       )}
     </div>
+  )
+}
+
+/**
+ * EV-CRASH-FIX: wrapper que MEMOIZA `projeto` e `onDiagramChange` antes de
+ * passar para o InteractiveDiagram.
+ *
+ * Causa raiz do crash do step 4 (Unifilar):
+ *   InteractiveDiagram tem useEffect com deps [calculos, projeto, onDiagramChange]
+ *   e chama onDiagramChange dentro dele. Como o pai criava `projeto` (objeto
+ *   literal) e `onDiagramChange` (arrow function inline) em cada render, cada
+ *   chamada de onDiagramChange → setDiagramaEditado → re-render do pai →
+ *   nova referência de projeto/onDiagramChange → deps mudaram → useEffect
+ *   refire → onDiagramChange de novo → loop infinito → React aborta
+ *   "Maximum update depth exceeded".
+ *
+ * Fix: useMemo/useCallback estabilizam as referências.
+ */
+function InteractiveDiagramWrapper({ calculos, dados, carregadores, onChange }) {
+  const projeto = useMemo(() => ({
+    projeto_nome: dados.nome_projeto,
+    cliente_nome: dados.cliente_nome,
+    endereco: dados.endereco,
+    carregador_potencia_kw: carregadores.reduce((sum, c) => sum + (Number(c.potencia_kw) || 0) * (Number(c.quantidade) || 1), 0),
+    carregador_tipo: carregadores[0]?.tipo || 'AC Trifásico',
+    carregador_marca: carregadores[0]?.marca || '',
+    carregador_modelo: carregadores[0]?.modelo || '',
+    comprimento_cabo: dados.comprimento_cabo_m,
+    tecnico_nome: dados.tecnico_nome,
+    tecnico_crea: dados.tecnico_crea,
+  }), [
+    // Apenas campos que afetam o diagrama
+    dados.nome_projeto, dados.cliente_nome, dados.endereco, dados.comprimento_cabo_m,
+    dados.tecnico_nome, dados.tecnico_crea, carregadores,
+  ])
+
+  const handleChange = useCallback((diagramData) => {
+    onChange(diagramData)
+    try {
+      salvarDiagramaLocal(
+        `proposta-${dados.nome_projeto || 'sem-nome'}`,
+        diagramData?.nodes,
+        diagramData?.edges,
+        {
+          projeto_nome: dados.nome_projeto,
+          cliente_nome: dados.cliente_nome,
+          timestamp: new Date().toISOString(),
+        },
+      )
+    } catch (e) {
+      console.warn('[EV] Falha ao salvar diagrama local:', e?.message)
+    }
+  }, [onChange, dados.nome_projeto, dados.cliente_nome])
+
+  return (
+    <InteractiveDiagram
+      calculos={calculos}
+      projeto={projeto}
+      onDiagramChange={handleChange}
+      readOnly={false}
+    />
   )
 }

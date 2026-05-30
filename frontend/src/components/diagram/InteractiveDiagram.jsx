@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect, useMemo, Suspense } from 'react';
+import React, { useCallback, useState, useEffect, useMemo, useRef, Suspense } from 'react';
 import ReactFlow, {
   addEdge,
   useNodesState,
@@ -77,6 +77,12 @@ export default function InteractiveDiagram({
     custom: CustomEdge
   }), []);
 
+  // EV-CRASH-FIX: ref estável para onDiagramChange — evita reentrar no useEffect
+  // quando o pai reseta a referência da função. O efeito legítimo de re-init
+  // dispara apenas quando `calculos` ou `projeto` mudam de identidade.
+  const onDiagramChangeRef = useRef(onDiagramChange);
+  useEffect(() => { onDiagramChangeRef.current = onDiagramChange; }, [onDiagramChange]);
+
   // Inicializar diagrama com dados de entrada
   useEffect(() => {
     try {
@@ -116,8 +122,9 @@ export default function InteractiveDiagram({
           erros: [...val.erros, ...valFluxo.erros]
         });
 
-        if (onDiagramChange) {
-          onDiagramChange({ nodes: nodesComCallbacks, edges: novoEdges });
+        // EV-CRASH-FIX: chama via ref para NÃO depender da identidade de onDiagramChange
+        if (onDiagramChangeRef.current) {
+          onDiagramChangeRef.current({ nodes: nodesComCallbacks, edges: novoEdges });
         }
       } else {
         console.warn('⚠️ InteractiveDiagram: Faltam dados', { calculos, projeto });
@@ -127,7 +134,10 @@ export default function InteractiveDiagram({
       console.error('❌ Erro ao inicializar diagrama:', err);
       setErro(`Erro ao inicializar diagrama: ${err.message}`);
     }
-  }, [calculos, projeto, onDiagramChange]); // ✨ Atualizar quando props mudam!
+    // EV-CRASH-FIX: deps reduzidas. `onDiagramChange` não dispara mais re-init
+    // (consumido via ref). Loop infinito eliminado.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [calculos, projeto]);
 
   // Quando nó é selecionado
   const handleNodeClick = useCallback((event, node) => {
