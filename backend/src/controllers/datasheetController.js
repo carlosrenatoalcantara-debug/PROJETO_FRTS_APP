@@ -731,11 +731,21 @@ export async function verificarDuplicata(req, res) {
       ? modelo.replace(/[-\d]+W$/, '')
       : modelo
 
-    const query = {
-      tipo,
-      fabricante: { $regex: fabricante.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' },
-      modelo:     { $regex: modeloBase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' },
-    }
+    // S8.6.3: para INVERSORES, exige match EXATO de fabricante E modelo
+    // (case-insensitive, mas ancorado). Antes era substring → 2 datasheets
+    // diferentes do mesmo fabricante podiam ser tratados como "o mesmo".
+    const esc = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const query = tipo === 'inversor'
+      ? {
+          tipo,
+          fabricante: { $regex: `^${esc(fabricante)}$`, $options: 'i' },
+          modelo:     { $regex: `^${esc(modeloBase)}$`, $options: 'i' },
+        }
+      : {
+          tipo,
+          fabricante: { $regex: esc(fabricante), $options: 'i' },
+          modelo:     { $regex: esc(modeloBase), $options: 'i' },
+        }
     if (potenciaW && tipo === 'modulo') query['especificacoes.potencia_wp'] = Number(potenciaW)
 
     const existe = await Equipamento.findOne(query).lean()

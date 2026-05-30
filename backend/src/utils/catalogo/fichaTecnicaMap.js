@@ -53,39 +53,66 @@ const GRUPOS_POR_TIPO = {
     'Certificações': [], // preenchido dinamicamente abaixo
   },
   inversor: {
+    // S8.6.3: cada slot aceita array de aliases. Lê o PRIMEIRO disponível.
+    // Causa raiz das specs vazias: ModalNovoInversor salva com nomes do prompt
+    // Claude (n_mppts, tensao_max_entrada, etc.); fichaTecnicaMap usava nomes
+    // diferentes (mppts, voc_max, etc.) → todos os campos apareciam como ausentes.
     'Identificação': [
       ['__fabricante', 'Fabricante'],
       ['__modelo', 'Modelo'],
       ['__tipo', 'Tipo'],
       ['linha', 'Linha'],
+      [['subtipo'], 'Subtipo'],   // microinversor | string
     ],
     'Entrada CC': [
-      ['voc_max', 'Voc máxima', 'V'],
-      ['faixa_mppt_min', 'MPPT mín', 'V'],
-      ['faixa_mppt_max', 'MPPT máx', 'V'],
-      ['mppts', 'Nº MPPT'],
-      ['strings_por_mppt', 'Strings/MPPT'],
-      ['corrente_max_mppt', 'Corrente MPPT', 'A'],
-      ['corrente_curto_mppt', 'Isc máxima', 'A'],
-      ['potencia_cc_max', 'Pot. CC máx', 'kW'],
-      ['tensao_partida', 'Tensão partida', 'V'],
+      [['tensao_max_entrada', 'voc_max', 'tensao_max_cc'], 'Tensão máx CC', 'V'],
+      [['tensao_mppt_min', 'faixa_mppt_min'], 'MPPT mín', 'V'],
+      [['tensao_mppt_max', 'faixa_mppt_max'], 'MPPT máx', 'V'],
+      [['n_mppts', 'mppts', 'nMppts'], 'Nº MPPT'],
+      [['strings_por_mppt'], 'Strings/MPPT'],
+      [['corrente_max_por_mppt', 'corrente_max_mppt'], 'Corrente máx MPPT', 'A'],
+      [['corrente_isc_max', 'corrente_curto_mppt'], 'Isc máxima', 'A'],
+      [['potencia_max_entrada_cc', 'potencia_cc_max'], 'Pot. máx entrada CC', 'kW'],
+      [['tensao_partida'], 'Tensão partida', 'V'],
+      [['tensao_nominal_cc'], 'Tensão nominal CC', 'V'],
+      [['corrente_max_entrada'], 'Corrente máx total', 'A'],
+      [['faixa_operacao_cc'], 'Faixa operação CC'],
     ],
     'Saída CA': [
-      ['potencia', 'Pot. nominal', 'kW'],
-      ['potencia_max', 'Pot. máxima', 'kW'],
-      ['corrente_max', 'Corrente nominal', 'A'],
-      ['tensao_saida', 'Tensão nominal', 'V'],
-      ['frequencia', 'Frequência', 'Hz'],
-      ['fases', 'Fases'],
+      [['potencia_kw', 'potencia_nominal_kw', 'potenciaKW', 'potencia'], 'Pot. nominal', 'kW'],
+      [['potencia_maxima_kw', 'potencia_max'], 'Pot. máxima', 'kW'],
+      [['potencia_aparente_kva'], 'Pot. aparente', 'kVA'],
+      [['corrente_ac_saida', 'corrente_max'], 'Corrente CA', 'A'],
+      [['tensao_ac', 'tensao_ac_nominal', 'tensao_saida'], 'Tensão nominal', 'V'],
+      [['faixa_tensao_rede'], 'Faixa tensão rede'],
+      [['frequencia_hz', 'frequencia'], 'Frequência', 'Hz'],
+      [['faixa_frequencia_hz'], 'Faixa frequência'],
+      [['fases', 'faseAC'], 'Fases'],
+      [['tipo_conexao_rede'], 'Conexão rede'],
+      [['fator_potencia'], 'Fator de potência'],
+      [['thdi'], 'THDi', '%'],
     ],
     'Eficiência': [
-      ['eficiencia', 'Eficiência máxima', '%'],
-      ['eficiencia_europeia', 'Eficiência europeia', '%'],
+      [['eficiencia_maxima', 'eficiencia'], 'Eficiência máxima', '%'],
+      [['eficiencia_europeia'], 'Eficiência europeia', '%'],
+      [['eficiencia_cec'], 'Eficiência CEC', '%'],
+      [['eficiencia_mppt'], 'Eficiência MPPT', '%'],
+    ],
+    'Proteções e Mecânico': [
+      [['protecao_antiilhamento'], 'Anti-ilhamento'],
+      [['protecao_sobretensao_dc'], 'Sobretensão CC'],
+      [['protecao_sobretensao_ac'], 'Sobretensão CA'],
+      [['grau_protecao_ip'], 'Grau de proteção'],
+      [['temperatura_operacao'], 'Temp. operação'],
+      [['tipo_refrigeracao'], 'Refrigeração'],
+      [['comunicacao'], 'Comunicação'],
+      [['peso_kg'], 'Peso', 'kg'],
+      [['dimensoes'], 'Dimensões'],
     ],
     'Garantia': [
-      ['garantia', 'Produto', 'anos'],
-      ['garantia_performance', 'Eficiência', 'anos'],
-      ['garantia_observacoes', 'Observações'],
+      [['garantia_anos', 'garantia', 'garantia_produto'], 'Garantia', 'anos'],
+      [['garantia_performance'], 'Garantia performance', 'anos'],
+      [['garantia_observacoes'], 'Observações'],
     ],
     'Certificações': [],
   },
@@ -185,6 +212,24 @@ function _proveniencia(eq, chave) {
  * @param {object} eq  documento Equipamento (já com `especificacoes` populadas)
  * @returns {{ tipo, grupos: [{ titulo, campos: [{ chave, rotulo, valor, unidade, fonte, confianca, ausente }] }] }}
  */
+/**
+ * S8.6.3 — Lê o valor procurando em uma lista de aliases (chaves alternativas).
+ * Devolve { valor, chaveUsada } da primeira que retornar um valor não-nulo.
+ */
+function _lerValor(eq, esp, chaves) {
+  for (const k of chaves) {
+    if (typeof k !== 'string') continue
+    if (k.startsWith('__')) {
+      const v = _valorTopo(eq, k)
+      if (v != null && v !== '') return { valor: v, chaveUsada: k }
+      continue
+    }
+    const v = esp[k]
+    if (v != null && v !== '') return { valor: v, chaveUsada: k }
+  }
+  return { valor: null, chaveUsada: chaves[0] || null }
+}
+
 export function montarFichaTecnica(eq) {
   const tipo = eq?.tipo || 'modulo'
   const esp = eq?.especificacoes || {}
@@ -197,11 +242,14 @@ export function montarFichaTecnica(eq) {
       continue
     }
     const campos = (lista || []).map(([chave, rotulo, unidade]) => {
-      const valor = chave.startsWith('__') ? _valorTopo(eq, chave) : esp[chave]
-      const prov = chave.startsWith('__') ? { fonte: 'Manual', confianca: 1 } : _proveniencia(eq, chave)
+      // S8.6.3: chave pode ser string ÚNICA (formato antigo) OU array de aliases.
+      const chaves = Array.isArray(chave) ? chave : [chave]
+      const { valor, chaveUsada } = _lerValor(eq, esp, chaves)
+      const isTopo = String(chaveUsada || '').startsWith('__')
+      const prov = isTopo ? { fonte: 'Manual', confianca: 1 } : _proveniencia(eq, chaveUsada)
       const ausente = valor == null || valor === '' || (Array.isArray(valor) && valor.length === 0)
       return {
-        chave,
+        chave: chaveUsada,
         rotulo,
         valor: ausente ? null : valor,
         unidade: unidade || null,
