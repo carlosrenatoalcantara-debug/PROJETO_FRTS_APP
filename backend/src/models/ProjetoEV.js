@@ -122,6 +122,52 @@ const projetoEVSchema = new mongoose.Schema({
     edges: { type: mongoose.Schema.Types.Mixed, default: null },
     timestamp: { type: Date, default: null },
   },
+
+  // ─── EV-ALIGN-01: estrutura compatível com governança / AlertCenter / homologação ──
+  // RT por referência (alinhado com ProjetoFV.tecnico_principal_id)
+  tecnico_principal_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Tecnico', default: null },
+
+  // Snapshot imutável do carregador no momento da vinculação (não duplica o
+  // documento — guarda apenas as referências e snapshot de specs críticas).
+  // Permite que documentos futuros usem este snapshot ao invés do cadastro vivo.
+  snapshot_carregador: {
+    carregador_id:     { type: mongoose.Schema.Types.ObjectId, ref: 'CarregadorEV', default: null },
+    equipamento_id:    { type: mongoose.Schema.Types.ObjectId, ref: 'Equipamento',  default: null },
+    fabricante:        { type: String, default: null },
+    modelo:            { type: String, default: null },
+    potencia_kw:       { type: Number, default: null },
+    corrente_max_a:    { type: Number, default: null },
+    tensao_v:          { type: Number, default: null },
+    tipo_conector:     { type: String, default: null },
+    fases:             { type: Number, default: null },
+    datasheet_hash:    { type: String, default: null },
+    datasheet_url:     { type: String, default: null },
+    documento_id:      { type: mongoose.Schema.Types.ObjectId, default: null },
+    data_snapshot:     { type: Date,   default: null },
+    por:               { type: String, default: null },
+  },
+
+  // Governança mínima compatível com FV (snapshots + freeze_status + auditoria).
+  // Mixed para flexibilidade sem migração futura.
+  governanca: {
+    type: mongoose.Schema.Types.Mixed,
+    default: null,
+  },
+
+  // Homologação assistida (status alinhado com ProjetoFV.homologacao.status_homologacao)
+  homologacao: {
+    status_homologacao: {
+      type: String,
+      enum: ['nao_iniciado', 'em_preparacao', 'pendente_documentacao', 'pendente_engenharia', 'pendente_concessionaria', 'homologado', 'reprovado', null],
+      default: null,
+    },
+    concessionaria:   { type: String, default: null },
+    iniciada_em:      Date,
+    iniciada_por:     String,
+    concluida_em:     Date,
+    concluida_por:    String,
+    historico_status: [{ em: { type: Date, default: Date.now }, de: String, para: String, por: String, motivo: String }],
+  },
 }, {
   timestamps: true,
   strict: false,  // Permite campos extras sem erro silencioso

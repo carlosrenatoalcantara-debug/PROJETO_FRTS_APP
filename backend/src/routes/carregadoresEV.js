@@ -1,13 +1,35 @@
 import { Router } from 'express'
+import mongoose from 'mongoose'
 import { CarregadorEV } from '../models/CarregadorEV.js'
 import { Equipamento } from '../models/Equipamento.js'
+import { AuditLog } from '../models/AuditLog.js'
 import {
   processarDatasheetEV,
   normalizarDadosEV,
   validarDadosEV,
+  extrairDatasheetEV,
 } from '../controllers/carregadorEVControllerGemini.js' // ✨ Usando Google Gemini (GRATUITO)
+// EV-ALIGN-01: aplica pipeline 8.6.1/8.6.2/8.6.3 ao EV
+import { extrairFabricanteModelo, ehDefaultLixo } from '../utils/catalogo/fabricanteModeloFallback.js'
 
 const router = Router()
+
+// EV-ALIGN-01: auditoria reutilizando AuditLog (mesmo padrão FV/catálogo/etc.)
+async function _auditarEV(req, acao, alvo, detalhe = null) {
+  try {
+    if (mongoose.connection.readyState !== 1) return
+    await AuditLog.create({
+      timestamp: new Date(),
+      usuario: req.auth?.id || req.auth?.email || 'anonymous',
+      perfil: req.auth?.perfil || null,
+      empresa: req.auth?.empresa_id || null,
+      modulo: 'ev', acao, metodo: 'EVENT',
+      path: `carregador:${alvo}${detalhe ? ' ' + String(detalhe).slice(0, 200) : ''}`,
+      status: 200,
+      ip: (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.ip || null,
+    })
+  } catch { /* silencioso */ }
+}
 
 // Obter todos
 router.get('/', async (req, res) => {
@@ -236,6 +258,14 @@ router.post('/seed/inicializar', async (req, res) => {
 
 // Upload e extração de datasheet EV com Claude Vision
 router.post('/upload-datasheet', async (req, res) => {
+  // EV-ALIGN-01: diagnóstico estágio-a-estágio (mesmo padrão da fatura 8.6.2)
+  const _diag = {
+    ocr_chars: 0, gemini_ok: false, fallback_executado: false,
+    fallback_encontrou: false, fabricante_origem: 'nenhuma',
+    modelo_origem: 'nenhuma', etapa_decisiva: null,
+  }
+  let textoOCR = ''
+
   try {
     const { pdfBase64 } = req.body
 
@@ -250,14 +280,72 @@ router.post('/upload-datasheet', async (req, res) => {
     // Converter base64 para buffer
     const pdfBuffer = Buffer.from(pdfBase64, 'base64')
 
+    // EV-ALIGN-01 (S8.6.2): extrai OCR UMA vez no início p/ fallback regex client+server
+    try {
+      const { PDFParse } = await import('pdf-parse')
+      const parser = new PDFParse({ data: pdfBuffer })
+      const tr = await parser.getText()
+      await parser.destroy()
+      textoOCR = (tr?.text || '').toString()
+      _diag.ocr_chars = textoOCR.length
+    } catch (e) {
+      _diag.etapa_decisiva = 'OCR_FALHOU'
+      console.warn('[EV Upload] OCR pdf-parse falhou:', e.message)
+    }
+
     // Processar datasheet (extrai + normaliza + valida)
     const resultado = await processarDatasheetEV(pdfBuffer)
+    _diag.gemini_ok = !!(resultado?.sucesso && resultado?.carregador)
+    if (resultado?.carregador?.marca) _diag.fabricante_origem = 'gemini'
+    if (resultado?.carregador?.modelo) _diag.modelo_origem = 'gemini'
+
+    // EV-ALIGN-01 (S8.6.1): fallback regex SERVER-SIDE quando Gemini falha ou devolve lixo
+    const car = resultado?.carregador || {}
+    const fabLixo = ehDefaultLixo(car.marca, 'fabricante')
+    const modLixo = ehDefaultLixo(car.modelo, 'modelo')
+    if ((fabLixo || modLixo) && textoOCR.length >= 20) {
+      _diag.fallback_executado = true
+      const fb = extrairFabricanteModelo(textoOCR)
+      if (fb.fabricante || fb.modelo) _diag.fallback_encontrou = true
+      if (fabLixo && fb.fabricante) {
+        console.log(`🔁 [EV] Fallback regex recuperou fabricante: ${fb.fabricante}`)
+        car.marca = fb.fabricante
+        _diag.fabricante_origem = 'regex_fallback'
+        if (resultado?.avisos) resultado.avisos.push(`Fabricante recuperado por regex: ${fb.fabricante}`)
+      }
+      if (modLixo && fb.modelo) {
+        console.log(`🔁 [EV] Fallback regex recuperou modelo: ${fb.modelo}`)
+        car.modelo = fb.modelo
+        _diag.modelo_origem = 'regex_fallback'
+        if (resultado?.avisos) resultado.avisos.push(`Modelo recuperado por regex: ${fb.modelo}`)
+      }
+    }
+
+    // EV-ALIGN-01 (S8.6.1): rejeição final de defaults lixo (IMPORTACAO_FALHOU)
+    if (ehDefaultLixo(car.marca, 'fabricante') && ehDefaultLixo(car.modelo, 'modelo')) {
+      _diag.etapa_decisiva = 'IMPORTACAO_FALHOU'
+      return res.status(422).json({
+        sucesso: false,
+        codigo: 'IMPORTACAO_FALHOU',
+        erro: 'Não foi possível identificar fabricante nem modelo do carregador.',
+        carregador: car,
+        avisos: ['Preencha manualmente ou reprocessar com PDF mais legível.'],
+        // EV-ALIGN-01 (S8.6.2): expõe texto OCR + diagnóstico para o frontend
+        texto_extraido: textoOCR.slice(0, 8000),
+        _diagnostico: _diag,
+      })
+    }
+    _diag.etapa_decisiva = 'OK'
 
     if (resultado.sucesso && resultado.carregador) {
       try {
+        // EV-ALIGN-01: aplica valores recuperados pelo regex (se houve fallback)
+        resultado.carregador.marca = car.marca
+        resultado.carregador.modelo = car.modelo
         // Salvar no banco de dados (CarregadorEV)
         const novoCarregador = new CarregadorEV(resultado.carregador)
         await novoCarregador.save()
+        _auditarEV(req, 'CARREGADOR_EV_IMPORTADO', novoCarregador._id, `${car.marca} ${car.modelo} | origem=${_diag.fabricante_origem}/${_diag.modelo_origem}`)
 
         // Também salvar na tabela Equipamentos para visibilidade na interface
         try {
@@ -297,6 +385,9 @@ router.post('/upload-datasheet', async (req, res) => {
           carregador: novoCarregador,
           avisos: resultado.avisos,
           msg: '✅ Carregador extraído e adicionado com sucesso',
+          // EV-ALIGN-01: texto OCR + diagnóstico (S8.6.2)
+          texto_extraido: textoOCR.slice(0, 8000),
+          _diagnostico: _diag,
         })
       } catch (saveError) {
         // Erro ao salvar no banco

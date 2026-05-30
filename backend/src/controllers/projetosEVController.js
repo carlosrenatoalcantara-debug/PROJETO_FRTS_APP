@@ -1,10 +1,74 @@
 import { ProjetoEV } from '../models/ProjetoEV.js'
+import { CarregadorEV } from '../models/CarregadorEV.js'
+import { AuditLog } from '../models/AuditLog.js'
 import mongoose from 'mongoose'
 import { gerarPDFUnifilarStream } from '../utils/gerarPDFUnifilar.js'
 import { memoryStore } from '../config/memoryStorage.js'
 import { executarCalculosProjetoEV, obterModoOperacao, obterEspecificacaoConector } from '../utils/calculosCarregadorEV.js'
 
 const usarMemoryStorage = () => mongoose.connection.readyState !== 1
+
+// EV-ALIGN-01: auditoria centralizada (mesmo padrão FV/catálogo)
+async function _auditarEV(req, acao, alvo, detalhe = null) {
+  try {
+    if (mongoose.connection.readyState !== 1) return
+    await AuditLog.create({
+      timestamp: new Date(),
+      usuario: req.auth?.id || req.auth?.email || req.body?.usuario || 'anonymous',
+      perfil: req.auth?.perfil || null, empresa: req.auth?.empresa_id || null,
+      modulo: 'ev', acao, metodo: 'EVENT',
+      path: `${alvo}${detalhe ? ' ' + String(detalhe).slice(0, 200) : ''}`,
+      status: 200,
+      ip: (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.ip || null,
+    })
+  } catch { /* silencioso */ }
+}
+
+// EV-ALIGN-01: cria snapshot imutável do carregador vinculado ao projeto.
+// Equivalente ao snapshot_responsavel_tecnico do ProjetoFV — guarda apenas
+// referências + specs críticas (NÃO duplica documentos).
+export const vincularCarregadorEV = async (req, res) => {
+  try {
+    if (usarMemoryStorage()) return res.status(503).json({ erro: 'DB_OFFLINE' })
+    const { id } = req.params
+    if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ erro: 'ID inválido' })
+    const projeto = await ProjetoEV.findById(id)
+    if (!projeto) return res.status(404).json({ erro: 'Projeto não encontrado' })
+
+    const { carregador_id } = req.body || {}
+    if (!carregador_id || !mongoose.Types.ObjectId.isValid(carregador_id)) {
+      return res.status(400).json({ erro: 'carregador_id obrigatório (ObjectId válido)' })
+    }
+    const car = await CarregadorEV.findById(carregador_id).lean()
+    if (!car) return res.status(404).json({ erro: 'Carregador não encontrado' })
+
+    const usuario = req.auth?.id || req.auth?.email || req.body?.usuario || 'anonymous'
+    const snapshot = {
+      carregador_id: car._id,
+      equipamento_id: car.equipamento_id || null,
+      fabricante: car.marca || null,
+      modelo: car.modelo || null,
+      potencia_kw: car.potencia_kw || null,
+      corrente_max_a: car.corrente_entrada_a || null,
+      tensao_v: car.tensao_entrada_v || null,
+      tipo_conector: car.tipo_conector || null,
+      fases: car.numero_fases || null,
+      datasheet_hash: car.datasheet_hash || null,
+      datasheet_url: car.datasheet_url || null,
+      documento_id: car.documento_id || null,
+      data_snapshot: new Date(),
+      por: usuario,
+    }
+    projeto.snapshot_carregador = snapshot
+    projeto.markModified('snapshot_carregador')
+    await projeto.save()
+    _auditarEV(req, 'CARREGADOR_EV_VINCULADO', `projeto:${id}`, `carregador:${car._id} ${car.marca} ${car.modelo}`)
+    res.json({ sucesso: true, snapshot_carregador: snapshot })
+  } catch (err) {
+    console.error('❌ Erro vincular carregador EV:', err)
+    res.status(500).json({ erro: err.message })
+  }
+}
 
 export const listarProjetosEV = async (_req, res) => {
   try {
@@ -135,6 +199,8 @@ export const criarProjetoEV = async (req, res) => {
       potencia_total_kw: novo.potencia_total_kw,
       carregadores: novo.carregadores?.length || 0,
     })
+    // EV-ALIGN-01: audit
+    _auditarEV(req, 'PROJETO_EV_CRIADO', `projeto:${novo._id}`, `nome=${novo.nome} pts=${novo.quantidade_pontos}`)
     res.status(201).json(novo)
   } catch (err) {
     console.error('❌ Erro ao criar projeto EV:', err)
@@ -219,6 +285,12 @@ export const atualizarProjetoEV = async (req, res) => {
 
     const projeto = await ProjetoEV.findByIdAndUpdate(req.params.id, dadosAtualizacao, { new: true }).populate('clienteId')
     console.log('✓ Projeto EV atualizado:', req.params.id)
+    // EV-ALIGN-01: audit (alteração de carregadores → evento específico)
+    if (dadosAtualizacao.carregadores) {
+      _auditarEV(req, 'CARREGADOR_EV_ALTERADO', `projeto:${req.params.id}`, `pontos=${dadosAtualizacao.quantidade_pontos} pot=${dadosAtualizacao.potencia_total_kw}kW`)
+    } else {
+      _auditarEV(req, 'PROJETO_EV_ATUALIZADO', `projeto:${req.params.id}`, Object.keys(dadosAtualizacao).slice(0, 5).join(','))
+    }
     res.json(projeto)
   } catch (err) {
     console.error('❌ Erro ao atualizar projeto EV:', err)

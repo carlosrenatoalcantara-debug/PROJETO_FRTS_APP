@@ -10,6 +10,9 @@ import InteractiveDiagram from '../components/diagram/InteractiveDiagram'
 import { calcularParametrosNBR5410, validarNBR5410 } from '../services/calculosNBR5410EV'
 import { gerarUnifilarEVSVG } from '../utils/gerarUnifilarEV'
 import { salvarDiagramaLocal } from '../components/diagram/utils/diagramPersistence'
+// EV-ALIGN-01: alinhar com FV — RT via API de Gestão Corporativa
+import { tecnicosApi } from '../services/gestaoApi'
+import { apenasAtivos } from '../utils/gestaoUtils'
 
 const API_URL = '' /* URL relativa forçada — Vercel proxy → Railway. Não usar VITE_API_URL */
 
@@ -33,6 +36,7 @@ export default function NovaPropostaEV() {
   const [modalUploadAberto, setModalUploadAberto] = useState(false)
   const [responsaveisTecnicos, setResponsaveisTecnicos] = useState([])
   const [tecnicoSelecionado, setTecnicoSelecionado] = useState('')
+  const [rtCarregando, setRtCarregando] = useState(true)  // EV-ALIGN-01
   const [modoEdicao, setModoEdicao] = useState(false)
   const [diagramaEditado, setDiagramaEditado] = useState(null)
 
@@ -50,42 +54,72 @@ export default function NovaPropostaEV() {
     tecnico_tipo: 'crea', // 'crea' ou 'cft'
   })
 
-  // Carregar dados do técnico da configuração (localStorage)
+  // EV-ALIGN-01: carregar RT da Gestão Corporativa (API), filtrar ativos + especialidade EV
   useEffect(() => {
-    // Carregar lista de responsáveis técnicos
-    const respTecnicosArmazenados = localStorage.getItem('responsaveisTecnicos')
-    if (respTecnicosArmazenados) {
-      const responsaveis = JSON.parse(respTecnicosArmazenados)
-      setResponsaveisTecnicos(responsaveis)
-      // Auto-selecionar o primeiro responsável se houver
-      if (responsaveis.length > 0) {
-        const primeiro = responsaveis[0]
-        setTecnicoSelecionado(primeiro.id)
-        setDados(prev => ({
-          ...prev,
-          tecnico_nome: primeiro.nome || '',
-          tecnico_crea: primeiro.certificacao === 'CREA' ? primeiro.numero : '',
-          tecnico_cft: primeiro.certificacao === 'CFT' ? primeiro.numero : '',
-          tecnico_tipo: primeiro.certificacao === 'CREA' ? 'crea' : 'cft',
-        }))
-      }
-    }
-
-    // Fallback: tentar carregar dados do técnico antigo (backward compatibility)
-    if (!respTecnicosArmazenados) {
-      const tecnicoSalvo = localStorage.getItem('tecnico_dados')
-      if (tecnicoSalvo) {
-        const tecnico = JSON.parse(tecnicoSalvo)
-        setDados(prev => ({
-          ...prev,
-          tecnico_nome: tecnico.nome || '',
-          tecnico_crea: tecnico.crea || '',
-          tecnico_cft: tecnico.cft || '',
-          tecnico_tipo: tecnico.tipo || 'crea',
-        }))
-      }
-    }
+    let vivo = true
+    setRtCarregando(true)
+    tecnicosApi.listar()
+      .then(lista => {
+        if (!vivo) return
+        setRtCarregando(false)
+        // Filtra ATIVOS + tem especialidade EV (ou sem especialidade declarada → aceita)
+        const aptos = apenasAtivos(lista).filter(t =>
+          !Array.isArray(t.especialidades) || t.especialidades.length === 0 || t.especialidades.includes('EV')
+        )
+        setResponsaveisTecnicos(aptos)
+        // Auto-seleciona o primeiro RT apto
+        if (aptos.length > 0) {
+          const primeiro = aptos[0]
+          setTecnicoSelecionado(primeiro._id)
+          const ehCrea = (primeiro.tipo_registro || '').toUpperCase() === 'CREA'
+          setDados(prev => ({
+            ...prev,
+            tecnico_nome: primeiro.nome || '',
+            tecnico_crea: ehCrea ? primeiro.registro : '',
+            tecnico_cft: !ehCrea ? primeiro.registro : '',
+            tecnico_tipo: ehCrea ? 'crea' : 'cft',
+            tecnico_id: primeiro._id,
+            // EV-ALIGN-01: leva validação para frente (potência máx + carteira)
+            tecnico_potencia_max_kw: primeiro.potencia_max_kw || null,
+            tecnico_validade_carteira: primeiro.validade_carteira_profissional || null,
+          }))
+        }
+      })
+      .catch(err => {
+        if (!vivo) return
+        setRtCarregando(false)
+        console.error('Erro ao carregar técnicos:', err)
+        // Fallback compat: localStorage (apenas para usuários migrando)
+        const tecnicoSalvo = localStorage.getItem('tecnico_dados')
+        if (tecnicoSalvo) {
+          try {
+            const tecnico = JSON.parse(tecnicoSalvo)
+            setDados(prev => ({
+              ...prev,
+              tecnico_nome: tecnico.nome || '',
+              tecnico_crea: tecnico.crea || '',
+              tecnico_cft: tecnico.cft || '',
+              tecnico_tipo: tecnico.tipo || 'crea',
+            }))
+          } catch {}
+        }
+      })
+    return () => { vivo = false }
   }, [])
+
+  // EV-ALIGN-01: helpers de validação RT (espelham EquipeProjeto/FV)
+  const tecnicoSelecionadoObj = responsaveisTecnicos.find(t => t._id === tecnicoSelecionado)
+  const potenciaTotalKw = carregadores.reduce((s, c) => s + (Number(c.potencia_kw) || 0) * (Number(c.quantidade) || 1), 0)
+  const rtCarteiraVencida = (() => {
+    const v = tecnicoSelecionadoObj?.validade_carteira_profissional
+    if (!v) return false
+    return new Date(v).getTime() < Date.now()
+  })()
+  const rtAcimaLimite = (() => {
+    const lim = tecnicoSelecionadoObj?.potencia_max_kw
+    if (!lim || !potenciaTotalKw) return false
+    return potenciaTotalKw > Number(lim)
+  })()
 
   // Carregar cliente se clienteId foi fornecido
   useEffect(() => {
@@ -412,30 +446,52 @@ export default function NovaPropostaEV() {
                 <select
                   value={tecnicoSelecionado}
                   onChange={(e) => {
+                    // EV-ALIGN-01: usa shape da API (_id, tipo_registro, registro)
                     setTecnicoSelecionado(e.target.value)
-                    const responsavel = responsaveisTecnicos.find(r => r.id === e.target.value)
+                    const responsavel = responsaveisTecnicos.find(r => r._id === e.target.value)
                     if (responsavel) {
+                      const ehCrea = (responsavel.tipo_registro || '').toUpperCase() === 'CREA'
                       setDados(prev => ({
                         ...prev,
                         tecnico_nome: responsavel.nome || '',
-                        tecnico_crea: responsavel.certificacao === 'CREA' ? responsavel.numero : '',
-                        tecnico_cft: responsavel.certificacao === 'CFT' ? responsavel.numero : '',
-                        tecnico_tipo: responsavel.certificacao === 'CREA' ? 'crea' : 'cft',
+                        tecnico_crea: ehCrea ? responsavel.registro : '',
+                        tecnico_cft: !ehCrea ? responsavel.registro : '',
+                        tecnico_tipo: ehCrea ? 'crea' : 'cft',
+                        tecnico_id: responsavel._id,
+                        tecnico_potencia_max_kw: responsavel.potencia_max_kw || null,
+                        tecnico_validade_carteira: responsavel.validade_carteira_profissional || null,
                       }))
                     }
                   }}
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"
                 >
                   <option value="">-- Selecionar --</option>
-                  {responsaveisTecnicos.map(resp => (
-                    <option key={resp.id} value={resp.id}>
-                      {resp.nome} ({resp.certificacao})
-                    </option>
-                  ))}
+                  {responsaveisTecnicos.map(resp => {
+                    const limite = resp.potencia_max_kw ? ` · até ${resp.potencia_max_kw}kW` : ''
+                    const v = resp.validade_carteira_profissional
+                    const venc = v && new Date(v).getTime() < Date.now() ? ' · VENCIDO' : ''
+                    return (
+                      <option key={resp._id} value={resp._id} disabled={!!venc}>
+                        {resp.nome} ({resp.tipo_registro} {resp.registro || ''}){limite}{venc}
+                      </option>
+                    )
+                  })}
                 </select>
                 <p className="text-xs text-slate-500 mt-1">
-                  Responsáveis cadastrados em Configurações → Responsável Técnico
+                  Responsáveis cadastrados em Configurações → Equipe & Permissões → Técnicos
                 </p>
+                {/* EV-ALIGN-01: validação de carteira + potência */}
+                {rtCarteiraVencida && (
+                  <p className="text-xs text-red-700 bg-red-50 p-2 rounded border border-red-200 mt-2">
+                    ⚠ Carteira profissional VENCIDA — selecione outro RT antes de prosseguir.
+                  </p>
+                )}
+                {rtAcimaLimite && !rtCarteiraVencida && (
+                  <p className="text-xs text-amber-800 bg-amber-50 p-2 rounded border border-amber-200 mt-2">
+                    ⚠ Potência do projeto ({potenciaTotalKw.toFixed(1)} kW) excede o limite do RT
+                    ({tecnicoSelecionadoObj?.potencia_max_kw} kW). Exige justificativa Admin/Diretor.
+                  </p>
+                )}
               </div>
             )}
 
@@ -478,11 +534,15 @@ export default function NovaPropostaEV() {
               />
             )}
 
-            {responsaveisTecnicos.length === 0 ? (
+            {rtCarregando ? (
+              <p className="text-xs text-slate-500 bg-slate-50 p-2 rounded border border-slate-200">
+                ⏳ Carregando responsáveis técnicos…
+              </p>
+            ) : responsaveisTecnicos.length === 0 ? (
               <p className="text-xs text-slate-600 bg-yellow-50 p-2 rounded border border-yellow-200">
                 ⚠️ Nenhum responsável técnico cadastrado.
                 <br />
-                Acesse <strong>Configurações → Responsável Técnico</strong> para adicionar responsáveis que serão pré-preenchidos nos projetos.
+                Acesse <strong>Configurações → Equipe & Permissões → Técnicos</strong> para adicionar responsáveis aptos a projetos EV.
               </p>
             ) : (
               <p className="text-xs text-slate-500 bg-blue-50 p-2 rounded">
@@ -587,8 +647,23 @@ export default function NovaPropostaEV() {
 
             <div className="flex justify-between gap-2">
               <Button variante="secundario" onClick={etapaAnterior}>← Anterior</Button>
-              <Button onClick={proximaEtapa} disabled={carregadores.length === 0}>Próxima →</Button>
+              {/* EV-ALIGN-01: bloqueia só se RT vencido. Sem carregador selecionado é alerta, não bloqueio. */}
+              <Button
+                onClick={proximaEtapa}
+                disabled={rtCarteiraVencida || (carregadores.length === 0 && carregadoresDisponiveis.length === 0)}
+                title={rtCarteiraVencida ? 'Selecione um RT válido (carteira vencida bloqueia)' : (carregadores.length === 0 ? 'Adicione ao menos 1 carregador via datasheet ou seleção' : '')}
+              >Próxima →</Button>
             </div>
+            {carregadores.length === 0 && carregadoresDisponiveis.length > 0 && (
+              <p className="text-xs text-amber-700 bg-amber-50 px-3 py-1.5 rounded mt-2">
+                ⚠ Selecione um carregador da lista acima antes de prosseguir.
+              </p>
+            )}
+            {carregadoresDisponiveis.length === 0 && (
+              <p className="text-xs text-slate-500 bg-slate-50 px-3 py-1.5 rounded mt-2">
+                💡 Catálogo vazio. Use "Adicionar datasheet" acima para importar um PDF.
+              </p>
+            )}
           </CardBody>
         </Card>
       )}

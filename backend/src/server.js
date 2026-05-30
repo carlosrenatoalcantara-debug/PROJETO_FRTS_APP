@@ -302,11 +302,14 @@ async function iniciarServidor() {
     const { default: rotasFatura } = await import('./routes/fatura.js')
     // S8.5 — Inteligência de fatura (camada normalizada com revisão humana)
     const { default: rotasFaturasInteligente } = await import('./routes/faturasInteligente.js')
+    // EV-ALIGN-01: carregadores EV via lazy load (mesma estratégia da fatura — pdf-parse após polyfills)
+    const { default: rotasCarregadoresEV } = await import('./routes/carregadoresEV.js')
 
     app.use('/api/equipamentos', rotasEquipamentos)
     app.use('/api/datasheet',    rotasDatasheet)
     app.use('/api/fatura',       rotasFatura)
     app.use('/api/faturas',      rotasFaturasInteligente)
+    app.use('/api/carregadores-ev', rotasCarregadoresEV)
 
     console.log('✅ Parser routes loaded successfully before server start')
   } catch (err) {

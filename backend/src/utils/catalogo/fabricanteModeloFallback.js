@@ -141,6 +141,47 @@ const PADROES = [
     aliases: ['byd'],
     modelos: [/\b(B-Box\s*\w*|Battery-Box\s*\w*)\b/i],
   },
+  // ── Carregadores EV (EV-ALIGN-01) ─────────────────────────────────────
+  {
+    fabricante: 'Wallbox',
+    aliases: ['wallbox', 'wallbox chargers'],
+    modelos: [/\b(Pulsar\s*\w*|Commander\s*\w*|Copper\s*\w*|Quasar\s*\w*)\b/i],
+  },
+  {
+    fabricante: 'Intelbras',
+    aliases: ['intelbras'],
+    modelos: [/\b(EVE\s*\w*|EWS\s*\w*|EVB\s*\d+\w*)\b/i],
+  },
+  {
+    fabricante: 'EMOBI',
+    aliases: ['emobi', 'e-mobi'],
+    modelos: [/\b(EMOBI-?\w+|EM[A-Z]\d+\w*)\b/i],
+  },
+  {
+    fabricante: 'Belenergy',
+    aliases: ['belenergy', 'bel energy'],
+    modelos: [/\b(BEL-?\w+|BLN-?\w+)\b/i],
+  },
+  {
+    fabricante: 'Schneider Electric',
+    aliases: ['schneider electric', 'schneider'],
+    modelos: [/\b(EVlink\s*\w*|EVB1A\w*|EVH\w*)\b/i],
+  },
+  {
+    fabricante: 'ABB EV',  // ABB Terra (carregadores)
+    aliases: ['abb terra', 'terra ac', 'terra dc'],
+    modelos: [/\b(Terra\s*(?:AC|DC|HP)?\s*\w*)\b/i],
+  },
+  {
+    fabricante: 'WEG',
+    aliases: ['weg wmo', 'weg wallbox', 'weg charging'],
+    modelos: [/\b(WMO\s*\w*|WEMC\s*\w*)\b/i],
+  },
+  {
+    fabricante: 'Tesla EV',
+    aliases: ['tesla wall connector', 'wall connector'],
+    modelos: [/\b(Wall\s*Connector\s*\w*|Mobile\s*Connector\s*\w*)\b/i],
+  },
 ]
 
 // Normaliza texto: case-fold + remove acentos + colapsa espaços

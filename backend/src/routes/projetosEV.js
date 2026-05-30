@@ -9,6 +9,7 @@ import {
   exportarPDFProjetoEV,
   calcularNormasProjetoEV,
   recalcularPotenciasProjetosEV,
+  vincularCarregadorEV,         // EV-ALIGN-01
 } from '../controllers/projetosEVController.js'
 
 const router = Router()
@@ -23,5 +24,8 @@ router.post('/',                                      criarProjetoEV)
 router.put('/:id',                                    atualizarProjetoEV)
 router.patch('/:id',                                  atualizarProjetoEV)  // alias PATCH = PUT
 router.delete('/:id',                                 excluirProjetoEV)
+
+// EV-ALIGN-01: vincula carregador + cria snapshot imutável (espelha snapshot RT do FV)
+router.post('/:id/snapshot-carregador',               vincularCarregadorEV)
 
 export default router
