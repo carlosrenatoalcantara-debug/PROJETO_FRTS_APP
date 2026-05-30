@@ -30,6 +30,7 @@ import PainelExecutivo        from './pages/PainelExecutivo'
 import Auditoria              from './pages/Auditoria'
 import FaturaRevisao          from './pages/FaturaRevisao'
 import SaudeCatalogo          from './pages/SaudeCatalogo'
+import AlertCenter            from './pages/AlertCenter'
 
 export default function App() {
   return (
@@ -53,6 +54,7 @@ export default function App() {
         <Route path="faturas/revisao"         element={<FaturaRevisao />} />
         <Route path="faturas/revisao/:id"     element={<FaturaRevisao />} />
         <Route path="catalogo/saude"          element={<SaudeCatalogo />} />
+        <Route path="alertcenter"             element={<AlertCenter />} />
         <Route path="projetos-fv/novo"        element={<ProjetosFVNovo />} />
         <Route path="projetos-fv/simulacao"   element={<SimulacaoFV />} />
         <Route path="projetos-fv/:id"         element={<ProjetosFVDetalhes />} />
