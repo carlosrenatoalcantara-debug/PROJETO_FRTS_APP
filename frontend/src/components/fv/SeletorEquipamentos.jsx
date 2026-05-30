@@ -28,7 +28,7 @@ export default function SeletorEquipamentos({ onSelecionar }) {
       const [resModulos, resInversores, resCarregadores] = await Promise.all([
         fetch('/api/equipamentos?tipo=modulo&ativo=true'),
         fetch('/api/equipamentos?tipo=inversor&ativo=true'),
-        fetch('/api/equipamentos?tipo=carregador_ev&ativo=true'),
+        fetch('/api/equipamentos?tipo=carregador-ev&ativo=true'),
       ])
 
       const dadosModulos = await resModulos.json()
