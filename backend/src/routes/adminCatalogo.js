@@ -25,6 +25,7 @@ import { AuditLog } from '../models/AuditLog.js'
 import { montarFichaTecnica, diagnosticarFicha, STATUS_APROVACAO } from '../utils/catalogo/fichaTecnicaMap.js'
 import { extrairFabricanteModelo, ehDefaultLixo, FABRICANTES_RECONHECIDOS } from '../utils/catalogo/fabricanteModeloFallback.js'
 import { auditarPipeline, FALHAS } from '../utils/catalogo/pipelineAuditor.js'
+import { relatorioSaudeInversores, detectarDuplicatas, CAMPOS_CRITICOS_INVERSOR } from '../utils/catalogo/catalogoQAUtils.js'
 import { PDFParse } from 'pdf-parse'
 
 // S8.2: status documental do equipamento (COMPLETO/PENDENTE/INCOMPLETO)
@@ -1020,6 +1021,72 @@ router.post('/auditar-pipeline', uploadDS.single('pdf'), async (req, res) => {
   } catch (err) {
     console.error('[adminCatalogo] auditar-pipeline:', err)
     res.status(500).json({ sucesso: false, erro: err.message, falha: FALHAS.API_FALHOU, log })
+  }
+})
+
+// ─── S8.6.4: QA de inversores ─────────────────────────────────────────────────
+
+/**
+ * GET /api/admin/catalogo/qa/inversores
+ * Relatório de saúde completo dos inversores:
+ *  - total, por_status, completude_media_pct
+ *  - campos_faltando: { campo: qtdEquipamentos }
+ *  - lista de equipamentos com auditoria por campo
+ *  - duplicatas detectadas
+ */
+router.get('/qa/inversores', async (_req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) return res.status(503).json({ sucesso: false, erro: 'DB_OFFLINE' })
+    const inversores = await Equipamento.find({ tipo: 'inversor' }).lean()
+    const relatorio = relatorioSaudeInversores(inversores)
+    const duplicatas = detectarDuplicatas(inversores)
+    res.json({
+      sucesso: true,
+      gerado_em: new Date(),
+      campos_criticos: CAMPOS_CRITICOS_INVERSOR.map(c => c.rotulo),
+      relatorio,
+      duplicatas: { total_grupos: duplicatas.length, grupos: duplicatas },
+    })
+  } catch (err) {
+    console.error('[adminCatalogo] qa/inversores:', err)
+    res.status(500).json({ sucesso: false, erro: err.message })
+  }
+})
+
+/**
+ * GET /api/admin/catalogo/qa/auditoria
+ * Lista todos os equipamentos (qualquer tipo) que precisam de atenção,
+ * ordenados por pior completude primeiro.
+ * ?tipo=inversor|modulo|todos (default: todos)
+ * ?minimo_pct=N → só equipamentos abaixo de N% (default 80)
+ */
+router.get('/qa/auditoria', async (req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) return res.status(503).json({ sucesso: false, erro: 'DB_OFFLINE' })
+    const tipo = req.query.tipo && req.query.tipo !== 'todos' ? req.query.tipo : null
+    const minimoPct = parseInt(req.query.minimo_pct || '80', 10)
+    const filtro = tipo ? { tipo } : {}
+    const equipamentos = await Equipamento.find(filtro).lean()
+
+    const lista = equipamentos.map(eq => {
+      const d = diagnosticarFicha(eq)
+      const temDatasheet = !!eq?.datasheet_original?.hash ||
+        (Array.isArray(eq?.documentos_tecnicos) && eq.documentos_tecnicos.some(d => String(d?.tipo || '').toLowerCase() === 'datasheet'))
+      return {
+        _id: eq._id, fabricante: eq.fabricante, modelo: eq.modelo, tipo: eq.tipo,
+        completude_pct: d.completude_pct, campos_ausentes: d.campos_ausentes,
+        sem_datasheet: d.sem_datasheet, sem_garantia: d.sem_garantia,
+        precisa_reprocessamento: d.campos_ausentes > 3 && temDatasheet,
+        aprovacao: eq.aprovacao_tecnica?.status || 'aprovado',
+        createdAt: eq.createdAt,
+      }
+    }).filter(e => e.completude_pct < minimoPct)
+     .sort((a, b) => a.completude_pct - b.completude_pct)
+
+    res.json({ sucesso: true, total_problemas: lista.length, minimo_pct: minimoPct, lista })
+  } catch (err) {
+    console.error('[adminCatalogo] qa/auditoria:', err)
+    res.status(500).json({ sucesso: false, erro: err.message })
   }
 })
 
