@@ -23,6 +23,9 @@ import { analisarDocumentoTecnico } from '../services/geminiDocumentAnalyzer.js'
 import { DocumentoTecnico } from '../models/DocumentoTecnico.js'
 import { AuditLog } from '../models/AuditLog.js'
 import { montarFichaTecnica, diagnosticarFicha, STATUS_APROVACAO } from '../utils/catalogo/fichaTecnicaMap.js'
+import { extrairFabricanteModelo, ehDefaultLixo, FABRICANTES_RECONHECIDOS } from '../utils/catalogo/fabricanteModeloFallback.js'
+import { auditarPipeline, FALHAS } from '../utils/catalogo/pipelineAuditor.js'
+import { PDFParse } from 'pdf-parse'
 
 // S8.2: status documental do equipamento (COMPLETO/PENDENTE/INCOMPLETO)
 export function statusDocumental(eq) {
@@ -933,6 +936,90 @@ router.get('/diagnostico', async (_req, res) => {
   } catch (err) {
     console.error('[adminCatalogo] diagnostico:', err)
     res.status(500).json({ sucesso: false, erro: err.message })
+  }
+})
+
+// ─── S8.6.1: AUDITORIA COMPLETA DO PIPELINE DE DATASHEET ─────────────────
+// POST /api/admin/catalogo/auditar-pipeline — multipart: 'pdf'
+// Executa todo o pipeline (PDF→OCR→Gemini→Validação) com log estágio-a-estágio
+// e devolve EXATAMENTE onde a informação está sendo perdida (se for).
+router.post('/auditar-pipeline', uploadDS.single('pdf'), async (req, res) => {
+  const stages = { ocr: { ok: false }, gemini: { ok: false } }
+  const log = []
+  const _t0 = Date.now()
+  try {
+    if (!req.file) return res.status(400).json({ sucesso: false, erro: 'Envie o PDF no campo "pdf".' })
+
+    // ── ETAPA 1: PDF / OCR (pdf-parse) ───────────────────────────────────
+    log.push(`[1/4] PDF recebido: ${req.file.originalname} (${req.file.size} bytes)`)
+    let textoOCR = ''
+    try {
+      const parser = new PDFParse({ data: req.file.buffer })
+      const tr = await parser.getText()
+      await parser.destroy()
+      textoOCR = (tr.text || '').toString()
+      stages.ocr = { ok: textoOCR.length > 0, texto: textoOCR, bytes: textoOCR.length }
+      log.push(`[2/4] OCR extraiu ${textoOCR.length} chars`)
+    } catch (e) {
+      stages.ocr = { ok: false, erro: e.message }
+      log.push(`[2/4] OCR FALHOU: ${e.message}`)
+    }
+
+    // ── ETAPA 2: Gemini Vision ────────────────────────────────────────────
+    let geminiResposta = null
+    try {
+      const { extrairComGemini } = await import('../controllers/datasheetGeminiUnificado.js')
+      const r = await extrairComGemini(req.file.buffer, req.body?.tipo || 'auto', { arquivo_nome: req.file.originalname })
+      // BUG histórico: extrairComGemini retorna {sucesso, tipoDocumento, dados, ...}
+      // — dados é o objeto real do datasheet. NÃO é r.tipo, é r.tipoDocumento.
+      const dados = r?.dados || r
+      const cacheHit = !!r?._cache_hit
+      const ok = !!(dados && (dados.fabricante || dados.modelo))
+      geminiResposta = dados
+      stages.gemini = {
+        ok,
+        raw: JSON.stringify(dados).slice(0, 2000),
+        json: dados,
+        modelo: dados?.modelo,
+        cache_hit: cacheHit,
+        erro: r?.erro || (ok ? null : 'Resposta sem fabricante/modelo'),
+      }
+      log.push(`[3/4] Gemini: ${cacheHit ? '(cache)' : ''} fabricante=${dados?.fabricante || '—'} modelo=${dados?.modelo || '—'} (${Object.keys(dados || {}).length} campos)`)
+    } catch (e) {
+      stages.gemini = { ok: false, erro: e.message }
+      log.push(`[3/4] Gemini FALHOU: ${e.message}`)
+    }
+
+    // ── ETAPA 3: Fallback regex (se Gemini não trouxe fabricante/modelo) ─
+    const fallback = extrairFabricanteModelo(textoOCR)
+    log.push(`[4/4] Fallback regex: fabricante=${fallback.fabricante || '—'} modelo=${fallback.modelo || '—'} conf=${fallback.confianca}`)
+
+    // Decisão: usa Gemini se tem dados úteis, senão fallback regex
+    const usandoFallback = !geminiResposta?.fabricante && !geminiResposta?.modelo
+    const normalizado = usandoFallback
+      ? { fabricante: fallback.fabricante, modelo: fallback.modelo, tipo: req.body?.tipo || 'inversor', fonte: 'regex_fallback' }
+      : geminiResposta
+
+    // ── ETAPA 4: Auditoria estágio-a-estágio ─────────────────────────────
+    const relatorio = auditarPipeline({ ...stages, normalizado })
+
+    await _auditCatalogo(req, 'auditoria_pipeline', `${relatorio.falha} · ${normalizado?.fabricante || '—'} ${normalizado?.modelo || '—'}`)
+
+    res.json({
+      sucesso: relatorio.falha === FALHAS.OK,
+      duracao_ms: Date.now() - _t0,
+      arquivo: { nome: req.file.originalname, bytes: req.file.size },
+      log,
+      relatorio,
+      ocr: { bytes: textoOCR.length, amostra: textoOCR.slice(0, 600) },
+      gemini: { ok: stages.gemini.ok, json: stages.gemini.json, erro: stages.gemini.erro },
+      fallback,
+      normalizado,
+      fabricantes_reconhecidos: FABRICANTES_RECONHECIDOS,
+    })
+  } catch (err) {
+    console.error('[adminCatalogo] auditar-pipeline:', err)
+    res.status(500).json({ sucesso: false, erro: err.message, falha: FALHAS.API_FALHOU, log })
   }
 })
 

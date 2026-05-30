@@ -40,12 +40,19 @@ function aplanar(obj, prefixo = '') {
  */
 export async function analisarDatasheet(buffer, tipo = 'auto') {
   const bruto = await extrairComGemini(buffer, tipo)
-  const tipoDetectado = bruto?.tipo || (tipo !== 'auto' ? tipo : 'modulo')
-  const flat = aplanar(bruto)
+  // S8.6.1 FIX: extrairComGemini retorna { sucesso, tipoDocumento, dados, ... }.
+  // O nome do tipo é `tipoDocumento` (não `tipo`), e os campos REAIS estão em `dados`.
+  // O bug anterior usava bruto?.tipo (undefined) e dependia do flatten para alcançar dados.
+  const tipoDetectado = bruto?.tipoDocumento || bruto?.tipo || (tipo !== 'auto' ? tipo : 'modulo')
+  // Achata `dados` PRIMEIRO (preserva nomes reais do JSON), depois acrescenta campos do envelope.
+  const fonteDados = bruto?.dados || bruto
+  const flat = aplanar(fonteDados)
 
   const campos = {}
+  // Whitelist de metadados a NÃO promover para campos do equipamento
+  const META = new Set(['sucesso', 'tipoDocumento', 'fonte', 'timestamp', 'erro', 'dados', '_cache_hit', '_hash_pdf', '_hits', '_texto_bruto'])
   for (const [k, valor] of Object.entries(flat)) {
-    if (k.startsWith('_')) continue // metadados de cache
+    if (k.startsWith('_') || META.has(k)) continue
     if (valor == null || valor === '') continue
     campos[k] = { valor, fonte: bruto?._cache_hit ? 'Gemini (cache)' : 'Gemini', confianca: CONF_GEMINI }
   }

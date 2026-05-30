@@ -154,12 +154,30 @@ export const criarEquipamento = async (req, res) => {
       garantia_produto,
       garantia_performance,
       preco_sugerido,
+      forcar = false,    // S8.6.1: bypass explícito p/ entrada manual confirmada
     } = req.body
 
     if (!tipo || !fabricante || !modelo) {
       return res.status(400).json({
         erro: 'Campos obrigatórios: tipo, fabricante, modelo',
+        codigo: 'CAMPOS_OBRIGATORIOS',
       })
+    }
+
+    // S8.6.1: bloqueia persistência com defaults lixo ("Desconhecido"/"Inversor"/etc.)
+    // Aceita apenas se `forcar=true` (operador confirmou entrada manual).
+    if (!forcar) {
+      const { ehDefaultLixo } = await import('../utils/catalogo/fabricanteModeloFallback.js')
+      const fabLixo = ehDefaultLixo(fabricante, 'fabricante')
+      const modLixo = ehDefaultLixo(modelo, 'modelo')
+      if (fabLixo || modLixo) {
+        return res.status(422).json({
+          erro: 'Importação rejeitada: fabricante ou modelo é um default lixo (Desconhecido/Inversor/etc.).',
+          codigo: 'IMPORTACAO_FALHOU',
+          detalhe: { fabricante_lixo: fabLixo, modelo_lixo: modLixo, recebidos: { fabricante, modelo } },
+          sugestao: 'Reprocessar datasheet ou preencher manualmente antes de salvar.',
+        })
+      }
     }
 
     const novo = new Equipamento({
@@ -173,7 +191,7 @@ export const criarEquipamento = async (req, res) => {
     })
 
     await novo.save()
-    console.log('✓ Equipamento criado:', novo._id)
+    console.log(`✓ Equipamento criado: ${novo._id} (${fabricante} ${modelo})`)
     res.status(201).json(novo)
   } catch (err) {
     console.error('❌ Erro ao criar equipamento:', err)
