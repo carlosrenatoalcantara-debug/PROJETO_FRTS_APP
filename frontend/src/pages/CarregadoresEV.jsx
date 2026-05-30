@@ -94,7 +94,19 @@ export default function CarregadoresEV() {
   async function handleExcluir(id) {
     if (!confirm('Tem certeza que deseja excluir este carregador?')) return
     try {
-      await fetch(`${API_URL}/api/equipamentos/${id}`, { method: 'DELETE' })
+      const resEquip = await fetch(`${API_URL}/api/equipamentos/${id}`, { method: 'DELETE' })
+      if (!resEquip.ok) {
+        const resLegado = await fetch(`${API_URL}/api/carregadores-ev/${id}`, { method: 'DELETE' })
+        if (!resLegado.ok) {
+          let msg = `Falha ao excluir (equipamentos: ${resEquip.status}, legado: ${resLegado.status})`
+          try {
+            const j = await resEquip.json()
+            if (j?.erro) msg = j.erro
+          } catch {}
+          alert(msg)
+          return
+        }
+      }
       carregarCarregadores()
     } catch (err) { console.error('Erro ao excluir:', err) }
   }
