@@ -2,6 +2,9 @@ import Anthropic from '@anthropic-ai/sdk'
 import { PDFParse } from 'pdf-parse'
 import { DatasheetCache } from '../models/DatasheetCache.js'
 import { Equipamento } from '../models/Equipamento.js'
+// S8.6.2: regex fallback do 8.6.1 aplicado AGORA server-side (o frontend já tem,
+// mas só executava com texto que esta rota não devolvia → FALLBACK_NAO_EXECUTADO).
+import { extrairFabricanteModelo, ehDefaultLixo } from '../utils/catalogo/fabricanteModeloFallback.js'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CACHE: carrega exemplos de fabricantes já vistos para enriquecer o prompt
@@ -227,7 +230,10 @@ function detectarFabricante(texto) {
     [/growatt/i, 'Growatt'],
     [/fronius/i, 'Fronius'],
     [/deye/i, 'Deye'],
-    [/solis/i, 'Solis'],
+    [/solis|ginlong/i, 'Solis'],
+    [/solplanet|aiswei/i, 'Solplanet'],   // S8.6.2: ausência confirmada nos testes reais
+    [/sungrow/i, 'Sungrow'],
+    [/goodwe/i, 'Goodwe'],
     [/weg\b/i, 'WEG'],
     [/sma\b/i, 'SMA'],
   ]
@@ -538,17 +544,54 @@ export async function extrairDatasheet(req, res) {
     const pdfBuffer = req.file.buffer
     console.log(`📄 PDF recebido: ${pdfBuffer.length} bytes`)
 
+    // ═══════════════════════════════════════════════════════════════════════
+    // S8.6.2 — DIAGNÓSTICO E PIPELINE COM EVIDÊNCIA
+    // Causa do 8.6.1 falhar em produção: o frontend procurava `json.texto_extraido`
+    // para rodar o regex fallback, mas esta rota NÃO devolvia o texto OCR.
+    // Resultado: FALLBACK_NAO_EXECUTADO → fabricante=∅, modelo=∅.
+    // Correção: extrair texto UMA VEZ no início + aplicar regex server-side
+    // (defesa em profundidade) + devolver evidência ao frontend.
+    // ═══════════════════════════════════════════════════════════════════════
+    const _diag = {
+      ocr_chars: 0,
+      claude_chamado: false, claude_ok: false, claude_erro: null,
+      fabricante_pre_fallback: null, modelo_pre_fallback: null,
+      fallback_executado: false, fallback_encontrou: false,
+      fabricante_origem: 'nenhuma', modelo_origem: 'nenhuma',
+      etapa_decisiva: null,
+    }
+
+    // ── ETAPA 1: OCR (PDFParse) — extrai texto UMA vez para todo o pipeline ─
+    let textoOCR = ''
+    try {
+      const parser = new PDFParse({ data: pdfBuffer })
+      const tr = await parser.getText()
+      await parser.destroy()
+      textoOCR = (tr?.text || '').toString()
+      _diag.ocr_chars = textoOCR.length
+      console.log(`📝 OCR: ${textoOCR.length} chars extraídos`)
+    } catch (e) {
+      _diag.ocr_chars = 0
+      _diag.etapa_decisiva = 'OCR_FALHOU'
+      console.error('❌ OCR (PDFParse) falhou:', e.message)
+    }
+
+    // ── ETAPA 2: Claude / parser de texto ───────────────────────────────────
     let resultado, metodo
     const avisosClaude = []
 
     if (process.env.ANTHROPIC_API_KEY) {
+      _diag.claude_chamado = true
       const exemplos = await carregarExemplosCache()
       try {
         resultado = await extrairComClaude(pdfBuffer, exemplos)
         metodo = 'claude-pdf'
-        console.log(`✅ Claude extraiu: ${resultado.fabricante} | ${resultado.modelo} | ${resultado.variantes?.length || 1} variante(s)`)
+        _diag.claude_ok = true
+        console.log(`✅ Claude extraiu: ${resultado?.fabricante} | ${resultado?.modelo} | ${resultado?.variantes?.length || 1} variante(s)`)
         await salvarNoCache(resultado)
       } catch (err) {
+        _diag.claude_ok = false
+        _diag.claude_erro = err.message
         console.error('❌ Claude ERRO:', err.message, err.status || '', err.error?.error?.message || '')
         let motivo = err.message
         if (err.status === 401)        motivo = 'Chave da API inválida ou sem permissão'
@@ -577,8 +620,60 @@ export async function extrairDatasheet(req, res) {
       }
     }
 
+    _diag.fabricante_pre_fallback = resultado?.fabricante ?? null
+    _diag.modelo_pre_fallback = resultado?.modelo ?? null
+    _diag.fabricante_origem = resultado?.fabricante ? metodo : 'nenhuma'
+    _diag.modelo_origem = resultado?.modelo ? metodo : 'nenhuma'
+
+    // ── ETAPA 3: FALLBACK REGEX server-side (causa raiz do 8.6.1 não rodar) ─
+    // Aplica quando Claude/texto-contingência deixou fabricante ou modelo
+    // null/lixo MAS o OCR conseguiu extrair texto suficiente.
+    const fabLixo = ehDefaultLixo(resultado.fabricante, 'fabricante')
+    const modLixo = ehDefaultLixo(resultado.modelo, 'modelo')
+    if ((fabLixo || modLixo) && textoOCR.length >= 20) {
+      _diag.fallback_executado = true
+      const fb = extrairFabricanteModelo(textoOCR)
+      if (fb.fabricante || fb.modelo) _diag.fallback_encontrou = true
+      if (fabLixo && fb.fabricante) {
+        console.log(`🔁 Fallback regex recuperou fabricante: ${fb.fabricante}`)
+        resultado.fabricante = fb.fabricante
+        _diag.fabricante_origem = 'regex_fallback'
+        avisosClaude.push(`Fabricante recuperado por regex: ${fb.fabricante}`)
+      }
+      if (modLixo && fb.modelo) {
+        console.log(`🔁 Fallback regex recuperou modelo: ${fb.modelo}`)
+        resultado.modelo = fb.modelo
+        _diag.modelo_origem = 'regex_fallback'
+        avisosClaude.push(`Modelo recuperado por regex: ${fb.modelo}`)
+      }
+      if (!resultado.tipo && fb.fabricante) resultado.tipo = 'inversor' // heurística mínima
+    }
+
+    // ── Etapa decisiva da falha (para o frontend logar/exibir) ──────────────
+    if (!_diag.etapa_decisiva) {
+      if (!resultado.fabricante && !resultado.modelo) {
+        if (!_diag.claude_ok && !_diag.fallback_encontrou) {
+          _diag.etapa_decisiva = _diag.claude_chamado
+            ? (_diag.fallback_executado ? 'FALLBACK_FALHOU' : 'GEMINI_FALHOU')
+            : 'GEMINI_FALHOU'
+        } else if (textoOCR.length < 20) {
+          _diag.etapa_decisiva = 'OCR_FALHOU'
+        } else {
+          _diag.etapa_decisiva = 'VALIDACAO_FALHOU'
+        }
+      } else {
+        _diag.etapa_decisiva = 'OK'
+      }
+    }
+
     const resposta = normalizar(resultado, metodo)
     if (avisosClaude.length) resposta.avisos = [...(resposta.avisos || []), ...avisosClaude]
+
+    // S8.6.2: expõe o texto OCR (limitado) + diagnóstico ao frontend.
+    // O texto é o material que o regex fallback do 8.6.1 lê do lado do cliente.
+    resposta.texto_extraido = textoOCR.slice(0, 8000)
+    resposta._diagnostico = _diag
+
     res.json(resposta)
   } catch (err) {
     console.error('❌ Erro:', err)

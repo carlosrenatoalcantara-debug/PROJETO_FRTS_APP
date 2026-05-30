@@ -17,12 +17,14 @@ const PADROES = [
     fabricante: 'Deye',
     aliases: ['deye', 'ningbo deye', 'deye inverter'],
     modelos: [
-      // Híbridos PRIMEIRO (mais específico): SUN-12K-SG04LP3, SUN-5K-SG03LP1...
+      // S8.6.2: faixa de potência no nome (SUN-23-30K-G04-LV, SUN-12-15-18K)
+      /\b(SUN-\d{1,3}-\d{1,3}K-G\d+\w*)\b/i,
+      // Híbridos: SUN-12K-SG04LP3, SUN-5K-SG03LP1...
       /\b(SUN-?\d{1,3}K-S?G\d+\w*)\b/i,
       // String inverters: SUN-30K-G04, SUN-12K-G05, SUN-50K-G03, SUN-110K-G04...
       /\b(SUN-?\d{1,3}K-G\d+\w*)\b/i,
-      // Mais genérico (fallback): SUN-30K, SUN30K, SUN-110K
-      /\b(SUN-?\d{1,3}K[-\w]*)\b/i,
+      // Mais genérico (fallback): SUN-30K, SUN30K, SUN-110K, SUN-23-30K
+      /\b(SUN-?\d{1,3}(?:-\d{1,3})?K[-\w]*)\b/i,
     ],
   },
   {
@@ -59,6 +61,14 @@ const PADROES = [
     aliases: ['goodwe'],
     modelos: [
       /\b(GW\d{3,5}\w*)\b/i,                     // GW5000-NS, GW25K-MT
+    ],
+  },
+  {
+    // S8.6.2: confirmado nos testes reais (Datasheet_-_Solplanet_-_ASW7300-S.pdf)
+    fabricante: 'Solplanet',
+    aliases: ['solplanet', 'aiswei'],
+    modelos: [
+      /\b(ASW\s*\d{3,5}[A-Z]?-?[A-Z0-9]*)\b/i,   // ASW7300-S, ASW15K-LT-G2, ASW100KH-T2
     ],
   },
   {
@@ -183,10 +193,12 @@ export function extrairFabricanteModelo(texto) {
 
   // Nenhum padrão casou. Última tentativa: procura modelos isolados (ex.: SUN-30K-G04 em PDF sem marca textual)
   const modelosOrfaos = [
-    { regex: /\b(SUN-?\d{1,3}K[\w-]*)\b/i, fabricante: 'Deye' },
-    { regex: /\b(RHI-\d{1,3}K[\w-]*)\b/i,  fabricante: 'Solis' },
-    { regex: /\b(MIC\s*\d{3,5}TL-X)\b/i,   fabricante: 'Growatt' },
-    { regex: /\b(MAX\s*\d{1,3}KTL3[\w-]*)\b/i, fabricante: 'Growatt' },
+    // S8.6.2: SUN-23-30K-G04-LV (faixa de potência no nome — caso real reportado)
+    { regex: /\b(SUN-?\d{1,3}-?\d{0,3}K[\w-]*)\b/i, fabricante: 'Deye' },
+    { regex: /\b(RHI-\d{1,3}K[\w-]*)\b/i,           fabricante: 'Solis' },
+    { regex: /\b(MIC\s*\d{3,5}TL-X)\b/i,            fabricante: 'Growatt' },
+    { regex: /\b(MAX\s*\d{1,3}KTL3[\w-]*)\b/i,      fabricante: 'Growatt' },
+    { regex: /\b(ASW\s*\d{3,5}[A-Z]?-?[A-Z0-9]*)\b/i, fabricante: 'Solplanet' },
   ]
   for (const { regex, fabricante } of modelosOrfaos) {
     const m = texto.match(regex)
