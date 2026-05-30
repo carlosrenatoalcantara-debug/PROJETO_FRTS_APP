@@ -92,6 +92,10 @@ export default function CarregadoresEV() {
   }
 
   async function handleExcluir(id) {
+    if (!id) {
+      alert('Este carregador não possui identificador válido para exclusão.')
+      return
+    }
     if (!confirm('Tem certeza que deseja excluir este carregador?')) return
     try {
       const resEquip = await fetch(`${API_URL}/api/equipamentos/${id}`, { method: 'DELETE' })

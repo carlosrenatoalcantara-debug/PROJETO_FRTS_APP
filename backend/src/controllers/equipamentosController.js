@@ -99,6 +99,7 @@ export const listarEquipamentos = async (req, res) => {
 
       // Converter CarregadorEV para formato Equipamento
       equipamentos = carregadores.map(cg => ({
+        _id: cg._id,
         tipo: 'carregador_ev',
         fabricante: cg.marca,
         modelo: cg.modelo,
