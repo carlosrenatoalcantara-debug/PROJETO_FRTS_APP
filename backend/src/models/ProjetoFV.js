@@ -647,6 +647,20 @@ const projetoFVSchema = new mongoose.Schema({
       anotacao_responsavel: Boolean,
       laudo_conformidade: Boolean,
     },
+    // S9.0 — Homologação Assistida (aditivo, não substitui o `status` legado)
+    status_homologacao: {
+      type: String,
+      enum: ['nao_iniciado', 'em_preparacao', 'pendente_documentacao', 'pendente_engenharia', 'pendente_concessionaria', 'homologado', 'reprovado', null],
+      default: null,
+    },
+    historico_status: [{
+      em: { type: Date, default: Date.now },
+      de: String, para: String, por: String, motivo: String,
+    }],
+    iniciada_em: Date,
+    iniciada_por: String,
+    concluida_em: Date,
+    concluida_por: String,
   },
   observacoes: String,
 

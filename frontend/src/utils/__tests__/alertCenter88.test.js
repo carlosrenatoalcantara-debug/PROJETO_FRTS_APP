@@ -222,6 +222,7 @@ describe('S8.8 — agregador, KPIs e filtros', () => {
   // 24) Severidades e origens exportadas
   it('exporta enums', () => {
     expect(SEVERIDADES).toEqual(['info', 'aviso', 'erro', 'critico'])
-    expect(ORIGENS).toEqual(['rt', 'catalogo', 'documento', 'projeto', 'fatura'])
+    // S9.0 adicionou 'homologacao' como origem
+    expect(ORIGENS).toEqual(['rt', 'catalogo', 'documento', 'projeto', 'fatura', 'homologacao'])
   })
 })

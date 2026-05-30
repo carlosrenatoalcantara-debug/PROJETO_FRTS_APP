@@ -12,7 +12,7 @@
  */
 
 export const SEVERIDADES = ['info', 'aviso', 'erro', 'critico']
-export const ORIGENS = ['rt', 'catalogo', 'documento', 'projeto', 'fatura']
+export const ORIGENS = ['rt', 'catalogo', 'documento', 'projeto', 'fatura', 'homologacao']
 
 const DIA_MS = 24 * 60 * 60 * 1000
 
@@ -355,19 +355,96 @@ export function detectarAlertasFaturas(faturas) {
   return alertas
 }
 
-// ── 6. AGREGADOR PRINCIPAL ─────────────────────────────────────────────────
+// ── 6. ALERTAS DE HOMOLOGAÇÃO (S9.0) ────────────────────────────────────────
+
+/**
+ * Detecta alertas de homologação baseados no resultado do gerarChecklist().
+ * Espera um Map projeto._id → checklist (output do gerarChecklist).
+ */
+export function detectarAlertasHomologacao(projetos, checklistsPorProjeto = new Map()) {
+  const alertas = []
+  for (const p of projetos || []) {
+    if (p.excluido) continue
+    const cl = checklistsPorProjeto.get(String(p._id))
+    if (!cl) continue
+    const { resumo, itens } = cl
+
+    // Apto à homologação (info motivacional)
+    if (resumo.apto_para_envio && resumo.status_atual !== 'homologado') {
+      alertas.push({
+        id: _id('homolog_apto', p._id),
+        origem: 'homologacao', severidade: 'info',
+        titulo: `Projeto "${p.nome || p._id}" apto à homologação`,
+        descricao: `Checklist 100% completo (${resumo.ok}/${resumo.total} itens).`,
+        data: (p.updatedAt || new Date()).toString(),
+        acao_recomendada: 'Enviar pacote à concessionária.',
+        link: `/projetos-fv/${p._id}?tab=homologacao`,
+        contexto: { projeto_id: p._id },
+      })
+      continue
+    }
+
+    // Pendência: alguma certificação obrigatória ausente
+    const certs = (itens || []).filter(i => i.chave?.startsWith('cert_') && i.status === 'erro')
+    for (const c of certs) {
+      alertas.push({
+        id: _id('homolog_cert', p._id, c.chave),
+        origem: 'homologacao', severidade: 'erro',
+        titulo: `${c.titulo} (${p.nome || p._id})`,
+        descricao: c.detalhe,
+        data: (p.updatedAt || new Date()).toString(),
+        acao_recomendada: 'Adicionar certificação ao equipamento ou substituir.',
+        link: `/projetos-fv/${p._id}?tab=homologacao`,
+        contexto: { projeto_id: p._id, chave: c.chave },
+      })
+    }
+
+    // Pendência: documento obrigatório ausente
+    const docs = (itens || []).filter(i => i.chave?.startsWith('doc_') && i.status === 'pendente')
+    for (const d of docs) {
+      alertas.push({
+        id: _id('homolog_doc', p._id, d.chave),
+        origem: 'homologacao', severidade: 'aviso',
+        titulo: `${d.titulo} (${p.nome || p._id})`,
+        descricao: d.detalhe,
+        data: (p.updatedAt || new Date()).toString(),
+        acao_recomendada: 'Anexar o documento exigido.',
+        link: `/projetos-fv/${p._id}?tab=homologacao`,
+        contexto: { projeto_id: p._id, chave: d.chave },
+      })
+    }
+
+    // Pendência geral (status sugerido != atual)
+    if (resumo.erros > 0 && resumo.status_atual === 'em_preparacao') {
+      alertas.push({
+        id: _id('homolog_pendente', p._id),
+        origem: 'homologacao', severidade: 'aviso',
+        titulo: `Homologação de "${p.nome || p._id}" com pendências`,
+        descricao: `${resumo.erros} pendência(s) bloqueante(s). Status sugerido: ${resumo.status_sugerido}.`,
+        data: (p.updatedAt || new Date()).toString(),
+        acao_recomendada: 'Resolver itens vermelhos do checklist.',
+        link: `/projetos-fv/${p._id}?tab=homologacao`,
+        contexto: { projeto_id: p._id, status_sugerido: resumo.status_sugerido },
+      })
+    }
+  }
+  return alertas
+}
+
+// ── 7. AGREGADOR PRINCIPAL ─────────────────────────────────────────────────
 
 /**
  * Combina todos os detectores em uma lista única + KPIs.
  * Recebe um objeto `fontes` para evitar I/O dentro deste módulo.
  */
-export function agregarAlertas({ tecnicos = [], equipamentos = [], documentos = [], projetos = [], beneficiariasPorProjeto = new Map(), faturas = [], diagnosticarFicha = null, hoje = new Date() } = {}) {
+export function agregarAlertas({ tecnicos = [], equipamentos = [], documentos = [], projetos = [], beneficiariasPorProjeto = new Map(), faturas = [], checklistsPorProjeto = new Map(), diagnosticarFicha = null, hoje = new Date() } = {}) {
   const alertas = [
     ...detectarAlertasRT(tecnicos, hoje),
     ...detectarAlertasCatalogo(equipamentos, { diagnosticarFicha }),
     ...detectarAlertasDocumentos(documentos, hoje),
     ...detectarAlertasProjetos(projetos, beneficiariasPorProjeto),
     ...detectarAlertasFaturas(faturas),
+    ...detectarAlertasHomologacao(projetos, checklistsPorProjeto),
   ]
   return alertas
 }
@@ -378,7 +455,7 @@ export function calcularKPIs(alertas, statusPorId = new Map()) {
     return !st || st === 'aberto'
   })
   const por_severidade = { info: 0, aviso: 0, erro: 0, critico: 0 }
-  const por_origem = { rt: 0, catalogo: 0, documento: 0, projeto: 0, fatura: 0 }
+  const por_origem = { rt: 0, catalogo: 0, documento: 0, projeto: 0, fatura: 0, homologacao: 0 }
   for (const a of ativos) {
     if (a.severidade in por_severidade) por_severidade[a.severidade]++
     if (a.origem in por_origem) por_origem[a.origem]++
@@ -393,6 +470,8 @@ export function calcularKPIs(alertas, statusPorId = new Map()) {
       projetos_com_problemas: ativos.filter(a => a.origem === 'projeto').length,
       documentos_faltantes: ativos.filter(a => a.origem === 'documento').length,
       faturas_inconsistentes: ativos.filter(a => a.origem === 'fatura').length,
+      homologacao_pendentes: ativos.filter(a => a.origem === 'homologacao' && a.severidade !== 'info').length,
+      homologacao_aptos: ativos.filter(a => a.id.startsWith('homolog_apto')).length,
     },
   }
 }

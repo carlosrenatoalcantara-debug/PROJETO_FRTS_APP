@@ -23,6 +23,7 @@ import { AuditLog } from '../models/AuditLog.js'
 import { AlertaStatus } from '../models/AlertaStatus.js'
 import { agregarAlertas, calcularKPIs, filtrarAlertas, SEVERIDADES, ORIGENS } from '../utils/alertcenter/alertDetectors.js'
 import { diagnosticarFicha } from '../utils/catalogo/fichaTecnicaMap.js'
+import { gerarChecklist } from '../utils/homologacao/homologacaoAssistida.js'
 
 const router = Router()
 
@@ -61,9 +62,26 @@ async function obterTodosAlertas({ forcarRefresh = false } = {}) {
     beneficiariasPorProjeto.get(k).push(b)
   }
 
+  // S9.0 — Checklist de homologação por projeto (limita a projetos não-arquivados para perf)
+  const checklistsPorProjeto = new Map()
+  for (const p of projetos) {
+    if (p.excluido || p.status_display === 'ARQUIVADO') continue
+    // Equipamentos referenciados pelo projeto
+    const ids = []
+    for (const e of (p?.equipamentos?.paineis || [])) if (e?._id || e?.equipamento_id) ids.push(e._id || e.equipamento_id)
+    if (p?.equipamentos?.inversor?._id) ids.push(p.equipamentos.inversor._id)
+    if (p?.equipamentos?.inversor?.equipamento_id) ids.push(p.equipamentos.inversor.equipamento_id)
+    const eqs = ids.length ? equipamentos.filter(e => ids.some(id => String(id) === String(e._id))) : []
+    const benefs = beneficiariasPorProjeto.get(String(p._id)) || []
+    try {
+      const cl = gerarChecklist({ projeto: p, equipamentos: eqs, beneficiarias: benefs, concessionaria: p?.homologacao?.concessionaria })
+      checklistsPorProjeto.set(String(p._id), cl)
+    } catch { /* tolera projetos com shape antigo */ }
+  }
+
   const alertas = agregarAlertas({
     tecnicos, equipamentos, documentos, projetos, beneficiariasPorProjeto, faturas,
-    diagnosticarFicha,
+    checklistsPorProjeto, diagnosticarFicha,
   })
   _cache = { em: agora, alertas }
   return alertas
