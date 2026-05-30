@@ -21,6 +21,7 @@ import { apenasAtivos } from '../utils/gestaoUtils'
 import { formatarDataSegura } from '../utils/dataSegura'
 import InteractiveDiagram from '../components/diagram/InteractiveDiagram'
 import { carregarDiagramaLocal, salvarDiagramaLocal, deletarDiagramaLocal } from '../components/diagram/utils/diagramPersistence'
+import BeneficiariasPainel from '../components/fv/BeneficiariasPainel'
 
 export default function ProjetosFVDetalhes() {
   const { id } = useParams()
@@ -140,6 +141,7 @@ export default function ProjetosFVDetalhes() {
     { id: 'comercial', label: 'Comercial', icone: Briefcase },
     { id: 'crm', label: 'CRM', icone: Users },
     { id: 'homologacao', label: 'Homologação', icone: FileText },
+    { id: 'beneficiarias', label: 'Beneficiárias', icone: Users },
   ]
 
   const statusGov = projeto.governanca?.freeze_status
@@ -234,6 +236,13 @@ export default function ProjetosFVDetalhes() {
           />
         )}
         {abaAtiva === 'homologacao' && <AbaHomologacao />}
+        {abaAtiva === 'beneficiarias' && (
+          <Card className="mt-4">
+            <CardBody>
+              <BeneficiariasPainel projetoId={projeto._id} />
+            </CardBody>
+          </Card>
+        )}
       </div>
 
       {/* Modal Editor de Diagrama */}
