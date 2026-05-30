@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Upload, Check, AlertTriangle, X, Save, FileText, ChevronRight, Loader } from 'lucide-react'
+import { Upload, Check, AlertTriangle, X, Save, FileText, ChevronRight, Loader, Zap, TrendingUp, Gauge, Sun } from 'lucide-react'
 import Card, { CardHeader, CardBody } from '../components/ui/Card'
 
 /**
@@ -221,6 +221,125 @@ function Detalhe({ fatura, onVoltar, onCorrigir, onAprovar }) {
           </div>
         </CardBody>
       </Card>
+
+      {/* S8.9 — Dashboard energético */}
+      <DashboardEnergetico fatura={fatura} />
     </>
+  )
+}
+
+/**
+ * DashboardEnergetico — Sprint 8.9
+ * Análise avançada da fatura: demanda/ultrapassagem (Grupo A), tarifação ponta/
+ * fora-ponta, GD (saldo/compensação/autossuficiência), sazonalidade, consistência.
+ * Busca em /api/faturas/:id/analise se persistida; senão POST /api/faturas/analise.
+ */
+function DashboardEnergetico({ fatura }) {
+  const [dash, setDash] = useState(null)
+  const [carregando, setCarregando] = useState(false)
+
+  useEffect(() => {
+    let vivo = true
+    setCarregando(true)
+    const req = fatura?._id
+      ? fetch(`/api/faturas/${fatura._id}/analise`).then(r => r.json())
+      : fetch('/api/faturas/analise', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fatura }) }).then(r => r.json())
+    req.then(d => { if (vivo && d?.dashboard) setDash(d.dashboard) })
+      .catch(() => {})
+      .finally(() => vivo && setCarregando(false))
+    return () => { vivo = false }
+  }, [fatura])
+
+  if (carregando) return <Card className="mt-4"><CardBody><div className="flex items-center gap-2 text-slate-500 text-sm"><Loader size={14} className="animate-spin" /> Analisando energia…</div></CardBody></Card>
+  if (!dash) return null
+
+  const KPI = ({ icone: Ic, cor, rotulo, valor, sub }) => (
+    <div className="flex items-center gap-2 bg-slate-50 rounded-lg px-3 py-2">
+      <div className={`p-1.5 rounded ${cor}`}><Ic size={14} /></div>
+      <div>
+        <p className="text-[10px] text-slate-500">{rotulo}</p>
+        <p className="text-sm font-bold text-slate-900">{valor ?? '—'}</p>
+        {sub && <p className="text-[10px] text-slate-400">{sub}</p>}
+      </div>
+    </div>
+  )
+
+  const d = dash.demanda || {}
+  const t = dash.tarifacao || {}
+  const gd = dash.gd || {}
+  const sz = dash.sazonalidade || {}
+  const cons = dash.consistencia || {}
+
+  return (
+    <Card className="mt-4">
+      <CardHeader className="flex items-center gap-2">
+        <Zap size={16} className="text-amber-500" />
+        <h3 className="font-semibold text-slate-900">Dashboard Energético</h3>
+        <span className="ml-auto text-xs text-slate-500">Prontidão p/ proposta: <strong className={dash.prontidao_proposta >= 70 ? 'text-emerald-600' : 'text-amber-600'}>{dash.prontidao_proposta}%</strong></span>
+      </CardHeader>
+      <CardBody className="space-y-4">
+        {/* KPIs principais */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <KPI icone={TrendingUp} cor="bg-blue-100 text-blue-700" rotulo="Consumo médio" valor={dash.consumo_medio_kwh != null ? `${dash.consumo_medio_kwh} kWh` : '—'} />
+          <KPI icone={Sun} cor="bg-amber-100 text-amber-700" rotulo="FV estimado" valor={dash.dimensionamento_sugerido?.potencia_fv_estimada_kwp != null ? `${dash.dimensionamento_sugerido.potencia_fv_estimada_kwp} kWp` : '—'} sub="regra de bolso" />
+          <KPI icone={Gauge} cor="bg-violet-100 text-violet-700" rotulo="Grupo / Modalidade" valor={`${dash.grupo}${dash.modalidade ? ` · ${dash.modalidade}` : ''}`} />
+          <KPI icone={Zap} cor="bg-emerald-100 text-emerald-700" rotulo="Sazonalidade" valor={sz.calculavel ? sz.sazonalidade : '—'} sub={sz.calculavel ? `±${sz.amplitude_pct}%` : ''} />
+        </div>
+
+        {/* Grupo A — Demanda */}
+        {d.aplicavel && d.calculavel && (
+          <div className={`rounded-lg border px-3 py-2 ${d.ultrapassou ? 'bg-red-50 border-red-200' : 'bg-emerald-50 border-emerald-200'}`}>
+            <p className="text-xs font-semibold text-slate-700 mb-1">Demanda (Grupo A)</p>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-1 text-xs">
+              <span className="text-slate-600">Contratada: <strong>{d.demanda_contratada} kW</strong></span>
+              <span className="text-slate-600">Medida: <strong>{d.demanda_medida} kW</strong></span>
+              <span className="text-slate-600">Utilização: <strong>{d.utilizacao_pct}%</strong></span>
+              <span className={d.ultrapassou ? 'text-red-700 font-semibold' : 'text-emerald-700'}>
+                {d.ultrapassou ? `Ultrapassagem: ${d.excedente_kw} kW` : `Folga: ${d.folga_kw} kW`}
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-500 mt-1">{d.recomendacao}</p>
+          </div>
+        )}
+
+        {/* Tarifação ponta/fora-ponta */}
+        {t.aplicavel && t.consumo_total && (
+          <div className="rounded-lg border border-slate-100 px-3 py-2">
+            <p className="text-xs font-semibold text-slate-700 mb-1">Tarifação</p>
+            <div className="flex items-center gap-2 text-xs">
+              <span className="text-slate-600">Ponta: <strong>{t.consumo_ponta ?? '—'} kWh ({t.pct_ponta ?? '—'}%)</strong></span>
+              <span className="text-slate-400">|</span>
+              <span className="text-slate-600">Fora-ponta: <strong>{t.consumo_fora_ponta ?? '—'} kWh ({t.pct_fora_ponta ?? '—'}%)</strong></span>
+            </div>
+          </div>
+        )}
+
+        {/* GD */}
+        {gd.possui_gd && (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
+            <p className="text-xs font-semibold text-amber-800 mb-1">Geração Distribuída existente</p>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-1 text-xs text-amber-800">
+              <span>Injetada: <strong>{gd.energia_injetada ?? '—'} kWh</strong></span>
+              <span>Créditos: <strong>{gd.creditos_kwh ?? '—'} kWh</strong></span>
+              <span>Compensação: <strong>{gd.compensacao_kwh ?? '—'} kWh</strong></span>
+              <span>Autossuf.: <strong>{gd.autossuficiencia_pct != null ? `${gd.autossuficiencia_pct}%` : '—'}</strong></span>
+            </div>
+          </div>
+        )}
+
+        {/* Consistência */}
+        {cons.total_problemas > 0 && (
+          <div className="rounded-lg border border-slate-100 px-3 py-2">
+            <p className="text-xs font-semibold text-slate-700 mb-1">Consistência das leituras ({cons.total_problemas})</p>
+            {cons.problemas.map((p, i) => (
+              <p key={i} className={`text-[11px] ${p.severidade === 'erro' ? 'text-red-600' : 'text-amber-600'}`}>• {p.detalhe}</p>
+            ))}
+          </div>
+        )}
+        {cons.consistente && cons.total_problemas === 0 && (
+          <p className="text-xs text-emerald-600">✓ Leituras consistentes, sem anomalias detectadas.</p>
+        )}
+      </CardBody>
+    </Card>
   )
 }

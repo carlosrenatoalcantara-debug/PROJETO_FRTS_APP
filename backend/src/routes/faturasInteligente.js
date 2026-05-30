@@ -7,6 +7,7 @@ import { AuditLog } from '../models/AuditLog.js'
 import { CONCESSIONARIAS_SUPORTADAS } from '../utils/fatura/concessionariaDetector.js'
 import { montarFaturaInteligente } from '../services/faturaIntelligenceService.js'
 import { detectarDuplicidade } from '../utils/fatura/faturaValidador.js'
+import { gerarDashboardEnergetico } from '../utils/fatura/analisadorEnergetico.js'
 
 /**
  * Rotas /api/faturas — Sprint 8.5 (camada de inteligência sobre faturas).
@@ -64,6 +65,35 @@ router.get('/:id', async (req, res) => {
     const f = await FaturaEnergia.findById(req.params.id)
     if (!f) return res.status(404).json({ erro: 'Fatura não encontrada' })
     res.json({ sucesso: true, item: f })
+  } catch (err) { res.status(500).json({ erro: err.message }) }
+})
+
+/**
+ * S8.9 — GET /:id/analise
+ * Dashboard energético completo (Grupo A, tarifação, GD, sazonalidade,
+ * consistência) computado a partir da FaturaEnergia persistida.
+ */
+router.get('/:id/analise', async (req, res) => {
+  try {
+    if (!_dbOk(res)) return
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) return res.status(400).json({ erro: 'ID inválido' })
+    const f = await FaturaEnergia.findById(req.params.id).lean()
+    if (!f) return res.status(404).json({ erro: 'Fatura não encontrada' })
+    const dashboard = gerarDashboardEnergetico(f)
+    res.json({ sucesso: true, fatura_id: f._id, dashboard })
+  } catch (err) { res.status(500).json({ erro: err.message }) }
+})
+
+/**
+ * S8.9 — POST /analise — análise sem persistir (a partir de uma fatura JSON).
+ * Body: { fatura } — estrutura já normalizada (output de parsearFatura).
+ */
+router.post('/analise', async (req, res) => {
+  try {
+    const { fatura } = req.body || {}
+    if (!fatura) return res.status(400).json({ erro: 'Forneça `fatura` no body.' })
+    const dashboard = gerarDashboardEnergetico(fatura)
+    res.json({ sucesso: true, dashboard })
   } catch (err) { res.status(500).json({ erro: err.message }) }
 })
 
