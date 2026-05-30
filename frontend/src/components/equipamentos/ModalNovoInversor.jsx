@@ -76,10 +76,18 @@ export default function ModalNovoInversor({ arquivosIniciais = [], onClose, onSa
       const aviso = json.avisos?.length ? json.avisos[0] : null
 
       // Verifica duplicata — se existir, atualiza; senão, cria
-      const params = new URLSearchParams({ fabricante: dados.fabricante || '', modelo: dados.modelo || '', tipo: 'inversor' })
-      const dupRes  = await fetch(`${API_URL}/api/datasheet/verificar-duplicata?${params}`)
-      const dupJson = await dupRes.json()
-      const existente = dupJson.duplicata ? dupJson.equipamento : null
+      let existente = null
+      try {
+        const params = new URLSearchParams({ fabricante: dados.fabricante || '', modelo: dados.modelo || '', tipo: 'inversor' })
+        const dupRes  = await fetch(`${API_URL}/api/datasheet/verificar-duplicata?${params}`)
+        if (dupRes.ok) {
+          const dupJson = await dupRes.json()
+          existente = dupJson.duplicata ? dupJson.equipamento : null
+        }
+      } catch {
+        // Nao bloquear cadastro caso o endpoint de duplicata esteja indisponivel.
+        existente = null
+      }
 
       // Monta payload
       const payload = {

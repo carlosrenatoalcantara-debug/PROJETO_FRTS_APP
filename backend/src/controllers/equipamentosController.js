@@ -222,7 +222,19 @@ export const atualizarEquipamento = async (req, res) => {
 export const excluirEquipamento = async (req, res) => {
   try {
     const { id } = req.params
-    const equipamento = await Equipamento.findByIdAndDelete(id)
+    let equipamento = await Equipamento.findByIdAndDelete(id)
+
+    // Compatibilidade temporaria P0-A:
+    // se o item nao estiver em Equipamento, tenta excluir do legado CarregadorEV.
+    if (!equipamento && mongoose.Types.ObjectId.isValid(id)) {
+      console.warn('AUDITORIA_FALLBACK', auditarFallbackPayload({
+        arquivo: 'backend/src/controllers/equipamentosController.js',
+        funcao: 'excluirEquipamento',
+        origem: 'CarregadorEV',
+        motivo: 'Exclusao solicitada para id ausente em Equipamento; tentativa no legado temporario',
+      }))
+      equipamento = await CarregadorEV.findByIdAndDelete(id)
+    }
 
     if (!equipamento) {
       return res.status(404).json({ erro: 'Equipamento não encontrado' })
