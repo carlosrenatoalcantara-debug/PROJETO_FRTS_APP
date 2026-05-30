@@ -359,20 +359,35 @@ export function determinarModoOperacao(tipo_carregador, potencia_kw = 0) {
  * @returns {object} Objeto com cálculos_nbr e conformidade_norms
  */
 /**
- * Gera lista de materiais necessários para instalação de carregador EV
+ * Gera lista de materiais necessários para instalação de carregador EV.
+ * EV-BUGFIX-02:
+ *   - DPS: 2 unidades (NBR 5410 6.3.5.2 — fase + neutro)
+ *   - Eletroduto: ceil(distancia / 3m) barras
+ *   - Abraçadeiras: 3 por barra
+ *   - Bucha + parafuso: 4 por barra
  */
 function gerarListaMaterialesNBRProjeto(potencia_kw, tipo_carregador, bitola_mm2, disjuntor_a, dr_ma, comprimento_m) {
+  const BARRA_M = 3
+  const distancia = Math.max(0, Number(comprimento_m) || 0)
+  const barras = Math.max(1, Math.ceil(distancia / BARRA_M))
+  const abracadeiras = barras * 3
+  const fixacoes = barras * 4
   return [
-    { item: 'Carregador EV', especificacao: `${tipo_carregador} ${potencia_kw}kW`, quantidade: 1 },
-    { item: 'Cabo de alimentação', especificacao: `${bitola_mm2} mm² (Cu, 0,6/1kV)`, quantidade: comprimento_m },
-    { item: 'Disjuntor termomagnético', especificacao: `${disjuntor_a}A Curva C`, quantidade: 1 },
-    { item: 'Dispositivo DR', especificacao: `${dr_ma}mA Tipo A`, quantidade: 1 },
-    { item: 'DPS (Proteção contra Surtos)', especificacao: '420V Classe II', quantidade: 1 },
-    { item: 'Eletroduto rígido/conduíte', especificacao: 'Proteção mecânica', quantidade: comprimento_m },
-    { item: 'Fita isolante', especificacao: 'Vedação de conexões', quantidade: 5 },
-    { item: 'Cinta de fixação', especificacao: 'Suporte do cabo', quantidade: 10 },
-    { item: 'Haste de aterramento', especificacao: '2,4m cobre 16mm dia', quantidade: 1 },
-    { item: 'Tomadas/conectores', especificacao: 'Conforme carregador', quantidade: 2 },
+    { item: 'Carregador EV', especificacao: `${tipo_carregador} ${potencia_kw}kW`, quantidade: 1, unidade: 'un' },
+    { item: 'Cabo de alimentação', especificacao: `${bitola_mm2} mm² (Cu, 0,6/1kV)`, quantidade: distancia, unidade: 'm' },
+    { item: 'Disjuntor termomagnético', especificacao: `${disjuntor_a}A Curva C`, quantidade: 1, unidade: 'un' },
+    { item: 'Dispositivo DR', especificacao: `${dr_ma}mA Tipo A`, quantidade: 1, unidade: 'un' },
+    // EV-BUGFIX-02: DPS mínimo 2 (NBR 5410)
+    { item: 'DPS (Proteção contra Surtos)', especificacao: '420V Classe II', quantidade: 2, unidade: 'un' },
+    // EV-BUGFIX-02: eletroduto em barras
+    { item: 'Eletroduto rígido', especificacao: `Proteção mecânica · barras de ${BARRA_M}m`, quantidade: barras, unidade: 'barra' },
+    // EV-BUGFIX-02: abraçadeiras 3/barra
+    { item: 'Abraçadeira', especificacao: `Fixação do eletroduto (3/barra)`, quantidade: abracadeiras, unidade: 'un' },
+    // EV-BUGFIX-02: bucha + parafuso 4/barra
+    { item: 'Bucha + parafuso', especificacao: `Fixação em alvenaria (4/barra)`, quantidade: fixacoes, unidade: 'jogo' },
+    { item: 'Fita isolante', especificacao: 'Vedação de conexões', quantidade: 5, unidade: 'rolo' },
+    { item: 'Haste de aterramento', especificacao: '2,4m cobre 16mm dia', quantidade: 1, unidade: 'un' },
+    { item: 'Tomadas/conectores', especificacao: 'Conforme carregador', quantidade: 2, unidade: 'un' },
   ]
 }
 

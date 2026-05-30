@@ -35,7 +35,18 @@ async function _auditarEV(req, acao, alvo, detalhe = null) {
 router.get('/', async (req, res) => {
   try {
     const { tipo, potencia, ativo } = req.query
-    const filtro = { ativo: ativo !== 'false' }
+    // EV-BUGFIX-02: filtro de `ativo` agora explícito (antes era implicitamente true).
+    // ?ativo não definido → retorna apenas ativos (default; comportamento original).
+    // ?ativo=false → retorna apenas inativos (lixeira).
+    // ?ativo=all → retorna TODOS (auditoria).
+    const filtro = {}
+    if (ativo === 'all') {
+      // sem filtro de ativo
+    } else if (ativo === 'false') {
+      filtro.ativo = false
+    } else {
+      filtro.ativo = true
+    }
     if (tipo) filtro.tipo = tipo
     if (potencia) filtro.potencia_kw = Number(potencia)
 
@@ -43,6 +54,47 @@ router.get('/', async (req, res) => {
     res.json(carregadores)
   } catch (error) {
     res.status(500).json({ erro: error.message })
+  }
+})
+
+// EV-BUGFIX-02: Diagnóstico Mongo ↔ API. Útil para auditar discrepância
+// entre quantidade no banco vs quantidade exibida na UI.
+router.get('/diagnostico', async (req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({ sucesso: false, erro: 'DB_OFFLINE' })
+    }
+    const [total, ativos, inativos] = await Promise.all([
+      CarregadorEV.countDocuments({}),
+      CarregadorEV.countDocuments({ ativo: true }),
+      CarregadorEV.countDocuments({ ativo: false }),
+    ])
+    const porTipo = await CarregadorEV.aggregate([
+      { $group: { _id: '$tipo', count: { $sum: 1 } } },
+    ])
+    const sample = await CarregadorEV.find({}).sort({ createdAt: -1 }).limit(5).lean()
+      .then(docs => docs.map(d => ({ _id: d._id, marca: d.marca, modelo: d.modelo, tipo: d.tipo, ativo: d.ativo })))
+    // Cruza com Equipamento (existe rota de fallback que migra para Equipamento)
+    let equipamentosEV = null
+    try {
+      const { Equipamento: Eq } = await import('../models/Equipamento.js')
+      equipamentosEV = await Eq.countDocuments({ tipo: 'carregador_ev' })
+    } catch { /* opcional */ }
+    res.json({
+      sucesso: true,
+      gerado_em: new Date(),
+      contagens: {
+        carregador_ev_total: total,
+        carregador_ev_ativos: ativos,
+        carregador_ev_inativos: inativos,
+        equipamentos_tipo_carregador_ev: equipamentosEV,
+      },
+      por_tipo: porTipo,
+      ultimos: sample,
+      filtro_padrao_aplicado: 'ativo=true (use ?ativo=all para ver tudo)',
+    })
+  } catch (error) {
+    res.status(500).json({ sucesso: false, erro: error.message })
   }
 })
 

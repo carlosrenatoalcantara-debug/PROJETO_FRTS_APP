@@ -31,6 +31,7 @@ export default function NovaPropostaEV() {
   const [etapa, setEtapa] = useState(1)
   const [carregadores, setCarregadores] = useState([])
   const [carregadoresDisponiveis, setCarregadoresDisponiveis] = useState([])
+  const [carregadoresErro, setCarregadoresErro] = useState(null)  // EV-BUGFIX-02
   const [calculos, setCalculos] = useState(null)
   const [unifilar, setUnifilar] = useState(null)
   const [modalUploadAberto, setModalUploadAberto] = useState(false)
@@ -54,7 +55,10 @@ export default function NovaPropostaEV() {
     tecnico_tipo: 'crea', // 'crea' ou 'cft'
   })
 
-  // EV-ALIGN-01: carregar RT da Gestão Corporativa (API), filtrar ativos + especialidade EV
+  // EV-BUGFIX-02: filtro EV-ALIGN-01 era restritivo demais — excluía técnicos
+  // com especialidades=['FV'] (técnicos cadastrados para projetos solares que
+  // também podem assinar EV). Agora alinha com o FV: lista TODOS os ativos.
+  // Quem tem 'EV' declarado aparece com destaque; demais aparecem normalmente.
   useEffect(() => {
     let vivo = true
     setRtCarregando(true)
@@ -62,26 +66,25 @@ export default function NovaPropostaEV() {
       .then(lista => {
         if (!vivo) return
         setRtCarregando(false)
-        // Filtra ATIVOS + tem especialidade EV (ou sem especialidade declarada → aceita)
-        const aptos = apenasAtivos(lista).filter(t =>
-          !Array.isArray(t.especialidades) || t.especialidades.length === 0 || t.especialidades.includes('EV')
-        )
+        // EV-BUGFIX-02: aceita TODOS os técnicos ativos (mesmo padrão FV).
+        // Auto-seleciona quando há apenas 1; com múltiplos, prioriza quem
+        // declarou especialidade EV; demais aparecem no seletor.
+        const aptos = apenasAtivos(lista)
         setResponsaveisTecnicos(aptos)
-        // Auto-seleciona o primeiro RT apto
         if (aptos.length > 0) {
-          const primeiro = aptos[0]
-          setTecnicoSelecionado(primeiro._id)
-          const ehCrea = (primeiro.tipo_registro || '').toUpperCase() === 'CREA'
+          const comEV = aptos.find(t => Array.isArray(t.especialidades) && t.especialidades.includes('EV'))
+          const escolhido = comEV || aptos[0]
+          setTecnicoSelecionado(escolhido._id)
+          const ehCrea = (escolhido.tipo_registro || '').toUpperCase() === 'CREA'
           setDados(prev => ({
             ...prev,
-            tecnico_nome: primeiro.nome || '',
-            tecnico_crea: ehCrea ? primeiro.registro : '',
-            tecnico_cft: !ehCrea ? primeiro.registro : '',
+            tecnico_nome: escolhido.nome || '',
+            tecnico_crea: ehCrea ? escolhido.registro : '',
+            tecnico_cft: !ehCrea ? escolhido.registro : '',
             tecnico_tipo: ehCrea ? 'crea' : 'cft',
-            tecnico_id: primeiro._id,
-            // EV-ALIGN-01: leva validação para frente (potência máx + carteira)
-            tecnico_potencia_max_kw: primeiro.potencia_max_kw || null,
-            tecnico_validade_carteira: primeiro.validade_carteira_profissional || null,
+            tecnico_id: escolhido._id,
+            tecnico_potencia_max_kw: escolhido.potencia_max_kw || null,
+            tecnico_validade_carteira: escolhido.validade_carteira_profissional || null,
           }))
         }
       })
@@ -138,7 +141,10 @@ export default function NovaPropostaEV() {
   }, [clienteId])
 
   // Carregar carregadores disponíveis
+  // EV-BUGFIX-02: estado adicional `carregadoresErro` para diferenciar
+  // "catálogo vazio" vs "falha de rede" no UX.
   const carregarCarregadores = () => {
+    setCarregadoresErro(null)
     console.log('🔄 Carregando carregadores de:', `${API_URL}/api/carregadores-ev`)
     fetch(`${API_URL}/api/carregadores-ev`)
       .then(r => {
@@ -147,12 +153,14 @@ export default function NovaPropostaEV() {
         return r.json()
       })
       .then(data => {
-        console.log('✅ Carregadores carregados:', data?.length || 0)
-        setCarregadoresDisponiveis(data || [])
+        const lista = Array.isArray(data) ? data : (data?.itens || [])
+        console.log('✅ Carregadores carregados:', lista.length)
+        setCarregadoresDisponiveis(lista)
       })
       .catch(err => {
         console.error('❌ Erro ao carregar carregadores:', err)
         setCarregadoresDisponiveis([])
+        setCarregadoresErro(err.message || 'Falha na conexão com o servidor')
       })
   }
 
@@ -441,12 +449,15 @@ export default function NovaPropostaEV() {
             {responsaveisTecnicos.length > 0 && (
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Selecionar Técnico Responsável
+                  {/* EV-BUGFIX-02: deixa explícito quando há só 1 RT auto-selecionado */}
+                  Responsável Técnico
+                  {responsaveisTecnicos.length === 1
+                    ? <span className="ml-1 text-[10px] text-emerald-700">✓ auto-selecionado</span>
+                    : <span className="ml-1 text-[10px] text-slate-400">({responsaveisTecnicos.length} disponíveis)</span>}
                 </label>
                 <select
                   value={tecnicoSelecionado}
                   onChange={(e) => {
-                    // EV-ALIGN-01: usa shape da API (_id, tipo_registro, registro)
                     setTecnicoSelecionado(e.target.value)
                     const responsavel = responsaveisTecnicos.find(r => r._id === e.target.value)
                     if (responsavel) {
@@ -470,17 +481,18 @@ export default function NovaPropostaEV() {
                     const limite = resp.potencia_max_kw ? ` · até ${resp.potencia_max_kw}kW` : ''
                     const v = resp.validade_carteira_profissional
                     const venc = v && new Date(v).getTime() < Date.now() ? ' · VENCIDO' : ''
+                    const especEV = Array.isArray(resp.especialidades) && resp.especialidades.includes('EV')
+                    const especIcon = especEV ? '⚡ ' : ''
                     return (
                       <option key={resp._id} value={resp._id} disabled={!!venc}>
-                        {resp.nome} ({resp.tipo_registro} {resp.registro || ''}){limite}{venc}
+                        {especIcon}{resp.nome} ({resp.tipo_registro} {resp.registro || ''}){limite}{venc}
                       </option>
                     )
                   })}
                 </select>
                 <p className="text-xs text-slate-500 mt-1">
-                  Responsáveis cadastrados em Configurações → Equipe & Permissões → Técnicos
+                  ⚡ = RT com especialidade EV declarada. Demais técnicos ativos também podem ser atribuídos.
                 </p>
-                {/* EV-ALIGN-01: validação de carteira + potência */}
                 {rtCarteiraVencida && (
                   <p className="text-xs text-red-700 bg-red-50 p-2 rounded border border-red-200 mt-2">
                     ⚠ Carteira profissional VENCIDA — selecione outro RT antes de prosseguir.
@@ -657,11 +669,21 @@ export default function NovaPropostaEV() {
             {carregadores.length === 0 && carregadoresDisponiveis.length > 0 && (
               <p className="text-xs text-amber-700 bg-amber-50 px-3 py-1.5 rounded mt-2">
                 ⚠ Selecione um carregador da lista acima antes de prosseguir.
+                <span className="ml-2 text-slate-500">({carregadoresDisponiveis.length} no catálogo)</span>
               </p>
             )}
-            {carregadoresDisponiveis.length === 0 && (
+            {/* EV-BUGFIX-02: distingue catálogo vazio (DB ok, 0 docs) de erro de rede */}
+            {carregadoresDisponiveis.length === 0 && !carregadoresErro && (
               <p className="text-xs text-slate-500 bg-slate-50 px-3 py-1.5 rounded mt-2">
                 💡 Catálogo vazio. Use "Adicionar datasheet" acima para importar um PDF.
+              </p>
+            )}
+            {carregadoresErro && (
+              <p className="text-xs text-red-700 bg-red-50 px-3 py-1.5 rounded mt-2">
+                ❌ Falha ao carregar catálogo: {carregadoresErro}
+                <button onClick={carregarCarregadores} className="ml-2 underline text-red-800 hover:text-red-900">
+                  Tentar novamente
+                </button>
               </p>
             )}
           </CardBody>

@@ -124,20 +124,19 @@ export function calcularParametrosNBR5410({
   }
 }
 
+// EV-BUGFIX-02: delegado para o helper puro em utils/bomMateriaisEV.js
+import { gerarBOM as _gerarBOM } from '../utils/bomMateriaisEV'
+
 function gerarListaMateriais(potencia_kw, tipo_carregador, bitola_mm2, disjuntor_a, dr_ma, dps_kv, comprimento_m) {
-  const materiais = [
-    { item: 'Carregador EV', especificacao: `${tipo_carregador} ${potencia_kw}kW`, quantidade: 1 },
-    { item: 'Cabo de alimentação', especificacao: `${bitola_mm2} mm² (Cu, 0,6/1kV)`, quantidade: comprimento_m },
-    { item: 'Disjuntor termomagnético', especificacao: `${disjuntor_a}A Curva C`, quantidade: 1 },
-    { item: 'Dispositivo DR', especificacao: `${dr_ma}mA Tipo A`, quantidade: 1 },
-    { item: 'DPS (Proteção contra Surtos)', especificacao: `${dps_kv}V Classe II`, quantidade: 1 },
-    { item: 'Eletroduto rígido/conduíte', especificacao: 'Proteção mecânica', quantidade: comprimento_m },
-    { item: 'Fita isolante', especificacao: 'Vedação de conexões', quantidade: 5 },
-    { item: 'Cinta de fixação', especificacao: 'Suporte do cabo', quantidade: 10 },
-    { item: 'Haste de aterramento', especificacao: '2,4m cobre 16mm dia', quantidade: 1 },
-    { item: 'Tomadas/conectores', especificacao: 'Conforme carregador', quantidade: 2 },
-  ]
-  return materiais
+  return _gerarBOM({
+    potencia_kw,
+    tipo_carregador,
+    bitola_mm2,
+    disjuntor_a,
+    dr_ma,
+    dps_kv,
+    comprimento_m,
+  })
 }
 
 // Validar se a instalação atende NBR 5410
