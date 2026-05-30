@@ -441,7 +441,16 @@ async function extrairPorTexto(pdfBuffer) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function normalizar(resultado, metodo) {
-  const { fabricante, modelo, tipo = 'modulo', variantes = [] } = resultado
+  // AUDITORIA 2025 — ROOT CAUSE (2ª defesa):
+  // Claude retorna { sucesso, tipoDocumento, dados: { fabricante, variantes, ... } }.
+  // Quando extrairComGemini cai no cache, pode devolver o envelope em vez do dado
+  // (se o fix de cache falhar silenciosamente ou para docs muito antigos).
+  // Garante que trabalhamos sempre com o shape com variantes no topo.
+  const flat = (resultado?.dados && Object.keys(resultado.dados).length > 0)
+    ? { ...resultado.dados, _cache_hit: resultado._cache_hit }
+    : resultado
+
+  const { fabricante, modelo, tipo = 'modulo', variantes = [] } = flat
   const variantesNorm = Array.isArray(variantes) ? variantes : [variantes].filter(Boolean)
   const primeira = variantesNorm[0] || {}
 

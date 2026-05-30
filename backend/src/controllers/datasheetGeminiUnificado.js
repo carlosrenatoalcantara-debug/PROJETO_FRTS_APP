@@ -280,13 +280,25 @@ export async function extrairComGemini(pdfBuffer, tipoDocumento = 'auto', opcoes
         console.log(
           `[Cache Hit] hash:${hashPdf.slice(0, 12)} | ${fab} ${mod} | hits:${hits + 1}`
         )
-        // Retorna o resultado armazenado, marcado como vindo do cache
-        // O restante do pipeline é 100% transparente a essa marcação
+        // AUDITORIA 2025 — ROOT CAUSE FIX:
+        // resultado_extraido armazena o envelope COMPLETO:
+        //   { sucesso, tipoDocumento, dados: { fabricante, modelo, variantes, ... }, ... }
+        // normalizar() e ModalNovoInversor.processarItem() esperam receber o shape
+        // com variantes (e outros campos) no TOPO, não aninhados em "dados".
+        // Se retornamos o envelope, resultado.variantes = undefined → primeira = {} → specs vazio.
+        // Fix: unwrap dados para o topo, preservando metadados de cache como _cache_hit.
+        const envelope = cached.resultado_extraido || {}
+        const dadosInternos = envelope.dados || {}
+        // Se "dados" tem variantes, é o envelope novo; se não, é o shape legado direto no topo
+        const baseReturn = Object.keys(dadosInternos).length > 0 ? dadosInternos : envelope
         return {
-          ...cached.resultado_extraido,
-          _cache_hit:  true,
-          _hash_pdf:   hashPdf,
-          _hits:       hits + 1,
+          ...baseReturn,
+          // Preserva metadados do envelope quando útil (tipoDocumento = alias de tipo)
+          tipo:         baseReturn.tipo || envelope.tipoDocumento || null,
+          tipoDocumento: envelope.tipoDocumento || baseReturn.tipo || null,
+          _cache_hit:   true,
+          _hash_pdf:    hashPdf,
+          _hits:        hits + 1,
         }
       }
       console.log(`[Cache Miss] hash:${hashPdf.slice(0, 12)} — chamando Gemini Vision...`)
