@@ -1,68 +1,280 @@
-import { Router } from 'express'
+﻿import { Router } from 'express'
 import { CarregadorEV } from '../models/CarregadorEV.js'
 import { Equipamento } from '../models/Equipamento.js'
+import { FEATURE_FLAGS, auditarFallbackPayload } from '../config/featureFlags.js'
 import {
   processarDatasheetEV,
-  normalizarDadosEV,
-  validarDadosEV,
-} from '../controllers/carregadorEVControllerGemini.js' // ✨ Usando Google Gemini (GRATUITO)
+} from '../controllers/carregadorEVControllerGemini.js'
 
 const router = Router()
 
-// Obter todos
+const TIPO_EV = 'carregador-ev'
+
+function emitirAuditoriaFallback(req, { funcao, motivo }) {
+  console.warn('AUDITORIA_FALLBACK', {
+    ...auditarFallbackPayload({
+      arquivo: 'backend/src/routes/carregadoresEV.js',
+      funcao,
+      origem: 'CarregadorEV',
+      motivo,
+    }),
+    requestId: req?.id,
+  })
+}
+
+function mapearEquipamentoParaEV(equipamento) {
+  const espec = equipamento?.especificacoes || {}
+  return {
+    _id: equipamento._id,
+    ativo: equipamento.ativo,
+    tipo: espec.tipo_carregador || equipamento.tipo || 'AC',
+    marca: equipamento.fabricante,
+    modelo: equipamento.modelo,
+    potencia_kw: espec.potencia_kw,
+    tensao_entrada_v: espec.tensao_entrada_v,
+    corrente_entrada_a: espec.corrente_entrada_a,
+    numero_fases: espec.numero_fases,
+    grau_protecao_ip: espec.grau_protecao_ip,
+    temperatura_operacao: espec.temperatura_operacao,
+    protocolo_carregamento: espec.protocolo_carregamento,
+    tipo_carregamento: espec.tipo_carregamento,
+    tipo_conector: espec.tipo_conector,
+    comunicacao: espec.comunicacao,
+    garantia_anos: equipamento.garantia_produto?.value,
+    preco_sugerido: equipamento.preco_sugerido,
+    createdAt: equipamento.createdAt,
+    updatedAt: equipamento.updatedAt,
+    _origem: 'Equipamento',
+  }
+}
+
+async function listarAPartirEquipamento(req) {
+  const { tipo, potencia, ativo } = req.query
+  const filtro = {
+    tipo: { $in: ['carregador-ev', 'carregador_ev'] },
+    ativo: ativo !== 'false',
+  }
+
+  const equipamentos = await Equipamento.find(filtro).sort({ createdAt: -1 }).lean()
+
+  let carregadores = equipamentos.map(mapearEquipamentoParaEV)
+
+  if (tipo) {
+    carregadores = carregadores.filter(c => String(c.tipo || '').toLowerCase() === String(tipo).toLowerCase())
+  }
+
+  if (potencia) {
+    const p = Number(potencia)
+    carregadores = carregadores.filter(c => Number(c.potencia_kw) === p)
+  }
+
+  return carregadores
+}
+
+async function buscarCarregadorEVComAuditoria(req, filtro, funcao, opcoes = {}) {
+  emitirAuditoriaFallback(req, {
+    funcao,
+    motivo: opcoes.motivo || 'Leitura em CarregadorEV para compatibilidade temporaria da sprint P0-A',
+  })
+  let query = CarregadorEV.find(filtro)
+  if (opcoes.sort) query = query.sort(opcoes.sort)
+  if (opcoes.lean) query = query.lean()
+  return query
+}
+
+function mapearCarregadorEVParaEquipamento(cg) {
+  return {
+    tipo: TIPO_EV,
+    fabricante: cg.marca,
+    modelo: cg.modelo,
+    especificacoes: {
+      tipo_carregador: cg.tipo,
+      potencia_kw: cg.potencia_kw,
+      tensao_entrada_v: cg.tensao_entrada_v,
+      corrente_entrada_a: cg.corrente_entrada_a,
+      numero_fases: cg.numero_fases,
+      grau_protecao_ip: cg.grau_protecao_ip,
+      temperatura_operacao: cg.temperatura_operacao,
+      protocolo_carregamento: cg.protocolo_carregamento,
+      tipo_carregamento: cg.tipo_carregamento,
+      tipo_conector: cg.tipo_conector,
+      comunicacao: cg.comunicacao,
+      carregadorEV_id: cg._id,
+    },
+    garantia_produto: cg.garantia_anos
+      ? { value: cg.garantia_anos, unit: 'anos' }
+      : undefined,
+    datasheet_url: cg.datasheet_url,
+    ativo: cg.ativo,
+  }
+}
+
+// Obter todos (fonte primaria: Equipamento)
 router.get('/', async (req, res) => {
   try {
-    const { tipo, potencia, ativo } = req.query
-    const filtro = { ativo: ativo !== 'false' }
-    if (tipo) filtro.tipo = tipo
-    if (potencia) filtro.potencia_kw = Number(potencia)
+    const carregadoresEquip = await listarAPartirEquipamento(req)
+    if (carregadoresEquip.length > 0) return res.json(carregadoresEquip)
 
-    const carregadores = await CarregadorEV.find(filtro).sort({ tipo: 1, potencia_kw: 1 })
-    res.json(carregadores)
+    if (!FEATURE_FLAGS.ENABLE_LEGACY_EV) return res.json([])
+
+    const carregadoresLegado = await buscarCarregadorEVComAuditoria(
+      req,
+      { ativo: req.query.ativo !== 'false' },
+      'GET /',
+      {
+        sort: { tipo: 1, potencia_kw: 1 },
+        lean: true,
+        motivo: 'Equipamento vazio para EV; fallback legado habilitado por flag',
+      }
+    )
+
+    return res.json(carregadoresLegado || [])
   } catch (error) {
-    res.status(500).json({ erro: error.message })
+    return res.status(500).json({ erro: error.message })
   }
 })
 
-// Obter um
+// Obter um (fonte primaria: Equipamento)
 router.get('/:id', async (req, res) => {
   try {
-    const carregador = await CarregadorEV.findById(req.params.id)
-    if (!carregador) return res.status(404).json({ erro: 'Não encontrado' })
-    res.json(carregador)
+    const equipamento = await Equipamento.findById(req.params.id).lean()
+    if (equipamento && ['carregador-ev', 'carregador_ev'].includes(equipamento.tipo)) {
+      return res.json(mapearEquipamentoParaEV(equipamento))
+    }
+
+    if (!FEATURE_FLAGS.ENABLE_LEGACY_EV) return res.status(404).json({ erro: 'Nao encontrado' })
+
+    const carregador = await buscarCarregadorEVComAuditoria(
+      req,
+      { _id: req.params.id },
+      'GET /:id',
+      { motivo: 'ID nao encontrado em Equipamento; fallback legado habilitado por flag' }
+    )
+
+    if (!carregador) return res.status(404).json({ erro: 'Nao encontrado' })
+    return res.json(carregador)
   } catch (error) {
-    res.status(500).json({ erro: error.message })
+    return res.status(500).json({ erro: error.message })
   }
 })
 
-// Criar
+// Criar (fonte primaria: Equipamento; sincroniza legado)
 router.post('/', async (req, res) => {
   try {
-    const carregador = new CarregadorEV(req.body)
-    await carregador.save()
-    res.status(201).json(carregador)
+    const dados = req.body || {}
+
+    const novoEquipamento = new Equipamento({
+      tipo: TIPO_EV,
+      fabricante: dados.marca || dados.fabricante,
+      modelo: dados.modelo,
+      especificacoes: {
+        tipo_carregador: dados.tipo,
+        potencia_kw: dados.potencia_kw,
+        tensao_entrada_v: dados.tensao_entrada_v,
+        corrente_entrada_a: dados.corrente_entrada_a,
+        numero_fases: dados.numero_fases,
+        grau_protecao_ip: dados.grau_protecao_ip,
+        temperatura_operacao: dados.temperatura_operacao,
+        protocolo_carregamento: dados.protocolo_carregamento,
+        tipo_carregamento: dados.tipo_carregamento,
+        tipo_conector: dados.tipo_conector,
+        comunicacao: dados.comunicacao,
+      },
+      garantia_produto: dados.garantia_anos ? { value: dados.garantia_anos, unit: 'anos' } : undefined,
+      datasheet_url: dados.datasheet_url,
+      ativo: dados.ativo !== false,
+    })
+
+    await novoEquipamento.save()
+
+    // sincronizacao temporaria com legado
+    const legado = new CarregadorEV(dados)
+    await legado.save()
+
+    await Equipamento.findByIdAndUpdate(novoEquipamento._id, {
+      $set: { 'especificacoes.carregadorEV_id': legado._id }
+    })
+
+    return res.status(201).json({ ...mapearEquipamentoParaEV(novoEquipamento.toObject()), _sync_legacy: true })
   } catch (error) {
-    res.status(400).json({ erro: error.message })
+    return res.status(400).json({ erro: error.message })
   }
 })
 
-// Atualizar
+// Atualizar (fonte primaria: Equipamento; sincroniza legado por referencia)
 router.put('/:id', async (req, res) => {
   try {
-    const carregador = await CarregadorEV.findByIdAndUpdate(req.params.id, req.body, { new: true })
-    res.json(carregador)
+    const dados = req.body || {}
+    const equip = await Equipamento.findById(req.params.id)
+    if (!equip) return res.status(404).json({ erro: 'Nao encontrado' })
+
+    equip.fabricante = dados.marca || dados.fabricante || equip.fabricante
+    equip.modelo = dados.modelo || equip.modelo
+    equip.ativo = dados.ativo ?? equip.ativo
+    equip.especificacoes = {
+      ...equip.especificacoes,
+      tipo_carregador: dados.tipo ?? equip.especificacoes?.tipo_carregador,
+      potencia_kw: dados.potencia_kw ?? equip.especificacoes?.potencia_kw,
+      tensao_entrada_v: dados.tensao_entrada_v ?? equip.especificacoes?.tensao_entrada_v,
+      corrente_entrada_a: dados.corrente_entrada_a ?? equip.especificacoes?.corrente_entrada_a,
+      numero_fases: dados.numero_fases ?? equip.especificacoes?.numero_fases,
+      grau_protecao_ip: dados.grau_protecao_ip ?? equip.especificacoes?.grau_protecao_ip,
+      temperatura_operacao: dados.temperatura_operacao ?? equip.especificacoes?.temperatura_operacao,
+      protocolo_carregamento: dados.protocolo_carregamento ?? equip.especificacoes?.protocolo_carregamento,
+      tipo_carregamento: dados.tipo_carregamento ?? equip.especificacoes?.tipo_carregamento,
+      tipo_conector: dados.tipo_conector ?? equip.especificacoes?.tipo_conector,
+      comunicacao: dados.comunicacao ?? equip.especificacoes?.comunicacao,
+    }
+    await equip.save()
+
+    const legadoId = equip.especificacoes?.carregadorEV_id
+    if (legadoId) {
+      emitirAuditoriaFallback(req, {
+        funcao: 'PUT /:id',
+        motivo: 'Sincronizacao temporaria com CarregadorEV via carregadorEV_id',
+      })
+      await CarregadorEV.findByIdAndUpdate(legadoId, {
+        marca: equip.fabricante,
+        modelo: equip.modelo,
+        tipo: equip.especificacoes?.tipo_carregador,
+        potencia_kw: equip.especificacoes?.potencia_kw,
+        tensao_entrada_v: equip.especificacoes?.tensao_entrada_v,
+        corrente_entrada_a: equip.especificacoes?.corrente_entrada_a,
+        numero_fases: equip.especificacoes?.numero_fases,
+        grau_protecao_ip: equip.especificacoes?.grau_protecao_ip,
+        temperatura_operacao: equip.especificacoes?.temperatura_operacao,
+        protocolo_carregamento: equip.especificacoes?.protocolo_carregamento,
+        tipo_carregamento: equip.especificacoes?.tipo_carregamento,
+        tipo_conector: equip.especificacoes?.tipo_conector,
+        comunicacao: equip.especificacoes?.comunicacao,
+        ativo: equip.ativo,
+      })
+    }
+
+    return res.json(mapearEquipamentoParaEV(equip.toObject()))
   } catch (error) {
-    res.status(400).json({ erro: error.message })
+    return res.status(400).json({ erro: error.message })
   }
 })
 
-// Deletar
+// Deletar (desativa em Equipamento; mantém legado)
 router.delete('/:id', async (req, res) => {
   try {
-    await CarregadorEV.findByIdAndDelete(req.params.id)
-    res.json({ sucesso: true })
+    const equip = await Equipamento.findByIdAndUpdate(req.params.id, { ativo: false }, { new: true })
+    if (!equip) return res.status(404).json({ erro: 'Nao encontrado' })
+
+    const legadoId = equip.especificacoes?.carregadorEV_id
+    if (legadoId) {
+      emitirAuditoriaFallback(req, {
+        funcao: 'DELETE /:id',
+        motivo: 'Sincronizacao temporaria de desativacao em CarregadorEV',
+      })
+      await CarregadorEV.findByIdAndUpdate(legadoId, { ativo: false })
+    }
+
+    return res.json({ sucesso: true })
   } catch (error) {
-    res.status(500).json({ erro: error.message })
+    return res.status(500).json({ erro: error.message })
   }
 })
 
@@ -76,51 +288,25 @@ router.post('/admin/adicionar-lote', async (req, res) => {
     }
 
     let adicionados = 0
-    let erros = []
+    const erros = []
 
     for (const dados of carregadores) {
       try {
-        // Verificar se já existe
-        const existe = await CarregadorEV.findOne({
-          marca: dados.marca,
+        const existeEquipamento = await Equipamento.findOne({
+          tipo: { $in: ['carregador-ev', 'carregador_ev'] },
+          fabricante: dados.marca,
           modelo: dados.modelo,
         })
 
-        if (!existe) {
-          const novo = new CarregadorEV(dados)
-          await novo.save()
-          adicionados++
+        if (!existeEquipamento) {
+          const legado = new CarregadorEV(dados)
+          await legado.save()
 
-          // Também sincronizar com Equipamentos
-          try {
-            const novoEquipamento = new Equipamento({
-              tipo: 'carregador_ev',
-              fabricante: dados.marca,
-              modelo: dados.modelo,
-              especificacoes: {
-                tipo_carregador: dados.tipo,
-                potencia_kw: dados.potencia_kw,
-                tensao_entrada_v: dados.tensao_entrada_v,
-                corrente_entrada_a: dados.corrente_entrada_a,
-                numero_fases: dados.numero_fases,
-                grau_protecao_ip: dados.grau_protecao_ip,
-                temperatura_operacao: dados.temperatura_operacao,
-                protocolo_carregamento: dados.protocolo_carregamento,
-                tipo_carregamento: dados.tipo_carregamento,
-                tipo_conector: dados.tipo_conector,
-                comunicacao: dados.comunicacao,
-                carregadorEV_id: novo._id,
-              },
-              garantia_produto: dados.garantia_anos
-                ? { value: dados.garantia_anos, unit: 'anos' }
-                : undefined,
-              datasheet_url: dados.datasheet_url,
-              ativo: true,
-            })
-            await novoEquipamento.save()
-          } catch (e) {
-            console.warn('[Lote] Aviso: Equipamento não sincronizado:', e.message)
-          }
+          const novoEquipamento = new Equipamento({
+            ...mapearCarregadorEVParaEquipamento(legado),
+          })
+          await novoEquipamento.save()
+          adicionados++
         }
       } catch (err) {
         erros.push(`${dados.marca} ${dados.modelo}: ${err.message}`)
@@ -142,45 +328,28 @@ router.post('/admin/adicionar-lote', async (req, res) => {
 // Sincronizar todos os CarregadoresEV com tabela Equipamentos
 router.post('/admin/sincronizar-equipamentos', async (req, res) => {
   try {
-    const carregadores = await CarregadorEV.find({ ativo: true })
+    const carregadores = await buscarCarregadorEVComAuditoria(
+      req,
+      { ativo: true },
+      'POST /admin/sincronizar-equipamentos',
+      {
+        motivo: 'Sincronizacao administrativa temporaria entre legado CarregadorEV e Equipamento',
+      }
+    )
 
     let sincronizados = 0
-    let erros = []
+    const erros = []
 
     for (const cg of carregadores) {
       try {
-        // Verificar se já existe
         const existe = await Equipamento.findOne({
-          tipo: 'carregador_ev',
+          tipo: { $in: ['carregador-ev', 'carregador_ev'] },
           fabricante: cg.marca,
           modelo: cg.modelo,
         })
 
         if (!existe) {
-          const novoEquipamento = new Equipamento({
-            tipo: 'carregador_ev',
-            fabricante: cg.marca,
-            modelo: cg.modelo,
-            especificacoes: {
-              tipo_carregador: cg.tipo,
-              potencia_kw: cg.potencia_kw,
-              tensao_entrada_v: cg.tensao_entrada_v,
-              corrente_entrada_a: cg.corrente_entrada_a,
-              numero_fases: cg.numero_fases,
-              grau_protecao_ip: cg.grau_protecao_ip,
-              temperatura_operacao: cg.temperatura_operacao,
-              protocolo_carregamento: cg.protocolo_carregamento,
-              tipo_carregamento: cg.tipo_carregamento,
-              tipo_conector: cg.tipo_conector,
-              comunicacao: cg.comunicacao,
-              carregadorEV_id: cg._id,
-            },
-            garantia_produto: cg.garantia_anos
-              ? { value: cg.garantia_anos, unit: 'anos' }
-              : undefined,
-            datasheet_url: cg.datasheet_url,
-            ativo: true,
-          })
+          const novoEquipamento = new Equipamento(mapearCarregadorEVParaEquipamento(cg))
           await novoEquipamento.save()
           sincronizados++
         }
@@ -201,30 +370,21 @@ router.post('/admin/sincronizar-equipamentos', async (req, res) => {
   }
 })
 
-// Seed - Carregar banco inicial
+// Seed - Carregar banco inicial (mantem legado)
 router.post('/seed/inicializar', async (req, res) => {
   try {
+    emitirAuditoriaFallback(req, {
+      funcao: 'POST /seed/inicializar',
+      motivo: 'Seed legado permanece nesta sprint por compatibilidade operacional',
+    })
+
     const count = await CarregadorEV.countDocuments()
-    if (count > 0) return res.json({ msg: 'Banco já inicializado' })
+    if (count > 0) return res.json({ msg: 'Banco ja inicializado' })
 
     const carregadores = [
-      // AC Monofásico
-      { tipo: 'AC_Mono', potencia_kw: 3.6, marca: 'Wallbox', modelo: 'Pulsar Plus', numero_fases: 1, tensao_entrada_v: 220, corrente_entrada_a: 16, eficiencia_pct: 93, fator_potencia: 0.99, grau_protecao_ip: 'IP54', temperatura_operacao: '-30 a 50°C', peso_kg: 6, dimensoes_mm: '650x204x99', protocolo_carregamento: 'IEC 61851', tipo_carregamento: 'Type 2', tempo_carga_rapida_min: 240, tipo_conector: 'Type 2', comunicacao: 'OCPP', disjuntor_recomendado_a: 20, dr_recomendado_ma: 30, bitola_cabo_minima_mm2: 2.5, garantia_anos: 5 },
-      { tipo: 'AC_Mono', potencia_kw: 7.4, marca: 'Wallbox', modelo: 'Pulsar Plus', numero_fases: 1, tensao_entrada_v: 220, corrente_entrada_a: 32, eficiencia_pct: 94, fator_potencia: 0.99, grau_protecao_ip: 'IP54', temperatura_operacao: '-30 a 50°C', peso_kg: 6, dimensoes_mm: '650x204x99', protocolo_carregamento: 'IEC 61851', tipo_carregamento: 'Type 2', tempo_carga_rapida_min: 120, tipo_conector: 'Type 2', comunicacao: 'OCPP', disjuntor_recomendado_a: 40, dr_recomendado_ma: 30, bitola_cabo_minima_mm2: 6, garantia_anos: 5 },
-
-      // AC Trifásico
-      { tipo: 'AC_Tri', potencia_kw: 11, marca: 'Wallbox', modelo: 'Sigma', numero_fases: 3, tensao_entrada_v: 380, corrente_entrada_a: 16, eficiencia_pct: 95, fator_potencia: 0.99, grau_protecao_ip: 'IP54', temperatura_operacao: '-30 a 50°C', peso_kg: 8, dimensoes_mm: '680x210x110', protocolo_carregamento: 'IEC 61851', tipo_carregamento: 'Type 2', tempo_carga_rapida_min: 80, tipo_conector: 'Type 2', comunicacao: 'OCPP', disjuntor_recomendado_a: 20, dr_recomendado_ma: 30, bitola_cabo_minima_mm2: 4, garantia_anos: 5 },
-      { tipo: 'AC_Tri', potencia_kw: 22, marca: 'ABB', modelo: 'Terra AC', numero_fases: 3, tensao_entrada_v: 380, corrente_entrada_a: 32, eficiencia_pct: 96, fator_potencia: 0.99, grau_protecao_ip: 'IP54', temperatura_operacao: '-30 a 50°C', peso_kg: 10, dimensoes_mm: '800x200x130', protocolo_carregamento: 'IEC 61851', tipo_carregamento: 'Type 2', tempo_carga_rapida_min: 40, tipo_conector: 'Type 2', comunicacao: 'OCPP', disjuntor_recomendado_a: 32, dr_recomendado_ma: 30, bitola_cabo_minima_mm2: 10, garantia_anos: 5 },
-      { tipo: 'AC_Tri', potencia_kw: 30, marca: 'ABB', modelo: 'Terra AC', numero_fases: 3, tensao_entrada_v: 380, corrente_entrada_a: 43, eficiencia_pct: 96, fator_potencia: 0.99, grau_protecao_ip: 'IP54', temperatura_operacao: '-30 a 50°C', peso_kg: 12, dimensoes_mm: '800x200x130', protocolo_carregamento: 'IEC 61851', tipo_carregamento: 'Type 2', tempo_carga_rapida_min: 28, tipo_conector: 'Type 2', comunicacao: 'OCPP', disjuntor_recomendado_a: 50, dr_recomendado_ma: 30, bitola_cabo_minima_mm2: 16, garantia_anos: 5 },
-      { tipo: 'AC_Tri', potencia_kw: 40, marca: 'Siemens', modelo: 'VersiCharge', numero_fases: 3, tensao_entrada_v: 380, corrente_entrada_a: 58, eficiencia_pct: 96, fator_potencia: 0.99, grau_protecao_ip: 'IP54', temperatura_operacao: '-30 a 50°C', peso_kg: 14, dimensoes_mm: '850x220x140', protocolo_carregamento: 'IEC 61851', tipo_carregamento: 'Type 2', tempo_carga_rapida_min: 22, tipo_conector: 'Type 2', comunicacao: 'OCPP', disjuntor_recomendado_a: 63, dr_recomendado_ma: 30, bitola_cabo_minima_mm2: 25, garantia_anos: 5 },
-
-      // DC
-      { tipo: 'DC', potencia_kw: 60, marca: 'ABB', modelo: 'Terra DC', numero_fases: 3, tensao_entrada_v: 380, tensao_saida_dc_v: 500, corrente_saida_dc_a: 120, eficiencia_pct: 93, fator_potencia: 0.98, grau_protecao_ip: 'IP54', temperatura_operacao: '-20 a 50°C', peso_kg: 80, dimensoes_mm: '1200x800x300', protocolo_carregamento: 'GB/T 20234', tipo_carregamento: 'CCS', tempo_carga_rapida_min: 15, tipo_conector: 'CCS2', comunicacao: 'OCPP', disjuntor_recomendado_a: 100, dr_recomendado_ma: 300, bitola_cabo_minima_mm2: 35, garantia_anos: 5 },
-      { tipo: 'DC', potencia_kw: 80, marca: 'Phoenix Contact', modelo: 'eMobility Charger', numero_fases: 3, tensao_entrada_v: 380, tensao_saida_dc_v: 920, corrente_saida_dc_a: 87, eficiencia_pct: 94, fator_potencia: 0.98, grau_protecao_ip: 'IP54', temperatura_operacao: '-20 a 50°C', peso_kg: 100, dimensoes_mm: '1300x850x320', protocolo_carregamento: 'GB/T 20234', tipo_carregamento: 'CCS', tempo_carga_rapida_min: 14, tipo_conector: 'CCS2', comunicacao: 'OCPP', disjuntor_recomendado_a: 115, dr_recomendado_ma: 300, bitola_cabo_minima_mm2: 50, garantia_anos: 5 },
-      { tipo: 'DC', potencia_kw: 90, marca: 'Siemens', modelo: 'Sicharge D', numero_fases: 3, tensao_entrada_v: 380, tensao_saida_dc_v: 920, corrente_saida_dc_a: 98, eficiencia_pct: 94, fator_potencia: 0.98, grau_protecao_ip: 'IP54', temperatura_operacao: '-20 a 50°C', peso_kg: 120, dimensoes_mm: '1400x900x350', protocolo_carregamento: 'GB/T 20234', tipo_carregamento: 'CCS', tempo_carga_rapida_min: 12, tipo_conector: 'CCS2', comunicacao: 'OCPP', disjuntor_recomendado_a: 128, dr_recomendado_ma: 300, bitola_cabo_minima_mm2: 50, garantia_anos: 5 },
-      { tipo: 'DC', potencia_kw: 120, marca: 'Kempower', modelo: 'Charge Point', numero_fases: 3, tensao_entrada_v: 380, tensao_saida_dc_v: 920, corrente_saida_dc_a: 130, eficiencia_pct: 94, fator_potencia: 0.98, grau_protecao_ip: 'IP54', temperatura_operacao: '-20 a 50°C', peso_kg: 150, dimensoes_mm: '1500x1000x400', protocolo_carregamento: 'GB/T 20234', tipo_carregamento: 'CCS', tempo_carga_rapida_min: 9, tipo_conector: 'CCS2', comunicacao: 'OCPP', disjuntor_recomendado_a: 160, dr_recomendado_ma: 300, bitola_cabo_minima_mm2: 70, garantia_anos: 5 },
-      { tipo: 'DC', potencia_kw: 150, marca: 'Delta', modelo: 'MC QuickCharger', numero_fases: 3, tensao_entrada_v: 380, tensao_saida_dc_v: 920, corrente_saida_dc_a: 163, eficiencia_pct: 95, fator_potencia: 0.98, grau_protecao_ip: 'IP54', temperatura_operacao: '-20 a 50°C', peso_kg: 180, dimensoes_mm: '1600x1100x450', protocolo_carregamento: 'GB/T 20234', tipo_carregamento: 'CCS', tempo_carga_rapida_min: 7, tipo_conector: 'CCS2', comunicacao: 'OCPP', disjuntor_recomendado_a: 200, dr_recomendado_ma: 300, bitola_cabo_minima_mm2: 95, garantia_anos: 5 },
-      { tipo: 'DC', potencia_kw: 180, marca: 'CATL', modelo: 'Supercharger', numero_fases: 3, tensao_entrada_v: 380, tensao_saida_dc_v: 920, corrente_saida_dc_a: 195, eficiencia_pct: 95, fator_potencia: 0.98, grau_protecao_ip: 'IP54', temperatura_operacao: '-20 a 50°C', peso_kg: 220, dimensoes_mm: '1800x1200x500', protocolo_carregamento: 'GB/T 20234', tipo_carregamento: 'CCS', tempo_carga_rapida_min: 6, tipo_conector: 'CCS2', comunicacao: 'OCPP', disjuntor_recomendado_a: 250, dr_recomendado_ma: 300, bitola_cabo_minima_mm2: 120, garantia_anos: 5 },
+      { tipo: 'AC_Mono', potencia_kw: 3.6, marca: 'Wallbox', modelo: 'Pulsar Plus', numero_fases: 1, tensao_entrada_v: 220, corrente_entrada_a: 16, eficiencia_pct: 93, fator_potencia: 0.99, grau_protecao_ip: 'IP54', temperatura_operacao: '-30 a 50C', peso_kg: 6, dimensoes_mm: '650x204x99', protocolo_carregamento: 'IEC 61851', tipo_carregamento: 'Type 2', tempo_carga_rapida_min: 240, tipo_conector: 'Type 2', comunicacao: 'OCPP', disjuntor_recomendado_a: 20, dr_recomendado_ma: 30, bitola_cabo_minima_mm2: 2.5, garantia_anos: 5 },
+      { tipo: 'AC_Tri', potencia_kw: 22, marca: 'ABB', modelo: 'Terra AC', numero_fases: 3, tensao_entrada_v: 380, corrente_entrada_a: 32, eficiencia_pct: 96, fator_potencia: 0.99, grau_protecao_ip: 'IP54', temperatura_operacao: '-30 a 50C', peso_kg: 10, dimensoes_mm: '800x200x130', protocolo_carregamento: 'IEC 61851', tipo_carregamento: 'Type 2', tempo_carga_rapida_min: 40, tipo_conector: 'Type 2', comunicacao: 'OCPP', disjuntor_recomendado_a: 32, dr_recomendado_ma: 30, bitola_cabo_minima_mm2: 10, garantia_anos: 5 },
+      { tipo: 'DC', potencia_kw: 60, marca: 'ABB', modelo: 'Terra DC', numero_fases: 3, tensao_entrada_v: 380, tensao_saida_dc_v: 500, corrente_saida_dc_a: 120, eficiencia_pct: 93, fator_potencia: 0.98, grau_protecao_ip: 'IP54', temperatura_operacao: '-20 a 50C', peso_kg: 80, dimensoes_mm: '1200x800x300', protocolo_carregamento: 'GB/T 20234', tipo_carregamento: 'CCS', tempo_carga_rapida_min: 15, tipo_conector: 'CCS2', comunicacao: 'OCPP', disjuntor_recomendado_a: 100, dr_recomendado_ma: 300, bitola_cabo_minima_mm2: 35, garantia_anos: 5 },
     ]
 
     await CarregadorEV.insertMany(carregadores)
@@ -234,7 +394,7 @@ router.post('/seed/inicializar', async (req, res) => {
   }
 })
 
-// Upload e extração de datasheet EV com Claude Vision
+// Upload e extracao de datasheet EV
 router.post('/upload-datasheet', async (req, res) => {
   try {
     const { pdfBase64 } = req.body
@@ -242,92 +402,46 @@ router.post('/upload-datasheet', async (req, res) => {
     if (!pdfBase64) {
       return res.status(400).json({
         sucesso: false,
-        erro: 'PDF não fornecido',
-        avisos: ['Envie um arquivo PDF válido'],
+        erro: 'PDF nao fornecido',
+        avisos: ['Envie um arquivo PDF valido'],
       })
     }
 
-    // Converter base64 para buffer
     const pdfBuffer = Buffer.from(pdfBase64, 'base64')
-
-    // Processar datasheet (extrai + normaliza + valida)
     const resultado = await processarDatasheetEV(pdfBuffer)
 
     if (resultado.sucesso && resultado.carregador) {
-      try {
-        // Salvar no banco de dados (CarregadorEV)
-        const novoCarregador = new CarregadorEV(resultado.carregador)
-        await novoCarregador.save()
+      const novoCarregador = new CarregadorEV(resultado.carregador)
+      emitirAuditoriaFallback(req, {
+        funcao: 'POST /upload-datasheet',
+        motivo: 'Persistencia temporaria do legado CarregadorEV para sincronizacao',
+      })
+      await novoCarregador.save()
 
-        // Também salvar na tabela Equipamentos para visibilidade na interface
-        try {
-          const novoEquipamento = new Equipamento({
-            tipo: 'carregador_ev',
-            fabricante: resultado.carregador.marca,
-            modelo: resultado.carregador.modelo,
-            especificacoes: {
-              tipo_carregador: resultado.carregador.tipo,
-              potencia_kw: resultado.carregador.potencia_kw,
-              tensao_entrada_v: resultado.carregador.tensao_entrada_v,
-              corrente_entrada_a: resultado.carregador.corrente_entrada_a,
-              numero_fases: resultado.carregador.numero_fases,
-              grau_protecao_ip: resultado.carregador.grau_protecao_ip,
-              temperatura_operacao: resultado.carregador.temperatura_operacao,
-              protocolo_carregamento: resultado.carregador.protocolo_carregamento,
-              tipo_carregamento: resultado.carregador.tipo_carregamento,
-              tipo_conector: resultado.carregador.tipo_conector,
-              comunicacao: resultado.carregador.comunicacao,
-              carregadorEV_id: novoCarregador._id,
-            },
-            garantia_produto: resultado.carregador.garantia_anos
-              ? { value: resultado.carregador.garantia_anos, unit: 'anos' }
-              : undefined,
-            datasheet_url: resultado.carregador.datasheet_url,
-            ativo: true,
-          })
-          await novoEquipamento.save()
-          console.log('[EV Upload] Equipamento salvo na tabela Equipamentos:', novoEquipamento._id)
-        } catch (equipError) {
-          console.warn('[EV Upload] Aviso: Equipamento não foi sincronizado:', equipError.message)
-          resultado.avisos.push('Equipamento não foi sincronizado para a tabela genérica')
-        }
+      const novoEquipamento = new Equipamento({
+        ...mapearCarregadorEVParaEquipamento(novoCarregador),
+      })
+      await novoEquipamento.save()
 
-        return res.status(201).json({
-          sucesso: true,
-          carregador: novoCarregador,
-          avisos: resultado.avisos,
-          msg: '✅ Carregador extraído e adicionado com sucesso',
-        })
-      } catch (saveError) {
-        // Erro ao salvar no banco
-        console.error('[EV Upload] Erro ao salvar:', saveError.message)
-        console.error('[EV Upload] Dados tentados:', JSON.stringify(resultado.carregador, null, 2))
-
-        return res.status(500).json({
-          sucesso: false,
-          carregador: resultado.carregador,
-          avisos: [...resultado.avisos, `Erro ao salvar no banco: ${saveError.message}`],
-          erro: saveError.message,
-          msg: '❌ Dados extraídos mas não foi possível salvar no banco de dados',
-        })
-      }
-    } else {
-      // Falha na extração, retornar dados parciais para edição manual
-      return res.status(400).json({
-        sucesso: false,
-        carregador: resultado.carregador,
-        avisos: [
-          ...resultado.avisos,
-          'Use a opção "Cadastro Manual" para preencher os dados corretamente',
-        ],
-        erro: resultado.erro,
-        msg: '⚠️ Não foi possível extrair todos os dados do PDF',
+      return res.status(201).json({
+        sucesso: true,
+        carregador: mapearEquipamentoParaEV(novoEquipamento.toObject()),
+        avisos: resultado.avisos || [],
+        msg: 'Carregador extraido e adicionado com sucesso',
       })
     }
 
+    return res.status(400).json({
+      sucesso: false,
+      carregador: resultado.carregador,
+      avisos: [
+        ...(resultado.avisos || []),
+        'Use a opcao "Cadastro Manual" para preencher os dados corretamente',
+      ],
+      erro: resultado.erro,
+      msg: 'Nao foi possivel extrair todos os dados do PDF',
+    })
   } catch (error) {
-    console.error('[EV Upload] Erro geral:', error.message)
-    console.error('[EV Upload] Stack:', error.stack)
     res.status(500).json({
       sucesso: false,
       erro: error.message,

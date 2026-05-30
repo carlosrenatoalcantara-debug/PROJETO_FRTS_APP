@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { MapPin, Zap, Wrench, FileText, Download, Plus, X, Edit2 } from 'lucide-react'
 import Card, { CardHeader, CardBody } from '../components/ui/Card'
@@ -11,12 +11,12 @@ import { calcularParametrosNBR5410, validarNBR5410 } from '../services/calculosN
 import { gerarUnifilarEVSVG } from '../utils/gerarUnifilarEV'
 import { salvarDiagramaLocal } from '../components/diagram/utils/diagramPersistence'
 
-const API_URL = '' /* URL relativa forçada — Vercel proxy → Railway. Não usar VITE_API_URL */
+const API_URL = '' /* URL relativa forÃ§ada â€” Vercel proxy â†’ Railway. NÃ£o usar VITE_API_URL */
 
 const ETAPAS = [
-  { num: 1, rotulo: 'Localização', icone: MapPin },
+  { num: 1, rotulo: 'LocalizaÃ§Ã£o', icone: MapPin },
   { num: 2, rotulo: 'Carregadores', icone: Zap },
-  { num: 3, rotulo: 'Cálculos NBR', icone: Wrench },
+  { num: 3, rotulo: 'CÃ¡lculos NBR', icone: Wrench },
   { num: 4, rotulo: 'Unifilar', icone: FileText },
 ]
 
@@ -50,14 +50,14 @@ export default function NovaPropostaEV() {
     tecnico_tipo: 'crea', // 'crea' ou 'cft'
   })
 
-  // Carregar dados do técnico da configuração (localStorage)
+  // Carregar dados do tÃ©cnico da configuraÃ§Ã£o (localStorage)
   useEffect(() => {
-    // Carregar lista de responsáveis técnicos
+    // Carregar lista de responsÃ¡veis tÃ©cnicos
     const respTecnicosArmazenados = localStorage.getItem('responsaveisTecnicos')
     if (respTecnicosArmazenados) {
       const responsaveis = JSON.parse(respTecnicosArmazenados)
       setResponsaveisTecnicos(responsaveis)
-      // Auto-selecionar o primeiro responsável se houver
+      // Auto-selecionar o primeiro responsÃ¡vel se houver
       if (responsaveis.length > 0) {
         const primeiro = responsaveis[0]
         setTecnicoSelecionado(primeiro.id)
@@ -71,7 +71,7 @@ export default function NovaPropostaEV() {
       }
     }
 
-    // Fallback: tentar carregar dados do técnico antigo (backward compatibility)
+    // Fallback: tentar carregar dados do tÃ©cnico antigo (backward compatibility)
     if (!respTecnicosArmazenados) {
       const tecnicoSalvo = localStorage.getItem('tecnico_dados')
       if (tecnicoSalvo) {
@@ -103,21 +103,37 @@ export default function NovaPropostaEV() {
     }
   }, [clienteId])
 
-  // Carregar carregadores disponíveis
+  // Carregar carregadores disponÃ­veis
   const carregarCarregadores = () => {
-    console.log('🔄 Carregando carregadores de:', `${API_URL}/api/carregadores-ev`)
-    fetch(`${API_URL}/api/carregadores-ev`)
+    console.log('ðŸ”„ Carregando equipamentos EV de:', `${API_URL}/api/equipamentos?tipo=carregador-ev&ativo=true`)
+    fetch(`${API_URL}/api/equipamentos?tipo=carregador-ev&ativo=true`)
       .then(r => {
-        console.log('📡 Response status:', r.status)
+        console.log('ðŸ“¡ Response status:', r.status)
         if (!r.ok) throw new Error(`HTTP ${r.status}`)
         return r.json()
       })
       .then(data => {
-        console.log('✅ Carregadores carregados:', data?.length || 0)
-        setCarregadoresDisponiveis(data || [])
+        const equipamentos = data?.equipamentos || []
+        const carregadoresNormalizados = equipamentos.map((e) => {
+          const espec = e.especificacoes || {}
+          return {
+            _id: e._id,
+            marca: e.fabricante,
+            modelo: e.modelo,
+            tipo: espec.tipo_carregador || e.tipo,
+            potencia_kw: espec.potencia_kw,
+            tensao_entrada_v: espec.tensao_entrada_v,
+            corrente_entrada_a: espec.corrente_entrada_a,
+            numero_fases: espec.numero_fases,
+            tipo_conector: espec.tipo_conector,
+            comunicacao: espec.comunicacao,
+          }
+        })
+        console.log('âœ… Equipamentos EV carregados:', carregadoresNormalizados.length)
+        setCarregadoresDisponiveis(carregadoresNormalizados)
       })
       .catch(err => {
-        console.error('❌ Erro ao carregar carregadores:', err)
+        console.error('âŒ Erro ao carregar carregadores:', err)
         setCarregadoresDisponiveis([])
       })
   }
@@ -127,16 +143,16 @@ export default function NovaPropostaEV() {
   }, [])
 
   const proximaEtapa = () => {
-    console.log('🔄 Validando etapa:', etapa)
+    console.log('ðŸ”„ Validando etapa:', etapa)
     try {
       if (validarEtapa(etapa)) {
-        console.log('✅ Etapa válida, avançando para:', etapa + 1)
+        console.log('âœ… Etapa vÃ¡lida, avanÃ§ando para:', etapa + 1)
         setEtapa(etapa + 1)
       } else {
-        console.warn('⚠️ Etapa inválida:', etapa)
+        console.warn('âš ï¸ Etapa invÃ¡lida:', etapa)
       }
     } catch (err) {
-      console.error('❌ Erro ao avançar etapa:', err)
+      console.error('âŒ Erro ao avanÃ§ar etapa:', err)
     }
   }
 
@@ -166,21 +182,21 @@ export default function NovaPropostaEV() {
   }
 
   const calcularNBR = () => {
-    console.log('🧮 Iniciando cálculo NBR')
+    console.log('ðŸ§® Iniciando cÃ¡lculo NBR')
     if (carregadores.length === 0) {
-      console.warn('⚠️ Sem carregadores')
+      console.warn('âš ï¸ Sem carregadores')
       return
     }
 
     try {
-      console.log('📊 Calculando potência total...')
+      console.log('ðŸ“Š Calculando potÃªncia total...')
       const potencia_total = carregadores.reduce((sum, c) => sum + c.potencia_kw * c.quantidade, 0)
-      console.log('✅ Potência total:', potencia_total)
+      console.log('âœ… PotÃªncia total:', potencia_total)
 
       const primeiro = carregadores[0]
-      console.log('📋 Dados do primeiro carregador:', { tipo: primeiro.tipo, potencia: primeiro.potencia_kw })
+      console.log('ðŸ“‹ Dados do primeiro carregador:', { tipo: primeiro.tipo, potencia: primeiro.potencia_kw })
 
-      console.log('🔢 Chamando calcularParametrosNBR5410...')
+      console.log('ðŸ”¢ Chamando calcularParametrosNBR5410...')
       const resultado = calcularParametrosNBR5410({
         potencia_kw: potencia_total,
         tensao_entrada_v: primeiro.tensao_entrada_v || 220,
@@ -188,13 +204,13 @@ export default function NovaPropostaEV() {
         comprimento_cabo_m: dados.comprimento_cabo_m,
         tipo_carregador: primeiro.tipo,
       })
-      console.log('✅ Cálculos completos:', resultado)
+      console.log('âœ… CÃ¡lculos completos:', resultado)
 
-      console.log('💾 Salvando cálculos no estado...')
+      console.log('ðŸ’¾ Salvando cÃ¡lculos no estado...')
       setCalculos(resultado)
 
       // Gerar unifilar
-      console.log('🎨 Gerando SVG unifilar...')
+      console.log('ðŸŽ¨ Gerando SVG unifilar...')
       const unifilarSvg = gerarUnifilarEVSVG({
         projeto_nome: dados.nome_projeto,
         endereco: dados.endereco,
@@ -207,18 +223,18 @@ export default function NovaPropostaEV() {
         tecnico_nome: dados.tecnico_nome,
         tecnico_crea: dados.tecnico_crea,
       })
-      console.log('✅ SVG gerado')
+      console.log('âœ… SVG gerado')
 
-      console.log('💾 Salvando unifilar no estado...')
+      console.log('ðŸ’¾ Salvando unifilar no estado...')
       setUnifilar(unifilarSvg)
 
-      // ✨ Ativar automaticamente modo de edição quando unifilar é gerado
-      console.log('✨ Ativando editor interativo automaticamente...')
+      // âœ¨ Ativar automaticamente modo de ediÃ§Ã£o quando unifilar Ã© gerado
+      console.log('âœ¨ Ativando editor interativo automaticamente...')
       setModoEdicao(true)
 
-      console.log('✅ Cálculo NBR concluído com sucesso!')
+      console.log('âœ… CÃ¡lculo NBR concluÃ­do com sucesso!')
     } catch (err) {
-      console.error('❌ Erro ao calcular NBR:', err)
+      console.error('âŒ Erro ao calcular NBR:', err)
       alert('Erro ao calcular: ' + err.message)
     }
   }
@@ -238,7 +254,7 @@ export default function NovaPropostaEV() {
       link.click()
       document.body.removeChild(link)
 
-      // Também oferece download como PNG
+      // TambÃ©m oferece download como PNG
       const svgBlob = new Blob([unifilar], { type: 'image/svg+xml' })
       const canvas = document.createElement('canvas')
       const ctx = canvas.getContext('2d')
@@ -265,7 +281,7 @@ export default function NovaPropostaEV() {
   }
 
   const baixarUnifilarPDF = () => {
-    // Quando o projeto é salvo, ele pode fazer download do PDF
+    // Quando o projeto Ã© salvo, ele pode fazer download do PDF
     alert('Por favor, salve o projeto primeiro para gerar o PDF completo.')
   }
 
@@ -289,7 +305,7 @@ export default function NovaPropostaEV() {
 
   const salvarProjeto = async () => {
     if (!clienteId) {
-      alert('Erro: cliente não identificado')
+      alert('Erro: cliente nÃ£o identificado')
       return
     }
 
@@ -341,9 +357,9 @@ export default function NovaPropostaEV() {
       }
 
       const novoProjeto = await response.json()
-      alert('✅ Projeto salvo com sucesso!')
+      alert('âœ… Projeto salvo com sucesso!')
 
-      // Salvar dados do técnico para próximos projetos
+      // Salvar dados do tÃ©cnico para prÃ³ximos projetos
       localStorage.setItem('tecnico_dados', JSON.stringify({
         nome: dados.tecnico_nome,
         crea: dados.tecnico_crea,
@@ -361,7 +377,7 @@ export default function NovaPropostaEV() {
       navigate(`/projetos-ev`)
     } catch (erro) {
       console.error('Erro ao salvar projeto:', erro)
-      alert(`❌ Erro ao salvar: ${erro.message}`)
+      alert(`âŒ Erro ao salvar: ${erro.message}`)
     }
   }
 
@@ -376,11 +392,11 @@ export default function NovaPropostaEV() {
 
       <Stepper etapas={ETAPAS} etapaAtual={etapa} />
 
-      {/* ETAPA 1: LOCALIZAÇÃO */}
+      {/* ETAPA 1: LOCALIZAÃ‡ÃƒO */}
       {etapa === 1 && (
         <Card>
           <CardHeader>
-            <h2 className="text-lg font-semibold">Localização do Projeto</h2>
+            <h2 className="text-lg font-semibold">LocalizaÃ§Ã£o do Projeto</h2>
           </CardHeader>
           <CardBody className="space-y-4">
             <Input
@@ -398,16 +414,16 @@ export default function NovaPropostaEV() {
             />
 
             <Input
-              rotulo="Endereço Completo"
+              rotulo="EndereÃ§o Completo"
               value={dados.endereco}
               onChange={(e) => setDados({ ...dados, endereco: e.target.value })}
-              placeholder="Rua, número, complemento"
+              placeholder="Rua, nÃºmero, complemento"
             />
 
             {responsaveisTecnicos.length > 0 && (
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Selecionar Técnico Responsável
+                  Selecionar TÃ©cnico ResponsÃ¡vel
                 </label>
                 <select
                   value={tecnicoSelecionado}
@@ -434,13 +450,13 @@ export default function NovaPropostaEV() {
                   ))}
                 </select>
                 <p className="text-xs text-slate-500 mt-1">
-                  Responsáveis cadastrados em Configurações → Responsável Técnico
+                  ResponsÃ¡veis cadastrados em ConfiguraÃ§Ãµes â†’ ResponsÃ¡vel TÃ©cnico
                 </p>
               </div>
             )}
 
             <Input
-              rotulo="Técnico Responsável"
+              rotulo="TÃ©cnico ResponsÃ¡vel"
               value={dados.tecnico_nome}
               onChange={(e) => setDados({ ...dados, tecnico_nome: e.target.value })}
               placeholder="Nome completo"
@@ -456,22 +472,22 @@ export default function NovaPropostaEV() {
                   onChange={(e) => setDados({ ...dados, tecnico_tipo: e.target.value })}
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"
                 >
-                  <option value="crea">CREA (Engenheiro/Técnico)</option>
-                  <option value="cft">CFT (Eletrotécnico)</option>
+                  <option value="crea">CREA (Engenheiro/TÃ©cnico)</option>
+                  <option value="cft">CFT (EletrotÃ©cnico)</option>
                 </select>
               </div>
             </div>
 
             {dados.tecnico_tipo === 'crea' ? (
               <Input
-                rotulo="Número CREA"
+                rotulo="NÃºmero CREA"
                 value={dados.tecnico_crea}
                 onChange={(e) => setDados({ ...dados, tecnico_crea: e.target.value })}
                 placeholder="Ex: SP 123456/D"
               />
             ) : (
               <Input
-                rotulo="Número CFT"
+                rotulo="NÃºmero CFT"
                 value={dados.tecnico_cft}
                 onChange={(e) => setDados({ ...dados, tecnico_cft: e.target.value })}
                 placeholder="Ex: CFT 123456"
@@ -480,30 +496,30 @@ export default function NovaPropostaEV() {
 
             {responsaveisTecnicos.length === 0 ? (
               <p className="text-xs text-slate-600 bg-yellow-50 p-2 rounded border border-yellow-200">
-                ⚠️ Nenhum responsável técnico cadastrado.
+                âš ï¸ Nenhum responsÃ¡vel tÃ©cnico cadastrado.
                 <br />
-                Acesse <strong>Configurações → Responsável Técnico</strong> para adicionar responsáveis que serão pré-preenchidos nos projetos.
+                Acesse <strong>ConfiguraÃ§Ãµes â†’ ResponsÃ¡vel TÃ©cnico</strong> para adicionar responsÃ¡veis que serÃ£o prÃ©-preenchidos nos projetos.
               </p>
             ) : (
               <p className="text-xs text-slate-500 bg-blue-50 p-2 rounded">
-                💡 Dica: Para projetos elétricos pequenos (solar/EV), eletrotécnico (CFT) pode assinar.
-                Você pode adicionar mais responsáveis em <strong>Configurações → Responsável Técnico</strong>.
+                ðŸ’¡ Dica: Para projetos elÃ©tricos pequenos (solar/EV), eletrotÃ©cnico (CFT) pode assinar.
+                VocÃª pode adicionar mais responsÃ¡veis em <strong>ConfiguraÃ§Ãµes â†’ ResponsÃ¡vel TÃ©cnico</strong>.
               </p>
             )}
 
             <div className="flex justify-end gap-2">
               <Button variante="secundario" disabled>Anterior</Button>
-              <Button onClick={proximaEtapa} disabled={!validarEtapa(1)}>Próxima →</Button>
+              <Button onClick={proximaEtapa} disabled={!validarEtapa(1)}>PrÃ³xima â†’</Button>
             </div>
           </CardBody>
         </Card>
       )}
 
-      {/* ETAPA 2: SELEÇÃO DE CARREGADORES */}
+      {/* ETAPA 2: SELEÃ‡ÃƒO DE CARREGADORES */}
       {etapa === 2 && (
         <Card>
           <CardHeader>
-            <h2 className="text-lg font-semibold">Seleção de Carregadores</h2>
+            <h2 className="text-lg font-semibold">SeleÃ§Ã£o de Carregadores</h2>
           </CardHeader>
           <CardBody className="space-y-4">
             {/* Carregadores Selecionados */}
@@ -542,7 +558,7 @@ export default function NovaPropostaEV() {
               )}
             </div>
 
-            {/* Banco de Carregadores Disponíveis */}
+            {/* Banco de Carregadores DisponÃ­veis */}
             <div className="mt-6 pt-6 border-t">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="font-semibold">Banco de Carregadores</h3>
@@ -586,23 +602,23 @@ export default function NovaPropostaEV() {
             />
 
             <div className="flex justify-between gap-2">
-              <Button variante="secundario" onClick={etapaAnterior}>← Anterior</Button>
-              <Button onClick={proximaEtapa} disabled={carregadores.length === 0}>Próxima →</Button>
+              <Button variante="secundario" onClick={etapaAnterior}>â† Anterior</Button>
+              <Button onClick={proximaEtapa} disabled={carregadores.length === 0}>PrÃ³xima â†’</Button>
             </div>
           </CardBody>
         </Card>
       )}
 
-      {/* ETAPA 3: CÁLCULOS NBR 5410 */}
+      {/* ETAPA 3: CÃLCULOS NBR 5410 */}
       {etapa === 3 && (
         <Card>
           <CardHeader>
-            <h2 className="text-lg font-semibold">Cálculos de Proteção (NBR 5410)</h2>
+            <h2 className="text-lg font-semibold">CÃ¡lculos de ProteÃ§Ã£o (NBR 5410)</h2>
           </CardHeader>
           <CardBody className="space-y-4">
             {!calculos ? (
               <Button onClick={calcularNBR} className="w-full">
-                Calcular Parâmetros NBR 5410
+                Calcular ParÃ¢metros NBR 5410
               </Button>
             ) : (
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
@@ -613,7 +629,7 @@ export default function NovaPropostaEV() {
                 </div>
 
                 <div className="p-4 bg-red-50 rounded-lg border border-red-200">
-                  <p className="text-xs text-red-600 uppercase font-semibold">Corrente Máxima</p>
+                  <p className="text-xs text-red-600 uppercase font-semibold">Corrente MÃ¡xima</p>
                   <p className="text-2xl font-bold text-red-900">{calculos.corrente_maxima_a.toFixed(1)}</p>
                   <p className="text-xs text-red-600">A</p>
                 </div>
@@ -621,7 +637,7 @@ export default function NovaPropostaEV() {
                 <div className="p-4 bg-green-50 rounded-lg border border-green-200">
                   <p className="text-xs text-green-600 uppercase font-semibold">Bitola do Cabo</p>
                   <p className="text-2xl font-bold text-green-900">{calculos.bitola_cabo_mm2}</p>
-                  <p className="text-xs text-green-600">mm²</p>
+                  <p className="text-xs text-green-600">mmÂ²</p>
                 </div>
 
                 <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
@@ -637,7 +653,7 @@ export default function NovaPropostaEV() {
                 </div>
 
                 <div className="p-4 bg-orange-50 rounded-lg border border-orange-200">
-                  <p className="text-xs text-orange-600 uppercase font-semibold">Queda Tensão</p>
+                  <p className="text-xs text-orange-600 uppercase font-semibold">Queda TensÃ£o</p>
                   <p className="text-2xl font-bold text-orange-900">{calculos.queda_tensao_pct.toFixed(2)}</p>
                   <p className="text-xs text-orange-600">%</p>
                 </div>
@@ -645,7 +661,7 @@ export default function NovaPropostaEV() {
             )}
 
             <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded">
-              <h4 className="font-semibold text-blue-900 mb-2">Materiais Necessários</h4>
+              <h4 className="font-semibold text-blue-900 mb-2">Materiais NecessÃ¡rios</h4>
               <ul className="text-sm text-blue-800 space-y-1">
                 {calculos?.materiais.map((mat, idx) => (
                   <li key={idx} className="flex justify-between">
@@ -657,8 +673,8 @@ export default function NovaPropostaEV() {
             </div>
 
             <div className="flex justify-between gap-2">
-              <Button variante="secundario" onClick={etapaAnterior}>← Anterior</Button>
-              <Button onClick={proximaEtapa} disabled={!calculos}>Próxima →</Button>
+              <Button variante="secundario" onClick={etapaAnterior}>â† Anterior</Button>
+              <Button onClick={proximaEtapa} disabled={!calculos}>PrÃ³xima â†’</Button>
             </div>
           </CardBody>
         </Card>
@@ -691,7 +707,7 @@ export default function NovaPropostaEV() {
             {unifilar ? (
               <div className="space-y-4">
                 {modoEdicao ? (
-                  // Modo de Edição: Diagrama Interativo
+                  // Modo de EdiÃ§Ã£o: Diagrama Interativo
                   <div className="border-2 border-blue-300 rounded-lg overflow-hidden bg-white" style={{ height: '600px' }}>
                     <InteractiveDiagram
                       calculos={calculos}
@@ -700,7 +716,7 @@ export default function NovaPropostaEV() {
                         cliente_nome: dados.cliente_nome,
                         endereco: dados.endereco,
                         carregador_potencia_kw: carregadores.reduce((sum, c) => sum + c.potencia_kw * c.quantidade, 0),
-                        carregador_tipo: carregadores[0]?.tipo || 'AC Trifásico',
+                        carregador_tipo: carregadores[0]?.tipo || 'AC TrifÃ¡sico',
                         carregador_marca: carregadores[0]?.marca || '',
                         carregador_modelo: carregadores[0]?.modelo || '',
                         comprimento_cabo: dados.comprimento_cabo_m,
@@ -709,7 +725,7 @@ export default function NovaPropostaEV() {
                       }}
                       onDiagramChange={(diagramData) => {
                         setDiagramaEditado(diagramData)
-                        // Salvar localmente para persistência
+                        // Salvar localmente para persistÃªncia
                         salvarDiagramaLocal(
                           `proposta-${dados.nome_projeto}`,
                           diagramData.nodes,
@@ -725,7 +741,7 @@ export default function NovaPropostaEV() {
                     />
                   </div>
                 ) : (
-                  // Modo de Visualização: SVG Estático
+                  // Modo de VisualizaÃ§Ã£o: SVG EstÃ¡tico
                   <div
                     className="border-2 border-slate-200 rounded-lg overflow-auto bg-white"
                     dangerouslySetInnerHTML={{ __html: unifilar }}
@@ -745,11 +761,11 @@ export default function NovaPropostaEV() {
                       variante="secundario"
                       onClick={() => {
                         setModoEdicao(false)
-                        alert('✓ Diagrama salvo localmente. Use a opção "Salvar Projeto" para persistir as mudanças.')
+                        alert('âœ“ Diagrama salvo localmente. Use a opÃ§Ã£o "Salvar Projeto" para persistir as mudanÃ§as.')
                       }}
                       className="flex-1 min-w-[150px]"
                     >
-                      Finalizar Edição
+                      Finalizar EdiÃ§Ã£o
                     </Button>
                   )}
                 </div>
@@ -761,7 +777,7 @@ export default function NovaPropostaEV() {
             )}
 
             <div className="flex justify-between gap-2">
-              <Button variante="secundario" onClick={etapaAnterior}>← Anterior</Button>
+              <Button variante="secundario" onClick={etapaAnterior}>â† Anterior</Button>
               <Button onClick={salvarProjeto} disabled={!unifilar}>
                 Salvar Projeto
               </Button>
@@ -782,3 +798,4 @@ export default function NovaPropostaEV() {
     </div>
   )
 }
+

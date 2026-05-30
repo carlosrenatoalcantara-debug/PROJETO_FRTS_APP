@@ -4,6 +4,7 @@ import { PDFParse } from 'pdf-parse'
 import multer from 'multer'
 import mongoose from 'mongoose'
 import { memoryStore } from '../config/memoryStorage.js'
+import { auditarFallbackPayload } from '../config/featureFlags.js'
 import Anthropic from '@anthropic-ai/sdk'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 
@@ -86,6 +87,12 @@ export const listarEquipamentos = async (req, res) => {
 
     // FALLBACK: Se tipo é carregador-ev (ou carregador_ev) e não há resultados, buscar de CarregadorEV
     if ((tipo === 'carregador_ev' || tipo === 'carregador-ev') && equipamentos.length === 0) {
+      console.warn('AUDITORIA_FALLBACK', auditarFallbackPayload({
+        arquivo: 'backend/src/controllers/equipamentosController.js',
+        funcao: 'listarEquipamentos',
+        origem: 'CarregadorEV',
+        motivo: 'Nenhum equipamento EV encontrado em Equipamento; fallback legado utilizado',
+      }))
       console.log('⚠️  Fallback: buscando de CarregadorEV collection...')
       const carregadores = await CarregadorEV.find({ ativo: true }).sort({ createdAt: -1 })
       console.log(`✓ Encontrados ${carregadores.length} carregadores EV`)
