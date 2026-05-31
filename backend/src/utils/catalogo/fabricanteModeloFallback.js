@@ -40,12 +40,16 @@ const PADROES = [
     fabricante: 'Growatt',
     aliases: ['growatt'],
     modelos: [
+      /\b(MID\s*\d{1,3}KTL3-?X?\w*)\b/i,         // MID 25KTL3-X, MID 30KTL3-X3 (BUG-08)
       /\b(MIC\s*\d{3,5}TL-X)\b/i,                // MIC 750TL-X, MIC1000TL-X
       /\b(MIN\s*\d{3,5}TL-X\w*)\b/i,             // MIN 3000TL-XE
       /\b(MAX\s*\d{1,3}KTL3-?\w*)\b/i,           // MAX 50KTL3-XL
       /\b(MAC\s*\d{1,3}KTL3-?\w*)\b/i,           // MAC 50KTL3-XL
       /\b(MOD\s*\d{1,4}TL3-XH?\w*)\b/i,          // MOD 10KTL3-XH
+      /\b(SPH\s*\d{3,5}\w*)\b/i,                 // SPH 5000 (híbrido)
       /\b(SPF\s*\d{3,5}\w*)\b/i,                 // SPF 5000ES
+      // GENÉRICO de família Growatt: cobre séries futuras M?? + (K)TL(3)-X
+      /\b(M[A-Z]{2}\s*\d{1,4}K?TL3?-?X?\w*)\b/i,
     ],
   },
   {
@@ -60,7 +64,8 @@ const PADROES = [
     fabricante: 'Goodwe',
     aliases: ['goodwe'],
     modelos: [
-      /\b(GW\d{3,5}\w*)\b/i,                     // GW5000-NS, GW25K-MT
+      // BUG-08: \d{2,5} (não 3,5) — GW20KT-DT / GW25K-MT têm só 2 dígitos.
+      /\b(GW\d{2,5}[A-Z]*-?[A-Z0-9]*)\b/i,       // GW20KT-DT, GW5000-NS, GW25K-MT
     ],
   },
   {
@@ -99,10 +104,45 @@ const PADROES = [
   },
   {
     fabricante: 'ABB',
-    aliases: ['abb ', 'fimer', 'power-one'],
+    aliases: ['abb ', 'power-one'],
     modelos: [
       /\b(PVS-?\d{1,3}-?\w*)\b/i,                // PVS-100-TL
       /\b(TRIO-?\d{1,3}\.\d+-?\w*)\b/i,          // TRIO-50.0-TL-OUTD
+    ],
+  },
+  {
+    // BUG-08: Fimer (spin-off ABB Solar) — modelos PVS/REACT/TRIO
+    fabricante: 'Fimer',
+    aliases: ['fimer'],
+    modelos: [
+      /\b(PVS-?\d{1,3}-?\w*)\b/i,                // PVS-100-TL, PVS-175-TL
+      /\b(REACT\d?-?\w*)\b/i,                    // REACT2-5.0-TL
+      /\b(TRIO-?\d{1,3}\.\d+-?\w*)\b/i,          // TRIO-27.6-TL-OUTD
+    ],
+  },
+  {
+    // BUG-08: SolarEdge — séries SE / SExxxxH / SExxK-RWS
+    fabricante: 'SolarEdge',
+    aliases: ['solaredge', 'solar edge'],
+    modelos: [
+      /\b(SE\d{3,6}[A-Z]?-?[A-Z0-9]*)\b/i,      // SE5000H, SE27.6K, SE100K
+    ],
+  },
+  {
+    // BUG-08: Chint Power Systems (Astronergy) — séries CPS
+    fabricante: 'Chint',
+    aliases: ['chint', 'chint power', 'cps '],
+    modelos: [
+      /\b(CPS\s*SC[AH]?\d+[A-Z]*-?[A-Z0-9]*)\b/i, // CPS SCA50KTL-DO, CPS SCH100KTL
+      /\b(CPS-?\d{1,3}K[A-Z0-9-]*)\b/i,            // CPS-50K
+    ],
+  },
+  {
+    // BUG-08: WEG inversores (série SIW) — distinto do WEG EV (WMO) mais abaixo
+    fabricante: 'WEG',
+    aliases: ['weg solar', 'weg inversor', 'siw'],
+    modelos: [
+      /\b(SIW\d{3}[A-Z]?-?[A-Z0-9]*)\b/i,       // SIW100G, SIW300H, SIW500H-ST
     ],
   },
   // ── Módulos ────────────────────────────────────────────────────────────
@@ -189,6 +229,22 @@ function _norm(s) {
   return String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, ' ')
 }
 
+// BUG-08: tokens de MODELO GENÉRICO de inversor. Conservadores: exigem prefixo
+// alfabético (2-5 letras) + número de potência + sufixo técnico (K/TL/dígito).
+// Usados APENAS quando o fabricante já foi identificado por alias — reduz o
+// risco de falso-positivo e dá extensibilidade a séries ainda não catalogadas.
+const _MODELO_GENERICO_INVERSOR = [
+  /\b([A-Z]{2,5}[- ]?\d{1,4}K(?:TL)?\d?-?[A-Z]{0,3}\d?(?:-[A-Z0-9]+){0,2})\b/, // MID25KTL3-X, SUN-75K-G
+  /\b([A-Z]{2,5}[- ]?\d{3,5}-?[A-Z]{1,3}\d?(?:-[A-Z0-9]+){0,2})\b/,            // GW5000-NS
+]
+function _extrairModeloGenerico(texto) {
+  for (const re of _MODELO_GENERICO_INVERSOR) {
+    const m = texto.match(re)
+    if (m) return (m[1] || m[0]).replace(/\s+/g, '').toUpperCase()
+  }
+  return null
+}
+
 /**
  * Tenta extrair fabricante + modelo do texto bruto do PDF.
  *
@@ -222,6 +278,20 @@ export function extrairFabricanteModelo(texto) {
       }
     }
 
+    // BUG-08: fabricante achado mas nenhuma regex específica casou. Em vez de
+    // desistir, tenta um token de MODELO GENÉRICO (extensível p/ séries novas).
+    // Como o fabricante já é conhecido, um match genérico é seguro o bastante.
+    const generico = _extrairModeloGenerico(texto)
+    if (generico) {
+      return {
+        fabricante: padrao.fabricante,
+        modelo: generico,
+        confianca: 0.6,
+        evidencia: `alias "${aliasEncontrado}" + modelo genérico`,
+        padrao_usado: `${padrao.fabricante.toLowerCase()}_generico`,
+      }
+    }
+
     // Fabricante achado mas modelo não — devolve só o fabricante (parcial)
     return {
       fabricante: padrao.fabricante,
@@ -238,7 +308,10 @@ export function extrairFabricanteModelo(texto) {
     { regex: /\b(SUN-?\d{1,3}-?\d{0,3}K[\w-]*)\b/i, fabricante: 'Deye' },
     { regex: /\b(RHI-\d{1,3}K[\w-]*)\b/i,           fabricante: 'Solis' },
     { regex: /\b(MIC\s*\d{3,5}TL-X)\b/i,            fabricante: 'Growatt' },
+    { regex: /\b(MID\s*\d{1,3}KTL3[\w-]*)\b/i,      fabricante: 'Growatt' }, // BUG-08
     { regex: /\b(MAX\s*\d{1,3}KTL3[\w-]*)\b/i,      fabricante: 'Growatt' },
+    { regex: /\b(GW\d{2,5}[A-Z]+-?[A-Z0-9]*)\b/i,   fabricante: 'Goodwe' },  // BUG-08
+    { regex: /\b(SE\d{3,6}[A-Z]?-?[A-Z0-9]*)\b/i,   fabricante: 'SolarEdge' }, // BUG-08
     { regex: /\b(ASW\s*\d{3,5}[A-Z]?-?[A-Z0-9]*)\b/i, fabricante: 'Solplanet' },
   ]
   for (const { regex, fabricante } of modelosOrfaos) {
@@ -271,6 +344,51 @@ export function ehDefaultLixo(valor, campo = 'fabricante') {
     modelo:     [...lixoComum, 'inversor', 'modulo', 'módulo', 'painel', 'painel solar', 'modelo', 'placa'],
   }
   return (lixoCampo[campo] || lixoComum).includes(s.toLowerCase())
+}
+
+/**
+ * BUG-08 (FASE 3) — Normalização OBRIGATÓRIA da identificação de um equipamento.
+ *
+ * Consolida o que veio da IA (`dados`) com o fallback de regex sobre o texto
+ * bruto, e GARANTE a presença de { tipo, fabricante, modelo } válidos — ou
+ * informa exatamente quais campos faltam. Deve ser chamada ANTES de qualquer
+ * POST: se `ok === false`, a requisição não deve ser enviada.
+ *
+ * @param {Object} dados        objeto retornado pela IA/parser ({fabricante, modelo, tipo, ...})
+ * @param {string} textoBruto   texto OCR/PDF para fallback de regex
+ * @param {string} [tipoPadrao] tipo a assumir quando ausente (ex.: 'inversor')
+ * @returns {{ ok: boolean, tipo: ?string, fabricante: ?string, modelo: ?string,
+ *            faltando: string[], aviso: ?string, recuperado: Object }}
+ */
+export function normalizarIdentificacao(dados = {}, textoBruto = '', tipoPadrao = null) {
+  const tipo = dados.tipo || tipoPadrao || null
+  let fabricante = ehDefaultLixo(dados.fabricante, 'fabricante') ? null : String(dados.fabricante).trim()
+  let modelo     = ehDefaultLixo(dados.modelo, 'modelo')         ? null : String(dados.modelo).trim()
+
+  const recuperado = {}
+  let aviso = null
+
+  // Fallback por regex no texto bruto quando fabricante e/ou modelo faltam.
+  if ((!fabricante || !modelo) && textoBruto && String(textoBruto).trim().length >= 5) {
+    const fb = extrairFabricanteModelo(textoBruto)
+    if (!fabricante && fb.fabricante) {
+      fabricante = fb.fabricante
+      recuperado.fabricante = fb.fabricante
+      aviso = `Fabricante recuperado por regex: ${fb.fabricante}`
+    }
+    if (!modelo && fb.modelo) {
+      modelo = fb.modelo
+      recuperado.modelo = fb.modelo
+      aviso = aviso ? `${aviso}; modelo: ${fb.modelo}` : `Modelo recuperado por regex: ${fb.modelo}`
+    }
+  }
+
+  const faltando = []
+  if (!tipo)       faltando.push('tipo')
+  if (!fabricante) faltando.push('fabricante')
+  if (!modelo)     faltando.push('modelo')
+
+  return { ok: faltando.length === 0, tipo, fabricante, modelo, faltando, aviso, recuperado }
 }
 
 // Exporta o catálogo para a UI mostrar quais fabricantes são reconhecidos.

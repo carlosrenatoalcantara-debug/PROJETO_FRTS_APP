@@ -3,7 +3,7 @@ import { X, Upload, CheckCircle, AlertCircle, Loader, FileText, Zap } from 'luci
 import Button from '../ui/Button'
 import Card from '../ui/Card'
 // S8.6.1: regex fallback puro — usado quando Gemini/Claude não devolve fabricante/modelo
-import { extrairFabricanteModelo, ehDefaultLixo } from '../../../../backend/src/utils/catalogo/fabricanteModeloFallback.js'
+import { normalizarIdentificacao } from '../../../../backend/src/utils/catalogo/fabricanteModeloFallback.js'
 
 const API_URL = '' /* URL relativa forçada — Vercel proxy → Railway */
 
@@ -75,37 +75,25 @@ export default function ModalNovoInversor({ arquivosIniciais = [], onClose, onSa
       if (!res.ok) throw new Error(json.erro || `Erro ${res.status}`)
 
       const dados = json.dados || json
-      let aviso = json.avisos?.length ? json.avisos[0] : null
-
-      // S8.6.1: FALLBACK REGEX — se Gemini/Claude não trouxe fabricante OU modelo,
-      // tenta extrair do texto bruto. Se ainda assim falhar, marca IMPORTACAO_FALHOU
-      // e rejeita (não persiste com "Desconhecido"/"Inversor").
       const fabricanteOriginal = dados.fabricante
       const modeloOriginal = dados.modelo
-      const fabLixo = ehDefaultLixo(fabricanteOriginal, 'fabricante')
-      const modLixo = ehDefaultLixo(modeloOriginal, 'modelo')
-      let fbAplicado = null
-      if (fabLixo || modLixo) {
-        const texto = json.texto_extraido || json.textoOCR || dados._texto_bruto || ''
-        if (texto) {
-          fbAplicado = extrairFabricanteModelo(texto)
-          if (fabLixo && fbAplicado.fabricante) {
-            dados.fabricante = fbAplicado.fabricante
-            aviso = `Fabricante recuperado por regex: ${fbAplicado.fabricante}`
-          }
-          if (modLixo && fbAplicado.modelo) {
-            dados.modelo = fbAplicado.modelo
-            aviso = aviso ? `${aviso}; modelo: ${fbAplicado.modelo}` : `Modelo recuperado por regex: ${fbAplicado.modelo}`
-          }
-        }
-      }
 
-      // S8.6.1: validação mínima OBRIGATÓRIA — sem fabricante OU modelo válido, ABORTA.
-      if (ehDefaultLixo(dados.fabricante, 'fabricante') && ehDefaultLixo(dados.modelo, 'modelo')) {
+      // BUG-08 (FASE 3+4): normalização OBRIGATÓRIA antes de qualquer POST.
+      // Consolida IA + fallback de regex (multi-fabricante) e garante
+      // { tipo, fabricante, modelo } — ou informa exatamente o que faltou.
+      const textoBruto = json.texto_extraido || json.textoOCR || dados._texto_bruto || ''
+      const ident = normalizarIdentificacao(dados, textoBruto, 'inversor')
+      dados.fabricante = ident.fabricante
+      dados.modelo     = ident.modelo
+      let aviso = ident.aviso || (json.avisos?.length ? json.avisos[0] : null)
+
+      // BUG-08 (FASE 4): BLINDAGEM — se faltar QUALQUER campo obrigatório,
+      // NÃO envia POST. Mostra ao usuário exatamente quais não foram identificados.
+      if (!ident.ok) {
         throw new Error(
-          `IMPORTACAO_FALHOU: não foi possível identificar fabricante nem modelo no datasheet. ` +
-          `Recebido: fabricante="${fabricanteOriginal || '∅'}" modelo="${modeloOriginal || '∅'}". ` +
-          `Preencha manualmente antes de salvar.`
+          `IMPORTACAO_FALHOU: campos não identificados no datasheet: ${ident.faltando.join(', ')}. ` +
+          `Recebido da extração: fabricante="${fabricanteOriginal || '∅'}" modelo="${modeloOriginal || '∅'}". ` +
+          `Preencha manualmente o(s) campo(s) faltante(s) antes de salvar.`
         )
       }
 

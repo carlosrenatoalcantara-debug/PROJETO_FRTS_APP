@@ -424,7 +424,18 @@ async function extrairPorTexto(pdfBuffer) {
   if (tipo === 'inversor') {
     // Para inversores o parser de texto extrai apenas identificação — Claude é necessário para os campos técnicos
     const subtipo = /microinversor|micro.?inversor/i.test(texto) ? 'microinversor' : 'string'
-    return { fabricante, modelo, tipo: 'inversor', subtipo, variantes: [{}] }
+    // BUG-08: `detectarModelo` é otimizado para MÓDULOS (ZXMR/JKM/CS...) e
+    // devolve null para inversores. Delega ao catálogo compartilhado de
+    // fabricantes/modelos (extensível, multi-fabricante) para recuperar
+    // fabricante+modelo de inversores como Growatt MID25KTL3-X.
+    let fab = fabricante
+    let mod = modelo
+    if (!fab || !mod) {
+      const fb = extrairFabricanteModelo(texto)
+      if (!fab && fb.fabricante) fab = fb.fabricante
+      if (!mod && fb.modelo)     mod = fb.modelo
+    }
+    return { fabricante: fab, modelo: mod, tipo: 'inversor', subtipo, variantes: [{}] }
   }
 
   let variantes = []
