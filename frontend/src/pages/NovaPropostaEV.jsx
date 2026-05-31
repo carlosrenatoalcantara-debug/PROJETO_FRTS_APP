@@ -40,6 +40,10 @@ export default function NovaPropostaEV() {
   const [rtCarregando, setRtCarregando] = useState(true)  // EV-ALIGN-01
   const [modoEdicao, setModoEdicao] = useState(false)
   const [diagramaEditado, setDiagramaEditado] = useState(null)
+  // P0-03: id de rascunho único POR SESSÃO do wizard (o projeto ainda não tem
+  // _id). Antes a chave do diagrama era derivada do NOME → projetos de mesmo
+  // nome compartilhavam o mesmo unifilar. Agora cada sessão tem chave única.
+  const [draftId] = useState(() => `ev-draft-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`)
 
   const [dados, setDados] = useState({
     nome_projeto: '',
@@ -795,6 +799,7 @@ export default function NovaPropostaEV() {
                       dados={dados}
                       carregadores={carregadores}
                       onChange={setDiagramaEditado}
+                      draftId={draftId}
                     />
                   </div>
                 ) : (
@@ -871,7 +876,7 @@ export default function NovaPropostaEV() {
  *
  * Fix: useMemo/useCallback estabilizam as referências.
  */
-function InteractiveDiagramWrapper({ calculos, dados, carregadores, onChange }) {
+function InteractiveDiagramWrapper({ calculos, dados, carregadores, onChange, draftId }) {
   const projeto = useMemo(() => ({
     projeto_nome: dados.nome_projeto,
     cliente_nome: dados.cliente_nome,
@@ -892,8 +897,9 @@ function InteractiveDiagramWrapper({ calculos, dados, carregadores, onChange }) 
   const handleChange = useCallback((diagramData) => {
     onChange(diagramData)
     try {
+      // P0-03: chave única por sessão (draftId), NUNCA derivada do nome.
       salvarDiagramaLocal(
-        `proposta-${dados.nome_projeto || 'sem-nome'}`,
+        draftId,
         diagramData?.nodes,
         diagramData?.edges,
         {
@@ -905,7 +911,7 @@ function InteractiveDiagramWrapper({ calculos, dados, carregadores, onChange }) 
     } catch (e) {
       console.warn('[EV] Falha ao salvar diagrama local:', e?.message)
     }
-  }, [onChange, dados.nome_projeto, dados.cliente_nome])
+  }, [onChange, draftId, dados.nome_projeto, dados.cliente_nome])
 
   return (
     <InteractiveDiagram

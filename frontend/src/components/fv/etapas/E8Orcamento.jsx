@@ -310,7 +310,10 @@ export default function E8Orcamento() {
 
       if (resultado.falhou.length > 0) {
         console.warn('[E8] Slices com falha:', resultado.falhou)
-        // Não bloqueia o sucesso — projeto já foi criado; slices podem ser re-salvos
+        // P1-01/02: NÃO engolir silenciosamente. Se um slice falhou, o Resumo/
+        // Documentos não terão esses dados — avisa o operador para re-salvar.
+        const etapas = resultado.falhou.map(f => f.etapa).join(', ')
+        setErroSalvar(`Atenção: dados parcialmente salvos. Falharam: ${etapas}. Clique em salvar novamente para completar.`)
       }
 
       setSalvo(true)

@@ -322,7 +322,12 @@ export default function ProjetosFV() {
                             aberto={menuAberto === p._id}
                             onToggle={(e) => { e.stopPropagation(); setMenuAberto(menuAberto === p._id ? null : p._id) }}
                             onAbrir={() => navigate(`/projetos-fv/${p._id}`)}
-                            onEditar={() => navigate(`/projetos-fv/${p._id}?wizard=1`)}
+                            // P0-02: editar abre o WIZARD oficial hidratando do banco via ?id=.
+                            // Antes navegava para `/projetos-fv/:id?wizard=1`, que cai na tela
+                            // de detalhes (somente leitura) e ignora ?wizard=1 → "não entra em
+                            // modo edição". O wizard (ProjetosFVNovo) suporta ?id= e hidrata
+                            // todos os slices a partir de GET /api/projetos-fv/:id.
+                            onEditar={() => navigate(`/projetos-fv/novo?id=${p._id}`)}
                             onDuplicar={() => acaoDuplicar(p)}
                             onArquivar={() => setConfirmacao({ tipo: 'arquivar', projeto: p })}
                             onExcluir={() => setConfirmacao({ tipo: 'excluir', projeto: p })}

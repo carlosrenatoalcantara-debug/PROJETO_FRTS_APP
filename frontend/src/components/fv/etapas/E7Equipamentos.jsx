@@ -22,6 +22,7 @@ import SeletorEstrutura from '../SeletorEstrutura'
 import ConfiguradorArranjoFV from '../ConfiguradorArranjoFV'
 import { consolidarPanos, dimensoesModulo } from '../../../utils/geoEngine'
 import { snapshotEquipamentoSelecao } from '../../../utils/catalogoEngenhariaAdapter'
+import { validarMicroinversores } from '../../../../../backend/src/utils/fv/validacaoMicroinversores.js'
 
 const TIPO_BADGE_COR = {
   string:     'azul',
@@ -83,6 +84,28 @@ export default function E7Equipamentos() {
       setErro('Selecione um painel, um inversor e uma estrutura para continuar.')
       return false
     }
+
+    // P1-03: validação física mínima de microinversores.
+    // Topologia micro → cada micro tem nº finito de entradas DC. Bloqueia
+    // configurações impossíveis (ex.: 20 módulos / 5 micros / 1 entrada).
+    const inv = equipamentos.inversor
+    if (inv?.tipo === 'micro') {
+      const numModulos = equipamentos.quantidadeModulos ?? dim.numPaineis ?? 0
+      const numMicros = dim.numInversores ?? 0
+      const entradasPorMicro = (inv.nMppts ?? 1) * (inv.entradasPorMppt ?? 1)
+      const res = validarMicroinversores({
+        numModulos,
+        numMicros,
+        entradasPorMicro,
+        potenciaModuloW: equipamentos.painel?.potenciaW ?? null,
+        potenciaMicroCA_W: inv.potenciaKW ? inv.potenciaKW * 1000 : null,
+      })
+      if (!res.valido) {
+        setErro(`Configuração de microinversores inválida: ${res.bloqueios.join(' ')}`)
+        return false
+      }
+    }
+
     return true
   }
 

@@ -186,9 +186,16 @@ export default function ModalNovoInversor({ arquivosIniciais = [], onClose, onSa
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(savePayload),
       })
-      if (!saveRes.ok) throw new Error('Erro ao salvar no banco')
+      // P0-01: surface o motivo EXATO do backend (não mais genérico).
+      const saveJson = await saveRes.json().catch(() => ({}))
+      if (!saveRes.ok) {
+        const motivo = saveJson.erro || saveJson.sugestao || `HTTP ${saveRes.status}`
+        throw new Error(`${saveJson.codigo || 'ERRO'}: ${motivo}`)
+      }
+      // P0-01: aviso de extração parcial vindo do backend
+      const avisoFinal = saveJson._aviso || aviso
 
-      atualizarItem(item.id, { status: 'salvo', dados, atualizado: !!existente, aviso })
+      atualizarItem(item.id, { status: 'salvo', dados, atualizado: !!existente, aviso: avisoFinal })
     } catch (err) {
       console.error('Erro no item', item.nome, err)
       atualizarItem(item.id, { status: 'erro', erro: err.message })

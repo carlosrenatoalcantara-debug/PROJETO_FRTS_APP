@@ -35,11 +35,24 @@ export default function ProjetosFVDetalhes() {
 
   useEffect(() => {
     carregarProjeto()
+    // P1-01/02: Resumo e Documentos não exibiam dados recém-salvos no wizard.
+    // Causa: o detalhe buscava o projeto UMA vez na montagem (deps [id]) e a
+    // resposta podia vir do cache HTTP. Ao voltar do wizard (mesmo id / aba já
+    // montada) os campos recém-persistidos não apareciam. Solução: refetch ao
+    // reganhar foco/visibilidade da aba, garantindo leitura fresca do banco.
+    const onFoco = () => { if (!document.hidden) carregarProjeto() }
+    window.addEventListener('focus', onFoco)
+    document.addEventListener('visibilitychange', onFoco)
+    return () => {
+      window.removeEventListener('focus', onFoco)
+      document.removeEventListener('visibilitychange', onFoco)
+    }
   }, [id])
 
   async function carregarProjeto() {
     try {
-      const resposta = await fetch(`/api/projetos-fv/${id}`)
+      // cache: 'no-store' → nunca servir Resumo/Documentos de cache HTTP.
+      const resposta = await fetch(`/api/projetos-fv/${id}`, { cache: 'no-store' })
       if (!resposta.ok) throw new Error('Projeto não encontrado')
       const dados = await resposta.json()
       setProjeto(dados)
@@ -426,7 +439,7 @@ function AbaResumo({ projeto }) {
               <p className="text-xs mt-0.5">Sinalizadores: {projeto.legacy_motivos.join(', ')}</p>
             )}
             <div className="flex gap-2 mt-2">
-              <button onClick={() => window.location.assign(`/projetos-fv/${projeto._id}?wizard=1`)}
+              <button onClick={() => window.location.assign(`/projetos-fv/novo?id=${projeto._id}`)}
                 className="px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded text-xs">Completar dados</button>
               <button onClick={() => { /* no-op: o usuário continua visualizando */ }}
                 className="px-3 py-1 border border-amber-400 text-amber-800 hover:bg-amber-100 rounded text-xs">Continuar</button>

@@ -185,19 +185,27 @@ export const criarEquipamento = async (req, res) => {
       })
     }
 
-    // S8.6.1: bloqueia persistência com defaults lixo ("Desconhecido"/"Inversor"/etc.)
-    // Aceita apenas se `forcar=true` (operador confirmou entrada manual).
+    // P0-01: guard de "lixo" ALINHADO com o frontend (ModalNovoInversor).
+    // Antes: backend rejeitava se fabricante OU modelo fosse lixo (||) enquanto o
+    // modal só abortava se AMBOS fossem lixo (&&). A assimetria causava 422
+    // silencioso em extrações parciais (marca ok, modelo lixo) → inversor não
+    // persistia. Agora: só rejeita quando AMBOS são lixo (idêntico ao modal).
+    // `forcar=true` ainda faz bypass total (entrada manual confirmada).
     if (!forcar) {
       const { ehDefaultLixo } = await import('../utils/catalogo/fabricanteModeloFallback.js')
       const fabLixo = ehDefaultLixo(fabricante, 'fabricante')
       const modLixo = ehDefaultLixo(modelo, 'modelo')
-      if (fabLixo || modLixo) {
+      if (fabLixo && modLixo) {
         return res.status(422).json({
-          erro: 'Importação rejeitada: fabricante ou modelo é um default lixo (Desconhecido/Inversor/etc.).',
+          erro: 'Importação rejeitada: fabricante E modelo são defaults lixo (Desconhecido/Inversor/etc.).',
           codigo: 'IMPORTACAO_FALHOU',
           detalhe: { fabricante_lixo: fabLixo, modelo_lixo: modLixo, recebidos: { fabricante, modelo } },
           sugestao: 'Reprocessar datasheet ou preencher manualmente antes de salvar.',
         })
+      }
+      // Parcial (só um lixo): aceita mas devolve aviso na resposta (não bloqueia).
+      if (fabLixo || modLixo) {
+        req._avisoParcial = `Atenção: ${fabLixo ? 'fabricante' : 'modelo'} não identificado com confiança — revise a ficha técnica.`
       }
     }
 
@@ -213,7 +221,10 @@ export const criarEquipamento = async (req, res) => {
 
     await novo.save()
     console.log(`✓ Equipamento criado: ${novo._id} (${fabricante} ${modelo})`)
-    res.status(201).json(novo)
+    // P0-01: anexa aviso de extração parcial (se houve), sem bloquear.
+    const resposta = novo.toObject ? novo.toObject() : novo
+    if (req._avisoParcial) resposta._aviso = req._avisoParcial
+    res.status(201).json(resposta)
   } catch (err) {
     console.error('❌ Erro ao criar equipamento:', err)
     res.status(500).json({ erro: err.message })

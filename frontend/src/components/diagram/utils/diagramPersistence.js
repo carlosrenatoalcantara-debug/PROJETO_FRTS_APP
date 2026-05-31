@@ -7,6 +7,31 @@
 const STORAGE_PREFIX = 'diagrama_';
 
 /**
+ * P0-03 — Guarda contra chaves ambíguas/compartilhadas.
+ * Causa raiz do bug "unifilar de outro projeto": chaves derivadas do NOME do
+ * projeto (ex.: `proposta-${nome}` ou `proposta-sem-nome`) faziam dois projetos
+ * distintos compartilharem o mesmo slot de localStorage. Esta função rejeita
+ * chaves vazias ou notoriamente ambíguas para que a persistência falhe de forma
+ * explícita em vez de cruzar dados entre projetos.
+ *
+ * Chaves válidas devem ser estáveis e únicas por projeto:
+ *   - `projeto-fv-<_id>` / `projeto-ev-<_id>` (projetos persistidos)
+ *   - `ev-draft-...` / `fv-draft-...` (rascunho único por sessão do wizard)
+ *   - ObjectId (24 hex) puro
+ * @param {string} projetoId
+ * @returns {boolean} true se a chave é segura para persistir
+ */
+export function chaveProjetoValida(projetoId) {
+  if (projetoId === null || projetoId === undefined) return false;
+  const id = String(projetoId).trim();
+  if (id === '') return false;
+  // Sentinelas de "sem identidade" — nunca devem virar chave compartilhada.
+  const ambiguas = ['undefined', 'null', 'sem-nome', 'proposta-sem-nome', 'proposta-', 'nan'];
+  if (ambiguas.includes(id.toLowerCase())) return false;
+  return true;
+}
+
+/**
  * Salvar diagrama no localStorage
  * @param {string} projetoId - ID único do projeto
  * @param {Array} nodes - Nós do diagrama
@@ -16,6 +41,10 @@ const STORAGE_PREFIX = 'diagrama_';
  */
 export function salvarDiagramaLocal(projetoId, nodes, edges, metadata = {}) {
   try {
+    if (!chaveProjetoValida(projetoId)) {
+      console.error(`[P0-03] Chave de projeto inválida/ambígua ("${projetoId}") — diagrama NÃO salvo para evitar cruzar dados entre projetos.`);
+      return false;
+    }
     const dados = {
       nodes,
       edges,
@@ -43,6 +72,10 @@ export function salvarDiagramaLocal(projetoId, nodes, edges, metadata = {}) {
  */
 export function carregarDiagramaLocal(projetoId) {
   try {
+    if (!chaveProjetoValida(projetoId)) {
+      console.warn(`[P0-03] Chave de projeto inválida/ambígua ("${projetoId}") — nada carregado.`);
+      return null;
+    }
     const chave = `${STORAGE_PREFIX}${projetoId}`;
     const dados = localStorage.getItem(chave);
 
