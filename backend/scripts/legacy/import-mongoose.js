@@ -28,7 +28,7 @@ async function importData() {
   try {
     // Connect to MongoDB
     console.log('[1/4] Conectando ao MongoDB Atlas via Mongoose...');
-    const mongoUri = 'mongodb+srv://forte-solar:Cr1pt0grafia@cluster0.mongodb.net/forte_solar?retryWrites=true&w=majority';
+    const mongoUri = 'mongodb+srv://forte-solar:REDACTED_ROTATE_VIA_ATLAS@cluster0.mongodb.net/forte_solar?retryWrites=true&w=majority';
 
     await mongoose.connect(mongoUri, {
       serverSelectionTimeoutMS: 15000,

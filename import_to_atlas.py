@@ -19,7 +19,7 @@ def import_to_atlas():
     """Main import function"""
 
     # MongoDB Atlas connection details
-    mongodb_uri = 'mongodb+srv://forte-solar:Cr1pt0grafia@cluster0.mongodb.net/forte_solar?retryWrites=true&w=majority'
+    mongodb_uri = 'mongodb+srv://forte-solar:REDACTED_ROTATE_VIA_ATLAS@cluster0.mongodb.net/forte_solar?retryWrites=true&w=majority'
     database_name = 'forte_solar'
 
     # Files to import

@@ -9,7 +9,7 @@ import { promises as dnsPromises } from 'dns';
 dnsPromises.setServers(['8.8.8.8', '8.8.4.4']);
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const uri = 'mongodb+srv://forte-solar:Cr1pt0grafia@cluster0.mongodb.net/forte_solar?retryWrites=true&w=majority';
+const uri = 'mongodb+srv://forte-solar:REDACTED_ROTATE_VIA_ATLAS@cluster0.mongodb.net/forte_solar?retryWrites=true&w=majority';
 
 async function importData() {
   const client = new MongoClient(uri, {

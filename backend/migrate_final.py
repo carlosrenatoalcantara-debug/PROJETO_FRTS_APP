@@ -26,7 +26,7 @@ def migrate():
 
         # Step 2: Connect to MongoDB
         print("\n[2/5] Conectando ao MongoDB Atlas...")
-        uri = 'mongodb+srv://forte-solar:Cr1pt0grafia@cluster0.mongodb.net/forte_solar?retryWrites=true&w=majority'
+        uri = 'mongodb+srv://forte-solar:REDACTED_ROTATE_VIA_ATLAS@cluster0.mongodb.net/forte_solar?retryWrites=true&w=majority'
         client = MongoClient(uri, serverSelectionTimeoutMS=10000)
 
         # Step 3: Verify connection

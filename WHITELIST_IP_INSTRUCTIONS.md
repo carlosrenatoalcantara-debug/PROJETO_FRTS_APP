@@ -31,7 +31,7 @@ Your localhost IP address **179.190.207.204** needs to be whitelisted in MongoDB
 2. Click "New Connection"
 3. Paste connection string:
    ```
-   mongodb+srv://forte-solar:Cr1pt0grafia@cluster0.mongodb.net/forte_solar?retryWrites=true&w=majority
+   mongodb+srv://forte-solar:REDACTED_ROTATE_VIA_ATLAS@cluster0.mongodb.net/forte_solar?retryWrites=true&w=majority
    ```
 4. Click "Save & Connect"
 5. Once connected, you can manually import the data through the UI
@@ -53,7 +53,7 @@ node migrate-to-mongodb.js
   - ✅ equipamentos (9 equipment items)
 
 ## MongoDB URI Details
-- **Connection String**: mongodb+srv://forte-solar:Cr1pt0grafia@cluster0.mongodb.net/forte_solar
+- **Connection String**: mongodb+srv://forte-solar:REDACTED_ROTATE_VIA_ATLAS@cluster0.mongodb.net/forte_solar
 - **Username**: forte-solar
 - **Database**: forte_solar
 - **Cluster**: cluster0.mongodb.net

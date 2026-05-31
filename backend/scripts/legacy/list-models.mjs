@@ -1,4 +1,4 @@
-const apiKey = 'AIzaSyAHEzC-JqmipKOswZBpk3QZlJp2BLeNNSs'
+const apiKey = 'REDACTED_ROTATE_VIA_GCP'
 
 console.log('📋 Listando modelos disponíveis...\n')
 

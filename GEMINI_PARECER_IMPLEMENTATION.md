@@ -210,7 +210,7 @@ try {
 ### .env File
 ```
 # Google Gemini API Key (FREE - 60 requests/minute)
-GOOGLE_API_KEY=AIzaSyAHEzC-JqmipKOswZBpk3QZlJp2BLeNNSs
+GOOGLE_API_KEY=REDACTED_ROTATE_VIA_GCP
 
 # MongoDB Atlas (for database persistence)
 MONGODB_URI=mongodb+srv://forte-solar:I2Vn3DcyW0Hy7ZK5@cluster0.e3d0pph.mongodb.net/forte_solar?retryWrites=true&w=majority

@@ -19,7 +19,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const MONGODB_HOST = 'cluster0-shard-00-00.mongodb.net'
 const MONGODB_PORT = 27017
 const MONGODB_USER = 'forte-solar'
-const MONGODB_PASSWORD = 'Cr1pt0grafia'
+const MONGODB_PASSWORD = 'REDACTED_ROTATE_VIA_ATLAS'
 const MONGODB_DB = 'forte_solar'
 
 // Construct a direct connection string without SRV

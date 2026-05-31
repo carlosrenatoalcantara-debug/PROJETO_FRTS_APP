@@ -13,7 +13,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 async function importData() {
   // MongoDB Atlas connection details
-  const MONGODB_URI = 'mongodb+srv://forte-solar:Cr1pt0grafia@cluster0.mongodb.net/forte_solar?retryWrites=true&w=majority';
+  const MONGODB_URI = 'mongodb+srv://forte-solar:REDACTED_ROTATE_VIA_ATLAS@cluster0.mongodb.net/forte_solar?retryWrites=true&w=majority';
   const DATABASE_NAME = 'forte_solar';
 
   // Files to import

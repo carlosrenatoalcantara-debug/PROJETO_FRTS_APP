@@ -103,7 +103,7 @@ DEPOIS:
 
 ### APIs Configuradas
 ```
-✅ GOOGLE_API_KEY: AIzaSyAHEzC-JqmipKOswZBpk3QZlJp2BLeNNSs
+✅ GOOGLE_API_KEY: REDACTED_ROTATE_VIA_GCP
 ✅ Já presente em .env local
 ✅ Pronto para uso em produção
 ```

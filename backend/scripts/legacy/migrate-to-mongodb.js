@@ -12,7 +12,7 @@ import { fileURLToPath } from 'url'
 import 'dotenv/config.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://forte-solar:Cr1pt0grafia@cluster0.mongodb.net/forte_solar?retryWrites=true&w=majority'
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://forte-solar:REDACTED_ROTATE_VIA_ATLAS@cluster0.mongodb.net/forte_solar?retryWrites=true&w=majority'
 
 async function migrate() {
   let client

@@ -42,7 +42,7 @@
 A chave `GOOGLE_API_KEY` já está no arquivo `.env` local:
 
 ```
-GOOGLE_API_KEY=AIzaSyAHEzC-JqmipKOswZBpk3QZlJp2BLeNNSs
+GOOGLE_API_KEY=REDACTED_ROTATE_VIA_GCP
 ```
 
 ### Se precisar criar uma nova chave:
