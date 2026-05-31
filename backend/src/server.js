@@ -80,6 +80,7 @@ import rotasEmpresa from './routes/empresa.js'
 import rotasGestao from './routes/gestao.js'
 import rotasPainel from './routes/painel.js'
 import rotasAlertCenter from './routes/alertcenter.js'   // S8.8
+import rotasCatalogoDiagnostico from './routes/catalogoDiagnostico.js'  // CAT-P0-UNIFY
 import { decodificarUsuario, protegerModulo } from './middleware/rbacMiddleware.js'
 import rotasProjetosEV from './routes/projetosEV.js'
 import rotasDashboard  from './routes/dashboard.js'
@@ -230,6 +231,7 @@ app.use('/api/empresa',      protegerModulo('configuracoes'), rotasEmpresa)   //
 app.use('/api/gestao',       protegerModulo('configuracoes'), rotasGestao)    // S7.2
 app.use('/api/painel',       rotasPainel)    // S7.3 — painel executivo, health, auditoria
 app.use('/api/alertcenter',  rotasAlertCenter)  // S8.8 — AlertCenter unificado
+app.use('/api/catalogo',     rotasCatalogoDiagnostico)  // CAT-P0-UNIFY — diagnóstico (read-only)
 app.use('/api/projetos-ev',  protegerModulo('ev'), rotasProjetosEV)
 app.use('/api/upload',       rotasUpload)
 app.use('/api/engenharia',   rotasEngenharia)

@@ -6,6 +6,9 @@ import mongoose from 'mongoose'
 import { memoryStore } from '../config/memoryStorage.js'
 import Anthropic from '@anthropic-ai/sdk'
 import { GoogleGenerativeAI } from '@google/generative-ai'
+// CAT-P0-UNIFY: normalização de tipo + feature flags
+import { normalizarTipo, ehCarregadorEV } from '../utils/catalogo/tipoEquipamento.js'
+import { catalogoFlags } from '../config/catalogoFlags.js'
 
 const usarMemoryStorage = () => mongoose.connection.readyState !== 1
 
@@ -25,8 +28,11 @@ const pdf = async (bufferPDF) => {
 export const listarEquipamentos = async (req, res) => {
   try {
     const { tipo, ativo, search, ordenar } = req.query
+    // CAT-P0-UNIFY (FASE 2): normaliza o tipo (hífen → underscore canônico).
+    // Antes 'carregador-ev' nunca casava o enum 'carregador_ev' → sempre 0.
+    const tipoNorm = tipo ? normalizarTipo(tipo) : null
 
-    console.log(`📊 GET /api/equipamentos - Filters: tipo=${tipo}, ativo=${ativo}, search=${search}`)
+    console.log(`📊 GET /api/equipamentos - Filters: tipo=${tipo}→${tipoNorm}, ativo=${ativo}, search=${search}`)
 
     let equipamentos
 
@@ -34,7 +40,7 @@ export const listarEquipamentos = async (req, res) => {
     if (usarMemoryStorage()) {
       console.log('⚠️  MongoDB offline - Usando dados em memória')
       const filtro = {}
-      if (tipo) filtro.tipo = tipo
+      if (tipoNorm) filtro.tipo = tipoNorm
       if (ativo !== undefined) filtro.ativo = ativo === 'true'
       if (search) filtro.search = search
 
@@ -59,7 +65,7 @@ export const listarEquipamentos = async (req, res) => {
 
     // Usar MongoDB se disponível
     const filtro = {}
-    if (tipo) filtro.tipo = tipo
+    if (tipoNorm) filtro.tipo = tipoNorm
     if (ativo !== undefined) filtro.ativo = ativo === 'true'
 
     let query = Equipamento.find(filtro)
@@ -84,14 +90,26 @@ export const listarEquipamentos = async (req, res) => {
     equipamentos = await query.exec()
     console.log(`✓ Encontrados ${equipamentos.length} equipamentos em MongoDB`)
 
-    // FALLBACK: Se tipo é carregador-ev (ou carregador_ev) e não há resultados, buscar de CarregadorEV
-    if ((tipo === 'carregador_ev' || tipo === 'carregador-ev') && equipamentos.length === 0) {
+    // FALLBACK: tipo carregador EV (qualquer alias) sem resultados → CarregadorEV.
+    // CAT-P0-UNIFY:
+    //   FASE 2 — usa ehCarregadorEV (normaliza hífen/underscore)
+    //   FASE 4 — respeita flag ENABLE_CARREGADOR_EV_FALLBACK (default true)
+    //   FASE 1 — inclui `_id` real no objeto mapeado (corrige DELETE undefined)
+    let _origem = 'equipamento'
+    if (ehCarregadorEV(tipoNorm) && equipamentos.length === 0) {
+      if (!catalogoFlags.ENABLE_CARREGADOR_EV_FALLBACK) {
+        console.log('🚫 Fallback CarregadorEV DESABILITADO via flag — retornando vazio.')
+        return res.json({ total: 0, equipamentos: [], _debug: { origem: 'equipamento', fallback_desabilitado: true } })
+      }
       console.log('⚠️  Fallback: buscando de CarregadorEV collection...')
       const carregadores = await CarregadorEV.find({ ativo: true }).sort({ createdAt: -1 })
       console.log(`✓ Encontrados ${carregadores.length} carregadores EV`)
+      _origem = 'carregador_ev_fallback'
 
       // Converter CarregadorEV para formato Equipamento
       equipamentos = carregadores.map(cg => ({
+        // FASE 1: _id real do CarregadorEV → permite DELETE/edição funcionar
+        _id: cg._id,
         tipo: 'carregador_ev',
         fabricante: cg.marca,
         modelo: cg.modelo,
@@ -113,6 +131,8 @@ export const listarEquipamentos = async (req, res) => {
           ? { value: cg.garantia_anos, unit: 'anos' }
           : undefined,
         ativo: cg.ativo,
+        // FASE 1: marca a origem para o frontend saber qual coleção excluir
+        _origem: 'CarregadorEV',
         createdAt: cg.createdAt,
         updatedAt: cg.updatedAt,
       }))
@@ -121,6 +141,7 @@ export const listarEquipamentos = async (req, res) => {
     res.json({
       total: equipamentos.length,
       equipamentos,
+      _debug: { origem: _origem },
     })
   } catch (err) {
     console.error('❌ Erro ao listar equipamentos:', err)
@@ -233,14 +254,27 @@ export const atualizarEquipamento = async (req, res) => {
 export const excluirEquipamento = async (req, res) => {
   try {
     const { id } = req.params
-    const equipamento = await Equipamento.findByIdAndDelete(id)
+    // CAT-P0-UNIFY (FASE 1): valida id (antes vinha 'undefined' literal da tela
+    // de carregadores via fallback sem _id).
+    if (!id || id === 'undefined' || id === 'null' || !mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ erro: 'ID inválido', codigo: 'ID_INVALIDO', recebido: id })
+    }
+
+    // Tenta primeiro em Equipamento; se não achar, tenta CarregadorEV
+    // (a tela de carregadores opera sobre a coleção legada via fallback).
+    let equipamento = await Equipamento.findByIdAndDelete(id)
+    let origem = 'Equipamento'
+    if (!equipamento) {
+      equipamento = await CarregadorEV.findByIdAndDelete(id)
+      origem = 'CarregadorEV'
+    }
 
     if (!equipamento) {
       return res.status(404).json({ erro: 'Equipamento não encontrado' })
     }
 
-    console.log('✓ Equipamento excluído:', id)
-    res.json({ mensagem: 'Equipamento excluído com sucesso' })
+    console.log(`✓ Equipamento excluído (${origem}):`, id)
+    res.json({ mensagem: 'Equipamento excluído com sucesso', origem })
   } catch (err) {
     console.error('❌ Erro ao excluir equipamento:', err)
     res.status(500).json({ erro: err.message })

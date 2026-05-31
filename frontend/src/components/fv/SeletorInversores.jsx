@@ -10,6 +10,7 @@ import { AlertCircle, Lock, Database, AlertTriangle } from 'lucide-react'
 import { DADOS_ELETRICOS_INVERSORES } from '../../data/catalogoEletrico'
 import { buscarEquipamentosEngenharia, registrarFallback } from '../../services/catalogoEngenhariaApi'
 import { agruparInversores } from '../../utils/catalogoEngenhariaAdapter'
+import { obterFlags } from '../../services/catalogoFlags'  // CAT-P0-UNIFY
 import { usePermissao } from '../../hooks/usePermissao'
 
 // ─── Catálogo de inversores ───────────────────────────────────────────────────
@@ -188,19 +189,30 @@ export default function SeletorInversores({ onSelecionar, selecionado }) {
   const [rede,  setRede]  = useState('')
 
   // S8.1: catálogo Mongo como fonte; INVERSORES_DATA vira contingência
-  const [dataset, setDataset] = useState(INVERSORES_DATA)
-  const [fonte, setFonte] = useState('local')
+  // CAT-P0-UNIFY (FASE 4): fallback INVERSORES_DATA respeita a flag
+  // ENABLE_INVERSORES_DATA. Com a flag OFF, catálogo vazio → vazio de verdade
+  // (não mostra os inversores hardcoded). Inicia vazio até saber a flag.
+  const [dataset, setDataset] = useState({})
+  const [fonte, setFonte] = useState('carregando')
   const [incluirBloqueados, setIncluirBloqueados] = useState(false)
 
   useEffect(() => {
     let vivo = true
-    buscarEquipamentosEngenharia('inversor', incluirBloqueados)
-      .then((eqs) => {
+    Promise.all([
+      buscarEquipamentosEngenharia('inversor', incluirBloqueados).catch((e) => { registrarFallback('inversor', e.message); return null }),
+      obterFlags(),
+    ])
+      .then(([eqs, flags]) => {
         if (!vivo) return
-        if (Array.isArray(eqs) && eqs.length > 0) { setDataset(agruparInversores(eqs)); setFonte('catalogo') }
-        else { setDataset(INVERSORES_DATA); setFonte('local') }
+        if (Array.isArray(eqs) && eqs.length > 0) {
+          setDataset(agruparInversores(eqs)); setFonte('catalogo')
+        } else if (flags?.ENABLE_INVERSORES_DATA) {
+          setDataset(INVERSORES_DATA); setFonte('local')
+        } else {
+          // Flag OFF + catálogo vazio → catálogo realmente vazio
+          setDataset({}); setFonte('vazio')
+        }
       })
-      .catch((e) => { if (!vivo) return; setDataset(INVERSORES_DATA); setFonte('local'); registrarFallback('inversor', e.message) })
     return () => { vivo = false }
   }, [incluirBloqueados])
 

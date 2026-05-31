@@ -10,6 +10,7 @@ import { Search, X, Lock, Database, AlertTriangle } from 'lucide-react'
 import { buscarEquipamentosEngenharia, registrarFallback } from '../../services/catalogoEngenhariaApi'
 import { agruparPaineis } from '../../utils/catalogoEngenhariaAdapter'
 import { usePermissao } from '../../hooks/usePermissao'
+import { obterFlags } from '../../services/catalogoFlags'  // CAT-P0-UNIFY
 
 // ─── Catálogo completo de módulos ─────────────────────────────────────────────
 // Campos: id, modelo, potenciaW, tecnologia, bifacial, eficiencia(%),
@@ -168,22 +169,26 @@ export default function SeletorPaineis({ onSelecionar, selecionado }) {
   const [filtroTec, setFiltroTec] = useState('') // '' | 'N-type' | 'P-type'
 
   // S8.1: catálogo Mongo como fonte; PAINEIS_DATA vira contingência
-  const [dataset, setDataset] = useState(PAINEIS_DATA)
-  const [fonte, setFonte] = useState('local')   // 'catalogo' | 'local'
+  // CAT-P0-UNIFY (FASE 4): respeita a flag ENABLE_PAINEIS_DATA
+  const [dataset, setDataset] = useState({})
+  const [fonte, setFonte] = useState('carregando')   // 'catalogo' | 'local' | 'vazio'
   const [incluirBloqueados, setIncluirBloqueados] = useState(false)
 
   useEffect(() => {
     let vivo = true
-    buscarEquipamentosEngenharia('modulo', incluirBloqueados)
-      .then((eqs) => {
+    Promise.all([
+      buscarEquipamentosEngenharia('modulo', incluirBloqueados).catch((e) => { registrarFallback('modulo', e.message); return null }),
+      obterFlags(),
+    ])
+      .then(([eqs, flags]) => {
         if (!vivo) return
-        if (Array.isArray(eqs) && eqs.length > 0) { setDataset(agruparPaineis(eqs)); setFonte('catalogo') }
-        else { setDataset(PAINEIS_DATA); setFonte('local') }  // catálogo vazio → contingência
-      })
-      .catch((e) => {
-        if (!vivo) return
-        setDataset(PAINEIS_DATA); setFonte('local')
-        registrarFallback('modulo', e.message)
+        if (Array.isArray(eqs) && eqs.length > 0) {
+          setDataset(agruparPaineis(eqs)); setFonte('catalogo')
+        } else if (flags?.ENABLE_PAINEIS_DATA) {
+          setDataset(PAINEIS_DATA); setFonte('local')
+        } else {
+          setDataset({}); setFonte('vazio')
+        }
       })
     return () => { vivo = false }
   }, [incluirBloqueados])
