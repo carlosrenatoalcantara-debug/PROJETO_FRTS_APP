@@ -4,6 +4,7 @@ import {
   listarEquipamentos,
   buscarEquipamento,
   criarEquipamento,
+  criarInversoresLote,
   atualizarEquipamento,
   excluirEquipamento,
   extrairDatasheet,
@@ -71,6 +72,7 @@ router.get('/engenharia', async (req, res) => {
 router.get('/', listarEquipamentos)
 router.get('/:id', buscarEquipamento)
 router.post('/', criarEquipamento)
+router.post('/lote-inversores', criarInversoresLote)  // P0-INV-01B
 router.put('/:id', atualizarEquipamento)
 router.delete('/:id', excluirEquipamento)
 router.post('/datasheet/extrair', upload.single('pdf'), extrairDatasheet)

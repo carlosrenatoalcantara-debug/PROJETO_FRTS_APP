@@ -11,6 +11,7 @@
 
 import { BaseAdapter } from './baseAdapter.js'
 import { extrairFabricanteModelo } from '../../utils/catalogo/fabricanteModeloFallback.js'
+import { expandirModelosInversor } from '../serieInversor.js'
 
 export class InternalAdapter extends BaseAdapter {
   constructor() { super('internal') }
@@ -20,11 +21,16 @@ export class InternalAdapter extends BaseAdapter {
   async _chamar(input) {
     const texto = input?.textoOCR || ''
     const fb = extrairFabricanteModelo(texto)
+    // P0-INV-01: motor interno também expande série (N modelos) a partir do texto.
+    const { modelos } = expandirModelosInversor(texto)
+    const variantes = (modelos.length > 1 ? modelos : (fb.modelo ? [fb.modelo] : []))
+      .map(modelo_variante => ({ modelo_variante }))
     return {
       fabricante: fb.fabricante,
       modelo: fb.modelo,
       tipo: input?.tipoEsperado || (fb.fabricante ? 'inversor' : null),
       especificacoes: {}, // motor de texto não extrai specs técnicas
+      variantes,
       _meta: { confianca: fb.confianca ?? 0, evidencia: fb.evidencia ?? null, fonte: 'regex_interno' },
     }
   }

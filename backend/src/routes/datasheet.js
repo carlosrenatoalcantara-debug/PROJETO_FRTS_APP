@@ -8,6 +8,7 @@ import {
   verificarDuplicata,
   diagnosticoIA,
 } from '../controllers/datasheetController.js'
+import { extrairDatasheetMulti } from '../controllers/datasheetMultiController.js'  // P0-INV-01C
 
 const router = Router()
 const upload = multer({
@@ -16,6 +17,7 @@ const upload = multer({
 })
 
 router.post('/extrair-datasheet',    upload.single('pdf'), extrairDatasheet)
+router.post('/extrair-multi',        upload.single('pdf'), extrairDatasheetMulti)  // P0-INV-01C
 router.post('/painel',               criarPainelManual)
 router.post('/inversor',             criarInversorManual)
 router.get('/fabricantes-aprendidos', listarFabricantesAprendidos)

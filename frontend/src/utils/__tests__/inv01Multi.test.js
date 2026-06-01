@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { normalizarMulti, mapearEspecificacoes } from '../../../../backend/src/ai/normalizarMulti.js'
 import { expandirModelosInversor, rawMultiDeTexto } from '../../../../backend/src/ai/serieInversor.js'
+import { AIOrchestrator } from '../../../../backend/src/ai/AIOrchestrator.js'
 
 /** P0-INV-01A — 1 PDF → N modelos. */
 
@@ -92,5 +93,43 @@ describe('expandirModelosInversor (caminho de texto, sem IA)', () => {
     const itens = normalizarMulti(raw)
     expect(itens.length).toBeGreaterThanOrEqual(3)
     expect(itens.every(i => i.tipo === 'inversor')).toBe(true)
+  })
+})
+
+// ── AIOrchestrator.extrairMulti com adapter fake ──────────────────────────────
+class FakeAdapter {
+  constructor(nome, b = {}) { this.nome = nome; this.b = b }
+  isConfigured() { return this.b.configured !== false }
+  async extract() {
+    if (this.b.throw) throw new Error(this.b.throw)
+    // simula o que baseAdapter._normalizar produz: variantesRaw no _meta
+    return {
+      fabricante: this.b.fabricante, modelo: this.b.modelo, tipo: 'inversor',
+      especificacoes: {}, _meta: { provider: this.nome, variantesRaw: this.b.variantes || [] },
+    }
+  }
+}
+
+describe('AIOrchestrator.extrairMulti (INV-01C)', () => {
+  it('provider com 3 variantes → 3 itens', async () => {
+    const o = new AIOrchestrator({
+      now: () => 0,
+      adapters: {
+        gemini: new FakeAdapter('gemini', {
+          fabricante: 'Growatt', modelo: 'MID15KTL3-X',
+          variantes: [
+            { modelo_variante: 'MID15KTL3-X', potencia_nominal_kw: 15 },
+            { modelo_variante: 'MID20KTL3-X', potencia_nominal_kw: 20 },
+            { modelo_variante: 'MID25KTL3-X', potencia_nominal_kw: 25 },
+          ],
+        }),
+        internal: new FakeAdapter('internal', { fabricante: null, modelo: null }),
+      },
+    })
+    const r = await o.extrairMulti({ textoOCR: 'x' })
+    expect(r.ok).toBe(true)
+    expect(r.total).toBe(3)
+    expect(r.itens.map(i => i.modelo)).toEqual(['MID15KTL3-X', 'MID20KTL3-X', 'MID25KTL3-X'])
+    expect(r.itens[0]).toHaveProperty('qualidade')
   })
 })

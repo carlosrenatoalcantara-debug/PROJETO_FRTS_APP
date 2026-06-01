@@ -2,8 +2,6 @@ import { useState, useRef } from 'react'
 import { X, Upload, CheckCircle, AlertCircle, Loader, FileText, Zap } from 'lucide-react'
 import Button from '../ui/Button'
 import Card from '../ui/Card'
-// S8.6.1: regex fallback puro — usado quando Gemini/Claude não devolve fabricante/modelo
-import { normalizarIdentificacao } from '../../../../backend/src/utils/catalogo/fabricanteModeloFallback.js'
 
 const API_URL = '' /* URL relativa forçada — Vercel proxy → Railway */
 
@@ -68,122 +66,59 @@ export default function ModalNovoInversor({ arquivosIniciais = [], onClose, onSa
     try {
       const fd = new FormData()
       fd.append('pdf', item.file)
-      const res  = await fetch(`${API_URL}/api/datasheet/extrair-datasheet`, { method: 'POST', body: fd })
-      const texto = await res.text()
-      let json
-      try { json = JSON.parse(texto) } catch { throw new Error(`Servidor retornou status ${res.status}`) }
+
+      // P0-INV-01C: extração MULTI-MODELO via AIOrchestrator (1 PDF → N modelos).
+      const res  = await fetch(`${API_URL}/api/datasheet/extrair-multi`, { method: 'POST', body: fd })
+      const json = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(json.erro || `Erro ${res.status}`)
 
-      const dados = json.dados || json
-      const fabricanteOriginal = dados.fabricante
-      const modeloOriginal = dados.modelo
-
-      // BUG-08 (FASE 3+4): normalização OBRIGATÓRIA antes de qualquer POST.
-      // Consolida IA + fallback de regex (multi-fabricante) e garante
-      // { tipo, fabricante, modelo } — ou informa exatamente o que faltou.
-      const textoBruto = json.texto_extraido || json.textoOCR || dados._texto_bruto || ''
-      const ident = normalizarIdentificacao(dados, textoBruto, 'inversor')
-      dados.fabricante = ident.fabricante
-      dados.modelo     = ident.modelo
-      let aviso = ident.aviso || (json.avisos?.length ? json.avisos[0] : null)
-
-      // BUG-08 (FASE 4): BLINDAGEM — se faltar QUALQUER campo obrigatório,
-      // NÃO envia POST. Mostra ao usuário exatamente quais não foram identificados.
-      if (!ident.ok) {
+      const itens = Array.isArray(json.itens) ? json.itens : []
+      if (itens.length === 0) {
         throw new Error(
-          `IMPORTACAO_FALHOU: campos não identificados no datasheet: ${ident.faltando.join(', ')}. ` +
-          `Recebido da extração: fabricante="${fabricanteOriginal || '∅'}" modelo="${modeloOriginal || '∅'}". ` +
-          `Preencha manualmente o(s) campo(s) faltante(s) antes de salvar.`
+          'IMPORTACAO_FALHOU: nenhum modelo identificado no datasheet. ' +
+          'Verifique a qualidade do PDF ou cadastre manualmente.'
         )
       }
 
-      // Verifica duplicata — se existir, atualiza; senão, cria
-      const params = new URLSearchParams({ fabricante: dados.fabricante || '', modelo: dados.modelo || '', tipo: 'inversor' })
-      const dupRes  = await fetch(`${API_URL}/api/datasheet/verificar-duplicata?${params}`)
-      const dupJson = await dupRes.json()
-      const existente = dupJson.duplicata ? dupJson.equipamento : null
+      // Revisão opcional: o operador pode desmarcar variantes antes de salvar.
+      const selecionados = item.modelosSelecionados
+        ? itens.filter(it => item.modelosSelecionados.includes(it.modelo))
+        : itens
 
-      // Monta payload — SEM defaults lixo. Se chegou aqui, fabricante e modelo são reais.
-      const payload = {
-        tipo: 'inversor',
-        fabricante: dados.fabricante,
-        modelo:     dados.modelo,
-        preco_sugerido: 0,
-        ...(dados.garantia_anos ? { garantia_produto: { value: dados.garantia_anos, unit: 'anos' } } : {}),
-        especificacoes: {
-          subtipo:               dados.subtipo                                              || null,
-          // AC
-          potencia_kw:           dados.potencia_nominal_kw   || dados.potenciaKW           || null,
-          potencia_maxima_kw:    dados.potencia_maxima_kw                                  || null,
-          potencia_aparente_kva: dados.potencia_aparente_kva                               || null,
-          tensao_ac:             dados.tensao_ac             || dados.tensao_ac_nominal     || null,
-          faixa_tensao_rede:     dados.faixa_tensao_rede                                   || null,
-          fases:                 dados.fases                 || dados.faseAC               || null,
-          tipo_conexao_rede:     dados.tipo_conexao_rede                                   || null,
-          frequencia_hz:         dados.frequencia_hz                                       || null,
-          faixa_frequencia_hz:   dados.faixa_frequencia_hz                                 || null,
-          corrente_ac_saida:     dados.corrente_ac_saida     || dados.correnteACSaida      || null,
-          fator_potencia:        dados.fator_potencia                                      || null,
-          thdi:                  dados.thdi                                                || null,
-          // DC / MPPT
-          n_mppts:               dados.n_mppts               || dados.nMppts               || null,
-          strings_por_mppt:      dados.strings_por_mppt                                   || null,
-          potencia_max_entrada_cc: dados.potencia_max_entrada_cc                          || null,
-          tensao_max_entrada:    dados.tensao_max_entrada                                  || null,
-          tensao_partida:        dados.tensao_partida                                      || null,
-          tensao_nominal_cc:     dados.tensao_nominal_cc                                   || null,
-          tensao_mppt_min:       dados.tensao_mppt_min       || dados.tensaoMpptMin        || null,
-          tensao_mppt_max:       dados.tensao_mppt_max       || dados.tensaoMpptMax        || null,
-          faixa_operacao_cc:     dados.faixa_operacao_cc                                   || null,
-          corrente_max_entrada:  dados.corrente_max_entrada                                || null,
-          corrente_max_por_mppt: dados.corrente_max_por_mppt                              || null,
-          corrente_isc_max:      dados.corrente_isc_max                                   || null,
-          // Eficiência
-          eficiencia_maxima:     dados.eficiencia_maxima     || dados.eficiencia           || null,
-          eficiencia_europeia:   dados.eficiencia_europeia                                 || null,
-          eficiencia_cec:        dados.eficiencia_cec                                      || null,
-          eficiencia_mppt:       dados.eficiencia_mppt                                     || null,
-          // Proteções
-          grau_protecao_ip:        dados.grau_protecao_ip                                 || null,
-          protecao_antiilhamento:  dados.protecao_antiilhamento                           || null,
-          protecao_sobretensao_dc: dados.protecao_sobretensao_dc                          || null,
-          protecao_sobretensao_ac: dados.protecao_sobretensao_ac                          || null,
-          // Geral / Físico
-          temperatura_operacao:  dados.temperatura_operacao                               || null,
-          tipo_refrigeracao:     dados.tipo_refrigeracao                                  || null,
-          comunicacao:           dados.comunicacao                                         || null,
-          max_por_cabo_tronco:   dados.max_por_cabo_tronco                                || null,
-          peso_kg:               dados.peso_kg                                            || null,
-          dimensoes:             dados.dimensoes                                          || null,
-          garantia_anos:         dados.garantia_anos                                      || null,
-        },
-      }
-      // Remove campos nulos para não poluir o banco
-      Object.keys(payload.especificacoes).forEach(k => {
-        if (payload.especificacoes[k] === null) delete payload.especificacoes[k]
-      })
-
-      const url    = existente ? `${API_URL}/api/equipamentos/${existente._id}` : `${API_URL}/api/equipamentos`
-      const method = existente ? 'PUT' : 'POST'
-      const savePayload = existente
-        ? { ...payload, especificacoes: { ...existente.especificacoes, ...payload.especificacoes } }
-        : payload
-
-      const saveRes = await fetch(url, {
-        method,
+      // P0-INV-01B: persistência em LOTE (N equipamentos) com dedup no backend.
+      const loteRes = await fetch(`${API_URL}/api/equipamentos/lote-inversores`, {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(savePayload),
+        body: JSON.stringify({
+          itens: selecionados.map(it => ({
+            tipo: 'inversor',
+            fabricante: it.fabricante,
+            modelo: it.modelo,
+            especificacoes: it.especificacoes || {},
+          })),
+        }),
       })
-      // P0-01: surface o motivo EXATO do backend (não mais genérico).
-      const saveJson = await saveRes.json().catch(() => ({}))
-      if (!saveRes.ok) {
-        const motivo = saveJson.erro || saveJson.sugestao || `HTTP ${saveRes.status}`
-        throw new Error(`${saveJson.codigo || 'ERRO'}: ${motivo}`)
+      const loteJson = await loteRes.json().catch(() => ({}))
+      const algum = (loteJson.criados || 0) + (loteJson.atualizados || 0) > 0
+      if (!loteRes.ok && !algum) {
+        throw new Error(loteJson.erro || `Falha ao salvar em lote (HTTP ${loteRes.status})`)
       }
-      // P0-01: aviso de extração parcial vindo do backend
-      const avisoFinal = saveJson._aviso || aviso
 
-      atualizarItem(item.id, { status: 'salvo', dados, atualizado: !!existente, aviso: avisoFinal })
+      const modelos = selecionados.map(it => it.modelo)
+      const resumo = `${loteJson.criados || 0} novo(s), ${loteJson.atualizados || 0} atualizado(s)` +
+        (loteJson.falhas ? `, ${loteJson.falhas} falha(s)` : '')
+      const aviso = modelos.length > 1
+        ? `${modelos.length} modelos detectados (${json.provider || 'IA'}): ${modelos.join(', ')}`
+        : (json.preenchimentoAssistido ? 'Identidade recuperada; revise os dados técnicos.' : null)
+
+      atualizarItem(item.id, {
+        status: 'salvo',
+        dados: { fabricante: itens[0].fabricante, modelo: modelos.length > 1 ? `${modelos.length} modelos` : modelos[0] },
+        modelos,
+        provider: json.provider,
+        resumo,
+        aviso,
+      })
     } catch (err) {
       console.error('Erro no item', item.nome, err)
       atualizarItem(item.id, { status: 'erro', erro: err.message })

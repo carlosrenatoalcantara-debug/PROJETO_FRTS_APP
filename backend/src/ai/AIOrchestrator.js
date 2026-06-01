@@ -16,6 +16,7 @@ import { CircuitBreaker } from './circuitBreaker.js'
 import { HealthMonitor } from './healthMonitor.js'
 import { calcularQualidade } from './qualityScore.js'
 import { criarSchemaInterno } from './schema.js'
+import { normalizarMulti } from './normalizarMulti.js'
 
 export class AIOrchestrator {
   /**
@@ -112,6 +113,33 @@ export class AIOrchestrator {
       qualidade: calcularQualidade(vazio),
       tentativas,
       preenchimentoAssistido: true,
+    }
+  }
+
+  /**
+   * P0-INV-01 — Extração MULTI-MODELO. Usa a cascata (extrair) para escolher o
+   * provider e então reconstrói N itens a partir das variantes do provider
+   * vencedor (via normalizarMulti). 1 PDF → N modelos → N itens prontos p/ persistir.
+   * @param {Object} input { pdfBuffer?, textoOCR?, tipoEsperado? }
+   */
+  async extrairMulti(input = {}) {
+    const r = await this.extrair(input)
+    const meta = r.dados?._meta || {}
+    const raw = {
+      fabricante: r.dados?.fabricante ?? null,
+      modelo: r.dados?.modelo ?? null,
+      tipo: r.dados?.tipo || input?.tipoEsperado || 'inversor',
+      subtipo: meta.subtipo ?? null,
+      variantes: Array.isArray(meta.variantesRaw) ? meta.variantesRaw : [],
+    }
+    const itens = normalizarMulti(raw).map(it => ({ ...it, qualidade: calcularQualidade(it) }))
+    return {
+      ok: r.ok && itens.length > 0,
+      provider: r.provider,
+      total: itens.length,
+      itens,
+      tentativas: r.tentativas,
+      preenchimentoAssistido: r.preenchimentoAssistido || itens.length === 0,
     }
   }
 

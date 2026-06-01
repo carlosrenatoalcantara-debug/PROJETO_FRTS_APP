@@ -231,6 +231,82 @@ export const criarEquipamento = async (req, res) => {
   }
 }
 
+/**
+ * P0-INV-01B — Persistência em LOTE de inversores (1 PDF → N equipamentos).
+ *
+ * Recebe { itens: [{ fabricante, modelo, tipo, especificacoes }] } e faz upsert
+ * idempotente por (tipo, fabricante, modelo) case-insensitive.
+ *
+ * "Rollback seguro" = ISOLAMENTO POR ITEM: cada Equipamento é uma entidade SSOT
+ * independente; uma falha no item k não corrompe nem desfaz os itens já salvos,
+ * e o dedup torna o reenvio idempotente (atualiza em vez de duplicar). Não usamos
+ * transação all-or-nothing de propósito — sucesso parcial é desejável e auditável.
+ */
+export const criarInversoresLote = async (req, res) => {
+  try {
+    const { itens } = req.body
+    if (!Array.isArray(itens) || itens.length === 0) {
+      return res.status(400).json({ erro: 'Campo "itens" (array não-vazio) é obrigatório', codigo: 'ITENS_VAZIOS' })
+    }
+    const { ehDefaultLixo } = await import('../utils/catalogo/fabricanteModeloFallback.js')
+    const esc = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
+    const resultado = { criados: [], atualizados: [], falhas: [] }
+    const vistosNoLote = new Set()
+
+    for (const item of itens) {
+      const fabricante = String(item?.fabricante || '').trim()
+      const modelo = String(item?.modelo || '').trim()
+      const tipo = item?.tipo || 'inversor'
+      try {
+        if (!fabricante || !modelo) {
+          resultado.falhas.push({ modelo: modelo || null, erro: 'fabricante/modelo ausente' }); continue
+        }
+        if (ehDefaultLixo(fabricante, 'fabricante') && ehDefaultLixo(modelo, 'modelo')) {
+          resultado.falhas.push({ modelo, erro: 'fabricante E modelo são defaults lixo' }); continue
+        }
+        const chave = `${fabricante.toLowerCase()}::${modelo.toLowerCase()}`
+        if (vistosNoLote.has(chave)) { continue } // dedup intra-lote
+        vistosNoLote.add(chave)
+
+        const existente = await Equipamento.findOne({
+          tipo,
+          fabricante: { $regex: `^${esc(fabricante)}$`, $options: 'i' },
+          modelo: { $regex: `^${esc(modelo)}$`, $options: 'i' },
+        })
+        if (existente) {
+          existente.especificacoes = { ...(existente.especificacoes || {}), ...(item.especificacoes || {}) }
+          await existente.save()
+          resultado.atualizados.push({ _id: existente._id, fabricante, modelo })
+        } else {
+          const novo = new Equipamento({
+            tipo, fabricante, modelo,
+            especificacoes: item.especificacoes || {},
+            preco_sugerido: item.preco_sugerido || 0,
+          })
+          await novo.save()
+          resultado.criados.push({ _id: novo._id, fabricante, modelo })
+        }
+      } catch (e) {
+        resultado.falhas.push({ modelo: modelo || null, erro: e.message })
+      }
+    }
+
+    const algum = resultado.criados.length + resultado.atualizados.length > 0
+    res.status(algum ? 201 : 422).json({
+      ok: resultado.falhas.length === 0,
+      total: itens.length,
+      criados: resultado.criados.length,
+      atualizados: resultado.atualizados.length,
+      falhas: resultado.falhas.length,
+      detalhe: resultado,
+    })
+  } catch (err) {
+    console.error('❌ Erro no lote de inversores:', err)
+    res.status(500).json({ erro: err.message })
+  }
+}
+
 export const atualizarEquipamento = async (req, res) => {
   try {
     const { id } = req.params

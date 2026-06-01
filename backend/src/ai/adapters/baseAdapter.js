@@ -34,7 +34,14 @@ export class BaseAdapter {
       modelo: r.modelo ?? null,
       tipo: r.tipo ?? null,
       especificacoes: esp,
-      _meta: { provider: this.nome, ...(r._meta || {}) },
+      // P0-INV-01C: carrega variantes brutas (multi-modelo) e subtipo no _meta,
+      // para o orchestrator.extrairMulti reconstruir N itens via normalizarMulti.
+      _meta: {
+        provider: this.nome,
+        variantesRaw: Array.isArray(r.variantes) ? r.variantes : (r._meta?.variantesRaw || []),
+        subtipo: r.subtipo ?? r._meta?.subtipo ?? null,
+        ...(r._meta || {}),
+      },
     })
   }
 
