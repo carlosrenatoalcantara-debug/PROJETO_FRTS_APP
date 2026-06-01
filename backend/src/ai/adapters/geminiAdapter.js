@@ -8,7 +8,12 @@
 import { BaseAdapter } from './baseAdapter.js'
 import { getGoogleKey } from '../aiKeys.js'
 
-export const GEMINI_MODELO_PADRAO = 'gemini-1.5-flash'
+// P0-AI-RUNTIME-CLOSE: alinhado ao modelo REAL da extração
+// (datasheetGeminiUnificado.js → 'gemini-2.0-flash'). Antes o health pingava
+// 'gemini-1.5-flash' (modelo diferente) → /api/ai/health podia reportar Gemini
+// ONLINE enquanto a extração de produção falhava no 2.0-flash. Health passa a
+// refletir o mesmo modelo usado na extração.
+export const GEMINI_MODELO_PADRAO = 'gemini-2.0-flash'
 
 export class GeminiAdapter extends BaseAdapter {
   /**
