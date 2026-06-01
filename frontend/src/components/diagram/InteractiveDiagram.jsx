@@ -363,28 +363,11 @@ export default function InteractiveDiagram({
   }, [nodes, edges, setNodes, onDiagramChange, historioDiagrama]);
 
   // Adicionar componente customizado
-  const handleSalvarCustomizado = useCallback(() => {
-    if (!novoCustomizado.nome.trim()) {
-      alert('⚠️ Nome do componente é obrigatório');
-      return;
-    }
-
-    const camposCustos = {
-      nome: novoCustomizado.nome,
-      descricao: novoCustomizado.descricao,
-      valores: {
-        valor1: novoCustomizado.valor1,
-        valor2: novoCustomizado.valor2
-      }
-    };
-
-    handleAdicionarNode('customizado', camposCustos);
-
-    // Limpar formulário e fechar modal
-    setNovoCustomizado({ nome: '', descricao: '', valor1: '', valor2: '' });
-    setMostraModalCustomizado(false);
-  }, [novoCustomizado, handleAdicionarNode]);
-
+  // P0-EV-01: handleAdicionarNode DEVE ser declarado ANTES de handleSalvarCustomizado.
+  // Antes, handleSalvarCustomizado.useCallback listava `handleAdicionarNode` no array
+  // de dependências (avaliado durante o render) enquanto este `const` ainda estava na
+  // TDZ → "Cannot access 'handleAdicionarNode' before initialization" ao montar o
+  // InteractiveDiagram (etapa de edição do unifilar EV, após selecionar carregador).
   // Adicionar novo nó
   const handleAdicionarNode = useCallback(
     (tipo, camposCustos = {}) => {
@@ -448,6 +431,29 @@ export default function InteractiveDiagram({
     },
     [nodes, edges, setNodes, onDiagramChange, handleUpdateNodeValue, handleDeleteNode, historioDiagrama]
   );
+
+  // Salvar componente customizado (usa handleAdicionarNode, já declarado acima)
+  const handleSalvarCustomizado = useCallback(() => {
+    if (!novoCustomizado.nome.trim()) {
+      alert('⚠️ Nome do componente é obrigatório');
+      return;
+    }
+
+    const camposCustos = {
+      nome: novoCustomizado.nome,
+      descricao: novoCustomizado.descricao,
+      valores: {
+        valor1: novoCustomizado.valor1,
+        valor2: novoCustomizado.valor2
+      }
+    };
+
+    handleAdicionarNode('customizado', camposCustos);
+
+    // Limpar formulário e fechar modal
+    setNovoCustomizado({ nome: '', descricao: '', valor1: '', valor2: '' });
+    setMostraModalCustomizado(false);
+  }, [novoCustomizado, handleAdicionarNode]);
 
   // Exportar diagrama como JSON
   const handleExportarJSON = useCallback(() => {
