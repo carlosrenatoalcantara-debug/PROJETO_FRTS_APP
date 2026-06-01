@@ -2,8 +2,10 @@ import jwt from 'jsonwebtoken'
 import User from '../models/User.js'
 import { memoryStore } from '../config/memoryStorage.js'
 import mongoose from 'mongoose'
+import { requireSecret } from '../security/requireSecret.js'
 
-const JWT_SECRET = process.env.JWT_SECRET || 'forte-solar-secret-key-2026'
+// P0-SEC-HARDENING-FINAL: fail-closed. Sem JWT_SECRET → app não inicia.
+const JWT_SECRET = requireSecret('JWT_SECRET')
 const JWT_EXPIRY = '7d'
 
 /**

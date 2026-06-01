@@ -1,8 +1,10 @@
 import express from 'express'
 import jwt from 'jsonwebtoken'
+import { requireSecret } from '../security/requireSecret.js'
 
 const router = express.Router()
-const JWT_SECRET = process.env.JWT_SECRET || 'sua-chave-super-secreta-aqui'
+// P0-SEC-HARDENING-FINAL: fail-closed. Sem JWT_SECRET → app não inicia.
+const JWT_SECRET = requireSecret('JWT_SECRET')
 
 // Modelo de usuário (se não existir)
 const usuarioPadraoDemo = {

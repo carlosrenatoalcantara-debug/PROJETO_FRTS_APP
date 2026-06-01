@@ -4,11 +4,13 @@
  */
 
 import jwt from 'jsonwebtoken';
+import { requireSecret } from './requireSecret.js';
 
 class JWTService {
   constructor() {
-    this.accessTokenSecret = process.env.JWT_SECRET || 'dev-secret-change-in-production';
-    this.refreshTokenSecret = process.env.JWT_REFRESH_SECRET || 'dev-refresh-secret';
+    // P0-SEC-HARDENING-FINAL: fail-closed. Sem segredo → app não inicia.
+    this.accessTokenSecret = requireSecret('JWT_SECRET');
+    this.refreshTokenSecret = requireSecret('JWT_REFRESH_SECRET');
     this.accessTokenExpiry = '15m';
     this.refreshTokenExpiry = '7d';
   }
