@@ -30,9 +30,33 @@ export function criarOrchestrator({ extratores = {}, config = CONFIG_PADRAO } = 
 }
 
 let _singleton = null
-/** Orchestrator compartilhado do processo. */
+/**
+ * Orchestrator compartilhado do processo.
+ *
+ * P0-AI-DIAG-FINAL: injeta os extratores REAIS (Claude e Gemini) — antes o
+ * ClaudeAdapter era um stub que sempre lançava e o Gemini não sinalizava
+ * `sucesso:false`, fazendo a cascata cair silenciosamente no InternalAdapter
+ * (que não extrai specs). Import dinâmico evita custo no boot e ciclos.
+ */
 export function getOrchestrator() {
-  if (!_singleton) _singleton = criarOrchestrator()
+  if (!_singleton) {
+    _singleton = criarOrchestrator({
+      extratores: {
+        claude: async (input) => {
+          const { extrairComClaude } = await import('../controllers/datasheetController.js')
+          return extrairComClaude(input.pdfBuffer)
+        },
+        gemini: async (input) => {
+          const { extrairComGemini } = await import('../controllers/datasheetGeminiUnificado.js')
+          const raw = await extrairComGemini(input.pdfBuffer, input.tipoEsperado || 'auto')
+          // Falha do Gemini deve ser HONESTA: lança para o breaker/health registrarem
+          // e a cascata seguir ao próximo provider (em vez de virar identidade nula).
+          if (raw && raw.sucesso === false) throw new Error(raw.erro || 'Gemini falhou')
+          return raw?.dados || raw
+        },
+      },
+    })
+  }
   return _singleton
 }
 

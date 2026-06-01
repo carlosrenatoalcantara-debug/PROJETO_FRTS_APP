@@ -56,25 +56,31 @@ router.get('/', async (_req, res) => {
 router.put('/', async (req, res) => {
   try {
     if (!_dbOk(res)) return
-    const doc = await obterSingleton()
-    // Merge raso por grupo (preserva campos não enviados)
+    // P0-AI-DIAG-FINAL — VersionError fix:
+    // O padrão anterior (findOne → mutar → save()) usava optimistic concurrency
+    // (__v). Saves concorrentes no singleton (o EmpresaContext dispara um PUT por
+    // grupo salvo) colidiam → "VersionError: No matching document found ... version N"
+    // → branding/uploads/etc. eram perdidos. Agora: update ATÔMICO com $set por
+    // caminho (merge raso preservado, sem checagem de versão).
+    const $set = {}
     for (const g of GRUPOS) {
       if (req.body[g] && typeof req.body[g] === 'object') {
-        doc[g] = { ...(doc[g] || {}), ...req.body[g] }
-        doc.markModified(g)
+        for (const [k, v] of Object.entries(req.body[g])) $set[`${g}.${k}`] = v
       }
     }
     // S8.3.2 — dados_bancarios: substitui o array inteiro quando enviado (lista de contas)
     if (Array.isArray(req.body.dados_bancarios)) {
-      const antes = (doc.dados_bancarios || []).length
-      doc.dados_bancarios = req.body.dados_bancarios
-      doc.markModified('dados_bancarios')
-      auditarEmpresa(req, 'BANCO_ALTERADO', `contas: ${antes} → ${req.body.dados_bancarios.length}`)
+      $set['dados_bancarios'] = req.body.dados_bancarios
+      auditarEmpresa(req, 'BANCO_ALTERADO', `contas: ${req.body.dados_bancarios.length}`)
     }
     if (req.body.empresa_config && typeof req.body.empresa_config === 'object') {
       auditarEmpresa(req, 'ORGANIZACAO_EDITADA', `org: ${req.body.empresa_config.nomeFantasia || req.body.empresa_config.razaoSocial || ''}`)
     }
-    await doc.save()
+    const doc = await EmpresaConfig.findOneAndUpdate(
+      { chave: 'default' },
+      { $set, $setOnInsert: { chave: 'default' } },
+      { upsert: true, new: true, setDefaultsOnInsert: true },
+    )
     res.json({ sucesso: true, config: doc })
   } catch (err) {
     console.error('[empresa] PUT:', err)
@@ -110,10 +116,13 @@ router.put('/permissoes', async (req, res) => {
       }
     }
 
-    doc.permissoes_customizadas = nova
-    doc.markModified('permissoes_customizadas')
-    await doc.save()
-    res.json({ sucesso: true, alteracoes, permissoes_customizadas: doc.permissoes_customizadas })
+    // P0-AI-DIAG-FINAL: update ATÔMICO (sem optimistic concurrency) — corrige VersionError
+    const atualizado = await EmpresaConfig.findOneAndUpdate(
+      { chave: 'default' },
+      { $set: { permissoes_customizadas: nova }, $setOnInsert: { chave: 'default' } },
+      { upsert: true, new: true, setDefaultsOnInsert: true },
+    )
+    res.json({ sucesso: true, alteracoes, permissoes_customizadas: atualizado.permissoes_customizadas })
   } catch (err) {
     console.error('[empresa] PUT /permissoes:', err)
     res.status(500).json({ erro: err.message })

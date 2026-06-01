@@ -182,7 +182,7 @@ FORMATO PARA INVERSORES — extraia TODOS os campos. Usados no diagrama unifilar
 }`
 }
 
-async function extrairComClaude(pdfBuffer, exemplosCache = []) {
+export async function extrairComClaude(pdfBuffer, exemplosCache = []) {
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
   const message = await client.messages.create({
