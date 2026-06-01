@@ -35,9 +35,12 @@ const VERSAO_PARSER = VERSAO_PARSER_ATUAL
  */
 
 const client = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY)
-const model = client.getGenerativeModel({
-  model: 'gemini-2.0-flash',
-})
+// P0-INV-02-CLOSE: candidatos de modelo. Tenta o primeiro; se a credencial não
+// tiver acesso ao modelo (404 / not found / not supported / unavailable), faz
+// fallback automático ao próximo. gemini-1.5-flash é GA e o mais disponível.
+// Erros de credencial (403/PERMISSION) NÃO disparam fallback — propagam para a
+// cascata do orchestrator tratar com honestidade.
+const MODELOS_GEMINI = ['gemini-2.0-flash', 'gemini-1.5-flash']
 
 // ═══════════════════════════════════════════════════════════════════════════
 // PROMPT UNIFICADO - Otimizado para todos os tipos de documentos
@@ -320,7 +323,7 @@ export async function extrairComGemini(pdfBuffer, tipoDocumento = 'auto', opcoes
     const base64Data = pdfBuffer.toString('base64')
     const prompt = montarPromptGemini(tipoDocumento)
 
-    const response = await model.generateContent({
+    const requestBody = {
       contents: [{
         role: 'user',
         parts: [
@@ -333,7 +336,30 @@ export async function extrairComGemini(pdfBuffer, tipoDocumento = 'auto', opcoes
           },
         ],
       }],
-    })
+    }
+
+    // P0-INV-02-CLOSE: tenta cada modelo candidato; fallback só em erro de MODELO.
+    let response = null
+    let modeloUsado = null
+    let ultimoErroModelo = null
+    for (const nomeModelo of MODELOS_GEMINI) {
+      try {
+        const m = client.getGenerativeModel({ model: nomeModelo })
+        response = await m.generateContent(requestBody)
+        modeloUsado = nomeModelo
+        break
+      } catch (e) {
+        ultimoErroModelo = e
+        const msg = String(e?.message || '')
+        if (/not found|not supported|404|does not exist|unavailable/i.test(msg)) {
+          console.warn(`[Gemini] modelo ${nomeModelo} indisponível — tentando próximo: ${msg}`)
+          continue
+        }
+        throw e // credencial/quota/outro → propaga (vira sucesso:false na cascata)
+      }
+    }
+    if (!response) throw (ultimoErroModelo || new Error('Nenhum modelo Gemini disponível'))
+    console.log('[Gemini] modelo usado:', modeloUsado)
 
     // Extrair texto da resposta
     const responseText = response.response.text()
