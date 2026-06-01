@@ -711,13 +711,16 @@ export async function diagnosticoIA(req, res) {
   try {
     const client = new Anthropic({ apiKey: chave })
     const msg = await client.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+      // AI-ARCH-01 (FASE 9): mesmo modelo do fluxo de produção, para o teste de
+      // chave ser representativo (antes usava um modelo diferente).
+      model: 'claude-3-5-sonnet-20241022',
       max_tokens: 16,
       messages: [{ role: 'user', content: 'responda só: ok' }],
     })
-    res.json({ ok: true, resposta: msg.content[0].text, chave_prefixo: chave.slice(0, 10) + '...' })
+    // Não expõe prefixo do segredo (antes vazava os 10 primeiros chars).
+    res.json({ ok: true, resposta: msg.content[0].text, chave_len: chave.length })
   } catch (err) {
-    res.json({ ok: false, motivo: err.message, chave_prefixo: chave.slice(0, 10) + '...' })
+    res.json({ ok: false, motivo: err.message, status: err.status ?? null, chave_len: chave.length })
   }
 }
 

@@ -306,12 +306,15 @@ async function iniciarServidor() {
     const { default: rotasFaturasInteligente } = await import('./routes/faturasInteligente.js')
     // EV-ALIGN-01: carregadores EV via lazy load (mesma estratégia da fatura — pdf-parse após polyfills)
     const { default: rotasCarregadoresEV } = await import('./routes/carregadoresEV.js')
+    // AI-ARCH-01: diagnóstico centralizado da camada de IA
+    const { default: rotasAI } = await import('./routes/ai.js')
 
     app.use('/api/equipamentos', rotasEquipamentos)
     app.use('/api/datasheet',    rotasDatasheet)
     app.use('/api/fatura',       rotasFatura)
     app.use('/api/faturas',      rotasFaturasInteligente)
     app.use('/api/carregadores-ev', rotasCarregadoresEV)
+    app.use('/api/ai',           rotasAI)
 
     console.log('✅ Parser routes loaded successfully before server start')
   } catch (err) {
