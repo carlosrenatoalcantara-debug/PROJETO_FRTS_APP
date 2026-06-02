@@ -3,6 +3,7 @@ import { X, Edit2, Trash2, Upload, Zap, ChevronDown, ChevronUp, Cable } from 'lu
 import Card, { CardHeader, CardBody } from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import ModalNovoInversor from '../components/equipamentos/ModalNovoInversor'
+import AssistenteImportacaoDatasheet from '../components/equipamentos/AssistenteImportacaoDatasheet'
 
 const API_URL = '' /* URL relativa forçada — Vercel proxy → Railway. Não usar VITE_API_URL */
 
@@ -193,6 +194,7 @@ export default function Inversores() {
   const [ordenar, setOrdenar]           = useState('data')
   const [arrastando, setArrastando]     = useState(false)
   const [modalAberto, setModalAberto]   = useState(false)
+  const [assistenteAberto, setAssistenteAberto] = useState(false)  // P0-INV-CAT-03
   const [arquivosModal, setArquivosModal] = useState([])
   const [inversorEditar, setInversorEditar] = useState(null)
   const [expandido, setExpandido]       = useState(null)   // _id do card expandido
@@ -254,6 +256,13 @@ export default function Inversores() {
       <div>
         <h1 className="text-3xl font-bold text-slate-900">Inversores Solares</h1>
         <p className="text-slate-600 mt-1">Importe datasheets — Claude extrai todos os dados técnicos automaticamente</p>
+        {/* P0-INV-CAT-03: importação assistida modelo-a-modelo (revisão + correção) */}
+        <button
+          onClick={() => setAssistenteAberto(true)}
+          className="mt-3 inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+        >
+          Importação Assistida (revisar modelo a modelo)
+        </button>
       </div>
 
       {/* Zona de upload — sempre visível */}
@@ -383,6 +392,15 @@ export default function Inversores() {
             )
           })}
         </div>
+      )}
+
+      {/* P0-INV-CAT-03: Assistente de importação modelo-a-modelo */}
+      {assistenteAberto && (
+        <AssistenteImportacaoDatasheet
+          tipoEquipamento="inversor"
+          onFechar={() => setAssistenteAberto(false)}
+          onConcluido={() => carregarInversores?.()}
+        />
       )}
 
       {/* Modal batch */}
