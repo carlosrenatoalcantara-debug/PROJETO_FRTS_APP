@@ -254,6 +254,39 @@ export const criarInversoresLote = async (req, res) => {
     const resultado = { criados: [], atualizados: [], falhas: [] }
     const vistosNoLote = new Set()
 
+    // Fallback de memória (MongoDB offline): mesma semântica de upsert, sem
+    // buffering do Mongoose. Mantém o endpoint funcional em modo memory-storage,
+    // como já fazem listar/criar equipamento.
+    if (usarMemoryStorage()) {
+      for (const item of itens) {
+        const fabricante = String(item?.fabricante || '').trim()
+        const modelo = String(item?.modelo || '').trim()
+        const tipo = item?.tipo || 'inversor'
+        if (!fabricante || !modelo) { resultado.falhas.push({ modelo: modelo || null, erro: 'fabricante/modelo ausente' }); continue }
+        if (ehDefaultLixo(fabricante, 'fabricante') && ehDefaultLixo(modelo, 'modelo')) { resultado.falhas.push({ modelo, erro: 'fabricante E modelo são defaults lixo' }); continue }
+        const chave = `${fabricante.toLowerCase()}::${modelo.toLowerCase()}`
+        if (vistosNoLote.has(chave)) continue
+        vistosNoLote.add(chave)
+        const todos = memoryStore.findAllEquipamentos({})
+        const existente = todos.find(e => e.tipo === tipo && String(e.fabricante).toLowerCase() === fabricante.toLowerCase() && String(e.modelo).toLowerCase() === modelo.toLowerCase())
+        if (existente) {
+          existente.especificacoes = { ...(existente.especificacoes || {}), ...(item.especificacoes || {}) }
+          existente.updatedAt = new Date().toISOString()
+          memoryStore.saveToFile?.()
+          resultado.atualizados.push({ _id: existente._id, fabricante, modelo })
+        } else {
+          const novo = memoryStore.createEquipamento({ tipo, fabricante, modelo, especificacoes: item.especificacoes || {}, preco_sugerido: item.preco_sugerido || 0, ativo: true })
+          resultado.criados.push({ _id: novo._id, fabricante, modelo })
+        }
+      }
+      const algumMem = resultado.criados.length + resultado.atualizados.length > 0
+      return res.status(algumMem ? 201 : 422).json({
+        ok: resultado.falhas.length === 0, total: itens.length,
+        criados: resultado.criados.length, atualizados: resultado.atualizados.length,
+        falhas: resultado.falhas.length, detalhe: resultado,
+      })
+    }
+
     for (const item of itens) {
       const fabricante = String(item?.fabricante || '').trim()
       const modelo = String(item?.modelo || '').trim()
