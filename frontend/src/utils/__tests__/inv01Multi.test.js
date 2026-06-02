@@ -133,3 +133,59 @@ describe('AIOrchestrator.extrairMulti (INV-01C)', () => {
     expect(r.itens[0]).toHaveProperty('qualidade')
   })
 })
+
+// ── P0-INV-02-MAPPER-FIX: compatibilidade Claude + Gemini ─────────────────────
+describe('mapearEspecificacoes — compatibilidade Claude + Gemini', () => {
+  // Campos técnicos com nomes CURTOS (Claude / datasheetController prompt)
+  const VARIANTE_CLAUDE = {
+    modelo_variante: 'GW25K-DT', potencia_nominal_kw: 25, potencia_maxima_kw: 27.5,
+    tensao_ac_nominal: '380', fases: 3, corrente_ac_saida: 38, thdi: '<3',
+    n_mppts: 2, tensao_max_entrada: 1000, tensao_mppt_min: 200, tensao_mppt_max: 850,
+    corrente_max_entrada: 30, corrente_isc_max: 40, eficiencia_maxima: 98.4,
+    eficiencia_europeia: 98.0, temperatura_operacao: '-30~+60', dimensoes: '520x415x195',
+    peso_kg: 30, grau_protecao_ip: 'IP66',
+  }
+  // Mesmos dados com nomes SUFIXADOS (Gemini / datasheetGeminiUnificado prompt)
+  const VARIANTE_GEMINI = {
+    modelo_variante: 'GW25K-DT', potencia_nominal_kw: 25, potencia_maxima_kw: 27.5,
+    tensao_ac_nominal_v: '380', fases_ac: 3, corrente_ac_saida_a: 38, thdi_pct: '<3',
+    n_mppts: 2, tensao_max_entrada_dc_v: 1000, tensao_mppt_min_v: 200, tensao_mppt_max_v: 850,
+    corrente_max_entrada_dc_a: 30, corrente_isc_max_a: 40, eficiencia_maxima_pct: 98.4,
+    eficiencia_europeia_pct: 98.0, temperatura_operacao_c: '-30~+60', dimensoes_mm: '520x415x195',
+    peso_kg: 30, grau_protecao_ip: 'IP66',
+  }
+  const CHAVES_ESPERADAS = [
+    'potencia_kw', 'potencia_maxima_kw', 'tensao_ac', 'fases', 'corrente_ac_saida', 'thdi',
+    'n_mppts', 'tensao_max_entrada', 'tensao_mppt_min', 'tensao_mppt_max', 'corrente_max_entrada',
+    'corrente_isc_max', 'eficiencia_maxima', 'eficiencia_europeia', 'temperatura_operacao',
+    'dimensoes', 'peso_kg', 'grau_protecao_ip',
+  ]
+
+  it('payload CLAUDE mapeia todos os campos', () => {
+    const esp = mapearEspecificacoes(VARIANTE_CLAUDE)
+    for (const k of CHAVES_ESPERADAS) expect(esp, `falta ${k}`).toHaveProperty(k)
+  })
+
+  it('payload GEMINI mapeia todos os campos (antes perdia ~13)', () => {
+    const esp = mapearEspecificacoes(VARIANTE_GEMINI)
+    for (const k of CHAVES_ESPERADAS) expect(esp, `falta ${k}`).toHaveProperty(k)
+    // valores específicos que vinham com sufixo do Gemini
+    expect(esp.tensao_max_entrada).toBe(1000)
+    expect(esp.eficiencia_maxima).toBe(98.4)
+    expect(esp.corrente_ac_saida).toBe(38)
+    expect(esp.dimensoes).toBe('520x415x195')
+    expect(esp.fases).toBe(3)
+  })
+
+  it('Claude e Gemini produzem o MESMO conjunto de chaves', () => {
+    const kClaude = Object.keys(mapearEspecificacoes(VARIANTE_CLAUDE)).sort()
+    const kGemini = Object.keys(mapearEspecificacoes(VARIANTE_GEMINI)).sort()
+    expect(kGemini).toEqual(kClaude)
+  })
+
+  it('normalizarMulti completo com payload Gemini → especificacoes preenchidas', () => {
+    const itens = normalizarMulti({ fabricante: 'Goodwe', tipo: 'inversor', variantes: [VARIANTE_GEMINI] })
+    expect(itens).toHaveLength(1)
+    expect(Object.keys(itens[0].especificacoes).length).toBeGreaterThanOrEqual(18)
+  })
+})
