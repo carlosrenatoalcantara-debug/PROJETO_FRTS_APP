@@ -34,6 +34,8 @@ const PADROES = [
       /\b(S[1-9]-GR\d+[KP]-?\w*)\b/i,           // S6-GR1P5K, S6-GR3P10K
       /\b(RHI-\d{1,3}K-\w*)\b/i,                 // RHI-5K-48ES, RHI-50K-HV
       /\b(S[1-9]-EH\d+[KP]-?\w*)\b/i,            // S6-EH3P5K-H
+      // P0-CAT-09: série 1P/3P 4G/5G (Solis-1P7K-4G, 3P5K-4G, 1P5K-5G)
+      /\b(?:Solis-?)?([13]P\d{1,2}(?:\.\d)?K-\dG\w*)\b/i,
     ],
   },
   {

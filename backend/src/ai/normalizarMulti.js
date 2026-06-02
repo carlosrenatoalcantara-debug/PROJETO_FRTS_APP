@@ -72,6 +72,7 @@ export function mapearEspecificacoes(v = {}) {
   set('peso_kg',               v.peso_kg)
   set('dimensoes',             v.dimensoes ?? v.dimensoes_mm)
   set('garantia_anos',         v.garantia_anos)
+  set('certificacoes',         v.certificacoes)   // P0-CAT-09 (parser determinístico)
   set('subtipo',               v.subtipo)
   return esp
 }
