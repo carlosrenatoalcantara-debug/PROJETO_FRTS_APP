@@ -294,6 +294,16 @@ async function iniciarServidor() {
     } catch (erro) {
       console.error('❌ Erro ao agendar tarefas de manutenção:', erro.message)
     }
+
+    // CAT-KB-01: Base de Conhecimento (semeia se vazio + carrega em cache).
+    // Não-fatal: se falhar, o parser usa o conhecimento hardcoded (fallback).
+    try {
+      const { inicializarConhecimento } = await import('./ai/conhecimentoCatalogo.js')
+      const estado = await inicializarConhecimento()
+      console.log(`📚 Base de Conhecimento: origem=${estado.origem} aliases=${estado.total_aliases} fabricantes=${estado.fabricantes}`)
+    } catch (erro) {
+      console.error('⚠️  Base de Conhecimento indisponível (usando parser hardcoded):', erro.message)
+    }
   }
 
   // 🔄 Lazy load parser routes AFTER polyfills + DB + all async initialization

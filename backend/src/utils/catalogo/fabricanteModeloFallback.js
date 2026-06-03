@@ -226,6 +226,14 @@ const PADROES = [
   },
 ]
 
+// CAT-KB-01: aliases de fabricante extra vindos da Base de Conhecimento (Mongo).
+// Injeção inerte por padrão → quando vazio, comportamento idêntico ao atual.
+let _aliasExtra = () => []
+/** Liga aliases de fabricante extra (KB). Reversível. */
+export function setAliasFabricanteExtra(fn) { _aliasExtra = (typeof fn === 'function') ? fn : (() => []) }
+/** Catálogo de aliases de fabricante migrável para a KB (seed). */
+export const ALIASES_FABRICANTE = PADROES.map(p => ({ fabricante: p.fabricante, aliases: p.aliases }))
+
 // Normaliza texto: case-fold + remove acentos + colapsa espaços
 function _norm(s) {
   return String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, ' ')
@@ -325,6 +333,23 @@ export function extrairFabricanteModelo(texto) {
         confianca: 0.65,
         evidencia: `modelo órfão (sem alias de fabricante)`,
         padrao_usado: `orfao_${fabricante.toLowerCase()}`,
+      }
+    }
+  }
+
+  // CAT-KB-01: último recurso — aliases de fabricante aprendidos na KB (Mongo).
+  // Inerte enquanto a KB só contém o seed (mesmos aliases do PADROES acima).
+  let extra = []
+  try { extra = _aliasExtra() || [] } catch { extra = [] }
+  for (const { alias, fabricante } of extra) {
+    if (alias && tNorm.includes(_norm(alias))) {
+      const generico = _extrairModeloGenerico(texto)
+      return {
+        fabricante,
+        modelo: generico,
+        confianca: generico ? 0.55 : 0.45,
+        evidencia: `alias "${alias}" (Base de Conhecimento)`,
+        padrao_usado: `kb_${String(fabricante).toLowerCase()}`,
       }
     }
   }
