@@ -16,6 +16,7 @@
 
 import crypto from 'crypto'
 import { aplicarRegras } from './regrasPlausibilidade.js'
+import { lerInversor } from '../equipamentos/inversores/index.js'
 
 const MOTOR_VERSAO = 'qualidade-1.0.0'
 
@@ -100,41 +101,33 @@ function normalizarSpecsModulo(equipamento) {
 
 function normalizarSpecsInversor(equipamento) {
   const esp = equipamento.especificacoes || {}
-  const fasesRaw = pick(esp, ['fases','fases_saida','numeroFases'])
-  let fases = num(fasesRaw)
-  if (fases === null) {
-    // tentar mapear strings ou booleano "entrada_trifasico"
-    if (typeof fasesRaw === 'string') {
-      if (/trif/i.test(fasesRaw)) fases = 3
-      else if (/mono/i.test(fasesRaw)) fases = 1
-    }
-    const triFlag = bool(esp.entrada_trifasico)
-    if (fases === null && triFlag !== null) fases = triFlag ? 3 : 1
-  }
-
+  // P0-INV-SSOT-01: leitura ÚNICA via dicionário canônico (sem pick locais).
+  // As CHAVES de saída são preservadas (compat: regrasPlausibilidade, PESOS_INVERSOR,
+  // specs_canonicas consumido pela UI) — muda apenas a FONTE dos valores: o SSOT.
+  const c = lerInversor(esp)
   return {
     _versao: '1.0',
-    potencia_kw_ca: num(pick(esp, ['potencia_kw','potencia_kw_ca','potencia'])),
-    potencia_kw_cc_max: num(pick(esp, ['potencia_kw_cc_max','potencia_dc_max','pdc_max'])),
-    fases_saida: fases,
-    tensao_saida_v: num(pick(esp, ['tensao_saida_v','tensao_saida','tensao_nominal_v'])),
-    frequencia_hz: num(pick(esp, ['frequencia_hz','freq_hz','frequencia'])),
-    voc_max_dc_v: num(pick(esp, ['voc_max_dc','voc_max_dc_v','tensao_max_dc','vpv_max','voc_max'])),
-    tensao_inicializacao_dc_v: num(pick(esp, ['tensao_inicializacao_dc','start_voltage_v'])),
-    mppt_min_v: num(pick(esp, ['mppt_min_v','faixa_mppt_min','mppt_min'])),
-    mppt_max_v: num(pick(esp, ['mppt_max_v','faixa_mppt_max','mppt_max'])),
-    isc_max_por_mppt_a: num(pick(esp, ['isc_max_mppt','isc_max_por_mppt_a','corrente_max_mppt','ipv_max'])),
-    n_mppts: num(pick(esp, ['n_mppts','mppts','numero_mppt'])),
-    strings_max_por_mppt: num(pick(esp, ['strings_max_por_mppt','strings_por_mppt'])),
-    eficiencia_max_pct: num(pick(esp, ['eficiencia_max','eficiencia','eficiencia_max_pct'])),
-    eficiencia_european_pct: num(pick(esp, ['eficiencia_european','euro_efficiency'])),
+    potencia_kw_ca: num(c.potencia_kw),
+    potencia_kw_cc_max: num(c.potencia_max_entrada_cc),
+    fases_saida: num(c.fases),
+    tensao_saida_v: num(c.tensao_ac),
+    frequencia_hz: num(c.frequencia_hz),
+    voc_max_dc_v: num(c.tensao_max_entrada),
+    tensao_inicializacao_dc_v: num(c.tensao_partida),
+    mppt_min_v: num(c.tensao_mppt_min),
+    mppt_max_v: num(c.tensao_mppt_max),
+    isc_max_por_mppt_a: num(c.corrente_isc_max ?? c.corrente_max_por_mppt),
+    n_mppts: num(c.n_mppts),
+    strings_max_por_mppt: num(c.strings_por_mppt),
+    eficiencia_max_pct: num(c.eficiencia_maxima),
+    eficiencia_european_pct: num(c.eficiencia_europeia),
     protecoes_integradas: {
-      anti_ilhamento: bool(pick(esp, ['anti_ilhamento','antiIlhamento'])),
+      anti_ilhamento: bool(pick(esp, ['anti_ilhamento','antiIlhamento','protecao_antiilhamento'])),
       rcd_integrado: bool(pick(esp, ['rcd_integrado','rcd'])),
-      dps_dc_integrado: bool(pick(esp, ['dps_dc_integrado','dps_dc'])),
-      dps_ca_integrado: bool(pick(esp, ['dps_ca_integrado','dps_ca'])),
+      dps_dc_integrado: bool(pick(esp, ['dps_dc_integrado','dps_dc','protecao_sobretensao_dc'])),
+      dps_ca_integrado: bool(pick(esp, ['dps_ca_integrado','dps_ca','protecao_sobretensao_ac'])),
     },
-    tipo_inversor: str(pick(esp, ['tipo_inversor','tipo'])),
+    tipo_inversor: str(pick(esp, ['tipo_inversor','tipo','subtipo'])),
     certificacoes: Array.isArray(esp.certificacoes) ? esp.certificacoes : null,
   }
 }

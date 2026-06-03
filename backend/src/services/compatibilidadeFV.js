@@ -15,6 +15,8 @@
  *  - IEC 60269 — fusíveis CC
  */
 
+import { lerInversor, paraDimensionamento } from '../equipamentos/inversores/index.js'
+
 // ─── Constantes elétricas e de segurança ─────────────────────────────────────
 const FATOR_TEMPERATURA_VOC = 1.15      // Voc cresce ~15% a -10°C (cidades RN, p.ex. Caicó madrugada)
 const FATOR_SOBRE_CORRENTE = 1.25       // NBR 5410 — proteção contra sobrecorrente
@@ -74,19 +76,23 @@ export function extrairSpecsModulo(equipamento) {
 export function extrairSpecsInversor(equipamento) {
   if (!equipamento) return null
   const esp = equipamento.especificacoes || {}
+  // P0-INV-SSOT-01: dimensionamento lê o MESMO objeto persistido via SSOT
+  // (sem aliases locais). `paraDimensionamento` já aplica os defaults físicos.
+  const d = paraDimensionamento(esp, equipamento)
+  const c = lerInversor(esp)
   return {
     fabricante: equipamento.fabricante || null,
     modelo: equipamento.modelo || null,
-    potencia_kw: esp.potencia_kw || equipamento.potencia_kw || esp.potencia || 0,
-    fases: esp.fases || esp.fases_saida || 1,
-    tensao_nominal_v: esp.tensao_nominal_v || (esp.fases_saida === 3 ? 380 : 220),
-    voc_max_dc: esp.voc_max_dc || esp.tensao_max_dc || esp.vpv_max || 600,
-    mppt_min_v: esp.mppt_min_v || esp.faixa_mppt_min || 100,
-    mppt_max_v: esp.mppt_max_v || esp.faixa_mppt_max || 550,
-    isc_max_mppt: esp.isc_max_mppt || esp.corrente_max_mppt || esp.ipv_max || 13,
-    n_mppts: esp.n_mppts || esp.mppts || 2,
-    eficiencia_pct: esp.eficiencia || esp.eficiencia_pct || 97,
-    tipo: esp.tipo_inversor || equipamento.tipo_inversor || 'string',
+    potencia_kw: d.potencia_kw,
+    fases: c.fases ?? 1,
+    tensao_nominal_v: d.tensao_nominal_v,
+    voc_max_dc: d.voc_max_dc,
+    mppt_min_v: d.mppt_min_v,
+    mppt_max_v: d.mppt_max_v,
+    isc_max_mppt: d.isc_max_mppt,
+    n_mppts: d.n_mppts,
+    eficiencia_pct: Number(c.eficiencia_maxima) || 97,
+    tipo: esp.tipo_inversor || equipamento.tipo_inversor || esp.subtipo || 'string',
   }
 }
 

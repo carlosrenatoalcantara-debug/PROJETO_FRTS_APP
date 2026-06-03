@@ -13,6 +13,10 @@
  * NÃO modifica dados. NÃO faz I/O. Funções puras e determinísticas.
  */
 
+// P0-INV-SSOT-01: dicionário canônico ÚNICO (mesmo arquivo do backend, puro/sem
+// deps node — importável no bundle, igual fichaTecnicaMap em Catalogo.jsx).
+import { lerInversor } from '../../../backend/src/equipamentos/inversores/index.js'
+
 // ─── Helpers numéricos ────────────────────────────────────────────────────────
 
 export function toNum(v) {
@@ -91,16 +95,19 @@ function normalizarEspecificacoes(tipo, especificacoes) {
     }
   }
   if (tipo === 'inversor') {
+    // P0-INV-SSOT-01: leitura ÚNICA via dicionário canônico (mesmo do backend).
+    // Sem pick locais — o catálogo e a qualidade passam a ler o MESMO objeto.
+    const c = lerInversor(esp)
     return {
-      potencia_kw_ca:        toNum(pick(esp, ['potencia_kw', 'potencia_kw_ca', 'potencia'])),
-      potencia_kw_cc_max:    toNum(pick(esp, ['potencia_kw_cc_max', 'potencia_dc_max', 'pdc_max'])),
-      fases_saida:           toNum(pick(esp, ['fases', 'fases_saida', 'numeroFases'])),
-      voc_max_dc_v:          toNum(pick(esp, ['voc_max_dc', 'voc_max_dc_v', 'tensao_max_dc', 'voc_max'])),
-      mppt_min_v:            toNum(pick(esp, ['mppt_min_v', 'faixa_mppt_min', 'mppt_min'])),
-      mppt_max_v:            toNum(pick(esp, ['mppt_max_v', 'faixa_mppt_max', 'mppt_max'])),
-      isc_max_por_mppt_a:    toNum(pick(esp, ['isc_max_mppt', 'isc_max_por_mppt_a', 'corrente_max_mppt', 'ipv_max'])),
-      n_mppts:               toNum(pick(esp, ['n_mppts', 'mppts', 'numero_mppt'])),
-      eficiencia_max_pct:    toNum(pick(esp, ['eficiencia_max', 'eficiencia', 'eficiencia_max_pct'])),
+      potencia_kw_ca:        toNum(c.potencia_kw),
+      potencia_kw_cc_max:    toNum(c.potencia_max_entrada_cc),
+      fases_saida:           toNum(c.fases),
+      voc_max_dc_v:          toNum(c.tensao_max_entrada),
+      mppt_min_v:            toNum(c.tensao_mppt_min),
+      mppt_max_v:            toNum(c.tensao_mppt_max),
+      isc_max_por_mppt_a:    toNum(c.corrente_isc_max ?? c.corrente_max_por_mppt),
+      n_mppts:               toNum(c.n_mppts),
+      eficiencia_max_pct:    toNum(c.eficiencia_maxima),
     }
   }
   return {}
