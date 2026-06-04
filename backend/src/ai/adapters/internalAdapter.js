@@ -44,12 +44,17 @@ export class InternalAdapter extends BaseAdapter {
       }
     }
 
-    // Fallback: parser de TEXTO por modelo (P0-CAT-09).
+    // Fallback: parser de TEXTO por modelo (P0-CAT-09). Em MULTI-modelo, o texto
+    // não separa colunas com segurança → marca confiança BAIXA (P1-INV-HARDEN-01).
     if (!variantes) {
-      variantes = lista.map(modelo_variante => ({
-        modelo_variante,
-        ...extrairSpecsTecnicas(texto, modelo_variante),
-      }))
+      const multi = lista.length > 1
+      variantes = lista.map(modelo_variante => {
+        const esp = extrairSpecsTecnicas(texto, modelo_variante)
+        const _status = multi
+          ? Object.fromEntries(Object.keys(esp).map(k => [k, 'inferido_baixa']))
+          : undefined
+        return { modelo_variante, ...esp, _status }
+      })
     }
 
     return {

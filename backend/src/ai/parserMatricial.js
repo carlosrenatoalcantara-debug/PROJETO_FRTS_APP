@@ -118,14 +118,23 @@ export function detectarColunas(tokens, modelos = []) {
   return [...porModelo.values()].sort((a, b) => a.x - b.x)
 }
 
-// ── 3+4. Agrupa linhas por Y e associa valores às colunas ────────────────────
-function _agruparLinhas(tokens, page, yTol = 3) {
-  const ts = tokens.filter(t => t.page === page).sort((a, b) => b.y - a.y || a.x - b.x)
+// Níveis de CONFIANÇA por campo (P1-INV-HARDEN-01).
+export const CONF = {
+  ENCONTRADO: 'encontrado',       // valor direto na coluna do modelo (100%)
+  INF_ALTA:   'inferido_alta',    // célula compartilhada/mesclada (carry-forward)
+  INF_MEDIA:  'inferido_media',   // derivado (ex.: potência do nome do modelo)
+  INF_BAIXA:  'inferido_baixa',   // coluna distante / fallback de texto
+  FALTANTE:   'faltante',
+}
+
+// ── 3+4. Agrupa linhas por (página,Y) — MULTI-PÁGINA ─────────────────────────
+function _agruparLinhas(tokens, yTol = 3) {
+  const ts = tokens.slice().sort((a, b) => a.page - b.page || b.y - a.y || a.x - b.x)
   const linhas = []
   let atual = null
   for (const t of ts) {
-    if (!atual || Math.abs(atual.y - t.y) > yTol) {
-      atual = { y: t.y, tokens: [] }
+    if (!atual || atual.page !== t.page || Math.abs(atual.y - t.y) > yTol) {
+      atual = { page: t.page, y: t.y, tokens: [] }
       linhas.push(atual)
     }
     atual.tokens.push(t)
@@ -144,60 +153,89 @@ function _colunaMaisProxima(x, colunas, tol = 40) {
 }
 
 /**
- * Extrai a matriz: para cada modelo, um `especificacoes` + proveniência.
- * @returns {{ modelos:string[], porModelo: Object<modelo,{especificacoes,_status}> , debug }}
+ * Distribui as células de UMA linha nas N colunas, com tratamento EXPLÍCITO de
+ * células compartilhadas/mescladas (carry-forward) e nível de confiança:
+ *   - todas as N colunas preenchidas → cada uma ENCONTRADO;
+ *   - 1 só preenchida → compartilhada: origem ENCONTRADO, demais INF_ALTA;
+ *   - subconjunto preenchido (merge agrupado, ex.: corrente Sungrow) → o valor
+ *     "vaza" para a direita até a próxima coluna preenchida (INF_ALTA).
+ * @returns {Array<{cel:string[],conf:string}|null>}
+ */
+function _distribuir(celulas) {
+  const N = celulas.length
+  const out = new Array(N).fill(null)
+  const filled = celulas.map((c, i) => (c.length ? i : -1)).filter(i => i >= 0)
+  if (!filled.length) return out
+
+  if (filled.length === N) {
+    for (let i = 0; i < N; i++) out[i] = { cel: celulas[i], conf: CONF.ENCONTRADO }
+    return out
+  }
+  if (filled.length === 1) {
+    const o = filled[0]
+    for (let i = 0; i < N; i++) out[i] = { cel: celulas[o], conf: i === o ? CONF.ENCONTRADO : CONF.INF_ALTA }
+    return out
+  }
+  // merge agrupado: carry-forward + backfill das colunas iniciais vazias
+  let last = null
+  for (let i = 0; i < N; i++) {
+    if (celulas[i].length) { last = celulas[i]; out[i] = { cel: celulas[i], conf: CONF.ENCONTRADO } }
+    else if (last) out[i] = { cel: last, conf: CONF.INF_ALTA }
+  }
+  const first = filled[0]
+  for (let i = 0; i < first; i++) out[i] = { cel: celulas[first], conf: CONF.INF_ALTA }
+  return out
+}
+
+/**
+ * Extrai a matriz: para cada modelo, um `especificacoes` + confiança por campo.
+ * MULTI-PÁGINA: processa linhas de TODAS as páginas sob as mesmas colunas.
+ * @returns {{ modelos:string[], porModelo: Object<modelo,{especificacoes,_status}> }}
  */
 export function montarMatriz(tokens, modelos) {
   const colunas = detectarColunas(tokens, modelos)
   if (colunas.length < 2) return { ok: false, motivo: 'colunas<2', colunas: colunas.length }
 
-  const page = colunas[0].page
+  const pageCab = colunas[0].page
+  const yCab = colunas[0].y
   const xPrimeira = colunas[0].x
-  const margemRotulo = 30 // tokens com x < (1ª coluna - margem) são rótulo
-  const linhas = _agruparLinhas(tokens, page)
+  const margemRotulo = 30
+  const linhas = _agruparLinhas(tokens)
 
-  // inicializa saída
   const porModelo = {}
   for (const c of colunas) porModelo[c.modelo] = { especificacoes: {}, _status: {} }
 
   for (const linha of linhas) {
-    if (linha.y > colunas[0].y - 2) continue // ignora cabeçalho e acima
+    // na página do cabeçalho, ignora a linha do cabeçalho e o que está acima
+    if (linha.page === pageCab && linha.y > yCab - 2) continue
     const toks = linha.tokens.slice().sort((a, b) => a.x - b.x)
     const rotuloToks = toks.filter(t => t.x < xPrimeira - margemRotulo)
     const valorToks = toks.filter(t => t.x >= xPrimeira - margemRotulo)
     if (!rotuloToks.length || !valorToks.length) continue
     const label = rotuloToks.map(t => t.s).join(' ').replace(/\s+/g, ' ').trim()
 
-    // rótulo de FAIXA (MPPT range / temperatura) → 2 campos
     const ehMppt = /mpp.?\s*(voltage\s*)?range|faixa.*mppt|mpp\s+voltage/i.test(label)
     const campo = ehMppt ? '__mppt_range' : rotuloParaCampo(label)
     if (!campo) continue
 
-    // distribui valores nas colunas por X (cada célula = lista de tokens)
     const celulas = colunas.map(() => [])
     for (const v of valorToks) {
       const idx = _colunaMaisProxima(v.x, colunas)
       if (idx >= 0) celulas[idx].push(v.s)
     }
-    const presentes = celulas.filter(c => c.length).length
-    // valor COMPARTILHADO (1 coluna preenchida para N modelos): replica em todas
-    let shared = null
-    if (presentes === 1 && colunas.length > 1) shared = celulas.find(c => c.length)
-
+    const dist = _distribuir(celulas)
     colunas.forEach((c, i) => {
-      const cel = shared != null ? shared : celulas[i]
-      if (!cel || !cel.length) return
-      _aplicar(porModelo[c.modelo], campo, cel, 'encontrado')
+      if (dist[i]) _aplicar(porModelo[c.modelo], campo, dist[i].cel, dist[i].conf)
     })
   }
 
-  // potência a partir do NOME do modelo (inferido) quando ausente
+  // potência a partir do NOME do modelo (inferido média) quando ausente
   for (const c of colunas) {
     const alvo = porModelo[c.modelo]
     const pNome = potenciaDoModelo(c.modelo)
     if (pNome != null && alvo.especificacoes.potencia_kw == null) {
       alvo.especificacoes.potencia_kw = pNome
-      alvo._status.potencia_kw = 'inferido'
+      alvo._status.potencia_kw = CONF.INF_MEDIA
     }
   }
 
@@ -217,9 +255,9 @@ function _aplicar(destino, campo, celula, status) {
     }
     return
   }
-  // first-match-wins: não sobrescreve um valor já ENCONTRADO (evita que linhas
+  // first-write-wins: não sobrescreve um campo já preenchido (evita que linhas
   // posteriores — ex.: "Power factor at Rated power" — sobreponham a potência).
-  if (destino._status[campo] === 'encontrado') return
+  if (destino._status[campo]) return
 
   // strings_por_mppt: preserva forma "2/1" (assimetria) — usa só o 1º token.
   if (campo === 'strings_por_mppt') {

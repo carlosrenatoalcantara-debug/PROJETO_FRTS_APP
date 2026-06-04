@@ -13,8 +13,27 @@
 
 export const STATUS = { OK: 'verde', AUSENTE: 'amarelo', OBRIGATORIO: 'vermelho' }
 
-// P1-INV-MATRIX-01: proveniência por campo (legenda 🟢/🟡/🔴 da Importação Assistida).
-export const PROVENIENCIA = { ENCONTRADO: 'encontrado', INFERIDO: 'inferido', FALTANTE: 'faltante' }
+// Proveniência/confiança por campo (Importação Assistida).
+// P1-INV-HARDEN-01: 5 níveis (substitui o binário encontrado/inferido).
+export const PROVENIENCIA = {
+  ENCONTRADO: 'encontrado',         // 🟢 100% — valor direto na coluna do modelo
+  INFERIDO_ALTA: 'inferido_alta',   // 🟡 célula compartilhada/mesclada
+  INFERIDO_MEDIA: 'inferido_media', // 🟡 derivado (ex.: potência do nome)
+  INFERIDO_BAIXA: 'inferido_baixa', // 🟠 coluna distante / fallback de texto
+  INFERIDO: 'inferido',             // (legado/genérico)
+  FALTANTE: 'faltante',             // 🔴 não encontrado
+}
+
+// Rótulo legível + percentual aproximado por nível (para a UI).
+export const CONFIANCA_LABEL = {
+  encontrado:     { texto: 'Encontrado', pct: 100 },
+  inferido_alta:  { texto: 'Inferido (alta)', pct: 85 },
+  inferido_media: { texto: 'Inferido (média)', pct: 60 },
+  inferido_baixa: { texto: 'Inferido (baixa)', pct: 35 },
+  inferido:       { texto: 'Inferido', pct: 60 },
+  faltante:       { texto: 'Não encontrado', pct: 0 },
+}
+const _ehInferido = (p) => typeof p === 'string' && p.startsWith('inferido')
 
 // Cada campo: { key, label, obrigatorio?, tipo? ('number'|'text'), info? (legenda externa) }
 const ESQUEMA = {
@@ -105,12 +124,10 @@ export function classificarCampos(tipo, especificacoes = {}, statusMap = {}) {
     const status = ok
       ? STATUS.OK
       : (campo.obrigatorio ? STATUS.OBRIGATORIO : STATUS.AUSENTE)
-    // Proveniência (P1-INV-MATRIX-01): 🟢 encontrado no PDF, 🟡 inferido, 🔴 faltante.
-    let proveniencia
-    if (!ok) proveniencia = PROVENIENCIA.FALTANTE
-    else if (statusMap?.[campo.key] === PROVENIENCIA.INFERIDO) proveniencia = PROVENIENCIA.INFERIDO
-    else proveniencia = PROVENIENCIA.ENCONTRADO
-    return { ...campo, valor, status, proveniencia, info: campo.info || null }
+    // Proveniência/confiança: usa o nível vindo do parser; default ENCONTRADO.
+    const proveniencia = ok ? (statusMap?.[campo.key] || PROVENIENCIA.ENCONTRADO) : PROVENIENCIA.FALTANTE
+    const confianca = CONFIANCA_LABEL[proveniencia] || CONFIANCA_LABEL.encontrado
+    return { ...campo, valor, status, proveniencia, confianca, info: campo.info || null }
   })
 }
 
@@ -124,7 +141,7 @@ export function resumirQualidade(tipo, especificacoes = {}, statusMap = {}) {
   const total = campos.length
   const preenchidos = campos.filter(c => c.status === STATUS.OK).length
   const encontrados = campos.filter(c => c.proveniencia === PROVENIENCIA.ENCONTRADO).length
-  const inferidos = campos.filter(c => c.proveniencia === PROVENIENCIA.INFERIDO).length
+  const inferidos = campos.filter(c => _ehInferido(c.proveniencia)).length
   const pendentes = campos.filter(c => c.proveniencia === PROVENIENCIA.FALTANTE).length
   const faltantes = campos.filter(c => c.status !== STATUS.OK).map(c => c.label)
   const obrigatoriosFaltando = campos.filter(c => c.status === STATUS.OBRIGATORIO).map(c => c.label)

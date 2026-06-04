@@ -6,6 +6,7 @@ import {
   STATUS,
   PROVENIENCIA,
 } from '../../../../backend/src/ai/camposEquipamento.js'
+import { validarPlausibilidadeInversor } from '../../../../backend/src/ai/validacaoEletricaInversor.js'
 
 const API_URL = ''
 
@@ -46,6 +47,11 @@ export default function AssistenteImportacaoDatasheet({ tipoEquipamento = 'inver
   const qualidade = useMemo(
     () => resumirQualidade(itens[indice]?.tipo || tipoEquipamento, especEfetiva, statusMap),
     [itens, indice, especEfetiva, tipoEquipamento, statusMap]
+  )
+  // P1-INV-HARDEN-01: alertas de plausibilidade elétrica (apenas sinaliza).
+  const alertasEletricos = useMemo(
+    () => (itens[indice]?.tipo || tipoEquipamento) === 'inversor' ? validarPlausibilidadeInversor(especEfetiva) : [],
+    [itens, indice, especEfetiva, tipoEquipamento]
   )
 
   // ── ETAPA 1: upload + extração ────────────────────────────────────────────────
@@ -136,12 +142,13 @@ export default function AssistenteImportacaoDatasheet({ tipoEquipamento = 'inver
     return { salvos, ignorados, corrigidos, media }
   }, [resultados])
 
-  // Proveniência: 🟢 encontrado no PDF · 🟡 inferido pelo parser · 🔴 não encontrado
-  const BadgeProveniencia = ({ proveniencia }) => proveniencia === PROVENIENCIA.ENCONTRADO
-    ? <CheckCircle size={15} className="text-emerald-500" title="Encontrado diretamente no PDF" />
-    : proveniencia === PROVENIENCIA.INFERIDO
-      ? <AlertTriangle size={15} className="text-amber-500" title="Inferido pelo parser" />
-      : <AlertCircle size={15} className="text-red-500" title="Não encontrado" />
+  // Confiança por campo: 🟢 encontrado · 🟡 inferido alta/média · 🟠 inferido baixa · 🔴 faltante
+  const BadgeProveniencia = ({ proveniencia, titulo }) => {
+    if (proveniencia === PROVENIENCIA.ENCONTRADO) return <CheckCircle size={15} className="text-emerald-500" title={titulo} />
+    if (proveniencia === PROVENIENCIA.FALTANTE) return <AlertCircle size={15} className="text-red-500" title={titulo} />
+    if (proveniencia === PROVENIENCIA.INFERIDO_BAIXA) return <AlertTriangle size={15} className="text-orange-500" title={titulo} />
+    return <AlertTriangle size={15} className="text-amber-500" title={titulo} /> // alta/média/genérico
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onFechar}>
@@ -219,12 +226,29 @@ export default function AssistenteImportacaoDatasheet({ tipoEquipamento = 'inver
                 )}
               </div>
 
+              {/* Alertas de plausibilidade elétrica (sinaliza — não corrige) */}
+              {alertasEletricos.length > 0 && (
+                <div className="mb-3 p-2.5 rounded-lg bg-amber-50 border border-amber-200">
+                  <p className="flex items-center gap-1 text-xs font-semibold text-amber-800 mb-1">
+                    <AlertTriangle size={13} /> Verificação elétrica ({alertasEletricos.length})
+                  </p>
+                  <ul className="space-y-0.5">
+                    {alertasEletricos.map((a, i) => (
+                      <li key={i} className={`text-[11px] ${a.severidade === 'critico' ? 'text-red-700 font-medium' : 'text-amber-700'}`}>• {a.mensagem}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
               <div className="grid grid-cols-2 gap-3">
                 {campos.map(c => (
                   <div key={c.key}>
                     <label className="flex items-center gap-1.5 text-xs font-medium text-slate-600 mb-1">
-                      <BadgeProveniencia proveniencia={c.proveniencia} />
+                      <BadgeProveniencia proveniencia={c.proveniencia} titulo={c.confianca?.texto} />
                       {c.label}{c.obrigatorio && <span className="text-red-500">*</span>}
+                      {c.proveniencia !== PROVENIENCIA.ENCONTRADO && c.proveniencia !== PROVENIENCIA.FALTANTE && (
+                        <span className="text-[10px] font-normal text-amber-600">· {c.confianca?.texto}</span>
+                      )}
                     </label>
                     <input
                       type={c.tipo === 'number' ? 'number' : 'text'}
