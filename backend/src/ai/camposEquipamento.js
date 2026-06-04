@@ -41,7 +41,9 @@ const ESQUEMA = {
     { key: 'potencia_kw',           label: 'Potência nominal (kW)', obrigatorio: true,  tipo: 'number', info: 'Potência ativa nominal entregue à rede.' },
     { key: 'potencia_maxima_kw',    label: 'Potência máxima (kW)',  tipo: 'number', info: 'Potência máxima entregue à rede (aparente/ativa).' },
     { key: 'n_mppts',               label: 'Nº de MPPTs',           obrigatorio: true,  tipo: 'number', info: 'Quantidade de rastreadores de máxima potência independentes.' },
-    { key: 'strings_por_mppt',      label: 'Strings por MPPT',      tipo: 'text', info: 'Quantidade de strings conectadas a cada MPPT. Exemplos: 1/1, 2/1, 3/3/2/2.' },
+    { key: 'tipo_topologia',        label: 'Topologia',             tipo: 'text', info: 'STRING (inversor de string), MICRO (microinversor) ou HYBRID (híbrido).' },
+    { key: 'entradas_por_mppt',     label: 'Entradas por MPPT',     tipo: 'text', info: 'Entradas físicas (conectores) por MPPT. STRING: strings possíveis; MICRO: módulos por MPPT. Ex.: 3/3, 2/1.' },
+    { key: 'strings_por_mppt',      label: 'Strings por MPPT',      tipo: 'text', info: 'Compatibilidade — strings por MPPT, derivado de entradas_por_mppt. Ex.: 1/1, 2/1, 3/3/2/2.' },
     { key: 'tensao_max_entrada',    label: 'Tensão máx. entrada (V)', tipo: 'number', info: 'Tensão CC máxima suportada na entrada (Voc no frio não pode excedê-la).' },
     { key: 'tensao_mppt_min',       label: 'Tensão MPPT mín. (V)',  tipo: 'number', info: 'Limite inferior da faixa de rastreamento MPPT.' },
     { key: 'tensao_mppt_max',       label: 'Tensão MPPT máx. (V)',  tipo: 'number', info: 'Limite superior da faixa de rastreamento MPPT.' },
@@ -117,9 +119,21 @@ function _presente(v) {
  * @param {Object} [statusMap] proveniência por campo do parser ('encontrado'|'inferido')
  * @returns {Array<{key,label,valor,obrigatorio,status,proveniencia,info,tipo}>}
  */
+/** Rótulo dinâmico das entradas conforme a topologia (P1-INV-TOPOLOGY-01). */
+export function rotuloEntradas(tipoTopologia) {
+  return String(tipoTopologia).toUpperCase() === 'MICRO' ? 'Módulos por MPPT' : 'Strings por MPPT'
+}
+
 export function classificarCampos(tipo, especificacoes = {}, statusMap = {}) {
+  const topo = especificacoes?.tipo_topologia
   return obterCamposEditaveis(tipo).map(campo => {
-    const valor = especificacoes?.[campo.key] ?? null
+    let valor = especificacoes?.[campo.key] ?? null
+    // entradas_por_mppt: exibe array como "3/3"; rótulo muda por topologia.
+    let label = campo.label
+    if (campo.key === 'entradas_por_mppt') {
+      if (Array.isArray(valor)) valor = valor.join('/')
+      label = `${rotuloEntradas(topo)} (entradas/MPPT)`
+    }
     const ok = _presente(valor)
     const status = ok
       ? STATUS.OK
@@ -127,7 +141,7 @@ export function classificarCampos(tipo, especificacoes = {}, statusMap = {}) {
     // Proveniência/confiança: usa o nível vindo do parser; default ENCONTRADO.
     const proveniencia = ok ? (statusMap?.[campo.key] || PROVENIENCIA.ENCONTRADO) : PROVENIENCIA.FALTANTE
     const confianca = CONFIANCA_LABEL[proveniencia] || CONFIANCA_LABEL.encontrado
-    return { ...campo, valor, status, proveniencia, confianca, info: campo.info || null }
+    return { ...campo, label, valor, status, proveniencia, confianca, info: campo.info || null }
   })
 }
 

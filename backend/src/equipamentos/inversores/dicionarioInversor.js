@@ -31,8 +31,11 @@ export const CAMPOS_INVERSOR = {
   fases:                 { grupo: 'CA', peso: 10, tipo: 'fases', aliases: ['fases', 'fases_saida', 'numeroFases', 'faseAC', 'fases_ac'] },
   frequencia_hz:         { grupo: 'CA',           aliases: ['frequencia_hz', 'freq_hz', 'frequencia'] },
   // ── Entrada CC / MPPT ─────────────────────────────────────────────────────
-  n_mppts:               { grupo: 'CC', peso: 10, aliases: ['n_mppts', 'mppts', 'nMppts', 'numero_mppt'] },
+  n_mppts:               { grupo: 'CC', peso: 10, aliases: ['n_mppts', 'mppts', 'nMppts', 'numero_mppt', 'num_mppt'] },
   strings_por_mppt:      { grupo: 'CC',           aliases: ['strings_por_mppt', 'strings_max_por_mppt'] },
+  // P1-INV-TOPOLOGY-01: representação canônica do lado CC.
+  tipo_topologia:        { grupo: 'CC', tipo: 'enum',  aliases: ['tipo_topologia', 'topologia'] },
+  entradas_por_mppt:     { grupo: 'CC', tipo: 'array', aliases: ['entradas_por_mppt'] },
   tensao_max_entrada:    { grupo: 'CC', peso: 15, aliases: ['tensao_max_entrada', 'tensao_max_entrada_dc_v', 'voc_max_dc', 'voc_max_dc_v', 'tensao_max_dc', 'tensao_max_cc', 'vpv_max', 'voc_max'] },
   tensao_mppt_min:       { grupo: 'CC', peso: 10, aliases: ['tensao_mppt_min', 'tensao_mppt_min_v', 'mppt_min_v', 'faixa_mppt_min', 'mppt_min'] },
   tensao_mppt_max:       { grupo: 'CC', peso: 10, aliases: ['tensao_mppt_max', 'tensao_mppt_max_v', 'mppt_max_v', 'faixa_mppt_max', 'mppt_max'] },
@@ -90,18 +93,72 @@ function _inferirFases(esp) {
   return null
 }
 
+// ── P1-INV-TOPOLOGY-01: lado CC canônico (entradas físicas por MPPT) ──────────
+
+export const TOPOLOGIA = { STRING: 'STRING', MICRO: 'MICRO', HYBRID: 'HYBRID' }
+
+const _FAB_MICRO = /hoymiles|apsystems|ap\s*systems|tsun|tsol|deye\s*micro|sun\s*micro|northern\s*ele|enphase|sunna|hypontech\s*micro/i
+const _MODELO_MICRO = /\b(HM[ST]?-?\d|MX\d{3,4}|MH\d{3,4}|QT\d|DS3|IQ\d|EZ\d|NEP|MIN?V|micro)/i
+
+/** Deriva o tipo de topologia (STRING|MICRO|HYBRID) sem schema novo. */
+export function derivarTopologia(esp = {}, ctx = {}) {
+  const t = String(esp.tipo_topologia || esp.topologia || '').toUpperCase()
+  if (t === 'STRING' || t === 'MICRO' || t === 'HYBRID') return t
+  const sub = String(esp.subtipo || ctx.subtipo || '').toLowerCase()
+  const fab = String(ctx.fabricante || '').toLowerCase()
+  const modelo = String(ctx.modelo || '').toLowerCase()
+  if (/micro/.test(sub) || _FAB_MICRO.test(fab) || _MODELO_MICRO.test(modelo)) return TOPOLOGIA.MICRO
+  // híbrido: indícios de bateria/EPS no spec ou subtipo
+  if (/h[íi]brid|hybrid/.test(sub) || esp.suporta_bateria || esp.interface_bess ||
+      /bateria|battery|backup|eps/i.test(JSON.stringify(esp.comunicacao || '') + sub)) return TOPOLOGIA.HYBRID
+  return TOPOLOGIA.STRING
+}
+
+/**
+ * Normaliza `entradas_por_mppt` para ARRAY de inteiros (fonte canônica do lado CC).
+ * Deriva de `entradas_por_mppt` (se já existir) ou de `strings_por_mppt` ("2/1"→[2,1],
+ * "3"→[3,3] usando num_mppt). Retorna null quando indeduzível.
+ */
+export function normalizarEntradasPorMppt(esp = {}) {
+  const nMppt = _num(valorCampo(esp, 'n_mppts'))
+  // 1) já é array
+  const direto = valorCampo(esp, 'entradas_por_mppt')
+  if (Array.isArray(direto) && direto.length && direto.every(x => Number.isFinite(Number(x)))) {
+    return direto.map(x => Math.round(Number(x)))
+  }
+  // 2) string "2/1/3" ou "2 / 1"
+  const fonte = direto != null ? direto : valorCampo(esp, 'strings_por_mppt')
+  if (typeof fonte === 'string' && /\d/.test(fonte)) {
+    const partes = fonte.split('/').map(s => parseInt(String(s).replace(/[^\d]/g, ''), 10)).filter(Number.isFinite)
+    if (partes.length > 1) return partes
+    if (partes.length === 1) {
+      const k = partes[0]
+      return nMppt && nMppt > 0 ? Array(nMppt).fill(k) : [k]   // "3" + 2 MPPT → [3,3]
+    }
+  }
+  // 3) número simples
+  const num = _num(fonte)
+  if (num != null && num > 0) return nMppt && nMppt > 0 ? Array(nMppt).fill(Math.round(num)) : [Math.round(num)]
+  return null
+}
+
 /**
  * Lê um inversor canônico a partir de `especificacoes` persistido (SSOT).
  * TODOS os consumidores devem usar isto — nunca pick() local.
- * @returns {Object} { campoCanonico: valor|null } para todo CAMPOS_INVERSOR
+ * @param {Object} especificacoes
+ * @param {Object} [ctx] { fabricante, modelo, subtipo } p/ derivar topologia
+ * @returns {Object} { campoCanonico: valor|null } + tipo_topologia + entradas_por_mppt
  */
-export function lerInversor(especificacoes) {
+export function lerInversor(especificacoes, ctx = {}) {
   const esp = especificacoes || {}
   const out = {}
   for (const campo of Object.keys(CAMPOS_INVERSOR)) {
     out[campo] = valorCampo(esp, campo)
   }
   out.fases = _inferirFases(esp)
+  // Lado CC canônico (derivado, sem schema novo)
+  out.tipo_topologia = derivarTopologia(esp, ctx)
+  out.entradas_por_mppt = normalizarEntradasPorMppt(esp)
   return out
 }
 

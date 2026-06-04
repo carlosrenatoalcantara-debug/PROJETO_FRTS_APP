@@ -93,6 +93,10 @@ export function extrairSpecsInversor(equipamento) {
     n_mppts: d.n_mppts,
     eficiencia_pct: Number(c.eficiencia_maxima) || 97,
     tipo: esp.tipo_inversor || equipamento.tipo_inversor || esp.subtipo || 'string',
+    // P1-INV-TOPOLOGY-01: limite FÍSICO do equipamento (consumido pelo dimensionamento).
+    tipo_topologia: d.tipo_topologia,
+    entradas_por_mppt: d.entradas_por_mppt,
+    max_entradas_total: d.max_entradas_total,
   }
 }
 

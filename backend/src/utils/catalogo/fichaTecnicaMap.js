@@ -65,10 +65,12 @@ const GRUPOS_POR_TIPO = {
       [['subtipo'], 'Subtipo'],   // microinversor | string
     ],
     'Entrada CC': [
+      [['tipo_topologia'], 'Topologia'],
       [['tensao_max_entrada', 'voc_max', 'tensao_max_cc'], 'Tensão máx CC', 'V'],
       [['tensao_mppt_min', 'faixa_mppt_min'], 'MPPT mín', 'V'],
       [['tensao_mppt_max', 'faixa_mppt_max'], 'MPPT máx', 'V'],
       [['n_mppts', 'mppts', 'nMppts'], 'Nº MPPT'],
+      [['entradas_por_mppt'], 'Entradas por MPPT'],
       [['strings_por_mppt'], 'Strings/MPPT'],
       [['corrente_max_por_mppt', 'corrente_max_mppt'], 'Corrente máx MPPT', 'A'],
       [['corrente_isc_max', 'corrente_curto_mppt'], 'Isc máxima', 'A'],

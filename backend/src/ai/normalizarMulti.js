@@ -14,6 +14,7 @@
  */
 
 import { criarSchemaInterno } from './schema.js'
+import { derivarTopologia, normalizarEntradasPorMppt } from '../equipamentos/inversores/index.js'
 
 /**
  * Mapeia os campos técnicos de uma variante (vocabulário do prompt/IA) para o
@@ -112,11 +113,17 @@ export function normalizarMulti(raw = {}) {
     const chave = `${(fabricante || '').toLowerCase()}::${modelo.toLowerCase()}`
     if (vistos.has(chave)) continue
     vistos.add(chave)
+    const especificacoes = mapearEspecificacoes({ subtipo: raw.subtipo, ...v })
+    // P1-INV-TOPOLOGY-01: persiste o lado CC canônico (derivado de strings/contexto).
+    const ctx = { fabricante, modelo, subtipo: raw.subtipo }
+    const entradas = normalizarEntradasPorMppt(especificacoes)
+    if (entradas) especificacoes.entradas_por_mppt = entradas
+    especificacoes.tipo_topologia = derivarTopologia(especificacoes, ctx)
     itens.push(criarSchemaInterno({
       fabricante,
       modelo,
       tipo,
-      especificacoes: mapearEspecificacoes({ subtipo: raw.subtipo, ...v }),
+      especificacoes,
       // P1-INV-MATRIX-01: proveniência por campo (encontrado|inferido) p/ Assistida.
       _meta: { multi: true, modelo_variante: !!v.modelo_variante, status: v._status || null },
     }))
