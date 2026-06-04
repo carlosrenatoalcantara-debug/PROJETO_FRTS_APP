@@ -32,15 +32,29 @@ export class InternalAdapter extends BaseAdapter {
     // parser de texto associa a coluna-1 a todos os modelos (bug GoodWe DT/Sungrow).
     let fonte = 'parser_deterministico'
     let variantes = null
-    if (input?.pdfBuffer && lista.length > 1) {
+    // P1-INV-HARDEN-PLUS-01: tenta matricial SEMPRE que houver PDF (auto-detecção
+    // de colunas cobre casos em que a detecção textual achou 0–1 modelos).
+    if (input?.pdfBuffer) {
       const mat = await parseMatricial(input.pdfBuffer, lista)
       if (mat.ok && mat.modelos.length > 1) {
         fonte = 'parser_matricial'
-        variantes = mat.modelos.map(modelo_variante => ({
-          modelo_variante,
-          ...mat.porModelo[modelo_variante].especificacoes,
-          _status: mat.porModelo[modelo_variante]._status,
-        }))
+        // P1-INV-HARDEN-PLUS-01: complemento GLOBAL — campos normalmente iguais a
+        // todos os modelos (dimensões, IP, certificações, temperatura, fases, peso,
+        // garantia, efic. europeia) são extraídos do texto e preenchem o que a
+        // matriz não capturou (marcados como inferido_alta = valor compartilhado).
+        const globais = extrairSpecsTecnicas(texto, null)
+        const CAMPOS_GLOBAIS = ['dimensoes', 'grau_protecao_ip', 'certificacoes', 'temperatura_operacao', 'fases', 'peso_kg', 'garantia_anos', 'eficiencia_europeia', 'tensao_max_entrada', 'tensao_mppt_min', 'tensao_mppt_max']
+        variantes = mat.modelos.map(modelo_variante => {
+          const esp = { ...mat.porModelo[modelo_variante].especificacoes }
+          const _status = { ...mat.porModelo[modelo_variante]._status }
+          for (const k of CAMPOS_GLOBAIS) {
+            if ((esp[k] === undefined || esp[k] === null || esp[k] === '') && globais[k] != null) {
+              esp[k] = globais[k]
+              _status[k] = 'inferido_alta'
+            }
+          }
+          return { modelo_variante, ...esp, _status }
+        })
       }
     }
 

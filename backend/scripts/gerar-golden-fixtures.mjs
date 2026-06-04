@@ -12,8 +12,13 @@ const OUT = 'src/ai/__fixtures__/golden/'
 const CASOS = [
   { id: 'sungrow_rt',  f: 'DS_20230228_SG5.0_6.0_7.0_8.0_10_12RT_Datasheet_V18_EN.pdf', fabricante: 'Sungrow', modo: 'matricial', modelos: ['SG5.0RT','SG6.0RT','SG7.0RT','SG8.0RT','SG10RT','SG12RT'] },
   { id: 'goodwe_ms',   f: 'Inversor Monofásico Goodwe 10 K.pdf', fabricante: 'GoodWe', modo: 'matricial', modelos: ['GW7000-MS-30','GW8500-MS-30','GW10K-MS-30'] },
+  { id: 'goodwe_dt',   f: 'Datasheet - Goodwe GW20KT-DT.pdf', fabricante: 'GoodWe', modo: 'matricial', modelos: [] },
+  { id: 'solplanet_7300', f: 'Datasheet_-_Solplanet_-_ASW7300-S.pdf', fabricante: 'Solplanet', modo: 'matricial', modelos: [] },
+  { id: 'deye_2330',   f: 'datasheet_sun-23-30k-g04-lv_240809_pt.pdf', fabricante: 'Deye', modo: 'matricial', modelos: [] },
+  { id: 'chint_60k',   f: 'Datasheet CHINT CPS SCA60KTL-T.EU.pdf', fabricante: 'Chint', modo: 'matricial', modelos: [] },
   { id: 'deye_lv',     f: 'datasheet_sun-23-30k-g04-lv_240809_pt.pdf', fabricante: 'Deye', modo: 'texto', modelo: 'SUN-23K-G04-LV' },
   { id: 'hopewind',    f: 'HSSP6K-G01 Hopewind-datasheet1.pdf', fabricante: 'Hopewind', modo: 'texto', modelo: 'HSSP6K-G01' },
+  { id: 'tsun_mx3000d', f: 'Micro/Datasheet_GEN3-Microinverter-6-in-1-TSOL-MX3000D-Cabo-Tronco-WiFi-Brazil.pdf', fabricante: 'TSUN', modo: 'matricial', modelos: [] },
 ]
 for (const c of CASOS) {
   const path = D + c.f

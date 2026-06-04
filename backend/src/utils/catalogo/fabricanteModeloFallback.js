@@ -155,6 +155,15 @@ const PADROES = [
       /\b(HSS[PT]\d{1,3}K-?[A-Z0-9]*)\b/i,      // HSSP6K-G01, HSST110K
     ],
   },
+  {
+    // P1-INV-HARDEN-PLUS-01: SAJ (séries R5/R6/Suntrio)
+    fabricante: 'SAJ',
+    aliases: ['saj'],
+    modelos: [
+      /\b(R[56]-\d{1,2}(?:\.\d)?K-?[A-Z0-9-]*)\b/i,   // R5-8K-S2, R6-25K-T2
+      /\b(Suntrio[\s-]*\w*)\b/i,
+    ],
+  },
   // ── Módulos ────────────────────────────────────────────────────────────
   {
     fabricante: 'Canadian Solar',

@@ -127,6 +127,40 @@ export const CONF = {
   FALTANTE:   'faltante',
 }
 
+/**
+ * AUTO-detecção de colunas (P1-INV-HARDEN-PLUS-01): quando a lista de modelos do
+ * texto é fraca, encontra a linha de cabeçalho diretamente nos tokens — tokens
+ * "código de modelo" (letras+dígitos) na mesma Y, com PREFIXO comum (SG5/SG6,
+ * ASW9100/ASW7300, R5-3K/R5-4K). Robusto contra falsos cabeçalhos.
+ */
+const _ehCodModelo = (s) => /^[A-Z][A-Z0-9]{0,4}[-\s]?\d/i.test(s) && /[A-Z]/i.test(s) && /\d/.test(s) && s.length >= 3 && s.length <= 18 && !/^\d/.test(s)
+function _prefixoComum(strs) {
+  if (!strs.length) return ''
+  let p = strs[0]
+  for (const s of strs) { let i = 0; while (i < p.length && i < s.length && p[i].toUpperCase() === s[i].toUpperCase()) i++; p = p.slice(0, i) }
+  return p
+}
+export function detectarColunasAuto(tokens) {
+  const cands = tokens.filter(t => _ehCodModelo(t.s))
+  const grupos = new Map()
+  for (const t of cands) {
+    const key = `${t.page}:${Math.round(t.y / 4)}`
+    if (!grupos.has(key)) grupos.set(key, [])
+    grupos.get(key).push(t)
+  }
+  let melhor = null, melhorScore = 0
+  for (const g of grupos.values()) {
+    // dedup por texto, ordena por x
+    const uniq = [...new Map(g.map(t => [_normModelo(t.s), t])).values()].sort((a, b) => a.x - b.x)
+    if (uniq.length < 2) continue
+    const pref = _prefixoComum(uniq.map(t => t.s))
+    if (pref.length < 2) continue                       // exige família comum
+    const score = uniq.length * pref.length
+    if (score > melhorScore) { melhorScore = score; melhor = uniq.map(t => ({ ...t, modelo: t.s })) }
+  }
+  return melhor || []
+}
+
 // ── 3+4. Agrupa linhas por (página,Y) — MULTI-PÁGINA ─────────────────────────
 function _agruparLinhas(tokens, yTol = 3) {
   const ts = tokens.slice().sort((a, b) => a.page - b.page || b.y - a.y || a.x - b.x)
@@ -193,7 +227,12 @@ function _distribuir(celulas) {
  * @returns {{ modelos:string[], porModelo: Object<modelo,{especificacoes,_status}> }}
  */
 export function montarMatriz(tokens, modelos) {
-  const colunas = detectarColunas(tokens, modelos)
+  // P1-INV-HARDEN-PLUS-01: usa a detecção que achar MAIS colunas (a lista textual
+  // costuma ser incompleta — ex.: Sungrow acha 2, o cabeçalho tem 6).
+  const known = detectarColunas(tokens, modelos)
+  const auto = detectarColunasAuto(tokens)
+  let colunas = auto.length > known.length ? auto : known
+  if (colunas.length < 2) colunas = auto.length >= known.length ? auto : known
   if (colunas.length < 2) return { ok: false, motivo: 'colunas<2', colunas: colunas.length }
 
   const pageCab = colunas[0].page
@@ -283,9 +322,11 @@ function _aplicar(destino, campo, celula, status) {
  */
 export async function parseMatricial(pdfBuffer, modelos = []) {
   try {
-    if (!pdfBuffer || !Array.isArray(modelos) || modelos.length < 2) return { ok: false, motivo: 'sem_pdf_ou_<2_modelos' }
+    if (!pdfBuffer) return { ok: false, motivo: 'sem_pdf' }
     const tokens = await extrairTokensPosicionais(pdfBuffer)
-    return montarMatriz(tokens, modelos)
+    // P1-INV-HARDEN-PLUS-01: sem gate de "≥2 modelos" — montarMatriz tenta a lista
+    // conhecida e, se falhar, AUTO-detecta as colunas no cabeçalho do PDF.
+    return montarMatriz(tokens, Array.isArray(modelos) ? modelos : [])
   } catch (e) {
     return { ok: false, motivo: `erro:${e?.message || e}` }
   }
