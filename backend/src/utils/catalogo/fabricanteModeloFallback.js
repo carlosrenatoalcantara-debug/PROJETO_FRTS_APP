@@ -164,6 +164,33 @@ const PADROES = [
       /\b(Suntrio[\s-]*\w*)\b/i,
     ],
   },
+  // ── Microinversores (P1-MICRO-READINESS-01) — fabricante reconhecido ⇒
+  //    derivarTopologia() classifica como MICRO. NÃO altera dimensionamento.
+  {
+    fabricante: 'Hoymiles',
+    aliases: ['hoymiles'],
+    modelos: [/\b(HM[ST]-?\d{3,4}\w*(?:-\w+)*)\b/i, /\b(MI-?\d{3,4}\w*)\b/i],  // HMS-2000DW-4T, MI-1500
+  },
+  {
+    fabricante: 'APsystems',
+    aliases: ['apsystems', 'ap systems', 'altenergy'],
+    modelos: [/\b(QT\d[A-Z0-9-]*)\b/i, /\b(DS3[A-Z0-9-]*)\b/i, /\b(YC\d{3}[A-Z0-9-]*)\b/i, /\b(EZ\d[A-Z0-9-]*)\b/i],  // QT2D, DS3, YC600
+  },
+  {
+    fabricante: 'TSUN',
+    aliases: ['tsun', 'tsol'],
+    modelos: [/\b(TSOL-?M[XH]\d{3,4}[A-Z0-9-]*)\b/i, /\b(M[XH]\d{3,4}D?)\b/i],  // TSOL-MX3000D, MH2000
+  },
+  {
+    fabricante: 'NEP',
+    aliases: ['nep ', 'northern electric power', 'northern ele'],
+    modelos: [/\b(MINV[A-Z0-9-]*)\b/i, /\b(BDM-?\d{3,4}[A-Z0-9-]*)\b/i, /\b(PV-?MICRO[A-Z0-9-]*)\b/i],
+  },
+  {
+    fabricante: 'Deye Micro',
+    aliases: ['deye microinversor', 'sun microinverter'],
+    modelos: [/\b(SUN-?\d{3,4}G\d[A-Z0-9-]*-?MI[A-Z0-9-]*)\b/i, /\b(SUN-?M\d{2,4}[A-Z0-9-]*)\b/i],
+  },
   // ── Módulos ────────────────────────────────────────────────────────────
   {
     fabricante: 'Canadian Solar',

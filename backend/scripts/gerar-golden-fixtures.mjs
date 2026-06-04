@@ -15,10 +15,10 @@ const CASOS = [
   { id: 'goodwe_dt',   f: 'Datasheet - Goodwe GW20KT-DT.pdf', fabricante: 'GoodWe', modo: 'matricial', modelos: [] },
   { id: 'solplanet_7300', f: 'Datasheet_-_Solplanet_-_ASW7300-S.pdf', fabricante: 'Solplanet', modo: 'matricial', modelos: [] },
   { id: 'deye_2330',   f: 'datasheet_sun-23-30k-g04-lv_240809_pt.pdf', fabricante: 'Deye', modo: 'matricial', modelos: [] },
-  { id: 'chint_60k',   f: 'Datasheet CHINT CPS SCA60KTL-T.EU.pdf', fabricante: 'Chint', modo: 'matricial', modelos: [] },
   { id: 'deye_lv',     f: 'datasheet_sun-23-30k-g04-lv_240809_pt.pdf', fabricante: 'Deye', modo: 'texto', modelo: 'SUN-23K-G04-LV' },
   { id: 'hopewind',    f: 'HSSP6K-G01 Hopewind-datasheet1.pdf', fabricante: 'Hopewind', modo: 'texto', modelo: 'HSSP6K-G01' },
   { id: 'tsun_mx3000d', f: 'Micro/Datasheet_GEN3-Microinverter-6-in-1-TSOL-MX3000D-Cabo-Tronco-WiFi-Brazil.pdf', fabricante: 'TSUN', modo: 'matricial', modelos: [] },
+  { id: 'hoymiles_hms', f: 'Micro/Datasheet - Hoymiles HMS-2000DW-4T.pdf', fabricante: 'Hoymiles', modo: 'matricial', modelos: [] },
 ]
 for (const c of CASOS) {
   const path = D + c.f

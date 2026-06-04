@@ -86,11 +86,13 @@ export function potenciaDoModelo(modelo) {
 // ── Rótulos base (fallback hardcoded; a KB pode adicionar mais) ───────────────
 // Chave = nome do campo em `especificacoes`. Os valores são "regex source" (str).
 export const ROTULOS_BASE = {
-  potencia_kw: ['Rated\\s+(?:AC\\s+)?(?:Output\\s+)?Power', 'Nominal\\s+(?:AC\\s+)?Output\\s+Power', 'AC\\s+(?:Rated\\s+)?Output\\s+Power', 'Pot[êe]ncia\\s+nominal(?:\\s+(?:AC|CA))?', 'Pot[êe]ncia\\s+(?:CA\\s+)?ativa\\s+nominal', 'Pot[êe]ncia\\s+activa\\s+nominal', 'Pot[êe]ncia\\s+ativa\\s+nominal\\s+(?:de\\s+)?sa[íi]da', 'Output\\s+Power'],
+  potencia_kw: ['Rated\\s+(?:AC\\s+)?(?:Output\\s+)?Power', 'Nominal\\s+(?:AC\\s+)?Output\\s+Power', 'AC\\s+(?:Rated\\s+)?Output\\s+Power', 'Pot[êe]ncia\\s+nominal(?:\\s+(?:AC|CA))?', 'Pot[êe]ncia\\s+(?:CA\\s+)?ativa\\s+nominal', 'Pot[êe]ncia\\s+activa\\s+nominal', 'Pot[êe]ncia\\s+ativa\\s+nominal\\s+(?:de\\s+)?sa[íi]da', 'Pot[êe]ncia\\s+m[áa]xima\\s+(?:nominal\\s+)?de\\s+sa[íi]da(?:\\s+cont[íi]nua)?', 'Max[^\\n]{0,14}continuous\\s+output\\s+power', 'Output\\s+Power'],
   potencia_maxima_kw: ['Max[^\\n]{0,14}(?:AC\\s+)?(?:Apparent\\s+|Output\\s+)Power', 'Maximum\\s+(?:AC\\s+)?(?:Apparent\\s+)?Power', 'Pot[êe]ncia\\s+m[áa]x[^\\n]{0,14}(?:CA|AC|sa[íi]da|aparente)', 'Pot[êe]ncia\\s+CA\\s+ativa\\s+m[áa]x', 'Pot[êe]ncia\\s+aparente\\s+m[áa]x', 'Max\\.?\\s+apparent\\s+power'],
-  n_mppts: ['N[ºo]\\.?\\s*(?:de\\s*)?MPPTs?', 'Number\\s+of\\s+MPPTs?', 'MPPT\\s+Number', 'Quantidade\\s+de\\s+MPPT', 'MPP\\s*Trackers?', 'N[ºo]\\.?\\s*of\\s*(?:independent\\s*)?MPP(?:T|\\s*(?:inputs?|trackers?))', 'N[ºo]\\.?\\s*(?:de\\s*)?(?:entradas?|rastreadores?)\\s*MPP'],
-  strings_por_mppt: ['Strings?\\s+(?:por|per)\\s+MPPT', 'Entradas?\\s+por\\s+MPPT', 'No\\.?\\s+of\\s+(?:input\\s+)?strings?(?:\\s+per\\s+MPPT)?', 'N[úu]mero\\s+de\\s+(?:DC\\s+)?Connection\\s+Sets', 'Number\\s+of\\s+DC\\s+Connection\\s+Sets', 'N[ºo]\\s*de\\s*strings'],
-  tensao_max_entrada: ['Max[^\\n]{0,14}(?:DC|PV)\\s+Input\\s+Voltage', 'Max[^\\n]{0,14}(?:DC|PV)\\s+Voltage', 'Maximum\\s+(?:DC|PV)\\s+Voltage', 'Tens[ãa]o\\s+m[áa]x[^\\n]{0,18}(?:CC|DC)', 'Tens[ãa]o\\s+(?:de\\s+)?entrada\\s+m[áa]xima', 'Max\\.?\\s+Tens[ãa]o\\s+de\\s+Entrada\\s+CC'],
+  n_mppts: ['N[ºo]\\.?\\s*(?:de\\s*)?MPPTs?', 'N[úu]mero\\s+de\\s+MPPTs?', 'Quantidade\\s+de\\s+MPPTs?', 'Number\\s+of\\s+MPPTs?', 'MPPT\\s+Number', 'MPP\\s*Trackers?', 'N[ºo]\\.?\\s*of\\s*(?:independent\\s*)?MPP(?:T|\\s*(?:inputs?|trackers?))', 'N[ºo]\\.?\\s*(?:de\\s*)?(?:entradas?|rastreadores?)\\s*MPP'],
+  strings_por_mppt: ['Strings?\\s+(?:por|per)\\s+MPPT', 'Entradas?\\s+por\\s+MPPT', 'No\\.?\\s+of\\s+(?:input\\s+)?strings?(?:\\s+per\\s+MPPT)?', 'N[úu]mero\\s+de\\s+(?:DC\\s+)?Connection\\s+Sets', 'Number\\s+of\\s+DC\\s+Connection\\s+Sets', 'N[úu]mero\\s+de\\s+sa[íi]das\\s+por\\s+MPPT', 'Number\\s+of\\s+outputs?\\s+per\\s+MPPT', 'N[ºo]\\s*de\\s*strings'],
+  // total de entradas CC (micro): distribuído entre MPPTs em normalizarEntradasPorMppt
+  _total_entradas_cc: ['Quantidade\\s+de\\s+Entradas\\s+CC', 'N[úu]mero\\s+de\\s+Entradas\\s+(?:CC|DC)', 'Number\\s+of\\s+DC\\s+inputs?'],
+  tensao_max_entrada: ['Max[^\\n]{0,14}(?:DC|PV)\\s+Input\\s+Voltage', 'Max[^\\n]{0,14}(?:DC|PV)\\s+Voltage', 'Maximum\\s+(?:DC|PV)\\s+Voltage', 'Tens[ãa]o\\s+m[áa]x[^\\n]{0,18}(?:CC|DC)', 'Tens[ãa]o\\s+(?:de\\s+)?entrada\\s+m[áa]xima', 'Tens[ãa]o\\s+M[áa]xima\\s+de\\s+Entrada', 'Max\\.?\\s+Tens[ãa]o\\s+de\\s+Entrada\\s+CC'],
   // tensao_mppt_min e tensao_mppt_max compartilham os rótulos de FAIXA
   _mppt_range: ['MPPT\\s+(?:Voltage\\s+)?Range', 'MPP\\s+Voltage\\s+Range', 'Faixa\\s+(?:de\\s+)?(?:tens[ãa]o\\s+)?(?:de\\s+)?MPPT', 'Faixa\\s+de\\s+opera[çc][ãa]o\\s+MPPT', 'Full\\s+load\\s+MPPT'],
   tensao_ac: ['Rated\\s+(?:Grid|AC|Output)\\s+Voltage', 'Nominal\\s+(?:Grid|AC|Output)\\s+Voltage', 'Tens[ãa]o\\s+nominal[^\\n]{0,14}(?:CA|AC|rede)'],
@@ -125,6 +127,7 @@ const CAMPOS = [
     return _valor(t, _labels('n_mppts'), { min: 1, max: 24 })
   }],
   ['strings_por_mppt', (t) => _valor(t, _labels('strings_por_mppt'), { min: 1, max: 24 })],
+  ['total_entradas_cc', (t) => _valor(t, _labels('_total_entradas_cc'), { min: 1, max: 48 })],
   ['tensao_max_entrada', (t) => _valor(t, _labels('tensao_max_entrada'), { min: 200, max: 1500 })],
   ['tensao_mppt_min', (t) => { const f = _faixa(t, _labels('_mppt_range')); return f ? f[0] : null }],
   ['tensao_mppt_max', (t) => { const f = _faixa(t, _labels('_mppt_range')); return f ? f[1] : null }],

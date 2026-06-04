@@ -97,8 +97,8 @@ function _inferirFases(esp) {
 
 export const TOPOLOGIA = { STRING: 'STRING', MICRO: 'MICRO', HYBRID: 'HYBRID' }
 
-const _FAB_MICRO = /hoymiles|apsystems|ap\s*systems|tsun|tsol|deye\s*micro|sun\s*micro|northern\s*ele|enphase|sunna|hypontech\s*micro/i
-const _MODELO_MICRO = /\b(HM[ST]?-?\d|MX\d{3,4}|MH\d{3,4}|QT\d|DS3|IQ\d|EZ\d|NEP|MIN?V|micro)/i
+const _FAB_MICRO = /hoymiles|apsystems|ap\s*systems|tsun|tsol|deye\s*micro|sun\s*micro|northern\s*ele|\bnep\b|enphase|sunna|hypontech\s*micro/i
+const _MODELO_MICRO = /\b(HM[ST]?-?\d|MX\d{3,4}|MH\d{3,4}|QT\d|DS3|YC\d{3}|IQ\d|EZ\d|NEP|MIN?V|BDM-?\d|micro)/i
 
 /** Deriva o tipo de topologia (STRING|MICRO|HYBRID) sem schema novo. */
 export function derivarTopologia(esp = {}, ctx = {}) {
@@ -136,9 +136,16 @@ export function normalizarEntradasPorMppt(esp = {}) {
       return nMppt && nMppt > 0 ? Array(nMppt).fill(k) : [k]   // "3" + 2 MPPT → [3,3]
     }
   }
-  // 3) número simples
+  // 3) número simples (strings por MPPT) → replica por MPPT
   const num = _num(fonte)
   if (num != null && num > 0) return nMppt && nMppt > 0 ? Array(nMppt).fill(Math.round(num)) : [Math.round(num)]
+  // 4) micro: "total de entradas CC" distribuído uniformemente entre os MPPTs
+  const total = _num(esp.total_entradas_cc)
+  if (total && total > 0 && nMppt && nMppt > 0) {
+    const base = Math.floor(total / nMppt)
+    let resto = total % nMppt
+    return Array.from({ length: nMppt }, () => base + (resto-- > 0 ? 1 : 0))
+  }
   return null
 }
 
