@@ -147,6 +147,14 @@ const PADROES = [
       /\b(SIW\d{3}[A-Z]?-?[A-Z0-9]*)\b/i,       // SIW100G, SIW300H, SIW500H-ST
     ],
   },
+  {
+    // P1-INV-MATRIX-01: Hopewind (série HSSP/HSST) — datasheet com texto OCR.
+    fabricante: 'Hopewind',
+    aliases: ['hopewind'],
+    modelos: [
+      /\b(HSS[PT]\d{1,3}K-?[A-Z0-9]*)\b/i,      // HSSP6K-G01, HSST110K
+    ],
+  },
   // ── Módulos ────────────────────────────────────────────────────────────
   {
     fabricante: 'Canadian Solar',

@@ -117,7 +117,8 @@ export function normalizarMulti(raw = {}) {
       modelo,
       tipo,
       especificacoes: mapearEspecificacoes({ subtipo: raw.subtipo, ...v }),
-      _meta: { multi: true, modelo_variante: !!v.modelo_variante },
+      // P1-INV-MATRIX-01: proveniência por campo (encontrado|inferido) p/ Assistida.
+      _meta: { multi: true, modelo_variante: !!v.modelo_variante, status: v._status || null },
     }))
   }
 

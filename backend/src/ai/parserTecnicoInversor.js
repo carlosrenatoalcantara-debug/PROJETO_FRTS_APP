@@ -88,7 +88,7 @@ export function potenciaDoModelo(modelo) {
 export const ROTULOS_BASE = {
   potencia_kw: ['Rated\\s+(?:AC\\s+)?(?:Output\\s+)?Power', 'Nominal\\s+(?:AC\\s+)?Output\\s+Power', 'AC\\s+(?:Rated\\s+)?Output\\s+Power', 'Pot[êe]ncia\\s+nominal(?:\\s+(?:AC|CA))?', 'Output\\s+Power'],
   potencia_maxima_kw: ['Max[^\\n]{0,14}(?:AC\\s+)?(?:Apparent\\s+|Output\\s+)Power', 'Maximum\\s+(?:AC\\s+)?(?:Apparent\\s+)?Power', 'Pot[êe]ncia\\s+m[áa]x[^\\n]{0,14}(?:CA|AC|sa[íi]da|aparente)', 'Max\\.?\\s+apparent\\s+power'],
-  n_mppts: ['N[ºo]\\.?\\s*(?:de\\s*)?MPPTs?', 'Number\\s+of\\s+MPPTs?', 'MPPT\\s+Number', 'Quantidade\\s+de\\s+MPPT', 'MPP\\s*Trackers?'],
+  n_mppts: ['N[ºo]\\.?\\s*(?:de\\s*)?MPPTs?', 'Number\\s+of\\s+MPPTs?', 'MPPT\\s+Number', 'Quantidade\\s+de\\s+MPPT', 'MPP\\s*Trackers?', 'N[ºo]\\.?\\s*of\\s*(?:independent\\s*)?MPP(?:T|\\s*(?:inputs?|trackers?))', 'N[ºo]\\.?\\s*(?:de\\s*)?(?:entradas?|rastreadores?)\\s*MPP'],
   strings_por_mppt: ['Strings?\\s+(?:por|per)\\s+MPPT', 'Entradas?\\s+por\\s+MPPT', 'No\\.?\\s+of\\s+(?:input\\s+)?strings?(?:\\s+per\\s+MPPT)?'],
   tensao_max_entrada: ['Max[^\\n]{0,14}(?:DC|PV)\\s+Input\\s+Voltage', 'Max[^\\n]{0,14}(?:DC|PV)\\s+Voltage', 'Maximum\\s+(?:DC|PV)\\s+Voltage', 'Tens[ãa]o\\s+m[áa]x[^\\n]{0,18}(?:CC|DC)'],
   // tensao_mppt_min e tensao_mppt_max compartilham os rótulos de FAIXA

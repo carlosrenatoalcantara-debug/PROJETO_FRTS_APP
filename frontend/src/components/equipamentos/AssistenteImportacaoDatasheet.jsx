@@ -1,9 +1,10 @@
 import { useState, useMemo } from 'react'
-import { X, Upload, CheckCircle, AlertTriangle, AlertCircle, ChevronLeft, ChevronRight, SkipForward, Loader } from 'lucide-react'
+import { X, Upload, CheckCircle, AlertTriangle, AlertCircle, ChevronLeft, ChevronRight, SkipForward, Loader, Info } from 'lucide-react'
 import {
   classificarCampos,
   resumirQualidade,
   STATUS,
+  PROVENIENCIA,
 } from '../../../../backend/src/ai/camposEquipamento.js'
 
 const API_URL = ''
@@ -35,13 +36,16 @@ export default function AssistenteImportacaoDatasheet({ tipoEquipamento = 'inver
     return { ...base, ...(edicoes[indice] || {}) }
   }, [itens, indice, edicoes])
 
+  // P1-INV-MATRIX-01: proveniência por campo vinda do parser (matricial: 🟢/🟡).
+  const statusMap = useMemo(() => itens[indice]?._meta?.status || {}, [itens, indice])
+
   const campos = useMemo(
-    () => classificarCampos(itens[indice]?.tipo || tipoEquipamento, especEfetiva),
-    [itens, indice, especEfetiva, tipoEquipamento]
+    () => classificarCampos(itens[indice]?.tipo || tipoEquipamento, especEfetiva, statusMap),
+    [itens, indice, especEfetiva, tipoEquipamento, statusMap]
   )
   const qualidade = useMemo(
-    () => resumirQualidade(itens[indice]?.tipo || tipoEquipamento, especEfetiva),
-    [itens, indice, especEfetiva, tipoEquipamento]
+    () => resumirQualidade(itens[indice]?.tipo || tipoEquipamento, especEfetiva, statusMap),
+    [itens, indice, especEfetiva, tipoEquipamento, statusMap]
   )
 
   // ── ETAPA 1: upload + extração ────────────────────────────────────────────────
@@ -132,12 +136,12 @@ export default function AssistenteImportacaoDatasheet({ tipoEquipamento = 'inver
     return { salvos, ignorados, corrigidos, media }
   }, [resultados])
 
-  const corIcone = { [STATUS.OK]: 'text-emerald-500', [STATUS.AUSENTE]: 'text-amber-500', [STATUS.OBRIGATORIO]: 'text-red-500' }
-  const IconeStatus = ({ status }) => status === STATUS.OK
-    ? <CheckCircle size={15} className={corIcone[status]} />
-    : status === STATUS.OBRIGATORIO
-      ? <AlertCircle size={15} className={corIcone[status]} />
-      : <AlertTriangle size={15} className={corIcone[status]} />
+  // Proveniência: 🟢 encontrado no PDF · 🟡 inferido pelo parser · 🔴 não encontrado
+  const BadgeProveniencia = ({ proveniencia }) => proveniencia === PROVENIENCIA.ENCONTRADO
+    ? <CheckCircle size={15} className="text-emerald-500" title="Encontrado diretamente no PDF" />
+    : proveniencia === PROVENIENCIA.INFERIDO
+      ? <AlertTriangle size={15} className="text-amber-500" title="Inferido pelo parser" />
+      : <AlertCircle size={15} className="text-red-500" title="Não encontrado" />
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onFechar}>
@@ -190,17 +194,36 @@ export default function AssistenteImportacaoDatasheet({ tipoEquipamento = 'inver
               <h3 className="text-lg font-bold text-slate-900 mb-1">{itens[indice].modelo}</h3>
               <p className="text-xs text-slate-400 mb-3">{itens[indice].fabricante}</p>
 
-              {qualidade.faltantes.length > 0 && (
-                <div className="mb-3 text-xs text-slate-500">
-                  Campos faltantes: {qualidade.faltantes.join(', ')}
+              {/* Alerta de qualidade da extração */}
+              <div className="mb-3 p-3 rounded-lg bg-slate-50 border border-slate-200">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-xs font-semibold text-slate-700">Qualidade da extração</span>
+                  <span className={`text-sm font-bold ${qualidade.percentual >= 80 ? 'text-emerald-600' : qualidade.percentual >= 50 ? 'text-amber-600' : 'text-red-600'}`}>{qualidade.percentual}%</span>
                 </div>
-              )}
+                <div className="flex gap-4 text-xs">
+                  <span className="flex items-center gap-1 text-emerald-700"><CheckCircle size={13} /> Encontrados: <strong>{qualidade.encontrados}</strong></span>
+                  <span className="flex items-center gap-1 text-amber-700"><AlertTriangle size={13} /> Inferidos: <strong>{qualidade.inferidos}</strong></span>
+                  <span className="flex items-center gap-1 text-red-700"><AlertCircle size={13} /> Pendentes: <strong>{qualidade.pendentes}</strong></span>
+                </div>
+                {qualidade.faltantes.length > 0 && (
+                  <div className="mt-2 pt-2 border-t border-slate-200">
+                    <p className="text-[11px] font-medium text-slate-500 mb-1">Campos não encontrados:</p>
+                    <div className="flex flex-wrap gap-x-3 gap-y-0.5">
+                      {qualidade.faltantes.map(f => (
+                        <label key={f} className="flex items-center gap-1 text-[11px] text-slate-600">
+                          <input type="checkbox" disabled className="accent-red-500" /> {f}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
 
               <div className="grid grid-cols-2 gap-3">
                 {campos.map(c => (
                   <div key={c.key}>
                     <label className="flex items-center gap-1.5 text-xs font-medium text-slate-600 mb-1">
-                      <IconeStatus status={c.status} />
+                      <BadgeProveniencia proveniencia={c.proveniencia} />
                       {c.label}{c.obrigatorio && <span className="text-red-500">*</span>}
                     </label>
                     <input
@@ -208,10 +231,17 @@ export default function AssistenteImportacaoDatasheet({ tipoEquipamento = 'inver
                       value={c.valor ?? ''}
                       onChange={e => editarCampo(c.key, c.tipo === 'number' ? (e.target.value === '' ? null : Number(e.target.value)) : e.target.value)}
                       className={`w-full px-2.5 py-1.5 text-sm border rounded-lg focus:ring-1 focus:ring-blue-400 outline-none ${
-                        c.status === STATUS.OBRIGATORIO ? 'border-red-300 bg-red-50' : c.status === STATUS.AUSENTE ? 'border-amber-200' : 'border-slate-200'
+                        c.proveniencia === PROVENIENCIA.FALTANTE && c.obrigatorio ? 'border-red-300 bg-red-50'
+                          : c.proveniencia === PROVENIENCIA.INFERIDO ? 'border-amber-200 bg-amber-50'
+                          : c.proveniencia === PROVENIENCIA.FALTANTE ? 'border-amber-200' : 'border-slate-200'
                       }`}
-                      placeholder={c.status === STATUS.OK ? '' : 'Não encontrado'}
                     />
+                    {/* Legenda EXTERNA ao campo (não usar placeholder como documentação) */}
+                    {c.info && (
+                      <p className="mt-0.5 flex items-start gap-1 text-[11px] text-slate-400">
+                        <Info size={11} className="mt-0.5 shrink-0" /> <span>{c.info}</span>
+                      </p>
+                    )}
                   </div>
                 ))}
               </div>
