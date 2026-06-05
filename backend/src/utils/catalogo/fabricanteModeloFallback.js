@@ -164,6 +164,22 @@ const PADROES = [
       /\b(Suntrio[\s-]*\w*)\b/i,
     ],
   },
+  {
+    // P1-SOLAX-CATALOG-01: SolaX Power. Padrão semântico universal da marca:
+    //   X<fase>-<FAMÍLIA>-<potência>[-variante]  (fase ∈ {1,3}).
+    // Reconhecimento por FAMÍLIA (não por modelo). Tudo é gated pelo alias "solax",
+    // então o regex genérico de família não colide com outros fabricantes.
+    fabricante: 'SolaX',
+    aliases: ['solax'],
+    modelos: [
+      /\b(X1-SPT-\d{1,3}(?:\.\d)?K[\w-]*)\b/i,                 // X1-SPT-10K, X1-SPT-12K
+      /\b(X3-HYBRID-\d{1,3}(?:\.\d)?[-\w.]*)\b/i,              // X3-HYBRID-10.0-M
+      /\b(X3-?\s*Huge-\d{1,3}(?:\.\d)?-?LV[\w-]*)\b/i,         // X3-Huge-10.0-LV
+      /\b(X3-ULT-\d{1,3}(?:\.\d)?K?P?[\w-]*)\b/i,              // X3-ULT-30K, X3-ULT-19.9K, X3-ULT-15KP
+      // Fallback de FAMÍLIA (cobre séries SolaX futuras sem novo deploy):
+      /\b(X[13][-\s]?(?:SPT|HYBRID|HUGE|ULT|ULTRA|NEO|MIC|BOOST|FIT|FORTH|MEGA|PRO|TRIO)[-\s]?\d{1,3}(?:\.\d)?[\w.-]*)\b/i,
+    ],
+  },
   // ── Microinversores (P1-MICRO-READINESS-01) — fabricante reconhecido ⇒
   //    derivarTopologia() classifica como MICRO. NÃO altera dimensionamento.
   {
