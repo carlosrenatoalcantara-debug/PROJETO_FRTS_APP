@@ -322,6 +322,22 @@ function _aplicar(destino, campo, celula, status) {
     esp[campo] = (campo === 'dimensoes' ? joined : tokens[0]).trim(); destino._status[campo] = status
     return
   }
+  // P1-MICRO-EXTRACT-01: formato COMPOSTO "A × B" (microinversores).
+  // Conceito: "contagem_de_entradas × corrente_por_entrada" (ex.: Hoymiles
+  // "4 × 25", APsystems "20A x 4"). Para um campo de CORRENTE o valor físico é
+  // o MAIOR dos dois (a corrente por entrada); o menor é a contagem de entradas.
+  // Vale para qualquer fabricante que use a notação N×corrente (família semântica,
+  // não regra por marca). Só aplica em campos de corrente; rejeita fora da faixa.
+  if (campo === 'corrente_max_por_mppt' || campo === 'corrente_isc_max') {
+    const cz = joined.match(/(\d{1,3})\s*[Aa]?\s*[x×*]\s*(\d{1,3})/)
+    if (cz) {
+      const val = Math.max(parseInt(cz[1]), parseInt(cz[2]))
+      const rgc = _RANGES[campo]
+      if (Number.isFinite(val) && (!rgc || (val >= rgc[0] && val <= rgc[1]))) {
+        esp[campo] = val; destino._status[campo] = status; return
+      }
+    }
+  }
   // numérico: VARRE os tokens e pega o PRIMEIRO valor dentro da FAIXA física
   // (P1-INV-HARDEN-PLUS-02). Ignora nota de rodapé ("1 1,100"→1100), e descarta
   // valores implausíveis (corrente total 360A como por-MPPT, fator de potência
@@ -344,7 +360,7 @@ const _RANGES = {
   potencia_kw: [0.4, 600], potencia_maxima_kw: [0.4, 600], tensao_max_entrada: [40, 1500],
   tensao_ac: [100, 1000], corrente_ac_saida: [1, 400], corrente_max_por_mppt: [1, 100],
   corrente_isc_max: [1, 120], eficiencia_maxima: [90, 100], eficiencia_europeia: [90, 100],
-  peso_kg: [2, 200], garantia_anos: [1, 30], n_mppts: [1, 30], fases: [1, 3], frequencia_hz: [40, 70],
+  peso_kg: [2, 200], garantia_anos: [1, 30], n_mppts: [1, 30], total_entradas_cc: [1, 48], fases: [1, 3], frequencia_hz: [40, 70],
 }
 
 /**

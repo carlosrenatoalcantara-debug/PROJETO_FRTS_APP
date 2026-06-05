@@ -81,6 +81,26 @@ function _faixa(texto, rotulos) {
   return null
 }
 
+/**
+ * P1-MICRO-EXTRACT-01 — FAMÍLIA SEMÂNTICA "par cruzado" (formato composto N×M):
+ *   "4 × 14" (Hoymiles), "20A x 4" (APsystems), "19 x 4" (NEP)…
+ * Conceito elétrico: <quantidade de entradas> × <corrente por entrada>, em
+ * QUALQUER ordem. Generalização (não por fabricante): a CONTAGEM de entradas é
+ * pequena (≤12) e a CORRENTE é o valor maior → menor = entradas, maior = corrente.
+ * @returns {{count:number, valor:number}|null}
+ */
+function _parCruz(texto, rotulos) {
+  const t = _norm(texto)
+  for (const r of rotulos) {
+    const m = t.match(new RegExp(`${r}[^\\n]{0,32}?(\\d{1,3})\\s*[Aa]?\\s*[x×*]\\s*(\\d{1,3})`, 'i'))
+    if (m) {
+      const a = parseInt(m[1]), b = parseInt(m[2])
+      if (Number.isFinite(a) && Number.isFinite(b)) return { count: Math.min(a, b), valor: Math.max(a, b) }
+    }
+  }
+  return null
+}
+
 /** Potência (kW) a partir do NOME do modelo: GW20K, ASW15K, MID25K, 1P7K, SUN2000-100K. */
 export function potenciaDoModelo(modelo) {
   if (!modelo) return null
@@ -101,14 +121,20 @@ export const ROTULOS_BASE = {
   n_mppts: ['N[ºo]\\.?\\s*(?:de\\s*)?MPPTs?', 'N[úu]mero\\s+de\\s+MPPTs?(?:\\s+independentes)?', 'Quantidade\\s+de\\s+MPPTs?(?:\\s+independentes)?', 'Number\\s+of\\s+MPPTs?', 'MPPT\\s+Number', 'MPP\\s*Trackers?', 'N[ºo]\\.?\\s*of\\s*(?:independent\\s*)?MPP(?:T|\\s*(?:inputs?|trackers?))', 'N[ºo]\\.?\\s*(?:de\\s*)?(?:entradas?|rastreadores?)\\s*MPP'],
   strings_por_mppt: ['Strings?\\s+(?:por|per)\\s+MPPT', 'Entradas?\\s+por\\s+MPPT', 'No\\.?\\s+of\\s+(?:input\\s+)?strings?(?:\\s+per\\s+MPPT)?', 'N[úu]mero\\s+de\\s+(?:DC\\s+)?Connection\\s+Sets', 'Number\\s+of\\s+DC\\s+Connection\\s+Sets', 'N[úu]mero\\s+de\\s+sa[íi]das\\s+por\\s+MPPT', 'Number\\s+of\\s+outputs?\\s+per\\s+MPPT', 'Max[^\\n]{0,4}input\\s+number\\s+per\\s+MPP', 'Quantidade\\s+de\\s+strings\\s+por\\s+MPPT', 'N[úu]mero\\s+de\\s+strings\\s+por\\s+MPPT', 'N[ºo]\\s*de\\s*strings'],
   // total de entradas CC (micro): distribuído entre MPPTs em normalizarEntradasPorMppt
-  _total_entradas_cc: ['Quantidade\\s+de\\s+Entradas\\s+CC', 'N[úu]mero\\s+de\\s+Entradas\\s+(?:CC|DC)', 'Number\\s+of\\s+(?:DC\\s+)?[Ii]nputs?'],
+  // P1-MICRO-EXTRACT-01: SEM underscore → também vira matcher POSICIONAL (coluna-
+  // única/matricial), recuperando "Quantidade de Entradas CC: 6" → total_entradas_cc.
+  // Conceito: nº de entradas CC físicas. O extrator de TEXTO (CAMPOS) mantém a
+  // lógica rica (composto/reverso/sanidade); aqui só expõe o rótulo ao posicional.
+  total_entradas_cc: ['Quantidade\\s+de\\s+Entradas\\s+CC', 'N[úu]mero\\s+de\\s+Entradas\\s+(?:CC|DC)', 'Number\\s+of\\s+(?:DC\\s+)?[Ii]nputs?'],
+  // P1-MICRO-EXTRACT-01: módulos suportados (micro) — fallback p/ contagem de entradas
+  _modulos: ['Quantidade\\s+de\\s+M[óo]dulos', 'Number\\s+of\\s+modules', 'N[úu]mero\\s+de\\s+m[óo]dulos'],
   tensao_max_entrada: ['Max[^\\n]{0,14}(?:DC|PV)\\s+Input\\s+Voltage', 'Max[^\\n]{0,14}(?:DC|PV)\\s+Voltage', 'Max\\.?\\s+Input\\s+Voltage', 'Maximum\\s+(?:DC|PV)\\s+Voltage', 'Tens[ãa]o\\s+m[áa]x[^\\n]{0,18}(?:CC|DC)', 'Tens[ãa]o\\s+(?:de\\s+)?entrada\\s+m[áa]xima', 'M[áa]x\\.?\\s+tens[ãa]o\\s+de\\s+entrada\\s+(?:FV|PV)', 'Tens[ãa]o\\s+M[áa]xima\\s+de\\s+Entrada', 'Max\\.?\\s+Tens[ãa]o\\s+de\\s+Entrada\\s+CC'],
   // tensao_mppt_min e tensao_mppt_max compartilham os rótulos de FAIXA
   _mppt_range: ['MPPT\\s+(?:Operating\\s+)?(?:Voltage\\s+)?Range', 'MPP\\s+(?:Voltage\\s+)?Range', 'Faixa\\s+(?:de\\s+)?(?:tens[ãa]o\\s+)?(?:de\\s+)?MPPT?', 'Faixa\\s+de\\s+opera[çc][ãa]o\\s+MPPT', 'Faixa\\s+de\\s+tens[ãa]o\\s+MPP', 'Full\\s+load\\s+MPPT'],
   tensao_ac: ['Rated\\s+(?:Grid|AC|Output)\\s+Voltage', 'Nominal\\s+(?:Grid|AC|Output)\\s+Voltage', 'Tens[ãa]o\\s+nominal[^\\n]{0,14}(?:CA|AC|rede)'],
   corrente_ac_saida: ['Max[^\\n]{0,14}(?:AC\\s+)?Output\\s+Current', 'Rated\\s+(?:AC\\s+)?Output\\s+Current', 'Nominal\\s+(?:AC\\s+)?Output\\s+Current', 'Max\\.?\\s*AC\\s+Current', 'Corrente\\s+(?:de\\s+)?sa[íi]da\\s+m[áa]xima', 'Max\\.?\\s+Corrente\\s+de\\s+Sa[íi]da\\s+CA', 'M[áa]x\\.?\\s+corrente\\s+de\\s+sa[íi]da\\s+CA', 'Corrente\\s+nominal\\s+de\\s+sa[íi]da', 'Corrente[^\\n]{0,14}sa[íi]da'],
-  corrente_max_por_mppt: ['Max[^\\n]{0,14}Input\\s+Current', 'Max[^\\n]{0,14}(?:PV|DC)\\s+Current', 'Max\\.?\\s+Current\\s+per\\s+MPPT', 'Max\\.?\\s*DC\\s+Input\\s+Current', 'Corrente\\s+(?:de\\s+)?entrada\\s+m[áa]x', 'M[áa]x\\.?\\s+corrente\\s+de\\s+entrada\\s+(?:FV|PV)', 'Max\\.?\\s+Corrente\\s+de\\s+Entrada\\s+CC', 'Corrente\\s+m[áa]x[^\\n]{0,14}(?:entrada|MPPT|PV)'],
-  corrente_isc_max: ['Max[^\\n]{0,14}Short[^\\n]{0,12}Current(?:\\s+per\\s+MPPT)?', 'Short[\\s-]*circuit\\s+Current', 'Corrente\\s+de\\s+curto[\\s-]*circuito\\s+m[áa]x', 'M[áa]x\\.?\\s+corrente\\s+CC\\s+de\\s+curto', 'Corrente\\s+(?:de\\s+)?curto'],
+  corrente_max_por_mppt: ['Max[^\\n]{0,14}Input\\s+Current', 'Max[^\\n]{0,14}(?:PV|DC)\\s+Current', 'Max\\.?\\s+Current\\s+per\\s+MPPT', 'Max\\.?\\s*DC\\s+Input\\s+Current', 'Corrente\\s+(?:de\\s+)?entrada\\s+m[áa]x', 'M[áa]x[íi]?m?a?\\.?\\s+corrente\\s+de\\s+entrada', 'Corrente\\s+M[áa]xima\\s+por\\s+Entrada', 'Max\\.?\\s+Corrente\\s+de\\s+Entrada\\s+CC', 'Corrente\\s+m[áa]x[^\\n]{0,14}(?:entrada|MPPT|PV)'],
+  corrente_isc_max: ['Max[^\\n]{0,14}Short[^\\n]{0,12}Current(?:\\s+per\\s+MPPT)?', 'Short[\\s-]*circuit\\s+Current', 'Corrente\\s+de\\s+curto[\\s-]*circuito\\s+m[áa]x', 'M[áa]x\\.?\\s+corrente\\s+CC\\s+de\\s+curto', 'Corrente\\s+(?:de\\s+)?curto', 'Isc\\s*(?:PV|FV|CC|DC)?'],
   eficiencia_maxima: ['Max[^\\n]{0,8}Efficiency', 'Peak\\s+Efficiency', 'Efici[êe]ncia\\s+m[áa]x', 'Max\\.?\\s+Efici[êe]ncia'],
   eficiencia_europeia: ['(?:European|Euro)\\s+Efficiency', 'Efici[êe]ncia\\s+(?:europeia|euro)'],
   peso_kg: ['Weight', 'Peso'],
@@ -137,7 +163,24 @@ const CAMPOS = [
     return _valor(t, _labels('n_mppts'), { min: 1, max: 24 })
   }],
   ['strings_por_mppt', (t) => _valor(t, _labels('strings_por_mppt'), { min: 1, max: 24 })],
-  ['total_entradas_cc', (t) => _valor(t, _labels('_total_entradas_cc'), { min: 1, max: 48 })],
+  ['total_entradas_cc', (t) => {
+    // 1) rótulo explícito: "Quantidade de Entradas CC <n>"
+    let v = _valor(t, _labels('total_entradas_cc'), { min: 1, max: 48 })
+    // 2) contagem do par cruzado da corrente: "4 × 14" / "20A x 4" → conta = menor
+    if (v == null) { const cz = _parCruz(t, _labels('corrente_max_por_mppt')); if (cz && cz.count >= 1 && cz.count <= 12) v = cz.count }
+    // 3) "N entradas / canais de entrada / DC inputs" (valor ANTES do termo)
+    if (v == null) {
+      const m = _norm(t).match(/(\d{1,2})\s*(?:canais\s+de\s+entrada|entradas?\s+(?:CC|DC|FV|fotovolt)|DC\s+inputs?|inputs?\s+(?:CC|DC|FV))/i)
+      if (m) { const k = parseInt(m[1]); if (k >= 2 && k <= 12) v = k }
+    }
+    // 4) módulos suportados (micro: 1 módulo ≈ 1 entrada)
+    if (v == null) v = _valor(t, _labels('_modulos'), { min: 1, max: 48 })
+    if (v == null) return null
+    // FASE 4 — SANIDADE FÍSICA (rejeita interpretações impossíveis; não corrige):
+    const nm = _valor(t, _labels('n_mppts'), { min: 1, max: 24 })
+    if (nm != null && (v < nm || v / nm > 12)) return null  // < MPPTs (impossível) ou >12/MPPT (suspeito)
+    return v
+  }],
   ['tensao_max_entrada', (t) => _valor(t, _labels('tensao_max_entrada'), { min: 200, max: 1500 })],
   ['tensao_mppt_min', (t) => { const f = _faixa(t, _labels('_mppt_range')); return f ? f[0] : null }],
   ['tensao_mppt_max', (t) => { const f = _faixa(t, _labels('_mppt_range')); return f ? f[1] : null }],
@@ -150,8 +193,17 @@ const CAMPOS = [
     return null
   }],
   ['corrente_ac_saida', (t) => _valor(t, _labels('corrente_ac_saida'), { min: 1, max: 400 })],
-  ['corrente_max_por_mppt', (t) => _valor(t, _labels('corrente_max_por_mppt'), { min: 1, max: 100 })],
-  ['corrente_isc_max', (t) => _valor(t, _labels('corrente_isc_max'), { min: 1, max: 120 })],
+  ['corrente_max_por_mppt', (t) => {
+    // par cruzado "4 × 14" / "20A x 4" → corrente = maior valor (por entrada/MPPT)
+    const cz = _parCruz(t, _labels('corrente_max_por_mppt'))
+    if (cz && cz.valor >= 5 && cz.valor <= 100) return cz.valor
+    return _valor(t, _labels('corrente_max_por_mppt'), { min: 1, max: 100 })
+  }],
+  ['corrente_isc_max', (t) => {
+    const cz = _parCruz(t, _labels('corrente_isc_max'))
+    if (cz && cz.valor >= 5 && cz.valor <= 120) return cz.valor
+    return _valor(t, _labels('corrente_isc_max'), { min: 1, max: 120 })
+  }],
   ['eficiencia_maxima', (t) => {
     const v = _valor(t, _labels('eficiencia_maxima'), { min: 90, max: 100 })
     if (v != null) return v
