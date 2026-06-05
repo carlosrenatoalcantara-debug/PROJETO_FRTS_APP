@@ -13,7 +13,7 @@ import { BaseAdapter } from './baseAdapter.js'
 import { extrairFabricanteModelo } from '../../utils/catalogo/fabricanteModeloFallback.js'
 import { expandirModelosInversor } from '../serieInversor.js'
 import { extrairSpecsTecnicas } from '../parserTecnicoInversor.js'
-import { parseMatricial } from '../parserMatricial.js'
+import { parseMatricial, parseColunaUnica } from '../parserMatricial.js'
 
 export class InternalAdapter extends BaseAdapter {
   constructor() { super('internal') }
@@ -43,7 +43,7 @@ export class InternalAdapter extends BaseAdapter {
         // garantia, efic. europeia) são extraídos do texto e preenchem o que a
         // matriz não capturou (marcados como inferido_alta = valor compartilhado).
         const globais = extrairSpecsTecnicas(texto, null)
-        const CAMPOS_GLOBAIS = ['dimensoes', 'grau_protecao_ip', 'certificacoes', 'temperatura_operacao', 'fases', 'peso_kg', 'garantia_anos', 'eficiencia_europeia', 'tensao_max_entrada', 'tensao_mppt_min', 'tensao_mppt_max']
+        const CAMPOS_GLOBAIS = ['dimensoes', 'grau_protecao_ip', 'certificacoes', 'temperatura_operacao', 'fases', 'peso_kg', 'garantia_anos', 'eficiencia_maxima', 'eficiencia_europeia', 'tensao_max_entrada', 'tensao_mppt_min', 'tensao_mppt_max']
         variantes = mat.modelos.map(modelo_variante => {
           const esp = { ...mat.porModelo[modelo_variante].especificacoes }
           const _status = { ...mat.porModelo[modelo_variante]._status }
@@ -54,6 +54,26 @@ export class InternalAdapter extends BaseAdapter {
             }
           }
           return { modelo_variante, ...esp, _status }
+        })
+      }
+    }
+
+    // P1-INV-HARDEN-PLUS-02: datasheet SINGLE-MODEL column-major (ex.: Sungrow
+    // SG110CX) — rótulo à esquerda, valor à direita na mesma linha visual. O parser
+    // de texto não associa os dois; o posicional single-column sim.
+    if (!variantes && input?.pdfBuffer && lista.length >= 1) {
+      const col = await parseColunaUnica(input.pdfBuffer)
+      if (col.ok) {
+        fonte = 'parser_coluna_unica'
+        // datasheet single-column: os modelos da lista compartilham a MESMA coluna
+        // de dados (variantes de um único modelo físico). Aplica a todos.
+        variantes = lista.map(modelo_variante => {
+          const globais = extrairSpecsTecnicas(texto, modelo_variante)
+          const esp = { ...col.especificacoes }
+          for (const [k, val] of Object.entries(globais)) {
+            if (esp[k] === undefined || esp[k] === null || esp[k] === '') esp[k] = val
+          }
+          return { modelo_variante, ...esp, _status: col._status }
         })
       }
     }

@@ -47,8 +47,11 @@ const _normModelo = (s) => String(s || '').toUpperCase().replace(/\s+/g, '').rep
 
 function _num(s) {
   if (s == null) return null
-  let t = String(s).replace(/[^\d.,\-]/g, ' ').trim()
-  if (/\d\.\d{3}(\D|$)/.test(t) && /,/.test(t)) t = t.replace(/\./g, '').replace(',', '.')
+  // separa por espaço (não junta "60.4/57.7" em "60.457.7")
+  let t = String(s).replace(/[^\d.,\-]/g, ' ').trim().split(/\s+/)[0]
+  // P1-INV-HARDEN-PLUS-02: vírgula/ponto de MILHAR → remove ("1,100"→1100).
+  if (/^-?\d{1,3}(,\d{3})+(\.\d+)?$/.test(t)) t = t.replace(/,/g, '')
+  else if (/^-?\d{1,3}(\.\d{3})+(,\d+)?$/.test(t)) t = t.replace(/\./g, '').replace(',', '.')
   else t = t.replace(',', '.')
   const m = t.match(/-?\d+(?:\.\d+)?/)
   return m ? parseFloat(m[0]) : null
@@ -287,10 +290,14 @@ function _aplicar(destino, campo, celula, status) {
   const joined = tokens.join(' ')
 
   if (campo === '__mppt_range') {
-    const nums = joined.match(/-?\d+(?:\.\d+)?/g)
-    if (nums && nums.length >= 2) {
-      if (esp.tensao_mppt_min == null) { esp.tensao_mppt_min = parseFloat(nums[0]); destino._status.tensao_mppt_min = status }
-      if (esp.tensao_mppt_max == null) { esp.tensao_mppt_max = parseFloat(nums[1]); destino._status.tensao_mppt_max = status }
+    // tolera unidade e vírgula de milhar: "200 V ~ 1,000 V" → [200, 1000]
+    const fm = joined.match(/(\d[\d.,]*)\s*[A-Za-z]{0,4}\s*[~–—\-aà]\s*[A-Za-z]{0,4}\s*(\d[\d.,]*)/)
+    if (fm) {
+      const a = _num(fm[1]), b = _num(fm[2])
+      if (a != null && b != null && a < b) {
+        if (esp.tensao_mppt_min == null) { esp.tensao_mppt_min = a; destino._status.tensao_mppt_min = status }
+        if (esp.tensao_mppt_max == null) { esp.tensao_mppt_max = b; destino._status.tensao_mppt_max = status }
+      }
     }
     return
   }
@@ -298,22 +305,46 @@ function _aplicar(destino, campo, celula, status) {
   // posteriores — ex.: "Power factor at Rated power" — sobreponham a potência).
   if (destino._status[campo]) return
 
-  // strings_por_mppt: preserva forma "2/1" (assimetria) — usa só o 1º token.
+  // strings_por_mppt: PRESERVA a assimetria completa ("3/3/2/2", "2/1") — não reduz
+  // a valor único (P1-INV-HARDEN-PLUS-02, CHINT).
   if (campo === 'strings_por_mppt') {
-    const m = String(tokens[0]).match(/\d+\s*\/\s*\d+|\d+/)
+    const m = joined.match(/\d+(?:\s*\/\s*\d+)+|\d+/)
     if (m) { const txt = m[0].replace(/\s+/g, ''); esp[campo] = /\//.test(txt) ? txt : _num(txt); destino._status[campo] = status }
     return
   }
-  if (campo === 'grau_protecao_ip' || campo === 'dimensoes' || campo === 'temperatura_operacao' || campo === 'certificacoes') {
+  if (campo === 'grau_protecao_ip') {
+    // só aceita IP válido (evita "IP" truncado); senão deixa o complemento global preencher
+    const m = joined.match(/IP\s?(6[5-8]|54|55|2[01]|6[5-8]K)/i)
+    if (m) { esp[campo] = 'IP' + m[1].toUpperCase(); destino._status[campo] = status }
+    return
+  }
+  if (campo === 'dimensoes' || campo === 'temperatura_operacao' || campo === 'certificacoes') {
     esp[campo] = (campo === 'dimensoes' ? joined : tokens[0]).trim(); destino._status[campo] = status
     return
   }
-  // numérico (1º token; conversão W→kW para potências)
-  let v = _num(tokens[0])
+  // numérico: VARRE os tokens e pega o PRIMEIRO valor dentro da FAIXA física
+  // (P1-INV-HARDEN-PLUS-02). Ignora nota de rodapé ("1 1,100"→1100), e descarta
+  // valores implausíveis (corrente total 360A como por-MPPT, fator de potência
+  // 0.99 como fases). Não inventa — só rejeita o fisicamente impossível.
+  const rg = _RANGES[campo]
+  let v = null
+  for (const tk of tokens) {
+    let n = _num(tk)
+    if (n == null) continue
+    if ((campo === 'potencia_kw' || campo === 'potencia_maxima_kw') && n > 500) n = n / 1000
+    if (!rg || (n >= rg[0] && n <= rg[1])) { v = n; break }
+  }
   if (v == null) return
-  if ((campo === 'potencia_kw' || campo === 'potencia_maxima_kw') && v > 500) v = v / 1000
   esp[campo] = v
   destino._status[campo] = status
+}
+
+// Faixas físicas plausíveis (espelham os limites do parser de texto).
+const _RANGES = {
+  potencia_kw: [0.4, 600], potencia_maxima_kw: [0.4, 600], tensao_max_entrada: [40, 1500],
+  tensao_ac: [100, 1000], corrente_ac_saida: [1, 400], corrente_max_por_mppt: [1, 100],
+  corrente_isc_max: [1, 120], eficiencia_maxima: [90, 100], eficiencia_europeia: [90, 100],
+  peso_kg: [2, 200], garantia_anos: [1, 30], n_mppts: [1, 30], fases: [1, 3], frequencia_hz: [40, 70],
 }
 
 /**
@@ -327,6 +358,57 @@ export async function parseMatricial(pdfBuffer, modelos = []) {
     // P1-INV-HARDEN-PLUS-01: sem gate de "≥2 modelos" — montarMatriz tenta a lista
     // conhecida e, se falhar, AUTO-detecta as colunas no cabeçalho do PDF.
     return montarMatriz(tokens, Array.isArray(modelos) ? modelos : [])
+  } catch (e) {
+    return { ok: false, motivo: `erro:${e?.message || e}` }
+  }
+}
+
+// ── Parser SINGLE-COLUMN POSICIONAL (P1-INV-HARDEN-PLUS-02) ───────────────────
+/**
+ * Datasheets single-model column-major (ex.: Sungrow SG110CX): rótulo na coluna
+ * ESQUERDA, valor na coluna DIREITA da MESMA linha visual (Y). O parser de texto
+ * falha porque a linearização separa rótulo e valor. Aqui usamos (x,y): por linha,
+ * o maior GAP horizontal separa rótulo (esquerda) de valor (direita).
+ */
+function _splitRotuloValor(toks, gapMin = 45) {
+  if (toks.length < 2) return null
+  let maxGap = 0, idx = -1
+  for (let i = 1; i < toks.length; i++) {
+    const g = toks[i].x - (toks[i - 1].x + 0)
+    if (g > maxGap) { maxGap = g; idx = i }
+  }
+  if (maxGap < gapMin || idx < 1) return null
+  const valor = toks.slice(idx).map(t => t.s)
+  if (!valor.some(s => /\d/.test(s))) return null   // valor precisa ter número
+  const rotulo = toks.slice(0, idx).map(t => t.s).join(' ').replace(/\s+/g, ' ').trim()
+  if (rotulo.replace(/[^A-Za-zÀ-ÿ]/g, '').length < 3) return null   // rótulo precisa ter texto
+  return { rotulo, valor }
+}
+
+export function montarColunaUnica(tokens) {
+  const linhas = _agruparLinhas(tokens)
+  const destino = { especificacoes: {}, _status: {} }
+  let aplicados = 0
+  for (const linha of linhas) {
+    const toks = linha.tokens.slice().sort((a, b) => a.x - b.x)
+    const sv = _splitRotuloValor(toks)
+    if (!sv) continue
+    const ehMppt = /mpp.?\s*(?:operating\s+)?(?:voltage\s+)?range|faixa.*mpp/i.test(sv.rotulo)
+    const campo = ehMppt ? '__mppt_range' : rotuloParaCampo(sv.rotulo)
+    if (!campo) continue
+    const antes = Object.keys(destino.especificacoes).length
+    _aplicar(destino, campo, sv.valor, CONF.ENCONTRADO)
+    if (Object.keys(destino.especificacoes).length > antes) aplicados++
+  }
+  return { ok: aplicados >= 3, especificacoes: destino.especificacoes, _status: destino._status, aplicados }
+}
+
+/** PDF (buffer) single-model → especificacoes via coluna única posicional. */
+export async function parseColunaUnica(pdfBuffer) {
+  try {
+    if (!pdfBuffer) return { ok: false, motivo: 'sem_pdf' }
+    const tokens = await extrairTokensPosicionais(pdfBuffer)
+    return montarColunaUnica(tokens)
   } catch (e) {
     return { ok: false, motivo: `erro:${e?.message || e}` }
   }
