@@ -78,24 +78,35 @@ export class AIOrchestrator {
         breaker.registrarSucesso()
         this.health.registrar(nome, { sucesso: true, latenciaMs })
 
-        // Resultado só é "bom" se trouxe ao menos identidade.
+        // P0-PIPELINE-GATE-01 — separar DOIS conceitos que antes estavam fundidos:
+        //  (1) identidade do DOCUMENTO  = fabricante + modelo de topo;
+        //  (2) existência de MODELOS    = variantes válidas (modelo_variante/modelo).
+        // O resultado é aceito se tiver QUALQUER um dos dois. Antes, exigia (1) e
+        // descartava extrações multi-modelo de fabricantes novos (ex.: SolaX), cujo
+        // parser auto-detecta os modelos em `_meta.variantesRaw` mas não preenche a
+        // identidade de topo. Isso fazia o pipeline afirmar "nenhum modelo" tendo
+        // modelos válidos em mãos.
         const temIdentidade = !!(dados.fabricante && dados.modelo)
+        const variantesRaw = Array.isArray(dados._meta?.variantesRaw) ? dados._meta.variantesRaw : []
+        const temModelosValidos = variantesRaw.some(v => v && (v.modelo_variante || v.modelo))
+        const aceitar = temIdentidade || temModelosValidos
         const qualidade = calcularQualidade(dados)
         tentativas.push({ provider: nome, ok: true, latenciaMs, score: qualidade.score })
 
-        if (temIdentidade) {
+        if (aceitar) {
+          tentativas[tentativas.length - 1].motivo = temIdentidade ? 'identidade' : 'modelos_validos'
           return {
             ok: true,
             provider: nome,
-            dados: { ...dados, _meta: { ...(dados._meta || {}), provider: nome } },
+            dados: { ...dados, _meta: { ...(dados._meta || {}), provider: nome, aceito_por: temIdentidade ? 'identidade' : 'modelos_validos' } },
             qualidade,
             tentativas,
             preenchimentoAssistido: qualidade.decisao === 'solicitar_preenchimento',
           }
         }
-        // Sem identidade → trata como falha "soft" e segue a cascata.
+        // Sem identidade E sem modelos → falha "soft", segue a cascata.
         tentativas[tentativas.length - 1].ok = false
-        tentativas[tentativas.length - 1].motivo = 'sem_identidade'
+        tentativas[tentativas.length - 1].motivo = 'sem_identidade_nem_modelos'
       } catch (err) {
         const latenciaMs = this._now() - inicio
         breaker.registrarFalha(err?.message || 'erro')
