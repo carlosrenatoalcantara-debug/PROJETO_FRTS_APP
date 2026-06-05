@@ -1,9 +1,11 @@
 import { useState, useEffect, useRef } from 'react'
-import { X, Edit2, Trash2, Upload, Zap, ChevronDown, ChevronUp, Cable } from 'lucide-react'
+import { X, Edit2, Trash2, Upload, Zap, ChevronDown, ChevronUp, Cable, Info, CheckCircle, AlertCircle } from 'lucide-react'
 import Card, { CardHeader, CardBody } from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import ModalNovoInversor from '../components/equipamentos/ModalNovoInversor'
 import AssistenteImportacaoDatasheet from '../components/equipamentos/AssistenteImportacaoDatasheet'
+// P1-INV-UI-01: edição manual dirigida pelo MESMO esquema do SSOT (sem dialeto).
+import { obterCamposEditaveis, classificarCampos, STATUS } from '../../../backend/src/ai/camposEquipamento.js'
 
 const API_URL = '' /* URL relativa forçada — Vercel proxy → Railway. Não usar VITE_API_URL */
 
@@ -137,7 +139,9 @@ const SPECS_AC = [
   { key: 'max_por_cabo_tronco', label: 'Máx. por cabo tronco',  unit: 'un.' },
 ]
 const SPECS_DC = [
+  { key: 'tipo_topologia',         label: 'Topologia',                 unit: ''  },
   { key: 'n_mppts',                label: 'Nº de MPPTs',               unit: ''  },
+  { key: 'entradas_por_mppt',      label: 'Entradas por MPPT',         unit: ''  },
   { key: 'strings_por_mppt',       label: 'Strings por MPPT',          unit: ''  },
   { key: 'potencia_max_entrada_cc',label: 'Potência máx. entrada CC',  unit: ''  },
   { key: 'tensao_max_entrada',     label: 'Tensão máx. entrada DC',    unit: 'V' },
@@ -176,7 +180,7 @@ function SpecGroup({ titulo, specs, espec }) {
         {visiveis.map(s => (
           <div key={s.key} className="flex justify-between text-xs py-0.5 border-b border-slate-100">
             <span className="text-slate-500">{s.label}</span>
-            <span className="font-semibold text-slate-800">{espec[s.key]}{s.unit && s.unit !== '' ? ` ${s.unit}` : ''}</span>
+            <span className="font-semibold text-slate-800">{Array.isArray(espec[s.key]) ? espec[s.key].join('/') : espec[s.key]}{s.unit && s.unit !== '' ? ` ${s.unit}` : ''}</span>
           </div>
         ))}
       </div>
@@ -448,11 +452,22 @@ function EdicaoInversor({ inversor, onClose, onSalvar }) {
   }
 
   const espec = form.especificacoes || {}
-  const inp = (placeholder, key, type = 'text', isEspec = false) => (
-    <input type={type} placeholder={placeholder}
-      value={isEspec ? (espec[key] ?? '') : (form[key] ?? '')}
-      onChange={e => isEspec ? setEspec(key, type === 'number' ? parseFloat(e.target.value) || '' : e.target.value) : setForm(f => ({ ...f, [key]: e.target.value }))}
-      className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-full" />
+  // P1-INV-UI-01: campos editáveis vêm do MESMO esquema do SSOT (camposEquipamento).
+  // Sem dialeto, sem placeholder-como-documentação. Rótulo dinâmico de entradas por
+  // topologia, legenda externa (ℹ) e status 🟢/🟡/🔴 — consistente com a Assistida.
+  const campos = classificarCampos('inversor', espec)
+  const corStatus = { [STATUS.OK]: 'text-emerald-500', [STATUS.AUSENTE]: 'text-amber-500', [STATUS.OBRIGATORIO]: 'text-red-500' }
+  const Badge = ({ status }) => status === STATUS.OK
+    ? <CheckCircle size={13} className={corStatus[status]} />
+    : <AlertCircle size={13} className={corStatus[status]} />
+
+  // identificação (fora de especificacoes)
+  const campoTopo = (rotulo, key) => (
+    <div>
+      <label className="text-xs font-medium text-slate-600 block mb-1">{rotulo}</label>
+      <input value={form[key] ?? ''} onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
+        className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-full" />
+    </div>
   )
 
   return (
@@ -462,29 +477,35 @@ function EdicaoInversor({ inversor, onClose, onSalvar }) {
           <h2 className="font-bold text-slate-900">Editar Inversor</h2>
           <button onClick={onClose} className="p-1 hover:bg-slate-100 rounded"><X size={20} /></button>
         </div>
-        <div className="overflow-y-auto flex-1 p-5 space-y-4">
+        <div className="overflow-y-auto flex-1 p-5 space-y-3">
           <div className="grid grid-cols-2 gap-3">
-            {inp('Fabricante', 'fabricante')}
-            {inp('Modelo', 'modelo')}
-            {inp('Potência nominal AC (kW)', 'potencia_kw', 'number', true)}
-            {inp('Potência máxima AC (kW)', 'potencia_maxima_kw', 'number', true)}
-            {inp('Tensão AC (V)', 'tensao_ac', 'number', true)}
-            {inp('Fases (1 ou 3)', 'fases', 'number', true)}
-            {inp('Frequência (Hz)', 'frequencia_hz', 'number', true)}
-            {inp('Corrente AC saída (A)', 'corrente_ac_saida', 'number', true)}
-            {inp('Nº de MPPTs', 'n_mppts', 'number', true)}
-            {inp('Entradas por MPPT', 'strings_por_mppt', 'number', true)}
-            {inp('Tensão MPPT mín. (V)', 'tensao_mppt_min', 'number', true)}
-            {inp('Tensão MPPT máx. (V)', 'tensao_mppt_max', 'number', true)}
-            {inp('Tensão máx. entrada DC (V)', 'tensao_max_entrada', 'number', true)}
-            {inp('Corrente máx. por MPPT (A)', 'corrente_max_por_mppt', 'number', true)}
-            {inp('Isc máx. entrada (A)', 'corrente_isc_max', 'number', true)}
-            {inp('Eficiência máxima (%)', 'eficiencia_maxima', 'number', true)}
-            {inp('Grau proteção IP', 'grau_protecao_ip', 'text', true)}
-            {inp('Peso (kg)', 'peso_kg', 'number', true)}
+            {campoTopo('Fabricante', 'fabricante')}
+            {campoTopo('Modelo', 'modelo')}
+            {campos.map(c => (
+              <div key={c.key}>
+                <label className="flex items-center gap-1.5 text-xs font-medium text-slate-600 mb-1">
+                  <Badge status={c.status} />
+                  {c.label}{c.obrigatorio && <span className="text-red-500">*</span>}
+                </label>
+                {c.key === 'tipo_topologia' ? (
+                  <select value={espec.tipo_topologia ?? 'STRING'} onChange={e => setEspec('tipo_topologia', e.target.value)}
+                    className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-full bg-white">
+                    {['STRING', 'MICRO', 'HYBRID'].map(o => <option key={o} value={o}>{o}</option>)}
+                  </select>
+                ) : (
+                  <input type={c.tipo === 'number' ? 'number' : 'text'}
+                    value={c.valor ?? ''}
+                    onChange={e => setEspec(c.key, c.tipo === 'number' ? (e.target.value === '' ? '' : parseFloat(e.target.value)) : e.target.value)}
+                    className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-full" />
+                )}
+                {c.info && (
+                  <p className="mt-0.5 flex items-start gap-1 text-[11px] text-slate-400">
+                    <Info size={11} className="mt-0.5 shrink-0" /> <span>{c.info}</span>
+                  </p>
+                )}
+              </div>
+            ))}
           </div>
-          {inp('Dimensões (H×L×P mm)', 'dimensoes', 'text', true)}
-          {inp('Temperatura de operação', 'temperatura_operacao', 'text', true)}
         </div>
         <div className="p-5 border-t flex justify-end gap-3 shrink-0">
           <Button onClick={onClose} variante="secundario">Cancelar</Button>
