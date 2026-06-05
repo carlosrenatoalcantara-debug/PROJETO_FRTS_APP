@@ -22,6 +22,8 @@ export class InternalAdapter extends BaseAdapter {
 
   async _chamar(input) {
     const texto = input?.textoOCR || ''
+    // P1-INV-OCR-01: dado vindo de OCR (PDF imagem) tem confiança 🟡 (não 🟢).
+    const ehOCR = input?.origemTexto === 'ocr'
     const fb = extrairFabricanteModelo(texto)
     // P0-INV-01: motor interno também expande série (N modelos) a partir do texto.
     const { modelos } = expandirModelosInversor(texto)
@@ -79,14 +81,14 @@ export class InternalAdapter extends BaseAdapter {
     }
 
     // Fallback: parser de TEXTO por modelo (P0-CAT-09). Em MULTI-modelo, o texto
-    // não separa colunas com segurança → marca confiança BAIXA (P1-INV-HARDEN-01).
+    // não separa colunas com segurança → confiança BAIXA (P1-INV-HARDEN-01).
+    // OCR (PDF imagem) → confiança 🟡 inferido_alta (P1-INV-OCR-01).
     if (!variantes) {
       const multi = lista.length > 1
       variantes = lista.map(modelo_variante => {
         const esp = extrairSpecsTecnicas(texto, modelo_variante)
-        const _status = multi
-          ? Object.fromEntries(Object.keys(esp).map(k => [k, 'inferido_baixa']))
-          : undefined
+        const nivel = ehOCR ? 'inferido_alta' : (multi ? 'inferido_baixa' : null)
+        const _status = nivel ? Object.fromEntries(Object.keys(esp).map(k => [k, nivel])) : undefined
         return { modelo_variante, ...esp, _status }
       })
     }

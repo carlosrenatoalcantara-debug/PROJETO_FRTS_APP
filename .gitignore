@@ -50,3 +50,6 @@ CHANGELOG.md
 *.gmap_key_tmp
 *_key_tmp
 *_key.tmp
+
+# P1-INV-OCR-01: traineddata do tesseract.js (baixado em runtime)
+*.traineddata

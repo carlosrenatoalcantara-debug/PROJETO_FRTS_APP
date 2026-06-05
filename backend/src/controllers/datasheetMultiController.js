@@ -10,6 +10,7 @@
 
 import { PDFParse } from 'pdf-parse'
 import { getOrchestrator } from '../ai/index.js'
+import { precisaOCR, extrairTextoOCR } from '../ai/ocr.js'
 
 export async function extrairDatasheetMulti(req, res) {
   try {
@@ -18,7 +19,7 @@ export async function extrairDatasheetMulti(req, res) {
     }
     const pdfBuffer = req.file.buffer
 
-    // OCR (mesmo motor do fluxo legado) — alimenta o motor interno da cascata.
+    // Extração de TEXTO da camada do PDF (pdf-parse) — alimenta a cascata.
     let textoOCR = ''
     try {
       const parser = new PDFParse({ data: pdfBuffer })
@@ -26,11 +27,24 @@ export async function extrairDatasheetMulti(req, res) {
       await parser.destroy()
       textoOCR = (tr?.text || '').toString()
     } catch (e) {
-      console.warn('[extrair-multi] OCR falhou:', e.message)
+      console.warn('[extrair-multi] extração de texto falhou:', e.message)
+    }
+
+    // P1-INV-OCR-01: PDF SEM camada de texto (scan/imagem) → OCR LOCAL (mupdf +
+    // tesseract). O texto do OCR entra no MESMO pipeline (sem fluxo paralelo).
+    let origemTexto = 'pdf_texto'
+    if (precisaOCR(textoOCR)) {
+      try {
+        const ocr = await extrairTextoOCR(pdfBuffer)
+        if (ocr.texto && ocr.texto.length > textoOCR.length) { textoOCR = ocr.texto; origemTexto = 'ocr' }
+        console.log('[extrair-multi] OCR acionado: paginas=%d chars=%d', ocr.paginas, ocr.texto.length)
+      } catch (e) {
+        console.warn('[extrair-multi] OCR falhou:', e.message)
+      }
     }
 
     const orch = getOrchestrator()
-    const r = await orch.extrairMulti({ pdfBuffer, textoOCR, tipoEsperado: 'inversor' })
+    const r = await orch.extrairMulti({ pdfBuffer, textoOCR, tipoEsperado: 'inversor', origemTexto })
     const health = orch.health_snapshot()
 
     // ── P0-AI-01-FINAL: INSTRUMENTAÇÃO ─────────────────────────────────────────
@@ -63,6 +77,7 @@ export async function extrairDatasheetMulti(req, res) {
         breakers: health,
         specs0_keys: Object.keys(specs0),
         ocr_chars: textoOCR.length,
+        origem_texto: origemTexto,   // 'pdf_texto' (🟢) | 'ocr' (🟡)
       },
     })
   } catch (err) {

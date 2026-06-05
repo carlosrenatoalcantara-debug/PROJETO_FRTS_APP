@@ -32,10 +32,12 @@
     "mongodb": "^7.2.0",
     "mongoose": "^9.5.0",
     "multer": "^2.1.1",
+    "mupdf": "^1.27.0",
     "node-cron": "^3.0.2",
     "node-fetch": "^3.3.2",
     "otplib": "^13.4.0",
     "pdf-parse": "^2.4.5",
-    "pdfkit": "^0.18.0"
+    "pdfkit": "^0.18.0",
+    "tesseract.js": "^5.1.1"
   }
 }
