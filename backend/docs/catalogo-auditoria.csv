@@ -1,0 +1,5 @@
+fabricante,modelo,score,topologia,potencia_kw,potencia_max_kw,n_mppts,entradas_por_mppt,corrente_max_por_mppt,corrente_isc_max,tensao_max_cc,mppt_min,mppt_max,tensao_partida,eficiencia,peso_kg,dimensoes,ip,campos_faltantes,outliers
+Growatt,MIC 5000TL-X,37.5,STRING,5,,,,32,,600,,,,97.2,,,,n_mppts|strings_entradas|corrente_isc_max|faixa_mppt|tensao_partida|peso_kg|dimensoes|grau_protecao_ip,R5:n_mppts+strings_entradas
+Growatt,MIC 10000TL-X,37.5,STRING,10,,,,65,,600,,,,97.5,,,,n_mppts|strings_entradas|corrente_isc_max|faixa_mppt|tensao_partida|peso_kg|dimensoes|grau_protecao_ip,R5:n_mppts+strings_entradas
+Solis,RHI-5K-48ES-5G,37.5,STRING,5,,,,32,,550,,,,97.4,,,,n_mppts|strings_entradas|corrente_isc_max|faixa_mppt|tensao_partida|peso_kg|dimensoes|grau_protecao_ip,R5:n_mppts+strings_entradas
+Deye,SUN-8K-G04,37.5,STRING,8,,,,50,,600,,,,97.3,,,,n_mppts|strings_entradas|corrente_isc_max|faixa_mppt|tensao_partida|peso_kg|dimensoes|grau_protecao_ip,R5:n_mppts+strings_entradas

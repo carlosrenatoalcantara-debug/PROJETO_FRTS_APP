@@ -1,0 +1,318 @@
+{
+  "meta": {
+    "sprint": "P1-CATALOG-AUDIT-01",
+    "gerado_em": "2026-06-06T17:08:29.049Z",
+    "fonte_dados": "memory-storage.json",
+    "aviso_fonte": "USE_MEMORY_STORAGE=true → memory-storage (fonte de runtime atual)",
+    "somente_leitura": true,
+    "escreveu_no_banco": false,
+    "schema": {
+      "especificacoes": "Mixed (livre)",
+      "campos_derivados_em_leitura": [
+        "tipo_topologia",
+        "entradas_por_mppt"
+      ],
+      "nota": "topologia/entradas NÃO existem no schema; SSOT lerInversor deriva em leitura."
+    }
+  },
+  "verificacao_inicial": {
+    "inversores_analisados": 4,
+    "tipo_topologia_persistido": 0,
+    "entradas_por_mppt_persistido": 0,
+    "strings_por_mppt_persistido": 0,
+    "mistura_de_formatos": false,
+    "conclusao": "Nenhum dos três é persistido — tipo_topologia e entradas_por_mppt são DERIVADOS em leitura (SSOT lerInversor). Sem mistura, nada a migrar."
+  },
+  "totais": {
+    "equipamentos_total": 9,
+    "inversores": 4,
+    "modulos": 3,
+    "carregadores_ev": 2,
+    "fabricantes_distintos": 3,
+    "completude_global": 37.5
+  },
+  "pesos_score": [
+    {
+      "id": "potencia_kw",
+      "peso": 3,
+      "label": "Potência nominal"
+    },
+    {
+      "id": "n_mppts",
+      "peso": 3,
+      "label": "MPPT (nº)"
+    },
+    {
+      "id": "strings_entradas",
+      "peso": 3,
+      "label": "Strings/Entradas"
+    },
+    {
+      "id": "corrente_max_por_mppt",
+      "peso": 3,
+      "label": "Corrente por MPPT"
+    },
+    {
+      "id": "corrente_isc_max",
+      "peso": 2,
+      "label": "Isc por MPPT"
+    },
+    {
+      "id": "tensao_max_entrada",
+      "peso": 2,
+      "label": "Tensão máx. CC"
+    },
+    {
+      "id": "faixa_mppt",
+      "peso": 2,
+      "label": "Faixa MPPT"
+    },
+    {
+      "id": "tensao_partida",
+      "peso": 2,
+      "label": "Tensão de partida"
+    },
+    {
+      "id": "eficiencia_maxima",
+      "peso": 1,
+      "label": "Eficiência"
+    },
+    {
+      "id": "peso_kg",
+      "peso": 1,
+      "label": "Peso"
+    },
+    {
+      "id": "dimensoes",
+      "peso": 1,
+      "label": "Dimensões"
+    },
+    {
+      "id": "grau_protecao_ip",
+      "peso": 1,
+      "label": "Grau IP"
+    }
+  ],
+  "fabricantes": [
+    {
+      "fabricante": "Solis",
+      "modelos": 1,
+      "completude_media": 37.5,
+      "outliers": 1,
+      "importancia_comercial": 5,
+      "prioridade": "P0"
+    },
+    {
+      "fabricante": "Deye",
+      "modelos": 1,
+      "completude_media": 37.5,
+      "outliers": 1,
+      "importancia_comercial": 5,
+      "prioridade": "P0"
+    },
+    {
+      "fabricante": "Growatt",
+      "modelos": 2,
+      "completude_media": 37.5,
+      "outliers": 2,
+      "importancia_comercial": 4,
+      "prioridade": "P0"
+    }
+  ],
+  "modelos": [
+    {
+      "id": "inv-growatt-5000",
+      "fabricante": "Growatt",
+      "modelo": "MIC 5000TL-X",
+      "canon": {
+        "potencia_kw": 5,
+        "potencia_maxima_kw": null,
+        "n_mppts": null,
+        "strings_por_mppt": null,
+        "entradas_por_mppt": null,
+        "tipo_topologia": "STRING",
+        "corrente_max_por_mppt": 32,
+        "corrente_isc_max": null,
+        "tensao_max_entrada": 600,
+        "tensao_mppt_min": null,
+        "tensao_mppt_max": null,
+        "tensao_partida": null,
+        "eficiencia_maxima": 97.2,
+        "peso_kg": null,
+        "dimensoes": null,
+        "grau_protecao_ip": null
+      },
+      "score": 37.5,
+      "campos_faltantes": [
+        "n_mppts",
+        "strings_entradas",
+        "corrente_isc_max",
+        "faixa_mppt",
+        "tensao_partida",
+        "peso_kg",
+        "dimensoes",
+        "grau_protecao_ip"
+      ],
+      "outliers": [
+        {
+          "regra": 5,
+          "campo": "n_mppts+strings_entradas",
+          "justificativa": "Campo(s) CRÍTICO(s) nulo(s): n_mppts, strings_entradas"
+        }
+      ]
+    },
+    {
+      "id": "inv-growatt-10000",
+      "fabricante": "Growatt",
+      "modelo": "MIC 10000TL-X",
+      "canon": {
+        "potencia_kw": 10,
+        "potencia_maxima_kw": null,
+        "n_mppts": null,
+        "strings_por_mppt": null,
+        "entradas_por_mppt": null,
+        "tipo_topologia": "STRING",
+        "corrente_max_por_mppt": 65,
+        "corrente_isc_max": null,
+        "tensao_max_entrada": 600,
+        "tensao_mppt_min": null,
+        "tensao_mppt_max": null,
+        "tensao_partida": null,
+        "eficiencia_maxima": 97.5,
+        "peso_kg": null,
+        "dimensoes": null,
+        "grau_protecao_ip": null
+      },
+      "score": 37.5,
+      "campos_faltantes": [
+        "n_mppts",
+        "strings_entradas",
+        "corrente_isc_max",
+        "faixa_mppt",
+        "tensao_partida",
+        "peso_kg",
+        "dimensoes",
+        "grau_protecao_ip"
+      ],
+      "outliers": [
+        {
+          "regra": 5,
+          "campo": "n_mppts+strings_entradas",
+          "justificativa": "Campo(s) CRÍTICO(s) nulo(s): n_mppts, strings_entradas"
+        }
+      ]
+    },
+    {
+      "id": "inv-solis-5000",
+      "fabricante": "Solis",
+      "modelo": "RHI-5K-48ES-5G",
+      "canon": {
+        "potencia_kw": 5,
+        "potencia_maxima_kw": null,
+        "n_mppts": null,
+        "strings_por_mppt": null,
+        "entradas_por_mppt": null,
+        "tipo_topologia": "STRING",
+        "corrente_max_por_mppt": 32,
+        "corrente_isc_max": null,
+        "tensao_max_entrada": 550,
+        "tensao_mppt_min": null,
+        "tensao_mppt_max": null,
+        "tensao_partida": null,
+        "eficiencia_maxima": 97.4,
+        "peso_kg": null,
+        "dimensoes": null,
+        "grau_protecao_ip": null
+      },
+      "score": 37.5,
+      "campos_faltantes": [
+        "n_mppts",
+        "strings_entradas",
+        "corrente_isc_max",
+        "faixa_mppt",
+        "tensao_partida",
+        "peso_kg",
+        "dimensoes",
+        "grau_protecao_ip"
+      ],
+      "outliers": [
+        {
+          "regra": 5,
+          "campo": "n_mppts+strings_entradas",
+          "justificativa": "Campo(s) CRÍTICO(s) nulo(s): n_mppts, strings_entradas"
+        }
+      ]
+    },
+    {
+      "id": "inv-deye-8000",
+      "fabricante": "Deye",
+      "modelo": "SUN-8K-G04",
+      "canon": {
+        "potencia_kw": 8,
+        "potencia_maxima_kw": null,
+        "n_mppts": null,
+        "strings_por_mppt": null,
+        "entradas_por_mppt": null,
+        "tipo_topologia": "STRING",
+        "corrente_max_por_mppt": 50,
+        "corrente_isc_max": null,
+        "tensao_max_entrada": 600,
+        "tensao_mppt_min": null,
+        "tensao_mppt_max": null,
+        "tensao_partida": null,
+        "eficiencia_maxima": 97.3,
+        "peso_kg": null,
+        "dimensoes": null,
+        "grau_protecao_ip": null
+      },
+      "score": 37.5,
+      "campos_faltantes": [
+        "n_mppts",
+        "strings_entradas",
+        "corrente_isc_max",
+        "faixa_mppt",
+        "tensao_partida",
+        "peso_kg",
+        "dimensoes",
+        "grau_protecao_ip"
+      ],
+      "outliers": [
+        {
+          "regra": 5,
+          "campo": "n_mppts+strings_entradas",
+          "justificativa": "Campo(s) CRÍTICO(s) nulo(s): n_mppts, strings_entradas"
+        }
+      ]
+    }
+  ],
+  "outliers": [
+    {
+      "fabricante": "Growatt",
+      "modelo": "MIC 5000TL-X",
+      "regra": 5,
+      "campo": "n_mppts+strings_entradas",
+      "justificativa": "Campo(s) CRÍTICO(s) nulo(s): n_mppts, strings_entradas"
+    },
+    {
+      "fabricante": "Growatt",
+      "modelo": "MIC 10000TL-X",
+      "regra": 5,
+      "campo": "n_mppts+strings_entradas",
+      "justificativa": "Campo(s) CRÍTICO(s) nulo(s): n_mppts, strings_entradas"
+    },
+    {
+      "fabricante": "Solis",
+      "modelo": "RHI-5K-48ES-5G",
+      "regra": 5,
+      "campo": "n_mppts+strings_entradas",
+      "justificativa": "Campo(s) CRÍTICO(s) nulo(s): n_mppts, strings_entradas"
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-8K-G04",
+      "regra": 5,
+      "campo": "n_mppts+strings_entradas",
+      "justificativa": "Campo(s) CRÍTICO(s) nulo(s): n_mppts, strings_entradas"
+    }
+  ]
+}
