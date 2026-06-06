@@ -116,8 +116,8 @@ export function potenciaDoModelo(modelo) {
 // ── Rótulos base (fallback hardcoded; a KB pode adicionar mais) ───────────────
 // Chave = nome do campo em `especificacoes`. Os valores são "regex source" (str).
 export const ROTULOS_BASE = {
-  potencia_kw: ['Rated\\s+(?:AC\\s+)?(?:Active\\s+|Output\\s+)?Power', 'Nominal\\s+(?:AC\\s+)?(?:Active\\s+)?(?:Output\\s+)?Power', 'AC\\s+(?:Rated\\s+)?Output\\s+Power', 'Pot[êe]ncia\\s+(?:CA\\s+)?nominal(?:\\s+(?:AC|CA))?(?:\\s+de\\s+sa[íi]da)?', 'Pot[êe]ncia\\s+(?:CA\\s+)?ativa\\s+nominal', 'Pot[êe]ncia\\s+activa\\s+nominal', 'Pot[êe]ncia\\s+ativa\\s+nominal\\s+(?:de\\s+)?sa[íi]da', 'Pot[êe]ncia\\s+m[áa]xima\\s+(?:nominal\\s+)?de\\s+sa[íi]da(?:\\s+cont[íi]nua)?', 'Max[^\\n]{0,14}continuous\\s+output\\s+power', 'Output\\s+Power'],
-  potencia_maxima_kw: ['Max[^\\n]{0,14}(?:AC\\s+)?(?:Active\\s+|Apparent\\s+|Output\\s+)Power', 'Maximum\\s+(?:AC\\s+)?(?:Apparent\\s+)?Power', 'Pot[êe]ncia\\s+m[áa]x[^\\n]{0,14}(?:CA|AC|sa[íi]da|aparente)', 'M[áa]xima\\s+pot[êe]ncia\\s+CA(?:\\s+de\\s+sa[íi]da)?', 'Pot[êe]ncia\\s+CA\\s+ativa\\s+m[áa]x', 'Pot[êe]ncia\\s+aparente\\s+m[áa]x', 'Max\\.?\\s+apparent\\s+power'],
+  potencia_kw: ['Rated\\s+(?:AC\\s+)?(?:Active\\s+|Output\\s+)?Power', 'Nominal\\s+(?:AC\\s+)?(?:Active\\s+)?(?:Output\\s+)?Power', 'AC\\s+(?:Rated\\s+)?Output\\s+Power', 'Pot[êeé]ncia\\s+(?:CA\\s+)?nominal(?:\\s+(?:AC|CA))?(?:\\s+de\\s+sa[íi]da)?', 'Pot[êeé]ncia\\s+(?:CA\\s+)?ativa\\s+nominal', 'Pot[êeé]ncia\\s+activa\\s+nominal', 'Pot[êeé]ncia\\s+ativa\\s+nominal\\s+(?:de\\s+)?sa[íi]da', 'Pot[êeé]ncia\\s+m[áa]xima\\s+(?:nominal\\s+)?de\\s+sa[íi]da(?:\\s+cont[íi]nua)?', 'Max[^\\n]{0,14}continuous\\s+output\\s+power', 'Output\\s+Power'],
+  potencia_maxima_kw: ['Max[^\\n]{0,14}(?:AC\\s+)?(?:Active\\s+|Apparent\\s+|Output\\s+)Power', 'Maximum\\s+(?:AC\\s+)?(?:Apparent\\s+)?Power', 'Pot[êeé]ncia\\s+m[áa]x[^\\n]{0,14}(?:CA|AC|sa[íi]da|aparente)', 'M[áa]xima\\s+pot[êe]ncia\\s+CA(?:\\s+de\\s+sa[íi]da)?', 'Pot[êeé]ncia\\s+CA\\s+ativa\\s+m[áa]x', 'Pot[êeé]ncia\\s+aparente\\s+m[áa]x', 'Max\\.?\\s+apparent\\s+power'],
   n_mppts: ['N[ºo]\\.?\\s*(?:de\\s*)?MPPTs?', 'N[úu]mero\\s+de\\s+MPPTs?(?:\\s+independentes)?', 'Quantidade\\s+de\\s+MPPTs?(?:\\s+independentes)?', 'Number\\s+of\\s+MPPTs?', 'MPPT\\s+Number', 'MPP\\s*Trackers?', 'N[ºo]\\.?\\s*of\\s*(?:independent\\s*)?MPP(?:T|\\s*(?:inputs?|trackers?))', 'N[ºo]\\.?\\s*(?:de\\s*)?(?:entradas?|rastreadores?)\\s*MPP'],
   strings_por_mppt: ['Strings?\\s+(?:por|per)\\s+MPPT', 'Entradas?\\s+por\\s+MPPT', 'No\\.?\\s+of\\s+(?:input\\s+)?strings?(?:\\s+per\\s+MPPT)?', 'N[úu]mero\\s+de\\s+(?:DC\\s+)?Connection\\s+Sets', 'Number\\s+of\\s+DC\\s+Connection\\s+Sets', 'N[úu]mero\\s+de\\s+sa[íi]das\\s+por\\s+MPPT', 'Number\\s+of\\s+outputs?\\s+per\\s+MPPT', 'Max[^\\n]{0,4}input\\s+number\\s+per\\s+MPP', 'Quantidade\\s+de\\s+strings\\s+por\\s+MPPT', 'N[úu]mero\\s+de\\s+strings\\s+por\\s+MPPT', 'N[ºo]\\s*de\\s*strings'],
   // total de entradas CC (micro): distribuído entre MPPTs em normalizarEntradasPorMppt
@@ -133,7 +133,7 @@ export const ROTULOS_BASE = {
   _mppt_range: ['MPPT\\s+(?:Operating\\s+)?(?:Voltage\\s+)?Range', 'MPP\\s+(?:Voltage\\s+)?Range', 'Faixa\\s+(?:de\\s+)?(?:tens[ãa]o\\s+)?(?:de\\s+)?MPPT?', 'Faixa\\s+de\\s+opera[çc][ãa]o\\s+MPPT', 'Faixa\\s+de\\s+tens[ãa]o\\s+MPP', 'Full\\s+load\\s+MPPT'],
   tensao_ac: ['Rated\\s+(?:Grid|AC|Output)\\s+Voltage', 'Nominal\\s+(?:Grid|AC|Output)\\s+Voltage', 'Tens[ãa]o\\s+nominal[^\\n]{0,14}(?:CA|AC|rede)'],
   corrente_ac_saida: ['Max[^\\n]{0,14}(?:AC\\s+)?Output\\s+Current', 'Rated\\s+(?:AC\\s+)?Output\\s+Current', 'Nominal\\s+(?:AC\\s+)?Output\\s+Current', 'Max\\.?\\s*AC\\s+Current', 'Corrente\\s+(?:de\\s+)?sa[íi]da\\s+m[áa]xima', 'Max\\.?\\s+Corrente\\s+de\\s+Sa[íi]da\\s+CA', 'M[áa]x\\.?\\s+corrente\\s+de\\s+sa[íi]da\\s+CA', 'Corrente\\s+nominal\\s+de\\s+sa[íi]da', 'Corrente[^\\n]{0,14}sa[íi]da'],
-  corrente_max_por_mppt: ['Max[^\\n]{0,14}Input\\s+Current', 'Max[^\\n]{0,14}(?:PV|DC)\\s+Current', 'Max\\.?\\s+Current\\s+per\\s+MPPT', 'Max\\.?\\s*DC\\s+Input\\s+Current', 'Corrente\\s+(?:de\\s+)?entrada\\s+m[áa]x', 'M[áa]x[íi]?m?a?\\.?\\s+corrente\\s+de\\s+entrada', 'Corrente\\s+M[áa]xima\\s+por\\s+Entrada', 'Max\\.?\\s+Corrente\\s+de\\s+Entrada\\s+CC', 'Corrente\\s+m[áa]x[^\\n]{0,14}(?:entrada|MPPT|PV)'],
+  corrente_max_por_mppt: ['Max[^\\n]{0,14}Input\\s+Current', 'Max[^\\n]{0,14}(?:PV|DC)\\s+Current', 'Max\\.?\\s*Current\\s+per\\s+MPPT', 'Max\\.?\\s*DC\\s+Input\\s+Current', 'Corrente\\s+(?:de\\s+)?entrada\\s+m[áa]x', 'M[áa]x[íi]?m?a?\\.?\\s+corrente\\s+de\\s+entrada', 'Corrente\\s+M[áa]xima\\s+por\\s+Entrada', 'Max\\.?\\s+Corrente\\s+de\\s+Entrada\\s+CC', 'Corrente\\s+m[áa]x[^\\n]{0,14}(?:entrada|MPPT|PV)'],
   corrente_isc_max: ['Max[^\\n]{0,14}Short[^\\n]{0,12}Current(?:\\s+per\\s+MPPT)?', 'Short[\\s-]*circuit\\s+Current', 'Corrente\\s+de\\s+curto[\\s-]*circuito\\s+m[áa]x', 'M[áa]x\\.?\\s+corrente\\s+CC\\s+de\\s+curto', 'Corrente\\s+(?:de\\s+)?curto', 'Isc\\s*(?:PV|FV|CC|DC)?'],
   eficiencia_maxima: ['Max[^\\n]{0,8}Efficiency', 'Peak\\s+Efficiency', 'Efici[êe]ncia\\s+m[áa]x', 'Max\\.?\\s+Efici[êe]ncia'],
   eficiencia_europeia: ['(?:European|Euro)\\s+Efficiency', 'Efici[êe]ncia\\s+(?:europeia|euro)'],
@@ -215,13 +215,14 @@ const CAMPOS = [
   ['eficiencia_europeia', (t) => _valor(t, _labels('eficiencia_europeia'), { min: 90, max: 100 })],
   ['peso_kg', (t) => _valor(t, _labels('peso_kg'), { min: 2, max: 200 })],
   ['dimensoes', (t) => {
-    // tolera separador de milhar (1,035 / 1.035) — não perde o dígito de milhar
-    const m = _norm(t).match(/(\d[\d.,]{1,5})\s*[x×*]\s*(\d[\d.,]{1,5})\s*[x×*]\s*(\d[\d.,]{1,5})/i)
+    // tolera separador de milhar (1,035 / 1.035) — não perde o dígito de milhar.
+    // P0-KEHUA-CATALOG-01: tolera ruído de OCR no separador "×" (lido como "%x"/"%").
+    const m = _norm(t).match(/(\d[\d.,]{1,5})\s*[x×*%]+\s*(\d[\d.,]{1,5})\s*[x×*%]+\s*(\d[\d.,]{1,5})/i)
     if (!m) return null
     const c = s => String(s).replace(/[.,]/g, '')
     return `${c(m[1])}x${c(m[2])}x${c(m[3])}`
   }],
-  ['grau_protecao_ip', (t) => { const m = _norm(t).match(/\bIP\s?(6[5-8]|54|55|2[01])\b/i); return m ? `IP${m[1]}` : null }],
+  ['grau_protecao_ip', (t) => { const m = _norm(t).match(/\bIP\s?P?\s?(6[5-8]|54|55|2[01])\b/i); return m ? `IP${m[1]}` : null }],
   ['temperatura_operacao', (t) => { const f = _faixa(t, _labels('_temperatura_range')); return (f && f[0] <= 5 && f[1] >= 40) ? `${f[0]}~+${f[1]}°C` : null }],
   ['garantia_anos', (t) => _valor(t, _labels('garantia_anos'), { min: 1, max: 30 })],
   ['certificacoes', (t) => {

@@ -180,6 +180,22 @@ const PADROES = [
       /\b(X[13][-\s]?(?:SPT|HYBRID|HUGE|ULT|ULTRA|NEO|MIC|BOOST|FIT|FORTH|MEGA|PRO|TRIO)[-\s]?\d{1,3}(?:\.\d)?[\w.-]*)\b/i,
     ],
   },
+  {
+    // P0-KEHUA-CATALOG-01: Kehua (Xiamen Kehua Digital Energy Co.). Reconhecimento
+    // por FAMÍLIA semântica, não por modelo individual:
+    //   SPI<potência>[K]-<variante>[ X<n>]   (variantes: B / S / T / X / HT).
+    // Aceita variações de espaçamento/hífen (SPI15K-B, SPI 15K-B, SPI15K B,
+    // SPI-15K-B). Famílias futuras (SPI-S/T/X/HT) cobertas sem novo deploy.
+    // OBS: o regex SPI também entra como modelo ÓRFÃO (abaixo), pois 4 dos 6
+    // datasheets reais NÃO trazem a palavra "Kehua" no corpo (só no rodapé,
+    // perdido no OCR de imagem) — a família SPI-…-B é assinatura suficiente.
+    fabricante: 'Kehua',
+    aliases: ['kehua', 'kehua tech', 'kehua digital', 'kehua technology', 'kehua.com'],
+    modelos: [
+      /\b(SPI\s?-?\d{1,4}K(?:[-\s]?(?:B|S|T|X|HT))?\d?(?:\s?X\d)?)\b/i,   // SPI8K-B X2, SPI50K-B X2, SPI30K
+      /\b(SPI\s?-?\d{3,4}-?(?:B|S|T|X|HT)\d?)\b/i,                        // SPI6000-B2, SPI5000-B2 (residencial)
+    ],
+  },
   // ── Microinversores (P1-MICRO-READINESS-01) — fabricante reconhecido ⇒
   //    derivarTopologia() classifica como MICRO. NÃO altera dimensionamento.
   {
@@ -383,6 +399,10 @@ export function extrairFabricanteModelo(texto) {
     { regex: /\b(GW\d{2,5}[A-Z]+-?[A-Z0-9]*)\b/i,   fabricante: 'Goodwe' },  // BUG-08
     { regex: /\b(SE\d{3,6}[A-Z]?-?[A-Z0-9]*)\b/i,   fabricante: 'SolarEdge' }, // BUG-08
     { regex: /\b(ASW\s*\d{3,5}[A-Z]?-?[A-Z0-9]*)\b/i, fabricante: 'Solplanet' },
+    // P0-KEHUA-CATALOG-01: família SPI-…-B é assinatura suficiente da Kehua mesmo
+    // sem a palavra "Kehua" no corpo. SP[I1] tolera o OCR que lê "SPI"→"SP1".
+    { regex: /\b(SPI\s?-?\d{1,4}K(?:[-\s]?(?:B|S|T|X|HT))?\d?(?:\s?X\d)?)\b/i, fabricante: 'Kehua' }, // SPI15K-B X2
+    { regex: /\b(SP[I1]\s?-?\d{3,4}-?B\d?)\b/i, fabricante: 'Kehua' },                                // SPI6000-B2 / OCR SP13000-B2
   ]
   for (const { regex, fabricante } of modelosOrfaos) {
     const m = texto.match(regex)

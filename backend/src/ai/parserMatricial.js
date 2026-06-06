@@ -261,9 +261,20 @@ export function montarMatriz(tokens, modelos) {
     if (!campo) continue
 
     const celulas = colunas.map(() => [])
+    let atribuidos = 0
     for (const v of valorToks) {
       const idx = _colunaMaisProxima(v.x, colunas)
-      if (idx >= 0) celulas[idx].push(v.s)
+      if (idx >= 0) { celulas[idx].push(v.s); atribuidos++ }
+    }
+    // P0-KEHUA-CATALOG-01: VALOR ÚNICO de uma linha que ficou FORA da tolerância
+    // de todas as colunas (célula mesclada centralizada entre colunas, ex.: Kehua
+    // SPI50-60K "Max.current per MPPT 40A") → atribui à coluna mais próxima; o
+    // _distribuir então o compartilha (INF_ALTA). Só recupera o que seria DESCARTADO
+    // (nunca sobrescreve valor já atribuído) — comportamento aditivo e seguro.
+    if (atribuidos === 0 && valorToks.length === 1) {
+      let best = 0, dmin = Infinity
+      colunas.forEach((c, i) => { const d = Math.abs(c.x - valorToks[0].x); if (d < dmin) { dmin = d; best = i } })
+      celulas[best].push(valorToks[0].s)
     }
     const dist = _distribuir(celulas)
     colunas.forEach((c, i) => {
