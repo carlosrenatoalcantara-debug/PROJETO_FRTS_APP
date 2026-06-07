@@ -12,6 +12,18 @@ import { catalogoFlags } from '../config/catalogoFlags.js'
 
 const usarMemoryStorage = () => mongoose.connection.readyState !== 1
 
+// P1-CATALOG-PROVENANCE-01: rastreabilidade de origem na CRIAÇÃO de equipamentos.
+// Valores aceitos (espelham OrigemSchema/Equipamento). O frontend pode enviar
+// `origem.tipo` (ex.: datasheet) ao salvar; sem hint, o POST/lote é uma ação
+// HUMANA no catálogo → 'manual' (evidência da ação, não chute). Antes este campo
+// nunca era setado e o hook de qualidade defaultava tudo p/ 'desconhecido'.
+export const ORIGENS_VALIDAS = ['manual', 'datasheet_gemini', 'datasheet_pdfparse', 'import_planilha', 'import_solarmarket', 'import_legado', 'desconhecido']
+export function resolverOrigem(body = {}, fallback = 'manual') {
+  const o = body.origem || {}
+  const tipo = ORIGENS_VALIDAS.includes(o.tipo) ? o.tipo : fallback
+  return { tipo, fonte: o.fonte || body.datasheet_url || null, em: new Date() }
+}
+
 // Wrapper function to make PDFParse easier to use
 const pdf = async (bufferPDF) => {
   const parser = new PDFParse({ data: bufferPDF })
@@ -217,6 +229,7 @@ export const criarEquipamento = async (req, res) => {
       garantia_produto,
       garantia_performance,
       preco_sugerido: preco_sugerido || 0,
+      origem: resolverOrigem(req.body, 'manual'),   // P1-CATALOG-PROVENANCE-01
     })
 
     await novo.save()
@@ -316,6 +329,7 @@ export const criarInversoresLote = async (req, res) => {
             tipo, fabricante, modelo,
             especificacoes: item.especificacoes || {},
             preco_sugerido: item.preco_sugerido || 0,
+            origem: resolverOrigem({ origem: item.origem || req.body?.origem }, 'manual'),   // P1-CATALOG-PROVENANCE-01
           })
           await novo.save()
           resultado.criados.push({ _id: novo._id, fabricante, modelo })

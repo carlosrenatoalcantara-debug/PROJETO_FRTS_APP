@@ -169,6 +169,7 @@ router.post('/admin/adicionar-lote', async (req, res) => {
           try {
             const novoEquipamento = new Equipamento({
               tipo: 'carregador_ev',
+              origem: { tipo: 'import_legado', fonte: 'catalogo_ev', em: new Date() },   // P1-CATALOG-PROVENANCE-01
               fabricante: dados.marca,
               modelo: dados.modelo,
               especificacoes: {
@@ -233,6 +234,7 @@ router.post('/admin/sincronizar-equipamentos', async (req, res) => {
         if (!existe) {
           const novoEquipamento = new Equipamento({
             tipo: 'carregador_ev',
+            origem: { tipo: 'import_legado', fonte: 'catalogo_ev', em: new Date() },   // P1-CATALOG-PROVENANCE-01
             fabricante: cg.marca,
             modelo: cg.modelo,
             especificacoes: {
@@ -403,6 +405,7 @@ router.post('/upload-datasheet', async (req, res) => {
         try {
           const novoEquipamento = new Equipamento({
             tipo: 'carregador_ev',
+            origem: { tipo: 'import_legado', fonte: 'catalogo_ev', em: new Date() },   // P1-CATALOG-PROVENANCE-01
             fabricante: resultado.carregador.marca,
             modelo: resultado.carregador.modelo,
             especificacoes: {
