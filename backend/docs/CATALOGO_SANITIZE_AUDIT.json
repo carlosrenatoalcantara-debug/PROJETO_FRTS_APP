@@ -1,0 +1,541 @@
+{
+  "meta": {
+    "sprint": "P1-CATALOG-SANITIZE-01",
+    "gerado_em": "2026-06-07T18:09:10.368Z",
+    "fonte": "Atlas iva0pph/forte_solar/equipamentos",
+    "total": 95,
+    "somente_leitura": true
+  },
+  "fase1_fabricantes": {
+    "distintos": 27,
+    "duplicados_por_grupo": [
+      {
+        "canonico": "SOLPLANET",
+        "variantes": [
+          {
+            "atual": "SOLPLANET",
+            "qtd": 1
+          },
+          {
+            "atual": "Solplanet",
+            "qtd": 2
+          }
+        ]
+      }
+    ],
+    "invalidos": [
+      {
+        "atual": "Página 1 de 1",
+        "qtd": 1,
+        "tipos": {
+          "carregador_ev": 1
+        }
+      },
+      {
+        "atual": "Fast Wall\tFast Wall",
+        "qtd": 1,
+        "tipos": {
+          "carregador_ev": 1
+        }
+      }
+    ],
+    "tabela": [
+      {
+        "fabricante_atual": "ZNShine Solar",
+        "canonico_sugerido": "ZNShine Solar",
+        "quantidade": 29,
+        "dup": false,
+        "invalido": false
+      },
+      {
+        "fabricante_atual": "Goodwe",
+        "canonico_sugerido": "Goodwe",
+        "quantidade": 9,
+        "dup": false,
+        "invalido": false
+      },
+      {
+        "fabricante_atual": "Risen Energy",
+        "canonico_sugerido": "Risen Energy",
+        "quantidade": 7,
+        "dup": false,
+        "invalido": false
+      },
+      {
+        "fabricante_atual": "Huawei",
+        "canonico_sugerido": "Huawei",
+        "quantidade": 7,
+        "dup": false,
+        "invalido": false
+      },
+      {
+        "fabricante_atual": "Trina Solar",
+        "canonico_sugerido": "Trina Solar",
+        "quantidade": 6,
+        "dup": false,
+        "invalido": false
+      },
+      {
+        "fabricante_atual": "Renesola",
+        "canonico_sugerido": "Renesola",
+        "quantidade": 5,
+        "dup": false,
+        "invalido": false
+      },
+      {
+        "fabricante_atual": "Neosolar",
+        "canonico_sugerido": "Neosolar",
+        "quantidade": 4,
+        "dup": false,
+        "invalido": false
+      },
+      {
+        "fabricante_atual": "Sirius Energias Renováveis",
+        "canonico_sugerido": "Sirius Energias Renováveis",
+        "quantidade": 2,
+        "dup": false,
+        "invalido": false
+      },
+      {
+        "fabricante_atual": "INTELBRAS",
+        "canonico_sugerido": "INTELBRAS",
+        "quantidade": 2,
+        "dup": false,
+        "invalido": false
+      },
+      {
+        "fabricante_atual": "Wallbox",
+        "canonico_sugerido": "Wallbox",
+        "quantidade": 2,
+        "dup": false,
+        "invalido": false
+      },
+      {
+        "fabricante_atual": "Schneider",
+        "canonico_sugerido": "Schneider",
+        "quantidade": 2,
+        "dup": false,
+        "invalido": false
+      },
+      {
+        "fabricante_atual": "Canadian Solar",
+        "canonico_sugerido": "Canadian Solar",
+        "quantidade": 2,
+        "dup": false,
+        "invalido": false
+      },
+      {
+        "fabricante_atual": "Solplanet",
+        "canonico_sugerido": "Solplanet",
+        "quantidade": 2,
+        "dup": true,
+        "invalido": false
+      },
+      {
+        "fabricante_atual": "Chint",
+        "canonico_sugerido": "Chint",
+        "quantidade": 2,
+        "dup": false,
+        "invalido": false
+      },
+      {
+        "fabricante_atual": "Solis",
+        "canonico_sugerido": "Solis",
+        "quantidade": 2,
+        "dup": false,
+        "invalido": false
+      },
+      {
+        "fabricante_atual": "OSDA SOLAR",
+        "canonico_sugerido": "OSDA SOLAR",
+        "quantidade": 1,
+        "dup": false,
+        "invalido": false
+      },
+      {
+        "fabricante_atual": "Tesla",
+        "canonico_sugerido": "Tesla",
+        "quantidade": 1,
+        "dup": false,
+        "invalido": false
+      },
+      {
+        "fabricante_atual": "BYD",
+        "canonico_sugerido": "BYD",
+        "quantidade": 1,
+        "dup": false,
+        "invalido": false
+      },
+      {
+        "fabricante_atual": "WEG",
+        "canonico_sugerido": "WEG",
+        "quantidade": 1,
+        "dup": false,
+        "invalido": false
+      },
+      {
+        "fabricante_atual": "ChargePoint",
+        "canonico_sugerido": "ChargePoint",
+        "quantidade": 1,
+        "dup": false,
+        "invalido": false
+      },
+      {
+        "fabricante_atual": "Kia",
+        "canonico_sugerido": "Kia",
+        "quantidade": 1,
+        "dup": false,
+        "invalido": false
+      },
+      {
+        "fabricante_atual": "Porsche",
+        "canonico_sugerido": "Porsche",
+        "quantidade": 1,
+        "dup": false,
+        "invalido": false
+      },
+      {
+        "fabricante_atual": "SOLPLANET",
+        "canonico_sugerido": "Solplanet",
+        "quantidade": 1,
+        "dup": true,
+        "invalido": false
+      },
+      {
+        "fabricante_atual": "Deye",
+        "canonico_sugerido": "Deye",
+        "quantidade": 1,
+        "dup": false,
+        "invalido": false
+      },
+      {
+        "fabricante_atual": "Página 1 de 1",
+        "canonico_sugerido": "INVALIDO_revisar",
+        "quantidade": 1,
+        "dup": false,
+        "invalido": true
+      },
+      {
+        "fabricante_atual": "Fast Station",
+        "canonico_sugerido": "Fast Station",
+        "quantidade": 1,
+        "dup": false,
+        "invalido": false
+      },
+      {
+        "fabricante_atual": "Fast Wall\tFast Wall",
+        "canonico_sugerido": "INVALIDO_revisar",
+        "quantidade": 1,
+        "dup": false,
+        "invalido": true
+      }
+    ]
+  },
+  "fase2_modelos": {
+    "distintos": 92,
+    "vazios": [],
+    "ruido_ocr": [],
+    "duplicados": [
+      {
+        "fabricante": "Neosolar",
+        "modelo": "NS400W",
+        "qtd": 2
+      },
+      {
+        "fabricante": "Neosolar",
+        "modelo": "NS550W",
+        "qtd": 2
+      },
+      {
+        "fabricante": "Canadian Solar",
+        "modelo": "CS3K-400MS",
+        "qtd": 2
+      }
+    ]
+  },
+  "fase3_revisao": [
+    {
+      "fabricante": "Goodwe",
+      "modelo": "GW25K-DT",
+      "nivel": "incompleto",
+      "score": 50,
+      "faltam": [
+        "tensao_partida"
+      ]
+    },
+    {
+      "fabricante": "Solplanet",
+      "modelo": "ASW7300-S",
+      "nivel": "invalido",
+      "score": 16,
+      "faltam": [
+        "n_mppts",
+        "tensao_partida"
+      ]
+    },
+    {
+      "fabricante": "Solplanet",
+      "modelo": "ASW12K-LT-G2",
+      "nivel": "invalido",
+      "score": 26,
+      "faltam": [
+        "corrente_isc_max",
+        "tensao_partida"
+      ]
+    },
+    {
+      "fabricante": "Chint",
+      "modelo": "SCA50KTL-T",
+      "nivel": "incompleto",
+      "score": 50,
+      "faltam": [
+        "tensao_partida"
+      ]
+    },
+    {
+      "fabricante": "Chint",
+      "modelo": "SCA60KTL-T",
+      "nivel": "suspeito",
+      "score": 40,
+      "faltam": [
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "tensao_partida"
+      ]
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-23K-G04-LV",
+      "nivel": "invalido",
+      "score": 24,
+      "faltam": [
+        "n_mppts",
+        "tensao_partida"
+      ]
+    },
+    {
+      "fabricante": "Huawei",
+      "modelo": "SUN2000-100KTL",
+      "nivel": "suspeito",
+      "score": 34,
+      "faltam": [
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "tensao_partida"
+      ]
+    },
+    {
+      "fabricante": "Goodwe",
+      "modelo": "GW73KLV-HT",
+      "nivel": "incompleto",
+      "score": 50,
+      "faltam": [
+        "tensao_partida"
+      ]
+    }
+  ],
+  "fase4_conservador": [
+    {
+      "fabricante": "Solplanet",
+      "modelo": "ASW7300-S",
+      "faltam": [
+        "n_mppts"
+      ]
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-23K-G04-LV",
+      "faltam": [
+        "n_mppts"
+      ]
+    },
+    {
+      "fabricante": "Huawei",
+      "modelo": "SUN2000-100KTL",
+      "faltam": [
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt"
+      ]
+    }
+  ],
+  "fase6_classificacao": [
+    {
+      "fabricante": "ZNShine Solar",
+      "total": 29,
+      "inversores": 0,
+      "completude_inv": null,
+      "classe": "ESTRATEGICO"
+    },
+    {
+      "fabricante": "Goodwe",
+      "total": 9,
+      "inversores": 9,
+      "completude_inv": 88.9,
+      "classe": "ESTRATEGICO"
+    },
+    {
+      "fabricante": "Risen Energy",
+      "total": 7,
+      "inversores": 0,
+      "completude_inv": null,
+      "classe": "ESTRATEGICO"
+    },
+    {
+      "fabricante": "Huawei",
+      "total": 7,
+      "inversores": 6,
+      "completude_inv": 81.5,
+      "classe": "ESTRATEGICO"
+    },
+    {
+      "fabricante": "Trina Solar",
+      "total": 6,
+      "inversores": 0,
+      "completude_inv": null,
+      "classe": "ESTRATEGICO"
+    },
+    {
+      "fabricante": "Renesola",
+      "total": 5,
+      "inversores": 0,
+      "completude_inv": null,
+      "classe": "ESTRATEGICO"
+    },
+    {
+      "fabricante": "Neosolar",
+      "total": 4,
+      "inversores": 0,
+      "completude_inv": null,
+      "classe": "SUPORTADO"
+    },
+    {
+      "fabricante": "Sirius Energias Renováveis",
+      "total": 2,
+      "inversores": 0,
+      "completude_inv": null,
+      "classe": "SUPORTADO"
+    },
+    {
+      "fabricante": "INTELBRAS",
+      "total": 2,
+      "inversores": 0,
+      "completude_inv": null,
+      "classe": "SUPORTADO"
+    },
+    {
+      "fabricante": "Wallbox",
+      "total": 2,
+      "inversores": 0,
+      "completude_inv": null,
+      "classe": "SUPORTADO"
+    },
+    {
+      "fabricante": "Schneider",
+      "total": 2,
+      "inversores": 0,
+      "completude_inv": null,
+      "classe": "SUPORTADO"
+    },
+    {
+      "fabricante": "Canadian Solar",
+      "total": 2,
+      "inversores": 0,
+      "completude_inv": null,
+      "classe": "SUPORTADO"
+    },
+    {
+      "fabricante": "Solplanet",
+      "total": 2,
+      "inversores": 2,
+      "completude_inv": 72.2,
+      "classe": "SUPORTADO"
+    },
+    {
+      "fabricante": "Chint",
+      "total": 2,
+      "inversores": 2,
+      "completude_inv": 77.8,
+      "classe": "SUPORTADO"
+    },
+    {
+      "fabricante": "Solis",
+      "total": 2,
+      "inversores": 2,
+      "completude_inv": 88.9,
+      "classe": "SUPORTADO"
+    },
+    {
+      "fabricante": "OSDA SOLAR",
+      "total": 1,
+      "inversores": 0,
+      "completude_inv": null,
+      "classe": "OCASIONAL"
+    },
+    {
+      "fabricante": "Tesla",
+      "total": 1,
+      "inversores": 0,
+      "completude_inv": null,
+      "classe": "OCASIONAL"
+    },
+    {
+      "fabricante": "BYD",
+      "total": 1,
+      "inversores": 0,
+      "completude_inv": null,
+      "classe": "OCASIONAL"
+    },
+    {
+      "fabricante": "WEG",
+      "total": 1,
+      "inversores": 0,
+      "completude_inv": null,
+      "classe": "OCASIONAL"
+    },
+    {
+      "fabricante": "ChargePoint",
+      "total": 1,
+      "inversores": 0,
+      "completude_inv": null,
+      "classe": "OCASIONAL"
+    },
+    {
+      "fabricante": "Kia",
+      "total": 1,
+      "inversores": 0,
+      "completude_inv": null,
+      "classe": "OCASIONAL"
+    },
+    {
+      "fabricante": "Porsche",
+      "total": 1,
+      "inversores": 0,
+      "completude_inv": null,
+      "classe": "OCASIONAL"
+    },
+    {
+      "fabricante": "SOLPLANET",
+      "total": 1,
+      "inversores": 0,
+      "completude_inv": null,
+      "classe": "OCASIONAL"
+    },
+    {
+      "fabricante": "Deye",
+      "total": 1,
+      "inversores": 1,
+      "completude_inv": 77.8,
+      "classe": "OCASIONAL"
+    },
+    {
+      "fabricante": "Fast Station",
+      "total": 1,
+      "inversores": 0,
+      "completude_inv": null,
+      "classe": "OCASIONAL"
+    }
+  ]
+}
