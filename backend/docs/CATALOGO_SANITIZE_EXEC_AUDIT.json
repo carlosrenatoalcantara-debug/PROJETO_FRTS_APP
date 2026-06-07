@@ -1,0 +1,94 @@
+{
+  "meta": {
+    "sprint": "P1-CATALOG-SANITIZE-EXEC-01",
+    "modo": "APPLY",
+    "gerado_em": "2026-06-07T19:05:49.945Z",
+    "total": 95
+  },
+  "fase1_invalidos": [
+    {
+      "id": "6a24630b92a231dcefee9a8a",
+      "fabricante": "Página 1 de 1",
+      "modelo": "KW 220V",
+      "tipo": "carregador_ev"
+    },
+    {
+      "id": "6a24632292a231dcefee9a92",
+      "fabricante": "Fast Wall\tFast Wall",
+      "modelo": "AC380V",
+      "tipo": "carregador_ev"
+    }
+  ],
+  "fase2_dup_caixa": {
+    "grupos": [
+      {
+        "grupo": "SOLPLANET",
+        "variantes": {
+          "SOLPLANET": 1,
+          "Solplanet": 2
+        },
+        "canonico": "Solplanet",
+        "renomear": [
+          {
+            "de": "SOLPLANET",
+            "para": "Solplanet",
+            "qtd": 1
+          }
+        ]
+      }
+    ],
+    "plano_renomear": [
+      {
+        "de": "SOLPLANET",
+        "para": "Solplanet",
+        "qtd": 1
+      }
+    ],
+    "aplicados": 1
+  },
+  "fase3_tensao_partida": {
+    "inversores": 22,
+    "com": 0,
+    "sem": 22,
+    "sem_por_fabricante": {
+      "Goodwe": 9,
+      "Solplanet": 2,
+      "Chint": 2,
+      "Solis": 2,
+      "Deye": 1,
+      "Huawei": 6
+    }
+  },
+  "fase4_ranking": [
+    {
+      "fabricante": "Goodwe",
+      "inversores": 9,
+      "completude": 92.3
+    },
+    {
+      "fabricante": "Solis",
+      "inversores": 2,
+      "completude": 88.5
+    },
+    {
+      "fabricante": "Huawei",
+      "inversores": 6,
+      "completude": 87.2
+    },
+    {
+      "fabricante": "Chint",
+      "inversores": 2,
+      "completude": 84.6
+    },
+    {
+      "fabricante": "Deye",
+      "inversores": 1,
+      "completude": 84.6
+    },
+    {
+      "fabricante": "Solplanet",
+      "inversores": 2,
+      "completude": 80.8
+    }
+  ]
+}
