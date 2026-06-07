@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { readFileSync } from 'fs'
+import { readFileSync, existsSync } from 'fs'
 import { fileURLToPath } from 'url'
 import { dirname, resolve } from 'path'
 import { scoreDe, outliersDe, CAMPOS_SCORE, PESO_TOTAL, runAudit } from '../../../../backend/src/scripts/auditCatalog.js'
@@ -73,10 +73,11 @@ describe('FASE 4 — detecção de outliers (apenas detecta, justificativa obrig
 
 describe('READ-ONLY — auditoria não escreve no banco/fonte', () => {
   it('runAudit() não altera memory-storage.json', async () => {
-    const antes = readFileSync(MEM, 'utf8')
+    // P1-ATLAS-CUTOVER-01: memory-storage.json deixou de ser versionado (fonte = Atlas).
+    // Quando presente (dev), valida byte-identidade; sempre valida os flags read-only.
+    const antes = existsSync(MEM) ? readFileSync(MEM, 'utf8') : null
     const rel = await runAudit()
-    const depois = readFileSync(MEM, 'utf8')
-    expect(depois).toBe(antes)                          // byte-idêntico
+    if (antes != null) expect(readFileSync(MEM, 'utf8')).toBe(antes)   // byte-idêntico
     expect(rel.meta.somente_leitura).toBe(true)
     expect(rel.meta.escreveu_no_banco).toBe(false)
   })

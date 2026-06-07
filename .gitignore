@@ -53,3 +53,7 @@ CHANGELOG.md
 
 # P1-INV-OCR-01: traineddata do tesseract.js (baixado em runtime)
 *.traineddata
+
+# P1-ATLAS-CUTOVER-01: dado de RUNTIME do fallback local — NÃO versionar (era
+# fonte de divergência vs Atlas). O Atlas (forte_solar.equipamentos) é a fonte oficial.
+backend/data/memory-storage.json
