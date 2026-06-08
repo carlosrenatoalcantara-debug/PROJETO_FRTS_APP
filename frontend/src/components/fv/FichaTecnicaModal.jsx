@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from 'react'
 import { X, Zap, Upload, CheckCircle, AlertTriangle, Save } from 'lucide-react'
 import { avaliarUtilizavel } from '../../utils/utilizavelProjeto'
 import { getNivelConfig } from '../../utils/catalogQualityEngine'
+import BadgeEngenharia from '../engenharia/BadgeEngenharia.jsx'
+import { payloadEngenharia } from '../../utils/engenharia/engenhariaPayload.js'
 
 /**
  * FichaTecnicaModal — Sprint 8.0.2
@@ -56,6 +58,8 @@ export default function FichaTecnicaModal({ equipamento, onFechar, onSalvo }) {
 
   const fonteDados = equipamento.fonte_dados || {}
   const espAtual = { ...(equipamento.especificacoes || {}), ...form }
+  // P1-ENGINEERING-CONSUME-01: payload de engenharia (badges/justificativa runtime).
+  const payloadEng = payloadEngenharia({ ...equipamento, especificacoes: espAtual })
   const eng = avaliarUtilizavel(tipo, espAtual)
   const nivel = equipamento.qualidade?.nivel
   const nivelCfg = getNivelConfig(nivel)
@@ -134,6 +138,7 @@ export default function FichaTecnicaModal({ equipamento, onFechar, onSalvo }) {
                       <input value={form[k] ?? ''} onChange={e => set(k, e.target.value)}
                         className="flex-1 px-2 py-1 text-sm border border-slate-300 rounded focus:outline-none focus:ring-2 focus:ring-emerald-500" />
                       {fonte && <span className={`text-[10px] px-1.5 py-0.5 rounded ${FONTE_COR[fonte] || 'bg-slate-100 text-slate-500'}`} title={conf ? `${Math.round(conf * 100)}%` : ''}>{fonte}</span>}
+                      <BadgeEngenharia payload={payloadEng} chave={k} />
                     </div>
                   )
                 })}

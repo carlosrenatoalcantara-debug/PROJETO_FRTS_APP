@@ -6,6 +6,8 @@ import ModalNovoInversor from '../components/equipamentos/ModalNovoInversor'
 import AssistenteImportacaoDatasheet from '../components/equipamentos/AssistenteImportacaoDatasheet'
 // P1-INV-UI-01: edição manual dirigida pelo MESMO esquema do SSOT (sem dialeto).
 import { obterCamposEditaveis, classificarCampos, STATUS } from '../../../backend/src/ai/camposEquipamento.js'
+import BadgeEngenharia from '../components/engenharia/BadgeEngenharia.jsx'
+import { payloadEngenharia } from '../utils/engenharia/engenhariaPayload.js'
 
 const API_URL = '' /* URL relativa forçada — Vercel proxy → Railway. Não usar VITE_API_URL */
 
@@ -170,9 +172,12 @@ const SPECS_EXTRA = [
   { key: 'garantia_anos',           label: 'Garantia',              unit: 'anos'},
 ]
 
-function SpecGroup({ titulo, specs, espec }) {
+function SpecGroup({ titulo, specs, espec, payload }) {
   const visiveis = specs.filter(s => espec?.[s.key] != null)
-  if (!visiveis.length) return null
+  // P1-ENGINEERING-CONSUME-01: campos AUSENTES que têm fallback conservador (ex.:
+  // tensao_partida) passam a aparecer com o valor estimado + badge 🟠 (runtime).
+  const comFallback = payload ? specs.filter(s => espec?.[s.key] == null && payload.campos?.[s.key]) : []
+  if (!visiveis.length && !comFallback.length) return null
   return (
     <div>
       <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">{titulo}</p>
@@ -181,6 +186,15 @@ function SpecGroup({ titulo, specs, espec }) {
           <div key={s.key} className="flex justify-between text-xs py-0.5 border-b border-slate-100">
             <span className="text-slate-500">{s.label}</span>
             <span className="font-semibold text-slate-800">{Array.isArray(espec[s.key]) ? espec[s.key].join('/') : espec[s.key]}{s.unit && s.unit !== '' ? ` ${s.unit}` : ''}</span>
+          </div>
+        ))}
+        {comFallback.map(s => (
+          <div key={s.key} className="flex justify-between items-center text-xs py-0.5 border-b border-slate-100">
+            <span className="text-slate-500">{s.label}</span>
+            <span className="font-semibold text-slate-500 flex items-center gap-1">
+              {payload.campos[s.key].valor}{s.unit && s.unit !== '' ? ` ${s.unit}` : ''}
+              <BadgeEngenharia payload={payload} chave={s.key} mostrarBotao={false} />
+            </span>
           </div>
         ))}
       </div>
@@ -335,6 +349,7 @@ export default function Inversores() {
           <p className="text-sm text-slate-500 font-medium">{inversores.length} inversor{inversores.length > 1 ? 'es' : ''} cadastrado{inversores.length > 1 ? 's' : ''}</p>
           {inversores.map(inv => {
             const espec = inv.especificacoes || {}
+            const payloadEng = payloadEngenharia(inv)   // P1-ENGINEERING-CONSUME-01
             const aberto = expandido === inv._id
             return (
               <Card key={inv._id} className="overflow-hidden">
@@ -383,9 +398,9 @@ export default function Inversores() {
                 {/* Painel expandido — todos os dados técnicos */}
                 {aberto && (
                   <div className="border-t border-slate-100 px-5 py-4 bg-slate-50 space-y-5">
-                    <SpecGroup titulo="Saída CA" specs={SPECS_AC} espec={espec} />
-                    <SpecGroup titulo="Entrada CC / MPPT" specs={SPECS_DC} espec={espec} />
-                    <SpecGroup titulo="Desempenho e instalação" specs={SPECS_EXTRA} espec={espec} />
+                    <SpecGroup titulo="Saída CA" specs={SPECS_AC} espec={espec} payload={payloadEng} />
+                    <SpecGroup titulo="Entrada CC / MPPT" specs={SPECS_DC} espec={espec} payload={payloadEng} />
+                    <SpecGroup titulo="Desempenho e instalação" specs={SPECS_EXTRA} espec={espec} payload={payloadEng} />
                     <DimensionamentoEletrico espec={espec} />
                     {Object.keys(espec).length === 0 && (
                       <p className="text-xs text-slate-400 text-center">Nenhum dado técnico registrado</p>
