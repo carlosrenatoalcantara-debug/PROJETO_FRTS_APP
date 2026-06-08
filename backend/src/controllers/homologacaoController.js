@@ -1,12 +1,37 @@
+import mongoose from 'mongoose'
 import {
   gerarMemorialDescritivo,
   gerarCartaConcessionaria,
   gerarDadosART,
   gerarChecklistDocumentos,
 } from '../services/memorialDescritivoService.js'
+import { ProjetoFV } from '../models/ProjetoFV.js'
+import { Equipamento } from '../models/Equipamento.js'
+import { UnidadeBeneficiaria } from '../models/UnidadeBeneficiaria.js'
 
 // Mock database - em produção usar banco real
 const homologacoesDB = new Map()
+
+/**
+ * P1-PARECER-ENGINEERING-WIRE-01: carrega ATLAS VIVO (equipamentos por _id) + beneficiárias
+ * para o documento. Tolerante a falhas → cai no snapshot do projeto (compatibilidade).
+ */
+async function _carregarDepsDocumento(projetoId, projetoBody) {
+  const out = { equipamentos: [], beneficiarias: [] }
+  try {
+    if (mongoose.connection?.readyState !== 1) return out
+    let proj = projetoBody
+    const idValido = projetoId && mongoose.Types.ObjectId.isValid(projetoId)
+    if (idValido) { const p = await ProjetoFV.findById(projetoId).lean().catch(() => null); if (p) proj = p }
+    const ids = []
+    for (const e of (proj?.equipamentos?.paineis || [])) { const id = e?._id || e?.equipamento_id; if (id) ids.push(id) }
+    const invId = proj?.equipamentos?.inversor?._id || proj?.equipamentos?.inversor?.equipamento_id
+    if (invId) ids.push(invId)
+    if (ids.length) out.equipamentos = await Equipamento.find({ _id: { $in: ids } }).lean().catch(() => [])
+    if (idValido) out.beneficiarias = await UnidadeBeneficiaria.find({ projetoId }).lean().catch(() => [])
+  } catch { /* fallback: snapshot do projeto */ }
+  return out
+}
 
 export async function gerarMemorial(req, res) {
   try {
@@ -17,7 +42,8 @@ export async function gerarMemorial(req, res) {
       return res.status(400).json({ erro: 'Dados do projeto e cliente obrigatórios' })
     }
 
-    const memorial = gerarMemorialDescritivo(projeto, cliente)
+    const deps = await _carregarDepsDocumento(projetoId, projeto)
+    const memorial = gerarMemorialDescritivo(projeto, cliente, deps)
 
     res.json({
       sucesso: true,
