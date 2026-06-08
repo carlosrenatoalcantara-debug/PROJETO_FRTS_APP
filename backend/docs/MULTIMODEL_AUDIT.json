@@ -1,0 +1,609 @@
+{
+  "fabricantes": {
+    "deye_2330.json": {
+      "fabricante": "Deye",
+      "modelos": [
+        "SUN-23K-G04-LV",
+        "SUN-25K-G04-LV",
+        "SUN-30K-G04-LV"
+      ],
+      "cobertura_pct": 75,
+      "flags": [],
+      "amostra": [
+        {
+          "modelo": "SUN-23K-G04-LV",
+          "pot": 23,
+          "potmax": 23,
+          "imppt": 40,
+          "isc": 60,
+          "mppt": "200-700"
+        },
+        {
+          "modelo": "SUN-25K-G04-LV",
+          "pot": 25,
+          "potmax": 25,
+          "imppt": 40,
+          "isc": 60,
+          "mppt": "200-700"
+        },
+        {
+          "modelo": "SUN-30K-G04-LV",
+          "pot": 30,
+          "potmax": 30,
+          "imppt": 40,
+          "isc": 60,
+          "mppt": "200-700"
+        }
+      ]
+    },
+    "goodwe_dt.json": {
+      "fabricante": "GoodWe",
+      "modelos": [
+        "GW17K-DT",
+        "GW20K-DT",
+        "GW25K-DT"
+      ],
+      "cobertura_pct": 100,
+      "flags": [],
+      "amostra": [
+        {
+          "modelo": "GW17K-DT",
+          "pot": 17,
+          "potmax": 17,
+          "nmppt": 2,
+          "imppt": 22,
+          "isc": 27.5,
+          "vmax": 1000,
+          "mppt": "260-850"
+        },
+        {
+          "modelo": "GW20K-DT",
+          "pot": 20,
+          "potmax": 20,
+          "nmppt": 2,
+          "imppt": 22,
+          "isc": 27.5,
+          "vmax": 1000,
+          "mppt": "260-850"
+        },
+        {
+          "modelo": "GW25K-DT",
+          "pot": 25,
+          "potmax": 25,
+          "nmppt": 2,
+          "imppt": 27,
+          "isc": 33.8,
+          "vmax": 1000,
+          "mppt": "260-850"
+        }
+      ]
+    },
+    "goodwe_ms.json": {
+      "fabricante": "GoodWe",
+      "modelos": [
+        "GW7000-MS-30",
+        "GW8500-MS-30",
+        "GW10K-MS-30"
+      ],
+      "cobertura_pct": 87.5,
+      "flags": [
+        "E campo ausente p/ todos: corrente_isc_max"
+      ],
+      "amostra": [
+        {
+          "modelo": "GW7000-MS-30",
+          "pot": 7,
+          "potmax": 7,
+          "nmppt": 3,
+          "imppt": 20,
+          "vmax": 600,
+          "mppt": "40-560"
+        },
+        {
+          "modelo": "GW8500-MS-30",
+          "pot": 8.5,
+          "potmax": 8.5,
+          "nmppt": 3,
+          "imppt": 20,
+          "vmax": 600,
+          "mppt": "40-560"
+        },
+        {
+          "modelo": "GW10K-MS-30",
+          "pot": 10,
+          "potmax": 10,
+          "nmppt": 3,
+          "imppt": 20,
+          "vmax": 600,
+          "mppt": "40-560"
+        }
+      ]
+    },
+    "hoymiles_hms.json": {
+      "fabricante": "Hoymiles",
+      "modelos": [
+        "HMS-1600DW-4T",
+        "HMS-1800DW-4T",
+        "HMS-2000DW-4T"
+      ],
+      "cobertura_pct": 75,
+      "flags": [
+        "E campo ausente p/ todos: corrente_isc_max"
+      ],
+      "amostra": [
+        {
+          "modelo": "HMS-1600DW-4T",
+          "potmax": 1.6,
+          "nmppt": 2,
+          "imppt": 14,
+          "vmax": 65,
+          "mppt": "16-60"
+        },
+        {
+          "modelo": "HMS-1800DW-4T",
+          "potmax": 1.8,
+          "nmppt": 2,
+          "imppt": 15,
+          "vmax": 65,
+          "mppt": "16-60"
+        },
+        {
+          "modelo": "HMS-2000DW-4T",
+          "potmax": 2,
+          "nmppt": 2,
+          "imppt": 16,
+          "vmax": 65,
+          "mppt": "16-60"
+        }
+      ]
+    },
+    "kehua_spi_commercial.json": {
+      "fabricante": "Kehua",
+      "modelos": [
+        "SPI15K-B X2",
+        "SPI17K-B X2",
+        "SPI20K-B X2",
+        "SPI23K-B X2",
+        "SPI25K-B X2"
+      ],
+      "cobertura_pct": 87.5,
+      "flags": [
+        "E campo ausente p/ todos: corrente_isc_max"
+      ],
+      "amostra": [
+        {
+          "modelo": "SPI15K-B X2",
+          "pot": 15,
+          "potmax": 16.5,
+          "nmppt": 2,
+          "imppt": 30,
+          "vmax": 1100,
+          "mppt": "180-1000"
+        },
+        {
+          "modelo": "SPI17K-B X2",
+          "pot": 17,
+          "potmax": 18.7,
+          "nmppt": 2,
+          "imppt": 30,
+          "vmax": 1100,
+          "mppt": "180-1000"
+        },
+        {
+          "modelo": "SPI20K-B X2",
+          "pot": 20,
+          "potmax": 22,
+          "nmppt": 2,
+          "imppt": 30,
+          "vmax": 1100,
+          "mppt": "180-1000"
+        },
+        {
+          "modelo": "SPI23K-B X2",
+          "pot": 23,
+          "potmax": 25.3,
+          "nmppt": 2,
+          "imppt": 30,
+          "vmax": 1100,
+          "mppt": "180-1000"
+        },
+        {
+          "modelo": "SPI25K-B X2",
+          "pot": 25,
+          "potmax": 27.5,
+          "nmppt": 2,
+          "imppt": 30,
+          "vmax": 1100,
+          "mppt": "180-1000"
+        }
+      ]
+    },
+    "kehua_spi_utility.json": {
+      "fabricante": "Kehua",
+      "modelos": [
+        "SPI50K-B X2",
+        "SPI60K-B X2"
+      ],
+      "cobertura_pct": 87.5,
+      "flags": [
+        "E campo ausente p/ todos: corrente_isc_max"
+      ],
+      "amostra": [
+        {
+          "modelo": "SPI50K-B X2",
+          "pot": 50,
+          "potmax": 55,
+          "nmppt": 4,
+          "imppt": 40,
+          "vmax": 1100,
+          "mppt": "180-1000"
+        },
+        {
+          "modelo": "SPI60K-B X2",
+          "pot": 60,
+          "potmax": 66,
+          "nmppt": 5,
+          "imppt": 40,
+          "vmax": 1100,
+          "mppt": "180-1000"
+        }
+      ]
+    },
+    "saj_r5_s2.json": {
+      "fabricante": "SAJ",
+      "modelos": [
+        "R5-3K-S2",
+        "R5-3.6K-S2",
+        "R5-4K-S2",
+        "R5-5K-S2",
+        "R5-6K-S2",
+        "R5-7K-S2",
+        "R5-8K-S2"
+      ],
+      "cobertura_pct": 75,
+      "flags": [
+        "E campo ausente p/ todos: potencia_maxima_kw",
+        "E campo ausente p/ todos: corrente_isc_max"
+      ],
+      "amostra": [
+        {
+          "modelo": "R5-3K-S2",
+          "pot": 3,
+          "nmppt": 2,
+          "imppt": 12.5,
+          "vmax": 600,
+          "mppt": "90-550"
+        },
+        {
+          "modelo": "R5-3.6K-S2",
+          "pot": 3.68,
+          "nmppt": 2,
+          "imppt": 12.5,
+          "vmax": 600,
+          "mppt": "90-550"
+        },
+        {
+          "modelo": "R5-4K-S2",
+          "pot": 4,
+          "nmppt": 2,
+          "imppt": 12.5,
+          "vmax": 600,
+          "mppt": "90-550"
+        },
+        {
+          "modelo": "R5-5K-S2",
+          "pot": 5,
+          "nmppt": 2,
+          "imppt": 12.5,
+          "vmax": 600,
+          "mppt": "90-550"
+        },
+        {
+          "modelo": "R5-6K-S2",
+          "pot": 6,
+          "nmppt": 2,
+          "imppt": 12.5,
+          "vmax": 600,
+          "mppt": "90-550"
+        },
+        {
+          "modelo": "R5-7K-S2",
+          "pot": 7,
+          "nmppt": 2,
+          "imppt": 25,
+          "vmax": 600,
+          "mppt": "90-550"
+        },
+        {
+          "modelo": "R5-8K-S2",
+          "pot": 8,
+          "nmppt": 2,
+          "imppt": 25,
+          "vmax": 600,
+          "mppt": "90-550"
+        }
+      ]
+    },
+    "solax_x1_spt.json": {
+      "fabricante": "SolaX",
+      "modelos": [
+        "X1-SPT-10K",
+        "X1-SPT-12K"
+      ],
+      "cobertura_pct": 100,
+      "flags": [],
+      "amostra": [
+        {
+          "modelo": "X1-SPT-10K",
+          "pot": 10,
+          "potmax": 10,
+          "nmppt": 3,
+          "imppt": 18,
+          "isc": 22,
+          "vmax": 500,
+          "mppt": "35-490"
+        },
+        {
+          "modelo": "X1-SPT-12K",
+          "pot": 12,
+          "potmax": 12,
+          "nmppt": 3,
+          "imppt": 18,
+          "isc": 22,
+          "vmax": 500,
+          "mppt": "35-490"
+        }
+      ]
+    },
+    "solax_x3_ultra.json": {
+      "fabricante": "SolaX",
+      "modelos": [
+        "X3-ULT-15K",
+        "X3-ULT-15KP",
+        "X3-ULT-19.9K",
+        "X3-ULT-20K",
+        "X3-ULT-20KP",
+        "X3-ULT-25K",
+        "X3-ULT-30K"
+      ],
+      "cobertura_pct": 100,
+      "flags": [],
+      "amostra": [
+        {
+          "modelo": "X3-ULT-15K",
+          "pot": 15,
+          "potmax": 27.5,
+          "nmppt": 2,
+          "imppt": 36,
+          "isc": 45,
+          "vmax": 1000,
+          "mppt": "120-950"
+        },
+        {
+          "modelo": "X3-ULT-15KP",
+          "pot": 15,
+          "potmax": 27.5,
+          "nmppt": 3,
+          "imppt": 36,
+          "isc": 45,
+          "vmax": 1000,
+          "mppt": "120-950"
+        },
+        {
+          "modelo": "X3-ULT-19.9K",
+          "pot": 19.9,
+          "potmax": 27.5,
+          "nmppt": 2,
+          "imppt": 36,
+          "isc": 45,
+          "vmax": 1000,
+          "mppt": "120-950"
+        },
+        {
+          "modelo": "X3-ULT-20K",
+          "pot": 20,
+          "potmax": 27.5,
+          "nmppt": 2,
+          "imppt": 36,
+          "isc": 45,
+          "vmax": 1000,
+          "mppt": "120-950"
+        },
+        {
+          "modelo": "X3-ULT-20KP",
+          "pot": 20,
+          "potmax": 27.5,
+          "nmppt": 2,
+          "imppt": 36,
+          "isc": 45,
+          "vmax": 1000,
+          "mppt": "120-950"
+        },
+        {
+          "modelo": "X3-ULT-25K",
+          "pot": 25,
+          "potmax": 27.5,
+          "nmppt": 3,
+          "imppt": 36,
+          "isc": 45,
+          "vmax": 1000,
+          "mppt": "120-950"
+        },
+        {
+          "modelo": "X3-ULT-30K",
+          "pot": 30,
+          "potmax": 30,
+          "nmppt": 3,
+          "imppt": 36,
+          "isc": 45,
+          "vmax": 1000,
+          "mppt": "120-950"
+        }
+      ]
+    },
+    "solplanet_7300.json": {
+      "fabricante": "Solplanet",
+      "modelos": [
+        "ASW7300-S",
+        "ASW9100-S"
+      ],
+      "cobertura_pct": 50,
+      "flags": [
+        "E campo ausente p/ todos: tensao_mppt_min",
+        "E campo ausente p/ todos: tensao_mppt_max"
+      ],
+      "amostra": [
+        {
+          "modelo": "ASW7300-S",
+          "pot": 7.3,
+          "potmax": 8.8,
+          "isc": 22.5,
+          "vmax": 600,
+          "mppt": "∅-∅"
+        },
+        {
+          "modelo": "ASW9100-S",
+          "pot": 9.1,
+          "potmax": 11,
+          "isc": 28,
+          "vmax": 600,
+          "mppt": "∅-∅"
+        }
+      ]
+    },
+    "sungrow_rt.json": {
+      "fabricante": "Sungrow",
+      "modelos": [
+        "SG5.0RT",
+        "SG6.0RT",
+        "SG7.0RT",
+        "SG8.0RT",
+        "SG10RT",
+        "SG12RT"
+      ],
+      "cobertura_pct": 100,
+      "flags": [],
+      "amostra": [
+        {
+          "modelo": "SG5.0RT",
+          "pot": 5,
+          "potmax": 5.5,
+          "nmppt": 2,
+          "imppt": 25,
+          "isc": 32,
+          "vmax": 1100,
+          "mppt": "160-1000"
+        },
+        {
+          "modelo": "SG6.0RT",
+          "pot": 6,
+          "potmax": 6.6,
+          "nmppt": 2,
+          "imppt": 25,
+          "isc": 32,
+          "vmax": 1100,
+          "mppt": "160-1000"
+        },
+        {
+          "modelo": "SG7.0RT",
+          "pot": 7,
+          "potmax": 7.7,
+          "nmppt": 2,
+          "imppt": 25,
+          "isc": 32,
+          "vmax": 1100,
+          "mppt": "160-1000"
+        },
+        {
+          "modelo": "SG8.0RT",
+          "pot": 8,
+          "potmax": 8.8,
+          "nmppt": 2,
+          "imppt": 37.5,
+          "isc": 48,
+          "vmax": 1100,
+          "mppt": "160-1000"
+        },
+        {
+          "modelo": "SG10RT",
+          "pot": 10,
+          "potmax": 11,
+          "nmppt": 2,
+          "imppt": 37.5,
+          "isc": 48,
+          "vmax": 1100,
+          "mppt": "160-1000"
+        },
+        {
+          "modelo": "SG12RT",
+          "pot": 12,
+          "potmax": 13.2,
+          "nmppt": 2,
+          "imppt": 37.5,
+          "isc": 48,
+          "vmax": 1100,
+          "mppt": "160-1000"
+        }
+      ]
+    }
+  },
+  "multimodelo": [
+    "deye_2330.json",
+    "goodwe_dt.json",
+    "goodwe_ms.json",
+    "hoymiles_hms.json",
+    "kehua_spi_commercial.json",
+    "kehua_spi_utility.json",
+    "saj_r5_s2.json",
+    "solax_x1_spt.json",
+    "solax_x3_ultra.json",
+    "solplanet_7300.json",
+    "sungrow_rt.json"
+  ],
+  "anomalias": [
+    {
+      "fixture": "goodwe_ms.json",
+      "fab": "GoodWe",
+      "flags": [
+        "E campo ausente p/ todos: corrente_isc_max"
+      ]
+    },
+    {
+      "fixture": "hoymiles_hms.json",
+      "fab": "Hoymiles",
+      "flags": [
+        "E campo ausente p/ todos: corrente_isc_max"
+      ]
+    },
+    {
+      "fixture": "kehua_spi_commercial.json",
+      "fab": "Kehua",
+      "flags": [
+        "E campo ausente p/ todos: corrente_isc_max"
+      ]
+    },
+    {
+      "fixture": "kehua_spi_utility.json",
+      "fab": "Kehua",
+      "flags": [
+        "E campo ausente p/ todos: corrente_isc_max"
+      ]
+    },
+    {
+      "fixture": "saj_r5_s2.json",
+      "fab": "SAJ",
+      "flags": [
+        "E campo ausente p/ todos: potencia_maxima_kw",
+        "E campo ausente p/ todos: corrente_isc_max"
+      ]
+    },
+    {
+      "fixture": "solplanet_7300.json",
+      "fab": "Solplanet",
+      "flags": [
+        "E campo ausente p/ todos: tensao_mppt_min",
+        "E campo ausente p/ todos: tensao_mppt_max"
+      ]
+    }
+  ]
+}
