@@ -290,14 +290,29 @@ export function montarMatriz(tokens, modelos) {
     if (!rotuloToks.length || !valorToks.length) continue
     const label = rotuloToks.map(t => t.s).join(' ').replace(/\s+/g, ' ').trim()
 
-    const ehMppt = /mpp.?\s*(voltage\s*)?range|faixa.*mppt|mpp\s+voltage/i.test(label)
+    // P1-PARSER-COLUMN-ALIGNMENT-01: linhas de BACKUP/BATERIA (EPS/UPS/charge) NÃO são
+    // specs do inversor de rede — falso-matcheiam potência/corrente (ex.: SolaX X3-ULTRA
+    // "Peak EPS output power" → "2 time of rated power" virava potencia=2). Ignora-as.
+    if (/\bEPS\b|\bUPS\b|backup|charge|discharge|battery|bateria/i.test(label)) continue
+
+    // "Operating voltage range" (ex.: SolaX X3-ULTRA) é a faixa MPPT CC; linhas de
+    // bateria/AC já foram puladas acima, então é seguro tratá-la como MPPT.
+    const ehMppt = /mpp.?\s*(voltage\s*)?range|faixa.*mppt|mpp\s+voltage|operating\s+voltage\s+range/i.test(label)
     const campo = ehMppt ? '__mppt_range' : rotuloParaCampo(label)
     if (!campo) continue
 
     const celulas = colunas.map(() => [])
     let atribuidos = 0
+    // P1-PARSER-COLUMN-ALIGNMENT-01: valores numéricos costumam ser RIGHT-ALIGNED na
+    // célula → o x (borda esquerda) fica à direita do header da própria coluna e pode
+    // cair mais perto do header da coluna SEGUINTE (deslocamento de +1, ex.: SolaX
+    // X3-ULTRA "15000 VA" → coluna 15KP em vez de 15K). Recua o x do valor por ~25%
+    // do gap médio antes do nearest-match. Valores centralizados não mudam de coluna
+    // (o recuo é menor que meia-distância ao header vizinho).
+    const gapMed = colunas.length > 1 ? (colunas[colunas.length - 1].x - colunas[0].x) / (colunas.length - 1) : 50
+    const recuo = Math.min(gapMed * 0.25, 18)
     for (const v of valorToks) {
-      const idx = _colunaMaisProxima(v.x, colunas)
+      const idx = _colunaMaisProxima(v.x - recuo, colunas)
       if (idx >= 0) { celulas[idx].push(v.s); atribuidos++ }
     }
     // P0-KEHUA-CATALOG-01: VALOR ÚNICO de uma linha que ficou FORA da tolerância
