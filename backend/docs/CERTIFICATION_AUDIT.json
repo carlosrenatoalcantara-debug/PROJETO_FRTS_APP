@@ -1,0 +1,200 @@
+{
+  "total": 113,
+  "com_inmetro": 0,
+  "com_qualquer_iec": 0,
+  "por_norma": {
+    "16149": 0,
+    "16150": 0,
+    "61727": 0,
+    "62109": 0,
+    "62116": 0,
+    "inmetro": 0
+  },
+  "classificacao": {
+    "estruturado": 0,
+    "parcial": 0,
+    "texto_livre": 0,
+    "ausente": 113
+  },
+  "por_tipo": {
+    "modulo": {
+      "n": 56,
+      "inmetro": 0,
+      "iec": 0
+    },
+    "carregador_ev": {
+      "n": 16,
+      "inmetro": 0,
+      "iec": 0
+    },
+    "inversor": {
+      "n": 41,
+      "inmetro": 0,
+      "iec": 0
+    }
+  },
+  "por_fabricante": {
+    "ZNShine Solar": {
+      "n": 29,
+      "inmetro": 0,
+      "iec": 0,
+      "normas": 0
+    },
+    "Solplanet": {
+      "n": 10,
+      "inmetro": 0,
+      "iec": 0,
+      "normas": 0
+    },
+    "Goodwe": {
+      "n": 9,
+      "inmetro": 0,
+      "iec": 0,
+      "normas": 0
+    },
+    "SolaX": {
+      "n": 9,
+      "inmetro": 0,
+      "iec": 0,
+      "normas": 0
+    },
+    "Risen Energy": {
+      "n": 7,
+      "inmetro": 0,
+      "iec": 0,
+      "normas": 0
+    },
+    "Huawei": {
+      "n": 7,
+      "inmetro": 0,
+      "iec": 0,
+      "normas": 0
+    },
+    "Trina Solar": {
+      "n": 6,
+      "inmetro": 0,
+      "iec": 0,
+      "normas": 0
+    },
+    "Renesola": {
+      "n": 5,
+      "inmetro": 0,
+      "iec": 0,
+      "normas": 0
+    },
+    "Neosolar": {
+      "n": 4,
+      "inmetro": 0,
+      "iec": 0,
+      "normas": 0
+    },
+    "Growatt": {
+      "n": 3,
+      "inmetro": 0,
+      "iec": 0,
+      "normas": 0
+    },
+    "Sirius Energias Renováveis": {
+      "n": 2,
+      "inmetro": 0,
+      "iec": 0,
+      "normas": 0
+    },
+    "INTELBRAS": {
+      "n": 2,
+      "inmetro": 0,
+      "iec": 0,
+      "normas": 0
+    },
+    "Wallbox": {
+      "n": 2,
+      "inmetro": 0,
+      "iec": 0,
+      "normas": 0
+    },
+    "Schneider": {
+      "n": 2,
+      "inmetro": 0,
+      "iec": 0,
+      "normas": 0
+    },
+    "Canadian Solar": {
+      "n": 2,
+      "inmetro": 0,
+      "iec": 0,
+      "normas": 0
+    },
+    "Chint": {
+      "n": 2,
+      "inmetro": 0,
+      "iec": 0,
+      "normas": 0
+    },
+    "Solis": {
+      "n": 2,
+      "inmetro": 0,
+      "iec": 0,
+      "normas": 0
+    },
+    "OSDA SOLAR": {
+      "n": 1,
+      "inmetro": 0,
+      "iec": 0,
+      "normas": 0
+    },
+    "Tesla": {
+      "n": 1,
+      "inmetro": 0,
+      "iec": 0,
+      "normas": 0
+    },
+    "BYD": {
+      "n": 1,
+      "inmetro": 0,
+      "iec": 0,
+      "normas": 0
+    },
+    "WEG": {
+      "n": 1,
+      "inmetro": 0,
+      "iec": 0,
+      "normas": 0
+    },
+    "ChargePoint": {
+      "n": 1,
+      "inmetro": 0,
+      "iec": 0,
+      "normas": 0
+    },
+    "Kia": {
+      "n": 1,
+      "inmetro": 0,
+      "iec": 0,
+      "normas": 0
+    },
+    "Porsche": {
+      "n": 1,
+      "inmetro": 0,
+      "iec": 0,
+      "normas": 0
+    },
+    "Deye": {
+      "n": 1,
+      "inmetro": 0,
+      "iec": 0,
+      "normas": 0
+    },
+    "Fast Station": {
+      "n": 1,
+      "inmetro": 0,
+      "iec": 0,
+      "normas": 0
+    },
+    "Fast Wall\tFast Wall": {
+      "n": 1,
+      "inmetro": 0,
+      "iec": 0,
+      "normas": 0
+    }
+  }
+}
