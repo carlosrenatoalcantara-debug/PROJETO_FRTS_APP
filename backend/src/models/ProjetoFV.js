@@ -596,6 +596,12 @@ const projetoFVSchema = new mongoose.Schema({
       potencia_kw: Number,
       tipo: String,
       fases: Number,
+      // P1-PARECER-ATLAS-LINK-01: referência opcional ao Equipamento do catálogo (Atlas)
+      equipamento_id: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Equipamento',
+        default: null,
+      },
     },
     estrutura: {
       tipo: String,

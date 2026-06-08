@@ -23,9 +23,13 @@ async function _carregarDepsDocumento(projetoId, projetoBody) {
     let proj = projetoBody
     const idValido = projetoId && mongoose.Types.ObjectId.isValid(projetoId)
     if (idValido) { const p = await ProjetoFV.findById(projetoId).lean().catch(() => null); if (p) proj = p }
+    // P1-PARECER-ATLAS-LINK-01: prioriza o VÍNCULO real com o Atlas (equipamento_id / id
+    // legado) — o _id do subdoc do projeto NÃO é o _id do equipamento. ObjectId válido apenas.
+    const refValida = (v) => (v && mongoose.Types.ObjectId.isValid(v)) ? v : null
     const ids = []
-    for (const e of (proj?.equipamentos?.paineis || [])) { const id = e?._id || e?.equipamento_id; if (id) ids.push(id) }
-    const invId = proj?.equipamentos?.inversor?._id || proj?.equipamentos?.inversor?.equipamento_id
+    for (const e of (proj?.equipamentos?.paineis || [])) { const id = refValida(e?.equipamento_id) || refValida(e?.id); if (id) ids.push(id) }
+    const inv = proj?.equipamentos?.inversor || {}
+    const invId = refValida(inv.equipamento_id) || refValida(inv.id)
     if (invId) ids.push(invId)
     if (ids.length) out.equipamentos = await Equipamento.find({ _id: { $in: ids } }).lean().catch(() => [])
     if (idValido) out.beneficiarias = await UnidadeBeneficiaria.find({ projetoId }).lean().catch(() => [])

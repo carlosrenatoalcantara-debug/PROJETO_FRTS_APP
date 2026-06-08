@@ -455,6 +455,8 @@ export const extrairParecer = async (req, res) => {
         paineis: [
           {
             id: painel?._id,
+            // P1-PARECER-ATLAS-LINK-01: vínculo persistente com o Atlas (só com match real)
+            equipamento_id: painel?._id || null,
             marca: dadosEquipamento.paineis.marca || '',
             modelo: dadosEquipamento.paineis.modelo || '',
             potencia_w: dadosEquipamento.paineis.potencia_w || 0,
@@ -463,6 +465,8 @@ export const extrairParecer = async (req, res) => {
         ],
         inversor: {
           id: inversor?._id,
+          // P1-PARECER-ATLAS-LINK-01: vínculo persistente com o Atlas (só com match real)
+          equipamento_id: inversor?._id || null,
           marca: dadosEquipamento.inversor.marca || '',
           modelo: dadosEquipamento.inversor.modelo || '',
           potencia_kw: dadosEquipamento.inversor.potencia_kw || 0,
