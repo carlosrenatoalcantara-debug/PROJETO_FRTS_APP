@@ -370,7 +370,7 @@ function _aplicar(destino, campo, celula, status) {
 const _RANGES = {
   potencia_kw: [0.4, 600], potencia_maxima_kw: [0.4, 600], tensao_max_entrada: [40, 1500],
   tensao_ac: [100, 1000], corrente_ac_saida: [1, 400], corrente_max_por_mppt: [1, 100],
-  corrente_isc_max: [1, 120], eficiencia_maxima: [90, 100], eficiencia_europeia: [90, 100],
+  corrente_isc_max: [1, 120], eficiencia_maxima: [90, 100], eficiencia_europeia: [90, 100], tensao_partida: [30, 600],
   peso_kg: [2, 200], garantia_anos: [1, 30], n_mppts: [1, 30], total_entradas_cc: [1, 48], fases: [1, 3], frequencia_hz: [40, 70],
 }
 

@@ -136,6 +136,10 @@ export const ROTULOS_BASE = {
   corrente_max_por_mppt: ['Max[^\\n]{0,14}Input\\s+Current', 'Max[^\\n]{0,14}(?:PV|DC)\\s+Current', 'Max\\.?\\s*Current\\s+per\\s+MPPT', 'Max\\.?\\s*DC\\s+Input\\s+Current', 'Corrente\\s+(?:de\\s+)?entrada\\s+m[áa]x', 'M[áa]x[íi]?m?a?\\.?\\s+corrente\\s+de\\s+entrada', 'Corrente\\s+M[áa]xima\\s+por\\s+Entrada', 'Max\\.?\\s+Corrente\\s+de\\s+Entrada\\s+CC', 'Corrente\\s+m[áa]x[^\\n]{0,14}(?:entrada|MPPT|PV)'],
   corrente_isc_max: ['Max[^\\n]{0,14}Short[^\\n]{0,12}Current(?:\\s+per\\s+MPPT)?', 'Short[\\s-]*circuit\\s+Current', 'Corrente\\s+de\\s+curto[\\s-]*circuito\\s+m[áa]x', 'M[áa]x\\.?\\s+corrente\\s+CC\\s+de\\s+curto', 'Corrente\\s+(?:de\\s+)?curto', 'Isc\\s*(?:PV|FV|CC|DC)?'],
   eficiencia_maxima: ['Max[^\\n]{0,8}Efficiency', 'Peak\\s+Efficiency', 'Efici[êe]ncia\\s+m[áa]x', 'Max\\.?\\s+Efici[êe]ncia'],
+  // P1-PARSER-STARTVOLTAGE-01: tensão de partida/inicialização (rótulos REAIS de fixtures:
+  // Goodwe "Start-up Voltage"/"Tensão de partida", Solis "Start-up voltage", Kehua
+  // "Starting voltage", Deye "Tensão de inicialização", Sungrow/TSUN/Hopewind "Tensão de Partida").
+  tensao_partida: ['Start(?:ing|[\\s-]*up)?\\s+Voltage', 'Tens[ãa]o\\s+de\\s+partida', 'Tens[ãa]o\\s+de\\s+inicializa[çc][ãa]o'],
   eficiencia_europeia: ['(?:European|Euro)\\s+Efficiency', 'Efici[êe]ncia\\s+(?:europeia|euro)'],
   peso_kg: ['Weight', 'Peso'],
   _temperatura_range: ['Operating\\s+Temperature', 'Ambient\\s+Temperature', 'Temperatura\\s+(?:de\\s+)?opera[çc][ãa]o', 'Temperatura\\s+ambiente'],
@@ -185,6 +189,10 @@ const CAMPOS = [
   ['tensao_mppt_min', (t) => { const f = _faixa(t, _labels('_mppt_range')); return f ? f[0] : null }],
   ['tensao_mppt_max', (t) => { const f = _faixa(t, _labels('_mppt_range')); return f ? f[1] : null }],
   ['tensao_ac', (t) => _valor(t, _labels('tensao_ac'), { min: 100, max: 1000 })],
+  // P1-PARSER-STARTVOLTAGE-01: tensão de partida (CC). Faixa física: ~40 V (híbridos/
+  // baixa tensão, ex.: Goodwe MS 50 V) a ~450 V (string). [30,600] cobre sem colidir
+  // com tensão máx CC (≥1000) nem com a faixa MPPT.
+  ['tensao_partida', (t) => _valor(t, _labels('tensao_partida'), { min: 30, max: 600 })],
   ['fases', (t) => {
     const v = _valor(t, _labels('fases'), { min: 1, max: 3 })
     if (v === 1 || v === 3) return v
