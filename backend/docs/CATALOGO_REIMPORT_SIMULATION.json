@@ -1,0 +1,2058 @@
+{
+  "meta": {
+    "sprint": "P1-CATALOG-REIMPORT-SIMULATION-01",
+    "simulacao": true,
+    "escreveu_atlas": false,
+    "gerado_em": "2026-06-08T00:26:21.093Z"
+  },
+  "totais": {
+    "inversores": 22,
+    "ev": 16,
+    "equipamentos_melhoram": 21,
+    "campos_recuperaveis": 30,
+    "conflitos": 12,
+    "ganho_medio_completude_pct": 9.7
+  },
+  "por_fabricante": [
+    {
+      "fabricante": "Chint",
+      "inversores": 2,
+      "recuperaveis": 4,
+      "conflitos": 0,
+      "antes": 85.8,
+      "depois": 100
+    },
+    {
+      "fabricante": "Huawei",
+      "inversores": 6,
+      "recuperaveis": 10,
+      "conflitos": 0,
+      "antes": 88.1,
+      "depois": 100
+    },
+    {
+      "fabricante": "Solplanet",
+      "inversores": 2,
+      "recuperaveis": 3,
+      "conflitos": 3,
+      "antes": 82.2,
+      "depois": 92.9
+    },
+    {
+      "fabricante": "Solis",
+      "inversores": 2,
+      "recuperaveis": 3,
+      "conflitos": 0,
+      "antes": 89.3,
+      "depois": 100
+    },
+    {
+      "fabricante": "Deye",
+      "inversores": 1,
+      "recuperaveis": 1,
+      "conflitos": 1,
+      "antes": 85.7,
+      "depois": 92.9
+    },
+    {
+      "fabricante": "Goodwe",
+      "inversores": 9,
+      "recuperaveis": 9,
+      "conflitos": 8,
+      "antes": 92.9,
+      "depois": 100
+    }
+  ],
+  "ev": {
+    "total": 16,
+    "campos_presentes": {
+      "tipo_carregador": 15,
+      "potencia_kw": 16,
+      "tensao_entrada_v": 16,
+      "corrente_entrada_a": 11,
+      "numero_fases": 16,
+      "grau_protecao_ip": 16,
+      "temperatura_operacao": 15,
+      "protocolo_carregamento": 15,
+      "tipo_carregamento": 16,
+      "tipo_conector": 16,
+      "comunicacao": 15,
+      "carregadorEV_id": 15,
+      "tipo_conector_saida": 2,
+      "potencia_maxima": 2,
+      "tensao_entrada": 2,
+      "corrente_entrada": 2,
+      "frequencia_hz": 1,
+      "eficiencia": 1
+    },
+    "criticos": [
+      "potencia_kw",
+      "tensao_entrada_v",
+      "corrente_entrada_a",
+      "numero_fases",
+      "tipo_conector",
+      "tipo_carregamento"
+    ],
+    "completude_media": 84.4
+  },
+  "detalhe": [
+    {
+      "id": "6a1dd2b10130992881fc36ca",
+      "fabricante": "Goodwe",
+      "modelo": "GW25K-DT",
+      "fixture": "goodwe_dt.json",
+      "modelo_fixture": "GW25K-DT",
+      "match_exato": true,
+      "campos": {
+        "potencia_kw": {
+          "atlas": 25,
+          "sim": 25,
+          "cls": "ja_correto"
+        },
+        "potencia_maxima_kw": {
+          "atlas": 25,
+          "sim": 25,
+          "cls": "ja_correto"
+        },
+        "n_mppts": {
+          "atlas": 2,
+          "sim": 2,
+          "cls": "ja_correto"
+        },
+        "tensao_max_entrada": {
+          "atlas": 1000,
+          "sim": 1000,
+          "cls": "ja_correto"
+        },
+        "tensao_mppt_min": {
+          "atlas": 260,
+          "sim": 260,
+          "cls": "ja_correto"
+        },
+        "tensao_mppt_max": {
+          "atlas": 850,
+          "sim": 850,
+          "cls": "ja_correto"
+        },
+        "corrente_max_por_mppt": {
+          "atlas": 22,
+          "sim": 27,
+          "cls": "conflitante"
+        },
+        "corrente_isc_max": {
+          "atlas": 27.5,
+          "sim": 33.8,
+          "cls": "conflitante"
+        },
+        "tensao_partida": {
+          "atlas": null,
+          "sim": 250,
+          "cls": "recuperavel"
+        },
+        "eficiencia_maxima": {
+          "atlas": 98.2,
+          "sim": 98.4,
+          "cls": "ja_correto"
+        },
+        "peso_kg": {
+          "atlas": 39,
+          "sim": 40,
+          "cls": "conflitante"
+        },
+        "dimensoes": {
+          "atlas": "516x650x203",
+          "sim": "516*650*203",
+          "cls": "conflitante"
+        },
+        "grau_protecao_ip": {
+          "atlas": "IP65",
+          "sim": "IP65",
+          "cls": "ja_correto"
+        },
+        "corrente_ac_saida": {
+          "atlas": 37,
+          "sim": 37,
+          "cls": "ja_correto"
+        }
+      },
+      "modelo_diferente": 0,
+      "resumo": {
+        "recuperavel": 1,
+        "conflitante": 4,
+        "ja_correto": 9,
+        "ausente": 0
+      },
+      "completude_antes": 92.9,
+      "completude_depois": 100
+    },
+    {
+      "id": "6a1edcda0ad225bb78a33ade",
+      "fabricante": "Solplanet",
+      "modelo": "ASW7300-S",
+      "fixture": "solplanet_7300.json",
+      "modelo_fixture": "ASW7300-S",
+      "match_exato": true,
+      "campos": {
+        "potencia_kw": {
+          "atlas": 7.3,
+          "sim": 7.3,
+          "cls": "ja_correto"
+        },
+        "potencia_maxima_kw": {
+          "atlas": 8.8,
+          "sim": 8.8,
+          "cls": "ja_correto"
+        },
+        "n_mppts": {
+          "atlas": null,
+          "sim": null,
+          "cls": "ausente"
+        },
+        "tensao_max_entrada": {
+          "atlas": 600,
+          "sim": 600,
+          "cls": "ja_correto"
+        },
+        "tensao_mppt_min": {
+          "atlas": 100,
+          "sim": null,
+          "cls": "ja_correto"
+        },
+        "tensao_mppt_max": {
+          "atlas": 360,
+          "sim": null,
+          "cls": "ja_correto"
+        },
+        "corrente_max_por_mppt": {
+          "atlas": 16,
+          "sim": null,
+          "cls": "ja_correto"
+        },
+        "corrente_isc_max": {
+          "atlas": 22.5,
+          "sim": 22.5,
+          "cls": "ja_correto"
+        },
+        "tensao_partida": {
+          "atlas": null,
+          "sim": null,
+          "cls": "ausente"
+        },
+        "eficiencia_maxima": {
+          "atlas": 97.7,
+          "sim": 97.7,
+          "cls": "ja_correto"
+        },
+        "peso_kg": {
+          "atlas": 18,
+          "sim": 18,
+          "cls": "ja_correto"
+        },
+        "dimensoes": {
+          "atlas": "503x435x183",
+          "sim": "503 / 435 / 183 mm",
+          "cls": "conflitante"
+        },
+        "grau_protecao_ip": {
+          "atlas": "66",
+          "sim": "IP66",
+          "cls": "conflitante"
+        },
+        "corrente_ac_saida": {
+          "atlas": 220,
+          "sim": 40,
+          "cls": "conflitante"
+        }
+      },
+      "modelo_diferente": 0,
+      "resumo": {
+        "recuperavel": 0,
+        "conflitante": 3,
+        "ja_correto": 9,
+        "ausente": 2
+      },
+      "completude_antes": 85.7,
+      "completude_depois": 85.7
+    },
+    {
+      "id": "6a1eeaf9b4bafebf063bfe54",
+      "fabricante": "Solplanet",
+      "modelo": "ASW12K-LT-G2",
+      "fixture": "chint_sca.json",
+      "modelo_fixture": "chint_sca.json",
+      "match_exato": false,
+      "campos": {
+        "potencia_kw": {
+          "atlas": 12,
+          "sim": 50,
+          "cls": "modelo_diferente"
+        },
+        "potencia_maxima_kw": {
+          "atlas": 18,
+          "sim": null,
+          "cls": "ja_correto"
+        },
+        "n_mppts": {
+          "atlas": 2,
+          "sim": 4,
+          "cls": "modelo_diferente"
+        },
+        "tensao_max_entrada": {
+          "atlas": 1100,
+          "sim": 1100,
+          "cls": "ja_correto"
+        },
+        "tensao_mppt_min": {
+          "atlas": 150,
+          "sim": 200,
+          "cls": "modelo_diferente"
+        },
+        "tensao_mppt_max": {
+          "atlas": 1000,
+          "sim": 1000,
+          "cls": "ja_correto"
+        },
+        "corrente_max_por_mppt": {
+          "atlas": "48 e 30",
+          "sim": 39,
+          "cls": "recuperavel"
+        },
+        "corrente_isc_max": {
+          "atlas": null,
+          "sim": 45,
+          "cls": "recuperavel"
+        },
+        "tensao_partida": {
+          "atlas": null,
+          "sim": 250,
+          "cls": "recuperavel"
+        },
+        "eficiencia_maxima": {
+          "atlas": 98.6,
+          "sim": 99,
+          "cls": "ja_correto"
+        },
+        "peso_kg": {
+          "atlas": 17.3,
+          "sim": 73,
+          "cls": "modelo_diferente"
+        },
+        "dimensoes": {
+          "atlas": "503x435x183",
+          "sim": "855x555x275",
+          "cls": "modelo_diferente"
+        },
+        "grau_protecao_ip": {
+          "atlas": "66",
+          "sim": "IP65",
+          "cls": "modelo_diferente"
+        },
+        "corrente_ac_saida": {
+          "atlas": 19.1,
+          "sim": 76,
+          "cls": "modelo_diferente"
+        }
+      },
+      "modelo_diferente": 7,
+      "resumo": {
+        "recuperavel": 3,
+        "conflitante": 0,
+        "ja_correto": 4,
+        "ausente": 0
+      },
+      "completude_antes": 78.6,
+      "completude_depois": 100
+    },
+    {
+      "id": "6a1f2079b0611efb5d744fe6",
+      "fabricante": "Chint",
+      "modelo": "SCA50KTL-T",
+      "fixture": "chint_sca.json",
+      "modelo_fixture": "chint_sca.json",
+      "match_exato": false,
+      "campos": {
+        "potencia_kw": {
+          "atlas": 50,
+          "sim": 50,
+          "cls": "ja_correto"
+        },
+        "potencia_maxima_kw": {
+          "atlas": 55,
+          "sim": null,
+          "cls": "ja_correto"
+        },
+        "n_mppts": {
+          "atlas": 4,
+          "sim": 4,
+          "cls": "ja_correto"
+        },
+        "tensao_max_entrada": {
+          "atlas": 1100,
+          "sim": 1100,
+          "cls": "ja_correto"
+        },
+        "tensao_mppt_min": {
+          "atlas": 250,
+          "sim": 200,
+          "cls": "modelo_diferente"
+        },
+        "tensao_mppt_max": {
+          "atlas": 1000,
+          "sim": 1000,
+          "cls": "ja_correto"
+        },
+        "corrente_max_por_mppt": {
+          "atlas": 39,
+          "sim": 39,
+          "cls": "ja_correto"
+        },
+        "corrente_isc_max": {
+          "atlas": 45,
+          "sim": 45,
+          "cls": "ja_correto"
+        },
+        "tensao_partida": {
+          "atlas": null,
+          "sim": 250,
+          "cls": "recuperavel"
+        },
+        "eficiencia_maxima": {
+          "atlas": 98.3,
+          "sim": 99,
+          "cls": "ja_correto"
+        },
+        "peso_kg": {
+          "atlas": 73,
+          "sim": 73,
+          "cls": "ja_correto"
+        },
+        "dimensoes": {
+          "atlas": "855x555x275",
+          "sim": "855x555x275",
+          "cls": "ja_correto"
+        },
+        "grau_protecao_ip": {
+          "atlas": "IP65",
+          "sim": "IP65",
+          "cls": "ja_correto"
+        },
+        "corrente_ac_saida": {
+          "atlas": 76,
+          "sim": 76,
+          "cls": "ja_correto"
+        }
+      },
+      "modelo_diferente": 1,
+      "resumo": {
+        "recuperavel": 1,
+        "conflitante": 0,
+        "ja_correto": 12,
+        "ausente": 0
+      },
+      "completude_antes": 92.9,
+      "completude_depois": 100
+    },
+    {
+      "id": "6a1f207fb0611efb5d744fe8",
+      "fabricante": "Chint",
+      "modelo": "SCA60KTL-T",
+      "fixture": "chint_sca.json",
+      "modelo_fixture": "chint_sca.json",
+      "match_exato": false,
+      "campos": {
+        "potencia_kw": {
+          "atlas": 60,
+          "sim": 50,
+          "cls": "modelo_diferente"
+        },
+        "potencia_maxima_kw": {
+          "atlas": 55,
+          "sim": null,
+          "cls": "ja_correto"
+        },
+        "n_mppts": {
+          "atlas": 4,
+          "sim": 4,
+          "cls": "ja_correto"
+        },
+        "tensao_max_entrada": {
+          "atlas": 1100,
+          "sim": 1100,
+          "cls": "ja_correto"
+        },
+        "tensao_mppt_min": {
+          "atlas": null,
+          "sim": 200,
+          "cls": "recuperavel"
+        },
+        "tensao_mppt_max": {
+          "atlas": null,
+          "sim": 1000,
+          "cls": "recuperavel"
+        },
+        "corrente_max_por_mppt": {
+          "atlas": 39,
+          "sim": 39,
+          "cls": "ja_correto"
+        },
+        "corrente_isc_max": {
+          "atlas": 45,
+          "sim": 45,
+          "cls": "ja_correto"
+        },
+        "tensao_partida": {
+          "atlas": null,
+          "sim": 250,
+          "cls": "recuperavel"
+        },
+        "eficiencia_maxima": {
+          "atlas": 98.3,
+          "sim": 99,
+          "cls": "ja_correto"
+        },
+        "peso_kg": {
+          "atlas": 74,
+          "sim": 73,
+          "cls": "ja_correto"
+        },
+        "dimensoes": {
+          "atlas": "855x555x275",
+          "sim": "855x555x275",
+          "cls": "ja_correto"
+        },
+        "grau_protecao_ip": {
+          "atlas": "IP65",
+          "sim": "IP65",
+          "cls": "ja_correto"
+        },
+        "corrente_ac_saida": {
+          "atlas": 92,
+          "sim": 76,
+          "cls": "modelo_diferente"
+        }
+      },
+      "modelo_diferente": 2,
+      "resumo": {
+        "recuperavel": 3,
+        "conflitante": 0,
+        "ja_correto": 9,
+        "ausente": 0
+      },
+      "completude_antes": 78.6,
+      "completude_depois": 100
+    },
+    {
+      "id": "6a20b37b0e212875e8d10b29",
+      "fabricante": "Goodwe",
+      "modelo": "GW17K-DT",
+      "fixture": "goodwe_dt.json",
+      "modelo_fixture": "GW17K-DT",
+      "match_exato": true,
+      "campos": {
+        "potencia_kw": {
+          "atlas": 17,
+          "sim": 17,
+          "cls": "ja_correto"
+        },
+        "potencia_maxima_kw": {
+          "atlas": 17,
+          "sim": 17,
+          "cls": "ja_correto"
+        },
+        "n_mppts": {
+          "atlas": 2,
+          "sim": 2,
+          "cls": "ja_correto"
+        },
+        "tensao_max_entrada": {
+          "atlas": 1000,
+          "sim": 1000,
+          "cls": "ja_correto"
+        },
+        "tensao_mppt_min": {
+          "atlas": 260,
+          "sim": 260,
+          "cls": "ja_correto"
+        },
+        "tensao_mppt_max": {
+          "atlas": 850,
+          "sim": 850,
+          "cls": "ja_correto"
+        },
+        "corrente_max_por_mppt": {
+          "atlas": 22,
+          "sim": 22,
+          "cls": "ja_correto"
+        },
+        "corrente_isc_max": {
+          "atlas": 27.5,
+          "sim": 27.5,
+          "cls": "ja_correto"
+        },
+        "tensao_partida": {
+          "atlas": null,
+          "sim": 250,
+          "cls": "recuperavel"
+        },
+        "eficiencia_maxima": {
+          "atlas": 98.2,
+          "sim": 98.2,
+          "cls": "ja_correto"
+        },
+        "peso_kg": {
+          "atlas": 39,
+          "sim": 39,
+          "cls": "ja_correto"
+        },
+        "dimensoes": {
+          "atlas": "516x650x203",
+          "sim": "516*650*203",
+          "cls": "conflitante"
+        },
+        "grau_protecao_ip": {
+          "atlas": "IP65",
+          "sim": "IP65",
+          "cls": "ja_correto"
+        },
+        "corrente_ac_saida": {
+          "atlas": 25,
+          "sim": 25,
+          "cls": "ja_correto"
+        }
+      },
+      "modelo_diferente": 0,
+      "resumo": {
+        "recuperavel": 1,
+        "conflitante": 1,
+        "ja_correto": 12,
+        "ausente": 0
+      },
+      "completude_antes": 92.9,
+      "completude_depois": 100
+    },
+    {
+      "id": "6a20b37b0e212875e8d10b2a",
+      "fabricante": "Goodwe",
+      "modelo": "GW20K-DT",
+      "fixture": "goodwe_dt.json",
+      "modelo_fixture": "GW20K-DT",
+      "match_exato": true,
+      "campos": {
+        "potencia_kw": {
+          "atlas": 20,
+          "sim": 20,
+          "cls": "ja_correto"
+        },
+        "potencia_maxima_kw": {
+          "atlas": 17,
+          "sim": 20,
+          "cls": "conflitante"
+        },
+        "n_mppts": {
+          "atlas": 2,
+          "sim": 2,
+          "cls": "ja_correto"
+        },
+        "tensao_max_entrada": {
+          "atlas": 1000,
+          "sim": 1000,
+          "cls": "ja_correto"
+        },
+        "tensao_mppt_min": {
+          "atlas": 260,
+          "sim": 260,
+          "cls": "ja_correto"
+        },
+        "tensao_mppt_max": {
+          "atlas": 850,
+          "sim": 850,
+          "cls": "ja_correto"
+        },
+        "corrente_max_por_mppt": {
+          "atlas": 22,
+          "sim": 22,
+          "cls": "ja_correto"
+        },
+        "corrente_isc_max": {
+          "atlas": 27.5,
+          "sim": 27.5,
+          "cls": "ja_correto"
+        },
+        "tensao_partida": {
+          "atlas": null,
+          "sim": 250,
+          "cls": "recuperavel"
+        },
+        "eficiencia_maxima": {
+          "atlas": 98.2,
+          "sim": 98.4,
+          "cls": "ja_correto"
+        },
+        "peso_kg": {
+          "atlas": 39,
+          "sim": 39,
+          "cls": "ja_correto"
+        },
+        "dimensoes": {
+          "atlas": "516x650x203",
+          "sim": "516*650*203",
+          "cls": "conflitante"
+        },
+        "grau_protecao_ip": {
+          "atlas": "IP65",
+          "sim": "IP65",
+          "cls": "ja_correto"
+        },
+        "corrente_ac_saida": {
+          "atlas": 25,
+          "sim": 30,
+          "cls": "conflitante"
+        }
+      },
+      "modelo_diferente": 0,
+      "resumo": {
+        "recuperavel": 1,
+        "conflitante": 3,
+        "ja_correto": 10,
+        "ausente": 0
+      },
+      "completude_antes": 92.9,
+      "completude_depois": 100
+    },
+    {
+      "id": "6a20b5f50e212875e8d10b30",
+      "fabricante": "Solis",
+      "modelo": "1P7K-4G",
+      "fixture": "chint_sca.json",
+      "modelo_fixture": "chint_sca.json",
+      "match_exato": false,
+      "campos": {
+        "potencia_kw": {
+          "atlas": 7,
+          "sim": 50,
+          "cls": "modelo_diferente"
+        },
+        "potencia_maxima_kw": {
+          "atlas": 7.7,
+          "sim": null,
+          "cls": "ja_correto"
+        },
+        "n_mppts": {
+          "atlas": 3,
+          "sim": 4,
+          "cls": "modelo_diferente"
+        },
+        "tensao_max_entrada": {
+          "atlas": 600,
+          "sim": 1100,
+          "cls": "modelo_diferente"
+        },
+        "tensao_mppt_min": {
+          "atlas": 100,
+          "sim": 200,
+          "cls": "modelo_diferente"
+        },
+        "tensao_mppt_max": {
+          "atlas": 500,
+          "sim": 1000,
+          "cls": "modelo_diferente"
+        },
+        "corrente_max_por_mppt": {
+          "atlas": 10,
+          "sim": 39,
+          "cls": "modelo_diferente"
+        },
+        "corrente_isc_max": {
+          "atlas": 15.6,
+          "sim": 45,
+          "cls": "modelo_diferente"
+        },
+        "tensao_partida": {
+          "atlas": null,
+          "sim": 250,
+          "cls": "recuperavel"
+        },
+        "eficiencia_maxima": {
+          "atlas": 98.1,
+          "sim": 99,
+          "cls": "ja_correto"
+        },
+        "peso_kg": {
+          "atlas": 18,
+          "sim": 73,
+          "cls": "modelo_diferente"
+        },
+        "dimensoes": {
+          "atlas": null,
+          "sim": "855x555x275",
+          "cls": "recuperavel"
+        },
+        "grau_protecao_ip": {
+          "atlas": "IP65",
+          "sim": "IP65",
+          "cls": "ja_correto"
+        },
+        "corrente_ac_saida": {
+          "atlas": 33.7,
+          "sim": 76,
+          "cls": "modelo_diferente"
+        }
+      },
+      "modelo_diferente": 9,
+      "resumo": {
+        "recuperavel": 2,
+        "conflitante": 0,
+        "ja_correto": 3,
+        "ausente": 0
+      },
+      "completude_antes": 85.7,
+      "completude_depois": 100
+    },
+    {
+      "id": "6a20b5fb0e212875e8d10b33",
+      "fabricante": "Solis",
+      "modelo": "1P7K-5G",
+      "fixture": "chint_sca.json",
+      "modelo_fixture": "chint_sca.json",
+      "match_exato": false,
+      "campos": {
+        "potencia_kw": {
+          "atlas": 7,
+          "sim": 50,
+          "cls": "modelo_diferente"
+        },
+        "potencia_maxima_kw": {
+          "atlas": 7.7,
+          "sim": null,
+          "cls": "ja_correto"
+        },
+        "n_mppts": {
+          "atlas": 2,
+          "sim": 4,
+          "cls": "modelo_diferente"
+        },
+        "tensao_max_entrada": {
+          "atlas": 600,
+          "sim": 1100,
+          "cls": "modelo_diferente"
+        },
+        "tensao_mppt_min": {
+          "atlas": 90,
+          "sim": 200,
+          "cls": "modelo_diferente"
+        },
+        "tensao_mppt_max": {
+          "atlas": 520,
+          "sim": 1000,
+          "cls": "modelo_diferente"
+        },
+        "corrente_max_por_mppt": {
+          "atlas": 12.5,
+          "sim": 39,
+          "cls": "modelo_diferente"
+        },
+        "corrente_isc_max": {
+          "atlas": 19.5,
+          "sim": 45,
+          "cls": "modelo_diferente"
+        },
+        "tensao_partida": {
+          "atlas": null,
+          "sim": 250,
+          "cls": "recuperavel"
+        },
+        "eficiencia_maxima": {
+          "atlas": 98.1,
+          "sim": 99,
+          "cls": "ja_correto"
+        },
+        "peso_kg": {
+          "atlas": 13.3,
+          "sim": 73,
+          "cls": "modelo_diferente"
+        },
+        "dimensoes": {
+          "atlas": "310x543x180",
+          "sim": "855x555x275",
+          "cls": "modelo_diferente"
+        },
+        "grau_protecao_ip": {
+          "atlas": "IP65",
+          "sim": "IP65",
+          "cls": "ja_correto"
+        },
+        "corrente_ac_saida": {
+          "atlas": 33.5,
+          "sim": 76,
+          "cls": "modelo_diferente"
+        }
+      },
+      "modelo_diferente": 10,
+      "resumo": {
+        "recuperavel": 1,
+        "conflitante": 0,
+        "ja_correto": 3,
+        "ausente": 0
+      },
+      "completude_antes": 92.9,
+      "completude_depois": 100
+    },
+    {
+      "id": "6a20b8750e212875e8d10b3a",
+      "fabricante": "Deye",
+      "modelo": "SUN-23K-G04-LV",
+      "fixture": "deye_2330.json",
+      "modelo_fixture": "SUN-23K-G04-LV",
+      "match_exato": true,
+      "campos": {
+        "potencia_kw": {
+          "atlas": 23,
+          "sim": 23,
+          "cls": "ja_correto"
+        },
+        "potencia_maxima_kw": {
+          "atlas": 23,
+          "sim": 23,
+          "cls": "ja_correto"
+        },
+        "n_mppts": {
+          "atlas": null,
+          "sim": null,
+          "cls": "ausente"
+        },
+        "tensao_max_entrada": {
+          "atlas": 800,
+          "sim": null,
+          "cls": "ja_correto"
+        },
+        "tensao_mppt_min": {
+          "atlas": 200,
+          "sim": 200,
+          "cls": "ja_correto"
+        },
+        "tensao_mppt_max": {
+          "atlas": 700,
+          "sim": 700,
+          "cls": "ja_correto"
+        },
+        "corrente_max_por_mppt": {
+          "atlas": 40,
+          "sim": 40,
+          "cls": "ja_correto"
+        },
+        "corrente_isc_max": {
+          "atlas": 60,
+          "sim": 60,
+          "cls": "ja_correto"
+        },
+        "tensao_partida": {
+          "atlas": null,
+          "sim": 250,
+          "cls": "recuperavel"
+        },
+        "eficiencia_maxima": {
+          "atlas": 98.7,
+          "sim": 98.7,
+          "cls": "ja_correto"
+        },
+        "peso_kg": {
+          "atlas": 37.1,
+          "sim": 37.1,
+          "cls": "ja_correto"
+        },
+        "dimensoes": {
+          "atlas": "434x570x243",
+          "sim": "434×570×243(Excluindo conectores e suportes)",
+          "cls": "conflitante"
+        },
+        "grau_protecao_ip": {
+          "atlas": "IP65",
+          "sim": null,
+          "cls": "ja_correto"
+        },
+        "corrente_ac_saida": {
+          "atlas": 60.4,
+          "sim": 60.4,
+          "cls": "ja_correto"
+        }
+      },
+      "modelo_diferente": 0,
+      "resumo": {
+        "recuperavel": 1,
+        "conflitante": 1,
+        "ja_correto": 11,
+        "ausente": 1
+      },
+      "completude_antes": 85.7,
+      "completude_depois": 92.9
+    },
+    {
+      "id": "6a22191cdf17c1aa4c0743ad",
+      "fabricante": "Huawei",
+      "modelo": "SUN2000-30KTL-M3",
+      "fixture": "chint_sca.json",
+      "modelo_fixture": "chint_sca.json",
+      "match_exato": false,
+      "campos": {
+        "potencia_kw": {
+          "atlas": 30,
+          "sim": 50,
+          "cls": "modelo_diferente"
+        },
+        "potencia_maxima_kw": {
+          "atlas": 33,
+          "sim": null,
+          "cls": "ja_correto"
+        },
+        "n_mppts": {
+          "atlas": 4,
+          "sim": 4,
+          "cls": "ja_correto"
+        },
+        "tensao_max_entrada": {
+          "atlas": 1100,
+          "sim": 1100,
+          "cls": "ja_correto"
+        },
+        "tensao_mppt_min": {
+          "atlas": 200,
+          "sim": 200,
+          "cls": "ja_correto"
+        },
+        "tensao_mppt_max": {
+          "atlas": 1000,
+          "sim": 1000,
+          "cls": "ja_correto"
+        },
+        "corrente_max_por_mppt": {
+          "atlas": 27,
+          "sim": 39,
+          "cls": "modelo_diferente"
+        },
+        "corrente_isc_max": {
+          "atlas": 40,
+          "sim": 45,
+          "cls": "modelo_diferente"
+        },
+        "tensao_partida": {
+          "atlas": null,
+          "sim": 250,
+          "cls": "recuperavel"
+        },
+        "eficiencia_maxima": {
+          "atlas": 98.7,
+          "sim": 99,
+          "cls": "ja_correto"
+        },
+        "peso_kg": {
+          "atlas": 43,
+          "sim": 73,
+          "cls": "modelo_diferente"
+        },
+        "dimensoes": {
+          "atlas": "x 270 mm (25.2 x 20.9 x 10.6",
+          "sim": "855x555x275",
+          "cls": "modelo_diferente"
+        },
+        "grau_protecao_ip": {
+          "atlas": "66",
+          "sim": "IP65",
+          "cls": "modelo_diferente"
+        },
+        "corrente_ac_saida": {
+          "atlas": 43.3,
+          "sim": 76,
+          "cls": "modelo_diferente"
+        }
+      },
+      "modelo_diferente": 7,
+      "resumo": {
+        "recuperavel": 1,
+        "conflitante": 0,
+        "ja_correto": 6,
+        "ausente": 0
+      },
+      "completude_antes": 92.9,
+      "completude_depois": 100
+    },
+    {
+      "id": "6a22191ddf17c1aa4c0743ae",
+      "fabricante": "Huawei",
+      "modelo": "SUN2000-36KTL-M3",
+      "fixture": "chint_sca.json",
+      "modelo_fixture": "chint_sca.json",
+      "match_exato": false,
+      "campos": {
+        "potencia_kw": {
+          "atlas": 36,
+          "sim": 50,
+          "cls": "modelo_diferente"
+        },
+        "potencia_maxima_kw": {
+          "atlas": 40,
+          "sim": null,
+          "cls": "ja_correto"
+        },
+        "n_mppts": {
+          "atlas": 4,
+          "sim": 4,
+          "cls": "ja_correto"
+        },
+        "tensao_max_entrada": {
+          "atlas": 1100,
+          "sim": 1100,
+          "cls": "ja_correto"
+        },
+        "tensao_mppt_min": {
+          "atlas": 200,
+          "sim": 200,
+          "cls": "ja_correto"
+        },
+        "tensao_mppt_max": {
+          "atlas": 1000,
+          "sim": 1000,
+          "cls": "ja_correto"
+        },
+        "corrente_max_por_mppt": {
+          "atlas": 27,
+          "sim": 39,
+          "cls": "modelo_diferente"
+        },
+        "corrente_isc_max": {
+          "atlas": 40,
+          "sim": 45,
+          "cls": "modelo_diferente"
+        },
+        "tensao_partida": {
+          "atlas": null,
+          "sim": 250,
+          "cls": "recuperavel"
+        },
+        "eficiencia_maxima": {
+          "atlas": 98.7,
+          "sim": 99,
+          "cls": "ja_correto"
+        },
+        "peso_kg": {
+          "atlas": 43,
+          "sim": 73,
+          "cls": "modelo_diferente"
+        },
+        "dimensoes": {
+          "atlas": "x 270 mm (25.2 x 20.9 x 10.6",
+          "sim": "855x555x275",
+          "cls": "modelo_diferente"
+        },
+        "grau_protecao_ip": {
+          "atlas": "IP",
+          "sim": "IP65",
+          "cls": "modelo_diferente"
+        },
+        "corrente_ac_saida": {
+          "atlas": 52,
+          "sim": 76,
+          "cls": "modelo_diferente"
+        }
+      },
+      "modelo_diferente": 7,
+      "resumo": {
+        "recuperavel": 1,
+        "conflitante": 0,
+        "ja_correto": 6,
+        "ausente": 0
+      },
+      "completude_antes": 92.9,
+      "completude_depois": 100
+    },
+    {
+      "id": "6a22191ddf17c1aa4c0743af",
+      "fabricante": "Huawei",
+      "modelo": "SUN2000-40KTL-M3",
+      "fixture": "chint_sca.json",
+      "modelo_fixture": "chint_sca.json",
+      "match_exato": false,
+      "campos": {
+        "potencia_kw": {
+          "atlas": 40,
+          "sim": 50,
+          "cls": "modelo_diferente"
+        },
+        "potencia_maxima_kw": {
+          "atlas": 44,
+          "sim": null,
+          "cls": "ja_correto"
+        },
+        "n_mppts": {
+          "atlas": 4,
+          "sim": 4,
+          "cls": "ja_correto"
+        },
+        "tensao_max_entrada": {
+          "atlas": 1100,
+          "sim": 1100,
+          "cls": "ja_correto"
+        },
+        "tensao_mppt_min": {
+          "atlas": 200,
+          "sim": 200,
+          "cls": "ja_correto"
+        },
+        "tensao_mppt_max": {
+          "atlas": 1000,
+          "sim": 1000,
+          "cls": "ja_correto"
+        },
+        "corrente_max_por_mppt": {
+          "atlas": 20,
+          "sim": 39,
+          "cls": "modelo_diferente"
+        },
+        "corrente_isc_max": {
+          "atlas": 40,
+          "sim": 45,
+          "cls": "modelo_diferente"
+        },
+        "tensao_partida": {
+          "atlas": null,
+          "sim": 250,
+          "cls": "recuperavel"
+        },
+        "eficiencia_maxima": {
+          "atlas": 98.7,
+          "sim": 99,
+          "cls": "ja_correto"
+        },
+        "peso_kg": {
+          "atlas": 43,
+          "sim": 73,
+          "cls": "modelo_diferente"
+        },
+        "dimensoes": {
+          "atlas": "640 x 530 x  270 mm",
+          "sim": "855x555x275",
+          "cls": "modelo_diferente"
+        },
+        "grau_protecao_ip": {
+          "atlas": "IP",
+          "sim": "IP65",
+          "cls": "modelo_diferente"
+        },
+        "corrente_ac_saida": {
+          "atlas": 57.8,
+          "sim": 76,
+          "cls": "modelo_diferente"
+        }
+      },
+      "modelo_diferente": 7,
+      "resumo": {
+        "recuperavel": 1,
+        "conflitante": 0,
+        "ja_correto": 6,
+        "ausente": 0
+      },
+      "completude_antes": 92.9,
+      "completude_depois": 100
+    },
+    {
+      "id": "6a221cbbdf17c1aa4c0743b5",
+      "fabricante": "Huawei",
+      "modelo": "SUN2000-100KTL-M",
+      "fixture": "chint_sca.json",
+      "modelo_fixture": "chint_sca.json",
+      "match_exato": false,
+      "campos": {
+        "potencia_kw": {
+          "atlas": 100,
+          "sim": 50,
+          "cls": "modelo_diferente"
+        },
+        "potencia_maxima_kw": {
+          "atlas": 110,
+          "sim": null,
+          "cls": "ja_correto"
+        },
+        "n_mppts": {
+          "atlas": 10,
+          "sim": 4,
+          "cls": "modelo_diferente"
+        },
+        "tensao_max_entrada": {
+          "atlas": 1100,
+          "sim": 1100,
+          "cls": "ja_correto"
+        },
+        "tensao_mppt_min": {
+          "atlas": 200,
+          "sim": 200,
+          "cls": "ja_correto"
+        },
+        "tensao_mppt_max": {
+          "atlas": 1000,
+          "sim": 1000,
+          "cls": "ja_correto"
+        },
+        "corrente_max_por_mppt": {
+          "atlas": 30,
+          "sim": 39,
+          "cls": "modelo_diferente"
+        },
+        "corrente_isc_max": {
+          "atlas": 40,
+          "sim": 45,
+          "cls": "modelo_diferente"
+        },
+        "tensao_partida": {
+          "atlas": null,
+          "sim": 250,
+          "cls": "recuperavel"
+        },
+        "eficiencia_maxima": {
+          "atlas": 98.6,
+          "sim": 99,
+          "cls": "ja_correto"
+        },
+        "peso_kg": {
+          "atlas": 93,
+          "sim": 73,
+          "cls": "modelo_diferente"
+        },
+        "dimensoes": {
+          "atlas": "035x700x365",
+          "sim": "855x555x275",
+          "cls": "modelo_diferente"
+        },
+        "grau_protecao_ip": {
+          "atlas": "IP66",
+          "sim": "IP65",
+          "cls": "modelo_diferente"
+        },
+        "corrente_ac_saida": {
+          "atlas": 160.4,
+          "sim": 76,
+          "cls": "modelo_diferente"
+        }
+      },
+      "modelo_diferente": 8,
+      "resumo": {
+        "recuperavel": 1,
+        "conflitante": 0,
+        "ja_correto": 5,
+        "ausente": 0
+      },
+      "completude_antes": 92.9,
+      "completude_depois": 100
+    },
+    {
+      "id": "6a221cbbdf17c1aa4c0743b6",
+      "fabricante": "Huawei",
+      "modelo": "SUN2000-100KTL-M2",
+      "fixture": "chint_sca.json",
+      "modelo_fixture": "chint_sca.json",
+      "match_exato": false,
+      "campos": {
+        "potencia_kw": {
+          "atlas": 100,
+          "sim": 50,
+          "cls": "modelo_diferente"
+        },
+        "potencia_maxima_kw": {
+          "atlas": 110,
+          "sim": null,
+          "cls": "ja_correto"
+        },
+        "n_mppts": {
+          "atlas": 10,
+          "sim": 4,
+          "cls": "modelo_diferente"
+        },
+        "tensao_max_entrada": {
+          "atlas": 1100,
+          "sim": 1100,
+          "cls": "ja_correto"
+        },
+        "tensao_mppt_min": {
+          "atlas": 200,
+          "sim": 200,
+          "cls": "ja_correto"
+        },
+        "tensao_mppt_max": {
+          "atlas": 1000,
+          "sim": 1000,
+          "cls": "ja_correto"
+        },
+        "corrente_max_por_mppt": {
+          "atlas": 30,
+          "sim": 39,
+          "cls": "modelo_diferente"
+        },
+        "corrente_isc_max": {
+          "atlas": 40,
+          "sim": 45,
+          "cls": "modelo_diferente"
+        },
+        "tensao_partida": {
+          "atlas": null,
+          "sim": 250,
+          "cls": "recuperavel"
+        },
+        "eficiencia_maxima": {
+          "atlas": 98.6,
+          "sim": 99,
+          "cls": "ja_correto"
+        },
+        "peso_kg": {
+          "atlas": 93,
+          "sim": 73,
+          "cls": "modelo_diferente"
+        },
+        "dimensoes": {
+          "atlas": "035x700x365",
+          "sim": "855x555x275",
+          "cls": "modelo_diferente"
+        },
+        "grau_protecao_ip": {
+          "atlas": "IP66",
+          "sim": "IP65",
+          "cls": "modelo_diferente"
+        },
+        "corrente_ac_saida": {
+          "atlas": 160.4,
+          "sim": 76,
+          "cls": "modelo_diferente"
+        }
+      },
+      "modelo_diferente": 8,
+      "resumo": {
+        "recuperavel": 1,
+        "conflitante": 0,
+        "ja_correto": 5,
+        "ausente": 0
+      },
+      "completude_antes": 92.9,
+      "completude_depois": 100
+    },
+    {
+      "id": "6a221cbcdf17c1aa4c0743b7",
+      "fabricante": "Huawei",
+      "modelo": "SUN2000-100KTL",
+      "fixture": "chint_sca.json",
+      "modelo_fixture": "chint_sca.json",
+      "match_exato": false,
+      "campos": {
+        "potencia_kw": {
+          "atlas": 100,
+          "sim": 50,
+          "cls": "modelo_diferente"
+        },
+        "potencia_maxima_kw": {
+          "atlas": 110,
+          "sim": null,
+          "cls": "ja_correto"
+        },
+        "n_mppts": {
+          "atlas": 10,
+          "sim": 4,
+          "cls": "modelo_diferente"
+        },
+        "tensao_max_entrada": {
+          "atlas": null,
+          "sim": 1100,
+          "cls": "recuperavel"
+        },
+        "tensao_mppt_min": {
+          "atlas": null,
+          "sim": 200,
+          "cls": "recuperavel"
+        },
+        "tensao_mppt_max": {
+          "atlas": null,
+          "sim": 1000,
+          "cls": "recuperavel"
+        },
+        "corrente_max_por_mppt": {
+          "atlas": null,
+          "sim": 39,
+          "cls": "recuperavel"
+        },
+        "corrente_isc_max": {
+          "atlas": 40,
+          "sim": 45,
+          "cls": "modelo_diferente"
+        },
+        "tensao_partida": {
+          "atlas": null,
+          "sim": 250,
+          "cls": "recuperavel"
+        },
+        "eficiencia_maxima": {
+          "atlas": 98.6,
+          "sim": 99,
+          "cls": "ja_correto"
+        },
+        "peso_kg": {
+          "atlas": 93,
+          "sim": 73,
+          "cls": "modelo_diferente"
+        },
+        "dimensoes": {
+          "atlas": "035x700x365",
+          "sim": "855x555x275",
+          "cls": "modelo_diferente"
+        },
+        "grau_protecao_ip": {
+          "atlas": "IP66",
+          "sim": "IP65",
+          "cls": "modelo_diferente"
+        },
+        "corrente_ac_saida": {
+          "atlas": 160.4,
+          "sim": 76,
+          "cls": "modelo_diferente"
+        }
+      },
+      "modelo_diferente": 7,
+      "resumo": {
+        "recuperavel": 5,
+        "conflitante": 0,
+        "ja_correto": 2,
+        "ausente": 0
+      },
+      "completude_antes": 64.3,
+      "completude_depois": 100
+    },
+    {
+      "id": "6a2220a9df17c1aa4c0743c6",
+      "fabricante": "Goodwe",
+      "modelo": "GW73KLV-HT",
+      "fixture": "chint_sca.json",
+      "modelo_fixture": "chint_sca.json",
+      "match_exato": false,
+      "campos": {
+        "potencia_kw": {
+          "atlas": 73,
+          "sim": 50,
+          "cls": "modelo_diferente"
+        },
+        "potencia_maxima_kw": {
+          "atlas": 75,
+          "sim": null,
+          "cls": "ja_correto"
+        },
+        "n_mppts": {
+          "atlas": 12,
+          "sim": 4,
+          "cls": "modelo_diferente"
+        },
+        "tensao_max_entrada": {
+          "atlas": 800,
+          "sim": 1100,
+          "cls": "modelo_diferente"
+        },
+        "tensao_mppt_min": {
+          "atlas": 200,
+          "sim": 200,
+          "cls": "ja_correto"
+        },
+        "tensao_mppt_max": {
+          "atlas": 650,
+          "sim": 1000,
+          "cls": "modelo_diferente"
+        },
+        "corrente_max_por_mppt": {
+          "atlas": 30,
+          "sim": 39,
+          "cls": "modelo_diferente"
+        },
+        "corrente_isc_max": {
+          "atlas": 45,
+          "sim": 45,
+          "cls": "ja_correto"
+        },
+        "tensao_partida": {
+          "atlas": null,
+          "sim": 250,
+          "cls": "recuperavel"
+        },
+        "eficiencia_maxima": {
+          "atlas": 98.4,
+          "sim": 99,
+          "cls": "ja_correto"
+        },
+        "peso_kg": {
+          "atlas": 98.5,
+          "sim": 73,
+          "cls": "modelo_diferente"
+        },
+        "dimensoes": {
+          "atlas": "1008 × 678 × 343",
+          "sim": "855x555x275",
+          "cls": "modelo_diferente"
+        },
+        "grau_protecao_ip": {
+          "atlas": "IP66",
+          "sim": "IP65",
+          "cls": "modelo_diferente"
+        },
+        "corrente_ac_saida": {
+          "atlas": 192,
+          "sim": 76,
+          "cls": "modelo_diferente"
+        }
+      },
+      "modelo_diferente": 9,
+      "resumo": {
+        "recuperavel": 1,
+        "conflitante": 0,
+        "ja_correto": 4,
+        "ausente": 0
+      },
+      "completude_antes": 92.9,
+      "completude_depois": 100
+    },
+    {
+      "id": "6a2220aadf17c1aa4c0743c7",
+      "fabricante": "Goodwe",
+      "modelo": "GW80K-HT",
+      "fixture": "chint_sca.json",
+      "modelo_fixture": "chint_sca.json",
+      "match_exato": false,
+      "campos": {
+        "potencia_kw": {
+          "atlas": 80,
+          "sim": 50,
+          "cls": "modelo_diferente"
+        },
+        "potencia_maxima_kw": {
+          "atlas": 88,
+          "sim": null,
+          "cls": "ja_correto"
+        },
+        "n_mppts": {
+          "atlas": 10,
+          "sim": 4,
+          "cls": "modelo_diferente"
+        },
+        "tensao_max_entrada": {
+          "atlas": 1100,
+          "sim": 1100,
+          "cls": "ja_correto"
+        },
+        "tensao_mppt_min": {
+          "atlas": 500,
+          "sim": 200,
+          "cls": "modelo_diferente"
+        },
+        "tensao_mppt_max": {
+          "atlas": 850,
+          "sim": 1000,
+          "cls": "modelo_diferente"
+        },
+        "corrente_max_por_mppt": {
+          "atlas": 30,
+          "sim": 39,
+          "cls": "modelo_diferente"
+        },
+        "corrente_isc_max": {
+          "atlas": 45,
+          "sim": 45,
+          "cls": "ja_correto"
+        },
+        "tensao_partida": {
+          "atlas": null,
+          "sim": 250,
+          "cls": "recuperavel"
+        },
+        "eficiencia_maxima": {
+          "atlas": 98.6,
+          "sim": 99,
+          "cls": "ja_correto"
+        },
+        "peso_kg": {
+          "atlas": 93.5,
+          "sim": 73,
+          "cls": "modelo_diferente"
+        },
+        "dimensoes": {
+          "atlas": "1008 × 678 × 343",
+          "sim": "855x555x275",
+          "cls": "modelo_diferente"
+        },
+        "grau_protecao_ip": {
+          "atlas": "IP66",
+          "sim": "IP65",
+          "cls": "modelo_diferente"
+        },
+        "corrente_ac_saida": {
+          "atlas": 134,
+          "sim": 76,
+          "cls": "modelo_diferente"
+        }
+      },
+      "modelo_diferente": 9,
+      "resumo": {
+        "recuperavel": 1,
+        "conflitante": 0,
+        "ja_correto": 4,
+        "ausente": 0
+      },
+      "completude_antes": 92.9,
+      "completude_depois": 100
+    },
+    {
+      "id": "6a2220aadf17c1aa4c0743c8",
+      "fabricante": "Goodwe",
+      "modelo": "GW100K-HT",
+      "fixture": "chint_sca.json",
+      "modelo_fixture": "chint_sca.json",
+      "match_exato": false,
+      "campos": {
+        "potencia_kw": {
+          "atlas": 100,
+          "sim": 50,
+          "cls": "modelo_diferente"
+        },
+        "potencia_maxima_kw": {
+          "atlas": 110,
+          "sim": null,
+          "cls": "ja_correto"
+        },
+        "n_mppts": {
+          "atlas": 10,
+          "sim": 4,
+          "cls": "modelo_diferente"
+        },
+        "tensao_max_entrada": {
+          "atlas": 1100,
+          "sim": 1100,
+          "cls": "ja_correto"
+        },
+        "tensao_mppt_min": {
+          "atlas": 500,
+          "sim": 200,
+          "cls": "modelo_diferente"
+        },
+        "tensao_mppt_max": {
+          "atlas": 850,
+          "sim": 1000,
+          "cls": "modelo_diferente"
+        },
+        "corrente_max_por_mppt": {
+          "atlas": 30,
+          "sim": 39,
+          "cls": "modelo_diferente"
+        },
+        "corrente_isc_max": {
+          "atlas": 45,
+          "sim": 45,
+          "cls": "ja_correto"
+        },
+        "tensao_partida": {
+          "atlas": null,
+          "sim": 250,
+          "cls": "recuperavel"
+        },
+        "eficiencia_maxima": {
+          "atlas": 98.6,
+          "sim": 99,
+          "cls": "ja_correto"
+        },
+        "peso_kg": {
+          "atlas": 93.5,
+          "sim": 73,
+          "cls": "modelo_diferente"
+        },
+        "dimensoes": {
+          "atlas": "1008 × 678 × 343",
+          "sim": "855x555x275",
+          "cls": "modelo_diferente"
+        },
+        "grau_protecao_ip": {
+          "atlas": "IP66",
+          "sim": "IP65",
+          "cls": "modelo_diferente"
+        },
+        "corrente_ac_saida": {
+          "atlas": 167,
+          "sim": 76,
+          "cls": "modelo_diferente"
+        }
+      },
+      "modelo_diferente": 9,
+      "resumo": {
+        "recuperavel": 1,
+        "conflitante": 0,
+        "ja_correto": 4,
+        "ausente": 0
+      },
+      "completude_antes": 92.9,
+      "completude_depois": 100
+    },
+    {
+      "id": "6a2220abdf17c1aa4c0743c9",
+      "fabricante": "Goodwe",
+      "modelo": "GW110K-HT",
+      "fixture": "chint_sca.json",
+      "modelo_fixture": "chint_sca.json",
+      "match_exato": false,
+      "campos": {
+        "potencia_kw": {
+          "atlas": 110,
+          "sim": 50,
+          "cls": "modelo_diferente"
+        },
+        "potencia_maxima_kw": {
+          "atlas": 121,
+          "sim": null,
+          "cls": "ja_correto"
+        },
+        "n_mppts": {
+          "atlas": 12,
+          "sim": 4,
+          "cls": "modelo_diferente"
+        },
+        "tensao_max_entrada": {
+          "atlas": 1100,
+          "sim": 1100,
+          "cls": "ja_correto"
+        },
+        "tensao_mppt_min": {
+          "atlas": 500,
+          "sim": 200,
+          "cls": "modelo_diferente"
+        },
+        "tensao_mppt_max": {
+          "atlas": 850,
+          "sim": 1000,
+          "cls": "modelo_diferente"
+        },
+        "corrente_max_por_mppt": {
+          "atlas": 30,
+          "sim": 39,
+          "cls": "modelo_diferente"
+        },
+        "corrente_isc_max": {
+          "atlas": 45,
+          "sim": 45,
+          "cls": "ja_correto"
+        },
+        "tensao_partida": {
+          "atlas": null,
+          "sim": 250,
+          "cls": "recuperavel"
+        },
+        "eficiencia_maxima": {
+          "atlas": 98.6,
+          "sim": 99,
+          "cls": "ja_correto"
+        },
+        "peso_kg": {
+          "atlas": 98.5,
+          "sim": 73,
+          "cls": "modelo_diferente"
+        },
+        "dimensoes": {
+          "atlas": "1008 × 678 × 343",
+          "sim": "855x555x275",
+          "cls": "modelo_diferente"
+        },
+        "grau_protecao_ip": {
+          "atlas": "IP66",
+          "sim": "IP65",
+          "cls": "modelo_diferente"
+        },
+        "corrente_ac_saida": {
+          "atlas": 175.5,
+          "sim": 76,
+          "cls": "modelo_diferente"
+        }
+      },
+      "modelo_diferente": 9,
+      "resumo": {
+        "recuperavel": 1,
+        "conflitante": 0,
+        "ja_correto": 4,
+        "ausente": 0
+      },
+      "completude_antes": 92.9,
+      "completude_depois": 100
+    },
+    {
+      "id": "6a2220abdf17c1aa4c0743ca",
+      "fabricante": "Goodwe",
+      "modelo": "GW120K-HT",
+      "fixture": "chint_sca.json",
+      "modelo_fixture": "chint_sca.json",
+      "match_exato": false,
+      "campos": {
+        "potencia_kw": {
+          "atlas": 120,
+          "sim": 50,
+          "cls": "modelo_diferente"
+        },
+        "potencia_maxima_kw": {
+          "atlas": 132,
+          "sim": null,
+          "cls": "ja_correto"
+        },
+        "n_mppts": {
+          "atlas": 12,
+          "sim": 4,
+          "cls": "modelo_diferente"
+        },
+        "tensao_max_entrada": {
+          "atlas": 1100,
+          "sim": 1100,
+          "cls": "ja_correto"
+        },
+        "tensao_mppt_min": {
+          "atlas": 500,
+          "sim": 200,
+          "cls": "modelo_diferente"
+        },
+        "tensao_mppt_max": {
+          "atlas": 850,
+          "sim": 1000,
+          "cls": "modelo_diferente"
+        },
+        "corrente_max_por_mppt": {
+          "atlas": 30,
+          "sim": 39,
+          "cls": "modelo_diferente"
+        },
+        "corrente_isc_max": {
+          "atlas": 45,
+          "sim": 45,
+          "cls": "ja_correto"
+        },
+        "tensao_partida": {
+          "atlas": null,
+          "sim": 250,
+          "cls": "recuperavel"
+        },
+        "eficiencia_maxima": {
+          "atlas": 98.6,
+          "sim": 99,
+          "cls": "ja_correto"
+        },
+        "peso_kg": {
+          "atlas": 98.5,
+          "sim": 73,
+          "cls": "modelo_diferente"
+        },
+        "dimensoes": {
+          "atlas": "1008 × 678 × 343",
+          "sim": "855x555x275",
+          "cls": "modelo_diferente"
+        },
+        "grau_protecao_ip": {
+          "atlas": "IP66",
+          "sim": "IP65",
+          "cls": "modelo_diferente"
+        },
+        "corrente_ac_saida": {
+          "atlas": 191.3,
+          "sim": 76,
+          "cls": "modelo_diferente"
+        }
+      },
+      "modelo_diferente": 9,
+      "resumo": {
+        "recuperavel": 1,
+        "conflitante": 0,
+        "ja_correto": 4,
+        "ausente": 0
+      },
+      "completude_antes": 92.9,
+      "completude_depois": 100
+    },
+    {
+      "id": "6a2220abdf17c1aa4c0743cb",
+      "fabricante": "Goodwe",
+      "modelo": "GW136K-HTH",
+      "fixture": "chint_sca.json",
+      "modelo_fixture": "chint_sca.json",
+      "match_exato": false,
+      "campos": {
+        "potencia_kw": {
+          "atlas": 136,
+          "sim": 50,
+          "cls": "modelo_diferente"
+        },
+        "potencia_maxima_kw": {
+          "atlas": 150,
+          "sim": null,
+          "cls": "ja_correto"
+        },
+        "n_mppts": {
+          "atlas": 12,
+          "sim": 4,
+          "cls": "modelo_diferente"
+        },
+        "tensao_max_entrada": {
+          "atlas": 1100,
+          "sim": 1100,
+          "cls": "ja_correto"
+        },
+        "tensao_mppt_min": {
+          "atlas": 500,
+          "sim": 200,
+          "cls": "modelo_diferente"
+        },
+        "tensao_mppt_max": {
+          "atlas": 850,
+          "sim": 1000,
+          "cls": "modelo_diferente"
+        },
+        "corrente_max_por_mppt": {
+          "atlas": 30,
+          "sim": 39,
+          "cls": "modelo_diferente"
+        },
+        "corrente_isc_max": {
+          "atlas": 45,
+          "sim": 45,
+          "cls": "ja_correto"
+        },
+        "tensao_partida": {
+          "atlas": null,
+          "sim": 250,
+          "cls": "recuperavel"
+        },
+        "eficiencia_maxima": {
+          "atlas": 99,
+          "sim": 99,
+          "cls": "ja_correto"
+        },
+        "peso_kg": {
+          "atlas": 98.5,
+          "sim": 73,
+          "cls": "modelo_diferente"
+        },
+        "dimensoes": {
+          "atlas": "1008 × 678 × 343",
+          "sim": "855x555x275",
+          "cls": "modelo_diferente"
+        },
+        "grau_protecao_ip": {
+          "atlas": "IP66",
+          "sim": "IP65",
+          "cls": "modelo_diferente"
+        },
+        "corrente_ac_saida": {
+          "atlas": 173.2,
+          "sim": 76,
+          "cls": "modelo_diferente"
+        }
+      },
+      "modelo_diferente": 9,
+      "resumo": {
+        "recuperavel": 1,
+        "conflitante": 0,
+        "ja_correto": 4,
+        "ausente": 0
+      },
+      "completude_antes": 92.9,
+      "completude_depois": 100
+    }
+  ]
+}
