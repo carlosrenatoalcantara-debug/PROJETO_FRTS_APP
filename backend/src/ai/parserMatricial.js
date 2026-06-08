@@ -229,6 +229,38 @@ function _distribuir(celulas) {
  * MULTI-PÁGINA: processa linhas de TODAS as páginas sob as mesmas colunas.
  * @returns {{ modelos:string[], porModelo: Object<modelo,{especificacoes,_status}> }}
  */
+// P1-PARSER-SAJ-01: cabeçalho COMBINADO de N modelos numa única célula
+// (ex.: SAJ "R5-3K/3.6K/4K/5K/6K/7K/8K-S2"). Expande o range de potências separadas
+// por "/" no conjunto de modelos. Genérico: <prefixo>-<p1>/<p2>/…/<pn>[-<sufixo>].
+export function expandirHeaderCombinado(s) {
+  const m = String(s || '').trim().match(/^([A-Za-z0-9]+-)(\d{1,3}(?:\.\d+)?K(?:\s*\/\s*\d{1,3}(?:\.\d+)?K)+)(-[A-Za-z0-9]+)?$/)
+  if (!m) return null
+  const prefix = m[1], suffix = m[3] || ''
+  const powers = m[2].split('/').map(p => p.trim()).filter(Boolean)
+  if (powers.length < 2) return null
+  return powers.map(p => (prefix + p + suffix).toUpperCase())
+}
+
+// Sem cabeçalhos por modelo (header combinado): deduz as N colunas a partir da LINHA
+// DE DADOS com exatamente N valores numéricos alinhados, rotulando-as com os modelos
+// expandidos (ordem esquerda→direita). yCab alto → não pula linhas de dados.
+function detectarColunasCombinado(tokens) {
+  let modelos = null, hdr = null
+  for (const t of tokens) { const ex = expandirHeaderCombinado(t.s); if (ex) { modelos = ex; hdr = t; break } }
+  if (!modelos) return []
+  const N = modelos.length
+  const linhas = _agruparLinhas(tokens)
+  let exata = null, densa = null
+  for (const linha of linhas) {
+    const nums = linha.tokens.filter(t => /^-?\d[\d.,]*\*?$/.test(String(t.s).trim()) && t.x > 120).sort((a, b) => a.x - b.x)
+    if (nums.length === N && !exata) exata = nums
+    if (nums.length >= 2 && (!densa || nums.length > densa.length)) densa = nums
+  }
+  const sel = exata || (densa && densa.length >= 2 ? densa.slice(0, N) : null)
+  if (!sel || sel.length < 2) return []
+  return sel.map((t, i) => ({ modelo: modelos[i], x: t.x, y: 999999, page: hdr.page }))
+}
+
 export function montarMatriz(tokens, modelos) {
   // P1-INV-HARDEN-PLUS-01: usa a detecção que achar MAIS colunas (a lista textual
   // costuma ser incompleta — ex.: Sungrow acha 2, o cabeçalho tem 6).
@@ -236,6 +268,8 @@ export function montarMatriz(tokens, modelos) {
   const auto = detectarColunasAuto(tokens)
   let colunas = auto.length > known.length ? auto : known
   if (colunas.length < 2) colunas = auto.length >= known.length ? auto : known
+  // P1-PARSER-SAJ-01: fallback p/ header combinado (1 célula → N modelos).
+  if (colunas.length < 2) { const comb = detectarColunasCombinado(tokens); if (comb.length >= 2) colunas = comb }
   if (colunas.length < 2) return { ok: false, motivo: 'colunas<2', colunas: colunas.length }
 
   const pageCab = colunas[0].page

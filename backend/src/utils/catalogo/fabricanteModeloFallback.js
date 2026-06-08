@@ -403,6 +403,8 @@ export function extrairFabricanteModelo(texto) {
     // sem a palavra "Kehua" no corpo. SP[I1] tolera o OCR que lê "SPI"→"SP1".
     { regex: /\b(SPI\s?-?\d{1,4}K(?:[-\s]?(?:B|S|T|X|HT))?\d?(?:\s?X\d)?)\b/i, fabricante: 'Kehua' }, // SPI15K-B X2
     { regex: /\b(SP[I1]\s?-?\d{3,4}-?B\d?)\b/i, fabricante: 'Kehua' },                                // SPI6000-B2 / OCR SP13000-B2
+    // P1-PARSER-SAJ-01: SAJ R5/R6-…-S2 — os datasheets SAJ não escrevem "SAJ" no corpo.
+    { regex: /\b(R[56]-\d{1,2}(?:\.\d)?K[-\w]*)\b/i, fabricante: 'SAJ' },                              // R5-5K-S2
   ]
   for (const { regex, fabricante } of modelosOrfaos) {
     const m = texto.match(regex)
