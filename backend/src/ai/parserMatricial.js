@@ -45,6 +45,23 @@ export async function extrairTokensPosicionais(pdfBuffer) {
 // ── util ─────────────────────────────────────────────────────────────────────
 const _normModelo = (s) => String(s || '').toUpperCase().replace(/\s+/g, '').replace(/[—–]/g, '-')
 
+// P1-PARSER-CHINT-HUAWEI-FIX-01: o tokenizer posicional às vezes quebra UM número em
+// fragmentos ("40"→"4","0"). Mescla tokens de DÍGITO consecutivos cujo gap de x é mínimo
+// (mesmo número, sem espaço), preservando o x da esquerda. Separadores ("/", "-", ".",
+// "A", "V") interrompem a mescla → ranges e listas não são afetados.
+function _mergeDigitos(toks, gapMax = 6) {
+  if (!Array.isArray(toks) || toks.length < 2) return toks
+  const out = []; let lastX = null
+  for (const t of toks) {
+    const prev = out[out.length - 1]
+    if (prev && /^\d+$/.test(prev.s) && /^\d+$/.test(t.s) && lastX != null && (t.x - lastX) <= gapMax) {
+      out[out.length - 1] = { ...prev, s: prev.s + t.s }
+    } else out.push(t)
+    lastX = t.x
+  }
+  return out
+}
+
 function _num(s) {
   if (s == null) return null
   // separa por espaço (não junta "60.4/57.7" em "60.457.7")
@@ -143,8 +160,23 @@ function _prefixoComum(strs) {
   for (const s of strs) { let i = 0; while (i < p.length && i < s.length && p[i].toUpperCase() === s[i].toUpperCase()) i++; p = p.slice(0, i) }
   return p
 }
+// P1-PARSER-CHINT-HUAWEI-FIX-01: extrai o CÓDIGO do modelo de um header que traz MARCA
+// colada e sufixo de REGIÃO (ex.: "CPS SCA50KTL-T/EU" → "SCA50KTL-T"), p/ o auto-detect
+// reconhecer colunas que hoje ignora.
+const _BRAND_PREFIX = /^(?:CPS|CHINT|HUAWEI|SUNGROW|GOODWE|GROWATT|SOLAX|SOLIS|DEYE|SAJ|KEHUA|SOLPLANET|HOYMILES)\s+/i
+function _codModeloDe(s) {
+  let t = String(s || '').trim()
+  t = t.replace(/\s*\/\s*[A-Z]{2}\d?\b.*$/i, '')   // remove região "/EU" "/AU" "/AS4…"
+  t = t.replace(_BRAND_PREFIX, '')                 // remove marca colada
+  return t.trim()
+}
 export function detectarColunasAuto(tokens) {
-  const cands = tokens.filter(t => _ehCodModelo(t.s))
+  const cands = []
+  for (const t of tokens) {
+    if (_ehCodModelo(t.s)) { cands.push({ ...t, _cod: t.s }); continue }
+    const c = _codModeloDe(t.s)                     // fallback: marca/região colada
+    if (c && c !== t.s && _ehCodModelo(c) && !/\d\s*\/\s*\d/.test(c)) cands.push({ ...t, _cod: c })
+  }
   const grupos = new Map()
   for (const t of cands) {
     const key = `${t.page}:${Math.round(t.y / 4)}`
@@ -153,13 +185,13 @@ export function detectarColunasAuto(tokens) {
   }
   let melhor = null, melhorScore = 0
   for (const g of grupos.values()) {
-    // dedup por texto, ordena por x
-    const uniq = [...new Map(g.map(t => [_normModelo(t.s), t])).values()].sort((a, b) => a.x - b.x)
+    // dedup por código, ordena por x
+    const uniq = [...new Map(g.map(t => [_normModelo(t._cod), t])).values()].sort((a, b) => a.x - b.x)
     if (uniq.length < 2) continue
-    const pref = _prefixoComum(uniq.map(t => t.s))
+    const pref = _prefixoComum(uniq.map(t => t._cod))
     if (pref.length < 2) continue                       // exige família comum
     const score = uniq.length * pref.length
-    if (score > melhorScore) { melhorScore = score; melhor = uniq.map(t => ({ ...t, modelo: t.s })) }
+    if (score > melhorScore) { melhorScore = score; melhor = uniq.map(t => ({ ...t, modelo: t._cod })) }
   }
   return melhor || []
 }
@@ -286,7 +318,7 @@ export function montarMatriz(tokens, modelos) {
     if (linha.page === pageCab && linha.y > yCab - 2) continue
     const toks = linha.tokens.slice().sort((a, b) => a.x - b.x)
     const rotuloToks = toks.filter(t => t.x < xPrimeira - margemRotulo)
-    const valorToks = toks.filter(t => t.x >= xPrimeira - margemRotulo)
+    const valorToks = _mergeDigitos(toks.filter(t => t.x >= xPrimeira - margemRotulo))
     if (!rotuloToks.length || !valorToks.length) continue
     const label = rotuloToks.map(t => t.s).join(' ').replace(/\s+/g, ' ').trim()
 
@@ -454,7 +486,7 @@ function _splitRotuloValor(toks, gapMin = 45) {
     if (g > maxGap) { maxGap = g; idx = i }
   }
   if (maxGap < gapMin || idx < 1) return null
-  const valor = toks.slice(idx).map(t => t.s)
+  const valor = _mergeDigitos(toks.slice(idx)).map(t => t.s)
   if (!valor.some(s => /\d/.test(s))) return null   // valor precisa ter número
   const rotulo = toks.slice(0, idx).map(t => t.s).join(' ').replace(/\s+/g, ' ').trim()
   if (rotulo.replace(/[^A-Za-zÀ-ÿ]/g, '').length < 3) return null   // rótulo precisa ter texto

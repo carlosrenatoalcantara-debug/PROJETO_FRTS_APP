@@ -52,7 +52,21 @@ export function expandirModelosInversor(texto) {
     modelos.add(base.modelo.toUpperCase())
   }
 
-  return { fabricante: base.fabricante, modelos: [...modelos] }
+  // ── 3. Remove modelos FANTASMA (P1-PARSER-CHINT-HUAWEI-FIX-01) ──────────────
+  //    Ex.: título combinado "CPS SCA50/60KTL-T" gera "CPSSCA50" (marca colada +
+  //    potência inicial), que é PREFIXO de "SCA50KTL-T". Quando o "core" de um modelo
+  //    (sem a marca de 2–6 letras à esquerda) é prefixo de OUTRO modelo mais completo,
+  //    descarta o incompleto.
+  const arr = [...modelos]
+  const norm = s => s.toUpperCase().replace(/[^A-Z0-9]/g, '')
+  const BRAND = /^(?:CPS|CHINT|HUAWEI|SUNGROW|GOODWE|GROWATT|SOLAX|SOLIS|DEYE|SAJ|KEHUA|GW|SG)/
+  const limpo = arr.filter(a => {
+    const na = norm(a); const core = na.replace(BRAND, '')
+    if (core.length < 4 || core === na) return true            // sem marca colada → mantém
+    return !arr.some(b => { const nb = norm(b); return nb !== na && nb.startsWith(core) })
+  })
+
+  return { fabricante: base.fabricante, modelos: limpo }
 }
 
 /**
