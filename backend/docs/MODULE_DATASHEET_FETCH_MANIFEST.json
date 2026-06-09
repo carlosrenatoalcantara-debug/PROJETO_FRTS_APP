@@ -1,0 +1,70 @@
+{
+  "data": "2026-06-09T13:33:00.212Z",
+  "alvos": 6,
+  "resultados": [
+    {
+      "fabricante": "Jinko",
+      "modelo": "JKM530M-72HL4-TV",
+      "fonte": "jinkosolar.com.au (oficial)",
+      "url": "https://jinkosolar.com.au/wp-content/uploads/2023/09/JKM530-550M-72HL4-TV-F3C6-EN.pdf",
+      "data_download": "2026-06-09T13:32:39.260Z",
+      "bytes": 2674203,
+      "campos_parser": 7,
+      "classe": "A",
+      "arquivo": "FETCH_Jinko_JKM530-550M-72HL4-TV.pdf"
+    },
+    {
+      "fabricante": "JA Solar",
+      "modelo": "JAM72S30-550/MR",
+      "fonte": "jasolar.com (oficial)",
+      "url": "https://www.jasolar.com/uploadfile/2021/0706/20210706053524693.pdf",
+      "data_download": "2026-06-09T13:32:46.062Z",
+      "bytes": 9437785,
+      "campos_parser": 1,
+      "classe": "A",
+      "arquivo": "FETCH_JASolar_JAM72S30-525-550-MR.pdf"
+    },
+    {
+      "fabricante": "JA Solar",
+      "modelo": "JAM66D45-600/LB",
+      "fonte": "e-solar.co.jp (catálogo)",
+      "url": "https://www.e-solar.co.jp/en/wp-content/uploads/2024/01/JAM66D45-585-610-LB_catalog_en.pdf",
+      "data_download": "2026-06-09T13:33:47.521Z",
+      "bytes": 1343072,
+      "campos_parser": 0,
+      "classe": "C",
+      "motivo": "faltam:JAM66D45,LB,600"
+    },
+    {
+      "fabricante": "Canadian Solar",
+      "modelo": "CS6W-550MS",
+      "fonte": "csisolar.com (oficial)",
+      "url": "https://static.csisolar.com/wp-content/uploads/sites/3/2022/02/14153254/CS-Datasheet-HiKu6_CS6W-MS_v2.0_F50_J1_NA.pdf",
+      "data_download": "2026-06-09T13:32:53.772Z",
+      "bytes": 673585,
+      "campos_parser": 5,
+      "classe": "A",
+      "arquivo": "FETCH_CanadianSolar_HiKu6_CS6W-MS.pdf"
+    },
+    {
+      "fabricante": "Longi",
+      "modelo": "LR5-72HPH-545M",
+      "fonte": "solar-europe.co.za (revendedor)",
+      "url": "https://www.solar-europe.co.za/wp-content/uploads/2022/07/Longi-545W-Half-Cell-Mono-Panel-LR5-72HPH-545M-Datasheet.pdf",
+      "data_download": "2026-06-09T13:33:52.725Z",
+      "classe": "C",
+      "motivo": "HTTP 502/text/html"
+    },
+    {
+      "fabricante": "Sunova",
+      "modelo": "SS-550-72MDH",
+      "fonte": "solartex.cl (revendedor)",
+      "url": "https://www.solartex.cl/tienda/wp-content/uploads/2023/03/SS-550-72MDH.pdf",
+      "data_download": "2026-06-09T13:33:54.311Z",
+      "bytes": 881699,
+      "campos_parser": 8,
+      "classe": "A",
+      "arquivo": "FETCH_Sunova_SS-550-72MDH.pdf"
+    }
+  ]
+}
