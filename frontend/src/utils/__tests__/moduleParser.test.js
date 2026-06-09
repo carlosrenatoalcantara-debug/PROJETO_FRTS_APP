@@ -72,3 +72,26 @@ describe('FASE 4 — fixtures golden (datasheets reais, via tokens)', () => {
     }
   })
 })
+
+describe('FASE 3 — seleção de coluna por potência-alvo (multi-potência)', () => {
+  // tabela matricial em texto: rótulos PT + 5 colunas (540..560)
+  const matricial = `Potência de Pico em Watts-P MAX (Wp) 540 545 550 555 560
+Tensão de Circuito Aberto-V OC (V) 46.4 46.6 46.9 47.1 47.2
+Tensão Máxima de Potência-V (V) 41.2 41.4 41.6 41.9 42.2
+Corrente de Potência Máxima-I MPP (A) 13.12 13.16 13.21 13.25 13.29`
+  it('sem alvo → 1ª coluna (540)', () => {
+    expect(extrairSpecsModulo(matricial)).toMatchObject({ potencia_wp: 540, voc: 46.4, vmp: 41.2, imp: 13.12 })
+  })
+  it('alvo=560 → coluna correta (560 / Voc 47.2 / Vmp 42.2 / Imp 13.29)', () => {
+    expect(extrairSpecsModulo(matricial, { potenciaAlvo: 560 })).toMatchObject({ potencia_wp: 560, voc: 47.2, vmp: 42.2, imp: 13.29 })
+  })
+  it('alvo=550 → coluna do meio (550 / Voc 46.9 / Vmp 41.6)', () => {
+    expect(extrairSpecsModulo(matricial, { potenciaAlvo: 550 })).toMatchObject({ potencia_wp: 550, voc: 46.9, vmp: 41.6 })
+  })
+  it('alvo sem coluna correspondente (999W) → cai para a 1ª (não inventa)', () => {
+    expect(extrairSpecsModulo(matricial, { potenciaAlvo: 999 }).potencia_wp).toBe(540)
+  })
+  it('dimensões com separador "." (Trina 2278.1134.30) → válidas', () => {
+    expect(extrairSpecsModulo('Dimensões do módulo 2278.1134.30 mm').dimensoes).toBe('2278x1134x30')
+  })
+})
