@@ -24,6 +24,8 @@ import {
 } from '../../data/catalogoEletrico'
 import { useCompatibilidadeEletrica } from '../../hooks/useCompatibilidadeEletrica'
 import PainelCompatibilidadeFV from '../engenharia/PainelCompatibilidadeFV'
+import { classificarTopologia } from '../../utils/topologiaInversor'
+import { dimensionarMicroinversor, resumoDistribuicao } from '../../utils/dimensionarMicro'
 
 const VERSAO_MOTOR = '2.0.0-sprint2'
 
@@ -192,6 +194,15 @@ export default function ConfiguradorArranjoFV({
     [mppts]
   )
 
+  // ── Topologia explícita (string / micro / otimizador) ───────────────────
+  const topologia = useMemo(() => classificarTopologia(inversor, eletricoInv), [inversor?.id, inversor?.modelo, eletricoInv])
+  const ehMicro = topologia === 'micro'
+  const dimMicro = useMemo(() => {
+    if (!ehMicro || !eletricoMod) return null
+    const numMod = totalModulosArranjo || numPaineis || 0
+    return dimensionarMicroinversor({ numModulos: numMod, potenciaModuloW: eletricoMod.potencia_w, micro: eletricoInv || {} })
+  }, [ehMicro, eletricoMod, eletricoInv, totalModulosArranjo, numPaineis])
+
   // ── Clima ───────────────────────────────────────────────────────────────
   const climaPadrao = CLIMA_PADRAO_UF[uf] ?? { tmin: 10, tmax: 40 }
   const [tmin, setTmin] = useState(climaPadrao.tmin)
@@ -339,6 +350,20 @@ export default function ConfiguradorArranjoFV({
     if (!resultado) return null
     const { calculos, warnings, erros, clima_utilizado: cu } = resultado
     return {
+      topologia,
+      micro: (ehMicro && dimMicro?.valido) ? {
+        qtd_microinversores:   dimMicro.qtdMicros,
+        modulos_por_micro:     dimMicro.modulosPorMicro,
+        entradas_por_micro:    dimMicro.entradasPorMicro,
+        distribuicao_modulos:  dimMicro.distribuicao,
+        micros_completos:      dimMicro.microsCompletos,
+        micros_parciais:       dimMicro.microsParciais,
+        potencia_cc_kw:        dimMicro.potenciaCcKw,
+        potencia_ca_kw:        dimMicro.potenciaCaKw,
+        relacao_dc_ac:         dimMicro.relacaoDcAc,
+        aproveitamento:        dimMicro.aproveitamento,
+        oversizing_ok:         dimMicro.oversizingOk,
+      } : null,
       arranjo: {
         // Legacy (backward compat)
         quantidade_modulos_por_string: piorCaso?.modulosPorString ?? 0,
@@ -384,7 +409,7 @@ export default function ConfiguradorArranjoFV({
         analisado_em: new Date().toISOString(),
       },
     }
-  }, [resultado, mppts, piorCaso, totalModulosArranjo, nMppts, cidadeClima, uf, tmin, tmax, bloqueios, avisos])
+  }, [resultado, mppts, piorCaso, totalModulosArranjo, nMppts, cidadeClima, uf, tmin, tmax, bloqueios, avisos, topologia, ehMicro, dimMicro])
 
   const salvar = useCallback(async () => {
     if (!projetoId) {
@@ -497,7 +522,36 @@ export default function ConfiguradorArranjoFV({
         </div>
       </div>
 
-      {/* ── 2. Configuração por MPPT ────────────────────────────────────────── */}
+      {/* ── Sistema Microinversor (topologia = micro): SEM string/MPPT ─────── */}
+      {ehMicro && (
+        <div className="bg-white border-2 border-amber-300 rounded-xl p-5 space-y-3">
+          <div className="flex items-center gap-2">
+            <Zap className="w-5 h-5 text-amber-500" />
+            <h3 className="text-base font-bold text-amber-700">⚡ Sistema Microinversor</h3>
+            <span className="ml-auto text-xs text-slate-500">{inversor?.marca} {inversor?.modelo}</span>
+          </div>
+          {dimMicro?.valido ? (
+            <>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                <div><p className="text-xs text-slate-400">Módulos</p><p className="font-bold text-slate-800">{dimMicro.numModulos}</p></div>
+                <div><p className="text-xs text-slate-400">Microinversores</p><p className="font-bold text-amber-700 text-lg">{dimMicro.qtdMicros}</p></div>
+                <div><p className="text-xs text-slate-400">Módulos por micro</p><p className="font-bold text-slate-800">{dimMicro.modulosPorMicro} <span className="text-xs text-slate-400">({dimMicro.entradasPorMicro} entradas)</span></p></div>
+                <div><p className="text-xs text-slate-400">Aproveitamento entradas</p><p className="font-bold text-slate-800">{(dimMicro.aproveitamento * 100).toFixed(0)}%</p></div>
+                <div><p className="text-xs text-slate-400">Potência CC</p><p className="font-bold text-slate-800">{dimMicro.potenciaCcKw} kWp</p></div>
+                <div><p className="text-xs text-slate-400">Potência CA</p><p className="font-bold text-slate-800">{dimMicro.potenciaCaKw} kW</p></div>
+                <div><p className="text-xs text-slate-400">Relação DC/AC</p><p className={`font-bold ${dimMicro.oversizingOk ? 'text-emerald-700' : 'text-amber-600'}`}>{dimMicro.relacaoDcAc}× {dimMicro.oversizingOk ? '✓' : '⚠'}</p></div>
+                <div><p className="text-xs text-slate-400">Distribuição</p><p className="font-semibold text-slate-700">{resumoDistribuicao(dimMicro)}</p></div>
+              </div>
+              <p className="text-xs text-slate-400">Cada módulo conecta a uma entrada do micro — <strong>sem strings, sem MPPT, sem strings paralelas</strong>.</p>
+            </>
+          ) : (
+            <p className="text-sm text-slate-500">Selecione módulo e quantidade para dimensionar o sistema microinversor.</p>
+          )}
+        </div>
+      )}
+
+      {/* ── 2. Configuração por MPPT (apenas STRING) ───────────────────────── */}
+      {!ehMicro && (
       <div className="bg-white border border-slate-200 rounded-xl p-5 space-y-4">
         <div className="flex items-center gap-2">
           <Sliders className="w-4 h-4 text-slate-400" />
@@ -603,9 +657,10 @@ export default function ConfiguradorArranjoFV({
           })}
         </div>
       </div>
+      )}
 
-      {/* ── 3. MPPT Tree Visualization ─────────────────────────────────────── */}
-      {eletricoMod && (
+      {/* ── 3. MPPT Tree Visualization (apenas STRING) ─────────────────────── */}
+      {!ehMicro && eletricoMod && (
         <div className="bg-slate-950 text-slate-100 rounded-xl p-5 space-y-4 font-mono text-sm">
           <div className="flex items-center gap-2 mb-2">
             <Zap className="w-4 h-4 text-amber-400" />

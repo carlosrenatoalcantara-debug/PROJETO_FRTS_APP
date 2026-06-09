@@ -159,16 +159,26 @@ export const DADOS_ELETRICOS_INVERSORES = {
   // ── Sofar Híbrido ───────────────────────────────────────────────────────────
   sf6h:  { tensao_max_entrada:  600, mppt_min:  80, mppt_max: 550, corrente_max_mppt: 20.0, potencia_ca_kw:  6.0, entradas_por_mppt: 2, oversizing_max: 1.30 },
 
-  // ── Microinversores ─────────────────────────────────────────────────────────
-  aps400:  { tensao_max_entrada:  60, mppt_min: 16, mppt_max: 60, corrente_max_mppt: 12.0, potencia_ca_kw: 0.400, entradas_por_mppt: 1, oversizing_max: 1.25 },
-  aps800:  { tensao_max_entrada:  60, mppt_min: 16, mppt_max: 60, corrente_max_mppt: 14.0, potencia_ca_kw: 0.800, entradas_por_mppt: 2, oversizing_max: 1.25 },
-  enph:    { tensao_max_entrada:  53, mppt_min: 22, mppt_max: 45, corrente_max_mppt: 12.0, potencia_ca_kw: 0.366, entradas_por_mppt: 1, oversizing_max: 1.25 },
-  enph8a:  { tensao_max_entrada:  53, mppt_min: 22, mppt_max: 45, corrente_max_mppt: 14.0, potencia_ca_kw: 0.384, entradas_por_mppt: 1, oversizing_max: 1.25 },
+  // ── Microinversores (topologia: 'micro' — N entradas CC, 1 módulo/entrada) ────
+  // `entradas` = nº de entradas CC; `modulos_por_entrada` = módulos por entrada (=1).
+  aps400:  { topologia: 'micro', entradas: 1, modulos_por_entrada: 1, tensao_max_entrada:  60, mppt_min: 16, mppt_max: 60, corrente_max_mppt: 12.0, potencia_ca_kw: 0.400, entradas_por_mppt: 1, oversizing_max: 1.25 },
+  aps800:  { topologia: 'micro', entradas: 2, modulos_por_entrada: 1, tensao_max_entrada:  60, mppt_min: 16, mppt_max: 60, corrente_max_mppt: 14.0, potencia_ca_kw: 0.800, entradas_por_mppt: 1, oversizing_max: 1.25 },
+  apsds3:  { topologia: 'micro', entradas: 2, modulos_por_entrada: 1, tensao_max_entrada:  60, mppt_min: 16, mppt_max: 60, corrente_max_mppt: 14.0, potencia_ca_kw: 0.880, entradas_por_mppt: 1, oversizing_max: 1.25 },
+  apsqs1:  { topologia: 'micro', entradas: 4, modulos_por_entrada: 1, tensao_max_entrada:  60, mppt_min: 16, mppt_max: 60, corrente_max_mppt: 14.0, potencia_ca_kw: 1.600, entradas_por_mppt: 1, oversizing_max: 1.25 },
+  enph:    { topologia: 'micro', entradas: 1, modulos_por_entrada: 1, tensao_max_entrada:  53, mppt_min: 22, mppt_max: 45, corrente_max_mppt: 12.0, potencia_ca_kw: 0.366, entradas_por_mppt: 1, oversizing_max: 1.25 },
+  enph8a:  { topologia: 'micro', entradas: 1, modulos_por_entrada: 1, tensao_max_entrada:  53, mppt_min: 22, mppt_max: 45, corrente_max_mppt: 14.0, potencia_ca_kw: 0.384, entradas_por_mppt: 1, oversizing_max: 1.25 },
+  hms500:  { topologia: 'micro', entradas: 2, modulos_por_entrada: 1, tensao_max_entrada:  60, mppt_min: 16, mppt_max: 60, corrente_max_mppt: 16.0, potencia_ca_kw: 0.500, entradas_por_mppt: 1, oversizing_max: 1.25 },
+  hms800:  { topologia: 'micro', entradas: 2, modulos_por_entrada: 1, tensao_max_entrada:  60, mppt_min: 16, mppt_max: 60, corrente_max_mppt: 16.0, potencia_ca_kw: 0.800, entradas_por_mppt: 1, oversizing_max: 1.25 },
+  hms1600: { topologia: 'micro', entradas: 4, modulos_por_entrada: 1, tensao_max_entrada:  60, mppt_min: 16, mppt_max: 60, corrente_max_mppt: 16.0, potencia_ca_kw: 1.600, entradas_por_mppt: 1, oversizing_max: 1.25 },
+  hms2000: { topologia: 'micro', entradas: 4, modulos_por_entrada: 1, tensao_max_entrada:  60, mppt_min: 16, mppt_max: 60, corrente_max_mppt: 16.0, potencia_ca_kw: 2.000, entradas_por_mppt: 1, oversizing_max: 1.25 },
+  hmt2250: { topologia: 'micro', entradas: 6, modulos_por_entrada: 1, tensao_max_entrada:  60, mppt_min: 16, mppt_max: 60, corrente_max_mppt: 16.0, potencia_ca_kw: 2.250, entradas_por_mppt: 1, oversizing_max: 1.25 },
+  deyem2000: { topologia: 'micro', entradas: 4, modulos_por_entrada: 1, tensao_max_entrada: 60, mppt_min: 16, mppt_max: 60, corrente_max_mppt: 16.0, potencia_ca_kw: 2.000, entradas_por_mppt: 1, oversizing_max: 1.25 },
+  tsun2000:  { topologia: 'micro', entradas: 4, modulos_por_entrada: 1, tensao_max_entrada: 60, mppt_min: 16, mppt_max: 60, corrente_max_mppt: 16.0, potencia_ca_kw: 2.000, entradas_por_mppt: 1, oversizing_max: 1.25 },
 
   // ── SolarEdge (Otimizador) ──────────────────────────────────────────────────
-  se5k:   { tensao_max_entrada:  900, mppt_min:  12, mppt_max: 800, corrente_max_mppt: 17.0, potencia_ca_kw:  5.0, entradas_por_mppt: 1, oversizing_max: 1.55 },
-  se7k:   { tensao_max_entrada:  900, mppt_min:  12, mppt_max: 800, corrente_max_mppt: 17.0, potencia_ca_kw:  7.6, entradas_por_mppt: 1, oversizing_max: 1.55 },
-  se20k:  { tensao_max_entrada: 1000, mppt_min:  12, mppt_max: 900, corrente_max_mppt: 30.0, potencia_ca_kw: 20.0, entradas_por_mppt: 1, oversizing_max: 1.55 },
+  se5k:   { topologia: 'otimizador', tensao_max_entrada:  900, mppt_min:  12, mppt_max: 800, corrente_max_mppt: 17.0, potencia_ca_kw:  5.0, entradas_por_mppt: 1, oversizing_max: 1.55 },
+  se7k:   { topologia: 'otimizador', tensao_max_entrada:  900, mppt_min:  12, mppt_max: 800, corrente_max_mppt: 17.0, potencia_ca_kw:  7.6, entradas_por_mppt: 1, oversizing_max: 1.55 },
+  se20k:  { topologia: 'otimizador', tensao_max_entrada: 1000, mppt_min:  12, mppt_max: 900, corrente_max_mppt: 30.0, potencia_ca_kw: 20.0, entradas_por_mppt: 1, oversizing_max: 1.55 },
 
   // ── Off-Grid / Victron ──────────────────────────────────────────────────────
   vic24_3: { tensao_max_entrada: 150, mppt_min: 25, mppt_max: 150, corrente_max_mppt: 30.0, potencia_ca_kw: 3.0, entradas_por_mppt: 1, oversizing_max: 1.25 },
