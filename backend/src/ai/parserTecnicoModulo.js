@@ -94,7 +94,7 @@ export function extrairSpecsModulo(texto, { potenciaAlvo } = {}) {
   if (potenciaAlvo != null && arrays.potencia_wp.length > 1) {
     let melhor = 0, dMin = Infinity
     arrays.potencia_wp.forEach((p, i) => { const d = Math.abs(p - potenciaAlvo); if (d < dMin) { dMin = d; melhor = i } })
-    if (dMin <= 10) idx = melhor   // só usa a coluna se a potência casar (±10 W)
+    if (dMin <= 1) idx = melhor   // EXATO: só usa a coluna se a potência casar (±1 W) — sem vizinho
   }
 
   const out = {}
@@ -116,7 +116,20 @@ export function reconstruirLinhas(tokens) {
   if (!Array.isArray(tokens) || !tokens.length) return ''
   const byY = new Map()
   for (const t of tokens) { const k = `${t.page}:${Math.round(t.y / 3)}`; if (!byY.has(k)) byY.set(k, []); byY.get(k).push(t) }
-  return [...byY.values()].map(g => g.sort((a, b) => a.x - b.x).map(t => t.s).join(' ')).join('\n')
+  const linhas = []
+  for (const g of byY.values()) {
+    const s = g.sort((a, b) => a.x - b.x)
+    let out = '', lastX = null, lastFrag = false
+    for (const t of s) {
+      const frag = /^[\d.]+$/.test(t.s)   // fragmento numérico (dígitos/ponto)
+      // cola número quebrado pelo tokenizador (ex.: "5"+"50"→"550"; "49."+"8"→"49.8") — gap pequeno
+      if (lastFrag && frag && lastX != null && (t.x - lastX) <= 8) out += t.s
+      else out += (out ? ' ' : '') + t.s
+      lastX = t.x; lastFrag = frag
+    }
+    linhas.push(out)
+  }
+  return linhas.join('\n')
 }
 
 /** Extrai specs de módulo a partir de tokens posicionais (caminho matricial/2-coluna). */
@@ -138,5 +151,12 @@ export async function extrairSpecsModuloDePdf(pdfBuffer, { extrairTokens, potenc
     const tokens = await fn(pdfBuffer)
     aTok = extrairSpecsModuloDeTokens(tokens, { potenciaAlvo })
   } catch { /* */ }
+  // Com potência-alvo: prefere INTEIRO o caminho cuja potência casa exatamente (preserva
+  // alinhamento de coluna — não mistura Voc de um caminho com potência de outro).
+  if (potenciaAlvo != null) {
+    const txtOk = aText.potencia_wp != null && Math.abs(aText.potencia_wp - potenciaAlvo) <= 1
+    const tokOk = aTok.potencia_wp != null && Math.abs(aTok.potencia_wp - potenciaAlvo) <= 1
+    if (tokOk && !txtOk) return { ...aText, ...aTok }   // só tokens tem coluna exata → prioriza tokens
+  }
   return { ...aTok, ...aText }   // texto tem prioridade quando ambos válidos
 }
