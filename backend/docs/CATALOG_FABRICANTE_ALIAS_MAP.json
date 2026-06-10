@@ -1,0 +1,71 @@
+{
+  "gerado_em": "2026-06-10T18:08:48.104Z",
+  "grupos": {
+    "Risen": {
+      "canonico": "Risen",
+      "aliases": [
+        "Risen",
+        "Risen Energy"
+      ],
+      "registros": 9,
+      "por_tipo": {
+        "modulo": 9
+      }
+    },
+    "ZNShine": {
+      "canonico": "ZNShine",
+      "aliases": [
+        "ZNShine Solar",
+        "Znshine"
+      ],
+      "registros": 45,
+      "por_tipo": {
+        "modulo": 45
+      }
+    },
+    "Trina": {
+      "canonico": "Trina",
+      "aliases": [
+        "Trina",
+        "Trina Solar"
+      ],
+      "registros": 10,
+      "por_tipo": {
+        "modulo": 10
+      }
+    },
+    "OSDA": {
+      "canonico": "OSDA",
+      "aliases": [
+        "OSDA SOLAR",
+        "Osda"
+      ],
+      "registros": 10,
+      "por_tipo": {
+        "modulo": 10
+      }
+    },
+    "Canadian": {
+      "canonico": "Canadian",
+      "aliases": [
+        "Canadian",
+        "Canadian Solar"
+      ],
+      "registros": 9,
+      "por_tipo": {
+        "modulo": 9
+      }
+    },
+    "SolaX": {
+      "canonico": "SolaX",
+      "aliases": [
+        "SolaX",
+        "Solax"
+      ],
+      "registros": 10,
+      "por_tipo": {
+        "inversor": 10
+      }
+    }
+  }
+}
