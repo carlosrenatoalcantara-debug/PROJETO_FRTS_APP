@@ -1,6 +1,7 @@
 // Templates de documentos para homologação de sistemas fotovoltaicos
 // AVISO: Estes templates são modelos orientativos. Devem ser revisados por
 // profissional habilitado (engenheiro eletricista com CREA ativo) antes do uso.
+import { descricaoTopologia, topologiaDoProjeto } from '../utils/descricaoTopologia.js'
 
 const hoje = () => new Date().toLocaleDateString('pt-BR', {
   day: '2-digit', month: 'long', year: 'numeric',
@@ -21,6 +22,9 @@ export function gerarMemorialCalculo(d) {
 
   const painel   = equipamentos.painel   ?? { marca: '_________', modelo: '_________', potenciaW: '___' }
   const inversor = equipamentos.inversor ?? { marca: '_________', modelo: '_________', potenciaKW: '___' }
+
+  // Topologia (string / micro / otimizador) → descrição elétrica correta no memorial
+  const topo = descricaoTopologia(topologiaDoProjeto({ ...d, inversor }), d.micro ?? d.engenharia_eletrica?.micro)
 
   return `
 MEMORIAL DESCRITIVO E DE CÁLCULO
@@ -116,8 +120,8 @@ Distribuição mensal:
 6.2 Inversores
   Fabricante / Modelo        : ${inversor.marca} / ${inversor.modelo}
   Potência nominal           : ${inversor.potenciaKW ?? '____'} kW
-  Quantidade                 : ${dimensionamento.numInversores ?? '____'} unidade(s)
-  Tipo                       : String (on-grid, sem isolamento galvânico)
+  Quantidade                 : ${topo.topologia === 'micro' && d.micro?.qtd_microinversores ? d.micro.qtd_microinversores : (dimensionamento.numInversores ?? '____')} unidade(s)
+  Tipo                       : ${topo.tipoInversor}${topo.topologia === 'micro' ? `\n  Arranjo                    : ${topo.resumoArranjo}` : ''}
   Certificação INMETRO       : Exigida – verificar certificado em anexo
   Conformidade ABNT NBR 16149:2013: Declarada pelo fabricante
 
@@ -133,12 +137,7 @@ Distribuição mensal:
 7. PROTEÇÕES ELÉTRICAS
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-• Proteção de sobretemperatura: integrada ao inversor
-• Anti-ilhamento             : Função integrada ao inversor (conforme ABNT NBR 16149)
-• Proteção contra surtos (DPS): Prevista no string box lado CC e no quadro CA
-• String box CC              : Com fusíveis por string e seccionador
-• Disjuntor CA               : Previsto no quadro de distribuição
-• Aterramento                : Conforme ABNT NBR 5410 e ABNT NBR 5419
+${topo.protecoes.join('\n')}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 8. CONCLUSÃO

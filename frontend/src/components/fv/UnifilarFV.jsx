@@ -3,8 +3,13 @@ import { Download, RefreshCw, Zap } from 'lucide-react'
 import Card, { CardHeader, CardBody } from '../ui/Card'
 import Button from '../ui/Button'
 import { gerarUnifilarSVG, baixarUnifilarSVG } from '@/utils/gerarUnifilarSVG'
+import { classificarTopologia } from '../../utils/topologiaInversor'
 
 export default function UnifilarFV({ projeto }) {
+  const topologia = projeto?.engenharia_eletrica?.topologia ?? projeto?.topologia
+    ?? classificarTopologia(projeto?.equipamentos?.inversor ?? projeto?.dimensionamento?.inversor ?? {})
+  const ehMicro = topologia === 'micro'
+  const microCfg = projeto?.engenharia_eletrica?.micro ?? projeto?.micro ?? null
   // S8.1.1: origem explícita (sem fallback silencioso). Prioridade: snapshot congelado.
   const svgCongelado = projeto?.governanca?.snapshot_unifilar?.svg || null
   const [unifilar, setUnifilar] = useState(svgCongelado)
@@ -84,8 +89,12 @@ export default function UnifilarFV({ projeto }) {
                 <p className="text-2xl font-bold text-blue-600">{projeto.dimensionamento.numInversores}</p>
               </div>
               <div className="text-center">
-                <p className="text-sm text-slate-600">Strings</p>
-                <p className="text-2xl font-bold text-blue-600">{projeto.dimensionamento.numStrings}</p>
+                <p className="text-sm text-slate-600">{ehMicro ? 'Microinversores' : 'Strings'}</p>
+                <p className="text-2xl font-bold text-blue-600">
+                  {ehMicro
+                    ? (microCfg?.qtd_microinversores ?? projeto.dimensionamento.numInversores)
+                    : projeto.dimensionamento.numStrings}
+                </p>
               </div>
             </div>
           </CardBody>
