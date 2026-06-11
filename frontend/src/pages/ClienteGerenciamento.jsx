@@ -300,7 +300,14 @@ export default function ClienteGerenciamento() {
                   </thead>
                   <tbody>
                     {projetosFV.map(p => (
-                      <tr key={p._id} className="border-b hover:bg-slate-50 cursor-pointer">
+                      <tr
+                        key={p._id}
+                        className="border-b hover:bg-slate-50 cursor-pointer"
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => navigate(`/projetos-fv/${p._id}`)}
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(`/projetos-fv/${p._id}`) } }}
+                      >
                         <td className="px-4 py-2 font-medium text-slate-900">{p.nome}</td>
                         <td className="px-4 py-2 text-slate-600">{new Date(p.createdAt).toLocaleDateString('pt-BR')}</td>
                         <td className="px-4 py-2">
@@ -349,7 +356,14 @@ export default function ClienteGerenciamento() {
                   </thead>
                   <tbody>
                     {projetosEV.map(p => (
-                      <tr key={p._id} className="border-b hover:bg-slate-50 cursor-pointer">
+                      <tr
+                        key={p._id}
+                        className="border-b hover:bg-slate-50 cursor-pointer"
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => navigate(`/projetos-ev/${p._id}`)}
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(`/projetos-ev/${p._id}`) } }}
+                      >
                         <td className="px-4 py-2 font-medium text-slate-900">{p.nome}</td>
                         <td className="px-4 py-2 text-slate-600">{new Date(p.createdAt).toLocaleDateString('pt-BR')}</td>
                         <td className="px-4 py-2">
