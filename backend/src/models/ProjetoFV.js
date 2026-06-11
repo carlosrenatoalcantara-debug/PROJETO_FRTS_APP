@@ -579,9 +579,12 @@ const projetoFVSchema = new mongoose.Schema({
     paineis: [{
       id: String,
       marca: String,
+      fabricante: String,
       modelo: String,
+      tipo: String,
       potencia_w: Number,
       quantidade: Number,
+      origem_bind: { type: String, default: null },
       // S2.7: referência opcional ao CatalogoEquipamento (preenchida a partir de S2.9)
       equipamento_id: {
         type: mongoose.Schema.Types.ObjectId,
@@ -592,10 +595,12 @@ const projetoFVSchema = new mongoose.Schema({
     inversor: {
       id: String,
       marca: String,
+      fabricante: String,
       modelo: String,
       potencia_kw: Number,
       tipo: String,
       fases: Number,
+      origem_bind: { type: String, default: null },
       // P1-PARECER-ATLAS-LINK-01: referência opcional ao Equipamento do catálogo (Atlas)
       equipamento_id: {
         type: mongoose.Schema.Types.ObjectId,
