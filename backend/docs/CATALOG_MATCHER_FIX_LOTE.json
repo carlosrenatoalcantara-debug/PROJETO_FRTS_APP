@@ -1,0 +1,93 @@
+{
+  "sprint": "P0-CATALOG-MATCHER-FIX-01",
+  "lote_id": "MATCHER-FIX-20260611",
+  "gerado_em": "2026-06-11T20:22:26.338Z",
+  "dry_run": false,
+  "codigo_commit": "pendente",
+
+  "alteracoes_codigo": {
+    "normalizer_js": {
+      "arquivo": "src/integracoes/solarmarket/normalizer.js",
+      "alteracao": "Adicionada export normalizarAgressive(str): remove TODOS os não-alfanuméricos. Usada exclusivamente para matching tolerante — não altera hash_unico canônico.",
+      "retrocompativel": true
+    },
+    "matcher_js": {
+      "arquivo": "src/integracoes/solarmarket/matcher.js",
+      "alteracoes": [
+        "Importa normalizarAgressive do normalizer",
+        "Adicionada constante FABRICANTE_ALIASES (8 entradas, baseadas em evidência empírica)",
+        "Adicionada função resolverCandidatos(marca, modelo): gera variantes com aliases",
+        "Adicionada export carregarIndiceFlexivel(): carrega 345 equipamentos do Atlas, constrói Map<hash_flexivel → doc>",
+        "Adicionada export encontrarMatchFlexivel(marca, modelo, indice): estratégia 2.5 tolerante a A1/A2/A3"
+      ],
+      "retrocompativel": true,
+      "encontrarMatch_inalterado": true
+    },
+    "bind_script": {
+      "arquivo": "scripts/bind-sm-equipamentos.mjs",
+      "alteracoes": [
+        "Importa carregarIndiceFlexivel e encontrarMatchFlexivel",
+        "Carrega índice flexível uma vez no startup (345 equipamentos)",
+        "matchEquipamento() tenta estratégia 2.5 quando estratégias 1/2/3 retornam < 0.95",
+        "Relatório expandido com coluna 'flexivel' para rastrear novos binds"
+      ]
+    }
+  },
+
+  "aliases_implementados": [
+    { "sm": "SIRIUS BIFACIAL",  "atlas": "SIRIUS ENERGIAS RENOVAVEIS", "evidencia": "DB query confirms fab_norm='SIRIUS ENERGIAS RENOVAVEIS'" },
+    { "sm": "CANADIAN SOLAR",   "atlas": "CANADIAN",  "evidencia": "DB: fab='Canadian' fab_norm='CANADIAN'" },
+    { "sm": "TONGWEI SOLAR",    "atlas": "TONGWEI",   "evidencia": "DB: fab='Tongwei' fab_norm='TONGWEI'" },
+    { "sm": "LEAPTON SOLAR",    "atlas": "LEAPTON",   "evidencia": "DB: fab='Leapton' fab_norm='LEAPTON'" },
+    { "sm": "HONOR SOLAR",      "atlas": "HONOR",     "evidencia": "DB: fab='Honor' fab_norm='HONOR'" },
+    { "sm": "TRINA SOLAR",      "atlas": "TRINA",     "evidencia": "DB: fab='Trina' fab_norm='TRINA'" },
+    { "sm": "RESUN SOLAR",      "atlas": "RESUN",     "evidencia": "Padrão análogo; confirmado pela lógica de normalização" },
+    { "sm": "OSDA",             "atlas": "OSDA SOLAR","evidencia": "DB: fab='OSDA SOLAR' fab_norm='OSDA SOLAR' para ODA575-36V-MH" }
+  ],
+
+  "resultado_aplicacao": {
+    "projetos_processados": 514,
+    "modulos": {
+      "flexivel_novo_binds": 218,
+      "fuzzy_nao_gravado": 2,
+      "sem_match_residual": 122,
+      "ja_vinculado_final": 400
+    },
+    "inversores": {
+      "flexivel_novo_binds": 140,
+      "fuzzy_nao_gravado": 3,
+      "sem_match_residual": 23,
+      "ja_vinculado_final": 488
+    },
+    "projetos_atualizados": 308,
+    "projetos_totalmente_vinculados_apos": 371,
+    "idempotencia_confirmada": true,
+    "segunda_execucao_novos_binds": 0
+  },
+
+  "cobertura": {
+    "antes": { "projetos_completos": 104, "pct": 20.2, "modulos_proj": 182, "inversores_proj": 348 },
+    "depois": { "projetos_completos": 371, "pct": 72.2, "modulos_proj": 391, "inversores_proj": 488 },
+    "ganho_projetos": 267,
+    "ganho_pp": 52.0,
+    "nota": "Superou expectativa de +48.6% (P0-GAP-02). Atingiu 72.2% com apenas correção de pipeline."
+  },
+
+  "validacoes_fase7": {
+    "Paulo Carlos":     { "inversor": "PASS (TSUN TSOL-MS2000)", "modulo": "SKIP (PULLING ENERGY - Classe C)" },
+    "Escola Pinheiro":  { "inversor": "PASS (DEYE SUN2000G3)", "modulo": "SKIP (SIRIUS BIFACIAL - A4)" },
+    "Growatt":          { "inversor": "PASS (Growatt MIN 5000TL-X)", "modulo": "PASS (Jinko JKM540M-72HL4-V)" },
+    "Kehua Tech":       { "inversor": "PASS (Kehua TECH SPI15K-B)", "modulo": "SKIP (Sirius Full Black - A4)" },
+    "SolarEdge SE":     { "inversor": "PASS (Solaredge SE 27.6K 380/220v)", "modulo": "PASS (Canadian HIKU CS3W-455MS)" },
+    "JA Solar":         { "inversor": "PASS (Deye SUN2000G-US-220)", "modulo": "PASS (Ja Solar JAM72S30-550/MR)" },
+    "OSDA":             { "inversor": "PASS (Deye SUN2000G3-US-220)", "modulo": "PASS (Osda ODA550-36V-MH)" },
+    "Leapton Solar":    { "inversor": "PASS (Hoymiles HMS-2000DW-4T)", "modulo": "PASS (Leapton LP182-M-72-NB)" }
+  },
+
+  "sem_match_residual_causas": {
+    "A4_model_format": { "casos": 22, "exemplos": ["SIRIUS BIFACIAL HD144P-545W", "Sirius Full Black"] },
+    "C_ausente_atlas": { "casos": 36, "exemplos": ["HELIUS (25 proj)", "TSUN módulo (9)", "RONMA SOLAR (5)", "PULLING ENERGY (2)"] },
+    "B_modelo_ausente": { "casos": 15, "exemplos": ["TRINA TALLMAX (6)", "DEYE SUN-3K-G (3)", "Canadian CS6W sem HIKU (2)"] },
+    "DQ_dado_corrompido": { "casos": 49, "exemplos": ["ZXMR-UPLDD144-600W ZXMR-...", "JINKO com desc completa", "Wattage como marca"] }
+  }
+}

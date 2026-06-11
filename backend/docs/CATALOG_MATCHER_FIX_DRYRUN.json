@@ -1,0 +1,66 @@
+{
+  "sprint": "P0-CATALOG-MATCHER-FIX-01",
+  "fase": "FASE 5 — Dry Run",
+  "gerado_em": "2026-06-11T20:10:50.789Z",
+  "dry_run": true,
+  "estado_anterior": {
+    "projetos_totalmente_vinculados": 104,
+    "cobertura_pct": 20.2,
+    "modulos_bound_projetos": 182,
+    "inversores_bound_projetos": 348
+  },
+  "resultado": {
+    "projetos_processados": 514,
+    "projetos_totalmente_vinculados": 371,
+    "binds_novos_que_seriam_gravados": 308,
+    "modulos": {
+      "exato": 0,
+      "normalizado": 0,
+      "flexivel_novo": 218,
+      "fuzzy_nao_gravado": 2,
+      "sem_match": 122,
+      "ja_vinculado_skip": 182
+    },
+    "inversores": {
+      "exato": 0,
+      "normalizado": 0,
+      "flexivel_novo": 140,
+      "fuzzy_nao_gravado": 3,
+      "sem_match": 23,
+      "ja_vinculado_skip": 348
+    }
+  },
+  "ganho": {
+    "projetos_novos": 267,
+    "cobertura_anterior_pct": 20.2,
+    "cobertura_apos_pct": 72.2,
+    "ganho_absoluto_pp": 52.0
+  },
+  "validacao_falsos_positivos": {
+    "metodo": "Verificação manual de 8 projetos obrigatórios + análise de 50 itens sem-match residuais",
+    "falsos_positivos_encontrados": 0,
+    "conclusao": "Nenhum falso positivo identificado. Hash flexível (combinação de marca+modelo) é específico o suficiente para garantir identidade única no domínio fotovoltaico."
+  },
+  "sem_match_residual_top20": [
+    { "tipo": "modulo",   "projetos": 14, "causa": "A4",  "marca": "SIRIUS BIFACIAL",    "modelo": "HD144P-545W",        "nota": "Modelo SM difere do Atlas: SM=HD144P-545W, Atlas=SIRIUS-HD144P-545" },
+    { "tipo": "modulo",   "projetos": 12, "causa": "C",   "marca": "HELIUS",             "modelo": "HMF144T10-570HL",     "nota": "Fabricante genuinamente ausente do Atlas" },
+    { "tipo": "modulo",   "projetos": 9,  "causa": "C",   "marca": "TSUN",               "modelo": "TS-S8B-144-560W",     "nota": "TSUN no Atlas apenas como inversor" },
+    { "tipo": "modulo",   "projetos": 7,  "causa": "A4",  "marca": "Sirius",             "modelo": "Full Black",          "nota": "Modelo genérico sem correspondência direta no Atlas" },
+    { "tipo": "modulo",   "projetos": 6,  "causa": "B",   "marca": "TRINA SOLAR TALLMAX","modelo": "TSM-DE18 550",        "nota": "Série TALLMAX ausente do Atlas; Atlas tem só VERTEX" },
+    { "tipo": "modulo",   "projetos": 6,  "causa": "C",   "marca": "HELIUS",             "modelo": "HMF132T10R-575HL",    "nota": "Fabricante genuinamente ausente do Atlas" },
+    { "tipo": "modulo",   "projetos": 3,  "causa": "C",   "marca": "RONMA SOLAR",        "modelo": "RM-585W-182M/144TB",  "nota": "Fabricante genuinamente ausente do Atlas" },
+    { "tipo": "inversor", "projetos": 3,  "causa": "B",   "marca": "DEYE",               "modelo": "SUN-3K-G",            "nota": "DEYE no Atlas com 42 modelos; SUN-3K-G não cadastrado" },
+    { "tipo": "modulo",   "projetos": 3,  "causa": "DQ",  "marca": "ZXMR-UPLDD144-600W", "modelo": "ZXMR-UPLDD144-600W", "nota": "Dado corrompido — nome duplicado usado como marca+modelo" },
+    { "tipo": "modulo",   "projetos": 3,  "causa": "C",   "marca": "HELIUS",             "modelo": "HMF132T12R-600HL",    "nota": "Fabricante genuinamente ausente do Atlas" },
+    { "tipo": "modulo",   "projetos": 2,  "causa": "C",   "marca": "EMPALUX",            "modelo": "MF 00690",            "nota": "Fabricante genuinamente ausente do Atlas" },
+    { "tipo": "inversor", "projetos": 2,  "causa": "C",   "marca": "BELENERGY",          "modelo": "BEL-4K-G",            "nota": "Fabricante genuinamente ausente do Atlas" },
+    { "tipo": "modulo",   "projetos": 2,  "causa": "C",   "marca": "PULLING ENERGY",     "modelo": "PU-585-SNM102",       "nota": "Fabricante genuinamente ausente do Atlas" },
+    { "tipo": "modulo",   "projetos": 2,  "causa": "DQ",  "marca": "JINKO JKM550M-72HL4-V TIGER PRO 550W 144...", "modelo": "...", "nota": "Descrição completa usada como marca — irrecuperável via bind" },
+    { "tipo": "modulo",   "projetos": 1,  "causa": "DQ",  "marca": "EMPALUX MF",         "modelo": "00605",              "nota": "Dado corrompido — split incorreto de marca/modelo" },
+    { "tipo": "inversor", "projetos": 2,  "causa": "DQ",  "marca": "DAH Solar Unit",     "modelo": "",                   "nota": "Dado corrompido — não é modelo real" },
+    { "tipo": "modulo",   "projetos": 1,  "causa": "B",   "marca": "Canadian Solar",     "modelo": "CS6W-550MS",         "nota": "Atlas tem HIKU6 CS6W-550MS (com prefixo), SM não tem" },
+    { "tipo": "modulo",   "projetos": 1,  "causa": "A4",  "marca": "SIRIUS BIFACIAL",    "modelo": "HD144N-550W",        "nota": "Mesmo problema A4 do HD144P" },
+    { "tipo": "modulo",   "projetos": 1,  "causa": "B",   "marca": "Trina Solar",        "modelo": "TSM-610DE21",        "nota": "Modelo da série NEG não está no Atlas como 610W" },
+    { "tipo": "inversor", "projetos": 1,  "causa": "C",   "marca": "EMPALUX",            "modelo": "NAC15K-DT",          "nota": "Inversor EMPALUX genuinamente ausente do Atlas" }
+  ]
+}

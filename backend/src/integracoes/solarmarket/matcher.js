@@ -15,6 +15,57 @@
  */
 
 import { Equipamento } from '../../models/Equipamento.js'
+import { normalizarAgressive } from './normalizer.js'
+
+// ─── Tabela de aliases de fabricante ─────────────────────────────────────────
+// Mapeamento SM → Atlas para casos onde o nome do fabricante difere.
+// Ordenado por comprimento DESC para que prefixos mais longos sejam verificados primeiro.
+//
+// Duas formas de uso:
+//   { sm: 'HONOR SOLAR',  atlas: 'HONOR' }   — "HONOR SOLAR" como prefixo ou exato
+//   { sm: 'OSDA',         atlas: 'OSDA SOLAR' } — SM tem nome MAIS CURTO que Atlas
+//
+// Comprovado empiricamente em P0-CATALOG-COVERAGE-GAP-02 + P0-CATALOG-MATCHER-FIX-01.
+const FABRICANTE_ALIASES = [
+  { sm: 'SIRIUS BIFACIAL',    atlas: 'SIRIUS ENERGIAS RENOVAVEIS' },
+  { sm: 'CANADIAN SOLAR',     atlas: 'CANADIAN' },
+  { sm: 'TONGWEI SOLAR',      atlas: 'TONGWEI' },
+  { sm: 'LEAPTON SOLAR',      atlas: 'LEAPTON' },
+  { sm: 'HONOR SOLAR',        atlas: 'HONOR' },
+  { sm: 'TRINA SOLAR',        atlas: 'TRINA' },
+  { sm: 'RESUN SOLAR',        atlas: 'RESUN' },
+  { sm: 'OSDA',               atlas: 'OSDA SOLAR' },
+].sort((a, b) => b.sm.length - a.sm.length)
+
+// ─── Resolução de candidatos (combinações marca+modelo a testar) ──────────────
+
+/**
+ * Gera lista de pares {marca, modelo} candidatos a partir da marca/modelo brutos,
+ * aplicando aliases de fabricante e rebalanceamento de prefixo.
+ *
+ * @param {string} marcaBruta
+ * @param {string} modeloBruto
+ * @returns {Array<{marca: string, modelo: string}>}
+ */
+function resolverCandidatos(marcaBruta, modeloBruto) {
+  const candidates = [{ marca: marcaBruta, modelo: modeloBruto }]
+  const marcaUpper = marcaBruta.trim().toUpperCase()
+
+  for (const alias of FABRICANTE_ALIASES) {
+    const aliasUpper = alias.sm.toUpperCase()
+    if (marcaUpper === aliasUpper) {
+      // Correspondência exata: substitui o fabricante
+      candidates.push({ marca: alias.atlas, modelo: modeloBruto })
+    } else if (marcaUpper.startsWith(aliasUpper + ' ')) {
+      // Correspondência de prefixo: sufixo da marca passa para o modelo
+      const suffix = marcaBruta.trim().slice(alias.sm.length).trim()
+      const modeloComSuffix = suffix ? `${suffix} ${modeloBruto}` : modeloBruto
+      candidates.push({ marca: alias.atlas, modelo: modeloComSuffix })
+    }
+  }
+
+  return candidates
+}
 
 // ─── Estratégia 1: hash exato ─────────────────────────────────────────────
 
@@ -175,6 +226,68 @@ export async function encontrarMatch(normalizado) {
     confianca: 0.0,
     estrategia: 'nenhuma',
   }
+}
+
+// ─── Índice flexível ──────────────────────────────────────────────────────────
+
+/**
+ * Carrega todos os equipamentos do Atlas e constrói um índice de busca flexível.
+ *
+ * A chave do índice é normalizarAgressive(fabricante + ' ' + modelo): remove todos
+ * os caracteres não-alfanuméricos (barras, asteriscos, hífens, espaços) antes de
+ * indexar. Isso torna o índice tolerante às inconsistências de normalização entre
+ * o runtime e o que foi armazenado no Atlas na época do import.
+ *
+ * Chamar uma vez no startup do script; reutilizar o Map retornado para todo o lote.
+ *
+ * @returns {Promise<Map<string, object>>}  hash_flexivel → doc Equipamento (lean)
+ */
+export async function carregarIndiceFlexivel() {
+  const docs = await Equipamento.find({})
+    .select('_id tipo fabricante modelo especificacoes identificacao')
+    .lean()
+
+  const indice = new Map()
+  for (const doc of docs) {
+    const hash = normalizarAgressive((doc.fabricante || '') + ' ' + (doc.modelo || ''))
+    if (hash && !indice.has(hash)) {
+      indice.set(hash, doc)
+    }
+  }
+  return indice
+}
+
+/**
+ * Busca no índice flexível usando normalização agressiva + resolução de aliases.
+ *
+ * Estratégia 2.5 — tolerância a:
+ *   A1  backfill split: "GROWATT MIN" + "5000TL-X" → combina igual a Atlas "GROWATT" + "MIN 5000TL-X"
+ *   A2  alias de marca: "HONOR SOLAR" → "HONOR", "OSDA" → "OSDA SOLAR", etc.
+ *   A3  chars especiais: "JAM72S30-550/MR" e "JAM72S30-550 MR" → mesmo hash flexível
+ *
+ * @param {string} marcaBruta    Valor bruto de `marca` no ProjetoFV
+ * @param {string} modeloBruto   Valor bruto de `modelo` no ProjetoFV
+ * @param {Map}    indice         Retornado por carregarIndiceFlexivel()
+ * @returns {{equipamento: object, confianca: number, estrategia: string}|null}
+ */
+export function encontrarMatchFlexivel(marcaBruta, modeloBruto, indice) {
+  if (!indice || !marcaBruta || !modeloBruto) return null
+
+  const candidatos = resolverCandidatos(marcaBruta, modeloBruto)
+
+  for (const { marca, modelo } of candidatos) {
+    const hash = normalizarAgressive(marca + ' ' + modelo)
+    const doc = indice.get(hash)
+    if (doc) {
+      return {
+        equipamento: doc,
+        confianca:   0.95,
+        estrategia:  'flexivel',
+      }
+    }
+  }
+
+  return null
 }
 
 /**

@@ -45,8 +45,14 @@ console.log('✅ MongoDB conectado')
 
 // ─── Imports dinâmicos (após mongoose conectar) ───────────────────────────
 const { normalizar, normalizarTexto, gerarHash } = await import('../src/integracoes/solarmarket/normalizer.js')
-const { encontrarMatch }                         = await import('../src/integracoes/solarmarket/matcher.js')
+const { encontrarMatch, carregarIndiceFlexivel, encontrarMatchFlexivel } =
+                                                   await import('../src/integracoes/solarmarket/matcher.js')
 const { ProjetoFV }                              = await import('../src/models/ProjetoFV.js')
+
+// Índice flexível: carregado uma vez, reutilizado para todo o lote
+// Permite match tolerante a: brand-split (A1), alias (A2), chars especiais (A3)
+const indiceFlexivel = await carregarIndiceFlexivel()
+console.log(`✅ Índice flexível carregado: ${indiceFlexivel.size} equipamentos no Atlas`)
 
 // ─── Construir item bruto compatível com normalizer ───────────────────────
 function criarItemBruto(marca, modelo, categoria) {
@@ -76,7 +82,22 @@ async function matchEquipamento(marca, modelo, categoria) {
   }
 
   const match = await encontrarMatch(norm)
-  const res   = { estrategia: match.estrategia, confianca: match.confianca, equipamento: match.equipamento, norm }
+
+  let res
+  if (match.confianca >= 0.95) {
+    // Estratégias 1 ou 2 funcionaram — resultado canônico
+    res = { estrategia: match.estrategia, confianca: match.confianca, equipamento: match.equipamento, norm }
+  } else {
+    // Estratégia 2.5 — índice flexível (tolerante a A1/A2/A3)
+    const flex = encontrarMatchFlexivel(marca, modelo, indiceFlexivel)
+    if (flex) {
+      res = { estrategia: flex.estrategia, confianca: flex.confianca, equipamento: flex.equipamento, norm }
+    } else {
+      // Mantém resultado fuzzy ou sem-match da estratégia original
+      res = { estrategia: match.estrategia, confianca: match.confianca, equipamento: match.equipamento, norm }
+    }
+  }
+
   cacheMatch.set(key, res)
   return res
 }
@@ -84,11 +105,11 @@ async function matchEquipamento(marca, modelo, categoria) {
 // ─── Relatório ─────────────────────────────────────────────────────────────
 const rel = {
   projetos_processados: 0,
-  paineis: { exato: 0, normalizado: 0, fuzzy: 0, sem_match: 0, ja_vinculado: 0, erros: 0 },
-  inversores: { exato: 0, normalizado: 0, fuzzy: 0, sem_match: 0, ja_vinculado: 0, erros: 0 },
+  paineis:   { exato: 0, normalizado: 0, flexivel: 0, fuzzy: 0, sem_match: 0, ja_vinculado: 0, erros: 0 },
+  inversores:{ exato: 0, normalizado: 0, flexivel: 0, fuzzy: 0, sem_match: 0, ja_vinculado: 0, erros: 0 },
   binds_gravados: 0,
   projetos_totalmente_vinculados: 0,
-  sem_match_detail: [],  // { marca, modelo, tipo, projetos }
+  sem_match_detail: [],
 }
 
 const semMatchAgg = {}  // para consolidar sem-match
@@ -134,9 +155,10 @@ for (const p of projetos) {
       const jaVinculadoSemBind = painel.equipamento_id && !painel.origem_bind
 
       if (m.confianca >= 0.95 || jaVinculadoSemBind) {
-        // Exato ou normalizado — grava; ou corrige campos ausentes em bind anterior
-        const tipo = m.confianca === 1.0 ? 'exato' : (m.confianca >= 0.95 ? 'normalizado' : 'remap')
-        if (tipo === 'exato') rel.paineis.exato++
+        // Exato, normalizado ou flexível — grava; ou corrige campos ausentes em bind anterior
+        const tipo = m.confianca === 1.0 ? 'exato' : (m.estrategia === 'flexivel' ? 'flexivel' : (m.confianca >= 0.95 ? 'normalizado' : 'remap'))
+        if (tipo === 'exato')    rel.paineis.exato++
+        else if (tipo === 'flexivel')   rel.paineis.flexivel++
         else if (tipo === 'normalizado') rel.paineis.normalizado++
 
         const bindedPainel = {
@@ -206,8 +228,9 @@ for (const p of projetos) {
         const m = await matchEquipamento(inv.marca, inv.modelo, 'Inversor')
 
         if (m.confianca >= 0.95) {
-          const tipo = m.confianca === 1.0 ? 'exato' : 'normalizado'
-          if (tipo === 'exato') rel.inversores.exato++
+          const tipo = m.confianca === 1.0 ? 'exato' : (m.estrategia === 'flexivel' ? 'flexivel' : 'normalizado')
+          if (tipo === 'exato')    rel.inversores.exato++
+          else if (tipo === 'flexivel')   rel.inversores.flexivel++
           else rel.inversores.normalizado++
 
           $set['equipamentos.inversor'] = {
@@ -271,18 +294,20 @@ console.log(`  Projetos totalmente vinculados: ${rel.projetos_totalmente_vincula
 console.log(`  Projetos ${DRY_RUN ? 'que teriam' : 'com'} bind gravado : ${rel.binds_gravados}`)
 
 console.log(`\n  MÓDULOS`)
-console.log(`    Exato (hash, conf=1.0)  : ${rel.paineis.exato}`)
-console.log(`    Normalizado (conf=0.95) : ${rel.paineis.normalizado}`)
+console.log(`    Exato (hash, conf=1.0)      : ${rel.paineis.exato}`)
+console.log(`    Normalizado (conf=0.95)     : ${rel.paineis.normalizado}`)
+console.log(`    Flexível (A1/A2/A3, c=0.95): ${rel.paineis.flexivel}`)
 console.log(`    Fuzzy (conf<0.95) NÃO gravado: ${rel.paineis.fuzzy}`)
-console.log(`    Sem match               : ${rel.paineis.sem_match}`)
-console.log(`    Já vinculado (skip)     : ${rel.paineis.ja_vinculado}`)
+console.log(`    Sem match                   : ${rel.paineis.sem_match}`)
+console.log(`    Já vinculado (skip)         : ${rel.paineis.ja_vinculado}`)
 
 console.log(`\n  INVERSORES`)
-console.log(`    Exato (hash, conf=1.0)  : ${rel.inversores.exato}`)
-console.log(`    Normalizado (conf=0.95) : ${rel.inversores.normalizado}`)
+console.log(`    Exato (hash, conf=1.0)      : ${rel.inversores.exato}`)
+console.log(`    Normalizado (conf=0.95)     : ${rel.inversores.normalizado}`)
+console.log(`    Flexível (A1/A2/A3, c=0.95): ${rel.inversores.flexivel}`)
 console.log(`    Fuzzy (conf<0.95) NÃO gravado: ${rel.inversores.fuzzy}`)
-console.log(`    Sem match               : ${rel.inversores.sem_match}`)
-console.log(`    Já vinculado (skip)     : ${rel.inversores.ja_vinculado}`)
+console.log(`    Sem match                   : ${rel.inversores.sem_match}`)
+console.log(`    Já vinculado (skip)         : ${rel.inversores.ja_vinculado}`)
 
 // Consolidar sem-match e fuzzy para relatório
 const semMatchSorted = Object.values(semMatchAgg)

@@ -73,6 +73,29 @@ export function normalizarTexto(str) {
 }
 
 /**
+ * Normalização agressiva: mantém APENAS alfanumérico (A-Z, 0-9), sem espaço,
+ * sem hífen, sem barra, sem asterisco. Usado exclusivamente para matching
+ * tolerante no índice flexível — NÃO altera o hash_unico canônico.
+ *
+ * Exemplos:
+ *   "JAM72S30-550/MR"     → "JAM72S30550MR"
+ *   "MIN 5000TL-X"        → "MIN5000TLX"
+ *   "HY-M10/144H 575W"   → "HYM10144H575W"
+ *   "LP182*199-M-66-NH"   → "LP182199M66NH"
+ *
+ * @param {string} str
+ * @returns {string}
+ */
+export function normalizarAgressive(str) {
+  if (!str) return ''
+  return str
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, '')
+}
+
+/**
  * Gera hash único SHA-256 (10 primeiros chars = suficiente para dedup).
  *
  * @param {string} fabricanteNorm
