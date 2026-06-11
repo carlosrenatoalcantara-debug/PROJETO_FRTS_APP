@@ -1,0 +1,223 @@
+{
+  "gerado_em": "2026-06-11",
+  "sprint": "P0-CATALOG-COVERAGE-GAP-02",
+  "nota": "READ-ONLY — nenhum equipamento criado nesta sprint. Plano para expansão futura.",
+  "classificacao_root_cause": {
+    "A1_backfill_split": "Backfill heurístico dividiu marca/modelo errado — equipment EXISTS no Atlas mas sob brand/model diferentes. Fix: re-run backfill com heurística corrigida.",
+    "A2_brand_alias": "Nome de fabricante divergente entre SM e Atlas — mesmo fabricante, duas normalizações. Fix: alias no normalizador.",
+    "A3_slash_normalizacao": "Atlas armazenou modelo_normalizado com '/' e '*' intactos; runtime normalizer converte para espaço. Fix: re-normalizar Atlas OU adaptar normalizer.",
+    "A4_model_format": "Mesmo produto, formato de modelo diferente (ex: 'HD144P-545W' vs 'SIRIUS-HD144P-545'). Fix: alias de modelo.",
+    "C_fabricante_ausente": "Fabricante genuinamente ausente do Atlas. Fix: importar datasheet e cadastrar."
+  },
+  "p0_impacto_maximo": [
+    {
+      "prioridade": "P0-A",
+      "titulo": "Corrigir backfill split GROWATT",
+      "causa_raiz": "A1_backfill_split",
+      "fabricante_sm": "GROWATT MIN / MIC / MID / MAC / MAX",
+      "fabricante_atlas": "GROWATT",
+      "exemplos_modelos": ["MIN 5000TL-X", "MIN 6000TL-X", "MID 15KTL3-X", "MIC 3000TL-X", "MAC 60KTL3-X LV"],
+      "projetos_afetados": 57,
+      "fix": "Re-run backfill com marca='GROWATT', modelo=resto. Todos os modelos JÁ EXISTEM no Atlas.",
+      "esforco": "Baixo — apenas re-rodar backfill + bind",
+      "datasheet_necessario": false
+    },
+    {
+      "prioridade": "P0-B",
+      "titulo": "Corrigir backfill split KEHUA TECH",
+      "causa_raiz": "A1_backfill_split",
+      "fabricante_sm": "KEHUA TECH",
+      "fabricante_atlas": "KEHUA",
+      "exemplos_modelos": ["SPI6000-B2", "SPI15K-B", "SPI20K-B X2", "SPI36K-B X2"],
+      "projetos_afetados": 24,
+      "fix": "Re-run backfill com marca='KEHUA', modelo='TECH SPI...'. Todos os modelos JÁ EXISTEM no Atlas.",
+      "esforco": "Baixo",
+      "datasheet_necessario": false
+    },
+    {
+      "prioridade": "P0-C",
+      "titulo": "Corrigir backfill split SOLAREDGE",
+      "causa_raiz": "A1_backfill_split",
+      "fabricante_sm": "SOLAREDGE SE XX.XK 380/220v",
+      "fabricante_atlas": "SOLAREDGE",
+      "exemplos_modelos": ["SE 27.6K 380/220V", "SE 20.1K 380/220V", "SE 33.3K 380/220V", "SE 100K MANAGER 380/220V"],
+      "projetos_afetados": 30,
+      "fix": "Re-run backfill. Backfill extraiu tensão como modelo ('380/220v') e modelo dentro da marca. Todos JÁ NO ATLAS.",
+      "esforco": "Baixo",
+      "datasheet_necessario": false
+    },
+    {
+      "prioridade": "P0-D",
+      "titulo": "Corrigir backfill split HONOR SOLAR + slash normalização",
+      "causa_raiz": "A1_backfill_split + A3_slash_normalizacao",
+      "fabricante_sm": "HONOR SOLAR HY-M10/144H",
+      "fabricante_atlas": "HONOR",
+      "exemplos_modelos": ["HY-M10/144H 550W", "HY-M10/144H 570W", "HY-M10/144H 575W", "HY-M16/144H 590W"],
+      "projetos_afetados": 34,
+      "fix": "Re-run backfill + fix slash normalization. Todos os modelos JÁ NO ATLAS.",
+      "esforco": "Médio — depende de A3 fix também",
+      "datasheet_necessario": false
+    }
+  ],
+  "p1_impacto_medio": [
+    {
+      "prioridade": "P1-A",
+      "titulo": "Fix slash normalization (JA SOLAR, ZNShine, DAH, SolarEdge)",
+      "causa_raiz": "A3_slash_normalizacao",
+      "fabricantes_afetados": ["JA SOLAR (JAM72S30-550/MR)", "ZNSHINE (ZXM7-SHLDD144-555/M)", "DAH (DHN72.../FS-585W)", "SOLAREDGE (380/220V)"],
+      "projetos_afetados": 65,
+      "fix": "Re-normalizar modelo_normalizado no Atlas (re-rodar normalizer.js sobre todos os documentos) OU adicionar aliases com versão sem '/'.",
+      "esforco": "Médio — migration script no Atlas"
+    },
+    {
+      "prioridade": "P1-B",
+      "titulo": "Brand alias OSDA → OSDA SOLAR",
+      "causa_raiz": "A2_brand_alias",
+      "fabricante_sm": "OSDA",
+      "fabricante_atlas": "OSDA SOLAR",
+      "modelos_afetados": ["ODA575-36V-MH"],
+      "projetos_afetados": 29,
+      "fix": "Adicionar alias 'OSDA' → 'OSDA SOLAR' no normalizer OU adicionar entrada secundária no Atlas com fab_norm='OSDA'.",
+      "esforco": "Baixo"
+    },
+    {
+      "prioridade": "P1-C",
+      "titulo": "Brand alias LEAPTON SOLAR → LEAPTON",
+      "causa_raiz": "A2_brand_alias + A3_slash_normalizacao",
+      "fabricante_sm": "LEAPTON SOLAR",
+      "fabricante_atlas": "LEAPTON",
+      "modelos_afetados": ["LP182*199-M-66-NH-585W", "LP182-M-78-MH-590W", "LP182-M-72-NB-585W"],
+      "projetos_afetados": 17,
+      "fix": "Alias 'LEAPTON SOLAR' → 'LEAPTON' + fix '*' normalization. Modelos JÁ NO ATLAS.",
+      "esforco": "Médio"
+    },
+    {
+      "prioridade": "P1-D",
+      "titulo": "Corrigir backfill CANADIAN SOLAR, TONGWEI, ASTRONERGY, TRINA, DEYE",
+      "causa_raiz": "A1_backfill_split",
+      "fabricantes_afetados": ["CANADIAN SOLAR", "TONGWEI SOLAR", "ASTRONERGY", "TRINA SOLAR", "DEYE (SUN-5K-G @220)"],
+      "projetos_afetados": 53,
+      "fix": "Re-run backfill. Todos os modelos existem no Atlas. Problema é apenas split de marca/modelo.",
+      "esforco": "Baixo"
+    },
+    {
+      "prioridade": "P1-E",
+      "titulo": "Adicionar HELIUS ao Atlas",
+      "causa_raiz": "C_fabricante_ausente",
+      "fabricante": "Helius Sunlink PV",
+      "site_oficial": "https://he-solar.com",
+      "modelos_necessarios": [
+        "HMF144T10-570HL", "HMF132T10R-575HL", "HMF132T12R-600HL",
+        "HMF132T12R-595HL", "HMF144M10-555H", "HMB132T12R-630"
+      ],
+      "projetos_afetados": 25,
+      "fontes_datasheet": [
+        "https://www.enfsolar.com/helius-sunlink-pv",
+        "https://alumifixsolar.com.br/wp-content/uploads/2024/01/English_Datasheet-HMF144T10-1.pdf",
+        "https://genyx.com.br/novo-site/wp-content/uploads/2024/04/Cod.-2462-Helius-datasheet-manual.pdf"
+      ],
+      "status_datasheet": "Encontrado",
+      "esforco": "Alto — importação de 6 modelos novos"
+    }
+  ],
+  "p2_impacto_baixo": [
+    {
+      "prioridade": "P2-A",
+      "titulo": "Adicionar PULLING ENERGY ao Atlas",
+      "causa_raiz": "C_fabricante_ausente",
+      "fabricante": "Suzhou Pulling Energy Co., Ltd.",
+      "site_oficial": "http://www.pullingenergy.com",
+      "modelos_necessarios": ["PU-620-SNM102", "PU-585-SNM102"],
+      "projetos_afetados": 7,
+      "fontes_datasheet": [
+        "https://www.scribd.com/document/754770891/PULLING-ENERGY-Datasheet-PU-620W-SNM102-N-Type",
+        "https://www.enfsolar.com/pv/panel-datasheet/crystalline/60389"
+      ],
+      "status_datasheet": "Encontrado"
+    },
+    {
+      "prioridade": "P2-B",
+      "titulo": "Adicionar RONMA SOLAR ao Atlas",
+      "causa_raiz": "C_fabricante_ausente",
+      "fabricante": "Zhejiang Ronma Solar Group Co., Ltd.",
+      "site_oficial": "https://ronmasolar.com.br",
+      "modelos_necessarios": ["RM-585W-182M/144TB", "RM-620W-182M/156TB"],
+      "projetos_afetados": 7,
+      "fontes_datasheet": [
+        "https://ronmasolar.com.br/wp-content/uploads/2025/08/CATALOGO-TABLET.pdf",
+        "https://www.enfsolar.com/pv/panel-datasheet/crystalline/63297"
+      ],
+      "status_datasheet": "Encontrado"
+    },
+    {
+      "prioridade": "P2-C",
+      "titulo": "Adicionar SIRIUS HD144P-545W (formato alias)",
+      "causa_raiz": "A4_model_format + A2_brand_alias",
+      "fabricante_sm": "SIRIUS BIFACIAL",
+      "fabricante_atlas": "SIRIUS ENERGIAS RENOVAVEIS",
+      "modelo_sm": "HD144P-545W",
+      "modelo_atlas": "SIRIUS-HD144P-545",
+      "projetos_afetados": 14,
+      "fix": "Alias brand 'SIRIUS BIFACIAL' → 'SIRIUS ENERGIAS RENOVAVEIS' + alias model 'HD144P-545W' → 'SIRIUS-HD144P-545'. Ou re-normalizar backfill.",
+      "status_datasheet": "Disponível em energiasirius.com"
+    },
+    {
+      "prioridade": "P2-D",
+      "titulo": "Adicionar BELENERGY ao Atlas (inversor brasileiro)",
+      "causa_raiz": "C_fabricante_ausente",
+      "fabricante": "Belenus LTDA (Belenergy)",
+      "site_oficial": "https://belenergy.com.br",
+      "modelos_necessarios": ["BEL-4K-G", "60K-4G"],
+      "projetos_afetados": 5,
+      "fontes_datasheet": [
+        "https://d8vlg9z1oftyc.cloudfront.net/soollar/soollar-file-manager/Datasheet/1-bel-4k-g.pdf",
+        "https://minhacasasolar.fbitsstatic.net/media/1-ficha-t%C3%A9cnica-inversor-8kw-belenergy.pdf"
+      ],
+      "status_datasheet": "Encontrado",
+      "nota": "BelEnergy é marca própria que usa hardware Deye internamente (BEL5KG = Deye 5K). Verificar se é rebranding."
+    },
+    {
+      "prioridade": "P2-E",
+      "titulo": "Adicionar EMPALUX ao Atlas (fabricante brasileiro)",
+      "causa_raiz": "C_fabricante_ausente",
+      "fabricante": "Empalux",
+      "site_oficial": "https://empalux.com.br",
+      "modelos_necessarios": ["MF 00690", "MF 00605"],
+      "projetos_afetados": 3,
+      "quantidade_total_modulos": 1748,
+      "fontes_datasheet": [
+        "https://empalux.com.br/wp-content/uploads/2023/11/DATA-SHEET-MODULO-605W.pdf",
+        "https://empalux.com.br/wp-content/uploads/2023/11/DATA-SHEET-MODULO-690W_REV2-3.pdf"
+      ],
+      "status_datasheet": "Encontrado — direto no site oficial",
+      "nota": "Alto volume (1748 módulos em apenas 3 projetos = projetos grandes). Modelo MF 00605 provavelmente 605W e MF 00690 = 690W. Verificar datasheet para confirmar."
+    },
+    {
+      "prioridade": "P2-F",
+      "titulo": "Adicionar TSUN módulos ao Atlas",
+      "causa_raiz": "C_fabricante_ausente (tipo produto)",
+      "fabricante": "TSUN",
+      "nota": "TSUN existe no Atlas como inversor. O modelo TS-S8B-144-560W é um MÓDULO, não inversor. Adicionar tipo modulo para TSUN.",
+      "modelos_necessarios": ["TS-S8B-144-560W"],
+      "projetos_afetados": 9,
+      "status_datasheet": "Requer busca no site do fabricante tsun-energy.com"
+    },
+    {
+      "prioridade": "P2-G",
+      "titulo": "Adicionar DEYE SUN-3K-G ao Atlas",
+      "causa_raiz": "C_fabricante_ausente (modelo específico)",
+      "fabricante": "DEYE",
+      "nota": "DEYE existe no Atlas (42 modelos). SUN-3K-G aparece como fuzzy 0.89 — modelo não cadastrado.",
+      "modelos_necessarios": ["SUN-3K-G"],
+      "projetos_afetados": 3,
+      "status_datasheet": "Disponível em deye-inverter.com"
+    }
+  ],
+  "qualidade_de_dados_sm": [
+    { "problema": "Marca extraída com modelo embutido", "exemplos": ["GROWATT MIN", "KEHUA TECH", "SOLAREDGE SE 27.6K", "TONGWEI SOLAR TW-600-MNH", "HONOR SOLAR HY-M10/144H"], "fix": "Melhorar extrairMarcaModelo() no backfill com lista de marcas conhecidas" },
+    { "problema": "Nome de produto duplicado (marca=modelo)", "exemplos": ["ZXMR-UPLDD144-600W ZXMR-UPLDD144-600W", "ZXMR-UPLDD144 ZXMR-UPLDD144", "LF465M8-72H LF465M8-72H"], "fix": "Detectar duplicação e usar apenas metade do token" },
+    { "problema": "Wattage como nome de produto", "exemplos": ["600W 600W", "600w"], "fix": "Filtrar — não são equipamentos cadastráveis" },
+    { "problema": "Inversor descrito incorretamente como módulo ou vice-versa", "exemplos": ["DAH Solar Unit", "Solar Unit", "Dah SOlar unit"], "fix": "Filtrar — dados corrompidos da proposta SM" },
+    { "problema": "Código de peça usado como marca (ZNSHINE/ZNShine)", "exemplos": ["ZXM7-SHLD144 -", "ZXMR-UOLDD144 -", "ZXM7-UPLDD144-595"], "fix": "Reconhecer códigos ZNShine como modelos" }
+  ]
+}

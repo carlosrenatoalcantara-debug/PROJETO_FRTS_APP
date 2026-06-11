@@ -1,0 +1,1052 @@
+{
+  "gerado_em": "2026-06-11T19:42:47.196Z",
+  "sprint": "P0-CATALOG-COVERAGE-GAP-02",
+  "estado_atual": {
+    "total_sm_proposta": 514,
+    "com_modulo_bound": 178,
+    "com_inversor_bound": 348,
+    "totalmente_vinculados": 104,
+    "cobertura_pct_modulos": "34.6",
+    "cobertura_pct_inversores": "67.7",
+    "cobertura_pct_total": "20.2"
+  },
+  "modelos_sem_bind": {
+    "total": 114,
+    "items": [
+      {
+        "marca": "OSDA",
+        "modelo": "ODA575-36V-MH",
+        "projetos_afetados": 29,
+        "qtd_total": 995
+      },
+      {
+        "marca": "JA SOLAR",
+        "modelo": "JAM72S30-550/MR",
+        "projetos_afetados": 26,
+        "qtd_total": 534
+      },
+      {
+        "marca": "CANADIAN SOLAR HIKU CS3W-455MS",
+        "modelo": "(35MM)",
+        "projetos_afetados": 16,
+        "qtd_total": 1646
+      },
+      {
+        "marca": "SIRIUS BIFACIAL",
+        "modelo": "HD144P-545W",
+        "projetos_afetados": 14,
+        "qtd_total": 2477
+      },
+      {
+        "marca": "HELIUS",
+        "modelo": "HMF144T10-570HL",
+        "projetos_afetados": 12,
+        "qtd_total": 321
+      },
+      {
+        "marca": "TONGWEI SOLAR TW-600-MNH",
+        "modelo": "66-HD",
+        "projetos_afetados": 12,
+        "qtd_total": 583
+      },
+      {
+        "marca": "HONOR SOLAR HY-M10/144H",
+        "modelo": "575W",
+        "projetos_afetados": 10,
+        "qtd_total": 143
+      },
+      {
+        "marca": "HONOR SOLAR HY-M10/144H",
+        "modelo": "570W",
+        "projetos_afetados": 10,
+        "qtd_total": 142
+      },
+      {
+        "marca": "ZNSHINE",
+        "modelo": "ZXM7-SHLDD144-555/M",
+        "projetos_afetados": 9,
+        "qtd_total": 397
+      },
+      {
+        "marca": "TSUN",
+        "modelo": "TS-S8B-144-560W",
+        "projetos_afetados": 9,
+        "qtd_total": 224
+      },
+      {
+        "marca": "ASTRONERGY ASTROSEMI CHSM72M-HC",
+        "modelo": "555",
+        "projetos_afetados": 8,
+        "qtd_total": 110
+      },
+      {
+        "marca": "LEAPTON SOLAR",
+        "modelo": "LP182*199-M-66-NH-585W",
+        "projetos_afetados": 8,
+        "qtd_total": 128
+      },
+      {
+        "marca": "Sirius",
+        "modelo": "Full Black",
+        "projetos_afetados": 7,
+        "qtd_total": 224
+      },
+      {
+        "marca": "TRINA SOLAR TALLMAX TSM-DE18",
+        "modelo": "550",
+        "projetos_afetados": 6,
+        "qtd_total": 318
+      },
+      {
+        "marca": "HONOR SOLAR HY-M10/144H",
+        "modelo": "550W",
+        "projetos_afetados": 6,
+        "qtd_total": 194
+      },
+      {
+        "marca": "HELIUS",
+        "modelo": "HMF132T10R-575HL",
+        "projetos_afetados": 6,
+        "qtd_total": 90
+      },
+      {
+        "marca": "DAH",
+        "modelo": "DHN72X16/FS-585W",
+        "projetos_afetados": 5,
+        "qtd_total": 194
+      },
+      {
+        "marca": "DAH",
+        "modelo": "DHN66Z16/DG-610W",
+        "projetos_afetados": 5,
+        "qtd_total": 404
+      },
+      {
+        "marca": "HONOR SOLAR HY-M10/144H",
+        "modelo": "560W",
+        "projetos_afetados": 5,
+        "qtd_total": 211
+      },
+      {
+        "marca": "CANADIAN SOLAR HIKU6",
+        "modelo": "CS6W-545M",
+        "projetos_afetados": 4,
+        "qtd_total": 111
+      },
+      {
+        "marca": "DAH",
+        "modelo": "DHN72R18/FS-610W",
+        "projetos_afetados": 4,
+        "qtd_total": 628
+      },
+      {
+        "marca": "DAH",
+        "modelo": "DHM72X10/BF/FS-555W",
+        "projetos_afetados": 4,
+        "qtd_total": 42
+      },
+      {
+        "marca": "RESUN SOLAR",
+        "modelo": "RS8I-550M",
+        "projetos_afetados": 3,
+        "qtd_total": 34
+      },
+      {
+        "marca": "RONMA SOLAR",
+        "modelo": "RM-585W-182M/144TB",
+        "projetos_afetados": 3,
+        "qtd_total": 116
+      },
+      {
+        "marca": "LEAPTON SOLAR",
+        "modelo": "LP182-M-78-MH-590W",
+        "projetos_afetados": 3,
+        "qtd_total": 40
+      },
+      {
+        "marca": "HONOR SOLAR HY-M16/144H",
+        "modelo": "590W",
+        "projetos_afetados": 3,
+        "qtd_total": 112
+      },
+      {
+        "marca": "HONOR SOLAR HY-M10/144H",
+        "modelo": "555W",
+        "projetos_afetados": 3,
+        "qtd_total": 33
+      },
+      {
+        "marca": "LEAPTON SOLAR",
+        "modelo": "LP182-M-72-NB-585W",
+        "projetos_afetados": 3,
+        "qtd_total": 56
+      },
+      {
+        "marca": "DAH",
+        "modelo": "DHM72X10/FS-550W",
+        "projetos_afetados": 3,
+        "qtd_total": 217
+      },
+      {
+        "marca": "ZXMR-UPLDD144-600W",
+        "modelo": "ZXMR-UPLDD144-600W",
+        "projetos_afetados": 3,
+        "qtd_total": 158
+      },
+      {
+        "marca": "HELIUS",
+        "modelo": "HMF132T12R-600HL",
+        "projetos_afetados": 3,
+        "qtd_total": 50
+      },
+      {
+        "marca": "EMPALUX MF",
+        "modelo": "00690",
+        "projetos_afetados": 2,
+        "qtd_total": 95
+      },
+      {
+        "marca": "HELIUS HMB132T12R",
+        "modelo": "630",
+        "projetos_afetados": 2,
+        "qtd_total": 22
+      },
+      {
+        "marca": "DAH",
+        "modelo": "DHM72X10/FS-555W",
+        "projetos_afetados": 2,
+        "qtd_total": 44
+      },
+      {
+        "marca": "CANADIAN SOLAR HIKU6",
+        "modelo": "CS6W-550MS",
+        "projetos_afetados": 2,
+        "qtd_total": 27
+      },
+      {
+        "marca": "SIRIUS-RS6 - 550MX -",
+        "modelo": "E3",
+        "projetos_afetados": 2,
+        "qtd_total": 75
+      },
+      {
+        "marca": "CANADIAN SOLAR BIFACIAL HIKU6",
+        "modelo": "CS6W-540MB-AG",
+        "projetos_afetados": 2,
+        "qtd_total": 76
+      },
+      {
+        "marca": "HELIUS",
+        "modelo": "HMF144M10-555H",
+        "projetos_afetados": 2,
+        "qtd_total": 112
+      },
+      {
+        "marca": "RONMA SOLAR",
+        "modelo": "RM-620W-182M/156TB",
+        "projetos_afetados": 2,
+        "qtd_total": 23
+      },
+      {
+        "marca": "ASTRONERGY ASTRO N7 CHSM66RN(DG)/F-BH BIFACIAL",
+        "modelo": "600",
+        "projetos_afetados": 2,
+        "qtd_total": 38
+      },
+      {
+        "marca": "HANERSUN HN18-72H",
+        "modelo": "585W",
+        "projetos_afetados": 2,
+        "qtd_total": 95
+      },
+      {
+        "marca": "ZXMR-UPLDD144",
+        "modelo": "ZXMR-UPLDD144",
+        "projetos_afetados": 2,
+        "qtd_total": 98
+      },
+      {
+        "marca": "PULLING ENERGY",
+        "modelo": "PU-585-SNM102",
+        "projetos_afetados": 2,
+        "qtd_total": 52
+      },
+      {
+        "marca": "DAH",
+        "modelo": "DHN66Z16/DG-620W",
+        "projetos_afetados": 2,
+        "qtd_total": 17
+      },
+      {
+        "marca": "SIRIUS BIFACIAL",
+        "modelo": "HD144N-550W",
+        "projetos_afetados": 1,
+        "qtd_total": 28
+      },
+      {
+        "marca": "SIRIUS GRAFENO-BIFACIAL - 535W -",
+        "modelo": "144 HALF CELL",
+        "projetos_afetados": 1,
+        "qtd_total": 70
+      },
+      {
+        "marca": "TRINA SOLAR VERTEX TSM-NEG21C.20",
+        "modelo": "695",
+        "projetos_afetados": 1,
+        "qtd_total": 24
+      },
+      {
+        "marca": "BYD",
+        "modelo": "MLK-36-530",
+        "projetos_afetados": 1,
+        "qtd_total": 15
+      },
+      {
+        "marca": "AE SOLAR",
+        "modelo": "AE460HM6L-60",
+        "projetos_afetados": 1,
+        "qtd_total": 54
+      },
+      {
+        "marca": "ZNSHINE",
+        "modelo": "ZXP6-HLD144-330/P",
+        "projetos_afetados": 1,
+        "qtd_total": 158
+      },
+      {
+        "marca": "EMPALUX MF",
+        "modelo": "00605",
+        "projetos_afetados": 1,
+        "qtd_total": 1653
+      },
+      {
+        "marca": "Leapton Solar",
+        "modelo": "LP182-M-72-NB",
+        "projetos_afetados": 1,
+        "qtd_total": 24
+      },
+      {
+        "marca": "JINKO JKM550M-72HL4-V TIGER PRO 550W 144 CEL MONO HALF CELL",
+        "modelo": "21,33% EFICIENCI",
+        "projetos_afetados": 1,
+        "qtd_total": 20
+      },
+      {
+        "marca": "CANADIAN SOLAR HIKU",
+        "modelo": "CS3W-410P",
+        "projetos_afetados": 1,
+        "qtd_total": 30
+      },
+      {
+        "marca": "LF465M8-72H",
+        "modelo": "LF465M8-72H",
+        "projetos_afetados": 1,
+        "qtd_total": 6
+      },
+      {
+        "marca": "HELIUS",
+        "modelo": "HMF144T10R-580HL",
+        "projetos_afetados": 1,
+        "qtd_total": 4
+      },
+      {
+        "marca": "EnergySun",
+        "modelo": "EnergySun",
+        "projetos_afetados": 1,
+        "qtd_total": 20
+      },
+      {
+        "marca": "HCP78x9-400w",
+        "modelo": "HCP78x9-400w",
+        "projetos_afetados": 1,
+        "qtd_total": 24
+      },
+      {
+        "marca": "Sirius Full Balck",
+        "modelo": "550w",
+        "projetos_afetados": 1,
+        "qtd_total": 44
+      },
+      {
+        "marca": "Sirius",
+        "modelo": "Full Balck",
+        "projetos_afetados": 1,
+        "qtd_total": 12
+      },
+      {
+        "marca": "ERA SOLAR",
+        "modelo": "ESPHSC-555M",
+        "projetos_afetados": 1,
+        "qtd_total": 22
+      },
+      {
+        "marca": "Sirius-RS6 - 550MX -",
+        "modelo": "E3",
+        "projetos_afetados": 1,
+        "qtd_total": 12
+      },
+      {
+        "marca": "DAH",
+        "modelo": "DHN66Z20/DG-620W",
+        "projetos_afetados": 1,
+        "qtd_total": 64
+      },
+      {
+        "marca": "Znshine DG",
+        "modelo": "585",
+        "projetos_afetados": 1,
+        "qtd_total": 16
+      },
+      {
+        "marca": "ZXM7-SHLD144 -",
+        "modelo": "550W",
+        "projetos_afetados": 1,
+        "qtd_total": 7
+      },
+      {
+        "marca": "BELENERGY",
+        "modelo": "MFVHO-MO-120-460W",
+        "projetos_afetados": 1,
+        "qtd_total": 9
+      },
+      {
+        "marca": "TOPSOLA TPS",
+        "modelo": "550M-144H1",
+        "projetos_afetados": 1,
+        "qtd_total": 20
+      },
+      {
+        "marca": "JINKO JKM475N-60HL4-V TIGER NEO 475W 120 CEL. N TYPE MONO",
+        "modelo": "22,01% EFICIENCIA",
+        "projetos_afetados": 1,
+        "qtd_total": 8
+      },
+      {
+        "marca": "Trina550",
+        "modelo": "Trina550",
+        "projetos_afetados": 1,
+        "qtd_total": 64
+      },
+      {
+        "marca": "ZXM7-SHLD144-550/M",
+        "modelo": "ZXM7-SHLD144-550/M",
+        "projetos_afetados": 1,
+        "qtd_total": 18
+      },
+      {
+        "marca": "BELENERGY",
+        "modelo": "MFVHO-MO-144-550W",
+        "projetos_afetados": 1,
+        "qtd_total": 8
+      },
+      {
+        "marca": "HANERSUN CP18-72HT",
+        "modelo": "550W",
+        "projetos_afetados": 1,
+        "qtd_total": 20
+      },
+      {
+        "marca": "CANADIAN SOLAR HIKU7",
+        "modelo": "CS7N-665MS",
+        "projetos_afetados": 1,
+        "qtd_total": 6
+      },
+      {
+        "marca": "MFVHN-MI-MO-144-550W",
+        "modelo": "MFVHN-MI-MO-144-550W",
+        "projetos_afetados": 1,
+        "qtd_total": 4
+      },
+      {
+        "marca": "TAOISTIC SOLAR TS-M10/144H",
+        "modelo": "545",
+        "projetos_afetados": 1,
+        "qtd_total": 6
+      },
+      {
+        "marca": "HONOR SOLAR HY-M10/120H",
+        "modelo": "460W",
+        "projetos_afetados": 1,
+        "qtd_total": 8
+      },
+      {
+        "marca": "PULLING ENERGY",
+        "modelo": "PU-625-DNM101",
+        "projetos_afetados": 1,
+        "qtd_total": 7
+      },
+      {
+        "marca": "ERA SOLAR",
+        "modelo": "PRO-72HC-600M",
+        "projetos_afetados": 1,
+        "qtd_total": 24
+      },
+      {
+        "marca": "DAH",
+        "modelo": "DHM72X10/FS/BF-550W",
+        "projetos_afetados": 1,
+        "qtd_total": 6
+      },
+      {
+        "marca": "AE SOLAR",
+        "modelo": "AE340M6-72",
+        "projetos_afetados": 1,
+        "qtd_total": 1
+      },
+      {
+        "marca": "DAH",
+        "modelo": "DHN72X16/DG-585W",
+        "projetos_afetados": 1,
+        "qtd_total": 12
+      },
+      {
+        "marca": "TRINA SOLAR VERTEX TSM-DE19",
+        "modelo": "545",
+        "projetos_afetados": 1,
+        "qtd_total": 313
+      },
+      {
+        "marca": "ZNshine",
+        "modelo": "650w",
+        "projetos_afetados": 1,
+        "qtd_total": 64
+      },
+      {
+        "marca": "PULLING ENERGY",
+        "modelo": "PU-620-SNM102",
+        "projetos_afetados": 1,
+        "qtd_total": 8
+      },
+      {
+        "marca": "RESUN SOLAR",
+        "modelo": "RS8I-560M",
+        "projetos_afetados": 1,
+        "qtd_total": 16
+      },
+      {
+        "marca": "LEAPTON SOLAR",
+        "modelo": "LP182-M-66-NH-570W",
+        "projetos_afetados": 1,
+        "qtd_total": 16
+      },
+      {
+        "marca": "JAM72D42-630/LB",
+        "modelo": "JAM72D42-630/LB",
+        "projetos_afetados": 1,
+        "qtd_total": 254
+      },
+      {
+        "marca": "RENESOLA",
+        "modelo": "RS6-580NBG-E3",
+        "projetos_afetados": 1,
+        "qtd_total": 20
+      },
+      {
+        "marca": "ZNS",
+        "modelo": "600W Bifacial",
+        "projetos_afetados": 1,
+        "qtd_total": 76
+      },
+      {
+        "marca": "CANADIAN SOLAR TOPBIHIKU7",
+        "modelo": "CS7N-695TB-AG",
+        "projetos_afetados": 1,
+        "qtd_total": 8
+      },
+      {
+        "marca": "PULLING ENERGY",
+        "modelo": "610w",
+        "projetos_afetados": 1,
+        "qtd_total": 8
+      },
+      {
+        "marca": "HELIUS",
+        "modelo": "HMF132T12R-595HL",
+        "projetos_afetados": 1,
+        "qtd_total": 14
+      },
+      {
+        "marca": "Ronma",
+        "modelo": "570 bifacial",
+        "projetos_afetados": 1,
+        "qtd_total": 12
+      },
+      {
+        "marca": "LEAPTON SOLAR",
+        "modelo": "LP182*210-M-66-NB-600W",
+        "projetos_afetados": 1,
+        "qtd_total": 144
+      },
+      {
+        "marca": "ZXM7-UPLDD144-595",
+        "modelo": "ZXM7-UPLDD144-595",
+        "projetos_afetados": 1,
+        "qtd_total": 8
+      },
+      {
+        "marca": "TRINA SOLAR VERTEX TSM-DEG21C.20",
+        "modelo": "660",
+        "projetos_afetados": 1,
+        "qtd_total": 136
+      },
+      {
+        "marca": "TRINA SOLAR VERTEX TSM-DE19R",
+        "modelo": "575",
+        "projetos_afetados": 1,
+        "qtd_total": 8
+      },
+      {
+        "marca": "PULLING ENERGY",
+        "modelo": "PU-600-DNM101",
+        "projetos_afetados": 1,
+        "qtd_total": 12
+      },
+      {
+        "marca": "ZXMR-UOLDD144 -",
+        "modelo": "570w",
+        "projetos_afetados": 1,
+        "qtd_total": 48
+      },
+      {
+        "marca": "ZNSHINE",
+        "modelo": "ZNSHINE",
+        "projetos_afetados": 1,
+        "qtd_total": 64
+      },
+      {
+        "marca": "ZXMR-UPLDD144-600/N",
+        "modelo": "ZXMR-UPLDD144-600/N",
+        "projetos_afetados": 1,
+        "qtd_total": 28
+      },
+      {
+        "marca": "600W",
+        "modelo": "Bifacial",
+        "projetos_afetados": 1,
+        "qtd_total": 32
+      },
+      {
+        "marca": "600w",
+        "modelo": "Bifacial com grafeno",
+        "projetos_afetados": 1,
+        "qtd_total": 20
+      },
+      {
+        "marca": "HONOR SOLAR HY-M12/120H",
+        "modelo": "600W",
+        "projetos_afetados": 1,
+        "qtd_total": 90
+      },
+      {
+        "marca": "SUNOVA",
+        "modelo": "SS-610-66MDH-G11(T)",
+        "projetos_afetados": 1,
+        "qtd_total": 12
+      },
+      {
+        "marca": "JA SOLAR",
+        "modelo": "JAM66D45-600/LB",
+        "projetos_afetados": 1,
+        "qtd_total": 124
+      },
+      {
+        "marca": "Zn Shine",
+        "modelo": "630",
+        "projetos_afetados": 1,
+        "qtd_total": 27
+      },
+      {
+        "marca": "630",
+        "modelo": "630",
+        "projetos_afetados": 1,
+        "qtd_total": 12
+      },
+      {
+        "marca": "RENEPV",
+        "modelo": "ZY-700-G12HNHB-132",
+        "projetos_afetados": 1,
+        "qtd_total": 64
+      },
+      {
+        "marca": "DAH",
+        "modelo": "DHN72R18/FS-620W",
+        "projetos_afetados": 1,
+        "qtd_total": 9
+      },
+      {
+        "marca": "RONMA SOLAR",
+        "modelo": "RM-620W-182R/132TB",
+        "projetos_afetados": 1,
+        "qtd_total": 176
+      },
+      {
+        "marca": "RENEPV",
+        "modelo": "ZY-615-G12RNHB-132",
+        "projetos_afetados": 1,
+        "qtd_total": 32
+      },
+      {
+        "marca": "RONMA SOLAR",
+        "modelo": "RM-570W-182M/144TB",
+        "projetos_afetados": 1,
+        "qtd_total": 16
+      },
+      {
+        "marca": "LEAPTON SOLAR",
+        "modelo": "LP182*210-M-66-NB-620W",
+        "projetos_afetados": 1,
+        "qtd_total": 13
+      }
+    ]
+  },
+  "inversores_sem_bind": {
+    "total": 69,
+    "items": [
+      {
+        "marca": "GROWATT MIN",
+        "modelo": "5000TL-X",
+        "projetos_afetados": 13
+      },
+      {
+        "marca": "KEHUA TECH",
+        "modelo": "SPI6000-B2",
+        "projetos_afetados": 12
+      },
+      {
+        "marca": "SOLAREDGE SE 27.6K",
+        "modelo": "380/220v",
+        "projetos_afetados": 11
+      },
+      {
+        "marca": "SOLAREDGE SE 20.1K",
+        "modelo": "380/220v",
+        "projetos_afetados": 10
+      },
+      {
+        "marca": "SOLAREDGE SE 33.3K",
+        "modelo": "380/220v",
+        "projetos_afetados": 8
+      },
+      {
+        "marca": "GROWATT MIN",
+        "modelo": "6000TL-X",
+        "projetos_afetados": 6
+      },
+      {
+        "marca": "GROWATT MID",
+        "modelo": "15KTL3-X",
+        "projetos_afetados": 5
+      },
+      {
+        "marca": "GROWATT MIC",
+        "modelo": "3000TL-X",
+        "projetos_afetados": 4
+      },
+      {
+        "marca": "GROWATT MAX",
+        "modelo": "75KTL3 LV",
+        "projetos_afetados": 3
+      },
+      {
+        "marca": "KEHUA TECH",
+        "modelo": "SPI15K-B",
+        "projetos_afetados": 3
+      },
+      {
+        "marca": "DEYE SUN-5K-G",
+        "modelo": "@220",
+        "projetos_afetados": 3
+      },
+      {
+        "marca": "GROWATT MIN",
+        "modelo": "8000TL-X(E)",
+        "projetos_afetados": 3
+      },
+      {
+        "marca": "GROWATT MID",
+        "modelo": "25KTL3-X",
+        "projetos_afetados": 3
+      },
+      {
+        "marca": "GROWATT MID",
+        "modelo": "36KTL3-X",
+        "projetos_afetados": 3
+      },
+      {
+        "marca": "GROWATT MIC",
+        "modelo": "2000TL-X",
+        "projetos_afetados": 3
+      },
+      {
+        "marca": "DEYE",
+        "modelo": "SUN-3K-G",
+        "projetos_afetados": 3
+      },
+      {
+        "marca": "KEHUA TECH SPI36K-B",
+        "modelo": "X2",
+        "projetos_afetados": 3
+      },
+      {
+        "marca": "KEHUA TECH SPI20K-B",
+        "modelo": "X2",
+        "projetos_afetados": 3
+      },
+      {
+        "marca": "GROWATT MIN",
+        "modelo": "10000 TL-X",
+        "projetos_afetados": 2
+      },
+      {
+        "marca": "SOLAREDGE SE 100K Manager",
+        "modelo": "380/220v",
+        "projetos_afetados": 2
+      },
+      {
+        "marca": "GROWATT MAC",
+        "modelo": "25KTL3-XL",
+        "projetos_afetados": 2
+      },
+      {
+        "marca": "GROWATT MID",
+        "modelo": "20KTL3-X",
+        "projetos_afetados": 2
+      },
+      {
+        "marca": "GROWATT MAC",
+        "modelo": "60KTL3-X LV",
+        "projetos_afetados": 2
+      },
+      {
+        "marca": "KEHUA TECH",
+        "modelo": "SPI20K-B",
+        "projetos_afetados": 2
+      },
+      {
+        "marca": "GROWATT MIC",
+        "modelo": "2500TL-X",
+        "projetos_afetados": 2
+      },
+      {
+        "marca": "KEHUA TECH SPI15K-B",
+        "modelo": "X2",
+        "projetos_afetados": 2
+      },
+      {
+        "marca": "KEHUA TECH SPI30K-B",
+        "modelo": "X2",
+        "projetos_afetados": 2
+      },
+      {
+        "marca": "KEHUA TECH SPI8000-B",
+        "modelo": "X2",
+        "projetos_afetados": 2
+      },
+      {
+        "marca": "BELENERGY",
+        "modelo": "BEL-4K-G",
+        "projetos_afetados": 2
+      },
+      {
+        "marca": "KEHUA TECH",
+        "modelo": "SPI17K-B",
+        "projetos_afetados": 2
+      },
+      {
+        "marca": "DAH",
+        "modelo": "Solar Unit",
+        "projetos_afetados": 2
+      },
+      {
+        "marca": "Solar",
+        "modelo": "Unit",
+        "projetos_afetados": 2
+      },
+      {
+        "marca": "Dah",
+        "modelo": "SOlar unit",
+        "projetos_afetados": 2
+      },
+      {
+        "marca": "DHN-SU1K5T-G0",
+        "modelo": "DHN-SU1K5T-G0",
+        "projetos_afetados": 2
+      },
+      {
+        "marca": "SOLAREDGE SE 27.6K",
+        "modelo": "220/127v",
+        "projetos_afetados": 1
+      },
+      {
+        "marca": "EMPALUX",
+        "modelo": "NAC15K-DT",
+        "projetos_afetados": 1
+      },
+      {
+        "marca": "KEHUA TECH",
+        "modelo": "SPI25K-B",
+        "projetos_afetados": 1
+      },
+      {
+        "marca": "sl120000 - INVERSOR ON-GRID 120.0KW TRIFASICO",
+        "modelo": "380V",
+        "projetos_afetados": 1
+      },
+      {
+        "marca": "SOLAREDGE SE 75K",
+        "modelo": "380/220v",
+        "projetos_afetados": 1
+      },
+      {
+        "marca": "SI03000",
+        "modelo": "SI03000",
+        "projetos_afetados": 1
+      },
+      {
+        "marca": "GROWATT MID",
+        "modelo": "40KTL3-X",
+        "projetos_afetados": 1
+      },
+      {
+        "marca": "SOLAREDGE SE 20.1K",
+        "modelo": "220/127v",
+        "projetos_afetados": 1
+      },
+      {
+        "marca": "KEHUA TECH",
+        "modelo": "SPI60K-B",
+        "projetos_afetados": 1
+      },
+      {
+        "marca": "CHINT POWER CPS",
+        "modelo": "SCA50KTL-T/EU",
+        "projetos_afetados": 1
+      },
+      {
+        "marca": "FRONIUS PRIMO",
+        "modelo": "6.0-1",
+        "projetos_afetados": 1
+      },
+      {
+        "marca": "GROWATT MAX",
+        "modelo": "60KTL3 LV",
+        "projetos_afetados": 1
+      },
+      {
+        "marca": "GROWATT MAC",
+        "modelo": "50KTL3-X LV",
+        "projetos_afetados": 1
+      },
+      {
+        "marca": "GROWATT MID",
+        "modelo": "30KTL3-X",
+        "projetos_afetados": 1
+      },
+      {
+        "marca": "CANADIAN SOLAR",
+        "modelo": "CSI-9K-S22002-ED",
+        "projetos_afetados": 1
+      },
+      {
+        "marca": "CHINT POWER CPS",
+        "modelo": "SCA15KTL-T/EU",
+        "projetos_afetados": 1
+      },
+      {
+        "marca": "KEHUA TECH SPI9000-B",
+        "modelo": "X2",
+        "projetos_afetados": 1
+      },
+      {
+        "marca": "3KW",
+        "modelo": "BEL ENERGY PLUS",
+        "projetos_afetados": 1
+      },
+      {
+        "marca": "-",
+        "modelo": "-",
+        "projetos_afetados": 1
+      },
+      {
+        "marca": "SOLAREDGE SE8250H",
+        "modelo": "220V",
+        "projetos_afetados": 1
+      },
+      {
+        "marca": "BELENERGY",
+        "modelo": "60K-4G",
+        "projetos_afetados": 1
+      },
+      {
+        "marca": "SUN-M225G4-EU-Q0",
+        "modelo": "SUN-M225G4-EU-Q0",
+        "projetos_afetados": 1
+      },
+      {
+        "marca": "DAH",
+        "modelo": "DAH",
+        "projetos_afetados": 1
+      },
+      {
+        "marca": "WEG SIW200",
+        "modelo": "M100",
+        "projetos_afetados": 1
+      },
+      {
+        "marca": "SOLAREDGE SE 75K Manager",
+        "modelo": "380/220v",
+        "projetos_afetados": 1
+      },
+      {
+        "marca": "KEHUA TECH",
+        "modelo": "SPI40K-B",
+        "projetos_afetados": 1
+      },
+      {
+        "marca": "KEHUA TECH",
+        "modelo": "SPI125K-B",
+        "projetos_afetados": 1
+      },
+      {
+        "marca": "KEHUA TECH SPI10000-B",
+        "modelo": "X2P",
+        "projetos_afetados": 1
+      },
+      {
+        "marca": "KEHUA TECH",
+        "modelo": "SPI50K-B",
+        "projetos_afetados": 1
+      },
+      {
+        "marca": "KEHUA TECH SPI10K-B",
+        "modelo": "X2",
+        "projetos_afetados": 1
+      },
+      {
+        "marca": "DAH",
+        "modelo": "Solar UNIT",
+        "projetos_afetados": 1
+      },
+      {
+        "marca": "CANADIAN SOLAR CANADIAN SOLAR CSI",
+        "modelo": "5K-MTL",
+        "projetos_afetados": 1
+      },
+      {
+        "marca": "KEHUA TECH SPI25K-B",
+        "modelo": "X2",
+        "projetos_afetados": 1
+      },
+      {
+        "marca": "DEYE SUN-10K-G",
+        "modelo": "@380",
+        "projetos_afetados": 1
+      },
+      {
+        "marca": "NVFX-H-MO-220-10.5K",
+        "modelo": "NVFX-H-MO-220-10.5K",
+        "projetos_afetados": 1
+      }
+    ]
+  }
+}
