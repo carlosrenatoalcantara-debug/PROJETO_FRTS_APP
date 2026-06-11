@@ -814,9 +814,52 @@ const projetoFVSchema = new mongoose.Schema({
     // Heterogêneo (snapshot do que o parser retornou — para auditoria/reprocessamento)
     dados_brutos: { type: mongoose.Schema.Types.Mixed, default: null },
   },
+
+  // ── Importação SolarMarket ───────────────────────────────────────────────────
+  // Campos escritos pelo pipeline de migração SM via raw driver.
+  // Declarados aqui para que o Mongoose strict mode não os stripe nas leituras.
+
+  /** Rastreabilidade: de onde veio o documento (import_solarmarket, manual, etc.). */
+  origem: {
+    tipo: {
+      type: String,
+      enum: ['import_solarmarket', 'manual', 'import_planilha', null],
+      default: null,
+    },
+    id_externo:       { type: String, default: null },  // UUID do projeto no SM
+    data:             { type: Date,   default: null },
+    lote:             { type: String, default: null },
+    cliente_id_externo: { type: String, default: null },
+  },
+
+  /** Controle de fluxo da migração SM (idempotência e progresso). */
+  status_migracao: {
+    type: String,
+    enum: ['shell_importado', 'proposta_importada', 'binding_completo', null],
+    default: null,
+  },
+
+  /**
+   * Snapshot completo da proposta SM migrada.
+   * Contém: consumo_mensal_kwh, tarifa_kwh_r, distribuidora, potencia_kwp,
+   * geracao_anual_kwh, geracao_mensal_kwh, num_modulos, num_inversores,
+   * economia_anual_r, investimento_r, equipamentos[] (categoria, item, qnt, valor).
+   * Raw/Mixed — estrutura vem da API SolarMarket v2.
+   */
+  proposta_sm: { type: mongoose.Schema.Types.Mixed, default: null },
+
+  /** Consumo mensal médio (kWh) importado da proposta SM. */
+  consumo_kwh_mes:  { type: Number, default: null },
+
+  /** Distribuidora/concessionária importada da proposta SM. */
+  distribuidora:    { type: String, default: null },
+
+  /** Tarifa de energia (R$/kWh) importada da proposta SM. */
+  valor_kwh:        { type: Number, default: null },
+
 }, {
   timestamps: true,
-  // strict permanece TRUE (default). Apenas dados_brutos é Mixed dentro do subdoc.
+  // strict permanece TRUE (default). Apenas dados_brutos e proposta_sm são Mixed.
 })
 
 export const ProjetoFV = mongoose.model('ProjetoFV', projetoFVSchema)
