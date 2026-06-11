@@ -77,6 +77,7 @@ const estadoInicial = {
     orientacao:     'Norte',
     inclinacao:     '15',
     suficiente:     null,
+    panos:          [],
   },
   equipamentos: { painel: null, inversor: null, estrutura: null },
   beneficiarias: [],   // FV-04: local until projetoId exists; saved to DB at step 8

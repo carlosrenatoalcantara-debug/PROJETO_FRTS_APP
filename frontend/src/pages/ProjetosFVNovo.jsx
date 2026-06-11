@@ -158,26 +158,33 @@ function WizardInterno() {
                   : null,
               },
 
-              // Dimensionamento (v3 subdoc)
-              dimensionamento: dim.potencia_kwp ? {
-                potenciaKwp:          dim.potencia_kwp    ?? null,
-                potenciaRealKwp:      dim.potencia_kwp    ?? null,
-                numPaineis:           dim.num_paineis     ?? null,
-                numInversores:        dim.num_inversores  ?? null,
-                areaMinima:           dim.area_total_m2   ?? null,
-                potenciaPainelW:      painelDB?.potencia_w ?? 550,
-                capacidadeInversorKW: invDB?.potencia_kw  ?? 5,
-                energiaDiaria:        null,
-                energiaNecessaria:    null,
-              } : undefined,
+              // Dimensionamento (v3 subdoc) — omitir chave em vez de undefined
+              // para não sobrescrever estadoInicial.dimensionamento com undefined
+              ...(dim.potencia_kwp && {
+                dimensionamento: {
+                  potenciaKwp:          dim.potencia_kwp    ?? null,
+                  potenciaRealKwp:      dim.potencia_kwp    ?? null,
+                  numPaineis:           dim.num_paineis     ?? null,
+                  numInversores:        dim.num_inversores  ?? null,
+                  areaMinima:           dim.area_total_m2   ?? null,
+                  potenciaPainelW:      painelDB?.potencia_w ?? 550,
+                  capacidadeInversorKW: invDB?.potencia_kw  ?? 5,
+                  energiaDiaria:        null,
+                  energiaNecessaria:    null,
+                },
+              }),
 
-              // Área / layout solar (v3 subdoc)
-              area: ls.area_util_m2 ? {
-                areaDisponivel: String(ls.area_util_m2),
-                orientacao:     ls.orientacao              || 'Norte',
-                inclinacao:     String(ls.inclinacao_graus ?? 15),
-                suficiente:     null,
-              } : undefined,
+              // Área / layout solar — omitir chave em vez de undefined
+              // para não sobrescrever estadoInicial.area com undefined
+              ...(ls.area_util_m2 && {
+                area: {
+                  areaDisponivel: String(ls.area_util_m2),
+                  orientacao:     ls.orientacao              || 'Norte',
+                  inclinacao:     String(ls.inclinacao_graus ?? 15),
+                  suficiente:     null,
+                  panos:          Array.isArray(ls.roof_planes) ? ls.roof_planes : [],
+                },
+              }),
 
               // Equipamentos
               equipamentos: { painel, inversor, estrutura },
