@@ -1,8 +1,24 @@
 import mongoose from 'mongoose'
+import dns from 'dns'
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/forte_solar'
 const USE_MEMORY_STORAGE = process.env.USE_MEMORY_STORAGE === 'true'
 const SKIP_MONGODB_RETRIES = process.env.SKIP_MONGODB_RETRIES === 'true'
+
+// Override opcional dos resolvers DNS. Necessário em ambientes (ex.: esta máquina de
+// dev/homolog) onde o resolver do SO não consegue fazer a busca SRV de `mongodb+srv://`
+// e retorna `querySrv ECONNREFUSED`, derrubando a conexão Atlas para o fallback local.
+// No-op quando MONGODB_DNS_SERVERS não está definido → produção permanece intocada.
+const DNS_SERVERS = (process.env.MONGODB_DNS_SERVERS || '')
+  .split(',').map(s => s.trim()).filter(Boolean)
+if (DNS_SERVERS.length) {
+  try {
+    dns.setServers(DNS_SERVERS)
+    console.log(`🌐 Resolvers DNS sobrescritos para conexão Atlas: ${DNS_SERVERS.join(', ')}`)
+  } catch (e) {
+    console.warn('⚠️ Falha ao aplicar MONGODB_DNS_SERVERS:', e.message)
+  }
+}
 
 const OPCOES = {
   serverSelectionTimeoutMS: 5000,  // Reduzido de 10s
