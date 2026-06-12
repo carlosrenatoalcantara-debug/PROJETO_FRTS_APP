@@ -27,6 +27,7 @@ import {
   registrarComunicacao,
   criarCompartilhamento,
   duplicarProjetoFV,           // S8.4 — ciclo de vida
+  ampliarProjetoFV,            // P1-UX-CORE-EVOLUTION-01 (FASE 4)
   arquivarProjetoFV,
   restaurarProjetoFV,
   alterarStatusCiclo,
@@ -91,6 +92,7 @@ router.delete('/:id',              excluirProjetoFV)
 
 // ── S8.4: Ciclo de vida ─────────────────────────────────────────────────────
 router.post('/:id/duplicar',  duplicarProjetoFV)
+router.post('/:id/ampliar',   ampliarProjetoFV)
 router.post('/:id/arquivar',  arquivarProjetoFV)
 router.post('/:id/restaurar', restaurarProjetoFV)
 router.put('/:id/status',     alterarStatusCiclo)

@@ -1,6 +1,6 @@
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useEffect, useRef } from 'react'
-import { X, AlertTriangle, Cloud, CloudOff } from 'lucide-react'
+import { X, AlertTriangle, Cloud, CloudOff, Check } from 'lucide-react'
 import { ProjetoFVProvider, useProjetoFV } from '../contexts/ProjetoFVContext'
 import { buscarProjeto, salvarEtapa, adaptarLocalizacao, adaptarDimensionamento,
          adaptarEquipamentos, adaptarLayoutSolar, adaptarWorkflow } from '../services/projetoFVApi'
@@ -16,6 +16,7 @@ const ETAPA_PARA_SLICE = {
   // 8 / orcamento é salvo pelo próprio E8Orcamento ao criar o projeto
 }
 import Stepper from '../components/ui/Stepper'
+import { progressoGrupos, rotuloEtapa, GRUPOS } from '../config/etapasFunilFV'
 import E1Upload          from '../components/fv/etapas/E1Upload'
 import E2Consumo         from '../components/fv/etapas/E2Consumo'
 import E2BBeneficiarias  from '../components/fv/etapas/E2BBeneficiarias'
@@ -284,7 +285,10 @@ function WizardInterno() {
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Novo Projeto Fotovoltaico</h1>
           <p className="text-sm text-slate-500 mt-0.5 flex items-center gap-2">
-            <span>Etapa <strong>{state.etapa}</strong> de {ETAPAS.length}</span>
+            <span>
+              <strong>{GRUPOS.find(g => g.chave === progressoGrupos(state.etapa).find(x => x.status === 'ativo')?.chave)?.rotulo || rotuloEtapa(state.etapa)}</strong>
+              {' · '}{rotuloEtapa(state.etapa)}
+            </span>
             {state.dadosCliente?.nomeCliente && (
               <span className="text-slate-400">· {state.dadosCliente.nomeCliente}</span>
             )}
@@ -308,13 +312,50 @@ function WizardInterno() {
         </button>
       </div>
 
-      {/* Stepper */}
+      {/* FASE 1: progresso por macro-etapa (4) — funil enxuto, mapeamento centralizado */}
       <div className="bg-white border border-slate-200 rounded-xl px-4 py-4 shadow-sm overflow-x-auto">
-        <Stepper
-          etapas={ETAPAS}
-          etapaAtual={state.etapa}
-          onIrPara={irParaEtapa}
-        />
+        <nav className="flex items-center gap-0" aria-label="Progresso">
+          {progressoGrupos(state.etapa).map((g, idx, arr) => {
+            const clicavel = g.status === 'concluido'
+            return (
+              <div key={g.chave} className="flex items-center min-w-0 flex-1">
+                <div className="flex flex-col items-center gap-1 min-w-[64px] flex-1">
+                  <button
+                    onClick={clicavel ? () => irParaEtapa(g.primeiraEtapa) : undefined}
+                    disabled={!clicavel && g.status !== 'ativo'}
+                    title={g.descricao}
+                    className={[
+                      'w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-150',
+                      g.status === 'concluido' ? 'bg-emerald-500 text-white cursor-pointer hover:bg-emerald-600 hover:scale-105' : '',
+                      g.status === 'ativo'     ? 'text-white ring-2 ring-offset-2' : '',
+                      g.status === 'futuro'    ? 'bg-slate-200 text-slate-400 cursor-default' : '',
+                    ].filter(Boolean).join(' ')}
+                    style={g.status === 'ativo' ? { backgroundColor: 'var(--cor-primaria, #f97316)', '--tw-ring-color': 'var(--cor-primaria, #f97316)' } : undefined}
+                  >
+                    {g.status === 'concluido' ? <Check size={16} /> : idx + 1}
+                  </button>
+                  <span
+                    className={[
+                      'text-[11px] font-medium whitespace-nowrap text-center leading-tight',
+                      g.status === 'ativo'     ? 'font-semibold' : '',
+                      g.status === 'concluido' ? 'text-emerald-600' : '',
+                      g.status === 'futuro'    ? 'text-slate-400' : '',
+                    ].filter(Boolean).join(' ')}
+                    style={g.status === 'ativo' ? { color: 'var(--cor-primaria, #f97316)' } : undefined}
+                  >
+                    {g.rotulo}
+                  </span>
+                </div>
+                {idx < arr.length - 1 && (
+                  <div
+                    className="h-0.5 flex-1 min-w-[12px] shrink mx-1 mb-5 rounded-full transition-colors duration-300"
+                    style={{ backgroundColor: g.status === 'concluido' ? 'var(--cor-primaria, #f97316)' : '#e2e8f0' }}
+                  />
+                )}
+              </div>
+            )
+          })}
+        </nav>
       </div>
 
       {/* Conteúdo da etapa */}

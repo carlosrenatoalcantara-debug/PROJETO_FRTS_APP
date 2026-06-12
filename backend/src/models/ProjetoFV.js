@@ -507,6 +507,23 @@ const projetoFVSchema = new mongoose.Schema({
   motivo_arquivamento:    { type: String,  default: null },
   legacy:                 { type: Boolean, default: false },
   necessita_revisao:      { type: Boolean, default: false },
+
+  // P1-UX-CORE-EVOLUTION-01 (FASE 4): Ampliação de Usina.
+  // 'novo' = projeto original; 'ampliacao' = clonado de um projeto existente,
+  // herdando fatura/consumo/concessionária/localização e congelando o arranjo executado.
+  tipo_projeto: {
+    type: String,
+    enum: ['novo', 'ampliacao'],
+    default: 'novo',
+    index: true,
+  },
+  projeto_origem_id: {                                  // aponta para o projeto-pai (se ampliação)
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'ProjetoFV',
+    default: null,
+    index: true,
+  },
+
   endereco_completo: {
     type: String,
     default: '',
@@ -613,6 +630,42 @@ const projetoFVSchema = new mongoose.Schema({
       descricao: String,
     },
   },
+
+  // P1-UX-CORE-EVOLUTION-01 (FASE 3): múltiplos arranjos de componentes.
+  // ADITIVO e retrocompatível — `equipamentos.paineis/inversor` (arranjo único legado)
+  // continua válido. Quando `arranjos` está vazio, o sistema trata `equipamentos`
+  // como o arranjo principal implícito (ver normalizarArranjos no service).
+  //
+  // Cada arranjo é um bloco independente de geração: seu próprio conjunto de painéis
+  // (1+ modelos) + inversor. Usado para projetos heterogêneos e para Ampliação de Usina,
+  // onde o arranjo "existente/executado" fica congelado (somente_leitura) e um novo
+  // arranjo "ampliacao" é aberto para edição.
+  arranjos: [{
+    id:            { type: String, default: null },
+    rotulo:        { type: String, default: null },     // ex.: "Arranjo A", "Existente", "Ampliação"
+    tipo: {                                              // papel do arranjo no projeto
+      type: String,
+      enum: ['principal', 'existente', 'ampliacao', 'secundario'],
+      default: 'principal',
+    },
+    somente_leitura: { type: Boolean, default: false }, // arranjo congelado (ex.: usina executada)
+    paineis: [{
+      id: String, marca: String, fabricante: String, modelo: String, tipo: String,
+      potencia_w: Number, quantidade: Number,
+      origem_bind: { type: String, default: null },
+      equipamento_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Equipamento', default: null },
+    }],
+    inversores: [{                                       // múltiplos inversores por arranjo
+      id: String, marca: String, fabricante: String, modelo: String, tipo: String,
+      potencia_kw: Number, fases: Number, quantidade: { type: Number, default: 1 },
+      origem_bind: { type: String, default: null },
+      equipamento_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Equipamento', default: null },
+    }],
+    potencia_kwp:        { type: Number, default: null }, // potência DC do arranjo
+    potencia_inversor_kw:{ type: Number, default: null }, // potência AC do arranjo
+    observacao:          { type: String, default: null },
+  }],
+
   strings: [{
     id: String,
     numero: Number,

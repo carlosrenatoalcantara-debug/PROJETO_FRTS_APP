@@ -4,6 +4,7 @@ import { Tecnico } from '../models/Tecnico.js'
 import mongoose from 'mongoose'
 import { memoryStore } from '../config/memoryStorage.js'
 import { montarSnapshotRT } from '../utils/snapshotRT.js'
+import { montarArranjosAmpliacao, normalizarArranjos } from '../services/arranjosService.js'
 import {
   derivarStatusSeguro, paraModel, podeExcluirDefinitivo, avaliarLegacy, MOTIVOS_ARQUIVAMENTO,
 } from '../utils/statusLifecycle.js'
@@ -270,6 +271,64 @@ export const duplicarProjetoFV = async (req, res) => {
     res.status(201).json({ sucesso: true, item: enriquecer(novo), origem: _id })
   } catch (err) {
     console.error('❌ Erro ao duplicar projeto FV:', err)
+    res.status(500).json({ erro: err.message })
+  }
+}
+
+// P1-UX-CORE-EVOLUTION-01 (FASE 4) — AMPLIAR USINA
+// Clona um projeto aplicando Herança de Dados (fatura/consumo/concessionária/localização),
+// congela o(s) arranjo(s) executado(s) como 'existente'/somente-leitura e abre um novo
+// arranjo 'ampliacao' editável. O registro é marcado como tipo_projeto='ampliacao' e
+// vinculado ao projeto-pai via projeto_origem_id.
+export const ampliarProjetoFV = async (req, res) => {
+  try {
+    if (!_exigirMongo(res)) return
+    const orig = await ProjetoFV.findById(req.params.id).lean()
+    if (!orig) return res.status(404).json({ mensagem: 'Projeto não encontrado' })
+    if (orig.excluido) return res.status(400).json({ erro: 'Não é possível ampliar projeto excluído.' })
+
+    // Campos a NÃO herdar (resetar para uma nova proposta limpa)
+    const {
+      _id, createdAt, updatedAt, __v,
+      governanca, documentos, documentos_tecnicos,
+      excluido, excluido_em, excluido_por,
+      arquivado_em, arquivado_por, motivo_arquivamento,
+      financeiro,                    // financeiro recalculado para a ampliação
+      equipamentos,                  // arranjo único legado vira arranjo 'existente' congelado
+      arranjos: _arranjosOrig,       // reconstruídos por montarArranjosAmpliacao
+      ...heranca                     // fatura, consumo, concessionária, localização → herdados
+    } = orig
+
+    const arranjos = montarArranjosAmpliacao(orig)
+    const nomeBase = (heranca.nome || 'Projeto').replace(/\s*\(cópia\)\s*$/i, '')
+
+    const ampliacao = {
+      ...heranca,
+      nome: `Ampliação - ${nomeBase}`,
+      tipo_projeto: 'ampliacao',
+      projeto_origem_id: _id,
+      status: 'rascunho',
+      excluido: false, excluido_em: null, excluido_por: null,
+      arquivado_em: null, arquivado_por: null, motivo_arquivamento: null,
+      legacy: false, necessita_revisao: false,
+      governanca: null,
+      financeiro: null,
+      // equipamentos legado fica vazio: o arranjo executado agora vive em arranjos[] (congelado)
+      equipamentos: { paineis: [], inversor: {}, estrutura: equipamentos?.estrutura || {} },
+      arranjos,
+    }
+
+    const novo = await ProjetoFV.create(ampliacao)
+    auditarCiclo(req, 'PROJETO_AMPLIADO', novo._id, `origem=${_id} arranjos=${arranjos.length}`)
+    res.status(201).json({
+      sucesso: true,
+      item: enriquecer(novo),
+      origem: _id,
+      arranjos_congelados: arranjos.filter(a => a.somente_leitura).length,
+      arranjo_ampliacao_id: arranjos.find(a => a.tipo === 'ampliacao')?.id || null,
+    })
+  } catch (err) {
+    console.error('❌ Erro ao ampliar projeto FV:', err)
     res.status(500).json({ erro: err.message })
   }
 }

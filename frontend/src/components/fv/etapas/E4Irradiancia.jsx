@@ -8,19 +8,33 @@ import { getRegiao }            from '../../../data/regioesBrasil'
 
 const MAX_BARRA = 8
 
+// FASE 2 (P1-UX-CORE-EVOLUTION-01): fontes de irradiância selecionáveis
+const FONTES = [
+  { id: 'nasa',    rotulo: 'NASA POWER',     desc: 'Base global de satélite (fallback universal).' },
+  { id: 'cresesb', rotulo: 'INPE / CRESESB', desc: 'Médias territoriais de alta precisão (Brasil).' },
+]
+
 export default function E4Irradiancia() {
   const { state, dispatch, proxima, anterior } = useProjetoFV()
   const { empresa } = useEmpresa()
   const { localizacao, irradiancia } = state
   const [erro, setErro] = useState('')
+  // Fonte escolhida explicitamente pelo usuário (FASE 2)
+  const [fonteEscolhida, setFonteEscolhida] = useState(
+    irradiancia.fonte || (empresa.forcaFallbackIrradiancia ? 'cresesb' : 'nasa')
+  )
 
   const regiao  = getRegiao(localizacao.uf ?? empresa.estadoPrincipal ?? 'SP')
   const usaFallback = empresa.forcaFallbackIrradiancia
 
+  function consultarFonte() {
+    return fonteEscolhida === 'cresesb' ? aplicarFallback() : consultar()
+  }
+
   // Auto-consultar irradiância ao chegar na etapa se houver lat/lon
   useEffect(() => {
     if (localizacao.lat && localizacao.lon && !irradiancia.mensal) {
-      consultar()
+      consultarFonte()
     }
   }, [localizacao.lat, localizacao.lon])
 
@@ -61,39 +75,66 @@ export default function E4Irradiancia() {
       <div>
         <h2 className="text-lg font-semibold text-slate-900">Irradiância Solar</h2>
         <p className="text-sm text-slate-500 mt-1">
-          Dados de irradiância via NASA POWER para{' '}
+          Dados de irradiância via{' '}
+          <span className="font-medium text-slate-700">
+            {(irradiancia.fonte || fonteEscolhida) === 'cresesb' ? 'INPE/CRESESB' : 'NASA POWER'}
+          </span>{' '}para{' '}
           <span className="font-medium text-slate-700">
             {localizacao.cidadeEstado || `${localizacao.lat?.toFixed(4)}, ${localizacao.lon?.toFixed(4)}`}
           </span>
         </p>
       </div>
 
-      {/* Aviso fonte */}
-      <div className="flex items-start gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">
-        <Info size={16} className="shrink-0 mt-0.5" />
-        <span>
-          Fonte: <strong>NASA POWER Climatology API</strong> — parâmetro{' '}
-          <code className="bg-blue-100 px-1 rounded">ALLSKY_SFC_SW_DWN</code>{' '}
-          (média histórica de irradiância global horizontal, kWh/m²/dia).
-        </span>
+      {/* FASE 2: seletor explícito de fonte de irradiância */}
+      <div>
+        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Fonte de dados</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {FONTES.map((f) => {
+            const ativo = fonteEscolhida === f.id
+            return (
+              <button
+                key={f.id}
+                type="button"
+                role="radio"
+                aria-checked={ativo}
+                onClick={() => setFonteEscolhida(f.id)}
+                className={[
+                  'text-left p-3 rounded-xl border transition-all flex items-start gap-3',
+                  ativo ? 'border-amber-400 bg-amber-50 ring-1 ring-amber-300' : 'border-slate-200 bg-white hover:border-slate-300',
+                ].join(' ')}
+              >
+                <span className={[
+                  'mt-0.5 w-4 h-4 rounded-full border-2 shrink-0 flex items-center justify-center',
+                  ativo ? 'border-amber-500' : 'border-slate-300',
+                ].join(' ')}>
+                  {ativo && <span className="w-2 h-2 rounded-full bg-amber-500" />}
+                </span>
+                <span>
+                  <span className="block text-sm font-semibold text-slate-800">{f.rotulo}</span>
+                  <span className="block text-xs text-slate-500 mt-0.5">{f.desc}</span>
+                </span>
+              </button>
+            )
+          })}
+        </div>
+        <div className="flex items-start gap-2 mt-2 text-xs text-slate-400">
+          <Info size={13} className="shrink-0 mt-0.5" />
+          <span>
+            {fonteEscolhida === 'nasa'
+              ? <>NASA POWER — parâmetro <code className="bg-slate-100 px-1 rounded">ALLSKY_SFC_SW_DWN</code> (irradiância global horizontal).</>
+              : <>INPE/CRESESB — média territorial do estado ({regiao.irradiancia} kWh/m²/dia).</>}
+          </span>
+        </div>
       </div>
 
-      {/* Botão consultar */}
+      {/* Botão consultar (respeita a fonte escolhida) */}
       {!mensal && (
         <div className="flex flex-wrap gap-3">
-          <Button
-            icone={Sun}
-            onClick={usaFallback ? aplicarFallback : consultar}
-            carregando={carregando}
-            tamanho="lg"
-          >
-            {carregando ? 'Consultando NASA POWER...' : usaFallback ? 'Usar Média Regional (CRESESB)' : 'Consultar NASA POWER'}
+          <Button icone={Sun} onClick={consultarFonte} carregando={carregando} tamanho="lg">
+            {carregando
+              ? 'Consultando...'
+              : fonteEscolhida === 'nasa' ? 'Consultar NASA POWER' : `Usar média INPE/CRESESB (${regiao.irradiancia} kWh/m²/dia)`}
           </Button>
-          {!usaFallback && (
-            <Button variante="secundario" tamanho="lg" onClick={aplicarFallback}>
-              Usar média do estado ({regiao.irradiancia} kWh/m²/dia)
-            </Button>
-          )}
         </div>
       )}
 

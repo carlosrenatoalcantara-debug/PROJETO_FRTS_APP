@@ -1,19 +1,9 @@
 import { createContext, useContext, useReducer, useEffect } from 'react'
+// FASE 1 (P1-UX-CORE-EVOLUTION-01): fonte única de verdade do funil + macro-etapas
+import { ETAPAS } from '../config/etapasFunilFV'
 
 // Chave de storage para resiliência ao refresh (S2.8)
 const LS_KEY = 'forte_solar_wizard_fv_v3'
-
-const ETAPAS = [
-  { num: 1, rotulo: 'Fatura'          },
-  { num: 2, rotulo: 'Consumo'         },
-  { num: 2.5, rotulo: 'Beneficiárias' },
-  { num: 3, rotulo: 'Localização'     },
-  { num: 4, rotulo: 'Irradiância'     },
-  { num: 5, rotulo: 'Dimensionamento' },
-  { num: 6, rotulo: 'Área'            },
-  { num: 7, rotulo: 'Equipamentos'    },
-  { num: 8, rotulo: 'Orçamento'       },
-]
 
 const estadoInicial = {
   etapa: 1,
