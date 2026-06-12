@@ -35,6 +35,7 @@
     "mupdf": "^1.27.0",
     "node-cron": "^3.0.2",
     "node-fetch": "^3.3.2",
+    "nodemailer": "^8.0.11",
     "otplib": "^13.4.0",
     "pdf-parse": "^2.4.5",
     "pdfkit": "^0.18.0",

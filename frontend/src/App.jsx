@@ -31,11 +31,13 @@ import Auditoria              from './pages/Auditoria'
 import FaturaRevisao          from './pages/FaturaRevisao'
 import SaudeCatalogo          from './pages/SaudeCatalogo'
 import AlertCenter            from './pages/AlertCenter'
+import RedefinirSenha         from './pages/RedefinirSenha'
 
 export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      <Route path="/redefinir-senha" element={<RedefinirSenha />} />
       <Route path="/calculadora" element={<Calculadora />} />
       <Route path="/p/:token" element={<PropostaPublica />} />
       <Route path="/" element={<Layout />}>

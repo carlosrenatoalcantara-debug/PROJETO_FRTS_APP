@@ -7,6 +7,14 @@ import { Vendedor } from '../models/Vendedor.js'
 import { MATRIZ_RBAC, PERFIS, MODULOS, ACOES, LABEL_PERFIL } from '../services/rbac.js'
 import { AuditLog } from '../models/AuditLog.js'
 import { calcularDelta, filtroEmailUnico } from '../utils/gestaoDelta.js'
+// P0-AUTH-MAIL-01
+import { gerarToken, enviarEmail, smtpConfigurado, verificarTransporte } from '../services/mailService.js'
+import { templateConvite, templateReset } from '../services/emailTemplates.js'
+import { podeDisparar, registrarDisparo } from '../services/mailRateLimit.js'
+
+const APP_URL = process.env.APP_URL || process.env.FRONTEND_URL || 'http://localhost:5173'
+// Perfis autorizados a disparar reset/convite
+const PERFIS_GESTAO_ACESSO = ['admin', 'administrador', 'diretor']
 
 // S8.3.1: auditoria inteligente (delta, não o objeto inteiro)
 async function auditarDelta(req, evento, alvo, delta) {
@@ -134,6 +142,80 @@ router.put('/usuarios/:id', async (req, res) => {
   } catch (e) { res.status(400).json({ erro: e.message }) }
 })
 router.delete('/usuarios/:id', usuarios.remover)
+
+// ── P0-AUTH-MAIL-01: Reset de senha / Reenvio de convite ──────────────────────
+// POST /api/gestao/usuarios/:id/reset-password
+// Gera token expirável, invalida o token anterior, audita e dispara o e-mail via Zoho.
+// Só perfis Admin/Diretor. Rate-limited por usuário.
+router.post('/usuarios/:id/reset-password', async (req, res) => {
+  try {
+    if (!_dbOk(res)) return
+    const { id } = req.params
+    if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ erro: 'ID inválido' })
+
+    // Autorização: apenas Admin/Diretor (defesa em profundidade além do protegerModulo)
+    const perfilSolicitante = (req.auth?.perfil || '').toLowerCase()
+    if (perfilSolicitante && !PERFIS_GESTAO_ACESSO.includes(perfilSolicitante)) {
+      return res.status(403).json({ erro: 'Apenas Admin/Diretor podem redefinir acesso de usuários.' })
+    }
+
+    const user = await User.findById(id)
+    if (!user) return res.status(404).json({ erro: 'Usuário não encontrado' })
+
+    // Rate-limit por usuário-alvo
+    const rl = podeDisparar(id)
+    if (!rl.ok) return res.status(429).json({ erro: rl.motivo, retry_em_s: rl.retry_em_s })
+
+    // Tipo: convite (primeiro acesso, 24h) se nunca logou; senão reset (uso único, 30min)
+    const tipo = req.body?.tipo === 'convite' || (!user.ultimo_login)
+      ? 'convite' : 'reset'
+    const validadeMs = tipo === 'convite' ? 24 * 60 * 60 * 1000 : 30 * 60 * 1000
+
+    // Gera token novo → INVALIDA automaticamente qualquer token anterior (sobrescreve hash)
+    const { raw, hash } = gerarToken()
+    user.reset_token_hash   = hash
+    user.reset_token_expira = new Date(Date.now() + validadeMs)
+    user.reset_token_usado  = false
+    user.reset_token_tipo   = tipo
+    await user.save()   // não altera senha_hash (não foi modificado) → senha atual segue válida até a redefinição
+
+    const link = `${APP_URL}/redefinir-senha?token=${raw}`
+    const tpl = tipo === 'convite'
+      ? templateConvite({ nome: user.nome, link, validadeHoras: 24 })
+      : templateReset({ nome: user.nome, link, validadeMinutos: 30 })
+
+    let envio
+    try {
+      envio = await enviarEmail({ to: user.email, subject: tpl.subject, html: tpl.html })
+    } catch (e) {
+      envio = { enviado: false, motivo: e.message }
+    }
+
+    registrarDisparo(id)
+
+    // Auditoria persistente (FASE 3)
+    await auditarDelta(req, tipo === 'convite' ? 'CONVITE_ENVIADO' : 'RESET_SENHA_ENVIADO',
+      user.nome || user.email,
+      { para: user.email, tipo, enviado: envio.enviado, expira_em: user.reset_token_expira, por: req.auth?.email || req.auth?.id || 'sistema' })
+
+    res.json({
+      sucesso: true,
+      tipo,
+      enviado: envio.enviado,
+      smtp_configurado: smtpConfigurado(),
+      expira_em: user.reset_token_expira,
+      ...(envio.enviado ? {} : { aviso: envio.motivo || 'E-mail não enviado (SMTP não configurado).' }),
+    })
+  } catch (e) {
+    res.status(500).json({ erro: e.message })
+  }
+})
+
+// GET /api/gestao/smtp/verificar — teste de handshake SMTP (não envia e-mail)
+router.get('/smtp/verificar', async (_req, res) => {
+  const r = await verificarTransporte()
+  res.status(r.ok ? 200 : 503).json(r)
+})
 
 // ── Empresas (multiempresa) ───────────────────────────────────────────────────
 const empresas = crud(Empresa, { evento: 'EMPRESA_EDITADA' })

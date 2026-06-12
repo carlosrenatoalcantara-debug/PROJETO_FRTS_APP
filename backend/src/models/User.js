@@ -46,6 +46,11 @@ const userSchema = new mongoose.Schema(
       type: Date,
       default: null
     },
+    // P0-AUTH-MAIL-01: token de redefinição/convite (só o HASH é persistido).
+    reset_token_hash:   { type: String, default: null },
+    reset_token_expira: { type: Date,   default: null },
+    reset_token_usado:  { type: Boolean, default: false },
+    reset_token_tipo:   { type: String, enum: ['convite', 'reset', null], default: null },
     // Permissions
     permissoes: {
       criar_projetos: { type: Boolean, default: true },

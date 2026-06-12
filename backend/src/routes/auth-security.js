@@ -4,8 +4,11 @@
  */
 
 import express from 'express'
+import mongoose from 'mongoose'
 import { JWTService, AuditLogger, ValidationService } from '../security/index.js'
 import { createRateLimiter, authenticateToken } from '../security/auth-middleware.js'
+import User from '../models/User.js'
+import { hashToken } from '../services/mailService.js'
 
 const router = express.Router()
 const jwtService = new JWTService()
@@ -203,6 +206,44 @@ router.post('/logout', authenticateToken, (req, res) => {
     success: true,
     message: 'Logout realizado com sucesso',
   })
+})
+
+/**
+ * POST /auth/redefinir-senha — P0-AUTH-MAIL-01 (público)
+ * Consome o token enviado por e-mail (convite/reset) e define a nova senha.
+ * Token de uso único: validado por hash, expiração e flag `usado`.
+ */
+router.post('/redefinir-senha', async (req, res) => {
+  try {
+    const { token, novaSenha } = req.body || {}
+    if (!token || !novaSenha) {
+      return res.status(400).json({ success: false, error: 'token e novaSenha são obrigatórios', code: 'INVALID_INPUT' })
+    }
+    const pwd = ValidationService.validatePassword(novaSenha)
+    if (!pwd.isValid) {
+      return res.status(400).json({ success: false, error: 'Senha fraca. Requer: 12+ chars, maiúscula, minúscula, número, caractere especial', feedback: pwd.feedback, code: 'WEAK_PASSWORD' })
+    }
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({ success: false, error: 'Banco indisponível', code: 'DB_OFFLINE' })
+    }
+
+    const user = await User.findOne({ reset_token_hash: hashToken(token) })
+    if (!user || user.reset_token_usado || !user.reset_token_expira || user.reset_token_expira < new Date()) {
+      return res.status(400).json({ success: false, error: 'Link inválido ou expirado. Solicite um novo.', code: 'INVALID_TOKEN' })
+    }
+
+    user.senha_hash = novaSenha      // pre('save') do User aplica o hash bcrypt
+    user.reset_token_usado = true
+    user.reset_token_hash = null
+    user.reset_token_expira = null
+    user.ativo = true                // ativa a conta no primeiro acesso (convite)
+    await user.save()
+
+    auditLogger.logAuthSuccess({ userId: user._id.toString(), email: user.email, method: 'password_reset_consume', ip: req.ip })
+    res.json({ success: true, message: 'Senha redefinida com sucesso. Você já pode entrar.' })
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message })
+  }
 })
 
 export default router

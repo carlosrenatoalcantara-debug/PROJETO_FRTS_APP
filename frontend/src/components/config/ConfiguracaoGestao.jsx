@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Users, Building2, HardHat, Briefcase, Plus, ShieldCheck, Pencil, Check, X, Power, PowerOff, Save } from 'lucide-react'
+import { Users, Building2, HardHat, Briefcase, Plus, ShieldCheck, Pencil, Check, X, Power, PowerOff, Save, KeyRound, Loader2 } from 'lucide-react'
 import Card, { CardHeader, CardBody } from '../ui/Card'
-import { usuariosApi, empresasApi, tecnicosApi, vendedoresApi } from '../../services/gestaoApi'
+import { usuariosApi, empresasApi, tecnicosApi, vendedoresApi, resetarSenhaUsuario } from '../../services/gestaoApi'
 import { PERFIS, LABEL_PERFIL, MODULOS, MATRIZ_RBAC, NIVEIS, mesclarMatriz } from '../../utils/rbac'
 import { usePermissao } from '../../hooks/usePermissao'
 
@@ -21,6 +21,8 @@ export default function ConfiguracaoGestao() {
   const { perfil, anonimo } = usePermissao()
   // S8.3.2: Organizações = tenant/ambiente, não fornecedor. Só admin opera.
   const podeOrganizacoes = anonimo || ['administrador', 'admin'].includes(perfil)
+  // P0-AUTH-MAIL-01: reset/convite de senha só para Admin/Diretor
+  const podeGerirAcesso = anonimo || ['administrador', 'admin', 'diretor'].includes(perfil)
   const abas = [
     { id: 'usuarios', label: 'Usuários', icone: Users },
     ...(podeOrganizacoes ? [{ id: 'empresas', label: 'Organizações', icone: Building2 }] : []),
@@ -59,6 +61,7 @@ export default function ConfiguracaoGestao() {
             ]}
             colunas={['nome', 'email', 'perfil', 'cargo']}
             editaveis={['nome', 'email', 'telefone', 'cargo', 'perfil']}
+            acaoExtra={(it) => (podeGerirAcesso ? <BotaoResetSenha usuario={it} /> : null)}
           />
         )}
         {aba === 'empresas' && (
@@ -104,7 +107,7 @@ export default function ConfiguracaoGestao() {
  * CrudLista — lista com criação + edição INLINE + ativar/inativar (soft).
  * `editaveis` = chaves que entram em modo de edição inline.
  */
-function CrudLista({ api, campos, colunas, editaveis = [] }) {
+function CrudLista({ api, campos, colunas, editaveis = [], acaoExtra = null }) {
   const [itens, setItens] = useState([])
   const [form, setForm] = useState({})
   const [erro, setErro] = useState('')
@@ -225,6 +228,7 @@ function CrudLista({ api, campos, colunas, editaveis = [] }) {
                         {editaveis.length > 0 && (
                           <button onClick={() => iniciarEdicao(it)} className="text-slate-400 hover:text-indigo-600" title="Editar"><Pencil size={14} /></button>
                         )}
+                        {acaoExtra && acaoExtra(it)}
                         <button onClick={() => alternarAtivo(it)} className={it.ativo === false ? 'text-slate-400 hover:text-emerald-600' : 'text-slate-400 hover:text-amber-600'} title={it.ativo === false ? 'Reativar' : 'Inativar'}>
                           {it.ativo === false ? <Power size={14} /> : <PowerOff size={14} />}
                         </button>
@@ -241,6 +245,46 @@ function CrudLista({ api, campos, colunas, editaveis = [] }) {
         </table>
       </div>
     </div>
+  )
+}
+
+/**
+ * BotaoResetSenha — P0-AUTH-MAIL-01 (FASE 2)
+ * Dispara reset de senha / reenvio de convite por e-mail (Zoho) para o usuário da linha.
+ * Confirma antes de enviar; mostra feedback inline (enviado / aviso de SMTP).
+ */
+function BotaoResetSenha({ usuario }) {
+  const [estado, setEstado] = useState('idle')  // idle | enviando | ok | erro
+  const [msg, setMsg] = useState('')
+
+  async function disparar() {
+    if (!window.confirm(`Enviar e-mail de redefinição de senha para ${usuario.email}?`)) return
+    setEstado('enviando'); setMsg('')
+    try {
+      const r = await resetarSenhaUsuario(usuario._id)
+      if (r.enviado) { setEstado('ok'); setMsg('E-mail enviado') }
+      else { setEstado('erro'); setMsg(r.aviso || 'SMTP não configurado') }
+    } catch (e) {
+      setEstado('erro'); setMsg(e.message)
+    }
+    setTimeout(() => { setEstado('idle'); setMsg('') }, 4000)
+  }
+
+  return (
+    <span className="inline-flex items-center gap-1">
+      <button
+        onClick={disparar}
+        disabled={estado === 'enviando'}
+        className="text-slate-400 hover:text-amber-600 disabled:opacity-50"
+        title="Resetar senha / Reenviar convite por e-mail"
+        aria-label="Resetar senha"
+      >
+        {estado === 'enviando' ? <Loader2 size={14} className="animate-spin" /> : <KeyRound size={14} />}
+      </button>
+      {msg && (
+        <span className={`text-[10px] ${estado === 'ok' ? 'text-emerald-600' : 'text-amber-600'}`}>{msg}</span>
+      )}
+    </span>
   )
 }
 
