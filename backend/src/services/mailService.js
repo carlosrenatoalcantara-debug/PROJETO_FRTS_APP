@@ -17,7 +17,7 @@ const HOST = process.env.SMTP_HOST || 'smtp.zoho.com'
 const PORT = parseInt(process.env.SMTP_PORT || '465', 10)
 const USER = process.env.SMTP_USER || null
 const PASS = process.env.SMTP_PASS || null
-const FROM = process.env.SMTP_FROM || (USER ? `Forte Solar <${USER}>` : null)
+const FROM = process.env.MAIL_FROM || process.env.SMTP_FROM || (USER ? `Forte Solar <${USER}>` : null)
 
 let _transporter = null
 
