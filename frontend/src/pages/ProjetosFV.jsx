@@ -1,11 +1,11 @@
 import { useNavigate } from 'react-router-dom'
 import { useEffect, useState, useRef, useMemo } from 'react'
-import { Plus, Sun, Filter, Eye, Calculator, Upload, Download, X, Loader, MoreVertical, Copy, Archive, Trash2, RotateCcw, Pencil, AlertTriangle } from 'lucide-react'
+import { Plus, Sun, Filter, Eye, Calculator, Upload, Download, X, Loader, MoreVertical, Copy, Archive, Trash2, RotateCcw, Pencil, AlertTriangle, Maximize2 } from 'lucide-react'
 import Card, { CardHeader, CardBody } from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import DashboardComercial from '../components/fv/DashboardComercial'
 import {
-  duplicarProjeto, arquivarProjeto, restaurarProjeto, excluirProjeto,
+  duplicarProjeto, ampliarProjeto, arquivarProjeto, restaurarProjeto, excluirProjeto,
   listarProjetos, MOTIVOS_ARQUIVAMENTO,
 } from '../services/projetosFvLifecycleApi'
 import { filtrarProjetos, badgeDe } from '../utils/projetosFiltro'
@@ -84,6 +84,16 @@ export default function ProjetosFV() {
       await carregarProjetos()
       if (novoId) navigate(`/projetos-fv/${novoId}`)
     } catch (e) { flash(`Erro ao duplicar: ${e.message}`, 'erro') }
+  }
+  // FASE 2: Ampliar Sistema — clona com herança + arranjo existente congelado, abre o rascunho
+  async function acaoAmpliar(p) {
+    try {
+      const r = await ampliarProjeto(p._id)
+      const novoId = r.item?._id
+      flash(`Ampliação criada: ${r.item?.nome || ''}`)
+      await carregarProjetos()
+      if (novoId) navigate(`/projetos-fv/novo?id=${novoId}`)
+    } catch (e) { flash(`Erro ao ampliar: ${e.message}`, 'erro') }
   }
   async function acaoArquivar(p, motivo) {
     try {
@@ -329,6 +339,7 @@ export default function ProjetosFV() {
                             // todos os slices a partir de GET /api/projetos-fv/:id.
                             onEditar={() => navigate(`/projetos-fv/novo?id=${p._id}`)}
                             onDuplicar={() => acaoDuplicar(p)}
+                            onAmpliar={() => acaoAmpliar(p)}
                             onArquivar={() => setConfirmacao({ tipo: 'arquivar', projeto: p })}
                             onExcluir={() => setConfirmacao({ tipo: 'excluir', projeto: p })}
                             onRestaurar={() => acaoRestaurar(p)}
@@ -358,7 +369,7 @@ export default function ProjetosFV() {
 }
 
 /** Menu dropdown de ações por projeto (⋮). */
-function MenuAcoes({ projeto, aberto, onToggle, onAbrir, onEditar, onDuplicar, onArquivar, onExcluir, onRestaurar }) {
+function MenuAcoes({ projeto, aberto, onToggle, onAbrir, onEditar, onDuplicar, onAmpliar, onArquivar, onExcluir, onRestaurar }) {
   const item = 'w-full text-left px-3 py-1.5 text-sm hover:bg-slate-50 flex items-center gap-2'
   const podeHard = projeto.pode_excluir_definitivo === true
   const isLixeira = projeto.excluido === true
@@ -374,6 +385,7 @@ function MenuAcoes({ projeto, aberto, onToggle, onAbrir, onEditar, onDuplicar, o
               <button className={item} onClick={() => { onAbrir(); onToggle({ stopPropagation: () => {} }) }}><Eye size={14} /> Abrir</button>
               <button className={item} onClick={() => { onEditar(); onToggle({ stopPropagation: () => {} }) }}><Pencil size={14} /> Editar</button>
               <button className={item} onClick={() => { onDuplicar(); onToggle({ stopPropagation: () => {} }) }}><Copy size={14} /> Duplicar</button>
+              <button className={item} onClick={() => { onAmpliar(); onToggle({ stopPropagation: () => {} }) }}><Maximize2 size={14} /> Ampliar Sistema</button>
               <div className="my-1 border-t border-slate-100" />
               <button className={item} onClick={() => { onArquivar(); onToggle({ stopPropagation: () => {} }) }}>
                 <Archive size={14} /> Arquivar

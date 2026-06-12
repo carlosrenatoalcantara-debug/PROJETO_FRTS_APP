@@ -20,6 +20,8 @@ import SeletorPaineis from '../SeletorPaineis'
 import SeletorInversores from '../SeletorInversores'
 import SeletorEstrutura from '../SeletorEstrutura'
 import ConfiguradorArranjoFV from '../ConfiguradorArranjoFV'
+import GerenciadorArranjos from '../GerenciadorArranjos'
+import { salvarArranjos } from '../../../services/projetoFVApi'
 import { consolidarPanos, dimensoesModulo } from '../../../utils/geoEngine'
 import { snapshotEquipamentoSelecao } from '../../../utils/catalogoEngenhariaAdapter'
 import { validarMicroinversores } from '../../../../../backend/src/utils/fv/validacaoMicroinversores.js'
@@ -50,6 +52,13 @@ export default function E7Equipamentos() {
       .then(r => r.ok ? r.json() : null)
       .then(projeto => {
         if (projeto?.engenharia_eletrica) setEngenhariaInicial(projeto.engenharia_eletrica)
+        // FASE 3: hidrata arranjos + tipo_projeto (ampliação congela o arranjo existente)
+        if (Array.isArray(projeto?.arranjos) && projeto.arranjos.length) {
+          dispatch({ type: 'SET_ARRANJOS', payload: projeto.arranjos })
+        }
+        if (projeto?.tipo_projeto) {
+          dispatch({ type: 'SET_TIPO_PROJETO', payload: { tipoProjeto: projeto.tipo_projeto, projetoOrigemId: projeto.projeto_origem_id ?? null } })
+        }
       })
       .catch(() => {})
       .finally(() => setCarregandoProjeto(false))
@@ -107,6 +116,62 @@ export default function E7Equipamentos() {
     }
 
     return true
+  }
+
+  // ── FASE 1: monta e persiste o array de arranjos (backend shape) ───────────
+  function blocoParaBackend(b, rotuloFallback, tipoFallback) {
+    const painel   = b.painel   || b.paineis?.[0]   || null
+    const inversor = b.inversor || b.inversores?.[0] || null
+    const paineis = b.painel ? [{
+      marca: painel.fabricante || painel.marca || null,
+      fabricante: painel.fabricante || painel.marca || null,
+      modelo: painel.modelo || null,
+      potencia_w: painel.especificacoes?.potencia_wp || painel.potencia_w || painel.potenciaW || null,
+      quantidade: b.quantidadeModulos ?? null,
+      equipamento_id: painel._id || null,
+    }] : (b.paineis || [])
+    const inversores = b.inversor ? [{
+      marca: inversor.fabricante || inversor.marca || null,
+      fabricante: inversor.fabricante || inversor.marca || null,
+      modelo: inversor.modelo || null,
+      potencia_kw: inversor.especificacoes?.potencia_kw || inversor.potencia_kw || inversor.potenciaKW || null,
+      quantidade: 1,
+      equipamento_id: inversor._id || null,
+    }] : (b.inversores || [])
+    return {
+      id: b.id, rotulo: b.rotulo || rotuloFallback, tipo: b.tipo || tipoFallback,
+      somente_leitura: !!b.somente_leitura, paineis, inversores,
+    }
+  }
+
+  function montarArranjosPayload() {
+    if (state.tipoProjeto === 'ampliacao') {
+      // arranjos já carregados (existente congelado + ampliação editável)
+      return state.arranjos.map((b, i) => blocoParaBackend(b, `Arranjo ${i + 1}`, b.tipo || 'ampliacao'))
+    }
+    const lista = []
+    if (equipamentos.painel || equipamentos.inversor) {
+      lista.push(blocoParaBackend(
+        { id: 'arr_primario', rotulo: 'Arranjo A', tipo: 'principal',
+          painel: equipamentos.painel, inversor: equipamentos.inversor,
+          quantidadeModulos: equipamentos.quantidadeModulos ?? dim.numPaineis ?? null },
+        'Arranjo A', 'principal',
+      ))
+    }
+    state.arranjos.forEach((b, i) => lista.push(blocoParaBackend(b, `Arranjo ${String.fromCharCode(66 + i)}`, 'secundario')))
+    return lista
+  }
+
+  async function persistirArranjos() {
+    if (!projetoId) return
+    try { await salvarArranjos(projetoId, montarArranjosPayload()) }
+    catch (err) { console.warn('[E7] salvar arranjos falhou:', err.message) }
+  }
+
+  function avancar() {
+    if (!validar()) return
+    persistirArranjos()   // fire-and-forget — não bloqueia a navegação
+    proxima()
   }
 
   const ambosSelecionados = !!(equipamentos.painel && equipamentos.inversor)
@@ -300,10 +365,13 @@ export default function E7Equipamentos() {
             tipoLigacao={tipoLigacao}
             dispatch={dispatch}
             onSaved={() => {}}
-            onSaveAndNext={() => validar() && proxima()}
+            onSaveAndNext={avancar}
           />
         )}
       </section>
+
+      {/* ── Múltiplos Arranjos (FASE 1/3) ───────────────────────────────────── */}
+      <GerenciadorArranjos />
 
       {/* Aviso sobre preço */}
       <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">
@@ -319,7 +387,7 @@ export default function E7Equipamentos() {
 
       <div className="flex justify-between pt-4">
         <Button variante="secundario" onClick={anterior}>← Anterior</Button>
-        <Button onClick={() => validar() && proxima()}>Próxima →</Button>
+        <Button onClick={avancar}>Próxima →</Button>
       </div>
     </div>
   )

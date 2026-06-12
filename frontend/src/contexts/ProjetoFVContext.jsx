@@ -71,6 +71,27 @@ const estadoInicial = {
   },
   equipamentos: { painel: null, inversor: null, estrutura: null },
   beneficiarias: [],   // FV-04: local until projetoId exists; saved to DB at step 8
+
+  // P1-UX-FRONT-CONNECT-01: múltiplos arranjos + ampliação de usina.
+  // arranjos[] = blocos EXTRA além do arranjo primário (painel/inversor acima).
+  // Cada bloco: { id, rotulo, tipo, somente_leitura, painel, inversor, quantidadeModulos }
+  arranjos: [],
+  tipoProjeto: 'novo',        // 'novo' | 'ampliacao'
+  projetoOrigemId: null,
+}
+
+let _arrSeq = 0
+function novoArranjoVazio() {
+  _arrSeq += 1
+  return {
+    id: `arr_local_${Date.now().toString(36)}_${_arrSeq}`,
+    rotulo: `Arranjo ${String.fromCharCode(66 + _arrSeq)}`, // B, C, D… (A = primário)
+    tipo: 'secundario',
+    somente_leitura: false,
+    painel: null,
+    inversor: null,
+    quantidadeModulos: null,
+  }
 }
 
 function reducer(state, action) {
@@ -96,6 +117,23 @@ function reducer(state, action) {
     // FV-04: beneficiárias locais (array completo)
     case 'SET_BENEFICIARIAS':
       return { ...state, beneficiarias: action.payload }
+    // P1-UX-FRONT-CONNECT-01: múltiplos arranjos
+    case 'SET_ARRANJOS':
+      return { ...state, arranjos: Array.isArray(action.payload) ? action.payload : [] }
+    case 'ADD_ARRANJO':
+      return { ...state, arranjos: [...state.arranjos, novoArranjoVazio()] }
+    case 'REMOVE_ARRANJO':
+      // remove pelo índice — limpa o slot antes de qualquer payload de salvamento
+      return { ...state, arranjos: state.arranjos.filter((_, i) => i !== action.payload) }
+    case 'SET_ARRANJO':
+      return {
+        ...state,
+        arranjos: state.arranjos.map((a, i) =>
+          i === action.payload.index ? { ...a, ...action.payload.patch } : a
+        ),
+      }
+    case 'SET_TIPO_PROJETO':
+      return { ...state, tipoProjeto: action.payload.tipoProjeto, projetoOrigemId: action.payload.projetoOrigemId ?? state.projetoOrigemId }
     // S2.8: âncoras de persistência
     case 'SET_PROJETO_ID':
       return { ...state, projetoId: action.payload }

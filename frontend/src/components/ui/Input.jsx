@@ -3,8 +3,11 @@ export default function Input({
   erro,
   icone: Icone,
   className = '',
+  helpText,          // consumido aqui — NÃO repassar ao <input> nativo (evita warning React)
+  helptext,          // tolera variação de capitalização vinda de chamadores
   ...props
 }) {
+  const ajuda = helpText ?? helptext
   return (
     <div className={`flex flex-col gap-1.5 ${className}`}>
       {rotulo && (
@@ -30,6 +33,7 @@ export default function Input({
         />
       </div>
       {erro && <p className="text-xs text-red-600">{erro}</p>}
+      {!erro && ajuda && <p className="text-xs text-slate-400">{ajuda}</p>}
     </div>
   )
 }

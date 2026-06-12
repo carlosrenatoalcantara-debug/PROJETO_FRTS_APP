@@ -203,6 +203,23 @@ export function buscarProjeto(projetoId) {
 }
 
 /**
+ * P1-UX-FRONT-CONNECT-01 (FASE 1): salva o array de arranjos do projeto.
+ * Embrulha em { lista } porque a rota /etapa rejeita `dados` array.
+ */
+export function salvarArranjos(projetoId, lista = []) {
+  return salvarEtapa(projetoId, 'arranjos', { lista })
+}
+
+/**
+ * P1-UX-FRONT-CONNECT-01 (FASE 2): aciona a Ampliação de Usina.
+ * Clona o projeto (herança de dados + arranjo existente congelado) e retorna
+ * { item, origem, arranjo_ampliacao_id }. Use item._id para abrir o rascunho.
+ */
+export function ampliarProjeto(projetoId) {
+  return _fetch(`/api/projetos-fv/${projetoId}/ampliar`, { method: 'POST' })
+}
+
+/**
  * FV-04: Persiste beneficiárias locais no DB (em lote) após criação do projeto.
  * Recebe array do context (podem ter localId em vez de _id).
  * Apenas registros sem _id são criados (os que têm _id já estão no DB).

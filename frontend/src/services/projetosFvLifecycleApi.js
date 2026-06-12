@@ -18,6 +18,11 @@ export function duplicarProjeto(id) {
   return _f(`/api/projetos-fv/${id}/duplicar`, { method: 'POST', body: JSON.stringify({}) })
 }
 
+// P1-UX-FRONT-CONNECT-01 (FASE 2) — Ampliação de Usina (clona + congela arranjo existente)
+export function ampliarProjeto(id) {
+  return _f(`/api/projetos-fv/${id}/ampliar`, { method: 'POST', body: JSON.stringify({}) })
+}
+
 export function arquivarProjeto(id, motivo, usuario = null) {
   return _f(`/api/projetos-fv/${id}/arquivar`, { method: 'POST', body: JSON.stringify({ motivo, usuario }) })
 }

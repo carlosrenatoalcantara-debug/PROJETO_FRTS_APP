@@ -1,4 +1,5 @@
-export default function Select({ rotulo, opcoes, erro, className = '', ...props }) {
+export default function Select({ rotulo, opcoes, erro, className = '', helpText, helptext, ...props }) {
+  const ajuda = helpText ?? helptext   // consumido aqui — não repassar ao <select> nativo
   return (
     <div className={`flex flex-col gap-1.5 ${className}`}>
       {rotulo && <label className="text-sm font-medium text-slate-700">{rotulo}</label>}
@@ -16,6 +17,7 @@ export default function Select({ rotulo, opcoes, erro, className = '', ...props 
         ))}
       </select>
       {erro && <p className="text-xs text-red-600">{erro}</p>}
+      {!erro && ajuda && <p className="text-xs text-slate-400">{ajuda}</p>}
     </div>
   )
 }

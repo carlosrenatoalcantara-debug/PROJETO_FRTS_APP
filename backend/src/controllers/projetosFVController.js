@@ -571,6 +571,7 @@ export const salvarEtapaProjetoFV = async (req, res) => {
       'localizacao', 'dimensionamento', 'equipamentos', 'layout_solar',
       'protecoes', 'orcamento', 'proposta', 'workflow', 'unifilar', 'fatura',
       'engenharia_eletrica',  // S2.11.2 — arranjo + clima + resultado de compatibilidade
+      'arranjos',             // P1-UX-FRONT-CONNECT-01 — múltiplos arranjos de componentes
     ]
     if (!ETAPAS_PERMITIDAS.includes(etapa)) {
       return res.status(400).json({
@@ -660,6 +661,14 @@ export const salvarEtapaProjetoFV = async (req, res) => {
             subcampos_validos: SUBCAMPOS,
           })
         }
+        break
+      }
+
+      case 'arranjos': {
+        // P1-UX-FRONT-CONNECT-01 — recebe { lista: [...] } (array embrulhado p/ passar
+        // pela validação que rejeita `dados` array). Substitui o array inteiro de arranjos:
+        // a remoção de um bloco no frontend já limpa o índice antes do envio.
+        $set.arranjos = Array.isArray(dados.lista) ? dados.lista : []
         break
       }
 
