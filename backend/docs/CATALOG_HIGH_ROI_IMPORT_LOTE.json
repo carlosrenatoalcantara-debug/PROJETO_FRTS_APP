@@ -1,0 +1,74 @@
+{
+  "sprint": "P1-CATALOG-HIGH-ROI-IMPORT-01",
+  "gerado_em": "2026-06-12T01:07:45.345Z",
+  "dry_run": false,
+  "total_datasheets": 8,
+  "criados": [
+    {
+      "fabricante": "Helius",
+      "modelo": "HMF144T10-570HL",
+      "hash": "a88e3bb5ae1a464c1d8fb96a",
+      "_id": "6a2b5be1a4b8172375c3cb8a",
+      "qualidade": "utilizavel",
+      "score": 75
+    },
+    {
+      "fabricante": "Helius",
+      "modelo": "HMF132T10R-575HL",
+      "hash": "d81e3f458a5a01eaf66b74e2",
+      "_id": "6a2b5be1a4b8172375c3cb8b",
+      "qualidade": "utilizavel",
+      "score": 75
+    },
+    {
+      "fabricante": "Helius",
+      "modelo": "HMF132T12R-600HL",
+      "hash": "40fd730d9e20724b5e951352",
+      "_id": "6a2b5be2a4b8172375c3cb8c",
+      "qualidade": "utilizavel",
+      "score": 75
+    },
+    {
+      "fabricante": "Helius",
+      "modelo": "HMF144M10-555H",
+      "hash": "cb38a88102213cff45dd2dcd",
+      "_id": "6a2b5be2a4b8172375c3cb8d",
+      "qualidade": "utilizavel",
+      "score": 75
+    },
+    {
+      "fabricante": "Ronma Solar",
+      "modelo": "RM-585W-182M/144TB",
+      "hash": "ddb8169ca43c0ed79c946eca",
+      "_id": "6a2b5be2a4b8172375c3cb8e",
+      "qualidade": "utilizavel",
+      "score": 75
+    },
+    {
+      "fabricante": "Ronma Solar",
+      "modelo": "RM-570W-182M/144TB",
+      "hash": "0c6f2a872a4d364dd63f582a",
+      "_id": "6a2b5be2a4b8172375c3cb8f",
+      "qualidade": "utilizavel",
+      "score": 75
+    },
+    {
+      "fabricante": "Ronma Solar",
+      "modelo": "RM-620W-182R/132TB",
+      "hash": "a893576782fd6d0206b504c9",
+      "_id": "6a2b5be2a4b8172375c3cb90",
+      "qualidade": "utilizavel",
+      "score": 75
+    },
+    {
+      "fabricante": "Sirius Energias Renováveis",
+      "modelo": "SIRIUS-RS6-550MX-E3",
+      "hash": "896906ae70ef524238dc211d",
+      "_id": "6a2b5be2a4b8172375c3cb91",
+      "qualidade": "utilizavel",
+      "score": 75
+    }
+  ],
+  "ja_existentes": [],
+  "falhas": []
+}

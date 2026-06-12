@@ -1,131 +1,37 @@
 {
   "lote": null,
   "dry_run": true,
-  "gerado_em": "2026-06-11T19:08:21.989Z",
+  "gerado_em": "2026-06-12T01:08:11.625Z",
   "rel": {
     "projetos_processados": 514,
     "paineis": {
       "exato": 0,
-      "normalizado": 182,
-      "fuzzy": 90,
-      "sem_match": 252,
-      "ja_vinculado": 0,
+      "normalizado": 23,
+      "flexivel": 5,
+      "fuzzy": 2,
+      "sem_match": 94,
+      "ja_vinculado": 400,
       "erros": 0
     },
     "inversores": {
       "exato": 0,
-      "normalizado": 348,
+      "normalizado": 0,
+      "flexivel": 0,
       "fuzzy": 3,
-      "sem_match": 163,
-      "ja_vinculado": 0,
+      "sem_match": 23,
+      "ja_vinculado": 488,
       "erros": 0
     },
-    "binds_gravados": 420,
-    "projetos_totalmente_vinculados": 104,
+    "binds_gravados": 28,
+    "projetos_totalmente_vinculados": 398,
     "sem_match_detail": []
   },
   "sem_match_top50": [
-    {
-      "marca": "OSDA",
-      "modelo": "ODA575-36V-MH",
-      "tipo": "modulo",
-      "projetos": 29,
-      "classe": "fuzzy",
-      "confianca": 0.92
-    },
-    {
-      "marca": "JA SOLAR",
-      "modelo": "JAM72S30-550/MR",
-      "tipo": "modulo",
-      "projetos": 28,
-      "classe": "fuzzy",
-      "confianca": 0.92
-    },
-    {
-      "marca": "CANADIAN SOLAR HIKU CS3W-455MS",
-      "modelo": "(35MM)",
-      "tipo": "modulo",
-      "projetos": 16,
-      "classe": "sem_match",
-      "confianca": 0
-    },
     {
       "marca": "SIRIUS BIFACIAL",
       "modelo": "HD144P-545W",
       "tipo": "modulo",
       "projetos": 14,
-      "classe": "sem_match",
-      "confianca": 0
-    },
-    {
-      "marca": "GROWATT MIN",
-      "modelo": "5000TL-X",
-      "tipo": "inversor",
-      "projetos": 13,
-      "classe": "sem_match",
-      "confianca": 0
-    },
-    {
-      "marca": "HELIUS",
-      "modelo": "HMF144T10-570HL",
-      "tipo": "modulo",
-      "projetos": 12,
-      "classe": "sem_match",
-      "confianca": 0
-    },
-    {
-      "marca": "TONGWEI SOLAR TW-600-MNH",
-      "modelo": "66-HD",
-      "tipo": "modulo",
-      "projetos": 12,
-      "classe": "sem_match",
-      "confianca": 0
-    },
-    {
-      "marca": "KEHUA TECH",
-      "modelo": "SPI6000-B2",
-      "tipo": "inversor",
-      "projetos": 12,
-      "classe": "sem_match",
-      "confianca": 0
-    },
-    {
-      "marca": "SOLAREDGE SE 27.6K",
-      "modelo": "380/220v",
-      "tipo": "inversor",
-      "projetos": 11,
-      "classe": "sem_match",
-      "confianca": 0
-    },
-    {
-      "marca": "SOLAREDGE SE 20.1K",
-      "modelo": "380/220v",
-      "tipo": "inversor",
-      "projetos": 10,
-      "classe": "sem_match",
-      "confianca": 0
-    },
-    {
-      "marca": "HONOR SOLAR HY-M10/144H",
-      "modelo": "575W",
-      "tipo": "modulo",
-      "projetos": 10,
-      "classe": "sem_match",
-      "confianca": 0
-    },
-    {
-      "marca": "HONOR SOLAR HY-M10/144H",
-      "modelo": "570W",
-      "tipo": "modulo",
-      "projetos": 10,
-      "classe": "sem_match",
-      "confianca": 0
-    },
-    {
-      "marca": "ZNSHINE",
-      "modelo": "ZXM7-SHLDD144-555/M",
-      "tipo": "modulo",
-      "projetos": 9,
       "classe": "sem_match",
       "confianca": 0
     },
@@ -138,42 +44,10 @@
       "confianca": 0
     },
     {
-      "marca": "SOLAREDGE SE 33.3K",
-      "modelo": "380/220v",
-      "tipo": "inversor",
-      "projetos": 8,
-      "classe": "sem_match",
-      "confianca": 0
-    },
-    {
-      "marca": "ASTRONERGY ASTROSEMI CHSM72M-HC",
-      "modelo": "555",
-      "tipo": "modulo",
-      "projetos": 8,
-      "classe": "sem_match",
-      "confianca": 0
-    },
-    {
-      "marca": "LEAPTON SOLAR",
-      "modelo": "LP182*199-M-66-NH-585W",
-      "tipo": "modulo",
-      "projetos": 8,
-      "classe": "sem_match",
-      "confianca": 0
-    },
-    {
       "marca": "Sirius",
       "modelo": "Full Black",
       "tipo": "modulo",
       "projetos": 7,
-      "classe": "sem_match",
-      "confianca": 0
-    },
-    {
-      "marca": "GROWATT MIN",
-      "modelo": "6000TL-X",
-      "tipo": "inversor",
-      "projetos": 6,
       "classe": "sem_match",
       "confianca": 0
     },
@@ -186,204 +60,12 @@
       "confianca": 0
     },
     {
-      "marca": "HONOR SOLAR HY-M10/144H",
-      "modelo": "550W",
-      "tipo": "modulo",
-      "projetos": 6,
-      "classe": "sem_match",
-      "confianca": 0
-    },
-    {
-      "marca": "HELIUS",
-      "modelo": "HMF132T10R-575HL",
-      "tipo": "modulo",
-      "projetos": 6,
-      "classe": "sem_match",
-      "confianca": 0
-    },
-    {
-      "marca": "GROWATT MID",
-      "modelo": "15KTL3-X",
-      "tipo": "inversor",
-      "projetos": 5,
-      "classe": "sem_match",
-      "confianca": 0
-    },
-    {
-      "marca": "DAH",
-      "modelo": "DHN72X16/FS-585W",
-      "tipo": "modulo",
-      "projetos": 5,
-      "classe": "fuzzy",
-      "confianca": 0.92
-    },
-    {
-      "marca": "DAH",
-      "modelo": "DHN66Z16/DG-610W",
-      "tipo": "modulo",
-      "projetos": 5,
-      "classe": "fuzzy",
-      "confianca": 0.92
-    },
-    {
-      "marca": "HONOR SOLAR HY-M10/144H",
-      "modelo": "560W",
-      "tipo": "modulo",
-      "projetos": 5,
-      "classe": "sem_match",
-      "confianca": 0
-    },
-    {
-      "marca": "CANADIAN SOLAR HIKU6",
-      "modelo": "CS6W-545M",
-      "tipo": "modulo",
-      "projetos": 4,
-      "classe": "sem_match",
-      "confianca": 0
-    },
-    {
-      "marca": "GROWATT MIC",
-      "modelo": "3000TL-X",
-      "tipo": "inversor",
-      "projetos": 4,
-      "classe": "sem_match",
-      "confianca": 0
-    },
-    {
-      "marca": "DAH",
-      "modelo": "DHN72R18/FS-610W",
-      "tipo": "modulo",
-      "projetos": 4,
-      "classe": "fuzzy",
-      "confianca": 0.92
-    },
-    {
-      "marca": "DAH",
-      "modelo": "DHM72X10/BF/FS-555W",
-      "tipo": "modulo",
-      "projetos": 4,
-      "classe": "fuzzy",
-      "confianca": 0.92
-    },
-    {
-      "marca": "GROWATT MAX",
-      "modelo": "75KTL3 LV",
-      "tipo": "inversor",
-      "projetos": 3,
-      "classe": "sem_match",
-      "confianca": 0
-    },
-    {
-      "marca": "RESUN SOLAR",
-      "modelo": "RS8I-550M",
-      "tipo": "modulo",
-      "projetos": 3,
-      "classe": "sem_match",
-      "confianca": 0
-    },
-    {
-      "marca": "KEHUA TECH",
-      "modelo": "SPI15K-B",
-      "tipo": "inversor",
-      "projetos": 3,
-      "classe": "sem_match",
-      "confianca": 0
-    },
-    {
-      "marca": "DEYE SUN-5K-G",
-      "modelo": "@220",
-      "tipo": "inversor",
-      "projetos": 3,
-      "classe": "sem_match",
-      "confianca": 0
-    },
-    {
-      "marca": "RONMA SOLAR",
-      "modelo": "RM-585W-182M/144TB",
-      "tipo": "modulo",
-      "projetos": 3,
-      "classe": "sem_match",
-      "confianca": 0
-    },
-    {
-      "marca": "GROWATT MIN",
-      "modelo": "8000TL-X(E)",
-      "tipo": "inversor",
-      "projetos": 3,
-      "classe": "sem_match",
-      "confianca": 0
-    },
-    {
-      "marca": "GROWATT MID",
-      "modelo": "25KTL3-X",
-      "tipo": "inversor",
-      "projetos": 3,
-      "classe": "sem_match",
-      "confianca": 0
-    },
-    {
-      "marca": "GROWATT MID",
-      "modelo": "36KTL3-X",
-      "tipo": "inversor",
-      "projetos": 3,
-      "classe": "sem_match",
-      "confianca": 0
-    },
-    {
-      "marca": "GROWATT MIC",
-      "modelo": "2000TL-X",
-      "tipo": "inversor",
-      "projetos": 3,
-      "classe": "sem_match",
-      "confianca": 0
-    },
-    {
       "marca": "DEYE",
       "modelo": "SUN-3K-G",
       "tipo": "inversor",
       "projetos": 3,
       "classe": "fuzzy",
       "confianca": 0.89
-    },
-    {
-      "marca": "LEAPTON SOLAR",
-      "modelo": "LP182-M-78-MH-590W",
-      "tipo": "modulo",
-      "projetos": 3,
-      "classe": "sem_match",
-      "confianca": 0
-    },
-    {
-      "marca": "HONOR SOLAR HY-M16/144H",
-      "modelo": "590W",
-      "tipo": "modulo",
-      "projetos": 3,
-      "classe": "sem_match",
-      "confianca": 0
-    },
-    {
-      "marca": "HONOR SOLAR HY-M10/144H",
-      "modelo": "555W",
-      "tipo": "modulo",
-      "projetos": 3,
-      "classe": "sem_match",
-      "confianca": 0
-    },
-    {
-      "marca": "LEAPTON SOLAR",
-      "modelo": "LP182-M-72-NB-585W",
-      "tipo": "modulo",
-      "projetos": 3,
-      "classe": "sem_match",
-      "confianca": 0
-    },
-    {
-      "marca": "DAH",
-      "modelo": "DHM72X10/FS-550W",
-      "tipo": "modulo",
-      "projetos": 3,
-      "classe": "fuzzy",
-      "confianca": 0.92
     },
     {
       "marca": "ZXMR-UPLDD144-600W",
@@ -394,34 +76,354 @@
       "confianca": 0
     },
     {
-      "marca": "HELIUS",
-      "modelo": "HMF132T12R-600HL",
+      "marca": "EMPALUX MF",
+      "modelo": "00690",
       "tipo": "modulo",
-      "projetos": 3,
+      "projetos": 2,
       "classe": "sem_match",
       "confianca": 0
     },
     {
-      "marca": "KEHUA TECH SPI36K-B",
-      "modelo": "X2",
-      "tipo": "inversor",
-      "projetos": 3,
+      "marca": "JINKO JKM550M-72HL4-V TIGER PRO 550W 144 CEL MONO HALF CELL",
+      "modelo": "21,33% EFICIENCI",
+      "tipo": "modulo",
+      "projetos": 2,
       "classe": "sem_match",
       "confianca": 0
     },
     {
-      "marca": "KEHUA TECH SPI20K-B",
-      "modelo": "X2",
-      "tipo": "inversor",
-      "projetos": 3,
+      "marca": "HELIUS HMB132T12R",
+      "modelo": "630",
+      "tipo": "modulo",
+      "projetos": 2,
       "classe": "sem_match",
       "confianca": 0
     },
     {
-      "marca": "GROWATT MIN",
-      "modelo": "10000 TL-X",
+      "marca": "SIRIUS-RS6 - 550MX -",
+      "modelo": "E3",
+      "tipo": "modulo",
+      "projetos": 2,
+      "classe": "sem_match",
+      "confianca": 0
+    },
+    {
+      "marca": "BELENERGY",
+      "modelo": "BEL-4K-G",
       "tipo": "inversor",
       "projetos": 2,
+      "classe": "sem_match",
+      "confianca": 0
+    },
+    {
+      "marca": "RONMA SOLAR",
+      "modelo": "RM-620W-182M/156TB",
+      "tipo": "modulo",
+      "projetos": 2,
+      "classe": "sem_match",
+      "confianca": 0
+    },
+    {
+      "marca": "DAH",
+      "modelo": "Solar Unit",
+      "tipo": "inversor",
+      "projetos": 2,
+      "classe": "sem_match",
+      "confianca": 0
+    },
+    {
+      "marca": "ZXMR-UPLDD144",
+      "modelo": "ZXMR-UPLDD144",
+      "tipo": "modulo",
+      "projetos": 2,
+      "classe": "sem_match",
+      "confianca": 0
+    },
+    {
+      "marca": "Solar",
+      "modelo": "Unit",
+      "tipo": "inversor",
+      "projetos": 2,
+      "classe": "sem_match",
+      "confianca": 0
+    },
+    {
+      "marca": "Dah",
+      "modelo": "SOlar unit",
+      "tipo": "inversor",
+      "projetos": 2,
+      "classe": "sem_match",
+      "confianca": 0
+    },
+    {
+      "marca": "DHN-SU1K5T-G0",
+      "modelo": "DHN-SU1K5T-G0",
+      "tipo": "inversor",
+      "projetos": 2,
+      "classe": "sem_match",
+      "confianca": 0
+    },
+    {
+      "marca": "PULLING ENERGY",
+      "modelo": "PU-585-SNM102",
+      "tipo": "modulo",
+      "projetos": 2,
+      "classe": "sem_match",
+      "confianca": 0
+    },
+    {
+      "marca": "SIRIUS BIFACIAL",
+      "modelo": "HD144N-550W",
+      "tipo": "modulo",
+      "projetos": 1,
+      "classe": "sem_match",
+      "confianca": 0
+    },
+    {
+      "marca": "SIRIUS GRAFENO-BIFACIAL - 535W -",
+      "modelo": "144 HALF CELL",
+      "tipo": "modulo",
+      "projetos": 1,
+      "classe": "sem_match",
+      "confianca": 0
+    },
+    {
+      "marca": "BYD",
+      "modelo": "MLK-36-530",
+      "tipo": "modulo",
+      "projetos": 1,
+      "classe": "sem_match",
+      "confianca": 0
+    },
+    {
+      "marca": "AE SOLAR",
+      "modelo": "AE460HM6L-60",
+      "tipo": "modulo",
+      "projetos": 1,
+      "classe": "sem_match",
+      "confianca": 0
+    },
+    {
+      "marca": "EMPALUX",
+      "modelo": "NAC15K-DT",
+      "tipo": "inversor",
+      "projetos": 1,
+      "classe": "sem_match",
+      "confianca": 0
+    },
+    {
+      "marca": "EMPALUX MF",
+      "modelo": "00605",
+      "tipo": "modulo",
+      "projetos": 1,
+      "classe": "sem_match",
+      "confianca": 0
+    },
+    {
+      "marca": "sl120000 - INVERSOR ON-GRID 120.0KW TRIFASICO",
+      "modelo": "380V",
+      "tipo": "inversor",
+      "projetos": 1,
+      "classe": "sem_match",
+      "confianca": 0
+    },
+    {
+      "marca": "LF465M8-72H",
+      "modelo": "LF465M8-72H",
+      "tipo": "modulo",
+      "projetos": 1,
+      "classe": "sem_match",
+      "confianca": 0
+    },
+    {
+      "marca": "SI03000",
+      "modelo": "SI03000",
+      "tipo": "inversor",
+      "projetos": 1,
+      "classe": "sem_match",
+      "confianca": 0
+    },
+    {
+      "marca": "HELIUS",
+      "modelo": "HMF144T10R-580HL",
+      "tipo": "modulo",
+      "projetos": 1,
+      "classe": "sem_match",
+      "confianca": 0
+    },
+    {
+      "marca": "EnergySun",
+      "modelo": "EnergySun",
+      "tipo": "modulo",
+      "projetos": 1,
+      "classe": "sem_match",
+      "confianca": 0
+    },
+    {
+      "marca": "HCP78x9-400w",
+      "modelo": "HCP78x9-400w",
+      "tipo": "modulo",
+      "projetos": 1,
+      "classe": "sem_match",
+      "confianca": 0
+    },
+    {
+      "marca": "Sirius Full Balck",
+      "modelo": "550w",
+      "tipo": "modulo",
+      "projetos": 1,
+      "classe": "sem_match",
+      "confianca": 0
+    },
+    {
+      "marca": "Sirius",
+      "modelo": "Full Balck",
+      "tipo": "modulo",
+      "projetos": 1,
+      "classe": "sem_match",
+      "confianca": 0
+    },
+    {
+      "marca": "ERA SOLAR",
+      "modelo": "ESPHSC-555M",
+      "tipo": "modulo",
+      "projetos": 1,
+      "classe": "sem_match",
+      "confianca": 0
+    },
+    {
+      "marca": "Sirius-RS6 - 550MX -",
+      "modelo": "E3",
+      "tipo": "modulo",
+      "projetos": 1,
+      "classe": "sem_match",
+      "confianca": 0
+    },
+    {
+      "marca": "ZXM7-SHLD144 -",
+      "modelo": "550W",
+      "tipo": "modulo",
+      "projetos": 1,
+      "classe": "sem_match",
+      "confianca": 0
+    },
+    {
+      "marca": "BELENERGY",
+      "modelo": "MFVHO-MO-120-460W",
+      "tipo": "modulo",
+      "projetos": 1,
+      "classe": "sem_match",
+      "confianca": 0
+    },
+    {
+      "marca": "CANADIAN SOLAR",
+      "modelo": "CSI-9K-S22002-ED",
+      "tipo": "inversor",
+      "projetos": 1,
+      "classe": "sem_match",
+      "confianca": 0
+    },
+    {
+      "marca": "JINKO JKM475N-60HL4-V TIGER NEO 475W 120 CEL. N TYPE MONO",
+      "modelo": "22,01% EFICIENCIA",
+      "tipo": "modulo",
+      "projetos": 1,
+      "classe": "sem_match",
+      "confianca": 0
+    },
+    {
+      "marca": "Trina550",
+      "modelo": "Trina550",
+      "tipo": "modulo",
+      "projetos": 1,
+      "classe": "sem_match",
+      "confianca": 0
+    },
+    {
+      "marca": "ZXM7-SHLD144-550/M",
+      "modelo": "ZXM7-SHLD144-550/M",
+      "tipo": "modulo",
+      "projetos": 1,
+      "classe": "sem_match",
+      "confianca": 0
+    },
+    {
+      "marca": "BELENERGY",
+      "modelo": "MFVHO-MO-144-550W",
+      "tipo": "modulo",
+      "projetos": 1,
+      "classe": "sem_match",
+      "confianca": 0
+    },
+    {
+      "marca": "MFVHN-MI-MO-144-550W",
+      "modelo": "MFVHN-MI-MO-144-550W",
+      "tipo": "modulo",
+      "projetos": 1,
+      "classe": "sem_match",
+      "confianca": 0
+    },
+    {
+      "marca": "TAOISTIC SOLAR TS-M10/144H",
+      "modelo": "545",
+      "tipo": "modulo",
+      "projetos": 1,
+      "classe": "sem_match",
+      "confianca": 0
+    },
+    {
+      "marca": "3KW",
+      "modelo": "BEL ENERGY PLUS",
+      "tipo": "inversor",
+      "projetos": 1,
+      "classe": "sem_match",
+      "confianca": 0
+    },
+    {
+      "marca": "-",
+      "modelo": "-",
+      "tipo": "inversor",
+      "projetos": 1,
+      "classe": "sem_match",
+      "confianca": 0
+    },
+    {
+      "marca": "PULLING ENERGY",
+      "modelo": "PU-625-DNM101",
+      "tipo": "modulo",
+      "projetos": 1,
+      "classe": "sem_match",
+      "confianca": 0
+    },
+    {
+      "marca": "BELENERGY",
+      "modelo": "60K-4G",
+      "tipo": "inversor",
+      "projetos": 1,
+      "classe": "sem_match",
+      "confianca": 0
+    },
+    {
+      "marca": "SUN-M225G4-EU-Q0",
+      "modelo": "SUN-M225G4-EU-Q0",
+      "tipo": "inversor",
+      "projetos": 1,
+      "classe": "sem_match",
+      "confianca": 0
+    },
+    {
+      "marca": "ERA SOLAR",
+      "modelo": "PRO-72HC-600M",
+      "tipo": "modulo",
+      "projetos": 1,
+      "classe": "sem_match",
+      "confianca": 0
+    },
+    {
+      "marca": "DAH",
+      "modelo": "DAH",
+      "tipo": "inversor",
+      "projetos": 1,
       "classe": "sem_match",
       "confianca": 0
     }

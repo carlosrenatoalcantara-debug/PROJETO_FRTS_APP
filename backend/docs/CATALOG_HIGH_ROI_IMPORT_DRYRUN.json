@@ -1,0 +1,55 @@
+{
+  "sprint": "P1-CATALOG-HIGH-ROI-IMPORT-01",
+  "fase": "FASE 4 — Dry Run (projeção antes da escrita)",
+  "gerado_em": "2026-06-12T01:05:00.000Z",
+  "dry_run": true,
+
+  "import_projetado": {
+    "total_datasheets_validados": 8,
+    "equipamentos_a_criar": 8,
+    "duplicatas_detectadas": 0,
+    "falhas": 0,
+    "ambiguidade": "nenhuma — cada datasheet valida fabricante+modelo exatos",
+    "modelos": [
+      { "fabricante": "Helius", "modelo": "HMF144T10-570HL", "specs": 15, "fonte": "alumifixsolar.com.br (datasheet oficial)" },
+      { "fabricante": "Helius", "modelo": "HMF132T10R-575HL", "specs": 15, "fonte": "loja.stentor.com.br (datasheet)" },
+      { "fabricante": "Helius", "modelo": "HMF132T12R-600HL", "specs": 15, "fonte": "loja.stentor.com.br (datasheet)" },
+      { "fabricante": "Helius", "modelo": "HMF144M10-555H", "specs": 15, "fonte": "loja.stentor.com.br/shop/manual/heliushmf144m10.pdf" },
+      { "fabricante": "Ronma Solar", "modelo": "RM-585W-182M/144TB", "specs": 16, "fonte": "ronmasolar.com.br/.../CATALOGO-TABLET.pdf" },
+      { "fabricante": "Ronma Solar", "modelo": "RM-570W-182M/144TB", "specs": 16, "fonte": "ronmasolar.com.br/.../CATALOGO-TABLET.pdf" },
+      { "fabricante": "Ronma Solar", "modelo": "RM-620W-182R/132TB", "specs": 16, "fonte": "ronmasolar.com.br/.../CATALOGO-TABLET.pdf" },
+      { "fabricante": "Sirius Energias Renováveis", "modelo": "SIRIUS-RS6-550MX-E3", "specs": 16, "fonte": "energiasirius.com/.../Datasheet-Modulo-Sirius-FullBlack-550w.pdf" }
+    ]
+  },
+
+  "rebind_projetado": {
+    "projetos_completos_antes": 372,
+    "projetos_completos_depois": 398,
+    "ganho": 26,
+    "binds_novos": 28,
+    "modulos_normalizado_conf095": 23,
+    "modulos_flexivel_conf095": 5,
+    "falsos_positivos": 0,
+    "detalhe_bind": {
+      "HELIUS_via_estrategia2_exata": 23,
+      "RONMA_via_indice_flexivel": 5,
+      "SIRIUS_full_black_bound_agora": 0
+    }
+  },
+
+  "respostas_fase4": {
+    "1_projetos_destravados": 26,
+    "2_equipamentos_criados": 8,
+    "3_falhas": 0,
+    "4_ambiguidade": "nenhuma"
+  },
+
+  "deferidos": {
+    "PULLING_ENERGY": "datasheet sem fonte primária acessível com Voc/Isc (apenas Scribd login-wall). Não fabricado. 5 projetos pendentes.",
+    "SIRIUS_HD144P_HD144N": "JÁ EXISTEM no Atlas (Sirius Energias Renováveis / SIRIUS-HD144P-545 e SIRIUS-HD144N-550). 15 projetos bloqueados por formato de modelo (A4: 'SIRIUS-' prefixo + 'W' sufixo) → requer FIX-02 no matcher. NÃO duplicar.",
+    "SIRIUS_FULL_BLACK_variantes": "entrada canônica criada; 7+ projetos com texto variante ('Full Black', 'RS6-550MX-E3', typos) precisam de aliases → FIX-02.",
+    "HELIUS_HMF132T12R-595HL": "595W não existe no datasheet HMF132T12R (range 600-625W). Rejeitado per regra anti-aproximação. 1 projeto.",
+    "HELIUS_HMF144T10R-580HL": "sufixo 'R' não confirmado no datasheet HMF144T10 (sem R). Rejeitado por precaução. 1 projeto.",
+    "RONMA_RM-620W-182M/156TB": "código '156TB' não consta no catálogo Ronma (apenas 144TB/132TB/210). Rejeitado. 2 projetos."
+  }
+}
