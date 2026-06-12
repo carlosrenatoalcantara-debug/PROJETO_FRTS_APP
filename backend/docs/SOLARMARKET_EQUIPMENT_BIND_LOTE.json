@@ -1,16 +1,16 @@
 {
-  "lote": "BIND-202606120108",
+  "lote": "BIND-202606121115",
   "dry_run": false,
-  "gerado_em": "2026-06-12T01:08:47.440Z",
+  "gerado_em": "2026-06-12T11:15:53.092Z",
   "rel": {
     "projetos_processados": 514,
     "paineis": {
       "exato": 0,
-      "normalizado": 23,
-      "flexivel": 5,
+      "normalizado": 0,
+      "flexivel": 0,
       "fuzzy": 2,
-      "sem_match": 94,
-      "ja_vinculado": 400,
+      "sem_match": 66,
+      "ja_vinculado": 456,
       "erros": 0
     },
     "inversores": {
@@ -22,32 +22,16 @@
       "ja_vinculado": 488,
       "erros": 0
     },
-    "binds_gravados": 28,
-    "projetos_totalmente_vinculados": 398,
+    "binds_gravados": 0,
+    "projetos_totalmente_vinculados": 426,
     "sem_match_detail": []
   },
   "sem_match_top50": [
-    {
-      "marca": "SIRIUS BIFACIAL",
-      "modelo": "HD144P-545W",
-      "tipo": "modulo",
-      "projetos": 14,
-      "classe": "sem_match",
-      "confianca": 0
-    },
     {
       "marca": "TSUN",
       "modelo": "TS-S8B-144-560W",
       "tipo": "modulo",
       "projetos": 9,
-      "classe": "sem_match",
-      "confianca": 0
-    },
-    {
-      "marca": "Sirius",
-      "modelo": "Full Black",
-      "tipo": "modulo",
-      "projetos": 7,
       "classe": "sem_match",
       "confianca": 0
     },
@@ -94,14 +78,6 @@
     {
       "marca": "HELIUS HMB132T12R",
       "modelo": "630",
-      "tipo": "modulo",
-      "projetos": 2,
-      "classe": "sem_match",
-      "confianca": 0
-    },
-    {
-      "marca": "SIRIUS-RS6 - 550MX -",
-      "modelo": "E3",
       "tipo": "modulo",
       "projetos": 2,
       "classe": "sem_match",
@@ -168,14 +144,6 @@
       "modelo": "PU-585-SNM102",
       "tipo": "modulo",
       "projetos": 2,
-      "classe": "sem_match",
-      "confianca": 0
-    },
-    {
-      "marca": "SIRIUS BIFACIAL",
-      "modelo": "HD144N-550W",
-      "tipo": "modulo",
-      "projetos": 1,
       "classe": "sem_match",
       "confianca": 0
     },
@@ -268,32 +236,8 @@
       "confianca": 0
     },
     {
-      "marca": "Sirius Full Balck",
-      "modelo": "550w",
-      "tipo": "modulo",
-      "projetos": 1,
-      "classe": "sem_match",
-      "confianca": 0
-    },
-    {
-      "marca": "Sirius",
-      "modelo": "Full Balck",
-      "tipo": "modulo",
-      "projetos": 1,
-      "classe": "sem_match",
-      "confianca": 0
-    },
-    {
       "marca": "ERA SOLAR",
       "modelo": "ESPHSC-555M",
-      "tipo": "modulo",
-      "projetos": 1,
-      "classe": "sem_match",
-      "confianca": 0
-    },
-    {
-      "marca": "Sirius-RS6 - 550MX -",
-      "modelo": "E3",
       "tipo": "modulo",
       "projetos": 1,
       "classe": "sem_match",
@@ -423,6 +367,62 @@
       "marca": "DAH",
       "modelo": "DAH",
       "tipo": "inversor",
+      "projetos": 1,
+      "classe": "sem_match",
+      "confianca": 0
+    },
+    {
+      "marca": "AE SOLAR",
+      "modelo": "AE340M6-72",
+      "tipo": "modulo",
+      "projetos": 1,
+      "classe": "sem_match",
+      "confianca": 0
+    },
+    {
+      "marca": "WEG SIW200",
+      "modelo": "M100",
+      "tipo": "inversor",
+      "projetos": 1,
+      "classe": "sem_match",
+      "confianca": 0
+    },
+    {
+      "marca": "ZNshine",
+      "modelo": "650w",
+      "tipo": "modulo",
+      "projetos": 1,
+      "classe": "fuzzy",
+      "confianca": 0.89
+    },
+    {
+      "marca": "PULLING ENERGY",
+      "modelo": "PU-620-SNM102",
+      "tipo": "modulo",
+      "projetos": 1,
+      "classe": "sem_match",
+      "confianca": 0
+    },
+    {
+      "marca": "JAM72D42-630/LB",
+      "modelo": "JAM72D42-630/LB",
+      "tipo": "modulo",
+      "projetos": 1,
+      "classe": "sem_match",
+      "confianca": 0
+    },
+    {
+      "marca": "RENESOLA",
+      "modelo": "RS6-580NBG-E3",
+      "tipo": "modulo",
+      "projetos": 1,
+      "classe": "fuzzy",
+      "confianca": 0.89
+    },
+    {
+      "marca": "ZNS",
+      "modelo": "600W Bifacial",
+      "tipo": "modulo",
       "projetos": 1,
       "classe": "sem_match",
       "confianca": 0

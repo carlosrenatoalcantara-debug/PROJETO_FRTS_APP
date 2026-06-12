@@ -1,0 +1,58 @@
+{
+  "sprint": "P0-CATALOG-MATCHER-FIX-02",
+  "gerado_em": "2026-06-12T00:00:00.000Z",
+  "objetivo": "Sanar gargalos de nomenclatura (aliases de produto Sirius/Helius) e ingerir HELIUS 595HL sem corromper o SSOT, idempotente.",
+
+  "fase1_helius595": {
+    "criado": { "fabricante": "Helius", "modelo": "HMF132T12R-595HL", "_id": "6a2be9862972b3ad70d4ef4f", "qualidade": "utilizavel", "score": 75 },
+    "fonte_datasheet": "Helius oficial rev. Dez/2024 (he-solar.com), coluna 595HL",
+    "specs_stc": { "potencia_wp": 595, "vmp": 39.28, "imp": 15.15, "voc": 47.50, "isc": 15.90, "eficiencia": 22.00 },
+    "mecanicos": { "dimensoes": "2382x1134x30 mm", "peso_kg": 28.2, "celulas": 132, "ip": "IP68" },
+    "validacao_pmax": "39.28 x 15.15 = 595.1 ≈ 595 ✓",
+    "matcher_ocr": "alias 'HELIUS HMF132TI2R-595HL' (I→1) adicionado por precaução"
+  },
+
+  "fase2_3_produto_aliases": {
+    "mecanismo": "PRODUTO_ALIASES em matcher.js: normalizarAgressive(marca+modelo do projeto) → par canônico {fabricante, modelo} no Atlas. Integrado a resolverCandidatos; resolvido pelo índice flexível existente. Sem fuzzy.",
+    "mapeamentos": [
+      { "canonical": "Sirius Energias Renováveis / SIRIUS-HD144P-545", "variantes": ["SIRIUS BIFACIAL / HD144P-545W"], "projetos_vinculados": 14, "causa": "A4 formato (prefixo SIRIUS- + sufixo W)" },
+      { "canonical": "Sirius Energias Renováveis / SIRIUS-HD144N-550", "variantes": ["SIRIUS BIFACIAL / HD144N-550W"], "projetos_vinculados": 1, "causa": "A4 formato" },
+      { "canonical": "Sirius Energias Renováveis / SIRIUS-RS6-550MX-E3", "variantes": ["Sirius / Full Black", "SIRIUS-RS6 - 550MX - / E3", "Sirius-RS6 - 550MX - / E3", "Sirius Full Balck / 550w", "Sirius / Full Balck", "SIRIUS FULL BLACK - 550W"], "projetos_vinculados": 12, "causa": "apelo estético + typo" },
+      { "canonical": "Helius / HMF132T12R-595HL", "variantes": ["HELIUS / HMF132T12R-595HL", "HELIUS / HMF132TI2R-595HL"], "projetos_vinculados": 1, "causa": "ingestão FASE 1 + OCR" }
+    ]
+  },
+
+  "rebind": {
+    "cobertura_antes": 398,
+    "cobertura_depois": 426,
+    "ganho": 28,
+    "pct_antes": 77.4,
+    "pct_depois": 82.9,
+    "binds_gravados": 28,
+    "modulos_normalizado": 1,
+    "modulos_flexivel": 27,
+    "falsos_positivos": 0
+  },
+
+  "idempotencia": {
+    "reingest_helius595": "JÁ EXISTE (0 duplicata)",
+    "rebind_2a_execucao": "0 binds novos, 426 mantidos"
+  },
+
+  "nao_mapeados_proposital": [
+    { "item": "HELIUS HMB132T12R / 630", "motivo": "HMB (não HMF) + 630W ≠ 595; modelo distinto sem datasheet" },
+    { "item": "HELIUS / HMF144T10R-580HL", "motivo": "sufixo 'R' não confirmado no datasheet HMF144T10" },
+    { "item": "SIRIUS GRAFENO-BIFACIAL 535W / 144 HALF CELL", "motivo": "produto Grafeno 535W distinto, datasheet não fornecido" },
+    { "item": "RENESOLA / RS6-580NBG-E3", "motivo": "fabricante distinto (Renesola)" },
+    { "item": "600w / Bifacial com grafeno", "motivo": "dado corrompido" }
+  ],
+
+  "criterios_aceite": {
+    "datasheet_validado": true,
+    "sem_duplicacao": true,
+    "sem_sobrescrever_catalogo": true,
+    "rebind_executado": true,
+    "idempotente": true,
+    "ssot_integro": true
+  }
+}

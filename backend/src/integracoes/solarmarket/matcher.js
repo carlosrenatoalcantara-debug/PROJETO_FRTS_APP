@@ -37,6 +37,63 @@ const FABRICANTE_ALIASES = [
   { sm: 'OSDA',               atlas: 'OSDA SOLAR' },
 ].sort((a, b) => b.sm.length - a.sm.length)
 
+// ─── Dicionário de aliases de PRODUTO (marca+modelo → equipamento canônico) ───
+// P0-CATALOG-MATCHER-FIX-02.
+//
+// Diferente de FABRICANTE_ALIASES (que só troca o fabricante), aqui mapeamos a
+// COMBINAÇÃO bruta marca+modelo de um projeto para o par canônico {fabricante, modelo}
+// exato de um equipamento já no Atlas. Resolve dois gargalos:
+//
+//   A4 (formato de modelo): projeto "SIRIUS BIFACIAL"/"HD144P-545W" vs Atlas
+//       "Sirius Energias Renováveis"/"SIRIUS-HD144P-545" — prefixo "SIRIUS-" + sufixo "W".
+//   Apelo estético / OCR: "Sirius"/"Full Black", "SIRIUS-RS6 - 550MX -"/"E3",
+//       typo "Full Balck", e variação de OCR "HMF132TI2R" (I no lugar de 1).
+//
+// Cada `variantes` é casada por normalizarAgressive (só A-Z0-9). O `canonical` precisa
+// existir no Atlas (índice flexível) para o bind resolver. NUNCA usa fuzzy — só igualdade
+// exata da string agressivamente normalizada, mantendo o SSOT íntegro e auditável.
+const PRODUTO_ALIASES = [
+  {
+    canonical: { fabricante: 'Sirius Energias Renováveis', modelo: 'SIRIUS-HD144P-545' },
+    variantes: ['SIRIUS BIFACIAL HD144P-545W'],
+  },
+  {
+    canonical: { fabricante: 'Sirius Energias Renováveis', modelo: 'SIRIUS-HD144N-550' },
+    variantes: ['SIRIUS BIFACIAL HD144N-550W'],
+  },
+  {
+    canonical: { fabricante: 'Sirius Energias Renováveis', modelo: 'SIRIUS-RS6-550MX-E3' },
+    variantes: [
+      'Sirius Full Black',
+      'Sirius Full Black 550W',
+      'SIRIUS FULL BLACK - 550W',
+      'Sirius Full Balck 550w',   // typo no projeto
+      'Sirius Full Balck',        // typo no projeto
+      'SIRIUS-RS6 - 550MX - E3',
+      'Sirius-RS6 - 550MX - E3',
+    ],
+  },
+  {
+    canonical: { fabricante: 'Helius', modelo: 'HMF132T12R-595HL' },
+    variantes: [
+      'HELIUS HMF132T12R-595HL',
+      'HELIUS HMF132TI2R-595HL',  // OCR: "I" maiúsculo no lugar de "1"
+    ],
+  },
+]
+
+// Índice: normalizarAgressive(variante) → { fabricante, modelo } canônico.
+// Construído uma vez no carregamento do módulo.
+const PRODUTO_ALIAS_INDEX = new Map()
+for (const entry of PRODUTO_ALIASES) {
+  for (const v of entry.variantes) {
+    const key = normalizarAgressive(v)
+    if (key && !PRODUTO_ALIAS_INDEX.has(key)) {
+      PRODUTO_ALIAS_INDEX.set(key, entry.canonical)
+    }
+  }
+}
+
 // ─── Resolução de candidatos (combinações marca+modelo a testar) ──────────────
 
 /**
@@ -50,6 +107,14 @@ const FABRICANTE_ALIASES = [
 function resolverCandidatos(marcaBruta, modeloBruto) {
   const candidates = [{ marca: marcaBruta, modelo: modeloBruto }]
   const marcaUpper = marcaBruta.trim().toUpperCase()
+
+  // Alias de PRODUTO (FIX-02): a combinação bruta marca+modelo aponta direto
+  // para o par canônico no Atlas. Verificado primeiro por ser o mais específico.
+  const blobNorm = normalizarAgressive(`${marcaBruta} ${modeloBruto}`)
+  const canon = PRODUTO_ALIAS_INDEX.get(blobNorm)
+  if (canon) {
+    candidates.push({ marca: canon.fabricante, modelo: canon.modelo })
+  }
 
   for (const alias of FABRICANTE_ALIASES) {
     const aliasUpper = alias.sm.toUpperCase()
