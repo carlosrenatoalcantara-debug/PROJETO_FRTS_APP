@@ -78,6 +78,7 @@ import rotasProjetosFV from './routes/projetosFV.js'
 import rotasPublico from './routes/publico.js'
 import rotasEmpresa from './routes/empresa.js'
 import rotasGestao from './routes/gestao.js'
+import rotasAtivos from './routes/ativos.js'   // P1-ASSET-CORE-01
 import rotasPainel from './routes/painel.js'
 import rotasAlertCenter from './routes/alertcenter.js'   // S8.8
 import rotasCatalogoDiagnostico from './routes/catalogoDiagnostico.js'  // CAT-P0-UNIFY
@@ -229,6 +230,7 @@ app.use('/api/projetos-fv',  protegerModulo('fv'), rotasProjetosFV)
 app.use('/api/publico',      rotasPublico)   // S5 — leitura pública (sem RBAC, é público)
 app.use('/api/empresa',      protegerModulo('configuracoes'), rotasEmpresa)   // S7.1
 app.use('/api/gestao',       protegerModulo('configuracoes'), rotasGestao)    // S7.2
+app.use('/api/ativos',       rotasAtivos)    // P1-ASSET-CORE-01 — Gêmeo Digital
 app.use('/api/painel',       rotasPainel)    // S7.3 — painel executivo, health, auditoria
 app.use('/api/alertcenter',  rotasAlertCenter)  // S8.8 — AlertCenter unificado
 app.use('/api/catalogo',     rotasCatalogoDiagnostico)  // CAT-P0-UNIFY — diagnóstico (read-only)
