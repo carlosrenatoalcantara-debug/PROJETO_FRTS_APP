@@ -661,6 +661,35 @@ const projetoFVSchema = new mongoose.Schema({
       origem_bind: { type: String, default: null },
       equipamento_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Equipamento', default: null },
     }],
+    // P1-PROJETO-AMPLIACAO-MULTIINVERSOR-IMPLEMENT-01 — BESS por arranjo (FV+BESS)
+    baterias: [{
+      id: String, marca: String, fabricante: String, modelo: String,
+      capacidade_kwh: Number, quantidade: { type: Number, default: 1 },
+      equipamento_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Equipamento', default: null },
+    }],
+    // origem: como o arranjo surgiu (original do projeto ou de uma ampliação)
+    origem: { type: String, enum: ['original', 'ampliacao'], default: 'original' },
+    // topologia elétrica do arranjo (inferida ou definida)
+    topologia: {
+      type: String,
+      enum: ['string', 'micro', 'hibrido', 'off-grid', 'otimizador', 'bess', null],
+      default: null,
+    },
+    // FASE 3 — configuração elétrica POR ARRANJO (string e/ou micro)
+    configuracao_eletrica: {
+      n_mppts:           { type: Number, default: null },  // string
+      strings_por_mppt:  { type: Number, default: null },  // string
+      tensao_string_v:   { type: Number, default: null },  // string
+      n_microinversores: { type: Number, default: null },  // micro
+      entradas_por_micro:{ type: Number, default: null },  // micro
+    },
+    // FASE 4 — dimensionamento POR ARRANJO (cache; recalculado pelo service)
+    dimensionamento: {
+      potencia_kwp:       { type: Number, default: null },
+      geracao_mensal_kwh: { type: Number, default: null },
+      n_modulos:          { type: Number, default: null },
+      n_inversores:       { type: Number, default: null },
+    },
     potencia_kwp:        { type: Number, default: null }, // potência DC do arranjo
     potencia_inversor_kw:{ type: Number, default: null }, // potência AC do arranjo
     observacao:          { type: String, default: null },

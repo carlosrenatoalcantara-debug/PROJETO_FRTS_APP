@@ -28,6 +28,7 @@ import {
   criarCompartilhamento,
   duplicarProjetoFV,           // S8.4 — ciclo de vida
   ampliarProjetoFV,            // P1-UX-CORE-EVOLUTION-01 (FASE 4)
+  totaisProjetoFV,             // P1-MULTIINVERSOR (FASE 4)
   arquivarProjetoFV,
   restaurarProjetoFV,
   alterarStatusCiclo,
@@ -81,6 +82,7 @@ router.post('/:id/governanca/comercial/compartilhar', criarCompartilhamento)
 // ── CRUD existente (preservado) ─────────────────────────────────────────────
 router.get('/',                    listarProjetosFV)
 router.get('/:id',                 buscarProjetoFV)
+router.get('/:id/totais',          totaisProjetoFV)
 router.get('/:id/telhado',         obterTelhado)
 router.get('/cliente/:clienteId',  listarProjetosFVPorCliente)
 router.post('/',                   criarProjetoFV)

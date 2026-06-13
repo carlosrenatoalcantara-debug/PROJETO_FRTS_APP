@@ -4,7 +4,7 @@ import { Tecnico } from '../models/Tecnico.js'
 import mongoose from 'mongoose'
 import { memoryStore } from '../config/memoryStorage.js'
 import { montarSnapshotRT } from '../utils/snapshotRT.js'
-import { montarArranjosAmpliacao, normalizarArranjos } from '../services/arranjosService.js'
+import { montarArranjosAmpliacao, normalizarArranjos, calcularTotaisProjeto } from '../services/arranjosService.js'
 import {
   derivarStatusSeguro, paraModel, podeExcluirDefinitivo, avaliarLegacy, MOTIVOS_ARQUIVAMENTO,
 } from '../utils/statusLifecycle.js'
@@ -85,9 +85,33 @@ export const buscarProjetoFV = async (req, res) => {
       }
     }
     if (!p) return res.status(404).json({ mensagem: 'Projeto não encontrado' })
-    res.json(enriquecer(p))
+    // P1-MULTIINVERSOR (FASE 4/6): expõe arranjos normalizados + totais para os
+    // consumidores (memorial, unifilar, parecer) lerem SEMPRE de arranjos[],
+    // inclusive em projetos legados (derivação do equipamentos.inversor único).
+    const base = enriquecer(p)
+    const plano = typeof p.toObject === 'function' ? p.toObject() : p
+    base.arranjos_normalizados = normalizarArranjos(plano)
+    base.totais = calcularTotaisProjeto(plano)
+    res.json(base)
   } catch (err) {
     console.error('❌ Erro ao buscar projeto FV:', err)
+    res.status(500).json({ erro: err.message })
+  }
+}
+
+// P1-PROJETO-AMPLIACAO-MULTIINVERSOR-IMPLEMENT-01 (FASE 4) — totais consolidados
+export const totaisProjetoFV = async (req, res) => {
+  try {
+    if (!_exigirMongo(res)) return
+    const p = await ProjetoFV.findById(req.params.id).lean()
+    if (!p) return res.status(404).json({ mensagem: 'Projeto não encontrado' })
+    res.json({
+      sucesso: true,
+      projeto_id: p._id,
+      arranjos: normalizarArranjos(p),
+      totais: calcularTotaisProjeto(p),
+    })
+  } catch (err) {
     res.status(500).json({ erro: err.message })
   }
 }
