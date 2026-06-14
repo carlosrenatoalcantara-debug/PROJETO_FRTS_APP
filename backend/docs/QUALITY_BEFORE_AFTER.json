@@ -1,0 +1,140 @@
+{
+  "sprint": "P0-QUALITY-REPROCESS-01",
+  "gerado_em": "2026-06-14T19:08:22.582Z",
+  "mecanismo": "POST /api/admin/catalogo/reprocessar-todos (oficial, sem alteracao de regras)",
+  "execucao_reprocessamento": {
+    "sucesso": true,
+    "total_encontrados": 358,
+    "processados": 358,
+    "sem_mudanca": 234,
+    "erros": 0,
+    "erros_detalhe": [],
+    "processado_em": "2026-06-14T19:05:27.460Z"
+  },
+  "antes": {
+    "score_global_medio": 27.5,
+    "completude_score_medio": 35.8,
+    "confianca_score_medio": 22.1,
+    "niveis": {
+      "validado": 0,
+      "utilizavel": 28,
+      "incompleto": 4,
+      "suspeito": 64,
+      "invalido": 262
+    },
+    "validos_validado_mais_utilizavel": 28,
+    "total_ocorrencias_alerta": 266,
+    "alertas": {
+      "SEM_ESPECIFICACOES": 199,
+      "ISC_MPPT_IMPLAUSIVEL": 18,
+      "TIPO_INVALIDO": 15,
+      "MPPT_FAIXA_IMPLAUSIVEL": 7,
+      "TENSAO_SAIDA_NAO_PADRAO": 6,
+      "RAZAO_IMPP_ISC_FORA_FAIXA": 6,
+      "IMPP_MAIOR_QUE_ISC": 6,
+      "POTENCIA_FORA_FAIXA_COMERCIAL": 5,
+      "POTENCIA_FORA_FAIXA": 3,
+      "SEM_TIPO": 1
+    }
+  },
+  "depois": {
+    "score_global_medio": 34.3,
+    "completude_score_medio": 52.2,
+    "confianca_score_medio": 22.6,
+    "niveis": {
+      "validado": 1,
+      "utilizavel": 27,
+      "incompleto": 11,
+      "suspeito": 164,
+      "invalido": 155
+    },
+    "validos_validado_mais_utilizavel": 28,
+    "total_ocorrencias_alerta": 203,
+    "alertas": {
+      "SEM_ESPECIFICACOES": 132,
+      "ISC_MPPT_IMPLAUSIVEL": 16,
+      "TIPO_INVALIDO": 15,
+      "MPPT_FAIXA_IMPLAUSIVEL": 7,
+      "TENSAO_SAIDA_NAO_PADRAO": 7,
+      "IMPP_MAIOR_QUE_ISC": 6,
+      "RAZAO_IMPP_ISC_FORA_FAIXA": 6,
+      "POTENCIA_NAO_BATE_VxI": 5,
+      "POTENCIA_FORA_FAIXA_COMERCIAL": 5,
+      "POTENCIA_FORA_FAIXA": 3,
+      "SEM_TIPO": 1
+    }
+  },
+  "deltas": {
+    "score_global_medio": 6.8,
+    "invalido": -107,
+    "suspeito": 100,
+    "incompleto": 7,
+    "utilizavel": -1,
+    "validado": 1,
+    "total_ocorrencias_alerta": -63,
+    "por_alerta": {
+      "SEM_ESPECIFICACOES": {
+        "antes": 199,
+        "depois": 132,
+        "delta": -67
+      },
+      "ISC_MPPT_IMPLAUSIVEL": {
+        "antes": 18,
+        "depois": 16,
+        "delta": -2
+      },
+      "TIPO_INVALIDO": {
+        "antes": 15,
+        "depois": 15,
+        "delta": 0
+      },
+      "MPPT_FAIXA_IMPLAUSIVEL": {
+        "antes": 7,
+        "depois": 7,
+        "delta": 0
+      },
+      "TENSAO_SAIDA_NAO_PADRAO": {
+        "antes": 6,
+        "depois": 7,
+        "delta": 1
+      },
+      "RAZAO_IMPP_ISC_FORA_FAIXA": {
+        "antes": 6,
+        "depois": 6,
+        "delta": 0
+      },
+      "IMPP_MAIOR_QUE_ISC": {
+        "antes": 6,
+        "depois": 6,
+        "delta": 0
+      },
+      "POTENCIA_FORA_FAIXA_COMERCIAL": {
+        "antes": 5,
+        "depois": 5,
+        "delta": 0
+      },
+      "POTENCIA_FORA_FAIXA": {
+        "antes": 3,
+        "depois": 3,
+        "delta": 0
+      },
+      "SEM_TIPO": {
+        "antes": 1,
+        "depois": 1,
+        "delta": 0
+      },
+      "POTENCIA_NAO_BATE_VxI": {
+        "antes": 0,
+        "depois": 5,
+        "delta": 5
+      }
+    }
+  },
+  "conciliacao_forense": {
+    "forense_live_invalido": 155,
+    "painel_depois_invalido": 155,
+    "bate": true,
+    "forense_live_sem_especificacoes": 132,
+    "painel_depois_sem_especificacoes": 132
+  }
+}

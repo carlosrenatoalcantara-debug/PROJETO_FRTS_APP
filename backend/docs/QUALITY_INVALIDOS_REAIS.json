@@ -1,0 +1,2217 @@
+{
+  "sprint": "P0-QUALITY-REPROCESS-01",
+  "fase": "5-6",
+  "gerado_em": "2026-06-14T19:06:50.374Z",
+  "read_only": true,
+  "total_invalidos_reais": 155,
+  "classificacao_primaria": {
+    "SEM_ESPECIFICACOES": 132,
+    "TIPO_INVALIDO": 15,
+    "IMPP_MAIOR_QUE_ISC": 6,
+    "ISC_MPPT_IMPLAUSIVEL": 0,
+    "MPPT_FAIXA_IMPLAUSIVEL": 0,
+    "outros": 2
+  },
+  "ocorrencias_por_categoria": {
+    "SEM_ESPECIFICACOES": 132,
+    "TIPO_INVALIDO": 15,
+    "IMPP_MAIOR_QUE_ISC": 6,
+    "ISC_MPPT_IMPLAUSIVEL": 0,
+    "MPPT_FAIXA_IMPLAUSIVEL": 0
+  },
+  "invalidos_sem_categoria_alvo": 2,
+  "por_tipo": {
+    "modulo": 8,
+    "carregador_ev": 16,
+    "inversor": 131
+  },
+  "solarmarket": {
+    "total": 132,
+    "modulos": 1,
+    "inversores": 131,
+    "carregadores_ev": 0
+  },
+  "separado": {
+    "modulos": [
+      {
+        "_id": "6a00cb9eaaed4afe99b83699",
+        "tipo": "modulo",
+        "fabricante": "Risen Energy",
+        "modelo": "Módulo",
+        "score_global": 16,
+        "origem_tipo": "desconhecido",
+        "origem_fonte": null,
+        "solarmarket": false,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a076b856b245bcab127202a",
+        "tipo": "modulo",
+        "fabricante": "Neosolar",
+        "modelo": "NS400W",
+        "score_global": 32,
+        "origem_tipo": "desconhecido",
+        "origem_fonte": null,
+        "solarmarket": false,
+        "categoria_primaria": "IMPP_MAIOR_QUE_ISC",
+        "codigos_alerta": [
+          "IMPP_MAIOR_QUE_ISC",
+          "RAZAO_IMPP_ISC_FORA_FAIXA"
+        ]
+      },
+      {
+        "_id": "6a076b866b245bcab127202b",
+        "tipo": "modulo",
+        "fabricante": "Neosolar",
+        "modelo": "NS550W",
+        "score_global": 32,
+        "origem_tipo": "desconhecido",
+        "origem_fonte": null,
+        "solarmarket": false,
+        "categoria_primaria": "IMPP_MAIOR_QUE_ISC",
+        "codigos_alerta": [
+          "IMPP_MAIOR_QUE_ISC",
+          "RAZAO_IMPP_ISC_FORA_FAIXA"
+        ]
+      },
+      {
+        "_id": "6a076b876b245bcab127202c",
+        "tipo": "modulo",
+        "fabricante": "Canadian Solar",
+        "modelo": "CS3K-400MS",
+        "score_global": 32,
+        "origem_tipo": "desconhecido",
+        "origem_fonte": null,
+        "solarmarket": false,
+        "categoria_primaria": "IMPP_MAIOR_QUE_ISC",
+        "codigos_alerta": [
+          "IMPP_MAIOR_QUE_ISC",
+          "RAZAO_IMPP_ISC_FORA_FAIXA"
+        ]
+      },
+      {
+        "_id": "6a076e8a6b245bcab1272034",
+        "tipo": "modulo",
+        "fabricante": "Neosolar",
+        "modelo": "NS400W",
+        "score_global": 32,
+        "origem_tipo": "desconhecido",
+        "origem_fonte": null,
+        "solarmarket": false,
+        "categoria_primaria": "IMPP_MAIOR_QUE_ISC",
+        "codigos_alerta": [
+          "IMPP_MAIOR_QUE_ISC",
+          "RAZAO_IMPP_ISC_FORA_FAIXA"
+        ]
+      },
+      {
+        "_id": "6a076e8b6b245bcab1272035",
+        "tipo": "modulo",
+        "fabricante": "Neosolar",
+        "modelo": "NS550W",
+        "score_global": 32,
+        "origem_tipo": "desconhecido",
+        "origem_fonte": null,
+        "solarmarket": false,
+        "categoria_primaria": "IMPP_MAIOR_QUE_ISC",
+        "codigos_alerta": [
+          "IMPP_MAIOR_QUE_ISC",
+          "RAZAO_IMPP_ISC_FORA_FAIXA"
+        ]
+      },
+      {
+        "_id": "6a076e8b6b245bcab1272036",
+        "tipo": "modulo",
+        "fabricante": "Canadian Solar",
+        "modelo": "CS3K-400MS",
+        "score_global": 32,
+        "origem_tipo": "desconhecido",
+        "origem_fonte": null,
+        "solarmarket": false,
+        "categoria_primaria": "IMPP_MAIOR_QUE_ISC",
+        "codigos_alerta": [
+          "IMPP_MAIOR_QUE_ISC",
+          "RAZAO_IMPP_ISC_FORA_FAIXA"
+        ]
+      },
+      {
+        "_id": "6a272b000bb8928e11abce1d",
+        "tipo": "modulo",
+        "fabricante": "Leapton",
+        "modelo": "LP182-M-72-NB",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      }
+    ],
+    "inversores": [
+      {
+        "_id": "6a272aff0bb8928e11abce0d",
+        "tipo": "inversor",
+        "fabricante": "Deye",
+        "modelo": "SUN2000G-US-220",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272aff0bb8928e11abce0f",
+        "tipo": "inversor",
+        "fabricante": "Deye",
+        "modelo": "SUN-5K-G @220",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272aff0bb8928e11abce10",
+        "tipo": "inversor",
+        "fabricante": "Deye",
+        "modelo": "SUN2000G3-US-220",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272aff0bb8928e11abce12",
+        "tipo": "inversor",
+        "fabricante": "Deye",
+        "modelo": "SUN-75K-G",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272aff0bb8928e11abce13",
+        "tipo": "inversor",
+        "fabricante": "Saj",
+        "modelo": "M2-2.25K-S4",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272aff0bb8928e11abce14",
+        "tipo": "inversor",
+        "fabricante": "Deye",
+        "modelo": "SUN-35K-G03",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272aff0bb8928e11abce16",
+        "tipo": "inversor",
+        "fabricante": "Growatt",
+        "modelo": "MAC 60KTL3-X LV",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272aff0bb8928e11abce19",
+        "tipo": "inversor",
+        "fabricante": "Solaredge",
+        "modelo": "SE 20.1K 380/220v",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272aff0bb8928e11abce1a",
+        "tipo": "inversor",
+        "fabricante": "Solaredge",
+        "modelo": "SE 27.6K 380/220v",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b000bb8928e11abce1c",
+        "tipo": "inversor",
+        "fabricante": "Deye",
+        "modelo": "SUN-8K-G03",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b000bb8928e11abce1e",
+        "tipo": "inversor",
+        "fabricante": "Hoymiles",
+        "modelo": "HMS-2000DW-4T",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b000bb8928e11abce20",
+        "tipo": "inversor",
+        "fabricante": "Growatt",
+        "modelo": "MIC 3000TL-X",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b000bb8928e11abce23",
+        "tipo": "inversor",
+        "fabricante": "Growatt",
+        "modelo": "MIN 5000TL-X",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b000bb8928e11abce25",
+        "tipo": "inversor",
+        "fabricante": "Tsun",
+        "modelo": "TSOL-MX2250",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b000bb8928e11abce26",
+        "tipo": "inversor",
+        "fabricante": "Deye",
+        "modelo": "SUN-35K-G02",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b000bb8928e11abce28",
+        "tipo": "inversor",
+        "fabricante": "Solaredge",
+        "modelo": "SE 75K 380/220v",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b000bb8928e11abce2a",
+        "tipo": "inversor",
+        "fabricante": "Growatt",
+        "modelo": "MAX 75KTL3 LV",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b010bb8928e11abce2e",
+        "tipo": "inversor",
+        "fabricante": "Growatt",
+        "modelo": "MIN 8000TL-X(E)",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b010bb8928e11abce2f",
+        "tipo": "inversor",
+        "fabricante": "Deye",
+        "modelo": "SUN-30K-G",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b010bb8928e11abce30",
+        "tipo": "inversor",
+        "fabricante": "Deye",
+        "modelo": "SUN-8K-G",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b010bb8928e11abce31",
+        "tipo": "inversor",
+        "fabricante": "Growatt",
+        "modelo": "MIN 6000TL-X",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b010bb8928e11abce33",
+        "tipo": "inversor",
+        "fabricante": "Deye",
+        "modelo": "SUN-M225G4-EU-Q0",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b010bb8928e11abce35",
+        "tipo": "inversor",
+        "fabricante": "Solaredge",
+        "modelo": "SE 27.6K 220/127v",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b010bb8928e11abce36",
+        "tipo": "inversor",
+        "fabricante": "Growatt",
+        "modelo": "MID 36KTL3-X",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b010bb8928e11abce39",
+        "tipo": "inversor",
+        "fabricante": "Growatt",
+        "modelo": "MIN 10000 TL-X",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b010bb8928e11abce3b",
+        "tipo": "inversor",
+        "fabricante": "Tsun",
+        "modelo": "TSOL-MP2250",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b010bb8928e11abce3c",
+        "tipo": "inversor",
+        "fabricante": "Kehua",
+        "modelo": "TECH SPI20K-B",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b020bb8928e11abce3e",
+        "tipo": "inversor",
+        "fabricante": "Growatt",
+        "modelo": "MID 40KTL3-X",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b020bb8928e11abce41",
+        "tipo": "inversor",
+        "fabricante": "Growatt",
+        "modelo": "MIC 2000TL-X",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b020bb8928e11abce42",
+        "tipo": "inversor",
+        "fabricante": "Growatt",
+        "modelo": "MIC 2500TL-X",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b020bb8928e11abce44",
+        "tipo": "inversor",
+        "fabricante": "Kehua",
+        "modelo": "TECH SPI15K-B X2",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b020bb8928e11abce45",
+        "tipo": "inversor",
+        "fabricante": "Deye",
+        "modelo": "SUN-20K-G",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b020bb8928e11abce47",
+        "tipo": "inversor",
+        "fabricante": "Solis",
+        "modelo": "50K",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b020bb8928e11abce4a",
+        "tipo": "inversor",
+        "fabricante": "Solaredge",
+        "modelo": "SE 20.1K 220/127v",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b020bb8928e11abce4c",
+        "tipo": "inversor",
+        "fabricante": "Kehua",
+        "modelo": "TECH SPI60K-B",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b020bb8928e11abce4d",
+        "tipo": "inversor",
+        "fabricante": "Deye",
+        "modelo": "SUN-25K-G02",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b030bb8928e11abce4f",
+        "tipo": "inversor",
+        "fabricante": "Kehua",
+        "modelo": "TECH SPI30K-B X2",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b030bb8928e11abce51",
+        "tipo": "inversor",
+        "fabricante": "Growatt",
+        "modelo": "50000TL3-S",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b030bb8928e11abce52",
+        "tipo": "inversor",
+        "fabricante": "Chint",
+        "modelo": "POWER CPS SCA50KTL-T/EU",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b030bb8928e11abce53",
+        "tipo": "inversor",
+        "fabricante": "Deye",
+        "modelo": "SUN-10K-G",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b030bb8928e11abce54",
+        "tipo": "inversor",
+        "fabricante": "Fronius",
+        "modelo": "PRIMO 6.0-1",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b030bb8928e11abce56",
+        "tipo": "inversor",
+        "fabricante": "Deye",
+        "modelo": "SUN-4K-G",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b030bb8928e11abce57",
+        "tipo": "inversor",
+        "fabricante": "Growatt",
+        "modelo": "MAX 60KTL3 LV",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b030bb8928e11abce59",
+        "tipo": "inversor",
+        "fabricante": "Solaredge",
+        "modelo": "SE 33.3K 380/220v",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b030bb8928e11abce5a",
+        "tipo": "inversor",
+        "fabricante": "Growatt",
+        "modelo": "MAC 50KTL3-X LV",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b030bb8928e11abce5e",
+        "tipo": "inversor",
+        "fabricante": "Kehua",
+        "modelo": "TECH SPI15K-B",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b040bb8928e11abce61",
+        "tipo": "inversor",
+        "fabricante": "Solplanet",
+        "modelo": "ASW33K-LT-G3",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b040bb8928e11abce63",
+        "tipo": "inversor",
+        "fabricante": "Kehua",
+        "modelo": "TECH SPI8000-B X2",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b040bb8928e11abce64",
+        "tipo": "inversor",
+        "fabricante": "Growatt",
+        "modelo": "MID 30KTL3-X",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b040bb8928e11abce65",
+        "tipo": "inversor",
+        "fabricante": "Deye",
+        "modelo": "SUN-8K-SG01LP1-EU",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b040bb8928e11abce66",
+        "tipo": "inversor",
+        "fabricante": "Deye",
+        "modelo": "SUN-15K-G02-LV",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b040bb8928e11abce67",
+        "tipo": "inversor",
+        "fabricante": "Deye",
+        "modelo": "SUN-6K-G",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b040bb8928e11abce6a",
+        "tipo": "inversor",
+        "fabricante": "Chint",
+        "modelo": "POWER CPS SCA15KTL-T/EU",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b040bb8928e11abce6d",
+        "tipo": "inversor",
+        "fabricante": "Sofar",
+        "modelo": "7.5KTLM",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b040bb8928e11abce6e",
+        "tipo": "inversor",
+        "fabricante": "Deye",
+        "modelo": "SUN-12K-G",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b050bb8928e11abce70",
+        "tipo": "inversor",
+        "fabricante": "Kehua",
+        "modelo": "TECH SPI9000-B X2",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b050bb8928e11abce72",
+        "tipo": "inversor",
+        "fabricante": "Apsystems",
+        "modelo": "DS3D-220",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b050bb8928e11abce73",
+        "tipo": "inversor",
+        "fabricante": "Deye",
+        "modelo": "SUN-75K-G03",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b050bb8928e11abce76",
+        "tipo": "inversor",
+        "fabricante": "Kehua",
+        "modelo": "TECH SPI17K-B",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b050bb8928e11abce77",
+        "tipo": "inversor",
+        "fabricante": "Solaredge",
+        "modelo": "SE 100K Manager 380/220v",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b050bb8928e11abce78",
+        "tipo": "inversor",
+        "fabricante": "Deye",
+        "modelo": "SUN1000G3-US-220",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b050bb8928e11abce79",
+        "tipo": "inversor",
+        "fabricante": "Solplanet",
+        "modelo": "ASW20K-LT-G2 Pro",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b050bb8928e11abce7b",
+        "tipo": "inversor",
+        "fabricante": "Hoymiles",
+        "modelo": "HMS-2000-4T",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b050bb8928e11abce7c",
+        "tipo": "inversor",
+        "fabricante": "Solaredge",
+        "modelo": "SE8250H 220V",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b050bb8928e11abce7d",
+        "tipo": "inversor",
+        "fabricante": "Sofar",
+        "modelo": "4KTLM-G3",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b050bb8928e11abce7e",
+        "tipo": "inversor",
+        "fabricante": "Deye",
+        "modelo": "SUN-15K-G05",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b050bb8928e11abce80",
+        "tipo": "inversor",
+        "fabricante": "Deye",
+        "modelo": "SUN-18K-G03",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b060bb8928e11abce82",
+        "tipo": "inversor",
+        "fabricante": "Hoymiles",
+        "modelo": "HMS-1800-4T",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b060bb8928e11abce86",
+        "tipo": "inversor",
+        "fabricante": "Tsun",
+        "modelo": "TSOL-MX2500D",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b060bb8928e11abce87",
+        "tipo": "inversor",
+        "fabricante": "Deye",
+        "modelo": "SUN-20K-G04",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b060bb8928e11abce8a",
+        "tipo": "inversor",
+        "fabricante": "Deye",
+        "modelo": "SUN-75K-G05",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b060bb8928e11abce8c",
+        "tipo": "inversor",
+        "fabricante": "Solplanet",
+        "modelo": "ASW4000-S-G2",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b060bb8928e11abce8f",
+        "tipo": "inversor",
+        "fabricante": "Enphase",
+        "modelo": "IQ8P-72-2-BR",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b060bb8928e11abce90",
+        "tipo": "inversor",
+        "fabricante": "Tsun",
+        "modelo": "TSOL-MS2000",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b060bb8928e11abce92",
+        "tipo": "inversor",
+        "fabricante": "Deye",
+        "modelo": "MINVDE-MO-220-2.25KW",
+        "score_global": 22,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "outros",
+        "codigos_alerta": []
+      },
+      {
+        "_id": "6a272b070bb8928e11abce93",
+        "tipo": "inversor",
+        "fabricante": "Deye",
+        "modelo": "SUN-7K-G",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b070bb8928e11abce96",
+        "tipo": "inversor",
+        "fabricante": "Deye",
+        "modelo": "SUN-6.6K-G05P1-EU-AM2",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b070bb8928e11abce98",
+        "tipo": "inversor",
+        "fabricante": "Deye",
+        "modelo": "SUN-40K-G03",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b070bb8928e11abce9a",
+        "tipo": "inversor",
+        "fabricante": "Kehua",
+        "modelo": "TECH SPI6000-B2",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b070bb8928e11abce9c",
+        "tipo": "inversor",
+        "fabricante": "Nep",
+        "modelo": "BDM-2250",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b070bb8928e11abce9e",
+        "tipo": "inversor",
+        "fabricante": "Solaredge",
+        "modelo": "SE 75K Manager 380/220v",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b070bb8928e11abce9f",
+        "tipo": "inversor",
+        "fabricante": "Deye",
+        "modelo": "SUN-35K-G",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b070bb8928e11abcea1",
+        "tipo": "inversor",
+        "fabricante": "Deye",
+        "modelo": "SUN-40K-G",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b070bb8928e11abcea2",
+        "tipo": "inversor",
+        "fabricante": "Deye",
+        "modelo": "SUN-18K-G04",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b070bb8928e11abcea3",
+        "tipo": "inversor",
+        "fabricante": "Deye",
+        "modelo": "SUN-5K-G05",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b080bb8928e11abcea6",
+        "tipo": "inversor",
+        "fabricante": "Kehua",
+        "modelo": "TECH SPI40K-B",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b080bb8928e11abcea9",
+        "tipo": "inversor",
+        "fabricante": "Deye",
+        "modelo": "SUN-25K-G",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b080bb8928e11abceaa",
+        "tipo": "inversor",
+        "fabricante": "Deye",
+        "modelo": "SUN-60K-G",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b080bb8928e11abceab",
+        "tipo": "inversor",
+        "fabricante": "Growatt",
+        "modelo": "NEO 2000M-X",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b080bb8928e11abceac",
+        "tipo": "inversor",
+        "fabricante": "Kehua",
+        "modelo": "TECH SPI125K-B",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b080bb8928e11abceb0",
+        "tipo": "inversor",
+        "fabricante": "Apsystems",
+        "modelo": "QT2D-380",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b080bb8928e11abceb3",
+        "tipo": "inversor",
+        "fabricante": "Solis",
+        "modelo": "S6-GR1P5K-S",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b080bb8928e11abceb4",
+        "tipo": "inversor",
+        "fabricante": "Deye",
+        "modelo": "SUN-15K-G03",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b090bb8928e11abceb5",
+        "tipo": "inversor",
+        "fabricante": "Solis",
+        "modelo": "S6-GR1P3K-S",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b090bb8928e11abceb6",
+        "tipo": "inversor",
+        "fabricante": "Deye",
+        "modelo": "SUN-5K-G @380",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b090bb8928e11abceb7",
+        "tipo": "inversor",
+        "fabricante": "Deye",
+        "modelo": "SUN-20K-G02-LV",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b090bb8928e11abceb9",
+        "tipo": "inversor",
+        "fabricante": "Sungrow",
+        "modelo": "SG75CX-P2",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b090bb8928e11abcebe",
+        "tipo": "inversor",
+        "fabricante": "Kehua",
+        "modelo": "TECH SPI36K-B X2",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b090bb8928e11abcebf",
+        "tipo": "inversor",
+        "fabricante": "Solplanet",
+        "modelo": "ASW5000-S-G2",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b090bb8928e11abcec1",
+        "tipo": "inversor",
+        "fabricante": "Kehua",
+        "modelo": "TECH SPI10000-B X2P",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b090bb8928e11abcec2",
+        "tipo": "inversor",
+        "fabricante": "Kehua",
+        "modelo": "TECH SPI20K-B X2",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b090bb8928e11abcec5",
+        "tipo": "inversor",
+        "fabricante": "Solis",
+        "modelo": "MINI-1500-4G",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b090bb8928e11abcec6",
+        "tipo": "inversor",
+        "fabricante": "Kehua",
+        "modelo": "TECH SPI50K-B",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b0a0bb8928e11abcec7",
+        "tipo": "inversor",
+        "fabricante": "Kehua",
+        "modelo": "TECH SPI10K-B X2",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b0a0bb8928e11abcec8",
+        "tipo": "inversor",
+        "fabricante": "Goodwe",
+        "modelo": "GW10K-MS",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b0a0bb8928e11abcec9",
+        "tipo": "inversor",
+        "fabricante": "Growatt",
+        "modelo": "15000TL3-S",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b0a0bb8928e11abceca",
+        "tipo": "inversor",
+        "fabricante": "Growatt",
+        "modelo": "MAC 25KTL3-XL",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b0a0bb8928e11abcece",
+        "tipo": "inversor",
+        "fabricante": "Goodwe",
+        "modelo": "GW5000-DNS-30",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b0a0bb8928e11abcecf",
+        "tipo": "inversor",
+        "fabricante": "Goodwe",
+        "modelo": "GW15K-SDT-20",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b0a0bb8928e11abced1",
+        "tipo": "inversor",
+        "fabricante": "Tsun",
+        "modelo": "TSOL-MP3000",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b0a0bb8928e11abced2",
+        "tipo": "inversor",
+        "fabricante": "Sungrow",
+        "modelo": "SG8K3-D",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b0a0bb8928e11abced4",
+        "tipo": "inversor",
+        "fabricante": "Goodwe",
+        "modelo": "GW8000-DT",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b0a0bb8928e11abced6",
+        "tipo": "inversor",
+        "fabricante": "Solplanet",
+        "modelo": "ASW6000-S-G2",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b0b0bb8928e11abced8",
+        "tipo": "inversor",
+        "fabricante": "Goodwe",
+        "modelo": "GW5000-DT",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b0b0bb8928e11abcedb",
+        "tipo": "inversor",
+        "fabricante": "Goodwe",
+        "modelo": "GW8000-MS-C30",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b0b0bb8928e11abcedc",
+        "tipo": "inversor",
+        "fabricante": "Solis",
+        "modelo": "S5-GC37.5K",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b0b0bb8928e11abcede",
+        "tipo": "inversor",
+        "fabricante": "Kehua",
+        "modelo": "TECH SPI25K-B X2",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b0b0bb8928e11abcee4",
+        "tipo": "inversor",
+        "fabricante": "Solplanet",
+        "modelo": "ASW3000-S-G2",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b0b0bb8928e11abcee5",
+        "tipo": "inversor",
+        "fabricante": "Sungrow",
+        "modelo": "SG15RT-P2",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b0c0bb8928e11abcee7",
+        "tipo": "inversor",
+        "fabricante": "Solplanet",
+        "modelo": "ASW15K-LT-G2 Pro",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b0c0bb8928e11abcee8",
+        "tipo": "inversor",
+        "fabricante": "Deye",
+        "modelo": "SUN-10K-G @380",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b0c0bb8928e11abceeb",
+        "tipo": "inversor",
+        "fabricante": "Goodwe",
+        "modelo": "GW7.5K-MS-G40",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b0c0bb8928e11abceec",
+        "tipo": "inversor",
+        "fabricante": "Goodwe",
+        "modelo": "GW3300-XS-30",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b0c0bb8928e11abceed",
+        "tipo": "inversor",
+        "fabricante": "Solax",
+        "modelo": "X1-BOOST-6K-G4",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b0c0bb8928e11abceee",
+        "tipo": "inversor",
+        "fabricante": "Deye",
+        "modelo": "SUN-7.5K-G",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b0c0bb8928e11abceef",
+        "tipo": "inversor",
+        "fabricante": "Solis",
+        "modelo": "S6-GR1P5K",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b0c0bb8928e11abcef1",
+        "tipo": "inversor",
+        "fabricante": "Sungrow",
+        "modelo": "SG6K-D",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b0c0bb8928e11abcef3",
+        "tipo": "inversor",
+        "fabricante": "Deye",
+        "modelo": "SUN1300G-US-220",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b0d0bb8928e11abcef4",
+        "tipo": "inversor",
+        "fabricante": "Deye",
+        "modelo": "SUN-20K-G02",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b0d0bb8928e11abcef5",
+        "tipo": "inversor",
+        "fabricante": "Kehua",
+        "modelo": "TECH SPI25K-B",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      },
+      {
+        "_id": "6a272b0d0bb8928e11abcef7",
+        "tipo": "inversor",
+        "fabricante": "Growatt",
+        "modelo": "20000TL3-S",
+        "score_global": 16,
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "solarmarket": true,
+        "categoria_primaria": "SEM_ESPECIFICACOES",
+        "codigos_alerta": [
+          "SEM_ESPECIFICACOES"
+        ]
+      }
+    ],
+    "carregadores_ev": [
+      {
+        "_id": "6a034621f5db295fc95ffad2",
+        "tipo": "carregador_ev",
+        "fabricante": "INTELBRAS",
+        "modelo": "EVE 0074B",
+        "score_global": 32,
+        "origem_tipo": "desconhecido",
+        "origem_fonte": null,
+        "solarmarket": false,
+        "categoria_primaria": "TIPO_INVALIDO",
+        "codigos_alerta": [
+          "TIPO_INVALIDO"
+        ]
+      },
+      {
+        "_id": "6a034685f5db295fc95ffad8",
+        "tipo": "carregador_ev",
+        "fabricante": "INTELBRAS",
+        "modelo": "EVE 0074C",
+        "score_global": 32,
+        "origem_tipo": "desconhecido",
+        "origem_fonte": null,
+        "solarmarket": false,
+        "categoria_primaria": "TIPO_INVALIDO",
+        "codigos_alerta": [
+          "TIPO_INVALIDO"
+        ]
+      },
+      {
+        "_id": "6a034879002a5789a2c1f63c",
+        "tipo": "carregador_ev",
+        "fabricante": "Wallbox",
+        "modelo": "Pulsar Max",
+        "score_global": 40,
+        "origem_tipo": "desconhecido",
+        "origem_fonte": null,
+        "solarmarket": false,
+        "categoria_primaria": "TIPO_INVALIDO",
+        "codigos_alerta": [
+          "TIPO_INVALIDO"
+        ]
+      },
+      {
+        "_id": "6a03487a002a5789a2c1f63e",
+        "tipo": "carregador_ev",
+        "fabricante": "Tesla",
+        "modelo": "Wall Connector",
+        "score_global": 40,
+        "origem_tipo": "desconhecido",
+        "origem_fonte": null,
+        "solarmarket": false,
+        "categoria_primaria": "TIPO_INVALIDO",
+        "codigos_alerta": [
+          "TIPO_INVALIDO"
+        ]
+      },
+      {
+        "_id": "6a03487a002a5789a2c1f640",
+        "tipo": "carregador_ev",
+        "fabricante": "Huawei",
+        "modelo": "Fusion Charge AC",
+        "score_global": 40,
+        "origem_tipo": "desconhecido",
+        "origem_fonte": null,
+        "solarmarket": false,
+        "categoria_primaria": "TIPO_INVALIDO",
+        "codigos_alerta": [
+          "TIPO_INVALIDO"
+        ]
+      },
+      {
+        "_id": "6a03487b002a5789a2c1f642",
+        "tipo": "carregador_ev",
+        "fabricante": "BYD",
+        "modelo": "Megawatt Flash",
+        "score_global": 36,
+        "origem_tipo": "desconhecido",
+        "origem_fonte": null,
+        "solarmarket": false,
+        "categoria_primaria": "TIPO_INVALIDO",
+        "codigos_alerta": [
+          "TIPO_INVALIDO"
+        ]
+      },
+      {
+        "_id": "6a03487b002a5789a2c1f644",
+        "tipo": "carregador_ev",
+        "fabricante": "WEG",
+        "modelo": "HPC 480kW",
+        "score_global": 36,
+        "origem_tipo": "desconhecido",
+        "origem_fonte": null,
+        "solarmarket": false,
+        "categoria_primaria": "TIPO_INVALIDO",
+        "codigos_alerta": [
+          "TIPO_INVALIDO"
+        ]
+      },
+      {
+        "_id": "6a03487c002a5789a2c1f646",
+        "tipo": "carregador_ev",
+        "fabricante": "Schneider",
+        "modelo": "EVlink 22kW",
+        "score_global": 40,
+        "origem_tipo": "desconhecido",
+        "origem_fonte": null,
+        "solarmarket": false,
+        "categoria_primaria": "TIPO_INVALIDO",
+        "codigos_alerta": [
+          "TIPO_INVALIDO"
+        ]
+      },
+      {
+        "_id": "6a03487d002a5789a2c1f648",
+        "tipo": "carregador_ev",
+        "fabricante": "ChargePoint",
+        "modelo": "Home Flex",
+        "score_global": 40,
+        "origem_tipo": "desconhecido",
+        "origem_fonte": null,
+        "solarmarket": false,
+        "categoria_primaria": "TIPO_INVALIDO",
+        "codigos_alerta": [
+          "TIPO_INVALIDO"
+        ]
+      },
+      {
+        "_id": "6a03487d002a5789a2c1f64a",
+        "tipo": "carregador_ev",
+        "fabricante": "Kia",
+        "modelo": "EV9 Fast Charging",
+        "score_global": 36,
+        "origem_tipo": "desconhecido",
+        "origem_fonte": null,
+        "solarmarket": false,
+        "categoria_primaria": "TIPO_INVALIDO",
+        "codigos_alerta": [
+          "TIPO_INVALIDO"
+        ]
+      },
+      {
+        "_id": "6a03487e002a5789a2c1f64c",
+        "tipo": "carregador_ev",
+        "fabricante": "Porsche",
+        "modelo": "Taycan High Power",
+        "score_global": 36,
+        "origem_tipo": "desconhecido",
+        "origem_fonte": null,
+        "solarmarket": false,
+        "categoria_primaria": "TIPO_INVALIDO",
+        "codigos_alerta": [
+          "TIPO_INVALIDO"
+        ]
+      },
+      {
+        "_id": "6a03487e002a5789a2c1f64e",
+        "tipo": "carregador_ev",
+        "fabricante": "Schneider",
+        "modelo": "EVlink DC 150kW",
+        "score_global": 36,
+        "origem_tipo": "desconhecido",
+        "origem_fonte": null,
+        "solarmarket": false,
+        "categoria_primaria": "TIPO_INVALIDO",
+        "codigos_alerta": [
+          "TIPO_INVALIDO"
+        ]
+      },
+      {
+        "_id": "6a076e8e6b245bcab127203b",
+        "tipo": "carregador_ev",
+        "fabricante": "Wallbox",
+        "modelo": "Pulsar Plus",
+        "score_global": 32,
+        "origem_tipo": "desconhecido",
+        "origem_fonte": null,
+        "solarmarket": false,
+        "categoria_primaria": "outros",
+        "codigos_alerta": [
+          "SEM_TIPO"
+        ]
+      },
+      {
+        "_id": "6a1c32f8d6863ae349b51b5f",
+        "tipo": "carregador_ev",
+        "fabricante": "Solplanet",
+        "modelo": "SOL7.4H",
+        "score_global": 40,
+        "origem_tipo": "desconhecido",
+        "origem_fonte": null,
+        "solarmarket": false,
+        "categoria_primaria": "TIPO_INVALIDO",
+        "codigos_alerta": [
+          "TIPO_INVALIDO"
+        ]
+      },
+      {
+        "_id": "6a24631f92a231dcefee9a8e",
+        "tipo": "carregador_ev",
+        "fabricante": "Fast Station",
+        "modelo": "AC380V",
+        "score_global": 32,
+        "origem_tipo": "desconhecido",
+        "origem_fonte": null,
+        "solarmarket": false,
+        "categoria_primaria": "TIPO_INVALIDO",
+        "codigos_alerta": [
+          "TIPO_INVALIDO"
+        ]
+      },
+      {
+        "_id": "6a24632292a231dcefee9a92",
+        "tipo": "carregador_ev",
+        "fabricante": "Fast Wall\tFast Wall",
+        "modelo": "AC380V",
+        "score_global": 32,
+        "origem_tipo": "desconhecido",
+        "origem_fonte": null,
+        "solarmarket": false,
+        "categoria_primaria": "TIPO_INVALIDO",
+        "codigos_alerta": [
+          "TIPO_INVALIDO"
+        ]
+      }
+    ],
+    "outros": []
+  }
+}
