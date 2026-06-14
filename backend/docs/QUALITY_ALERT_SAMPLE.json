@@ -1,0 +1,1387 @@
+{
+  "sprint": "P0-QUALITY-FORENSICS-01",
+  "gerado_em": "2026-06-14T18:36:02.390Z",
+  "read_only": true,
+  "inventario": {
+    "total": 358,
+    "por_tipo": {
+      "modulo": 170,
+      "carregador_ev": 16,
+      "inversor": 172
+    },
+    "ev_colecao_CarregadorEV": 60,
+    "specs_suficientes": 28,
+    "incompletos": 330,
+    "sem_qualidade_calculada": 0
+  },
+  "alertas_stored_vs_live": [
+    {
+      "codigo": "IMPP_MAIOR_QUE_ISC",
+      "stored": 6,
+      "live": 6,
+      "delta": 0,
+      "alvo": true
+    },
+    {
+      "codigo": "ISC_MPPT_IMPLAUSIVEL",
+      "stored": 18,
+      "live": 16,
+      "delta": -2,
+      "alvo": true
+    },
+    {
+      "codigo": "MPPT_FAIXA_IMPLAUSIVEL",
+      "stored": 7,
+      "live": 7,
+      "delta": 0,
+      "alvo": true
+    },
+    {
+      "codigo": "POTENCIA_FORA_FAIXA",
+      "stored": 3,
+      "live": 3,
+      "delta": 0,
+      "alvo": true
+    },
+    {
+      "codigo": "POTENCIA_FORA_FAIXA_COMERCIAL",
+      "stored": 5,
+      "live": 5,
+      "delta": 0,
+      "alvo": false
+    },
+    {
+      "codigo": "POTENCIA_NAO_BATE_VxI",
+      "stored": 0,
+      "live": 5,
+      "delta": 5,
+      "alvo": false
+    },
+    {
+      "codigo": "RAZAO_IMPP_ISC_FORA_FAIXA",
+      "stored": 6,
+      "live": 6,
+      "delta": 0,
+      "alvo": true
+    },
+    {
+      "codigo": "SEM_ESPECIFICACOES",
+      "stored": 199,
+      "live": 132,
+      "delta": -67,
+      "alvo": true
+    },
+    {
+      "codigo": "SEM_TIPO",
+      "stored": 1,
+      "live": 1,
+      "delta": 0,
+      "alvo": true
+    },
+    {
+      "codigo": "TENSAO_SAIDA_NAO_PADRAO",
+      "stored": 6,
+      "live": 7,
+      "delta": 1,
+      "alvo": true
+    },
+    {
+      "codigo": "TIPO_INVALIDO",
+      "stored": 15,
+      "live": 15,
+      "delta": 0,
+      "alvo": true
+    }
+  ],
+  "niveis": {
+    "stored": {
+      "suspeito": 64,
+      "invalido": 262,
+      "incompleto": 4,
+      "utilizavel": 28
+    },
+    "live": {
+      "suspeito": 164,
+      "invalido": 155,
+      "incompleto": 11,
+      "validado": 1,
+      "utilizavel": 27
+    },
+    "docs_nivel_divergente": 114
+  },
+  "total_ocorrencias": {
+    "stored": 266,
+    "live": 203
+  },
+  "amostras_por_codigo": {
+    "SEM_ESPECIFICACOES": [
+      {
+        "_id": "6a00cb9eaaed4afe99b83699",
+        "tipo": "modulo",
+        "fabricante": "Risen Energy",
+        "modelo": "Módulo",
+        "severidade": "medio"
+      },
+      {
+        "_id": "6a272aff0bb8928e11abce0d",
+        "tipo": "inversor",
+        "fabricante": "Deye",
+        "modelo": "SUN2000G-US-220",
+        "severidade": "medio"
+      },
+      {
+        "_id": "6a272aff0bb8928e11abce0f",
+        "tipo": "inversor",
+        "fabricante": "Deye",
+        "modelo": "SUN-5K-G @220",
+        "severidade": "medio"
+      },
+      {
+        "_id": "6a272aff0bb8928e11abce10",
+        "tipo": "inversor",
+        "fabricante": "Deye",
+        "modelo": "SUN2000G3-US-220",
+        "severidade": "medio"
+      },
+      {
+        "_id": "6a272aff0bb8928e11abce12",
+        "tipo": "inversor",
+        "fabricante": "Deye",
+        "modelo": "SUN-75K-G",
+        "severidade": "medio"
+      },
+      {
+        "_id": "6a272aff0bb8928e11abce13",
+        "tipo": "inversor",
+        "fabricante": "Saj",
+        "modelo": "M2-2.25K-S4",
+        "severidade": "medio"
+      },
+      {
+        "_id": "6a272aff0bb8928e11abce14",
+        "tipo": "inversor",
+        "fabricante": "Deye",
+        "modelo": "SUN-35K-G03",
+        "severidade": "medio"
+      },
+      {
+        "_id": "6a272aff0bb8928e11abce16",
+        "tipo": "inversor",
+        "fabricante": "Growatt",
+        "modelo": "MAC 60KTL3-X LV",
+        "severidade": "medio"
+      },
+      {
+        "_id": "6a272aff0bb8928e11abce19",
+        "tipo": "inversor",
+        "fabricante": "Solaredge",
+        "modelo": "SE 20.1K 380/220v",
+        "severidade": "medio"
+      },
+      {
+        "_id": "6a272aff0bb8928e11abce1a",
+        "tipo": "inversor",
+        "fabricante": "Solaredge",
+        "modelo": "SE 27.6K 380/220v",
+        "severidade": "medio"
+      },
+      {
+        "_id": "6a272b000bb8928e11abce1c",
+        "tipo": "inversor",
+        "fabricante": "Deye",
+        "modelo": "SUN-8K-G03",
+        "severidade": "medio"
+      },
+      {
+        "_id": "6a272b000bb8928e11abce1d",
+        "tipo": "modulo",
+        "fabricante": "Leapton",
+        "modelo": "LP182-M-72-NB",
+        "severidade": "medio"
+      },
+      {
+        "_id": "6a272b000bb8928e11abce1e",
+        "tipo": "inversor",
+        "fabricante": "Hoymiles",
+        "modelo": "HMS-2000DW-4T",
+        "severidade": "medio"
+      },
+      {
+        "_id": "6a272b000bb8928e11abce20",
+        "tipo": "inversor",
+        "fabricante": "Growatt",
+        "modelo": "MIC 3000TL-X",
+        "severidade": "medio"
+      },
+      {
+        "_id": "6a272b000bb8928e11abce23",
+        "tipo": "inversor",
+        "fabricante": "Growatt",
+        "modelo": "MIN 5000TL-X",
+        "severidade": "medio"
+      },
+      {
+        "_id": "6a272b000bb8928e11abce25",
+        "tipo": "inversor",
+        "fabricante": "Tsun",
+        "modelo": "TSOL-MX2250",
+        "severidade": "medio"
+      },
+      {
+        "_id": "6a272b000bb8928e11abce26",
+        "tipo": "inversor",
+        "fabricante": "Deye",
+        "modelo": "SUN-35K-G02",
+        "severidade": "medio"
+      },
+      {
+        "_id": "6a272b000bb8928e11abce28",
+        "tipo": "inversor",
+        "fabricante": "Solaredge",
+        "modelo": "SE 75K 380/220v",
+        "severidade": "medio"
+      },
+      {
+        "_id": "6a272b000bb8928e11abce2a",
+        "tipo": "inversor",
+        "fabricante": "Growatt",
+        "modelo": "MAX 75KTL3 LV",
+        "severidade": "medio"
+      },
+      {
+        "_id": "6a272b010bb8928e11abce2e",
+        "tipo": "inversor",
+        "fabricante": "Growatt",
+        "modelo": "MIN 8000TL-X(E)",
+        "severidade": "medio"
+      }
+    ],
+    "ISC_MPPT_IMPLAUSIVEL": [
+      {
+        "_id": "6a1f2079b0611efb5d744fe6",
+        "tipo": "inversor",
+        "fabricante": "Chint",
+        "modelo": "SCA50KTL-T",
+        "severidade": "medio"
+      },
+      {
+        "_id": "6a1f207fb0611efb5d744fe8",
+        "tipo": "inversor",
+        "fabricante": "Chint",
+        "modelo": "SCA60KTL-T",
+        "severidade": "medio"
+      },
+      {
+        "_id": "6a20b8750e212875e8d10b3a",
+        "tipo": "inversor",
+        "fabricante": "Deye",
+        "modelo": "SUN-23K-G04-LV",
+        "severidade": "medio"
+      },
+      {
+        "_id": "6a2220a9df17c1aa4c0743c6",
+        "tipo": "inversor",
+        "fabricante": "Goodwe",
+        "modelo": "GW73KLV-HT",
+        "severidade": "medio"
+      },
+      {
+        "_id": "6a2220aadf17c1aa4c0743c7",
+        "tipo": "inversor",
+        "fabricante": "Goodwe",
+        "modelo": "GW80K-HT",
+        "severidade": "medio"
+      },
+      {
+        "_id": "6a2220aadf17c1aa4c0743c8",
+        "tipo": "inversor",
+        "fabricante": "Goodwe",
+        "modelo": "GW100K-HT",
+        "severidade": "medio"
+      },
+      {
+        "_id": "6a2220abdf17c1aa4c0743c9",
+        "tipo": "inversor",
+        "fabricante": "Goodwe",
+        "modelo": "GW110K-HT",
+        "severidade": "medio"
+      },
+      {
+        "_id": "6a2220abdf17c1aa4c0743ca",
+        "tipo": "inversor",
+        "fabricante": "Goodwe",
+        "modelo": "GW120K-HT",
+        "severidade": "medio"
+      },
+      {
+        "_id": "6a2220abdf17c1aa4c0743cb",
+        "tipo": "inversor",
+        "fabricante": "Goodwe",
+        "modelo": "GW136K-HTH",
+        "severidade": "medio"
+      },
+      {
+        "_id": "6a2610248f15d1a73c8384b5",
+        "tipo": "inversor",
+        "fabricante": "SolaX",
+        "modelo": "X3-ULT-15K",
+        "severidade": "medio"
+      },
+      {
+        "_id": "6a2610248f15d1a73c8384b6",
+        "tipo": "inversor",
+        "fabricante": "SolaX",
+        "modelo": "X3-ULT-15KP",
+        "severidade": "medio"
+      },
+      {
+        "_id": "6a2610258f15d1a73c8384b7",
+        "tipo": "inversor",
+        "fabricante": "SolaX",
+        "modelo": "X3-ULT-19.9K",
+        "severidade": "medio"
+      },
+      {
+        "_id": "6a2610258f15d1a73c8384b8",
+        "tipo": "inversor",
+        "fabricante": "SolaX",
+        "modelo": "X3-ULT-20K",
+        "severidade": "medio"
+      },
+      {
+        "_id": "6a2610258f15d1a73c8384b9",
+        "tipo": "inversor",
+        "fabricante": "SolaX",
+        "modelo": "X3-ULT-20KP",
+        "severidade": "medio"
+      },
+      {
+        "_id": "6a2610268f15d1a73c8384ba",
+        "tipo": "inversor",
+        "fabricante": "SolaX",
+        "modelo": "X3-ULT-25K",
+        "severidade": "medio"
+      },
+      {
+        "_id": "6a2610268f15d1a73c8384bb",
+        "tipo": "inversor",
+        "fabricante": "SolaX",
+        "modelo": "X3-ULT-30K",
+        "severidade": "medio"
+      }
+    ],
+    "TIPO_INVALIDO": [
+      {
+        "_id": "6a034621f5db295fc95ffad2",
+        "tipo": "carregador_ev",
+        "fabricante": "INTELBRAS",
+        "modelo": "EVE 0074B",
+        "severidade": "critico"
+      },
+      {
+        "_id": "6a034685f5db295fc95ffad8",
+        "tipo": "carregador_ev",
+        "fabricante": "INTELBRAS",
+        "modelo": "EVE 0074C",
+        "severidade": "critico"
+      },
+      {
+        "_id": "6a034879002a5789a2c1f63c",
+        "tipo": "carregador_ev",
+        "fabricante": "Wallbox",
+        "modelo": "Pulsar Max",
+        "severidade": "critico"
+      },
+      {
+        "_id": "6a03487a002a5789a2c1f63e",
+        "tipo": "carregador_ev",
+        "fabricante": "Tesla",
+        "modelo": "Wall Connector",
+        "severidade": "critico"
+      },
+      {
+        "_id": "6a03487a002a5789a2c1f640",
+        "tipo": "carregador_ev",
+        "fabricante": "Huawei",
+        "modelo": "Fusion Charge AC",
+        "severidade": "critico"
+      },
+      {
+        "_id": "6a03487b002a5789a2c1f642",
+        "tipo": "carregador_ev",
+        "fabricante": "BYD",
+        "modelo": "Megawatt Flash",
+        "severidade": "critico"
+      },
+      {
+        "_id": "6a03487b002a5789a2c1f644",
+        "tipo": "carregador_ev",
+        "fabricante": "WEG",
+        "modelo": "HPC 480kW",
+        "severidade": "critico"
+      },
+      {
+        "_id": "6a03487c002a5789a2c1f646",
+        "tipo": "carregador_ev",
+        "fabricante": "Schneider",
+        "modelo": "EVlink 22kW",
+        "severidade": "critico"
+      },
+      {
+        "_id": "6a03487d002a5789a2c1f648",
+        "tipo": "carregador_ev",
+        "fabricante": "ChargePoint",
+        "modelo": "Home Flex",
+        "severidade": "critico"
+      },
+      {
+        "_id": "6a03487d002a5789a2c1f64a",
+        "tipo": "carregador_ev",
+        "fabricante": "Kia",
+        "modelo": "EV9 Fast Charging",
+        "severidade": "critico"
+      },
+      {
+        "_id": "6a03487e002a5789a2c1f64c",
+        "tipo": "carregador_ev",
+        "fabricante": "Porsche",
+        "modelo": "Taycan High Power",
+        "severidade": "critico"
+      },
+      {
+        "_id": "6a03487e002a5789a2c1f64e",
+        "tipo": "carregador_ev",
+        "fabricante": "Schneider",
+        "modelo": "EVlink DC 150kW",
+        "severidade": "critico"
+      },
+      {
+        "_id": "6a1c32f8d6863ae349b51b5f",
+        "tipo": "carregador_ev",
+        "fabricante": "Solplanet",
+        "modelo": "SOL7.4H",
+        "severidade": "critico"
+      },
+      {
+        "_id": "6a24631f92a231dcefee9a8e",
+        "tipo": "carregador_ev",
+        "fabricante": "Fast Station",
+        "modelo": "AC380V",
+        "severidade": "critico"
+      },
+      {
+        "_id": "6a24632292a231dcefee9a92",
+        "tipo": "carregador_ev",
+        "fabricante": "Fast Wall\tFast Wall",
+        "modelo": "AC380V",
+        "severidade": "critico"
+      }
+    ],
+    "MPPT_FAIXA_IMPLAUSIVEL": [
+      {
+        "_id": "6a2220aadf17c1aa4c0743c7",
+        "tipo": "inversor",
+        "fabricante": "Goodwe",
+        "modelo": "GW80K-HT",
+        "severidade": "medio"
+      },
+      {
+        "_id": "6a2220aadf17c1aa4c0743c8",
+        "tipo": "inversor",
+        "fabricante": "Goodwe",
+        "modelo": "GW100K-HT",
+        "severidade": "medio"
+      },
+      {
+        "_id": "6a2220abdf17c1aa4c0743c9",
+        "tipo": "inversor",
+        "fabricante": "Goodwe",
+        "modelo": "GW110K-HT",
+        "severidade": "medio"
+      },
+      {
+        "_id": "6a2220abdf17c1aa4c0743ca",
+        "tipo": "inversor",
+        "fabricante": "Goodwe",
+        "modelo": "GW120K-HT",
+        "severidade": "medio"
+      },
+      {
+        "_id": "6a2220abdf17c1aa4c0743cb",
+        "tipo": "inversor",
+        "fabricante": "Goodwe",
+        "modelo": "GW136K-HTH",
+        "severidade": "medio"
+      },
+      {
+        "_id": "6a2610688f15d1a73c8384be",
+        "tipo": "inversor",
+        "fabricante": "SolaX",
+        "modelo": "X1-SPT-10K",
+        "severidade": "medio"
+      },
+      {
+        "_id": "6a2610698f15d1a73c8384bf",
+        "tipo": "inversor",
+        "fabricante": "SolaX",
+        "modelo": "X1-SPT-12K",
+        "severidade": "medio"
+      }
+    ],
+    "RAZAO_IMPP_ISC_FORA_FAIXA": [
+      {
+        "_id": "6a076b856b245bcab127202a",
+        "tipo": "modulo",
+        "fabricante": "Neosolar",
+        "modelo": "NS400W",
+        "severidade": "medio"
+      },
+      {
+        "_id": "6a076b866b245bcab127202b",
+        "tipo": "modulo",
+        "fabricante": "Neosolar",
+        "modelo": "NS550W",
+        "severidade": "medio"
+      },
+      {
+        "_id": "6a076b876b245bcab127202c",
+        "tipo": "modulo",
+        "fabricante": "Canadian Solar",
+        "modelo": "CS3K-400MS",
+        "severidade": "medio"
+      },
+      {
+        "_id": "6a076e8a6b245bcab1272034",
+        "tipo": "modulo",
+        "fabricante": "Neosolar",
+        "modelo": "NS400W",
+        "severidade": "medio"
+      },
+      {
+        "_id": "6a076e8b6b245bcab1272035",
+        "tipo": "modulo",
+        "fabricante": "Neosolar",
+        "modelo": "NS550W",
+        "severidade": "medio"
+      },
+      {
+        "_id": "6a076e8b6b245bcab1272036",
+        "tipo": "modulo",
+        "fabricante": "Canadian Solar",
+        "modelo": "CS3K-400MS",
+        "severidade": "medio"
+      }
+    ],
+    "IMPP_MAIOR_QUE_ISC": [
+      {
+        "_id": "6a076b856b245bcab127202a",
+        "tipo": "modulo",
+        "fabricante": "Neosolar",
+        "modelo": "NS400W",
+        "severidade": "critico"
+      },
+      {
+        "_id": "6a076b866b245bcab127202b",
+        "tipo": "modulo",
+        "fabricante": "Neosolar",
+        "modelo": "NS550W",
+        "severidade": "critico"
+      },
+      {
+        "_id": "6a076b876b245bcab127202c",
+        "tipo": "modulo",
+        "fabricante": "Canadian Solar",
+        "modelo": "CS3K-400MS",
+        "severidade": "critico"
+      },
+      {
+        "_id": "6a076e8a6b245bcab1272034",
+        "tipo": "modulo",
+        "fabricante": "Neosolar",
+        "modelo": "NS400W",
+        "severidade": "critico"
+      },
+      {
+        "_id": "6a076e8b6b245bcab1272035",
+        "tipo": "modulo",
+        "fabricante": "Neosolar",
+        "modelo": "NS550W",
+        "severidade": "critico"
+      },
+      {
+        "_id": "6a076e8b6b245bcab1272036",
+        "tipo": "modulo",
+        "fabricante": "Canadian Solar",
+        "modelo": "CS3K-400MS",
+        "severidade": "critico"
+      }
+    ],
+    "TENSAO_SAIDA_NAO_PADRAO": [
+      {
+        "_id": "6a1dd2b10130992881fc36ca",
+        "tipo": "inversor",
+        "fabricante": "Goodwe",
+        "modelo": "GW25K-DT",
+        "severidade": "medio"
+      },
+      {
+        "_id": "6a20b37b0e212875e8d10b29",
+        "tipo": "inversor",
+        "fabricante": "Goodwe",
+        "modelo": "GW17K-DT",
+        "severidade": "medio"
+      },
+      {
+        "_id": "6a20b37b0e212875e8d10b2a",
+        "tipo": "inversor",
+        "fabricante": "Goodwe",
+        "modelo": "GW20K-DT",
+        "severidade": "medio"
+      },
+      {
+        "_id": "6a20b5fb0e212875e8d10b33",
+        "tipo": "inversor",
+        "fabricante": "Solis",
+        "modelo": "1P7K-5G",
+        "severidade": "medio"
+      },
+      {
+        "_id": "6a2220abdf17c1aa4c0743c9",
+        "tipo": "inversor",
+        "fabricante": "Goodwe",
+        "modelo": "GW110K-HT",
+        "severidade": "medio"
+      },
+      {
+        "_id": "6a2220abdf17c1aa4c0743ca",
+        "tipo": "inversor",
+        "fabricante": "Goodwe",
+        "modelo": "GW120K-HT",
+        "severidade": "medio"
+      },
+      {
+        "_id": "6a2220abdf17c1aa4c0743cb",
+        "tipo": "inversor",
+        "fabricante": "Goodwe",
+        "modelo": "GW136K-HTH",
+        "severidade": "medio"
+      }
+    ],
+    "POTENCIA_FORA_FAIXA": [
+      {
+        "_id": "6a2220abdf17c1aa4c0743c9",
+        "tipo": "inversor",
+        "fabricante": "Goodwe",
+        "modelo": "GW110K-HT",
+        "severidade": "baixo"
+      },
+      {
+        "_id": "6a2220abdf17c1aa4c0743ca",
+        "tipo": "inversor",
+        "fabricante": "Goodwe",
+        "modelo": "GW120K-HT",
+        "severidade": "baixo"
+      },
+      {
+        "_id": "6a2220abdf17c1aa4c0743cb",
+        "tipo": "inversor",
+        "fabricante": "Goodwe",
+        "modelo": "GW136K-HTH",
+        "severidade": "baixo"
+      }
+    ],
+    "SEM_TIPO": [
+      {
+        "_id": "6a076e8e6b245bcab127203b",
+        "tipo": "carregador_ev",
+        "fabricante": "Wallbox",
+        "modelo": "Pulsar Plus",
+        "severidade": "critico"
+      }
+    ]
+  },
+  "divergencias_amostra": [
+    {
+      "_id": "6a1b3d0b0604b92ed580bf6f",
+      "tipo": "modulo",
+      "fabricante": "Risen Energy",
+      "modelo": "RSM132-8-695",
+      "nivel_stored": "invalido",
+      "nivel_live": "suspeito",
+      "alertas_que_sumiriam": [
+        "SEM_ESPECIFICACOES"
+      ],
+      "alertas_novos_live": []
+    },
+    {
+      "_id": "6a1eeaf9b4bafebf063bfe54",
+      "tipo": "inversor",
+      "fabricante": "Solplanet",
+      "modelo": "ASW12K-LT-G2",
+      "nivel_stored": "invalido",
+      "nivel_live": "suspeito",
+      "alertas_que_sumiriam": [],
+      "alertas_novos_live": []
+    },
+    {
+      "_id": "6a20b5fb0e212875e8d10b33",
+      "tipo": "inversor",
+      "fabricante": "Solis",
+      "modelo": "1P7K-5G",
+      "nivel_stored": "suspeito",
+      "nivel_live": "incompleto",
+      "alertas_que_sumiriam": [],
+      "alertas_novos_live": [
+        "TENSAO_SAIDA_NAO_PADRAO"
+      ]
+    },
+    {
+      "_id": "6a20b8750e212875e8d10b3a",
+      "tipo": "inversor",
+      "fabricante": "Deye",
+      "modelo": "SUN-23K-G04-LV",
+      "nivel_stored": "invalido",
+      "nivel_live": "incompleto",
+      "alertas_que_sumiriam": [],
+      "alertas_novos_live": [
+        "ISC_MPPT_IMPLAUSIVEL"
+      ]
+    },
+    {
+      "_id": "6a22191cdf17c1aa4c0743ad",
+      "tipo": "inversor",
+      "fabricante": "Huawei",
+      "modelo": "SUN2000-30KTL-M3",
+      "nivel_stored": "suspeito",
+      "nivel_live": "incompleto",
+      "alertas_que_sumiriam": [
+        "ISC_MPPT_IMPLAUSIVEL"
+      ],
+      "alertas_novos_live": []
+    },
+    {
+      "_id": "6a22191ddf17c1aa4c0743ae",
+      "tipo": "inversor",
+      "fabricante": "Huawei",
+      "modelo": "SUN2000-36KTL-M3",
+      "nivel_stored": "suspeito",
+      "nivel_live": "incompleto",
+      "alertas_que_sumiriam": [
+        "ISC_MPPT_IMPLAUSIVEL"
+      ],
+      "alertas_novos_live": []
+    },
+    {
+      "_id": "6a22191ddf17c1aa4c0743af",
+      "tipo": "inversor",
+      "fabricante": "Huawei",
+      "modelo": "SUN2000-40KTL-M3",
+      "nivel_stored": "suspeito",
+      "nivel_live": "incompleto",
+      "alertas_que_sumiriam": [
+        "ISC_MPPT_IMPLAUSIVEL"
+      ],
+      "alertas_novos_live": []
+    },
+    {
+      "_id": "6a221cbbdf17c1aa4c0743b5",
+      "tipo": "inversor",
+      "fabricante": "Huawei",
+      "modelo": "SUN2000-100KTL-M",
+      "nivel_stored": "suspeito",
+      "nivel_live": "incompleto",
+      "alertas_que_sumiriam": [],
+      "alertas_novos_live": []
+    },
+    {
+      "_id": "6a221cbbdf17c1aa4c0743b6",
+      "tipo": "inversor",
+      "fabricante": "Huawei",
+      "modelo": "SUN2000-100KTL-M2",
+      "nivel_stored": "suspeito",
+      "nivel_live": "incompleto",
+      "alertas_que_sumiriam": [],
+      "alertas_novos_live": []
+    },
+    {
+      "_id": "6a260cb78f15d1a73c8384a0",
+      "tipo": "inversor",
+      "fabricante": "Solplanet",
+      "modelo": "ASW9100-S",
+      "nivel_stored": "utilizavel",
+      "nivel_live": "validado",
+      "alertas_que_sumiriam": [],
+      "alertas_novos_live": []
+    },
+    {
+      "_id": "6a272afe0bb8928e11abce0c",
+      "tipo": "modulo",
+      "fabricante": "Ja Solar",
+      "modelo": "JAM72S30-550/MR",
+      "nivel_stored": "invalido",
+      "nivel_live": "suspeito",
+      "alertas_que_sumiriam": [
+        "SEM_ESPECIFICACOES"
+      ],
+      "alertas_novos_live": []
+    },
+    {
+      "_id": "6a272aff0bb8928e11abce0e",
+      "tipo": "modulo",
+      "fabricante": "Sunova",
+      "modelo": "SS-550-72MDH",
+      "nivel_stored": "invalido",
+      "nivel_live": "suspeito",
+      "alertas_que_sumiriam": [
+        "SEM_ESPECIFICACOES"
+      ],
+      "alertas_novos_live": []
+    },
+    {
+      "_id": "6a272aff0bb8928e11abce11",
+      "tipo": "modulo",
+      "fabricante": "Honor",
+      "modelo": "HY-M10/144H 550W",
+      "nivel_stored": "invalido",
+      "nivel_live": "suspeito",
+      "alertas_que_sumiriam": [],
+      "alertas_novos_live": []
+    },
+    {
+      "_id": "6a272aff0bb8928e11abce15",
+      "tipo": "modulo",
+      "fabricante": "Jinko",
+      "modelo": "JKM530M-72HL4-TV",
+      "nivel_stored": "invalido",
+      "nivel_live": "suspeito",
+      "alertas_que_sumiriam": [
+        "SEM_ESPECIFICACOES"
+      ],
+      "alertas_novos_live": []
+    },
+    {
+      "_id": "6a272aff0bb8928e11abce17",
+      "tipo": "modulo",
+      "fabricante": "Jinko",
+      "modelo": "JKM470M-7RL3-V",
+      "nivel_stored": "invalido",
+      "nivel_live": "suspeito",
+      "alertas_que_sumiriam": [
+        "SEM_ESPECIFICACOES"
+      ],
+      "alertas_novos_live": []
+    },
+    {
+      "_id": "6a272aff0bb8928e11abce18",
+      "tipo": "modulo",
+      "fabricante": "Canadian",
+      "modelo": "HIKU CS3W-455MS (35MM)",
+      "nivel_stored": "invalido",
+      "nivel_live": "suspeito",
+      "alertas_que_sumiriam": [],
+      "alertas_novos_live": [
+        "POTENCIA_NAO_BATE_VxI"
+      ]
+    },
+    {
+      "_id": "6a272b000bb8928e11abce1b",
+      "tipo": "modulo",
+      "fabricante": "Astronergy",
+      "modelo": "ASTROSEMI CHSM72M-HC 555",
+      "nivel_stored": "invalido",
+      "nivel_live": "suspeito",
+      "alertas_que_sumiriam": [
+        "SEM_ESPECIFICACOES"
+      ],
+      "alertas_novos_live": []
+    },
+    {
+      "_id": "6a272b000bb8928e11abce1f",
+      "tipo": "modulo",
+      "fabricante": "Jinko",
+      "modelo": "JKM450M-60HL4-V",
+      "nivel_stored": "invalido",
+      "nivel_live": "suspeito",
+      "alertas_que_sumiriam": [
+        "SEM_ESPECIFICACOES"
+      ],
+      "alertas_novos_live": []
+    },
+    {
+      "_id": "6a272b000bb8928e11abce21",
+      "tipo": "modulo",
+      "fabricante": "Dah",
+      "modelo": "DHN72X16/FS-585W",
+      "nivel_stored": "invalido",
+      "nivel_live": "suspeito",
+      "alertas_que_sumiriam": [],
+      "alertas_novos_live": []
+    },
+    {
+      "_id": "6a272b000bb8928e11abce22",
+      "tipo": "modulo",
+      "fabricante": "Jinko",
+      "modelo": "JKM460M-60HL4-V",
+      "nivel_stored": "invalido",
+      "nivel_live": "suspeito",
+      "alertas_que_sumiriam": [
+        "SEM_ESPECIFICACOES"
+      ],
+      "alertas_novos_live": []
+    },
+    {
+      "_id": "6a272b000bb8928e11abce24",
+      "tipo": "modulo",
+      "fabricante": "Znshine",
+      "modelo": "ZXM7-SHLDD144-555/M",
+      "nivel_stored": "invalido",
+      "nivel_live": "suspeito",
+      "alertas_que_sumiriam": [
+        "SEM_ESPECIFICACOES"
+      ],
+      "alertas_novos_live": []
+    },
+    {
+      "_id": "6a272b000bb8928e11abce27",
+      "tipo": "modulo",
+      "fabricante": "Dah",
+      "modelo": "DHM72X10-555W",
+      "nivel_stored": "invalido",
+      "nivel_live": "suspeito",
+      "alertas_que_sumiriam": [],
+      "alertas_novos_live": []
+    },
+    {
+      "_id": "6a272b000bb8928e11abce29",
+      "tipo": "modulo",
+      "fabricante": "Jinko",
+      "modelo": "JKM565N-72HL4-V",
+      "nivel_stored": "invalido",
+      "nivel_live": "suspeito",
+      "alertas_que_sumiriam": [
+        "SEM_ESPECIFICACOES"
+      ],
+      "alertas_novos_live": []
+    },
+    {
+      "_id": "6a272b010bb8928e11abce2b",
+      "tipo": "modulo",
+      "fabricante": "Canadian",
+      "modelo": "HIKU CS3W-410P",
+      "nivel_stored": "invalido",
+      "nivel_live": "suspeito",
+      "alertas_que_sumiriam": [],
+      "alertas_novos_live": [
+        "POTENCIA_NAO_BATE_VxI"
+      ]
+    },
+    {
+      "_id": "6a272b010bb8928e11abce2c",
+      "tipo": "modulo",
+      "fabricante": "Dah",
+      "modelo": "DHM72X10-550W",
+      "nivel_stored": "invalido",
+      "nivel_live": "suspeito",
+      "alertas_que_sumiriam": [],
+      "alertas_novos_live": []
+    },
+    {
+      "_id": "6a272b010bb8928e11abce2d",
+      "tipo": "modulo",
+      "fabricante": "Jinko",
+      "modelo": "JKM550M-72HL4-V",
+      "nivel_stored": "invalido",
+      "nivel_live": "suspeito",
+      "alertas_que_sumiriam": [
+        "SEM_ESPECIFICACOES"
+      ],
+      "alertas_novos_live": []
+    },
+    {
+      "_id": "6a272b010bb8928e11abce32",
+      "tipo": "modulo",
+      "fabricante": "Leapton",
+      "modelo": "LP182*199-M-66-NH-585W",
+      "nivel_stored": "invalido",
+      "nivel_live": "suspeito",
+      "alertas_que_sumiriam": [],
+      "alertas_novos_live": []
+    },
+    {
+      "_id": "6a272b010bb8928e11abce34",
+      "tipo": "modulo",
+      "fabricante": "Sunova",
+      "modelo": "SS-555-72MDH",
+      "nivel_stored": "invalido",
+      "nivel_live": "suspeito",
+      "alertas_que_sumiriam": [
+        "SEM_ESPECIFICACOES"
+      ],
+      "alertas_novos_live": []
+    },
+    {
+      "_id": "6a272b010bb8928e11abce37",
+      "tipo": "modulo",
+      "fabricante": "Jinko",
+      "modelo": "JKM465N-60HL4-V",
+      "nivel_stored": "invalido",
+      "nivel_live": "suspeito",
+      "alertas_que_sumiriam": [
+        "SEM_ESPECIFICACOES"
+      ],
+      "alertas_novos_live": []
+    },
+    {
+      "_id": "6a272b010bb8928e11abce38",
+      "tipo": "modulo",
+      "fabricante": "Jinko",
+      "modelo": "JKM470N-60HL4-V",
+      "nivel_stored": "invalido",
+      "nivel_live": "suspeito",
+      "alertas_que_sumiriam": [
+        "SEM_ESPECIFICACOES"
+      ],
+      "alertas_novos_live": []
+    },
+    {
+      "_id": "6a272b010bb8928e11abce3a",
+      "tipo": "modulo",
+      "fabricante": "Tongwei",
+      "modelo": "TW-600-MNH 66-HD",
+      "nivel_stored": "invalido",
+      "nivel_live": "suspeito",
+      "alertas_que_sumiriam": [
+        "SEM_ESPECIFICACOES"
+      ],
+      "alertas_novos_live": []
+    },
+    {
+      "_id": "6a272b020bb8928e11abce3d",
+      "tipo": "modulo",
+      "fabricante": "Znshine",
+      "modelo": "ZXM7-SPLD144-550",
+      "nivel_stored": "invalido",
+      "nivel_live": "suspeito",
+      "alertas_que_sumiriam": [
+        "SEM_ESPECIFICACOES"
+      ],
+      "alertas_novos_live": []
+    },
+    {
+      "_id": "6a272b020bb8928e11abce3f",
+      "tipo": "modulo",
+      "fabricante": "Jinko",
+      "modelo": "JKM540M-72HL4-V",
+      "nivel_stored": "invalido",
+      "nivel_live": "suspeito",
+      "alertas_que_sumiriam": [
+        "SEM_ESPECIFICACOES"
+      ],
+      "alertas_novos_live": []
+    },
+    {
+      "_id": "6a272b020bb8928e11abce40",
+      "tipo": "modulo",
+      "fabricante": "Canadian",
+      "modelo": "HIKU6 CS6W-545M",
+      "nivel_stored": "invalido",
+      "nivel_live": "suspeito",
+      "alertas_que_sumiriam": [],
+      "alertas_novos_live": [
+        "POTENCIA_NAO_BATE_VxI"
+      ]
+    },
+    {
+      "_id": "6a272b020bb8928e11abce43",
+      "tipo": "modulo",
+      "fabricante": "Dah",
+      "modelo": "DHM72X10/FS-555W",
+      "nivel_stored": "invalido",
+      "nivel_live": "suspeito",
+      "alertas_que_sumiriam": [],
+      "alertas_novos_live": []
+    },
+    {
+      "_id": "6a272b020bb8928e11abce46",
+      "tipo": "modulo",
+      "fabricante": "Osda",
+      "modelo": "ODA550-36V-MH",
+      "nivel_stored": "invalido",
+      "nivel_live": "suspeito",
+      "alertas_que_sumiriam": [
+        "SEM_ESPECIFICACOES"
+      ],
+      "alertas_novos_live": []
+    },
+    {
+      "_id": "6a272b020bb8928e11abce48",
+      "tipo": "modulo",
+      "fabricante": "Osda",
+      "modelo": "ODA555-36V-MH",
+      "nivel_stored": "invalido",
+      "nivel_live": "suspeito",
+      "alertas_que_sumiriam": [
+        "SEM_ESPECIFICACOES"
+      ],
+      "alertas_novos_live": []
+    },
+    {
+      "_id": "6a272b020bb8928e11abce49",
+      "tipo": "modulo",
+      "fabricante": "Resun",
+      "modelo": "RS8I-550M",
+      "nivel_stored": "invalido",
+      "nivel_live": "suspeito",
+      "alertas_que_sumiriam": [
+        "SEM_ESPECIFICACOES"
+      ],
+      "alertas_novos_live": []
+    },
+    {
+      "_id": "6a272b020bb8928e11abce4b",
+      "tipo": "modulo",
+      "fabricante": "Dah",
+      "modelo": "DHN66Z16/DG-610W",
+      "nivel_stored": "invalido",
+      "nivel_live": "suspeito",
+      "alertas_que_sumiriam": [],
+      "alertas_novos_live": []
+    },
+    {
+      "_id": "6a272b030bb8928e11abce4e",
+      "tipo": "modulo",
+      "fabricante": "Dah",
+      "modelo": "DHN72R18/FS-610W",
+      "nivel_stored": "invalido",
+      "nivel_live": "suspeito",
+      "alertas_que_sumiriam": [],
+      "alertas_novos_live": []
+    },
+    {
+      "_id": "6a272b030bb8928e11abce50",
+      "tipo": "modulo",
+      "fabricante": "Canadian",
+      "modelo": "HIKU6 CS6W-550MS",
+      "nivel_stored": "invalido",
+      "nivel_live": "suspeito",
+      "alertas_que_sumiriam": [],
+      "alertas_novos_live": [
+        "POTENCIA_NAO_BATE_VxI"
+      ]
+    },
+    {
+      "_id": "6a272b030bb8928e11abce55",
+      "tipo": "modulo",
+      "fabricante": "Renesola",
+      "modelo": "RS6-555MG-E3",
+      "nivel_stored": "invalido",
+      "nivel_live": "suspeito",
+      "alertas_que_sumiriam": [
+        "SEM_ESPECIFICACOES"
+      ],
+      "alertas_novos_live": []
+    },
+    {
+      "_id": "6a272b030bb8928e11abce58",
+      "tipo": "modulo",
+      "fabricante": "Ja Solar",
+      "modelo": "M78D30 580/MB",
+      "nivel_stored": "invalido",
+      "nivel_live": "suspeito",
+      "alertas_que_sumiriam": [
+        "SEM_ESPECIFICACOES"
+      ],
+      "alertas_novos_live": []
+    },
+    {
+      "_id": "6a272b030bb8928e11abce5b",
+      "tipo": "modulo",
+      "fabricante": "Leapton",
+      "modelo": "LP182-M-78-MH-590W",
+      "nivel_stored": "invalido",
+      "nivel_live": "suspeito",
+      "alertas_que_sumiriam": [],
+      "alertas_novos_live": []
+    },
+    {
+      "_id": "6a272b030bb8928e11abce5c",
+      "tipo": "modulo",
+      "fabricante": "Longi",
+      "modelo": "LR5-72HPH-545M",
+      "nivel_stored": "invalido",
+      "nivel_live": "suspeito",
+      "alertas_que_sumiriam": [
+        "SEM_ESPECIFICACOES"
+      ],
+      "alertas_novos_live": []
+    },
+    {
+      "_id": "6a272b030bb8928e11abce5d",
+      "tipo": "modulo",
+      "fabricante": "Honor",
+      "modelo": "HY-M10/144H 575W",
+      "nivel_stored": "invalido",
+      "nivel_live": "suspeito",
+      "alertas_que_sumiriam": [],
+      "alertas_novos_live": []
+    },
+    {
+      "_id": "6a272b040bb8928e11abce5f",
+      "tipo": "modulo",
+      "fabricante": "Minasol",
+      "modelo": "MS-555",
+      "nivel_stored": "invalido",
+      "nivel_live": "suspeito",
+      "alertas_que_sumiriam": [
+        "SEM_ESPECIFICACOES"
+      ],
+      "alertas_novos_live": []
+    },
+    {
+      "_id": "6a272b040bb8928e11abce60",
+      "tipo": "modulo",
+      "fabricante": "Dah",
+      "modelo": "DHN66Z20/DG-620W",
+      "nivel_stored": "invalido",
+      "nivel_live": "suspeito",
+      "alertas_que_sumiriam": [],
+      "alertas_novos_live": []
+    },
+    {
+      "_id": "6a272b040bb8928e11abce62",
+      "tipo": "modulo",
+      "fabricante": "Znshine",
+      "modelo": "DG 585",
+      "nivel_stored": "invalido",
+      "nivel_live": "suspeito",
+      "alertas_que_sumiriam": [
+        "SEM_ESPECIFICACOES"
+      ],
+      "alertas_novos_live": []
+    },
+    {
+      "_id": "6a272b040bb8928e11abce68",
+      "tipo": "modulo",
+      "fabricante": "Canadian",
+      "modelo": "BIFACIAL HIKU6 CS6W-540MB-AG",
+      "nivel_stored": "invalido",
+      "nivel_live": "suspeito",
+      "alertas_que_sumiriam": [],
+      "alertas_novos_live": [
+        "POTENCIA_NAO_BATE_VxI"
+      ]
+    },
+    {
+      "_id": "6a272b040bb8928e11abce69",
+      "tipo": "modulo",
+      "fabricante": "Topsola",
+      "modelo": "TPS 550M-144H1",
+      "nivel_stored": "invalido",
+      "nivel_live": "suspeito",
+      "alertas_que_sumiriam": [
+        "SEM_ESPECIFICACOES"
+      ],
+      "alertas_novos_live": []
+    },
+    {
+      "_id": "6a272b040bb8928e11abce6b",
+      "tipo": "modulo",
+      "fabricante": "Osda",
+      "modelo": "ODA560-36V-MH",
+      "nivel_stored": "invalido",
+      "nivel_live": "suspeito",
+      "alertas_que_sumiriam": [
+        "SEM_ESPECIFICACOES"
+      ],
+      "alertas_novos_live": []
+    },
+    {
+      "_id": "6a272b040bb8928e11abce6c",
+      "tipo": "modulo",
+      "fabricante": "Risen",
+      "modelo": "RSM40-8-405M",
+      "nivel_stored": "invalido",
+      "nivel_live": "suspeito",
+      "alertas_que_sumiriam": [
+        "SEM_ESPECIFICACOES"
+      ],
+      "alertas_novos_live": []
+    },
+    {
+      "_id": "6a272b040bb8928e11abce6f",
+      "tipo": "modulo",
+      "fabricante": "Hanersun",
+      "modelo": "CP18-72HT 550W",
+      "nivel_stored": "invalido",
+      "nivel_live": "suspeito",
+      "alertas_que_sumiriam": [],
+      "alertas_novos_live": []
+    },
+    {
+      "_id": "6a272b050bb8928e11abce71",
+      "tipo": "modulo",
+      "fabricante": "Canadian",
+      "modelo": "HIKU7 CS7N-665MS",
+      "nivel_stored": "invalido",
+      "nivel_live": "suspeito",
+      "alertas_que_sumiriam": [
+        "SEM_ESPECIFICACOES"
+      ],
+      "alertas_novos_live": []
+    },
+    {
+      "_id": "6a272b050bb8928e11abce74",
+      "tipo": "modulo",
+      "fabricante": "Osda",
+      "modelo": "ODA570-36V-MH",
+      "nivel_stored": "invalido",
+      "nivel_live": "suspeito",
+      "alertas_que_sumiriam": [
+        "SEM_ESPECIFICACOES"
+      ],
+      "alertas_novos_live": []
+    },
+    {
+      "_id": "6a272b050bb8928e11abce75",
+      "tipo": "modulo",
+      "fabricante": "Hanersun",
+      "modelo": "CP18-72H555W",
+      "nivel_stored": "invalido",
+      "nivel_live": "suspeito",
+      "alertas_que_sumiriam": [],
+      "alertas_novos_live": []
+    },
+    {
+      "_id": "6a272b050bb8928e11abce7a",
+      "tipo": "modulo",
+      "fabricante": "Leapton",
+      "modelo": "LP210-M-66-MH-665W",
+      "nivel_stored": "invalido",
+      "nivel_live": "suspeito",
+      "alertas_que_sumiriam": [],
+      "alertas_novos_live": []
+    },
+    {
+      "_id": "6a272b050bb8928e11abce7f",
+      "tipo": "modulo",
+      "fabricante": "Honor",
+      "modelo": "HY-M16/144H 590W",
+      "nivel_stored": "invalido",
+      "nivel_live": "suspeito",
+      "alertas_que_sumiriam": [],
+      "alertas_novos_live": []
+    },
+    {
+      "_id": "6a272b060bb8928e11abce81",
+      "tipo": "modulo",
+      "fabricante": "Znshine",
+      "modelo": "ZXI8-RPLDD132-700",
+      "nivel_stored": "invalido",
+      "nivel_live": "suspeito",
+      "alertas_que_sumiriam": [
+        "SEM_ESPECIFICACOES"
+      ],
+      "alertas_novos_live": []
+    }
+  ]
+}
