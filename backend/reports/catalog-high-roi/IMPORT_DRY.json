@@ -1,0 +1,78 @@
+{
+  "aplicado": false,
+  "gerado_em": "2026-06-15T13:15:20.624Z",
+  "criados": 10,
+  "ja_existem": 0,
+  "detalhe": [
+    {
+      "fab": "Pulling Energy",
+      "modelo": "PU-585-SNM102",
+      "tipo": "modulo",
+      "potencia_w": 585,
+      "status": "CRIARIA"
+    },
+    {
+      "fab": "Pulling Energy",
+      "modelo": "PU-625-DNM101",
+      "tipo": "modulo",
+      "potencia_w": 625,
+      "status": "CRIARIA"
+    },
+    {
+      "fab": "Pulling Energy",
+      "modelo": "PU-620-SNM102",
+      "tipo": "modulo",
+      "potencia_w": 620,
+      "status": "CRIARIA"
+    },
+    {
+      "fab": "Pulling Energy",
+      "modelo": "PU-600-DNM101",
+      "tipo": "modulo",
+      "potencia_w": 600,
+      "status": "CRIARIA"
+    },
+    {
+      "fab": "Belenergy",
+      "modelo": "MFVHO-MO-120-460W",
+      "tipo": "modulo",
+      "potencia_w": 460,
+      "status": "CRIARIA"
+    },
+    {
+      "fab": "Belenergy",
+      "modelo": "MFVHO-MO-144-550W",
+      "tipo": "modulo",
+      "potencia_w": 550,
+      "status": "CRIARIA"
+    },
+    {
+      "fab": "Belenergy",
+      "modelo": "BEL-4K-G",
+      "tipo": "inversor",
+      "potencia_kw": 4,
+      "status": "CRIARIA"
+    },
+    {
+      "fab": "Belenergy",
+      "modelo": "60K-4G",
+      "tipo": "inversor",
+      "potencia_kw": 60,
+      "status": "CRIARIA"
+    },
+    {
+      "fab": "Ronma Solar",
+      "modelo": "RM-620W-182M/156TB",
+      "tipo": "modulo",
+      "potencia_w": 620,
+      "status": "CRIARIA"
+    },
+    {
+      "fab": "Helius",
+      "modelo": "HMF144T10R-580HL",
+      "tipo": "modulo",
+      "potencia_w": 580,
+      "status": "CRIARIA"
+    }
+  ]
+}

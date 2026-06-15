@@ -1,28 +1,28 @@
 {
   "sprint": "P0-CATALOG-REMAINING-GAPS-01",
-  "gerado_em": "2026-06-11T23:11:12.523Z",
+  "gerado_em": "2026-06-15T13:16:27.477Z",
   "read_only": true,
   "resumo": {
     "projetos_total": 514,
-    "projetos_completos": 371,
-    "projetos_incompletos": 143,
-    "itens_unicos_sem_bind": 81,
+    "projetos_completos": 439,
+    "projetos_incompletos": 75,
+    "itens_unicos_sem_bind": 56,
     "causas": {
       "A_ausente_total": {
-        "ocorrencias": 78,
-        "projetos": 75
+        "ocorrencias": 15,
+        "projetos": 13
       },
       "B_modelo_ausente": {
-        "ocorrencias": 21,
-        "projetos": 21
+        "ocorrencias": 22,
+        "projetos": 22
       },
       "C_alias_faltando": {
-        "ocorrencias": 16,
-        "projetos": 15
+        "ocorrencias": 10,
+        "projetos": 9
       },
       "D_dado_corrompido": {
-        "ocorrencias": 35,
-        "projetos": 34
+        "ocorrencias": 34,
+        "projetos": 33
       },
       "E_ambiguo": {
         "ocorrencias": 0,
@@ -33,49 +33,19 @@
         "projetos": 0
       }
     },
-    "projetos_resolviveis_por_importacao": 99,
-    "projetos_com_dado_corrompido_irrecuperavel": 34
+    "projetos_resolviveis_por_importacao": 37,
+    "projetos_com_dado_corrompido_irrecuperavel": 33
   },
   "ranking_fabricantes_bloqueantes": [
-    {
-      "fabricante": "HELIUS",
-      "projetos_bloqueados": 25,
-      "causa_principal": "A"
-    },
-    {
-      "fabricante": "SIRIUS BIFACIAL",
-      "projetos_bloqueados": 15,
-      "causa_principal": "A"
-    },
     {
       "fabricante": "TSUN",
       "projetos_bloqueados": 9,
       "causa_principal": "B"
     },
     {
-      "fabricante": "Sirius",
-      "projetos_bloqueados": 8,
-      "causa_principal": "C"
-    },
-    {
-      "fabricante": "RONMA SOLAR",
-      "projetos_bloqueados": 7,
-      "causa_principal": "A"
-    },
-    {
       "fabricante": "TRINA SOLAR TALLMAX TSM-DE18",
       "projetos_bloqueados": 6,
       "causa_principal": "D"
-    },
-    {
-      "fabricante": "PULLING ENERGY",
-      "projetos_bloqueados": 6,
-      "causa_principal": "A"
-    },
-    {
-      "fabricante": "BELENERGY",
-      "projetos_bloqueados": 5,
-      "causa_principal": "A"
     },
     {
       "fabricante": "DAH",
@@ -101,11 +71,6 @@
       "fabricante": "HELIUS HMB132T12R",
       "projetos_bloqueados": 2,
       "causa_principal": "D"
-    },
-    {
-      "fabricante": "SIRIUS-RS6 - 550MX -",
-      "projetos_bloqueados": 2,
-      "causa_principal": "A"
     },
     {
       "fabricante": "ZXMR-UPLDD144",
@@ -193,16 +158,6 @@
       "causa_principal": "D"
     },
     {
-      "fabricante": "Sirius Full Balck",
-      "projetos_bloqueados": 1,
-      "causa_principal": "A"
-    },
-    {
-      "fabricante": "Sirius-RS6 - 550MX -",
-      "projetos_bloqueados": 1,
-      "causa_principal": "A"
-    },
-    {
       "fabricante": "ZXM7-SHLD144 -",
       "projetos_bloqueados": 1,
       "causa_principal": "A"
@@ -278,9 +233,14 @@
       "causa_principal": "C"
     },
     {
+      "fabricante": "PULLING ENERGY",
+      "projetos_bloqueados": 1,
+      "causa_principal": "B"
+    },
+    {
       "fabricante": "Ronma",
       "projetos_bloqueados": 1,
-      "causa_principal": "A"
+      "causa_principal": "C"
     },
     {
       "fabricante": "ZXM7-UPLDD144-595",
@@ -318,9 +278,9 @@
       "causa_principal": "C"
     },
     {
-      "fabricante": "Zn Shine",
+      "fabricante": "SOLAREDGE SE 20.1K",
       "projetos_bloqueados": 1,
-      "causa_principal": "D"
+      "causa_principal": "C"
     },
     {
       "fabricante": "NVFX-H-MO-220-10.5K",
@@ -330,32 +290,6 @@
   ],
   "roi_ranking": [
     {
-      "fabricante": "HELIUS",
-      "projetos_liberados": 25,
-      "modelos_ausentes": [
-        "HMF144T10-570HL",
-        "HMF132T10R-575HL",
-        "HMF132T12R-600HL",
-        "HMF144M10-555H",
-        "HMF144T10R-580HL",
-        "HMF132T12R-595HL"
-      ],
-      "n_modelos": 6,
-      "causa": "A",
-      "acao": "Importar fabricante completo"
-    },
-    {
-      "fabricante": "SIRIUS BIFACIAL",
-      "projetos_liberados": 15,
-      "modelos_ausentes": [
-        "HD144P-545W",
-        "HD144N-550W"
-      ],
-      "n_modelos": 2,
-      "causa": "A",
-      "acao": "Importar fabricante completo"
-    },
-    {
       "fabricante": "TSUN",
       "projetos_liberados": 9,
       "modelos_ausentes": [
@@ -364,46 +298,6 @@
       "n_modelos": 1,
       "causa": "B",
       "acao": "Importar modelos específicos"
-    },
-    {
-      "fabricante": "RONMA SOLAR",
-      "projetos_liberados": 7,
-      "modelos_ausentes": [
-        "RM-585W-182M/144TB",
-        "RM-620W-182M/156TB",
-        "RM-620W-182R/132TB",
-        "RM-570W-182M/144TB"
-      ],
-      "n_modelos": 4,
-      "causa": "A",
-      "acao": "Importar fabricante completo"
-    },
-    {
-      "fabricante": "PULLING ENERGY",
-      "projetos_liberados": 6,
-      "modelos_ausentes": [
-        "PU-585-SNM102",
-        "PU-625-DNM101",
-        "PU-620-SNM102",
-        "610w",
-        "PU-600-DNM101"
-      ],
-      "n_modelos": 5,
-      "causa": "A",
-      "acao": "Importar fabricante completo"
-    },
-    {
-      "fabricante": "BELENERGY",
-      "projetos_liberados": 5,
-      "modelos_ausentes": [
-        "BEL-4K-G",
-        "MFVHO-MO-120-460W",
-        "MFVHO-MO-144-550W",
-        "60K-4G"
-      ],
-      "n_modelos": 4,
-      "causa": "A",
-      "acao": "Importar fabricante completo"
     },
     {
       "fabricante": "DEYE",
@@ -436,16 +330,6 @@
       "n_modelos": 2,
       "causa": "B",
       "acao": "Importar modelos específicos"
-    },
-    {
-      "fabricante": "SIRIUS-RS6 - 550MX -",
-      "projetos_liberados": 2,
-      "modelos_ausentes": [
-        "E3"
-      ],
-      "n_modelos": 1,
-      "causa": "A",
-      "acao": "Importar fabricante completo"
     },
     {
       "fabricante": "Dah",
@@ -531,26 +415,6 @@
       "acao": "Importar fabricante completo"
     },
     {
-      "fabricante": "Sirius Full Balck",
-      "projetos_liberados": 1,
-      "modelos_ausentes": [
-        "550w"
-      ],
-      "n_modelos": 1,
-      "causa": "A",
-      "acao": "Importar fabricante completo"
-    },
-    {
-      "fabricante": "Sirius-RS6 - 550MX -",
-      "projetos_liberados": 1,
-      "modelos_ausentes": [
-        "E3"
-      ],
-      "n_modelos": 1,
-      "causa": "A",
-      "acao": "Importar fabricante completo"
-    },
-    {
       "fabricante": "ZXM7-SHLD144 -",
       "projetos_liberados": 1,
       "modelos_ausentes": [
@@ -601,14 +465,14 @@
       "acao": "Importar modelos específicos"
     },
     {
-      "fabricante": "Ronma",
+      "fabricante": "PULLING ENERGY",
       "projetos_liberados": 1,
       "modelos_ausentes": [
-        "570 bifacial"
+        "610w"
       ],
       "n_modelos": 1,
-      "causa": "A",
-      "acao": "Importar fabricante completo"
+      "causa": "B",
+      "acao": "Importar modelos específicos"
     },
     {
       "fabricante": "ZXMR-UOLDD144 -",
@@ -622,58 +486,6 @@
     }
   ],
   "itens_sem_bind": [
-    {
-      "marca": "SIRIUS BIFACIAL",
-      "modelo": "HD144P-545W",
-      "tipo": "modulo",
-      "causa": "A",
-      "detalhe": "fabricante \"SIRIUS BIFACIAL\" não encontrado no Atlas",
-      "projetos_bloqueados": 14,
-      "atlas_fab_similar": null,
-      "atlas_modelos_count": 0,
-      "tem_datasheet_cache": false,
-      "projetos": [
-        "027 - Antônio Alvino de Souza Neto (Ideia)",
-        "Severino Matias MLPE",
-        "R2 - Solaredge",
-        "081 - Liana Pinheiro da Silva Macedo (Sid)",
-        "Condomínio Smile Village",
-        "082 -Fabricia Fabielle (cristiano)",
-        "Portamaris Club",
-        "Carlos - Mascate",
-        "089 - Empresarial Amadeu",
-        "Herbert Matthias",
-        "Juciê",
-        "Deborah Vieira",
-        "092 - Luiz Henrique - Clinicenter",
-        "Fénix Ind."
-      ]
-    },
-    {
-      "marca": "HELIUS",
-      "modelo": "HMF144T10-570HL",
-      "tipo": "modulo",
-      "causa": "A",
-      "detalhe": "fabricante \"HELIUS\" não encontrado no Atlas",
-      "projetos_bloqueados": 12,
-      "atlas_fab_similar": null,
-      "atlas_modelos_count": 0,
-      "tem_datasheet_cache": false,
-      "projetos": [
-        "Pai de Handel",
-        "183 - Nicola Trentin",
-        "Marcio Cardoso Pires",
-        "184 - Edson Feitoza",
-        "Francis",
-        "Ana Livia",
-        "Artur - string",
-        "Marcos Lanche 2kW",
-        "JUNIOR PEIXOTO - STRING",
-        "Monique",
-        "Junior Saldanha",
-        "Faixa Sinalização"
-      ]
-    },
     {
       "marca": "TSUN",
       "modelo": "TS-S8B-144-560W",
@@ -697,26 +509,6 @@
       ]
     },
     {
-      "marca": "Sirius",
-      "modelo": "Full Black",
-      "tipo": "modulo",
-      "causa": "C",
-      "detalhe": "alias de fabricante similar: SM=\"Sirius\" → possível Atlas=\"Sirius Energias Renováveis\"",
-      "projetos_bloqueados": 7,
-      "atlas_fab_similar": null,
-      "atlas_modelos_count": 0,
-      "tem_datasheet_cache": false,
-      "projetos": [
-        "053 - Mirante das Dunas",
-        "ARCOS - STRING",
-        "Eduardo - Maria das Graças",
-        "Caio Costa",
-        "Wenio Pereira",
-        "Renato Cesar",
-        "Marcos Brunschwiler"
-      ]
-    },
-    {
       "marca": "TRINA SOLAR TALLMAX TSM-DE18",
       "modelo": "550",
       "tipo": "modulo",
@@ -733,41 +525,6 @@
         "Therra Mater 1",
         "140,2 Projeto Grafica 02",
         "Escola Mater Dei"
-      ]
-    },
-    {
-      "marca": "HELIUS",
-      "modelo": "HMF132T10R-575HL",
-      "tipo": "modulo",
-      "causa": "A",
-      "detalhe": "fabricante \"HELIUS\" não encontrado no Atlas",
-      "projetos_bloqueados": 6,
-      "atlas_fab_similar": null,
-      "atlas_modelos_count": 0,
-      "tem_datasheet_cache": false,
-      "projetos": [
-        "Samya -stirng",
-        "199 - Nancy Lamartine",
-        "201 - Ewerton Thiago de Lima Silva - Erociano",
-        "Jose Amilton - Alex (Samuel)",
-        "Rubens Mario",
-        "Rodrigo Maia"
-      ]
-    },
-    {
-      "marca": "RONMA SOLAR",
-      "modelo": "RM-585W-182M/144TB",
-      "tipo": "modulo",
-      "causa": "A",
-      "detalhe": "fabricante \"RONMA SOLAR\" não encontrado no Atlas",
-      "projetos_bloqueados": 3,
-      "atlas_fab_similar": null,
-      "atlas_modelos_count": 0,
-      "tem_datasheet_cache": false,
-      "projetos": [
-        "140 - Nizyara Costa da Silva (Bebeto - Casa)",
-        "Residencial Alvorada",
-        "282 - Elias Paulino Junior"
       ]
     },
     {
@@ -800,22 +557,6 @@
         "198 - Tapera bar espetaria",
         "223 - Somagraf Comércio Ltda",
         "231 - Maria de Fatima Bezerra D. Menezes"
-      ]
-    },
-    {
-      "marca": "HELIUS",
-      "modelo": "HMF132T12R-600HL",
-      "tipo": "modulo",
-      "causa": "A",
-      "detalhe": "fabricante \"HELIUS\" não encontrado no Atlas",
-      "projetos_bloqueados": 3,
-      "atlas_fab_similar": null,
-      "atlas_modelos_count": 0,
-      "tem_datasheet_cache": false,
-      "projetos": [
-        "Juahil - micro",
-        "Sebastião Dias",
-        "207.2 - Paulo Carlos de Andrade Filho ( ampliação)"
       ]
     },
     {
@@ -860,66 +601,6 @@
       "projetos": [
         "113 - Aline Beatriz de Medeiros Costa Helinsk",
         "281 -  José Medeiros dos Santos - Ricardo"
-      ]
-    },
-    {
-      "marca": "SIRIUS-RS6 - 550MX -",
-      "modelo": "E3",
-      "tipo": "modulo",
-      "causa": "A",
-      "detalhe": "fabricante \"SIRIUS-RS6 - 550MX -\" não encontrado no Atlas",
-      "projetos_bloqueados": 2,
-      "atlas_fab_similar": null,
-      "atlas_modelos_count": 0,
-      "tem_datasheet_cache": false,
-      "projetos": [
-        "141 - Giovani Francisco de Sá",
-        "145 - Mirante das Dunas - Ampliação"
-      ]
-    },
-    {
-      "marca": "BELENERGY",
-      "modelo": "BEL-4K-G",
-      "tipo": "inversor",
-      "causa": "A",
-      "detalhe": "fabricante \"BELENERGY\" não encontrado no Atlas",
-      "projetos_bloqueados": 2,
-      "atlas_fab_similar": null,
-      "atlas_modelos_count": 0,
-      "tem_datasheet_cache": false,
-      "projetos": [
-        "151 - Sueli Maria - Barreto (Luzia)",
-        "JUNIOR PEIXOTO - STRING"
-      ]
-    },
-    {
-      "marca": "HELIUS",
-      "modelo": "HMF144M10-555H",
-      "tipo": "modulo",
-      "causa": "A",
-      "detalhe": "fabricante \"HELIUS\" não encontrado no Atlas",
-      "projetos_bloqueados": 2,
-      "atlas_fab_similar": null,
-      "atlas_modelos_count": 0,
-      "tem_datasheet_cache": false,
-      "projetos": [
-        "193 - A L Motéis Ltda - Tropicos",
-        "presidio"
-      ]
-    },
-    {
-      "marca": "RONMA SOLAR",
-      "modelo": "RM-620W-182M/156TB",
-      "tipo": "modulo",
-      "causa": "A",
-      "detalhe": "fabricante \"RONMA SOLAR\" não encontrado no Atlas",
-      "projetos_bloqueados": 2,
-      "atlas_fab_similar": null,
-      "atlas_modelos_count": 0,
-      "tem_datasheet_cache": false,
-      "projetos": [
-        "206 - Sarah Rodrigues Brasil",
-        "Solaredge"
       ]
     },
     {
@@ -995,35 +676,6 @@
       "projetos": [
         "259 - Luiz de França Afonso Ferreira - Marcilio",
         "El shaday - casa"
-      ]
-    },
-    {
-      "marca": "PULLING ENERGY",
-      "modelo": "PU-585-SNM102",
-      "tipo": "modulo",
-      "causa": "A",
-      "detalhe": "fabricante \"PULLING ENERGY\" não encontrado no Atlas",
-      "projetos_bloqueados": 2,
-      "atlas_fab_similar": null,
-      "atlas_modelos_count": 0,
-      "tem_datasheet_cache": false,
-      "projetos": [
-        "246 - Ampliação Doceria - Pinga Fogo (Lenusia)",
-        "Projeto Camboinhas"
-      ]
-    },
-    {
-      "marca": "SIRIUS BIFACIAL",
-      "modelo": "HD144N-550W",
-      "tipo": "modulo",
-      "causa": "A",
-      "detalhe": "fabricante \"SIRIUS BIFACIAL\" não encontrado no Atlas",
-      "projetos_bloqueados": 1,
-      "atlas_fab_similar": null,
-      "atlas_modelos_count": 0,
-      "tem_datasheet_cache": false,
-      "projetos": [
-        "070 - Romeika Katarina Lopes da Costa Pereira"
       ]
     },
     {
@@ -1139,20 +791,6 @@
       ]
     },
     {
-      "marca": "HELIUS",
-      "modelo": "HMF144T10R-580HL",
-      "tipo": "modulo",
-      "causa": "A",
-      "detalhe": "fabricante \"HELIUS\" não encontrado no Atlas",
-      "projetos_bloqueados": 1,
-      "atlas_fab_similar": null,
-      "atlas_modelos_count": 0,
-      "tem_datasheet_cache": false,
-      "projetos": [
-        "124 - José Zélio Lopes da Costa"
-      ]
-    },
-    {
       "marca": "EnergySun",
       "modelo": "EnergySun",
       "tipo": "modulo",
@@ -1181,34 +819,6 @@
       ]
     },
     {
-      "marca": "Sirius Full Balck",
-      "modelo": "550w",
-      "tipo": "modulo",
-      "causa": "A",
-      "detalhe": "fabricante \"Sirius Full Balck\" não encontrado no Atlas",
-      "projetos_bloqueados": 1,
-      "atlas_fab_similar": null,
-      "atlas_modelos_count": 0,
-      "tem_datasheet_cache": false,
-      "projetos": [
-        "144 - Marqueciliano Dantas de Oliveira"
-      ]
-    },
-    {
-      "marca": "Sirius",
-      "modelo": "Full Balck",
-      "tipo": "modulo",
-      "causa": "C",
-      "detalhe": "alias de fabricante similar: SM=\"Sirius\" → possível Atlas=\"Sirius Energias Renováveis\"",
-      "projetos_bloqueados": 1,
-      "atlas_fab_similar": null,
-      "atlas_modelos_count": 0,
-      "tem_datasheet_cache": false,
-      "projetos": [
-        "143 - Eduardo José Soares Pereira"
-      ]
-    },
-    {
       "marca": "ERA SOLAR",
       "modelo": "ESPHSC-555M",
       "tipo": "modulo",
@@ -1223,20 +833,6 @@
       ]
     },
     {
-      "marca": "Sirius-RS6 - 550MX -",
-      "modelo": "E3",
-      "tipo": "modulo",
-      "causa": "A",
-      "detalhe": "fabricante \"Sirius-RS6 - 550MX -\" não encontrado no Atlas",
-      "projetos_bloqueados": 1,
-      "atlas_fab_similar": null,
-      "atlas_modelos_count": 0,
-      "tem_datasheet_cache": false,
-      "projetos": [
-        "Pedro - Equip Industrial"
-      ]
-    },
-    {
       "marca": "ZXM7-SHLD144 -",
       "modelo": "550W",
       "tipo": "modulo",
@@ -1248,20 +844,6 @@
       "tem_datasheet_cache": false,
       "projetos": [
         "159 - Tiago Paulo da Silva Pimentel Gomes"
-      ]
-    },
-    {
-      "marca": "BELENERGY",
-      "modelo": "MFVHO-MO-120-460W",
-      "tipo": "modulo",
-      "causa": "A",
-      "detalhe": "fabricante \"BELENERGY\" não encontrado no Atlas",
-      "projetos_bloqueados": 1,
-      "atlas_fab_similar": null,
-      "atlas_modelos_count": 0,
-      "tem_datasheet_cache": false,
-      "projetos": [
-        "Francisco"
       ]
     },
     {
@@ -1321,20 +903,6 @@
       ]
     },
     {
-      "marca": "BELENERGY",
-      "modelo": "MFVHO-MO-144-550W",
-      "tipo": "modulo",
-      "causa": "A",
-      "detalhe": "fabricante \"BELENERGY\" não encontrado no Atlas",
-      "projetos_bloqueados": 1,
-      "atlas_fab_similar": null,
-      "atlas_modelos_count": 0,
-      "tem_datasheet_cache": false,
-      "projetos": [
-        "157 - Francisco das Chagas - Rua Alamanda, 320"
-      ]
-    },
-    {
       "marca": "MFVHN-MI-MO-144-550W",
       "modelo": "MFVHN-MI-MO-144-550W",
       "tipo": "modulo",
@@ -1388,34 +956,6 @@
       "tem_datasheet_cache": false,
       "projetos": [
         "HELDER MELO AMPLIAÇÃO"
-      ]
-    },
-    {
-      "marca": "PULLING ENERGY",
-      "modelo": "PU-625-DNM101",
-      "tipo": "modulo",
-      "causa": "A",
-      "detalhe": "fabricante \"PULLING ENERGY\" não encontrado no Atlas",
-      "projetos_bloqueados": 1,
-      "atlas_fab_similar": null,
-      "atlas_modelos_count": 0,
-      "tem_datasheet_cache": false,
-      "projetos": [
-        "ROMINA ESBELDA"
-      ]
-    },
-    {
-      "marca": "BELENERGY",
-      "modelo": "60K-4G",
-      "tipo": "inversor",
-      "causa": "A",
-      "detalhe": "fabricante \"BELENERGY\" não encontrado no Atlas",
-      "projetos_bloqueados": 1,
-      "atlas_fab_similar": null,
-      "atlas_modelos_count": 0,
-      "tem_datasheet_cache": false,
-      "projetos": [
-        "Fazenda Sindi Brasil"
       ]
     },
     {
@@ -1503,20 +1043,6 @@
       ]
     },
     {
-      "marca": "PULLING ENERGY",
-      "modelo": "PU-620-SNM102",
-      "tipo": "modulo",
-      "causa": "A",
-      "detalhe": "fabricante \"PULLING ENERGY\" não encontrado no Atlas",
-      "projetos_bloqueados": 1,
-      "atlas_fab_similar": null,
-      "atlas_modelos_count": 0,
-      "tem_datasheet_cache": false,
-      "projetos": [
-        "207 - Paulo Carlos de Andrade Filho"
-      ]
-    },
-    {
       "marca": "JAM72D42-630/LB",
       "modelo": "JAM72D42-630/LB",
       "tipo": "modulo",
@@ -1562,36 +1088,22 @@
       "marca": "PULLING ENERGY",
       "modelo": "610w",
       "tipo": "modulo",
-      "causa": "A",
-      "detalhe": "fabricante \"PULLING ENERGY\" não encontrado no Atlas",
+      "causa": "B",
+      "detalhe": "fabricante \"Pulling Energy\" no Atlas (4 modelos), mas este modelo \"610w\" ausente",
       "projetos_bloqueados": 1,
-      "atlas_fab_similar": null,
-      "atlas_modelos_count": 0,
+      "atlas_fab_similar": "Pulling Energy",
+      "atlas_modelos_count": 4,
       "tem_datasheet_cache": false,
       "projetos": [
         "Igor Mesquita"
       ]
     },
     {
-      "marca": "HELIUS",
-      "modelo": "HMF132T12R-595HL",
-      "tipo": "modulo",
-      "causa": "A",
-      "detalhe": "fabricante \"HELIUS\" não encontrado no Atlas",
-      "projetos_bloqueados": 1,
-      "atlas_fab_similar": null,
-      "atlas_modelos_count": 0,
-      "tem_datasheet_cache": false,
-      "projetos": [
-        "Green Field"
-      ]
-    },
-    {
       "marca": "Ronma",
       "modelo": "570 bifacial",
       "tipo": "modulo",
-      "causa": "A",
-      "detalhe": "fabricante \"Ronma\" não encontrado no Atlas",
+      "causa": "C",
+      "detalhe": "alias de fabricante similar: SM=\"Ronma\" → possível Atlas=\"Ronma Solar\"",
       "projetos_bloqueados": 1,
       "atlas_fab_similar": null,
       "atlas_modelos_count": 0,
@@ -1612,20 +1124,6 @@
       "tem_datasheet_cache": false,
       "projetos": [
         "224 -  Ewerton Thiago de Lima Silva Casa ex esposa"
-      ]
-    },
-    {
-      "marca": "PULLING ENERGY",
-      "modelo": "PU-600-DNM101",
-      "tipo": "modulo",
-      "causa": "A",
-      "detalhe": "fabricante \"PULLING ENERGY\" não encontrado no Atlas",
-      "projetos_bloqueados": 1,
-      "atlas_fab_similar": null,
-      "atlas_modelos_count": 0,
-      "tem_datasheet_cache": false,
-      "projetos": [
-        "Projeto Valney"
       ]
     },
     {
@@ -1727,11 +1225,11 @@
       ]
     },
     {
-      "marca": "Zn Shine",
-      "modelo": "630",
-      "tipo": "modulo",
-      "causa": "D",
-      "detalhe": "modelo numérico puro \"630\" — provavelmente wattage",
+      "marca": "SOLAREDGE SE 20.1K",
+      "modelo": "SE 20.1K 380/220v",
+      "tipo": "inversor",
+      "causa": "C",
+      "detalhe": "alias de fabricante necessário (modelo existe no Atlas)",
       "projetos_bloqueados": 1,
       "atlas_fab_similar": null,
       "atlas_modelos_count": 0,
@@ -1769,20 +1267,6 @@
       ]
     },
     {
-      "marca": "RONMA SOLAR",
-      "modelo": "RM-620W-182R/132TB",
-      "tipo": "modulo",
-      "causa": "A",
-      "detalhe": "fabricante \"RONMA SOLAR\" não encontrado no Atlas",
-      "projetos_bloqueados": 1,
-      "atlas_fab_similar": null,
-      "atlas_modelos_count": 0,
-      "tem_datasheet_cache": false,
-      "projetos": [
-        "274 - Condomínio Shopping Estação"
-      ]
-    },
-    {
       "marca": "RENEPV",
       "modelo": "ZY-615-G12RNHB-132",
       "tipo": "modulo",
@@ -1794,20 +1278,6 @@
       "tem_datasheet_cache": false,
       "projetos": [
         "Ocean View tabatinga"
-      ]
-    },
-    {
-      "marca": "RONMA SOLAR",
-      "modelo": "RM-570W-182M/144TB",
-      "tipo": "modulo",
-      "causa": "A",
-      "detalhe": "fabricante \"RONMA SOLAR\" não encontrado no Atlas",
-      "projetos_bloqueados": 1,
-      "atlas_fab_similar": null,
-      "atlas_modelos_count": 0,
-      "tem_datasheet_cache": false,
-      "projetos": [
-        "276 - Seminario São Pedro"
       ]
     },
     {
@@ -1959,58 +1429,6 @@
       "total_sem_bind": 2
     },
     {
-      "_id": "6a2aa1c71222567143ff3956",
-      "projeto": "JUNIOR PEIXOTO - STRING",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "HELIUS",
-          "modelo": "HMF144T10-570HL",
-          "categoria": "modulo",
-          "causa": "A",
-          "detalhe": "fabricante \"HELIUS\" não encontrado no Atlas"
-        },
-        {
-          "marca": "BELENERGY",
-          "modelo": "BEL-4K-G",
-          "categoria": "inversor",
-          "causa": "A",
-          "detalhe": "fabricante \"BELENERGY\" não encontrado no Atlas"
-        }
-      ],
-      "total_sem_bind": 2
-    },
-    {
-      "_id": "6a2aa1ae1222567143ff37d2",
-      "projeto": "070 - Romeika Katarina Lopes da Costa Pereira",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "SIRIUS BIFACIAL",
-          "modelo": "HD144N-550W",
-          "categoria": "modulo",
-          "causa": "A",
-          "detalhe": "fabricante \"SIRIUS BIFACIAL\" não encontrado no Atlas"
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
-      "_id": "6a2aa1ae1222567143ff37d6",
-      "projeto": "027 - Antônio Alvino de Souza Neto (Ideia)",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "SIRIUS BIFACIAL",
-          "modelo": "HD144P-545W",
-          "categoria": "modulo",
-          "causa": "A",
-          "detalhe": "fabricante \"SIRIUS BIFACIAL\" não encontrado no Atlas"
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
       "_id": "6a2aa1ae1222567143ff37df",
       "projeto": "084 - Residencial Holanda",
       "cliente": "—",
@@ -2021,36 +1439,6 @@
           "categoria": "modulo",
           "causa": "A",
           "detalhe": "fabricante \"SIRIUS GRAFENO-BIFACIAL - 535W -\" não encontrado no Atlas"
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
-      "_id": "6a2aa1af1222567143ff37e2",
-      "projeto": "Severino Matias MLPE",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "SIRIUS BIFACIAL",
-          "modelo": "HD144P-545W",
-          "categoria": "modulo",
-          "causa": "A",
-          "detalhe": "fabricante \"SIRIUS BIFACIAL\" não encontrado no Atlas"
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
-      "_id": "6a2aa1af1222567143ff37e6",
-      "projeto": "R2 - Solaredge",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "SIRIUS BIFACIAL",
-          "modelo": "HD144P-545W",
-          "categoria": "modulo",
-          "causa": "A",
-          "detalhe": "fabricante \"SIRIUS BIFACIAL\" não encontrado no Atlas"
         }
       ],
       "total_sem_bind": 1
@@ -2071,96 +1459,6 @@
       "total_sem_bind": 1
     },
     {
-      "_id": "6a2aa1af1222567143ff37e9",
-      "projeto": "053 - Mirante das Dunas",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "Sirius",
-          "modelo": "Full Black",
-          "categoria": "modulo",
-          "causa": "C",
-          "detalhe": "alias de fabricante similar: SM=\"Sirius\" → possível Atlas=\"Sirius Energias Renováveis\""
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
-      "_id": "6a2aa1af1222567143ff37ec",
-      "projeto": "081 - Liana Pinheiro da Silva Macedo (Sid)",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "SIRIUS BIFACIAL",
-          "modelo": "HD144P-545W",
-          "categoria": "modulo",
-          "causa": "A",
-          "detalhe": "fabricante \"SIRIUS BIFACIAL\" não encontrado no Atlas"
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
-      "_id": "6a2aa1af1222567143ff37ed",
-      "projeto": "Condomínio Smile Village",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "SIRIUS BIFACIAL",
-          "modelo": "HD144P-545W",
-          "categoria": "modulo",
-          "causa": "A",
-          "detalhe": "fabricante \"SIRIUS BIFACIAL\" não encontrado no Atlas"
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
-      "_id": "6a2aa1af1222567143ff37ee",
-      "projeto": "082 -Fabricia Fabielle (cristiano)",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "SIRIUS BIFACIAL",
-          "modelo": "HD144P-545W",
-          "categoria": "modulo",
-          "causa": "A",
-          "detalhe": "fabricante \"SIRIUS BIFACIAL\" não encontrado no Atlas"
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
-      "_id": "6a2aa1b01222567143ff37f2",
-      "projeto": "Portamaris Club",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "SIRIUS BIFACIAL",
-          "modelo": "HD144P-545W",
-          "categoria": "modulo",
-          "causa": "A",
-          "detalhe": "fabricante \"SIRIUS BIFACIAL\" não encontrado no Atlas"
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
-      "_id": "6a2aa1b11222567143ff3801",
-      "projeto": "Pai de Handel",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "HELIUS",
-          "modelo": "HMF144T10-570HL",
-          "categoria": "modulo",
-          "causa": "A",
-          "detalhe": "fabricante \"HELIUS\" não encontrado no Atlas"
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
       "_id": "6a2aa1b11222567143ff3804",
       "projeto": "Tarcisio",
       "cliente": "—",
@@ -2171,21 +1469,6 @@
           "categoria": "modulo",
           "causa": "B",
           "detalhe": "fabricante \"BYD\" no Atlas (1 modelos), mas este modelo \"MLK-36-530\" ausente"
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
-      "_id": "6a2aa1b11222567143ff3806",
-      "projeto": "Carlos - Mascate",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "SIRIUS BIFACIAL",
-          "modelo": "HD144P-545W",
-          "categoria": "modulo",
-          "causa": "A",
-          "detalhe": "fabricante \"SIRIUS BIFACIAL\" não encontrado no Atlas"
         }
       ],
       "total_sem_bind": 1
@@ -2206,66 +1489,6 @@
       "total_sem_bind": 1
     },
     {
-      "_id": "6a2aa1b11222567143ff380e",
-      "projeto": "089 - Empresarial Amadeu",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "SIRIUS BIFACIAL",
-          "modelo": "HD144P-545W",
-          "categoria": "modulo",
-          "causa": "A",
-          "detalhe": "fabricante \"SIRIUS BIFACIAL\" não encontrado no Atlas"
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
-      "_id": "6a2aa1b11222567143ff380f",
-      "projeto": "140 - Nizyara Costa da Silva (Bebeto - Casa)",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "RONMA SOLAR",
-          "modelo": "RM-585W-182M/144TB",
-          "categoria": "modulo",
-          "causa": "A",
-          "detalhe": "fabricante \"RONMA SOLAR\" não encontrado no Atlas"
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
-      "_id": "6a2aa1b21222567143ff381a",
-      "projeto": "Herbert Matthias",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "SIRIUS BIFACIAL",
-          "modelo": "HD144P-545W",
-          "categoria": "modulo",
-          "causa": "A",
-          "detalhe": "fabricante \"SIRIUS BIFACIAL\" não encontrado no Atlas"
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
-      "_id": "6a2aa1b31222567143ff3821",
-      "projeto": "Juciê",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "SIRIUS BIFACIAL",
-          "modelo": "HD144P-545W",
-          "categoria": "modulo",
-          "causa": "A",
-          "detalhe": "fabricante \"SIRIUS BIFACIAL\" não encontrado no Atlas"
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
       "_id": "6a2aa1b31222567143ff3823",
       "projeto": "202 - André Lamartine",
       "cliente": "—",
@@ -2276,51 +1499,6 @@
           "categoria": "modulo",
           "causa": "B",
           "detalhe": "fabricante \"Tsun\" no Atlas (5 modelos), mas este modelo \"TS-S8B-144-560W\" ausente"
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
-      "_id": "6a2aa1b31222567143ff382c",
-      "projeto": "Deborah Vieira",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "SIRIUS BIFACIAL",
-          "modelo": "HD144P-545W",
-          "categoria": "modulo",
-          "causa": "A",
-          "detalhe": "fabricante \"SIRIUS BIFACIAL\" não encontrado no Atlas"
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
-      "_id": "6a2aa1b41222567143ff3834",
-      "projeto": "092 - Luiz Henrique - Clinicenter",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "SIRIUS BIFACIAL",
-          "modelo": "HD144P-545W",
-          "categoria": "modulo",
-          "causa": "A",
-          "detalhe": "fabricante \"SIRIUS BIFACIAL\" não encontrado no Atlas"
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
-      "_id": "6a2aa1b41222567143ff383c",
-      "projeto": "Fénix Ind.",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "SIRIUS BIFACIAL",
-          "modelo": "HD144P-545W",
-          "categoria": "modulo",
-          "causa": "A",
-          "detalhe": "fabricante \"SIRIUS BIFACIAL\" não encontrado no Atlas"
         }
       ],
       "total_sem_bind": 1
@@ -2341,21 +1519,6 @@
       "total_sem_bind": 1
     },
     {
-      "_id": "6a2aa1b81222567143ff3873",
-      "projeto": "ARCOS - STRING",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "Sirius",
-          "modelo": "Full Black",
-          "categoria": "modulo",
-          "causa": "C",
-          "detalhe": "alias de fabricante similar: SM=\"Sirius\" → possível Atlas=\"Sirius Energias Renováveis\""
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
       "_id": "6a2aa1b91222567143ff387d",
       "projeto": "113 - Aline Beatriz de Medeiros Costa Helinsk",
       "cliente": "—",
@@ -2366,21 +1529,6 @@
           "categoria": "modulo",
           "causa": "D",
           "detalhe": "modelo numérico puro \"630\" — provavelmente wattage"
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
-      "_id": "6a2aa1bb1222567143ff389b",
-      "projeto": "124 - José Zélio Lopes da Costa",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "HELIUS",
-          "modelo": "HMF144T10R-580HL",
-          "categoria": "modulo",
-          "causa": "A",
-          "detalhe": "fabricante \"HELIUS\" não encontrado no Atlas"
         }
       ],
       "total_sem_bind": 1
@@ -2476,96 +1624,6 @@
       "total_sem_bind": 1
     },
     {
-      "_id": "6a2aa1bd1222567143ff38bd",
-      "projeto": "Eduardo - Maria das Graças",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "Sirius",
-          "modelo": "Full Black",
-          "categoria": "modulo",
-          "causa": "C",
-          "detalhe": "alias de fabricante similar: SM=\"Sirius\" → possível Atlas=\"Sirius Energias Renováveis\""
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
-      "_id": "6a2aa1bd1222567143ff38bf",
-      "projeto": "Caio Costa",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "Sirius",
-          "modelo": "Full Black",
-          "categoria": "modulo",
-          "causa": "C",
-          "detalhe": "alias de fabricante similar: SM=\"Sirius\" → possível Atlas=\"Sirius Energias Renováveis\""
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
-      "_id": "6a2aa1bd1222567143ff38c2",
-      "projeto": "144 - Marqueciliano Dantas de Oliveira",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "Sirius Full Balck",
-          "modelo": "550w",
-          "categoria": "modulo",
-          "causa": "A",
-          "detalhe": "fabricante \"Sirius Full Balck\" não encontrado no Atlas"
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
-      "_id": "6a2aa1be1222567143ff38c3",
-      "projeto": "141 - Giovani Francisco de Sá",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "SIRIUS-RS6 - 550MX -",
-          "modelo": "E3",
-          "categoria": "modulo",
-          "causa": "A",
-          "detalhe": "fabricante \"SIRIUS-RS6 - 550MX -\" não encontrado no Atlas"
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
-      "_id": "6a2aa1be1222567143ff38c4",
-      "projeto": "143 - Eduardo José Soares Pereira",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "Sirius",
-          "modelo": "Full Balck",
-          "categoria": "modulo",
-          "causa": "C",
-          "detalhe": "alias de fabricante similar: SM=\"Sirius\" → possível Atlas=\"Sirius Energias Renováveis\""
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
-      "_id": "6a2aa1be1222567143ff38c7",
-      "projeto": "Wenio Pereira",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "Sirius",
-          "modelo": "Full Black",
-          "categoria": "modulo",
-          "causa": "C",
-          "detalhe": "alias de fabricante similar: SM=\"Sirius\" → possível Atlas=\"Sirius Energias Renováveis\""
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
       "_id": "6a2aa1be1222567143ff38c8",
       "projeto": "Maria Leda (Eudes)",
       "cliente": "—",
@@ -2596,51 +1654,6 @@
       "total_sem_bind": 1
     },
     {
-      "_id": "6a2aa1be1222567143ff38cc",
-      "projeto": "Renato Cesar",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "Sirius",
-          "modelo": "Full Black",
-          "categoria": "modulo",
-          "causa": "C",
-          "detalhe": "alias de fabricante similar: SM=\"Sirius\" → possível Atlas=\"Sirius Energias Renováveis\""
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
-      "_id": "6a2aa1be1222567143ff38ce",
-      "projeto": "145 - Mirante das Dunas - Ampliação",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "SIRIUS-RS6 - 550MX -",
-          "modelo": "E3",
-          "categoria": "modulo",
-          "causa": "A",
-          "detalhe": "fabricante \"SIRIUS-RS6 - 550MX -\" não encontrado no Atlas"
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
-      "_id": "6a2aa1bf1222567143ff38d2",
-      "projeto": "Pedro - Equip Industrial",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "Sirius-RS6 - 550MX -",
-          "modelo": "E3",
-          "categoria": "modulo",
-          "causa": "A",
-          "detalhe": "fabricante \"Sirius-RS6 - 550MX -\" não encontrado no Atlas"
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
       "_id": "6a2aa1bf1222567143ff38d8",
       "projeto": "159 - Tiago Paulo da Silva Pimentel Gomes",
       "cliente": "—",
@@ -2656,21 +1669,6 @@
       "total_sem_bind": 1
     },
     {
-      "_id": "6a2aa1bf1222567143ff38d9",
-      "projeto": "Francisco",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "BELENERGY",
-          "modelo": "MFVHO-MO-120-460W",
-          "categoria": "modulo",
-          "causa": "A",
-          "detalhe": "fabricante \"BELENERGY\" não encontrado no Atlas"
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
       "_id": "6a2aa1c01222567143ff38e2",
       "projeto": "Stepherson Medeiros",
       "cliente": "—",
@@ -2681,21 +1679,6 @@
           "categoria": "inversor",
           "causa": "B",
           "detalhe": "fabricante \"Canadian Solar\" no Atlas (2 modelos), mas este modelo \"CSI-9K-S22002-ED\" ausente"
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
-      "_id": "6a2aa1c01222567143ff38e3",
-      "projeto": "151 - Sueli Maria - Barreto (Luzia)",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "BELENERGY",
-          "modelo": "BEL-4K-G",
-          "categoria": "inversor",
-          "causa": "A",
-          "detalhe": "fabricante \"BELENERGY\" não encontrado no Atlas"
         }
       ],
       "total_sem_bind": 1
@@ -2776,21 +1759,6 @@
       "total_sem_bind": 1
     },
     {
-      "_id": "6a2aa1c11222567143ff38f2",
-      "projeto": "157 - Francisco das Chagas - Rua Alamanda, 320",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "BELENERGY",
-          "modelo": "MFVHO-MO-144-550W",
-          "categoria": "modulo",
-          "causa": "A",
-          "detalhe": "fabricante \"BELENERGY\" não encontrado no Atlas"
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
       "_id": "6a2aa1c11222567143ff38ff",
       "projeto": "Jose Eriberto da Silva",
       "cliente": "—",
@@ -2851,36 +1819,6 @@
       "total_sem_bind": 1
     },
     {
-      "_id": "6a2aa1c31222567143ff3911",
-      "projeto": "193 - A L Motéis Ltda - Tropicos",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "HELIUS",
-          "modelo": "HMF144M10-555H",
-          "categoria": "modulo",
-          "causa": "A",
-          "detalhe": "fabricante \"HELIUS\" não encontrado no Atlas"
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
-      "_id": "6a2aa1c31222567143ff3916",
-      "projeto": "206 - Sarah Rodrigues Brasil",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "RONMA SOLAR",
-          "modelo": "RM-620W-182M/156TB",
-          "categoria": "modulo",
-          "causa": "A",
-          "detalhe": "fabricante \"RONMA SOLAR\" não encontrado no Atlas"
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
       "_id": "6a2aa1c41222567143ff3929",
       "projeto": "Reginaldo",
       "cliente": "—",
@@ -2891,51 +1829,6 @@
           "categoria": "modulo",
           "causa": "B",
           "detalhe": "fabricante \"Tsun\" no Atlas (5 modelos), mas este modelo \"TS-S8B-144-560W\" ausente"
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
-      "_id": "6a2aa1c41222567143ff392f",
-      "projeto": "183 - Nicola Trentin",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "HELIUS",
-          "modelo": "HMF144T10-570HL",
-          "categoria": "modulo",
-          "causa": "A",
-          "detalhe": "fabricante \"HELIUS\" não encontrado no Atlas"
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
-      "_id": "6a2aa1c51222567143ff3931",
-      "projeto": "ROMINA ESBELDA",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "PULLING ENERGY",
-          "modelo": "PU-625-DNM101",
-          "categoria": "modulo",
-          "causa": "A",
-          "detalhe": "fabricante \"PULLING ENERGY\" não encontrado no Atlas"
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
-      "_id": "6a2aa1c51222567143ff3932",
-      "projeto": "Fazenda Sindi Brasil",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "BELENERGY",
-          "modelo": "60K-4G",
-          "categoria": "inversor",
-          "causa": "A",
-          "detalhe": "fabricante \"BELENERGY\" não encontrado no Atlas"
         }
       ],
       "total_sem_bind": 1
@@ -2986,21 +1879,6 @@
       "total_sem_bind": 1
     },
     {
-      "_id": "6a2aa1c51222567143ff393c",
-      "projeto": "Marcio Cardoso Pires",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "HELIUS",
-          "modelo": "HMF144T10-570HL",
-          "categoria": "modulo",
-          "causa": "A",
-          "detalhe": "fabricante \"HELIUS\" não encontrado no Atlas"
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
       "_id": "6a2aa1c51222567143ff393d",
       "projeto": "131.4 Monique Pia cs5",
       "cliente": "—",
@@ -3011,21 +1889,6 @@
           "categoria": "inversor",
           "causa": "B",
           "detalhe": "fabricante \"Dah\" no Atlas (13 modelos), mas este modelo \"Solar Unit\" ausente"
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
-      "_id": "6a2aa1c61222567143ff393f",
-      "projeto": "184 - Edson Feitoza",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "HELIUS",
-          "modelo": "HMF144T10-570HL",
-          "categoria": "modulo",
-          "causa": "A",
-          "detalhe": "fabricante \"HELIUS\" não encontrado no Atlas"
         }
       ],
       "total_sem_bind": 1
@@ -3076,21 +1939,6 @@
       "total_sem_bind": 1
     },
     {
-      "_id": "6a2aa1c61222567143ff3946",
-      "projeto": "Francis",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "HELIUS",
-          "modelo": "HMF144T10-570HL",
-          "categoria": "modulo",
-          "causa": "A",
-          "detalhe": "fabricante \"HELIUS\" não encontrado no Atlas"
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
       "_id": "6a2aa1c61222567143ff3947",
       "projeto": "Cond .Tropical Residence",
       "cliente": "—",
@@ -3106,36 +1954,6 @@
       "total_sem_bind": 1
     },
     {
-      "_id": "6a2aa1c61222567143ff3948",
-      "projeto": "Ana Livia",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "HELIUS",
-          "modelo": "HMF144T10-570HL",
-          "categoria": "modulo",
-          "causa": "A",
-          "detalhe": "fabricante \"HELIUS\" não encontrado no Atlas"
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
-      "_id": "6a2aa1c61222567143ff394e",
-      "projeto": "Artur - string",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "HELIUS",
-          "modelo": "HMF144T10-570HL",
-          "categoria": "modulo",
-          "causa": "A",
-          "detalhe": "fabricante \"HELIUS\" não encontrado no Atlas"
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
       "_id": "6a2aa1c71222567143ff394f",
       "projeto": "Escola Mater Dei",
       "cliente": "—",
@@ -3146,81 +1964,6 @@
           "categoria": "modulo",
           "causa": "D",
           "detalhe": "modelo numérico puro \"550\" — provavelmente wattage"
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
-      "_id": "6a2aa1c71222567143ff3951",
-      "projeto": "Marcos Lanche 2kW",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "HELIUS",
-          "modelo": "HMF144T10-570HL",
-          "categoria": "modulo",
-          "causa": "A",
-          "detalhe": "fabricante \"HELIUS\" não encontrado no Atlas"
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
-      "_id": "6a2aa1c71222567143ff3955",
-      "projeto": "presidio",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "HELIUS",
-          "modelo": "HMF144M10-555H",
-          "categoria": "modulo",
-          "causa": "A",
-          "detalhe": "fabricante \"HELIUS\" não encontrado no Atlas"
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
-      "_id": "6a2aa1c71222567143ff3958",
-      "projeto": "Monique",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "HELIUS",
-          "modelo": "HMF144T10-570HL",
-          "categoria": "modulo",
-          "causa": "A",
-          "detalhe": "fabricante \"HELIUS\" não encontrado no Atlas"
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
-      "_id": "6a2aa1c71222567143ff395b",
-      "projeto": "Junior Saldanha",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "HELIUS",
-          "modelo": "HMF144T10-570HL",
-          "categoria": "modulo",
-          "causa": "A",
-          "detalhe": "fabricante \"HELIUS\" não encontrado no Atlas"
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
-      "_id": "6a2aa1c71222567143ff395c",
-      "projeto": "Faixa Sinalização",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "HELIUS",
-          "modelo": "HMF144T10-570HL",
-          "categoria": "modulo",
-          "causa": "A",
-          "detalhe": "fabricante \"HELIUS\" não encontrado no Atlas"
         }
       ],
       "total_sem_bind": 1
@@ -3256,126 +1999,6 @@
       "total_sem_bind": 1
     },
     {
-      "_id": "6a2aa1c81222567143ff3963",
-      "projeto": "Juahil - micro",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "HELIUS",
-          "modelo": "HMF132T12R-600HL",
-          "categoria": "modulo",
-          "causa": "A",
-          "detalhe": "fabricante \"HELIUS\" não encontrado no Atlas"
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
-      "_id": "6a2aa1c81222567143ff3965",
-      "projeto": "Samya -stirng",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "HELIUS",
-          "modelo": "HMF132T10R-575HL",
-          "categoria": "modulo",
-          "causa": "A",
-          "detalhe": "fabricante \"HELIUS\" não encontrado no Atlas"
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
-      "_id": "6a2aa1c81222567143ff3966",
-      "projeto": "199 - Nancy Lamartine",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "HELIUS",
-          "modelo": "HMF132T10R-575HL",
-          "categoria": "modulo",
-          "causa": "A",
-          "detalhe": "fabricante \"HELIUS\" não encontrado no Atlas"
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
-      "_id": "6a2aa1c81222567143ff3967",
-      "projeto": "Sebastião Dias",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "HELIUS",
-          "modelo": "HMF132T12R-600HL",
-          "categoria": "modulo",
-          "causa": "A",
-          "detalhe": "fabricante \"HELIUS\" não encontrado no Atlas"
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
-      "_id": "6a2aa1c81222567143ff3968",
-      "projeto": "201 - Ewerton Thiago de Lima Silva - Erociano",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "HELIUS",
-          "modelo": "HMF132T10R-575HL",
-          "categoria": "modulo",
-          "causa": "A",
-          "detalhe": "fabricante \"HELIUS\" não encontrado no Atlas"
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
-      "_id": "6a2aa1c81222567143ff396a",
-      "projeto": "207 - Paulo Carlos de Andrade Filho",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "PULLING ENERGY",
-          "modelo": "PU-620-SNM102",
-          "categoria": "modulo",
-          "causa": "A",
-          "detalhe": "fabricante \"PULLING ENERGY\" não encontrado no Atlas"
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
-      "_id": "6a2aa1c81222567143ff396b",
-      "projeto": "Jose Amilton - Alex (Samuel)",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "HELIUS",
-          "modelo": "HMF132T10R-575HL",
-          "categoria": "modulo",
-          "causa": "A",
-          "detalhe": "fabricante \"HELIUS\" não encontrado no Atlas"
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
-      "_id": "6a2aa1c81222567143ff396d",
-      "projeto": "Rubens Mario",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "HELIUS",
-          "modelo": "HMF132T10R-575HL",
-          "categoria": "modulo",
-          "causa": "A",
-          "detalhe": "fabricante \"HELIUS\" não encontrado no Atlas"
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
       "_id": "6a2aa1c91222567143ff396e",
       "projeto": "197 - Escola Pinheiros",
       "cliente": "—",
@@ -3386,21 +2009,6 @@
           "categoria": "modulo",
           "causa": "D",
           "detalhe": "marca e modelo idênticos — dado corrompido"
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
-      "_id": "6a2aa1c91222567143ff396f",
-      "projeto": "Rodrigo Maia",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "HELIUS",
-          "modelo": "HMF132T10R-575HL",
-          "categoria": "modulo",
-          "causa": "A",
-          "detalhe": "fabricante \"HELIUS\" não encontrado no Atlas"
         }
       ],
       "total_sem_bind": 1
@@ -3431,21 +2039,6 @@
           "categoria": "modulo",
           "causa": "D",
           "detalhe": "marca e modelo idênticos — dado corrompido"
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
-      "_id": "6a2aa1c91222567143ff3978",
-      "projeto": "Residencial Alvorada",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "RONMA SOLAR",
-          "modelo": "RM-585W-182M/144TB",
-          "categoria": "modulo",
-          "causa": "A",
-          "detalhe": "fabricante \"RONMA SOLAR\" não encontrado no Atlas"
         }
       ],
       "total_sem_bind": 1
@@ -3504,8 +2097,8 @@
           "marca": "PULLING ENERGY",
           "modelo": "610w",
           "categoria": "modulo",
-          "causa": "A",
-          "detalhe": "fabricante \"PULLING ENERGY\" não encontrado no Atlas"
+          "causa": "B",
+          "detalhe": "fabricante \"Pulling Energy\" no Atlas (4 modelos), mas este modelo \"610w\" ausente"
         }
       ],
       "total_sem_bind": 1
@@ -3526,36 +2119,6 @@
       "total_sem_bind": 1
     },
     {
-      "_id": "6a2aa1cb1222567143ff398e",
-      "projeto": "Marcos Brunschwiler",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "Sirius",
-          "modelo": "Full Black",
-          "categoria": "modulo",
-          "causa": "C",
-          "detalhe": "alias de fabricante similar: SM=\"Sirius\" → possível Atlas=\"Sirius Energias Renováveis\""
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
-      "_id": "6a2aa1cb1222567143ff3990",
-      "projeto": "Green Field",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "HELIUS",
-          "modelo": "HMF132T12R-595HL",
-          "categoria": "modulo",
-          "causa": "A",
-          "detalhe": "fabricante \"HELIUS\" não encontrado no Atlas"
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
       "_id": "6a2aa1cb1222567143ff3991",
       "projeto": "Wagenr - string",
       "cliente": "—",
@@ -3564,23 +2127,8 @@
           "marca": "Ronma",
           "modelo": "570 bifacial",
           "categoria": "modulo",
-          "causa": "A",
-          "detalhe": "fabricante \"Ronma\" não encontrado no Atlas"
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
-      "_id": "6a2aa1cb1222567143ff3995",
-      "projeto": "207.2 - Paulo Carlos de Andrade Filho ( ampliação)",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "HELIUS",
-          "modelo": "HMF132T12R-600HL",
-          "categoria": "modulo",
-          "causa": "A",
-          "detalhe": "fabricante \"HELIUS\" não encontrado no Atlas"
+          "causa": "C",
+          "detalhe": "alias de fabricante similar: SM=\"Ronma\" → possível Atlas=\"Ronma Solar\""
         }
       ],
       "total_sem_bind": 1
@@ -3626,21 +2174,6 @@
           "categoria": "inversor",
           "causa": "C",
           "detalhe": "alias de fabricante similar: SM=\"Solar\" → possível Atlas=\"Solaredge\""
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
-      "_id": "6a2aa1cc1222567143ff39a7",
-      "projeto": "Projeto Valney",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "PULLING ENERGY",
-          "modelo": "PU-600-DNM101",
-          "categoria": "modulo",
-          "causa": "A",
-          "detalhe": "fabricante \"PULLING ENERGY\" não encontrado no Atlas"
         }
       ],
       "total_sem_bind": 1
@@ -3796,21 +2329,6 @@
       "total_sem_bind": 1
     },
     {
-      "_id": "6a2aa1ce1222567143ff39c1",
-      "projeto": "246 - Ampliação Doceria - Pinga Fogo (Lenusia)",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "PULLING ENERGY",
-          "modelo": "PU-585-SNM102",
-          "categoria": "modulo",
-          "causa": "A",
-          "detalhe": "fabricante \"PULLING ENERGY\" não encontrado no Atlas"
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
       "_id": "6a2aa1ce1222567143ff39c2",
       "projeto": "ROBSON FERREIRA MAGALHAES",
       "cliente": "—",
@@ -3846,11 +2364,11 @@
       "cliente": "—",
       "itens_sem_bind": [
         {
-          "marca": "Zn Shine",
-          "modelo": "630",
-          "categoria": "modulo",
-          "causa": "D",
-          "detalhe": "modelo numérico puro \"630\" — provavelmente wattage"
+          "marca": "SOLAREDGE SE 20.1K",
+          "modelo": "SE 20.1K 380/220v",
+          "categoria": "inversor",
+          "causa": "C",
+          "detalhe": "alias de fabricante necessário (modelo existe no Atlas)"
         }
       ],
       "total_sem_bind": 1
@@ -3901,21 +2419,6 @@
       "total_sem_bind": 1
     },
     {
-      "_id": "6a2aa1d11222567143ff39f2",
-      "projeto": "274 - Condomínio Shopping Estação",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "RONMA SOLAR",
-          "modelo": "RM-620W-182R/132TB",
-          "categoria": "modulo",
-          "causa": "A",
-          "detalhe": "fabricante \"RONMA SOLAR\" não encontrado no Atlas"
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
       "_id": "6a2aa1d11222567143ff39f4",
       "projeto": "Ocean View tabatinga",
       "cliente": "—",
@@ -3931,21 +2434,6 @@
       "total_sem_bind": 1
     },
     {
-      "_id": "6a2aa1d11222567143ff39f5",
-      "projeto": "276 - Seminario São Pedro",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "RONMA SOLAR",
-          "modelo": "RM-570W-182M/144TB",
-          "categoria": "modulo",
-          "causa": "A",
-          "detalhe": "fabricante \"RONMA SOLAR\" não encontrado no Atlas"
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
       "_id": "6a2aa1d11222567143ff39f6",
       "projeto": "281 -  José Medeiros dos Santos - Ricardo",
       "cliente": "—",
@@ -3956,51 +2444,6 @@
           "categoria": "modulo",
           "causa": "D",
           "detalhe": "modelo numérico puro \"630\" — provavelmente wattage"
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
-      "_id": "6a2aa1d11222567143ff39f9",
-      "projeto": "Projeto Camboinhas",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "PULLING ENERGY",
-          "modelo": "PU-585-SNM102",
-          "categoria": "modulo",
-          "causa": "A",
-          "detalhe": "fabricante \"PULLING ENERGY\" não encontrado no Atlas"
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
-      "_id": "6a2aa1d11222567143ff39fb",
-      "projeto": "282 - Elias Paulino Junior",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "RONMA SOLAR",
-          "modelo": "RM-585W-182M/144TB",
-          "categoria": "modulo",
-          "causa": "A",
-          "detalhe": "fabricante \"RONMA SOLAR\" não encontrado no Atlas"
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
-      "_id": "6a2aa1d21222567143ff39fc",
-      "projeto": "Solaredge",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "RONMA SOLAR",
-          "modelo": "RM-620W-182M/156TB",
-          "categoria": "modulo",
-          "causa": "A",
-          "detalhe": "fabricante \"RONMA SOLAR\" não encontrado no Atlas"
         }
       ],
       "total_sem_bind": 1

@@ -1,0 +1,85 @@
+{
+  "sprint": "P1-CATALOG-HIGH-ROI-IMPORT-01",
+  "gerado_em": "2026-06-15T13:17:04.985Z",
+  "fase5": {
+    "projetos_completos_antes": 426,
+    "projetos_completos_depois": 439,
+    "incompletos_antes": 88,
+    "incompletos_depois": 75,
+    "equipamentos_novos": 10,
+    "projetos_recuperados": 13
+  },
+  "fase6": {
+    "projetos_ainda_sem_bind": 75,
+    "proximo_roi": [
+      {
+        "fabricante": "TSUN",
+        "projetos": 9,
+        "causa": "B"
+      },
+      {
+        "fabricante": "DEYE",
+        "projetos": 3,
+        "causa": "B"
+      },
+      {
+        "fabricante": "EMPALUX MF",
+        "projetos": 3,
+        "causa": "A"
+      },
+      {
+        "fabricante": "DAH",
+        "projetos": 3,
+        "causa": "B"
+      },
+      {
+        "fabricante": "Dah",
+        "projetos": 2,
+        "causa": "B"
+      },
+      {
+        "fabricante": "AE SOLAR",
+        "projetos": 2,
+        "causa": "A"
+      },
+      {
+        "fabricante": "ERA SOLAR",
+        "projetos": 2,
+        "causa": "A"
+      },
+      {
+        "fabricante": "RENEPV",
+        "projetos": 2,
+        "causa": "A"
+      }
+    ],
+    "causas_restantes": {
+      "A_ausente_total": {
+        "ocorrencias": 15,
+        "projetos": 13
+      },
+      "B_modelo_ausente": {
+        "ocorrencias": 22,
+        "projetos": 22
+      },
+      "C_alias_faltando": {
+        "ocorrencias": 10,
+        "projetos": 9
+      },
+      "D_dado_corrompido": {
+        "ocorrencias": 34,
+        "projetos": 33
+      },
+      "E_ambiguo": {
+        "ocorrencias": 0,
+        "projetos": 0
+      },
+      "F_outro": {
+        "ocorrencias": 0,
+        "projetos": 0
+      }
+    },
+    "corrompidos_irrecuperaveis_por_import": 33
+  },
+  "nota_honesta": "Lista-alvo parcialmente desatualizada: TSUN (9 proj, causa B) é o maior ROI remanescente e não estava na lista. 33 projetos têm dado SM corrompido (causa D) — não resolvíveis por import (precisam de data-cleaning do projeto)."
+}

@@ -1,0 +1,92 @@
+{
+  "sprint": "P1-CATALOG-HIGH-ROI-IMPORT-01",
+  "gerado_em": "2026-06-15T13:17:04.982Z",
+  "rastreavel": true,
+  "dedup": "por fabricante+modelo (idempotente)",
+  "observacao": "Identidade dos equipamentos (fab/modelo/tipo/potência derivada do nome). Specs elétricas pendentes de datasheet (NÃO fabricadas).",
+  "equipamentos_criados": [
+    {
+      "fabricante": "Pulling Energy",
+      "modelo": "PU-585-SNM102",
+      "tipo": "modulo",
+      "potencia": "585W",
+      "status": "CRIADO",
+      "_id": "6a2ffaf45e2d7b8bdc4bec23"
+    },
+    {
+      "fabricante": "Pulling Energy",
+      "modelo": "PU-625-DNM101",
+      "tipo": "modulo",
+      "potencia": "625W",
+      "status": "CRIADO",
+      "_id": "6a2ffaf55e2d7b8bdc4bec24"
+    },
+    {
+      "fabricante": "Pulling Energy",
+      "modelo": "PU-620-SNM102",
+      "tipo": "modulo",
+      "potencia": "620W",
+      "status": "CRIADO",
+      "_id": "6a2ffaf55e2d7b8bdc4bec25"
+    },
+    {
+      "fabricante": "Pulling Energy",
+      "modelo": "PU-600-DNM101",
+      "tipo": "modulo",
+      "potencia": "600W",
+      "status": "CRIADO",
+      "_id": "6a2ffaf55e2d7b8bdc4bec26"
+    },
+    {
+      "fabricante": "Belenergy",
+      "modelo": "MFVHO-MO-120-460W",
+      "tipo": "modulo",
+      "potencia": "460W",
+      "status": "CRIADO",
+      "_id": "6a2ffaf55e2d7b8bdc4bec27"
+    },
+    {
+      "fabricante": "Belenergy",
+      "modelo": "MFVHO-MO-144-550W",
+      "tipo": "modulo",
+      "potencia": "550W",
+      "status": "CRIADO",
+      "_id": "6a2ffaf55e2d7b8bdc4bec28"
+    },
+    {
+      "fabricante": "Belenergy",
+      "modelo": "BEL-4K-G",
+      "tipo": "inversor",
+      "potencia": "4kW",
+      "status": "CRIADO",
+      "_id": "6a2ffaf55e2d7b8bdc4bec29"
+    },
+    {
+      "fabricante": "Belenergy",
+      "modelo": "60K-4G",
+      "tipo": "inversor",
+      "potencia": "60kW",
+      "status": "CRIADO",
+      "_id": "6a2ffaf55e2d7b8bdc4bec2a"
+    },
+    {
+      "fabricante": "Ronma Solar",
+      "modelo": "RM-620W-182M/156TB",
+      "tipo": "modulo",
+      "potencia": "620W",
+      "status": "CRIADO",
+      "_id": "6a2ffaf55e2d7b8bdc4bec2b"
+    },
+    {
+      "fabricante": "Helius",
+      "modelo": "HMF144T10R-580HL",
+      "tipo": "modulo",
+      "potencia": "580W",
+      "status": "CRIADO",
+      "_id": "6a2ffaf65e2d7b8bdc4bec2c"
+    }
+  ],
+  "total_criados": 10,
+  "ja_existiam": 0,
+  "sirius_omitido": "SIRIUS GRAFENO-BIFACIAL - 535W -: marca corrompida (descrição como marca) -> data-cleaning do projeto, não import"
+}

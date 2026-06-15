@@ -1,53 +1,37 @@
 {
   "lote": null,
   "dry_run": true,
-  "gerado_em": "2026-06-12T01:08:11.625Z",
+  "gerado_em": "2026-06-15T13:15:48.032Z",
   "rel": {
     "projetos_processados": 514,
     "paineis": {
       "exato": 0,
-      "normalizado": 23,
-      "flexivel": 5,
+      "normalizado": 9,
+      "flexivel": 2,
       "fuzzy": 2,
-      "sem_match": 94,
-      "ja_vinculado": 400,
+      "sem_match": 55,
+      "ja_vinculado": 456,
       "erros": 0
     },
     "inversores": {
       "exato": 0,
-      "normalizado": 0,
+      "normalizado": 3,
       "flexivel": 0,
       "fuzzy": 3,
-      "sem_match": 23,
-      "ja_vinculado": 488,
+      "sem_match": 21,
+      "ja_vinculado": 487,
       "erros": 0
     },
-    "binds_gravados": 28,
-    "projetos_totalmente_vinculados": 398,
+    "binds_gravados": 14,
+    "projetos_totalmente_vinculados": 439,
     "sem_match_detail": []
   },
   "sem_match_top50": [
-    {
-      "marca": "SIRIUS BIFACIAL",
-      "modelo": "HD144P-545W",
-      "tipo": "modulo",
-      "projetos": 14,
-      "classe": "sem_match",
-      "confianca": 0
-    },
     {
       "marca": "TSUN",
       "modelo": "TS-S8B-144-560W",
       "tipo": "modulo",
       "projetos": 9,
-      "classe": "sem_match",
-      "confianca": 0
-    },
-    {
-      "marca": "Sirius",
-      "modelo": "Full Black",
-      "tipo": "modulo",
-      "projetos": 7,
       "classe": "sem_match",
       "confianca": 0
     },
@@ -100,30 +84,6 @@
       "confianca": 0
     },
     {
-      "marca": "SIRIUS-RS6 - 550MX -",
-      "modelo": "E3",
-      "tipo": "modulo",
-      "projetos": 2,
-      "classe": "sem_match",
-      "confianca": 0
-    },
-    {
-      "marca": "BELENERGY",
-      "modelo": "BEL-4K-G",
-      "tipo": "inversor",
-      "projetos": 2,
-      "classe": "sem_match",
-      "confianca": 0
-    },
-    {
-      "marca": "RONMA SOLAR",
-      "modelo": "RM-620W-182M/156TB",
-      "tipo": "modulo",
-      "projetos": 2,
-      "classe": "sem_match",
-      "confianca": 0
-    },
-    {
       "marca": "DAH",
       "modelo": "Solar Unit",
       "tipo": "inversor",
@@ -160,22 +120,6 @@
       "modelo": "DHN-SU1K5T-G0",
       "tipo": "inversor",
       "projetos": 2,
-      "classe": "sem_match",
-      "confianca": 0
-    },
-    {
-      "marca": "PULLING ENERGY",
-      "modelo": "PU-585-SNM102",
-      "tipo": "modulo",
-      "projetos": 2,
-      "classe": "sem_match",
-      "confianca": 0
-    },
-    {
-      "marca": "SIRIUS BIFACIAL",
-      "modelo": "HD144N-550W",
-      "tipo": "modulo",
-      "projetos": 1,
       "classe": "sem_match",
       "confianca": 0
     },
@@ -244,14 +188,6 @@
       "confianca": 0
     },
     {
-      "marca": "HELIUS",
-      "modelo": "HMF144T10R-580HL",
-      "tipo": "modulo",
-      "projetos": 1,
-      "classe": "sem_match",
-      "confianca": 0
-    },
-    {
       "marca": "EnergySun",
       "modelo": "EnergySun",
       "tipo": "modulo",
@@ -268,22 +204,6 @@
       "confianca": 0
     },
     {
-      "marca": "Sirius Full Balck",
-      "modelo": "550w",
-      "tipo": "modulo",
-      "projetos": 1,
-      "classe": "sem_match",
-      "confianca": 0
-    },
-    {
-      "marca": "Sirius",
-      "modelo": "Full Balck",
-      "tipo": "modulo",
-      "projetos": 1,
-      "classe": "sem_match",
-      "confianca": 0
-    },
-    {
       "marca": "ERA SOLAR",
       "modelo": "ESPHSC-555M",
       "tipo": "modulo",
@@ -292,24 +212,8 @@
       "confianca": 0
     },
     {
-      "marca": "Sirius-RS6 - 550MX -",
-      "modelo": "E3",
-      "tipo": "modulo",
-      "projetos": 1,
-      "classe": "sem_match",
-      "confianca": 0
-    },
-    {
       "marca": "ZXM7-SHLD144 -",
       "modelo": "550W",
-      "tipo": "modulo",
-      "projetos": 1,
-      "classe": "sem_match",
-      "confianca": 0
-    },
-    {
-      "marca": "BELENERGY",
-      "modelo": "MFVHO-MO-120-460W",
       "tipo": "modulo",
       "projetos": 1,
       "classe": "sem_match",
@@ -348,14 +252,6 @@
       "confianca": 0
     },
     {
-      "marca": "BELENERGY",
-      "modelo": "MFVHO-MO-144-550W",
-      "tipo": "modulo",
-      "projetos": 1,
-      "classe": "sem_match",
-      "confianca": 0
-    },
-    {
       "marca": "MFVHN-MI-MO-144-550W",
       "modelo": "MFVHN-MI-MO-144-550W",
       "tipo": "modulo",
@@ -388,22 +284,6 @@
       "confianca": 0
     },
     {
-      "marca": "PULLING ENERGY",
-      "modelo": "PU-625-DNM101",
-      "tipo": "modulo",
-      "projetos": 1,
-      "classe": "sem_match",
-      "confianca": 0
-    },
-    {
-      "marca": "BELENERGY",
-      "modelo": "60K-4G",
-      "tipo": "inversor",
-      "projetos": 1,
-      "classe": "sem_match",
-      "confianca": 0
-    },
-    {
       "marca": "SUN-M225G4-EU-Q0",
       "modelo": "SUN-M225G4-EU-Q0",
       "tipo": "inversor",
@@ -423,6 +303,126 @@
       "marca": "DAH",
       "modelo": "DAH",
       "tipo": "inversor",
+      "projetos": 1,
+      "classe": "sem_match",
+      "confianca": 0
+    },
+    {
+      "marca": "AE SOLAR",
+      "modelo": "AE340M6-72",
+      "tipo": "modulo",
+      "projetos": 1,
+      "classe": "sem_match",
+      "confianca": 0
+    },
+    {
+      "marca": "WEG SIW200",
+      "modelo": "M100",
+      "tipo": "inversor",
+      "projetos": 1,
+      "classe": "sem_match",
+      "confianca": 0
+    },
+    {
+      "marca": "ZNshine",
+      "modelo": "650w",
+      "tipo": "modulo",
+      "projetos": 1,
+      "classe": "fuzzy",
+      "confianca": 0.89
+    },
+    {
+      "marca": "JAM72D42-630/LB",
+      "modelo": "JAM72D42-630/LB",
+      "tipo": "modulo",
+      "projetos": 1,
+      "classe": "sem_match",
+      "confianca": 0
+    },
+    {
+      "marca": "RENESOLA",
+      "modelo": "RS6-580NBG-E3",
+      "tipo": "modulo",
+      "projetos": 1,
+      "classe": "fuzzy",
+      "confianca": 0.89
+    },
+    {
+      "marca": "ZNS",
+      "modelo": "600W Bifacial",
+      "tipo": "modulo",
+      "projetos": 1,
+      "classe": "sem_match",
+      "confianca": 0
+    },
+    {
+      "marca": "PULLING ENERGY",
+      "modelo": "610w",
+      "tipo": "modulo",
+      "projetos": 1,
+      "classe": "sem_match",
+      "confianca": 0
+    },
+    {
+      "marca": "Ronma",
+      "modelo": "570 bifacial",
+      "tipo": "modulo",
+      "projetos": 1,
+      "classe": "sem_match",
+      "confianca": 0
+    },
+    {
+      "marca": "ZXM7-UPLDD144-595",
+      "modelo": "ZXM7-UPLDD144-595",
+      "tipo": "modulo",
+      "projetos": 1,
+      "classe": "sem_match",
+      "confianca": 0
+    },
+    {
+      "marca": "ZXMR-UOLDD144 -",
+      "modelo": "570w",
+      "tipo": "modulo",
+      "projetos": 1,
+      "classe": "sem_match",
+      "confianca": 0
+    },
+    {
+      "marca": "ZNSHINE",
+      "modelo": "ZNSHINE",
+      "tipo": "modulo",
+      "projetos": 1,
+      "classe": "sem_match",
+      "confianca": 0
+    },
+    {
+      "marca": "ZXMR-UPLDD144-600/N",
+      "modelo": "ZXMR-UPLDD144-600/N",
+      "tipo": "modulo",
+      "projetos": 1,
+      "classe": "sem_match",
+      "confianca": 0
+    },
+    {
+      "marca": "DAH",
+      "modelo": "Solar UNIT",
+      "tipo": "inversor",
+      "projetos": 1,
+      "classe": "sem_match",
+      "confianca": 0
+    },
+    {
+      "marca": "600W",
+      "modelo": "Bifacial",
+      "tipo": "modulo",
+      "projetos": 1,
+      "classe": "sem_match",
+      "confianca": 0
+    },
+    {
+      "marca": "600w",
+      "modelo": "Bifacial com grafeno",
+      "tipo": "modulo",
       "projetos": 1,
       "classe": "sem_match",
       "confianca": 0

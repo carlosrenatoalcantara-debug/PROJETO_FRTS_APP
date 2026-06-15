@@ -1,0 +1,88 @@
+{
+  "aplicado": true,
+  "gerado_em": "2026-06-15T13:15:34.151Z",
+  "criados": 10,
+  "ja_existem": 0,
+  "detalhe": [
+    {
+      "fab": "Pulling Energy",
+      "modelo": "PU-585-SNM102",
+      "tipo": "modulo",
+      "potencia_w": 585,
+      "status": "CRIADO",
+      "_id": "6a2ffaf45e2d7b8bdc4bec23"
+    },
+    {
+      "fab": "Pulling Energy",
+      "modelo": "PU-625-DNM101",
+      "tipo": "modulo",
+      "potencia_w": 625,
+      "status": "CRIADO",
+      "_id": "6a2ffaf55e2d7b8bdc4bec24"
+    },
+    {
+      "fab": "Pulling Energy",
+      "modelo": "PU-620-SNM102",
+      "tipo": "modulo",
+      "potencia_w": 620,
+      "status": "CRIADO",
+      "_id": "6a2ffaf55e2d7b8bdc4bec25"
+    },
+    {
+      "fab": "Pulling Energy",
+      "modelo": "PU-600-DNM101",
+      "tipo": "modulo",
+      "potencia_w": 600,
+      "status": "CRIADO",
+      "_id": "6a2ffaf55e2d7b8bdc4bec26"
+    },
+    {
+      "fab": "Belenergy",
+      "modelo": "MFVHO-MO-120-460W",
+      "tipo": "modulo",
+      "potencia_w": 460,
+      "status": "CRIADO",
+      "_id": "6a2ffaf55e2d7b8bdc4bec27"
+    },
+    {
+      "fab": "Belenergy",
+      "modelo": "MFVHO-MO-144-550W",
+      "tipo": "modulo",
+      "potencia_w": 550,
+      "status": "CRIADO",
+      "_id": "6a2ffaf55e2d7b8bdc4bec28"
+    },
+    {
+      "fab": "Belenergy",
+      "modelo": "BEL-4K-G",
+      "tipo": "inversor",
+      "potencia_kw": 4,
+      "status": "CRIADO",
+      "_id": "6a2ffaf55e2d7b8bdc4bec29"
+    },
+    {
+      "fab": "Belenergy",
+      "modelo": "60K-4G",
+      "tipo": "inversor",
+      "potencia_kw": 60,
+      "status": "CRIADO",
+      "_id": "6a2ffaf55e2d7b8bdc4bec2a"
+    },
+    {
+      "fab": "Ronma Solar",
+      "modelo": "RM-620W-182M/156TB",
+      "tipo": "modulo",
+      "potencia_w": 620,
+      "status": "CRIADO",
+      "_id": "6a2ffaf55e2d7b8bdc4bec2b"
+    },
+    {
+      "fab": "Helius",
+      "modelo": "HMF144T10R-580HL",
+      "tipo": "modulo",
+      "potencia_w": 580,
+      "status": "CRIADO",
+      "_id": "6a2ffaf65e2d7b8bdc4bec2c"
+    }
+  ]
+}
