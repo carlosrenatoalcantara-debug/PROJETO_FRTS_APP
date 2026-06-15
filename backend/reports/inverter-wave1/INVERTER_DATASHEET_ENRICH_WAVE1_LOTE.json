@@ -1,0 +1,110 @@
+{
+  "sprint": "P1-INVERTER-DATASHEET-ENRICH-WAVE1-01",
+  "fase": "DRY-RUN (pré-APPLY, nada escrito no Atlas)",
+  "gerado_em": "2026-06-14",
+  "metodo": "WebFetch baixa o PDF oficial do fabricante -> Read (visão PDF) extrai os valores exatos -> origem registrada por URL",
+  "principios": ["nunca sobrescrever dado real", "apenas preencher campos vazios", "origem rastreável", "idempotência"],
+  "observacao_certificados": "INMETRO/IEC não entram como critério de validade técnica (conforme sprint).",
+  "campos_alvo": ["potencia_kw","tensao_max_entrada","tensao_mppt_min","tensao_mppt_max","corrente_max_por_mppt","n_mppts","strings_por_mppt","eficiencia_maxima","fases","garantia_anos"],
+  "itens": [
+    {
+      "prioridade": 1, "equipamento_id": "6a272aff0bb8928e11abce10",
+      "fabricante": "Deye", "modelo": "SUN2000G3-US-220", "tipo_equip": "microinversor",
+      "projetos_impactados": 110, "specKeys_atuais": 0,
+      "confianca": "ALTA — datasheet oficial lido (PDF)",
+      "fonte": "Deye — Microinverter SUN1300/1600/2000G3-US-220/EU-230 (deyeinverter.com)",
+      "fonte_url": "https://www.deyeinverter.com (datasheet oficial SUN(1300-2000)G3-US-220)",
+      "specs": {"potencia_kw":2.0,"tensao_max_entrada":60,"tensao_mppt_min":25,"tensao_mppt_max":55,"corrente_max_por_mppt":13,"n_mppts":4,"strings_por_mppt":1,"eficiencia_maxima":96.5,"fases":1,"garantia_anos":10},
+      "apply_ready": true
+    },
+    {
+      "prioridade": 4, "equipamento_id": "6a272b000bb8928e11abce25",
+      "fabricante": "Tsun", "modelo": "TSOL-MX2250", "tipo_equip": "microinversor",
+      "projetos_impactados": 16, "specKeys_atuais": 0,
+      "confianca": "ALTA — datasheet oficial lido (PDF)",
+      "fonte": "TSUNESS — GEN3 Microinverter TSOL-MS1600/MS1800/MS2000/MX2250",
+      "fonte_url": "https://www.eet.energy/app/uploads/2025/07/Greensolar-tsun-2000-watt-wechselrichter-datenblatt-1.pdf",
+      "specs": {"potencia_kw":2.25,"tensao_max_entrada":60,"tensao_mppt_min":16,"tensao_mppt_max":60,"corrente_max_por_mppt":18,"n_mppts":4,"strings_por_mppt":1,"eficiencia_maxima":97.0,"fases":1,"garantia_anos":12},
+      "apply_ready": true
+    },
+    {
+      "prioridade": 5, "equipamento_id": "6a272b010bb8928e11abce3b",
+      "fabricante": "Tsun", "modelo": "TSOL-MP2250", "tipo_equip": "microinversor",
+      "projetos_impactados": 16, "specKeys_atuais": 0,
+      "confianca": "MÉDIA-ALTA — mesma família GEN3 2250W (variante de cabeamento MP/trunk); specs elétricas idênticas à MX2250 no datasheet oficial",
+      "fonte": "TSUNESS — GEN3 Microinverter (família 2250W, tabela Stammkabel/MP)",
+      "fonte_url": "https://www.eet.energy/app/uploads/2025/07/Greensolar-tsun-2000-watt-wechselrichter-datenblatt-1.pdf",
+      "specs": {"potencia_kw":2.25,"tensao_max_entrada":60,"tensao_mppt_min":16,"tensao_mppt_max":60,"corrente_max_por_mppt":18,"n_mppts":4,"strings_por_mppt":1,"eficiencia_maxima":97.0,"fases":1,"garantia_anos":12},
+      "apply_ready": true
+    },
+    {
+      "prioridade": 6, "equipamento_id": "6a272b000bb8928e11abce23",
+      "fabricante": "Growatt", "modelo": "MIN 5000TL-X", "tipo_equip": "string",
+      "projetos_impactados": 13, "specKeys_atuais": 0,
+      "confianca": "ALTA — datasheet oficial lido (PDF)",
+      "fonte": "Growatt — MIN 2500~6000TL-X Datasheet",
+      "fonte_url": "https://solarempire.com.ec/wp-content/uploads/2023/08/Inversor-Growatt-MIN-5000TL-X.pdf",
+      "specs": {"potencia_kw":5.0,"tensao_max_entrada":550,"tensao_mppt_min":80,"tensao_mppt_max":550,"corrente_max_por_mppt":13.5,"n_mppts":2,"strings_por_mppt":1,"eficiencia_maxima":98.4,"fases":1,"garantia_anos":10},
+      "apply_ready": true
+    },
+    {
+      "prioridade": 9, "equipamento_id": "6a272aff0bb8928e11abce13",
+      "fabricante": "Saj", "modelo": "M2-2.25K-S4", "tipo_equip": "microinversor",
+      "projetos_impactados": 9, "specKeys_atuais": 0,
+      "confianca": "ALTA — datasheet oficial lido (PDF)",
+      "fonte": "SAJ — M2 Microinversor (M2-1.8K/2K/2.2K/2.25K-S4)",
+      "fonte_url": "https://energiasirius.com/wp-content/uploads/2024/05/Datasheet-Micro-SAJ-2.250W.pdf",
+      "specs": {"potencia_kw":2.25,"tensao_max_entrada":60,"tensao_mppt_min":16,"tensao_mppt_max":60,"corrente_max_por_mppt":20,"n_mppts":4,"strings_por_mppt":1,"eficiencia_maxima":97.0,"fases":1,"garantia_anos":12},
+      "apply_ready": true
+    },
+
+    {
+      "prioridade": 2, "equipamento_id": "6a272aff0bb8928e11abce0d",
+      "fabricante": "Deye", "modelo": "SUN2000G-US-220", "tipo_equip": "microinversor",
+      "projetos_impactados": 36, "specKeys_atuais": 0,
+      "confianca": "A CONFIRMAR — rótulo 'SUN2000G' (sem '3'); usuário indica ser o mesmo micro 2000W US-220 do SUN2000G3. Aplicar specs do G3 só após confirmação do gen.",
+      "fonte": "Deye (provável mesmo datasheet do SUN2000G3-US-220)",
+      "specs_propostas": {"potencia_kw":2.0,"tensao_max_entrada":60,"tensao_mppt_min":25,"tensao_mppt_max":55,"corrente_max_por_mppt":13,"n_mppts":4,"strings_por_mppt":1,"eficiencia_maxima":96.5,"fases":1,"garantia_anos":10},
+      "apply_ready": false
+    },
+    {
+      "prioridade": 3, "equipamento_id": "6a272b010bb8928e11abce33",
+      "fabricante": "Deye", "modelo": "SUN-M225G4-EU-Q0", "tipo_equip": "microinversor",
+      "projetos_impactados": 30, "specKeys_atuais": 0,
+      "confianca": "MÉDIA — nível busca (deye.com): 2250W, 1ph 220V, 4 MPPT, 18A, >97%, 10 anos. Falta ler PDF para faixa MPPT/tensão máx DC.",
+      "fonte": "Deye — SUN-M200/225G4-EU-Q0 Microinverter (deye.com)",
+      "apply_ready": false
+    },
+    {
+      "prioridade": 7, "equipamento_id": "6a272b070bb8928e11abce9a",
+      "fabricante": "Kehua", "modelo": "TECH SPI6000-B2", "tipo_equip": "string",
+      "projetos_impactados": 12, "specKeys_atuais": 0,
+      "confianca": "MÉDIA — nível busca (ENF/Kehua): 6000W, 600V máx DC, 2 MPPT, 98.3%, 1ph, 5 anos. Falta ler PDF para faixa MPPT/corrente.",
+      "fonte": "Kehua — SPI3000~6000-B2 (digitalenergy.kehua.com / ENF)",
+      "apply_ready": false
+    },
+    {
+      "prioridade": 8, "equipamento_id": "6a272aff0bb8928e11abce1a",
+      "fabricante": "Solaredge", "modelo": "SE 27.6K 380/220v", "tipo_equip": "string trifásico",
+      "projetos_impactados": 11, "specKeys_atuais": 0,
+      "confianca": "MÉDIA — nível busca (solaredge.com): 27.6kW, 3ph 220/380V, máx DC 900V. Falta ler PDF para faixa MPPT/corrente/eficiência.",
+      "fonte": "SolarEdge — Three Phase Inverter SE12.5K–SE27.6K Datasheet",
+      "apply_ready": false
+    },
+    {
+      "prioridade": 10, "equipamento_id": "6a272aff0bb8928e11abce19",
+      "fabricante": "Solaredge", "modelo": "SE 20.1K 380/220v", "tipo_equip": "string trifásico",
+      "projetos_impactados": 9, "specKeys_atuais": 0,
+      "confianca": "MÉDIA — mesma família trifásica SolarEdge (220/380V, máx DC 900V). Falta ler PDF.",
+      "fonte": "SolarEdge — Three Phase Inverter Datasheet",
+      "apply_ready": false
+    }
+  ],
+  "resumo": {
+    "apply_ready": 5,
+    "apply_ready_modelos": ["Deye SUN2000G3-US-220","Tsun TSOL-MX2250","Tsun TSOL-MP2250","Growatt MIN 5000TL-X","SAJ M2-2.25K-S4"],
+    "apply_ready_projetos": 164,
+    "a_confirmar": 5,
+    "a_confirmar_projetos": 98
+  }
+}

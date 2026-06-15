@@ -1,0 +1,123 @@
+{
+  "sprint": "P1-INVERTER-DATASHEET-ENRICH-WAVE1-01",
+  "aplicado": false,
+  "gerado_em": "2026-06-15T12:16:32.021Z",
+  "antes": {
+    "niveis": {
+      "suspeito": 164,
+      "validado": 1,
+      "utilizavel": 27,
+      "incompleto": 11,
+      "invalido": 155
+    },
+    "score": 34.35
+  },
+  "depois": null,
+  "detalhe": [
+    {
+      "id": "6a272aff0bb8928e11abce10",
+      "modelo": "SUN2000G3-US-220",
+      "preenchidos": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "pulados": [],
+      "nivel_antes": "invalido",
+      "nivel_previsto": "suspeito",
+      "score_previsto": 43,
+      "dry": true
+    },
+    {
+      "id": "6a272b000bb8928e11abce25",
+      "modelo": "TSOL-MX2250",
+      "preenchidos": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "pulados": [],
+      "nivel_antes": "invalido",
+      "nivel_previsto": "invalido",
+      "score_previsto": 38,
+      "dry": true
+    },
+    {
+      "id": "6a272b010bb8928e11abce3b",
+      "modelo": "TSOL-MP2250",
+      "preenchidos": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "pulados": [],
+      "nivel_antes": "invalido",
+      "nivel_previsto": "invalido",
+      "score_previsto": 38,
+      "dry": true
+    },
+    {
+      "id": "6a272b000bb8928e11abce23",
+      "modelo": "MIN 5000TL-X",
+      "preenchidos": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "pulados": [],
+      "nivel_antes": "invalido",
+      "nivel_previsto": "invalido",
+      "score_previsto": 38,
+      "dry": true
+    },
+    {
+      "id": "6a272aff0bb8928e11abce13",
+      "modelo": "M2-2.25K-S4",
+      "preenchidos": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "pulados": [],
+      "nivel_antes": "invalido",
+      "nivel_previsto": "invalido",
+      "score_previsto": 38,
+      "dry": true
+    }
+  ]
+}

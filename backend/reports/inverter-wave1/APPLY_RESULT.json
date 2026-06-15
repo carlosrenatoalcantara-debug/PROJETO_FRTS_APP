@@ -1,0 +1,154 @@
+{
+  "sprint": "P1-INVERTER-DATASHEET-ENRICH-WAVE1-01",
+  "aplicado": true,
+  "gerado_em": "2026-06-15T12:21:38.488Z",
+  "antes": {
+    "niveis": {
+      "suspeito": 164,
+      "invalido": 155,
+      "incompleto": 11,
+      "utilizavel": 27,
+      "validado": 1
+    },
+    "score": 34.35
+  },
+  "depois": {
+    "niveis": {
+      "suspeito": 165,
+      "validado": 1,
+      "utilizavel": 27,
+      "incompleto": 11,
+      "invalido": 154
+    },
+    "score": 34.67
+  },
+  "detalhe": [
+    {
+      "id": "6a272aff0bb8928e11abce10",
+      "modelo": "SUN2000G3-US-220",
+      "preenchidos": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "pulados": [],
+      "nivel_antes": "invalido",
+      "nivel_depois": "suspeito",
+      "score_antes": 16,
+      "score_depois": 43,
+      "alertas_depois": [
+        "VOC_MAX_DC_IMPLAUSIVEL",
+        "MPPT_FAIXA_IMPLAUSIVEL"
+      ]
+    },
+    {
+      "id": "6a272b000bb8928e11abce25",
+      "modelo": "TSOL-MX2250",
+      "preenchidos": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "pulados": [],
+      "nivel_antes": "invalido",
+      "nivel_depois": "invalido",
+      "score_antes": 16,
+      "score_depois": 38,
+      "alertas_depois": [
+        "MPPT_INCOERENTE",
+        "VOC_MAX_DC_IMPLAUSIVEL",
+        "MPPT_FAIXA_IMPLAUSIVEL"
+      ]
+    },
+    {
+      "id": "6a272b010bb8928e11abce3b",
+      "modelo": "TSOL-MP2250",
+      "preenchidos": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "pulados": [],
+      "nivel_antes": "invalido",
+      "nivel_depois": "invalido",
+      "score_antes": 16,
+      "score_depois": 38,
+      "alertas_depois": [
+        "MPPT_INCOERENTE",
+        "VOC_MAX_DC_IMPLAUSIVEL",
+        "MPPT_FAIXA_IMPLAUSIVEL"
+      ]
+    },
+    {
+      "id": "6a272b000bb8928e11abce23",
+      "modelo": "MIN 5000TL-X",
+      "preenchidos": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "pulados": [],
+      "nivel_antes": "invalido",
+      "nivel_depois": "invalido",
+      "score_antes": 16,
+      "score_depois": 38,
+      "alertas_depois": [
+        "MPPT_INCOERENTE"
+      ]
+    },
+    {
+      "id": "6a272aff0bb8928e11abce13",
+      "modelo": "M2-2.25K-S4",
+      "preenchidos": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "pulados": [],
+      "nivel_antes": "invalido",
+      "nivel_depois": "invalido",
+      "score_antes": 16,
+      "score_depois": 38,
+      "alertas_depois": [
+        "MPPT_INCOERENTE",
+        "VOC_MAX_DC_IMPLAUSIVEL",
+        "MPPT_FAIXA_IMPLAUSIVEL"
+      ]
+    }
+  ]
+}

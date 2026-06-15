@@ -1,0 +1,76 @@
+{
+  "sprint": "P1-INVERTER-DATASHEET-ENRICH-WAVE1-01",
+  "gerado_em": "2026-06-15T12:23:02.329Z",
+  "aplicado": true,
+  "mecanismo": "motor oficial processarEquipamento; preenchimento apenas de campos vazios; fonte_dados=datasheet_oficial+URL; idempotente",
+  "antes": {
+    "niveis": {
+      "suspeito": 164,
+      "invalido": 155,
+      "incompleto": 11,
+      "utilizavel": 27,
+      "validado": 1
+    },
+    "score": 34.35
+  },
+  "depois": {
+    "niveis": {
+      "suspeito": 165,
+      "validado": 1,
+      "utilizavel": 27,
+      "incompleto": 11,
+      "invalido": 154
+    },
+    "score": 34.67
+  },
+  "fase5_respostas": {
+    "1_inversores_enriquecidos": 5,
+    "2_sairam_de_invalido": 1,
+    "2_detalhe_sairam": [
+      "SUN2000G3-US-220: invalido->suspeito"
+    ],
+    "3_projetos_que_sairam_de_invalido": 110,
+    "3_projetos_chegaram_a_utilizavel": 0,
+    "4_continuam_invalidos_no_catalogo": 154,
+    "4_dos_5_da_onda_continuam_invalidos": 4,
+    "5_score_global_antes": 34.35,
+    "5_score_global_depois": 34.67,
+    "5_ganho": 0.32,
+    "5_completude_por_item": [
+      {
+        "modelo": "SUN2000G3-US-220",
+        "preenchidos": 10
+      },
+      {
+        "modelo": "TSOL-MX2250",
+        "preenchidos": 10
+      },
+      {
+        "modelo": "TSOL-MP2250",
+        "preenchidos": 10
+      },
+      {
+        "modelo": "MIN 5000TL-X",
+        "preenchidos": 10
+      },
+      {
+        "modelo": "M2-2.25K-S4",
+        "preenchidos": 10
+      }
+    ]
+  },
+  "bloqueadores_de_nivel_identificados": {
+    "A_regras_plausibilidade_micro": {
+      "descricao": "Regras de inversor calibradas para STRING; geram falso-positivo em MICROINVERSOR e quando MPPT_max == Voc_max_DC.",
+      "MPPT_INCOERENTE_critico": "exige MPPT_max < Voc_max_DC (estrito). Datasheets legitimos tem MPPT_max == Voc_max_DC (Growatt 550=550; micros 60=60) -> critico falso -> forca invalido.",
+      "VOC_MAX_DC_IMPLAUSIVEL_alto": "exige Voc_max_DC em [200,1500]V; micros sao 60V por projeto -> falso-positivo.",
+      "MPPT_FAIXA_IMPLAUSIVEL_medio": "exige MPPT_min em [50,400]; micros sao 16-60V -> falso-positivo.",
+      "impacto": "4 dos 5 (TSOL-MX2250, TSOL-MP2250, MIN 5000TL-X, M2-2.25K-S4) permanecem invalido por MPPT_INCOERENTE critico, apesar de specs corretas (completude 95)."
+    },
+    "B_confianca_origem": {
+      "descricao": "origem.tipo=import_solarmarket NAO esta em BASE_POR_ORIGEM -> tratado como desconhecido (confianca base 20).",
+      "impacto": "score_global = completude*0.4 + confianca*0.6; com confianca~=20, mesmo completude 95 nao alcanca utilizavel(75). Nenhum item chega a utilizavel."
+    },
+    "observacao_sprint": "Coerente com a OBSERVACAO da sprint (fatores nao-tecnicos nao devem invalidar). Aqui o fator e regra de plausibilidade mal calibrada para micro + tabela de confianca sem import_solarmarket. NAO alterei regras (fora de escopo)."
+  }
+}
