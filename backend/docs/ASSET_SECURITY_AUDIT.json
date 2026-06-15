@@ -1,0 +1,42 @@
+{
+  "sprint": "P1-ASSET-SECURITY-01",
+  "gerado_em": "2026-06-15T20:18:40.029Z",
+  "mecanismo": "AES-256-GCM reutilizado de src/security/encryption.js (PBKDF2 100k, salt+iv+authTag por registro)",
+  "campos_sensiveis_criptografados": [
+    "conectividade.senha_wifi"
+  ],
+  "campos_texto_puro_justificados": [
+    "numero_serie",
+    "conectividade.mac_wifi",
+    "conectividade.wifi_ssid",
+    "conectividade.firmware",
+    "conectividade.endereco_ip"
+  ],
+  "total_ativos": 6,
+  "ativos_com_senha": 3,
+  "senhas_texto_puro_restantes": 0,
+  "senhas_criptografadas": 3,
+  "round_trip_falhas": 0,
+  "detalhe": [
+    {
+      "qr": "FORTE-INV-000009",
+      "criptografado": true,
+      "round_trip_ok": true
+    },
+    {
+      "qr": "FORTE-INV-000010",
+      "criptografado": true,
+      "round_trip_ok": true
+    },
+    {
+      "qr": "FORTE-INV-000011",
+      "criptografado": true,
+      "round_trip_ok": true
+    }
+  ],
+  "fase6": {
+    "1_senhas_texto_puro_restantes": 0,
+    "2_endpoints_expondo_sensivel": "nenhum — consulta retorna apenas senha_definida (boolean); comissionar retorna ••••••; historico mascarado; nenhum ENCv1/plaintext na resposta",
+    "3_regressao_funcional": "nenhuma — QR render 200, consulta OK, comissionamento OK, pagina publica OK"
+  }
+}

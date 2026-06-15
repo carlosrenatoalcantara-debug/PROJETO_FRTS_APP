@@ -1,0 +1,22 @@
+{
+  "sprint": "P1-ASSET-SECURITY-01",
+  "aplicado": false,
+  "gerado_em": "2026-06-15T20:15:43.765Z",
+  "ativos_com_senha": 2,
+  "texto_puro_antes": 2,
+  "ja_criptografados": 0,
+  "migrados": 2,
+  "falhas": 0,
+  "detalhe": [
+    {
+      "qr": "FORTE-INV-000009",
+      "estado": "MIGRARIA",
+      "round_trip_ok": true
+    },
+    {
+      "qr": "FORTE-INV-000011",
+      "estado": "MIGRARIA",
+      "round_trip_ok": true
+    }
+  ]
+}

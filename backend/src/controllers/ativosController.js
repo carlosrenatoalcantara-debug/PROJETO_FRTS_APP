@@ -8,6 +8,7 @@ import { AtivoEquipamento } from '../models/AtivoEquipamento.js'
 import { ProjetoFV } from '../models/ProjetoFV.js'
 import { Equipamento } from '../models/Equipamento.js'
 import { gerarAtivosProjeto, gerarQrCode } from '../services/ativoService.js'
+import { criptografar, descriptografar } from '../services/ativoSeguranca.js'
 
 function _dbOk(res) {
   if (mongoose.connection.readyState !== 1) {
@@ -153,14 +154,18 @@ export const comissionarPorQr = async (req, res) => {
     for (const [campoSprint, caminho] of Object.entries(MAP_COMISSIONAMENTO)) {
       if (!(campoSprint in body)) continue
       const novo = body[campoSprint] === '' ? null : body[campoSprint]
-      const antigo = _get(ativo, caminho) ?? null
-      if (String(antigo ?? '') === String(novo ?? '')) continue   // sem mudança → ignora
-      _set(ativo, caminho, novo)
-      alteracoes.push({
-        campo: campoSprint,
-        de:   _sensivel(campoSprint) ? (antigo ? '••••••' : null) : antigo,
-        para: _sensivel(campoSprint) ? (novo ? '••••••' : null) : novo,
-      })
+      const armazenado = _get(ativo, caminho) ?? null
+      if (_sensivel(campoSprint)) {
+        // SENSÍVEL: compara em claro (descriptografa o armazenado) e PERSISTE CRIPTOGRAFADO
+        const antigoPlano = descriptografar(armazenado, ativo._id)
+        if (String(antigoPlano ?? '') === String(novo ?? '')) continue   // sem mudança
+        _set(ativo, caminho, novo == null ? null : criptografar(novo, ativo._id))
+        alteracoes.push({ campo: campoSprint, de: antigoPlano ? '••••••' : null, para: novo ? '••••••' : null })
+      } else {
+        if (String(armazenado ?? '') === String(novo ?? '')) continue   // sem mudança → ignora
+        _set(ativo, caminho, novo)
+        alteracoes.push({ campo: campoSprint, de: armazenado, para: novo })
+      }
     }
 
     if (alteracoes.length === 0 && !body.forcar) {
