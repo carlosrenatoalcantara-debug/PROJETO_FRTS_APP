@@ -85,6 +85,15 @@ export const consultarPorQr = async (req, res) => {
         arranjo_id: ativo.arranjo_id,
         data_instalacao: ativo.data_instalacao, garantia_inicio: ativo.garantia_inicio,
         garantia_fim: ativo.garantia_fim, topologia: ativo.topologia, localizacao: ativo.localizacao,
+        // P1-ASSET-COMMISSIONING-01 — dados as-built (senha_wifi NUNCA exposta)
+        data_comissionamento: ativo.data_comissionamento, comissionado_por: ativo.comissionado_por,
+        conectividade: {
+          mac_wifi: ativo.conectividade?.mac_wifi ?? null,
+          wifi_ssid: ativo.conectividade?.wifi_ssid ?? null,
+          firmware: ativo.conectividade?.firmware ?? null,
+          endereco_ip: ativo.conectividade?.endereco_ip ?? null,
+          senha_definida: !!ativo.conectividade?.senha_wifi,   // só indica se há senha; não revela
+        },
         historico: ativo.historico || [],
       },
       projeto: projeto ? { _id: projeto._id, nome: projeto.nome, cliente: projeto.cliente?.nome || projeto.cliente_nome || null } : null,
@@ -113,6 +122,72 @@ export const renderQrSvg = async (req, res) => {
     res.setHeader('Cache-Control', 'public, max-age=86400')
     res.send(svg)
   } catch (e) { res.status(500).json({ erro: e.message }) }
+}
+
+// POST /api/ativos/qr/:qr/comissionar — registra dados reais do equipamento instalado.
+// SOMENTE AtivoEquipamento (não toca Atlas/ProjetoFV). Registra diffs no histórico.
+// Mapeamento campo da sprint → caminho no modelo:
+const MAP_COMISSIONAMENTO = {
+  numero_serie:  'numero_serie',
+  mac_address:   'conectividade.mac_wifi',
+  firmware:      'conectividade.firmware',
+  ip_local:      'conectividade.endereco_ip',
+  wifi_ssid:     'conectividade.wifi_ssid',
+  wifi_senha:    'conectividade.senha_wifi',
+}
+const _get = (o, p) => p.split('.').reduce((a, k) => (a == null ? a : a[k]), o)
+const _set = (o, p, v) => { const ks = p.split('.'); let a = o; for (let i = 0; i < ks.length - 1; i++) { a[ks[i]] = a[ks[i]] || {}; a = a[ks[i]] } a[ks[ks.length - 1]] = v }
+const _sensivel = (campo) => campo === 'wifi_senha'
+
+export const comissionarPorQr = async (req, res) => {
+  try {
+    if (!_dbOk(res)) return
+    const qr = String(req.params.qr || '').trim().toUpperCase()
+    const ativo = await AtivoEquipamento.findOne({ qr_code: qr })
+    if (!ativo) return res.status(404).json({ erro: 'QR não encontrado', qr_code: qr })
+
+    const body = req.body || {}
+    const por = body.comissionado_por || req.auth?.email || 'campo'
+    const alteracoes = []
+
+    for (const [campoSprint, caminho] of Object.entries(MAP_COMISSIONAMENTO)) {
+      if (!(campoSprint in body)) continue
+      const novo = body[campoSprint] === '' ? null : body[campoSprint]
+      const antigo = _get(ativo, caminho) ?? null
+      if (String(antigo ?? '') === String(novo ?? '')) continue   // sem mudança → ignora
+      _set(ativo, caminho, novo)
+      alteracoes.push({
+        campo: campoSprint,
+        de:   _sensivel(campoSprint) ? (antigo ? '••••••' : null) : antigo,
+        para: _sensivel(campoSprint) ? (novo ? '••••••' : null) : novo,
+      })
+    }
+
+    if (alteracoes.length === 0 && !body.forcar) {
+      return res.status(200).json({ sucesso: true, sem_mudanca: true, qr_code: qr })
+    }
+
+    ativo.markModified('conectividade')
+    ativo.data_comissionamento = body.data_comissionamento ? new Date(body.data_comissionamento) : new Date()
+    ativo.comissionado_por = por
+
+    // Avança o ciclo de vida no primeiro comissionamento (planejado → instalado), registrando.
+    const status_de = ativo.status
+    let status_para = status_de
+    if (status_de === 'planejado') { ativo.status = 'instalado'; status_para = 'instalado' }
+
+    ativo.historico.push({
+      tipo: 'comissionamento', data: new Date(), usuario: por,
+      descricao: `Comissionamento — ${alteracoes.length} campo(s) registrado(s)`,
+      status_de, status_para,
+      alteracoes,
+    })
+
+    await ativo.save()
+    const obj = ativo.toObject()
+    if (obj.conectividade) obj.conectividade.senha_wifi = obj.conectividade.senha_wifi ? '••••••' : null  // nunca devolve a senha em claro
+    res.json({ sucesso: true, qr_code: qr, alteracoes_registradas: alteracoes.length, status: ativo.status, item: obj })
+  } catch (e) { res.status(400).json({ erro: e.message }) }
 }
 
 // POST /api/ativos  — cria um ativo avulso (gera QR se ausente)

@@ -22,6 +22,8 @@ const HistoricoSchema = new mongoose.Schema({
   descricao:   { type: String, default: null },
   status_de:   { type: String, default: null },
   status_para: { type: String, default: null },
+  // P1-ASSET-COMMISSIONING-01 — diffs por campo (valor anterior/novo) na trilha
+  alteracoes:  { type: [{ campo: String, de: mongoose.Schema.Types.Mixed, para: mongoose.Schema.Types.Mixed }], default: undefined, _id: false },
 }, { _id: false })
 
 const AtivoEquipamentoSchema = new mongoose.Schema({
@@ -53,6 +55,7 @@ const AtivoEquipamentoSchema = new mongoose.Schema({
   },
   data_instalacao:      { type: Date, default: null },
   data_comissionamento: { type: Date, default: null },
+  comissionado_por:     { type: String, default: null },   // P1-ASSET-COMMISSIONING-01
 
   // ── Garantia ────────────────────────────────────────────────────────────────
   garantia_inicio: { type: Date, default: null },
@@ -61,7 +64,8 @@ const AtivoEquipamentoSchema = new mongoose.Schema({
   // ── Conectividade (reservado; preenchido em fases futuras) ────────────────────
   conectividade: {
     mac_wifi:    { type: String, default: null },
-    senha_wifi:  { type: String, default: null },   // FUTURO — armazenar criptografado
+    wifi_ssid:   { type: String, default: null },   // P1-ASSET-COMMISSIONING-01
+    senha_wifi:  { type: String, default: null },   // sensível — NÃO exposto em consulta pública
     firmware:    { type: String, default: null },
     endereco_ip: { type: String, default: null },
   },

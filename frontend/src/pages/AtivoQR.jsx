@@ -1,6 +1,7 @@
-// P1-ASSET-QR-CODE-01 — Página pública de visualização do Ativo por QR (uso em campo).
-// Rota: /ativo/:qr — lê /api/ativos/qr/:qr (somente leitura; não altera projeto/Atlas/arranjos).
-import { useEffect, useState } from 'react'
+// P1-ASSET-QR-CODE-01 + P1-ASSET-COMMISSIONING-01
+// Página pública por QR (uso em campo): consulta + comissionamento (dados reais instalados).
+// Lê/escreve SOMENTE AtivoEquipamento via /api/ativos/qr/:qr (não toca projeto/Atlas/arranjos).
+import { useCallback, useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 
 const STATUS_COR = {
@@ -16,31 +17,68 @@ function Linha({ rotulo, valor }) {
   return (
     <div className="flex justify-between gap-3 py-1.5 border-b border-slate-100 last:border-0">
       <span className="text-slate-500 text-sm">{rotulo}</span>
-      <span className="text-slate-900 text-sm font-medium text-right">{valor ?? '—'}</span>
+      <span className="text-slate-900 text-sm font-medium text-right break-all">{valor ?? '—'}</span>
     </div>
   )
 }
+
+const CAMPOS = [
+  ['numero_serie', 'Nº de série'],
+  ['mac_address', 'MAC address'],
+  ['firmware', 'Firmware'],
+  ['ip_local', 'IP local'],
+  ['wifi_ssid', 'Wi‑Fi SSID'],
+  ['wifi_senha', 'Wi‑Fi senha'],
+  ['comissionado_por', 'Comissionado por'],
+]
 
 export default function AtivoQR() {
   const { qr } = useParams()
   const [dados, setDados] = useState(null)
   const [erro, setErro] = useState(null)
   const [carregando, setCarregando] = useState(true)
+  const [editar, setEditar] = useState(false)
+  const [form, setForm] = useState({})
+  const [salvando, setSalvando] = useState(false)
+  const [msg, setMsg] = useState(null)
 
-  useEffect(() => {
-    let vivo = true
+  const carregar = useCallback(async () => {
     setCarregando(true); setErro(null)
-    fetch(`/api/ativos/qr/${encodeURIComponent(qr)}`)
-      .then(async (r) => {
-        if (!vivo) return
-        if (r.status === 404) { setErro('QR não encontrado'); return }
-        if (!r.ok) { setErro('Erro ao consultar o ativo'); return }
-        setDados(await r.json())
+    try {
+      const r = await fetch(`/api/ativos/qr/${encodeURIComponent(qr)}`)
+      if (r.status === 404) { setErro('QR não encontrado'); return }
+      if (!r.ok) { setErro('Erro ao consultar o ativo'); return }
+      const j = await r.json()
+      setDados(j)
+      const c = j.ativo?.conectividade || {}
+      setForm({
+        numero_serie: j.ativo?.numero_serie || '', mac_address: c.mac_wifi || '',
+        firmware: c.firmware || '', ip_local: c.endereco_ip || '', wifi_ssid: c.wifi_ssid || '',
+        wifi_senha: '', comissionado_por: j.ativo?.comissionado_por || '',
       })
-      .catch(() => vivo && setErro('Falha de conexão'))
-      .finally(() => vivo && setCarregando(false))
-    return () => { vivo = false }
+    } catch { setErro('Falha de conexão') } finally { setCarregando(false) }
   }, [qr])
+
+  useEffect(() => { carregar() }, [carregar])
+
+  async function salvar() {
+    setSalvando(true); setMsg(null)
+    try {
+      // só envia campos preenchidos (senha em branco = não altera)
+      const payload = {}
+      for (const [k] of CAMPOS) if (form[k] !== '' && form[k] != null) payload[k] = form[k]
+      const r = await fetch(`/api/ativos/qr/${encodeURIComponent(qr)}/comissionar`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
+      })
+      const j = await r.json()
+      if (!r.ok) { setMsg({ tipo: 'erro', txt: j.erro || 'Erro ao salvar' }); return }
+      setMsg({ tipo: 'ok', txt: j.sem_mudanca ? 'Nenhuma mudança.' : `${j.alteracoes_registradas} campo(s) registrado(s).` })
+      setEditar(false)
+      await carregar()
+    } catch { setMsg({ tipo: 'erro', txt: 'Falha de conexão' }) } finally { setSalvando(false) }
+  }
+
+  const c = dados?.ativo?.conectividade
 
   return (
     <div className="min-h-screen bg-slate-50 flex justify-center p-4">
@@ -61,46 +99,72 @@ export default function AtivoQR() {
 
         {dados && !erro && (
           <div className="space-y-4">
-            {/* QR + status */}
             <div className="bg-white rounded-2xl shadow p-5 flex flex-col items-center">
-              <img
-                src={`/api/ativos/qr/${encodeURIComponent(qr)}/render.svg`}
-                alt={`QR ${qr}`} width={200} height={200}
-                className="border border-slate-100 rounded-lg"
-              />
+              <img src={`/api/ativos/qr/${encodeURIComponent(qr)}/render.svg`} alt={`QR ${qr}`}
+                width={200} height={200} className="border border-slate-100 rounded-lg" />
               <span className={`mt-3 px-3 py-1 rounded-full text-xs font-semibold uppercase ${STATUS_COR[dados.ativo?.status] || 'bg-slate-100 text-slate-600'}`}>
                 {dados.ativo?.status || '—'}
               </span>
             </div>
 
-            {/* Equipamento (as-built) */}
             <div className="bg-white rounded-2xl shadow p-5">
               <div className="text-xs font-semibold text-slate-400 uppercase mb-2">Equipamento (instalado)</div>
               <div className="text-lg font-bold text-slate-900">{dados.ativo?.fabricante} {dados.ativo?.modelo}</div>
               <div className="mt-2">
                 <Linha rotulo="Tipo" valor={dados.ativo?.tipo} />
-                <Linha rotulo="Quantidade" valor={dados.ativo?.quantidade} />
                 <Linha rotulo="Nº de série" valor={dados.ativo?.numero_serie} />
                 <Linha rotulo="Topologia" valor={dados.ativo?.topologia} />
-                <Linha rotulo="Garantia até" valor={dados.ativo?.garantia_fim ? new Date(dados.ativo.garantia_fim).toLocaleDateString('pt-BR') : null} />
+                <Linha rotulo="Comissionado" valor={dados.ativo?.data_comissionamento ? `${new Date(dados.ativo.data_comissionamento).toLocaleDateString('pt-BR')} · ${dados.ativo?.comissionado_por || ''}` : null} />
               </div>
             </div>
 
-            {/* Projeto + Arranjo (multiarranjo preservado) */}
+            {/* Dados de rede (as-built) */}
+            <div className="bg-white rounded-2xl shadow p-5">
+              <div className="text-xs font-semibold text-slate-400 uppercase mb-2">Conectividade</div>
+              <Linha rotulo="MAC" valor={c?.mac_wifi} />
+              <Linha rotulo="Wi‑Fi SSID" valor={c?.wifi_ssid} />
+              <Linha rotulo="Firmware" valor={c?.firmware} />
+              <Linha rotulo="IP local" valor={c?.endereco_ip} />
+              <Linha rotulo="Senha Wi‑Fi" valor={c?.senha_definida ? '•••••• (definida)' : null} />
+            </div>
+
             <div className="bg-white rounded-2xl shadow p-5">
               <div className="text-xs font-semibold text-slate-400 uppercase mb-2">Projeto / Arranjo</div>
               <Linha rotulo="Projeto" valor={dados.projeto?.nome} />
-              <Linha rotulo="Cliente" valor={dados.projeto?.cliente} />
               <Linha rotulo="Arranjo" valor={dados.arranjo?.rotulo || dados.arranjo?.id} />
-              <Linha rotulo="Arranjos no projeto" valor={dados.total_arranjos_projeto || (dados.arranjo ? 1 : 0)} />
             </div>
 
-            {/* Catálogo (as-specified) */}
-            {dados.equipamento_catalogo && (
-              <div className="bg-white rounded-2xl shadow p-5">
-                <div className="text-xs font-semibold text-slate-400 uppercase mb-2">Catálogo (Atlas)</div>
-                <Linha rotulo="Modelo" valor={`${dados.equipamento_catalogo.fabricante} ${dados.equipamento_catalogo.modelo}`} />
-                <Linha rotulo="Qualidade" valor={dados.equipamento_catalogo.qualidade?.nivel} />
+            {/* Comissionamento (form mobile) */}
+            {!editar && (
+              <button onClick={() => { setEditar(true); setMsg(null) }}
+                className="w-full bg-emerald-600 text-white font-semibold py-3 rounded-2xl shadow active:scale-[0.99]">
+                Registrar dados instalados
+              </button>
+            )}
+            {msg && (
+              <div className={`rounded-xl p-3 text-sm text-center ${msg.tipo === 'ok' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>{msg.txt}</div>
+            )}
+            {editar && (
+              <div className="bg-white rounded-2xl shadow p-5 space-y-3">
+                <div className="text-xs font-semibold text-slate-400 uppercase">Comissionamento</div>
+                {CAMPOS.map(([k, rotulo]) => (
+                  <label key={k} className="block">
+                    <span className="text-xs text-slate-500">{rotulo}</span>
+                    <input
+                      type={k === 'wifi_senha' ? 'password' : 'text'}
+                      value={form[k] ?? ''} onChange={(e) => setForm(f => ({ ...f, [k]: e.target.value }))}
+                      placeholder={k === 'wifi_senha' && c?.senha_definida ? '(manter atual)' : ''}
+                      autoComplete="off"
+                      className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                    />
+                  </label>
+                ))}
+                <div className="flex gap-2 pt-1">
+                  <button onClick={() => { setEditar(false); setMsg(null) }} className="flex-1 border border-slate-200 text-slate-600 py-2.5 rounded-xl">Cancelar</button>
+                  <button onClick={salvar} disabled={salvando} className="flex-1 bg-emerald-600 text-white font-semibold py-2.5 rounded-xl disabled:opacity-50">
+                    {salvando ? 'Salvando…' : 'Salvar'}
+                  </button>
+                </div>
               </div>
             )}
 
@@ -108,11 +172,15 @@ export default function AtivoQR() {
             {dados.ativo?.historico?.length > 0 && (
               <div className="bg-white rounded-2xl shadow p-5">
                 <div className="text-xs font-semibold text-slate-400 uppercase mb-2">Histórico</div>
-                {dados.ativo.historico.map((h, i) => (
-                  <div key={i} className="text-sm text-slate-600 py-1 border-b border-slate-100 last:border-0">
-                    <span className="font-medium text-slate-800">{h.tipo}</span>
-                    {h.descricao ? ` — ${h.descricao}` : ''}
-                    <span className="text-slate-400"> · {h.data ? new Date(h.data).toLocaleDateString('pt-BR') : ''}</span>
+                {dados.ativo.historico.slice().reverse().map((h, i) => (
+                  <div key={i} className="text-sm text-slate-600 py-1.5 border-b border-slate-100 last:border-0">
+                    <div><span className="font-medium text-slate-800">{h.tipo}</span>
+                      <span className="text-slate-400"> · {h.usuario || '—'} · {h.data ? new Date(h.data).toLocaleDateString('pt-BR') : ''}</span></div>
+                    {h.status_de && h.status_para && h.status_de !== h.status_para && (
+                      <div className="text-xs text-slate-500">status: {h.status_de} → {h.status_para}</div>)}
+                    {Array.isArray(h.alteracoes) && h.alteracoes.map((a, j) => (
+                      <div key={j} className="text-xs text-slate-500">{a.campo}: <span className="line-through text-slate-400">{String(a.de ?? '—')}</span> → {String(a.para ?? '—')}</div>
+                    ))}
                   </div>
                 ))}
               </div>
