@@ -32,6 +32,7 @@ import FaturaRevisao          from './pages/FaturaRevisao'
 import SaudeCatalogo          from './pages/SaudeCatalogo'
 import AlertCenter            from './pages/AlertCenter'
 import RedefinirSenha         from './pages/RedefinirSenha'
+import AtivoQR                from './pages/AtivoQR'
 
 export default function App() {
   return (
@@ -40,6 +41,7 @@ export default function App() {
       <Route path="/redefinir-senha" element={<RedefinirSenha />} />
       <Route path="/calculadora" element={<Calculadora />} />
       <Route path="/p/:token" element={<PropostaPublica />} />
+      <Route path="/ativo/:qr" element={<AtivoQR />} />   {/* P1-ASSET-QR-CODE-01 — pública (campo) */}
       <Route path="/" element={<Layout />}>
         <Route index element={<Navigate to="/dashboard" replace />} />
         <Route path="dashboard"               element={<Dashboard />} />

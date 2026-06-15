@@ -3,8 +3,10 @@
  * CRUD do Gêmeo Digital + geração a partir de projeto. Backend apenas (sem telas).
  */
 import mongoose from 'mongoose'
+import QRCode from 'qrcode'
 import { AtivoEquipamento } from '../models/AtivoEquipamento.js'
 import { ProjetoFV } from '../models/ProjetoFV.js'
+import { Equipamento } from '../models/Equipamento.js'
 import { gerarAtivosProjeto, gerarQrCode } from '../services/ativoService.js'
 
 function _dbOk(res) {
@@ -50,6 +52,66 @@ export const buscarAtivo = async (req, res) => {
     const ativo = await AtivoEquipamento.findById(id).lean()
     if (!ativo) return res.status(404).json({ erro: 'Ativo não encontrado' })
     res.json({ sucesso: true, item: ativo })
+  } catch (e) { res.status(500).json({ erro: e.message }) }
+}
+
+// ─── P1-ASSET-QR-CODE-01 ─────────────────────────────────────────────────────
+// GET /api/ativos/qr/:qr  — consulta por QR: Ativo → Projeto → Arranjo → Equipamento.
+// SOMENTE LEITURA de ProjetoFV/Atlas/arranjos (não altera nada).
+export const consultarPorQr = async (req, res) => {
+  try {
+    if (!_dbOk(res)) return
+    const qr = String(req.params.qr || '').trim().toUpperCase()
+    const ativo = await AtivoEquipamento.findOne({ qr_code: qr }).lean()
+    if (!ativo) return res.status(404).json({ erro: 'QR não encontrado', qr_code: qr })
+
+    const projeto = ativo.projeto_id
+      ? await ProjetoFV.findById(ativo.projeto_id, 'nome cliente cliente_nome arranjos status_migracao').lean()
+      : null
+    // Arranjo correspondente (preserva multiarranjo) — lido de ProjetoFV.arranjos[]
+    const arranjo = (projeto && ativo.arranjo_id)
+      ? (projeto.arranjos || []).find(a => a.id === ativo.arranjo_id) || null
+      : null
+    const equipamento = ativo.equipamento_id
+      ? await Equipamento.findById(ativo.equipamento_id, 'fabricante modelo tipo especificacoes qualidade.nivel').lean()
+      : null
+
+    res.json({
+      sucesso: true,
+      qr_code: qr,
+      ativo: {
+        _id: ativo._id, tipo: ativo.tipo, fabricante: ativo.fabricante, modelo: ativo.modelo,
+        numero_serie: ativo.numero_serie, quantidade: ativo.quantidade, status: ativo.status,
+        arranjo_id: ativo.arranjo_id,
+        data_instalacao: ativo.data_instalacao, garantia_inicio: ativo.garantia_inicio,
+        garantia_fim: ativo.garantia_fim, topologia: ativo.topologia, localizacao: ativo.localizacao,
+        historico: ativo.historico || [],
+      },
+      projeto: projeto ? { _id: projeto._id, nome: projeto.nome, cliente: projeto.cliente?.nome || projeto.cliente_nome || null } : null,
+      // Arranjo: do ProjetoFV.arranjos[] quando existir; senão expõe o arranjo_id do ativo
+      // (linkage multiarranjo preservado no Gêmeo Digital mesmo em projeto legado single-arranjo).
+      arranjo: arranjo
+        ? { id: arranjo.id, rotulo: arranjo.rotulo, tipo: arranjo.tipo, topologia: arranjo.topologia, origem: arranjo.origem, fonte: 'projeto.arranjos' }
+        : (ativo.arranjo_id ? { id: ativo.arranjo_id, rotulo: null, tipo: null, topologia: ativo.topologia, origem: 'ativo', fonte: 'ativo.arranjo_id' } : null),
+      total_arranjos_projeto: (projeto?.arranjos || []).length,
+      equipamento_catalogo: equipamento || null,
+    })
+  } catch (e) { res.status(500).json({ erro: e.message }) }
+}
+
+// GET /api/ativos/qr/:qr/render.svg  — QR padrão (scannable) que aponta para a página do ativo.
+export const renderQrSvg = async (req, res) => {
+  try {
+    if (!_dbOk(res)) return
+    const qr = String(req.params.qr || '').trim().toUpperCase()
+    const ativo = await AtivoEquipamento.findOne({ qr_code: qr }, '_id qr_code').lean()
+    if (!ativo) return res.status(404).json({ erro: 'QR não encontrado' })
+    const base = (process.env.APP_URL || '').replace(/\/$/, '')
+    const payload = base ? `${base}/ativo/${qr}` : qr   // scaneável: abre a página; fallback = código
+    const svg = await QRCode.toString(payload, { type: 'svg', margin: 1, errorCorrectionLevel: 'M', width: 240 })
+    res.setHeader('Content-Type', 'image/svg+xml; charset=utf-8')
+    res.setHeader('Cache-Control', 'public, max-age=86400')
+    res.send(svg)
   } catch (e) { res.status(500).json({ erro: e.message }) }
 }
 
