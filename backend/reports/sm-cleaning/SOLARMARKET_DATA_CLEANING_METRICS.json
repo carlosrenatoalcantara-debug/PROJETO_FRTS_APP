@@ -1,0 +1,93 @@
+{
+  "sprint": "P1-SOLARMARKET-DATA-CLEANING-APPLY-01",
+  "gerado_em": "2026-06-15T13:46:52.586Z",
+  "regras_aplicadas": [
+    "R1",
+    "R2",
+    "R3"
+  ],
+  "sem_revisao_manual": true,
+  "sem_multiarranjo": true,
+  "fase5": {
+    "projetos_completos_antes": 439,
+    "projetos_completos_depois": 440,
+    "projetos_recuperados_binding": 1,
+    "continuam_sem_bind": 74,
+    "itens_corrigidos": 26,
+    "projetos_com_string_limpa": 25,
+    "ficaram_para_revisao_manual": 8
+  },
+  "qualidade_dado": {
+    "causa_D_antes": 33,
+    "causa_D_depois": 8,
+    "causas_depois": {
+      "A_ausente_total": {
+        "ocorrencias": 17,
+        "projetos": 14
+      },
+      "B_modelo_ausente": {
+        "ocorrencias": 45,
+        "projetos": 44
+      },
+      "C_alias_faltando": {
+        "ocorrencias": 10,
+        "projetos": 9
+      },
+      "D_dado_corrompido": {
+        "ocorrencias": 8,
+        "projetos": 8
+      },
+      "E_ambiguo": {
+        "ocorrencias": 0,
+        "projetos": 0
+      },
+      "F_outro": {
+        "ocorrencias": 0,
+        "projetos": 0
+      }
+    }
+  },
+  "fabricantes_expostos_para_import": [
+    {
+      "fabricante": "TSUN",
+      "projetos": 9,
+      "causa": "B"
+    },
+    {
+      "fabricante": "Znshine",
+      "projetos": 8,
+      "causa": "B"
+    },
+    {
+      "fabricante": "Trina Solar",
+      "projetos": 6,
+      "causa": "B"
+    },
+    {
+      "fabricante": "Dah",
+      "projetos": 4,
+      "causa": "B"
+    },
+    {
+      "fabricante": "DEYE",
+      "projetos": 3,
+      "causa": "B"
+    },
+    {
+      "fabricante": "EMPALUX MF",
+      "projetos": 3,
+      "causa": "A"
+    },
+    {
+      "fabricante": "DAH",
+      "projetos": 3,
+      "causa": "B"
+    },
+    {
+      "fabricante": "Helius",
+      "projetos": 2,
+      "causa": "B"
+    }
+  ],
+  "nota_honesta": "Limpeza resolveu a corrupção (causa-D 33->8) e expôs fabricantes reais (Znshine 8, Trina 6, Dah 4, Helius 2), mas o ganho de BINDING foi +1 porque os modelos limpos ainda não existem no Atlas. Para converter os ~24 projetos limpos é preciso uma WAVE DE IMPORT desses modelos. A estimativa anterior de +25 confundiu string-limpável com bindável."
+}

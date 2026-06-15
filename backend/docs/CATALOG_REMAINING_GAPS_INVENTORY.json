@@ -1,28 +1,28 @@
 {
   "sprint": "P0-CATALOG-REMAINING-GAPS-01",
-  "gerado_em": "2026-06-15T13:16:27.477Z",
+  "gerado_em": "2026-06-15T13:45:20.144Z",
   "read_only": true,
   "resumo": {
     "projetos_total": 514,
-    "projetos_completos": 439,
-    "projetos_incompletos": 75,
-    "itens_unicos_sem_bind": 56,
+    "projetos_completos": 440,
+    "projetos_incompletos": 74,
+    "itens_unicos_sem_bind": 55,
     "causas": {
       "A_ausente_total": {
-        "ocorrencias": 15,
-        "projetos": 13
+        "ocorrencias": 17,
+        "projetos": 14
       },
       "B_modelo_ausente": {
-        "ocorrencias": 22,
-        "projetos": 22
+        "ocorrencias": 45,
+        "projetos": 44
       },
       "C_alias_faltando": {
         "ocorrencias": 10,
         "projetos": 9
       },
       "D_dado_corrompido": {
-        "ocorrencias": 34,
-        "projetos": 33
+        "ocorrencias": 8,
+        "projetos": 8
       },
       "E_ambiguo": {
         "ocorrencias": 0,
@@ -33,8 +33,8 @@
         "projetos": 0
       }
     },
-    "projetos_resolviveis_por_importacao": 37,
-    "projetos_com_dado_corrompido_irrecuperavel": 33
+    "projetos_resolviveis_por_importacao": 62,
+    "projetos_com_dado_corrompido_irrecuperavel": 8
   },
   "ranking_fabricantes_bloqueantes": [
     {
@@ -43,12 +43,22 @@
       "causa_principal": "B"
     },
     {
-      "fabricante": "TRINA SOLAR TALLMAX TSM-DE18",
+      "fabricante": "Znshine",
+      "projetos_bloqueados": 8,
+      "causa_principal": "B"
+    },
+    {
+      "fabricante": "Trina Solar",
       "projetos_bloqueados": 6,
-      "causa_principal": "D"
+      "causa_principal": "B"
     },
     {
       "fabricante": "DAH",
+      "projetos_bloqueados": 4,
+      "causa_principal": "B"
+    },
+    {
+      "fabricante": "Dah",
       "projetos_bloqueados": 4,
       "causa_principal": "B"
     },
@@ -58,39 +68,19 @@
       "causa_principal": "B"
     },
     {
-      "fabricante": "ZXMR-UPLDD144-600W",
-      "projetos_bloqueados": 3,
-      "causa_principal": "D"
-    },
-    {
       "fabricante": "EMPALUX MF",
       "projetos_bloqueados": 3,
       "causa_principal": "A"
     },
     {
-      "fabricante": "HELIUS HMB132T12R",
+      "fabricante": "Helius",
       "projetos_bloqueados": 2,
-      "causa_principal": "D"
-    },
-    {
-      "fabricante": "ZXMR-UPLDD144",
-      "projetos_bloqueados": 2,
-      "causa_principal": "D"
+      "causa_principal": "B"
     },
     {
       "fabricante": "Solar",
       "projetos_bloqueados": 2,
       "causa_principal": "C"
-    },
-    {
-      "fabricante": "Dah",
-      "projetos_bloqueados": 2,
-      "causa_principal": "B"
-    },
-    {
-      "fabricante": "DHN-SU1K5T-G0",
-      "projetos_bloqueados": 2,
-      "causa_principal": "D"
     },
     {
       "fabricante": "AE SOLAR",
@@ -138,14 +128,14 @@
       "causa_principal": "A"
     },
     {
-      "fabricante": "LF465M8-72H",
+      "fabricante": "Leapton",
       "projetos_bloqueados": 1,
-      "causa_principal": "D"
+      "causa_principal": "B"
     },
     {
-      "fabricante": "SI03000",
+      "fabricante": "Solis",
       "projetos_bloqueados": 1,
-      "causa_principal": "D"
+      "causa_principal": "B"
     },
     {
       "fabricante": "EnergySun",
@@ -153,9 +143,9 @@
       "causa_principal": "D"
     },
     {
-      "fabricante": "HCP78x9-400w",
+      "fabricante": "Honor",
       "projetos_bloqueados": 1,
-      "causa_principal": "D"
+      "causa_principal": "B"
     },
     {
       "fabricante": "ZXM7-SHLD144 -",
@@ -178,19 +168,14 @@
       "causa_principal": "D"
     },
     {
-      "fabricante": "ZXM7-SHLD144-550/M",
+      "fabricante": "Belenergy",
       "projetos_bloqueados": 1,
-      "causa_principal": "D"
+      "causa_principal": "B"
     },
     {
-      "fabricante": "MFVHN-MI-MO-144-550W",
+      "fabricante": "Taoistic Solar",
       "projetos_bloqueados": 1,
-      "causa_principal": "D"
-    },
-    {
-      "fabricante": "TAOISTIC SOLAR TS-M10/144H",
-      "projetos_bloqueados": 1,
-      "causa_principal": "D"
+      "causa_principal": "A"
     },
     {
       "fabricante": "3KW",
@@ -199,11 +184,6 @@
     },
     {
       "fabricante": "-",
-      "projetos_bloqueados": 1,
-      "causa_principal": "D"
-    },
-    {
-      "fabricante": "SUN-M225G4-EU-Q0",
       "projetos_bloqueados": 1,
       "causa_principal": "D"
     },
@@ -218,9 +198,9 @@
       "causa_principal": "B"
     },
     {
-      "fabricante": "JAM72D42-630/LB",
+      "fabricante": "Ja Solar",
       "projetos_bloqueados": 1,
-      "causa_principal": "D"
+      "causa_principal": "B"
     },
     {
       "fabricante": "RENESOLA",
@@ -243,22 +223,12 @@
       "causa_principal": "C"
     },
     {
-      "fabricante": "ZXM7-UPLDD144-595",
-      "projetos_bloqueados": 1,
-      "causa_principal": "D"
-    },
-    {
       "fabricante": "ZXMR-UOLDD144 -",
       "projetos_bloqueados": 1,
       "causa_principal": "A"
     },
     {
       "fabricante": "ZNSHINE",
-      "projetos_bloqueados": 1,
-      "causa_principal": "D"
-    },
-    {
-      "fabricante": "ZXMR-UPLDD144-600/N",
       "projetos_bloqueados": 1,
       "causa_principal": "D"
     },
@@ -283,9 +253,9 @@
       "causa_principal": "C"
     },
     {
-      "fabricante": "NVFX-H-MO-220-10.5K",
+      "fabricante": "Nvolt",
       "projetos_bloqueados": 1,
-      "causa_principal": "D"
+      "causa_principal": "A"
     }
   ],
   "roi_ranking": [
@@ -296,6 +266,41 @@
         "TS-S8B-144-560W"
       ],
       "n_modelos": 1,
+      "causa": "B",
+      "acao": "Importar modelos específicos"
+    },
+    {
+      "fabricante": "Znshine",
+      "projetos_liberados": 8,
+      "modelos_ausentes": [
+        "ZXMR-UPLDD144-600W",
+        "ZXMR-UPLDD144",
+        "ZXM7-SHLD144-550/M",
+        "ZXM7-UPLDD144-595",
+        "ZXMR-UPLDD144-600/N"
+      ],
+      "n_modelos": 5,
+      "causa": "B",
+      "acao": "Importar modelos específicos"
+    },
+    {
+      "fabricante": "Trina Solar",
+      "projetos_liberados": 6,
+      "modelos_ausentes": [
+        "TALLMAX TSM-DE18"
+      ],
+      "n_modelos": 1,
+      "causa": "B",
+      "acao": "Importar modelos específicos"
+    },
+    {
+      "fabricante": "Dah",
+      "projetos_liberados": 4,
+      "modelos_ausentes": [
+        "SOlar unit",
+        "DHN-SU1K5T-G0"
+      ],
+      "n_modelos": 2,
       "causa": "B",
       "acao": "Importar modelos específicos"
     },
@@ -332,10 +337,10 @@
       "acao": "Importar modelos específicos"
     },
     {
-      "fabricante": "Dah",
+      "fabricante": "Helius",
       "projetos_liberados": 2,
       "modelos_ausentes": [
-        "SOlar unit"
+        "HMB132T12R"
       ],
       "n_modelos": 1,
       "causa": "B",
@@ -415,6 +420,36 @@
       "acao": "Importar fabricante completo"
     },
     {
+      "fabricante": "Leapton",
+      "projetos_liberados": 1,
+      "modelos_ausentes": [
+        "LF465M8-72H"
+      ],
+      "n_modelos": 1,
+      "causa": "B",
+      "acao": "Importar modelos específicos"
+    },
+    {
+      "fabricante": "Solis",
+      "projetos_liberados": 1,
+      "modelos_ausentes": [
+        "SI03000"
+      ],
+      "n_modelos": 1,
+      "causa": "B",
+      "acao": "Importar modelos específicos"
+    },
+    {
+      "fabricante": "Honor",
+      "projetos_liberados": 1,
+      "modelos_ausentes": [
+        "HCP78x9-400w"
+      ],
+      "n_modelos": 1,
+      "causa": "B",
+      "acao": "Importar modelos específicos"
+    },
+    {
       "fabricante": "ZXM7-SHLD144 -",
       "projetos_liberados": 1,
       "modelos_ausentes": [
@@ -435,6 +470,26 @@
       "acao": "Importar modelos específicos"
     },
     {
+      "fabricante": "Belenergy",
+      "projetos_liberados": 1,
+      "modelos_ausentes": [
+        "MFVHN-MI-MO-144-550W"
+      ],
+      "n_modelos": 1,
+      "causa": "B",
+      "acao": "Importar modelos específicos"
+    },
+    {
+      "fabricante": "Taoistic Solar",
+      "projetos_liberados": 1,
+      "modelos_ausentes": [
+        "TS-M10/144H"
+      ],
+      "n_modelos": 1,
+      "causa": "A",
+      "acao": "Importar fabricante completo"
+    },
+    {
       "fabricante": "3KW",
       "projetos_liberados": 1,
       "modelos_ausentes": [
@@ -449,6 +504,16 @@
       "projetos_liberados": 1,
       "modelos_ausentes": [
         "650w"
+      ],
+      "n_modelos": 1,
+      "causa": "B",
+      "acao": "Importar modelos específicos"
+    },
+    {
+      "fabricante": "Ja Solar",
+      "projetos_liberados": 1,
+      "modelos_ausentes": [
+        "JAM72D42-630/LB"
       ],
       "n_modelos": 1,
       "causa": "B",
@@ -483,6 +548,16 @@
       "n_modelos": 1,
       "causa": "A",
       "acao": "Importar fabricante completo"
+    },
+    {
+      "fabricante": "Nvolt",
+      "projetos_liberados": 1,
+      "modelos_ausentes": [
+        "NVFX-H-MO-220-10.5K"
+      ],
+      "n_modelos": 1,
+      "causa": "A",
+      "acao": "Importar fabricante completo"
     }
   ],
   "itens_sem_bind": [
@@ -509,14 +584,14 @@
       ]
     },
     {
-      "marca": "TRINA SOLAR TALLMAX TSM-DE18",
-      "modelo": "550",
+      "marca": "Trina Solar",
+      "modelo": "TALLMAX TSM-DE18",
       "tipo": "modulo",
-      "causa": "D",
-      "detalhe": "modelo numérico puro \"550\" — provavelmente wattage",
+      "causa": "B",
+      "detalhe": "fabricante \"Trina Solar\" no Atlas (6 modelos), mas este modelo \"TALLMAX TSM-DE18\" ausente",
       "projetos_bloqueados": 6,
-      "atlas_fab_similar": null,
-      "atlas_modelos_count": 0,
+      "atlas_fab_similar": "Trina Solar",
+      "atlas_modelos_count": 6,
       "tem_datasheet_cache": false,
       "projetos": [
         "038 - Big Blue (Residência)",
@@ -544,14 +619,14 @@
       ]
     },
     {
-      "marca": "ZXMR-UPLDD144-600W",
+      "marca": "Znshine",
       "modelo": "ZXMR-UPLDD144-600W",
       "tipo": "modulo",
-      "causa": "D",
-      "detalhe": "marca e modelo idênticos — dado corrompido",
+      "causa": "B",
+      "detalhe": "fabricante \"Znshine\" no Atlas (16 modelos), mas este modelo \"ZXMR-UPLDD144-600W\" ausente",
       "projetos_bloqueados": 3,
-      "atlas_fab_similar": null,
-      "atlas_modelos_count": 0,
+      "atlas_fab_similar": "Znshine",
+      "atlas_modelos_count": 16,
       "tem_datasheet_cache": false,
       "projetos": [
         "198 - Tapera bar espetaria",
@@ -589,14 +664,14 @@
       ]
     },
     {
-      "marca": "HELIUS HMB132T12R",
-      "modelo": "630",
+      "marca": "Helius",
+      "modelo": "HMB132T12R",
       "tipo": "modulo",
-      "causa": "D",
-      "detalhe": "modelo numérico puro \"630\" — provavelmente wattage",
+      "causa": "B",
+      "detalhe": "fabricante \"Helius\" no Atlas (6 modelos), mas este modelo \"HMB132T12R\" ausente",
       "projetos_bloqueados": 2,
-      "atlas_fab_similar": null,
-      "atlas_modelos_count": 0,
+      "atlas_fab_similar": "Helius",
+      "atlas_modelos_count": 6,
       "tem_datasheet_cache": false,
       "projetos": [
         "113 - Aline Beatriz de Medeiros Costa Helinsk",
@@ -619,14 +694,14 @@
       ]
     },
     {
-      "marca": "ZXMR-UPLDD144",
+      "marca": "Znshine",
       "modelo": "ZXMR-UPLDD144",
       "tipo": "modulo",
-      "causa": "D",
-      "detalhe": "marca e modelo idênticos — dado corrompido",
+      "causa": "B",
+      "detalhe": "fabricante \"Znshine\" no Atlas (16 modelos), mas este modelo \"ZXMR-UPLDD144\" ausente",
       "projetos_bloqueados": 2,
-      "atlas_fab_similar": null,
-      "atlas_modelos_count": 0,
+      "atlas_fab_similar": "Znshine",
+      "atlas_modelos_count": 16,
       "tem_datasheet_cache": false,
       "projetos": [
         "197 - Escola Pinheiros",
@@ -664,14 +739,14 @@
       ]
     },
     {
-      "marca": "DHN-SU1K5T-G0",
+      "marca": "Dah",
       "modelo": "DHN-SU1K5T-G0",
       "tipo": "inversor",
-      "causa": "D",
-      "detalhe": "marca e modelo idênticos — dado corrompido",
+      "causa": "B",
+      "detalhe": "fabricante \"Dah\" no Atlas (13 modelos), mas este modelo \"DHN-SU1K5T-G0\" ausente",
       "projetos_bloqueados": 2,
-      "atlas_fab_similar": null,
-      "atlas_modelos_count": 0,
+      "atlas_fab_similar": "Dah",
+      "atlas_modelos_count": 13,
       "tem_datasheet_cache": false,
       "projetos": [
         "259 - Luiz de França Afonso Ferreira - Marcilio",
@@ -763,28 +838,28 @@
       ]
     },
     {
-      "marca": "LF465M8-72H",
+      "marca": "Leapton",
       "modelo": "LF465M8-72H",
       "tipo": "modulo",
-      "causa": "D",
-      "detalhe": "marca e modelo idênticos — dado corrompido",
+      "causa": "B",
+      "detalhe": "fabricante \"Leapton\" no Atlas (10 modelos), mas este modelo \"LF465M8-72H\" ausente",
       "projetos_bloqueados": 1,
-      "atlas_fab_similar": null,
-      "atlas_modelos_count": 0,
+      "atlas_fab_similar": "Leapton",
+      "atlas_modelos_count": 10,
       "tem_datasheet_cache": false,
       "projetos": [
         "102 - Leidiane Ferreia da Silva"
       ]
     },
     {
-      "marca": "SI03000",
+      "marca": "Solis",
       "modelo": "SI03000",
       "tipo": "inversor",
-      "causa": "D",
-      "detalhe": "marca e modelo idênticos — dado corrompido",
+      "causa": "B",
+      "detalhe": "fabricante \"Solis\" no Atlas (8 modelos), mas este modelo \"SI03000\" ausente",
       "projetos_bloqueados": 1,
-      "atlas_fab_similar": null,
-      "atlas_modelos_count": 0,
+      "atlas_fab_similar": "Solis",
+      "atlas_modelos_count": 8,
       "tem_datasheet_cache": false,
       "projetos": [
         "102 - Leidiane Ferreia da Silva"
@@ -805,14 +880,14 @@
       ]
     },
     {
-      "marca": "HCP78x9-400w",
+      "marca": "Honor",
       "modelo": "HCP78x9-400w",
       "tipo": "modulo",
-      "causa": "D",
-      "detalhe": "marca e modelo idênticos — dado corrompido",
+      "causa": "B",
+      "detalhe": "fabricante \"Honor\" no Atlas (8 modelos), mas este modelo \"HCP78x9-400w\" ausente",
       "projetos_bloqueados": 1,
-      "atlas_fab_similar": null,
-      "atlas_modelos_count": 0,
+      "atlas_fab_similar": "Honor",
+      "atlas_modelos_count": 8,
       "tem_datasheet_cache": false,
       "projetos": [
         "141 - Carlos Renato Aquino de Alcantara"
@@ -889,39 +964,39 @@
       ]
     },
     {
-      "marca": "ZXM7-SHLD144-550/M",
+      "marca": "Znshine",
       "modelo": "ZXM7-SHLD144-550/M",
       "tipo": "modulo",
-      "causa": "D",
-      "detalhe": "marca e modelo idênticos — dado corrompido",
+      "causa": "B",
+      "detalhe": "fabricante \"Znshine\" no Atlas (16 modelos), mas este modelo \"ZXM7-SHLD144-550/M\" ausente",
       "projetos_bloqueados": 1,
-      "atlas_fab_similar": null,
-      "atlas_modelos_count": 0,
+      "atlas_fab_similar": "Znshine",
+      "atlas_modelos_count": 16,
       "tem_datasheet_cache": false,
       "projetos": [
         "155 - Elizete - Patrícia e Debora"
       ]
     },
     {
-      "marca": "MFVHN-MI-MO-144-550W",
+      "marca": "Belenergy",
       "modelo": "MFVHN-MI-MO-144-550W",
       "tipo": "modulo",
-      "causa": "D",
-      "detalhe": "marca e modelo idênticos — dado corrompido",
+      "causa": "B",
+      "detalhe": "fabricante \"Belenergy\" no Atlas (4 modelos), mas este modelo \"MFVHN-MI-MO-144-550W\" ausente",
       "projetos_bloqueados": 1,
-      "atlas_fab_similar": null,
-      "atlas_modelos_count": 0,
+      "atlas_fab_similar": "Belenergy",
+      "atlas_modelos_count": 4,
       "tem_datasheet_cache": false,
       "projetos": [
         "Jose Eriberto da Silva"
       ]
     },
     {
-      "marca": "TAOISTIC SOLAR TS-M10/144H",
-      "modelo": "545",
+      "marca": "Taoistic Solar",
+      "modelo": "TS-M10/144H",
       "tipo": "modulo",
-      "causa": "D",
-      "detalhe": "modelo numérico puro \"545\" — provavelmente wattage",
+      "causa": "A",
+      "detalhe": "fabricante \"Taoistic Solar\" não encontrado no Atlas",
       "projetos_bloqueados": 1,
       "atlas_fab_similar": null,
       "atlas_modelos_count": 0,
@@ -956,20 +1031,6 @@
       "tem_datasheet_cache": false,
       "projetos": [
         "HELDER MELO AMPLIAÇÃO"
-      ]
-    },
-    {
-      "marca": "SUN-M225G4-EU-Q0",
-      "modelo": "SUN-M225G4-EU-Q0",
-      "tipo": "inversor",
-      "causa": "D",
-      "detalhe": "marca e modelo idênticos — dado corrompido",
-      "projetos_bloqueados": 1,
-      "atlas_fab_similar": null,
-      "atlas_modelos_count": 0,
-      "tem_datasheet_cache": false,
-      "projetos": [
-        "192 - EMERSON CARLOS DA SILVA"
       ]
     },
     {
@@ -1043,14 +1104,14 @@
       ]
     },
     {
-      "marca": "JAM72D42-630/LB",
+      "marca": "Ja Solar",
       "modelo": "JAM72D42-630/LB",
       "tipo": "modulo",
-      "causa": "D",
-      "detalhe": "marca e modelo idênticos — dado corrompido",
+      "causa": "B",
+      "detalhe": "fabricante \"Ja Solar\" no Atlas (4 modelos), mas este modelo \"JAM72D42-630/LB\" ausente",
       "projetos_bloqueados": 1,
-      "atlas_fab_similar": null,
-      "atlas_modelos_count": 0,
+      "atlas_fab_similar": "Ja Solar",
+      "atlas_modelos_count": 4,
       "tem_datasheet_cache": false,
       "projetos": [
         "208 - Cond Sun Set - Torre A"
@@ -1113,14 +1174,14 @@
       ]
     },
     {
-      "marca": "ZXM7-UPLDD144-595",
+      "marca": "Znshine",
       "modelo": "ZXM7-UPLDD144-595",
       "tipo": "modulo",
-      "causa": "D",
-      "detalhe": "marca e modelo idênticos — dado corrompido",
+      "causa": "B",
+      "detalhe": "fabricante \"Znshine\" no Atlas (16 modelos), mas este modelo \"ZXM7-UPLDD144-595\" ausente",
       "projetos_bloqueados": 1,
-      "atlas_fab_similar": null,
-      "atlas_modelos_count": 0,
+      "atlas_fab_similar": "Znshine",
+      "atlas_modelos_count": 16,
       "tem_datasheet_cache": false,
       "projetos": [
         "224 -  Ewerton Thiago de Lima Silva Casa ex esposa"
@@ -1155,14 +1216,14 @@
       ]
     },
     {
-      "marca": "ZXMR-UPLDD144-600/N",
+      "marca": "Znshine",
       "modelo": "ZXMR-UPLDD144-600/N",
       "tipo": "modulo",
-      "causa": "D",
-      "detalhe": "marca e modelo idênticos — dado corrompido",
+      "causa": "B",
+      "detalhe": "fabricante \"Znshine\" no Atlas (16 modelos), mas este modelo \"ZXMR-UPLDD144-600/N\" ausente",
       "projetos_bloqueados": 1,
-      "atlas_fab_similar": null,
-      "atlas_modelos_count": 0,
+      "atlas_fab_similar": "Znshine",
+      "atlas_modelos_count": 16,
       "tem_datasheet_cache": false,
       "projetos": [
         "242 -  Emanuel Pereira Sobrinho Ampliação 03/2025"
@@ -1281,11 +1342,11 @@
       ]
     },
     {
-      "marca": "NVFX-H-MO-220-10.5K",
+      "marca": "Nvolt",
       "modelo": "NVFX-H-MO-220-10.5K",
       "tipo": "inversor",
-      "causa": "D",
-      "detalhe": "marca e modelo idênticos — dado corrompido",
+      "causa": "A",
+      "detalhe": "fabricante \"Nvolt\" não encontrado no Atlas",
       "projetos_bloqueados": 1,
       "atlas_fab_similar": null,
       "atlas_modelos_count": 0,
@@ -1368,18 +1429,18 @@
       "cliente": "—",
       "itens_sem_bind": [
         {
-          "marca": "LF465M8-72H",
+          "marca": "Leapton",
           "modelo": "LF465M8-72H",
           "categoria": "modulo",
-          "causa": "D",
-          "detalhe": "marca e modelo idênticos — dado corrompido"
+          "causa": "B",
+          "detalhe": "fabricante \"Leapton\" no Atlas (10 modelos), mas este modelo \"LF465M8-72H\" ausente"
         },
         {
-          "marca": "SI03000",
+          "marca": "Solis",
           "modelo": "SI03000",
           "categoria": "inversor",
-          "causa": "D",
-          "detalhe": "marca e modelo idênticos — dado corrompido"
+          "causa": "B",
+          "detalhe": "fabricante \"Solis\" no Atlas (8 modelos), mas este modelo \"SI03000\" ausente"
         }
       ],
       "total_sem_bind": 2
@@ -1390,11 +1451,11 @@
       "cliente": "—",
       "itens_sem_bind": [
         {
-          "marca": "TAOISTIC SOLAR TS-M10/144H",
-          "modelo": "545",
+          "marca": "Taoistic Solar",
+          "modelo": "TS-M10/144H",
           "categoria": "modulo",
-          "causa": "D",
-          "detalhe": "modelo numérico puro \"545\" — provavelmente wattage"
+          "causa": "A",
+          "detalhe": "fabricante \"Taoistic Solar\" não encontrado no Atlas"
         },
         {
           "marca": "3KW",
@@ -1449,11 +1510,11 @@
       "cliente": "—",
       "itens_sem_bind": [
         {
-          "marca": "TRINA SOLAR TALLMAX TSM-DE18",
-          "modelo": "550",
+          "marca": "Trina Solar",
+          "modelo": "TALLMAX TSM-DE18",
           "categoria": "modulo",
-          "causa": "D",
-          "detalhe": "modelo numérico puro \"550\" — provavelmente wattage"
+          "causa": "B",
+          "detalhe": "fabricante \"Trina Solar\" no Atlas (6 modelos), mas este modelo \"TALLMAX TSM-DE18\" ausente"
         }
       ],
       "total_sem_bind": 1
@@ -1524,11 +1585,11 @@
       "cliente": "—",
       "itens_sem_bind": [
         {
-          "marca": "HELIUS HMB132T12R",
-          "modelo": "630",
+          "marca": "Helius",
+          "modelo": "HMB132T12R",
           "categoria": "modulo",
-          "causa": "D",
-          "detalhe": "modelo numérico puro \"630\" — provavelmente wattage"
+          "causa": "B",
+          "detalhe": "fabricante \"Helius\" no Atlas (6 modelos), mas este modelo \"HMB132T12R\" ausente"
         }
       ],
       "total_sem_bind": 1
@@ -1554,11 +1615,11 @@
       "cliente": "—",
       "itens_sem_bind": [
         {
-          "marca": "TRINA SOLAR TALLMAX TSM-DE18",
-          "modelo": "550",
+          "marca": "Trina Solar",
+          "modelo": "TALLMAX TSM-DE18",
           "categoria": "modulo",
-          "causa": "D",
-          "detalhe": "modelo numérico puro \"550\" — provavelmente wattage"
+          "causa": "B",
+          "detalhe": "fabricante \"Trina Solar\" no Atlas (6 modelos), mas este modelo \"TALLMAX TSM-DE18\" ausente"
         }
       ],
       "total_sem_bind": 1
@@ -1599,11 +1660,11 @@
       "cliente": "—",
       "itens_sem_bind": [
         {
-          "marca": "HCP78x9-400w",
+          "marca": "Honor",
           "modelo": "HCP78x9-400w",
           "categoria": "modulo",
-          "causa": "D",
-          "detalhe": "marca e modelo idênticos — dado corrompido"
+          "causa": "B",
+          "detalhe": "fabricante \"Honor\" no Atlas (8 modelos), mas este modelo \"HCP78x9-400w\" ausente"
         }
       ],
       "total_sem_bind": 1
@@ -1749,11 +1810,11 @@
       "cliente": "—",
       "itens_sem_bind": [
         {
-          "marca": "ZXM7-SHLD144-550/M",
+          "marca": "Znshine",
           "modelo": "ZXM7-SHLD144-550/M",
           "categoria": "modulo",
-          "causa": "D",
-          "detalhe": "marca e modelo idênticos — dado corrompido"
+          "causa": "B",
+          "detalhe": "fabricante \"Znshine\" no Atlas (16 modelos), mas este modelo \"ZXM7-SHLD144-550/M\" ausente"
         }
       ],
       "total_sem_bind": 1
@@ -1764,11 +1825,11 @@
       "cliente": "—",
       "itens_sem_bind": [
         {
-          "marca": "MFVHN-MI-MO-144-550W",
+          "marca": "Belenergy",
           "modelo": "MFVHN-MI-MO-144-550W",
           "categoria": "modulo",
-          "causa": "D",
-          "detalhe": "marca e modelo idênticos — dado corrompido"
+          "causa": "B",
+          "detalhe": "fabricante \"Belenergy\" no Atlas (4 modelos), mas este modelo \"MFVHN-MI-MO-144-550W\" ausente"
         }
       ],
       "total_sem_bind": 1
@@ -1834,21 +1895,6 @@
       "total_sem_bind": 1
     },
     {
-      "_id": "6a2aa1c51222567143ff3933",
-      "projeto": "192 - EMERSON CARLOS DA SILVA",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "SUN-M225G4-EU-Q0",
-          "modelo": "SUN-M225G4-EU-Q0",
-          "categoria": "inversor",
-          "causa": "D",
-          "detalhe": "marca e modelo idênticos — dado corrompido"
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
       "_id": "6a2aa1c51222567143ff3937",
       "projeto": "182 - Debora Cunha",
       "cliente": "—",
@@ -1869,11 +1915,11 @@
       "cliente": "—",
       "itens_sem_bind": [
         {
-          "marca": "TRINA SOLAR TALLMAX TSM-DE18",
-          "modelo": "550",
+          "marca": "Trina Solar",
+          "modelo": "TALLMAX TSM-DE18",
           "categoria": "modulo",
-          "causa": "D",
-          "detalhe": "modelo numérico puro \"550\" — provavelmente wattage"
+          "causa": "B",
+          "detalhe": "fabricante \"Trina Solar\" no Atlas (6 modelos), mas este modelo \"TALLMAX TSM-DE18\" ausente"
         }
       ],
       "total_sem_bind": 1
@@ -1899,11 +1945,11 @@
       "cliente": "—",
       "itens_sem_bind": [
         {
-          "marca": "TRINA SOLAR TALLMAX TSM-DE18",
-          "modelo": "550",
+          "marca": "Trina Solar",
+          "modelo": "TALLMAX TSM-DE18",
           "categoria": "modulo",
-          "causa": "D",
-          "detalhe": "modelo numérico puro \"550\" — provavelmente wattage"
+          "causa": "B",
+          "detalhe": "fabricante \"Trina Solar\" no Atlas (6 modelos), mas este modelo \"TALLMAX TSM-DE18\" ausente"
         }
       ],
       "total_sem_bind": 1
@@ -1929,11 +1975,11 @@
       "cliente": "—",
       "itens_sem_bind": [
         {
-          "marca": "TRINA SOLAR TALLMAX TSM-DE18",
-          "modelo": "550",
+          "marca": "Trina Solar",
+          "modelo": "TALLMAX TSM-DE18",
           "categoria": "modulo",
-          "causa": "D",
-          "detalhe": "modelo numérico puro \"550\" — provavelmente wattage"
+          "causa": "B",
+          "detalhe": "fabricante \"Trina Solar\" no Atlas (6 modelos), mas este modelo \"TALLMAX TSM-DE18\" ausente"
         }
       ],
       "total_sem_bind": 1
@@ -1959,11 +2005,11 @@
       "cliente": "—",
       "itens_sem_bind": [
         {
-          "marca": "TRINA SOLAR TALLMAX TSM-DE18",
-          "modelo": "550",
+          "marca": "Trina Solar",
+          "modelo": "TALLMAX TSM-DE18",
           "categoria": "modulo",
-          "causa": "D",
-          "detalhe": "modelo numérico puro \"550\" — provavelmente wattage"
+          "causa": "B",
+          "detalhe": "fabricante \"Trina Solar\" no Atlas (6 modelos), mas este modelo \"TALLMAX TSM-DE18\" ausente"
         }
       ],
       "total_sem_bind": 1
@@ -1989,11 +2035,11 @@
       "cliente": "—",
       "itens_sem_bind": [
         {
-          "marca": "ZXMR-UPLDD144-600W",
+          "marca": "Znshine",
           "modelo": "ZXMR-UPLDD144-600W",
           "categoria": "modulo",
-          "causa": "D",
-          "detalhe": "marca e modelo idênticos — dado corrompido"
+          "causa": "B",
+          "detalhe": "fabricante \"Znshine\" no Atlas (16 modelos), mas este modelo \"ZXMR-UPLDD144-600W\" ausente"
         }
       ],
       "total_sem_bind": 1
@@ -2004,11 +2050,11 @@
       "cliente": "—",
       "itens_sem_bind": [
         {
-          "marca": "ZXMR-UPLDD144",
+          "marca": "Znshine",
           "modelo": "ZXMR-UPLDD144",
           "categoria": "modulo",
-          "causa": "D",
-          "detalhe": "marca e modelo idênticos — dado corrompido"
+          "causa": "B",
+          "detalhe": "fabricante \"Znshine\" no Atlas (16 modelos), mas este modelo \"ZXMR-UPLDD144\" ausente"
         }
       ],
       "total_sem_bind": 1
@@ -2019,11 +2065,11 @@
       "cliente": "—",
       "itens_sem_bind": [
         {
-          "marca": "JAM72D42-630/LB",
+          "marca": "Ja Solar",
           "modelo": "JAM72D42-630/LB",
           "categoria": "modulo",
-          "causa": "D",
-          "detalhe": "marca e modelo idênticos — dado corrompido"
+          "causa": "B",
+          "detalhe": "fabricante \"Ja Solar\" no Atlas (4 modelos), mas este modelo \"JAM72D42-630/LB\" ausente"
         }
       ],
       "total_sem_bind": 1
@@ -2034,11 +2080,11 @@
       "cliente": "—",
       "itens_sem_bind": [
         {
-          "marca": "ZXMR-UPLDD144-600W",
+          "marca": "Znshine",
           "modelo": "ZXMR-UPLDD144-600W",
           "categoria": "modulo",
-          "causa": "D",
-          "detalhe": "marca e modelo idênticos — dado corrompido"
+          "causa": "B",
+          "detalhe": "fabricante \"Znshine\" no Atlas (16 modelos), mas este modelo \"ZXMR-UPLDD144-600W\" ausente"
         }
       ],
       "total_sem_bind": 1
@@ -2079,11 +2125,11 @@
       "cliente": "—",
       "itens_sem_bind": [
         {
-          "marca": "ZXMR-UPLDD144",
+          "marca": "Znshine",
           "modelo": "ZXMR-UPLDD144",
           "categoria": "modulo",
-          "causa": "D",
-          "detalhe": "marca e modelo idênticos — dado corrompido"
+          "causa": "B",
+          "detalhe": "fabricante \"Znshine\" no Atlas (16 modelos), mas este modelo \"ZXMR-UPLDD144\" ausente"
         }
       ],
       "total_sem_bind": 1
@@ -2139,11 +2185,11 @@
       "cliente": "—",
       "itens_sem_bind": [
         {
-          "marca": "ZXMR-UPLDD144-600W",
+          "marca": "Znshine",
           "modelo": "ZXMR-UPLDD144-600W",
           "categoria": "modulo",
-          "causa": "D",
-          "detalhe": "marca e modelo idênticos — dado corrompido"
+          "causa": "B",
+          "detalhe": "fabricante \"Znshine\" no Atlas (16 modelos), mas este modelo \"ZXMR-UPLDD144-600W\" ausente"
         }
       ],
       "total_sem_bind": 1
@@ -2154,11 +2200,11 @@
       "cliente": "—",
       "itens_sem_bind": [
         {
-          "marca": "ZXM7-UPLDD144-595",
+          "marca": "Znshine",
           "modelo": "ZXM7-UPLDD144-595",
           "categoria": "modulo",
-          "causa": "D",
-          "detalhe": "marca e modelo idênticos — dado corrompido"
+          "causa": "B",
+          "detalhe": "fabricante \"Znshine\" no Atlas (16 modelos), mas este modelo \"ZXM7-UPLDD144-595\" ausente"
         }
       ],
       "total_sem_bind": 1
@@ -2244,11 +2290,11 @@
       "cliente": "—",
       "itens_sem_bind": [
         {
-          "marca": "DHN-SU1K5T-G0",
+          "marca": "Dah",
           "modelo": "DHN-SU1K5T-G0",
           "categoria": "inversor",
-          "causa": "D",
-          "detalhe": "marca e modelo idênticos — dado corrompido"
+          "causa": "B",
+          "detalhe": "fabricante \"Dah\" no Atlas (13 modelos), mas este modelo \"DHN-SU1K5T-G0\" ausente"
         }
       ],
       "total_sem_bind": 1
@@ -2274,11 +2320,11 @@
       "cliente": "—",
       "itens_sem_bind": [
         {
-          "marca": "ZXMR-UPLDD144-600/N",
+          "marca": "Znshine",
           "modelo": "ZXMR-UPLDD144-600/N",
           "categoria": "modulo",
-          "causa": "D",
-          "detalhe": "marca e modelo idênticos — dado corrompido"
+          "causa": "B",
+          "detalhe": "fabricante \"Znshine\" no Atlas (16 modelos), mas este modelo \"ZXMR-UPLDD144-600/N\" ausente"
         }
       ],
       "total_sem_bind": 1
@@ -2409,11 +2455,11 @@
       "cliente": "—",
       "itens_sem_bind": [
         {
-          "marca": "DHN-SU1K5T-G0",
+          "marca": "Dah",
           "modelo": "DHN-SU1K5T-G0",
           "categoria": "inversor",
-          "causa": "D",
-          "detalhe": "marca e modelo idênticos — dado corrompido"
+          "causa": "B",
+          "detalhe": "fabricante \"Dah\" no Atlas (13 modelos), mas este modelo \"DHN-SU1K5T-G0\" ausente"
         }
       ],
       "total_sem_bind": 1
@@ -2439,11 +2485,11 @@
       "cliente": "—",
       "itens_sem_bind": [
         {
-          "marca": "HELIUS HMB132T12R",
-          "modelo": "630",
+          "marca": "Helius",
+          "modelo": "HMB132T12R",
           "categoria": "modulo",
-          "causa": "D",
-          "detalhe": "modelo numérico puro \"630\" — provavelmente wattage"
+          "causa": "B",
+          "detalhe": "fabricante \"Helius\" no Atlas (6 modelos), mas este modelo \"HMB132T12R\" ausente"
         }
       ],
       "total_sem_bind": 1
@@ -2454,11 +2500,11 @@
       "cliente": "—",
       "itens_sem_bind": [
         {
-          "marca": "NVFX-H-MO-220-10.5K",
+          "marca": "Nvolt",
           "modelo": "NVFX-H-MO-220-10.5K",
           "categoria": "inversor",
-          "causa": "D",
-          "detalhe": "marca e modelo idênticos — dado corrompido"
+          "causa": "A",
+          "detalhe": "fabricante \"Nvolt\" não encontrado no Atlas"
         }
       ],
       "total_sem_bind": 1

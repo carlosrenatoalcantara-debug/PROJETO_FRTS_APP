@@ -1,29 +1,29 @@
 {
-  "lote": "BIND-202606151316",
+  "lote": "BIND-202606151345",
   "dry_run": false,
-  "gerado_em": "2026-06-15T13:16:10.888Z",
+  "gerado_em": "2026-06-15T13:45:17.910Z",
   "rel": {
     "projetos_processados": 514,
     "paineis": {
       "exato": 0,
-      "normalizado": 9,
-      "flexivel": 2,
-      "fuzzy": 2,
-      "sem_match": 55,
-      "ja_vinculado": 456,
+      "normalizado": 0,
+      "flexivel": 0,
+      "fuzzy": 8,
+      "sem_match": 49,
+      "ja_vinculado": 467,
       "erros": 0
     },
     "inversores": {
       "exato": 0,
-      "normalizado": 3,
+      "normalizado": 1,
       "flexivel": 0,
       "fuzzy": 3,
-      "sem_match": 21,
-      "ja_vinculado": 487,
+      "sem_match": 20,
+      "ja_vinculado": 490,
       "erros": 0
     },
-    "binds_gravados": 14,
-    "projetos_totalmente_vinculados": 439,
+    "binds_gravados": 1,
+    "projetos_totalmente_vinculados": 440,
     "sem_match_detail": []
   },
   "sem_match_top50": [
@@ -36,8 +36,8 @@
       "confianca": 0
     },
     {
-      "marca": "TRINA SOLAR TALLMAX TSM-DE18",
-      "modelo": "550",
+      "marca": "Trina Solar",
+      "modelo": "TALLMAX TSM-DE18",
       "tipo": "modulo",
       "projetos": 6,
       "classe": "sem_match",
@@ -52,12 +52,12 @@
       "confianca": 0.89
     },
     {
-      "marca": "ZXMR-UPLDD144-600W",
+      "marca": "Znshine",
       "modelo": "ZXMR-UPLDD144-600W",
       "tipo": "modulo",
       "projetos": 3,
-      "classe": "sem_match",
-      "confianca": 0
+      "classe": "fuzzy",
+      "confianca": 0.92
     },
     {
       "marca": "EMPALUX MF",
@@ -76,8 +76,8 @@
       "confianca": 0
     },
     {
-      "marca": "HELIUS HMB132T12R",
-      "modelo": "630",
+      "marca": "Helius",
+      "modelo": "HMB132T12R",
       "tipo": "modulo",
       "projetos": 2,
       "classe": "sem_match",
@@ -92,12 +92,12 @@
       "confianca": 0
     },
     {
-      "marca": "ZXMR-UPLDD144",
+      "marca": "Znshine",
       "modelo": "ZXMR-UPLDD144",
       "tipo": "modulo",
       "projetos": 2,
-      "classe": "sem_match",
-      "confianca": 0
+      "classe": "fuzzy",
+      "confianca": 0.89
     },
     {
       "marca": "Solar",
@@ -116,7 +116,7 @@
       "confianca": 0
     },
     {
-      "marca": "DHN-SU1K5T-G0",
+      "marca": "Dah",
       "modelo": "DHN-SU1K5T-G0",
       "tipo": "inversor",
       "projetos": 2,
@@ -172,7 +172,7 @@
       "confianca": 0
     },
     {
-      "marca": "LF465M8-72H",
+      "marca": "Leapton",
       "modelo": "LF465M8-72H",
       "tipo": "modulo",
       "projetos": 1,
@@ -180,7 +180,7 @@
       "confianca": 0
     },
     {
-      "marca": "SI03000",
+      "marca": "Solis",
       "modelo": "SI03000",
       "tipo": "inversor",
       "projetos": 1,
@@ -196,7 +196,7 @@
       "confianca": 0
     },
     {
-      "marca": "HCP78x9-400w",
+      "marca": "Honor",
       "modelo": "HCP78x9-400w",
       "tipo": "modulo",
       "projetos": 1,
@@ -244,7 +244,7 @@
       "confianca": 0
     },
     {
-      "marca": "ZXM7-SHLD144-550/M",
+      "marca": "Znshine",
       "modelo": "ZXM7-SHLD144-550/M",
       "tipo": "modulo",
       "projetos": 1,
@@ -252,7 +252,7 @@
       "confianca": 0
     },
     {
-      "marca": "MFVHN-MI-MO-144-550W",
+      "marca": "Belenergy",
       "modelo": "MFVHN-MI-MO-144-550W",
       "tipo": "modulo",
       "projetos": 1,
@@ -260,8 +260,8 @@
       "confianca": 0
     },
     {
-      "marca": "TAOISTIC SOLAR TS-M10/144H",
-      "modelo": "545",
+      "marca": "Taoistic Solar",
+      "modelo": "TS-M10/144H",
       "tipo": "modulo",
       "projetos": 1,
       "classe": "sem_match",
@@ -278,14 +278,6 @@
     {
       "marca": "-",
       "modelo": "-",
-      "tipo": "inversor",
-      "projetos": 1,
-      "classe": "sem_match",
-      "confianca": 0
-    },
-    {
-      "marca": "SUN-M225G4-EU-Q0",
-      "modelo": "SUN-M225G4-EU-Q0",
       "tipo": "inversor",
       "projetos": 1,
       "classe": "sem_match",
@@ -332,7 +324,7 @@
       "confianca": 0.89
     },
     {
-      "marca": "JAM72D42-630/LB",
+      "marca": "Ja Solar",
       "modelo": "JAM72D42-630/LB",
       "tipo": "modulo",
       "projetos": 1,
@@ -372,7 +364,7 @@
       "confianca": 0
     },
     {
-      "marca": "ZXM7-UPLDD144-595",
+      "marca": "Znshine",
       "modelo": "ZXM7-UPLDD144-595",
       "tipo": "modulo",
       "projetos": 1,
@@ -396,12 +388,12 @@
       "confianca": 0
     },
     {
-      "marca": "ZXMR-UPLDD144-600/N",
+      "marca": "Znshine",
       "modelo": "ZXMR-UPLDD144-600/N",
       "tipo": "modulo",
       "projetos": 1,
-      "classe": "sem_match",
-      "confianca": 0
+      "classe": "fuzzy",
+      "confianca": 0.89
     },
     {
       "marca": "DAH",
@@ -423,6 +415,14 @@
       "marca": "600w",
       "modelo": "Bifacial com grafeno",
       "tipo": "modulo",
+      "projetos": 1,
+      "classe": "sem_match",
+      "confianca": 0
+    },
+    {
+      "marca": "CANADIAN SOLAR CANADIAN SOLAR CSI",
+      "modelo": "5K-MTL",
+      "tipo": "inversor",
       "projetos": 1,
       "classe": "sem_match",
       "confianca": 0

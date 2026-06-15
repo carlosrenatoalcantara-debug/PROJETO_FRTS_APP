@@ -1,0 +1,643 @@
+{
+  "sprint": "P1-SOLARMARKET-DATA-CLEANING-01",
+  "read_only": true,
+  "gerado_em": "2026-06-15T13:23:57.631Z",
+  "total_projetos_causa_D": 33,
+  "sub_classificacao": {
+    "A": 19,
+    "B": 3,
+    "C": 9,
+    "D": 0,
+    "E": 3,
+    "F": 0
+  },
+  "recuperabilidade": {
+    "auto": 6,
+    "regra_simples": 21,
+    "manual": 7,
+    "revisao": 0
+  },
+  "matriz_projetos": [
+    {
+      "_id": "6a2aa1b61222567143ff384f",
+      "projeto": "102 - Leidiane Ferreia da Silva",
+      "cliente": "—",
+      "itens_causa_D": [
+        {
+          "marca": "LF465M8-72H",
+          "modelo": "LF465M8-72H",
+          "sub_causa": "A",
+          "recuperabilidade": "regra_simples",
+          "motivo": "fabricante ausente; modelo no campo marca (infere \"Leapton\")"
+        },
+        {
+          "marca": "SI03000",
+          "modelo": "SI03000",
+          "sub_causa": "A",
+          "recuperabilidade": "regra_simples",
+          "motivo": "fabricante ausente; modelo no campo marca (infere \"Solis\")"
+        }
+      ]
+    },
+    {
+      "_id": "6a2aa1c21222567143ff3901",
+      "projeto": "Tarso Santos",
+      "cliente": "—",
+      "itens_causa_D": [
+        {
+          "marca": "TAOISTIC SOLAR TS-M10/144H",
+          "modelo": "545",
+          "sub_causa": "C",
+          "recuperabilidade": "regra_simples",
+          "motivo": "fab+modelo concatenados na marca; potência=\"545\" (infere \"Taoistic Solar\")"
+        }
+      ]
+    },
+    {
+      "_id": "6a2aa1af1222567143ff37e7",
+      "projeto": "038 - Big Blue (Residência)",
+      "cliente": "—",
+      "itens_causa_D": [
+        {
+          "marca": "TRINA SOLAR TALLMAX TSM-DE18",
+          "modelo": "550",
+          "sub_causa": "C",
+          "recuperabilidade": "regra_simples",
+          "motivo": "fab+modelo concatenados na marca; potência=\"550\" (infere \"Trina Solar\")"
+        }
+      ]
+    },
+    {
+      "_id": "6a2aa1b91222567143ff387d",
+      "projeto": "113 - Aline Beatriz de Medeiros Costa Helinsk",
+      "cliente": "—",
+      "itens_causa_D": [
+        {
+          "marca": "HELIUS HMB132T12R",
+          "modelo": "630",
+          "sub_causa": "C",
+          "recuperabilidade": "regra_simples",
+          "motivo": "fab+modelo concatenados na marca; potência=\"630\" (infere \"Helius\")"
+        }
+      ]
+    },
+    {
+      "_id": "6a2aa1bb1222567143ff38a3",
+      "projeto": "139 - Condomínio Residencial Solar Atlântico",
+      "cliente": "—",
+      "itens_causa_D": [
+        {
+          "marca": "TRINA SOLAR TALLMAX TSM-DE18",
+          "modelo": "550",
+          "sub_causa": "C",
+          "recuperabilidade": "regra_simples",
+          "motivo": "fab+modelo concatenados na marca; potência=\"550\" (infere \"Trina Solar\")"
+        }
+      ]
+    },
+    {
+      "_id": "6a2aa1bc1222567143ff38b0",
+      "projeto": "133.3 Pinga Fogo pp - 7020873480",
+      "cliente": "—",
+      "itens_causa_D": [
+        {
+          "marca": "EnergySun",
+          "modelo": "EnergySun",
+          "sub_causa": "B",
+          "recuperabilidade": "manual",
+          "motivo": "só nome de fabricante, sem modelo"
+        }
+      ]
+    },
+    {
+      "_id": "6a2aa1bc1222567143ff38b5",
+      "projeto": "141 - Carlos Renato Aquino de Alcantara",
+      "cliente": "—",
+      "itens_causa_D": [
+        {
+          "marca": "HCP78x9-400w",
+          "modelo": "HCP78x9-400w",
+          "sub_causa": "A",
+          "recuperabilidade": "regra_simples",
+          "motivo": "fabricante ausente; modelo no campo marca (infere \"Honor\")"
+        }
+      ]
+    },
+    {
+      "_id": "6a2aa1c01222567143ff38ed",
+      "projeto": "169 - Cond. Res. B. D. Arvores",
+      "cliente": "—",
+      "itens_causa_D": [
+        {
+          "marca": "Trina550",
+          "modelo": "Trina550",
+          "sub_causa": "A",
+          "recuperabilidade": "regra_simples",
+          "motivo": "fabricante ausente; modelo no campo marca (infere \"Trina Solar\")"
+        }
+      ]
+    },
+    {
+      "_id": "6a2aa1c11222567143ff38f1",
+      "projeto": "155 - Elizete - Patrícia e Debora",
+      "cliente": "—",
+      "itens_causa_D": [
+        {
+          "marca": "ZXM7-SHLD144-550/M",
+          "modelo": "ZXM7-SHLD144-550/M",
+          "sub_causa": "A",
+          "recuperabilidade": "regra_simples",
+          "motivo": "fabricante ausente; modelo no campo marca (infere \"Znshine\")"
+        }
+      ]
+    },
+    {
+      "_id": "6a2aa1c11222567143ff38ff",
+      "projeto": "Jose Eriberto da Silva",
+      "cliente": "—",
+      "itens_causa_D": [
+        {
+          "marca": "MFVHN-MI-MO-144-550W",
+          "modelo": "MFVHN-MI-MO-144-550W",
+          "sub_causa": "A",
+          "recuperabilidade": "regra_simples",
+          "motivo": "fabricante ausente; modelo no campo marca (infere \"Belenergy\")"
+        }
+      ]
+    },
+    {
+      "_id": "6a2aa1c21222567143ff3907",
+      "projeto": "HELDER MELO AMPLIAÇÃO",
+      "cliente": "—",
+      "itens_causa_D": [
+        {
+          "marca": "-",
+          "modelo": "-",
+          "sub_causa": "E",
+          "recuperabilidade": "manual",
+          "motivo": "vazio"
+        }
+      ]
+    },
+    {
+      "_id": "6a2aa1c51222567143ff3933",
+      "projeto": "192 - EMERSON CARLOS DA SILVA",
+      "cliente": "—",
+      "itens_causa_D": [
+        {
+          "marca": "SUN-M225G4-EU-Q0",
+          "modelo": "SUN-M225G4-EU-Q0",
+          "sub_causa": "A",
+          "recuperabilidade": "auto",
+          "motivo": "fabricante ausente; modelo no campo marca (infere \"Deye\")"
+        }
+      ]
+    },
+    {
+      "_id": "6a2aa1c51222567143ff3939",
+      "projeto": "187. Nizyara Costa da Silva -RB Gráfica projeto 02",
+      "cliente": "—",
+      "itens_causa_D": [
+        {
+          "marca": "TRINA SOLAR TALLMAX TSM-DE18",
+          "modelo": "550",
+          "sub_causa": "C",
+          "recuperabilidade": "regra_simples",
+          "motivo": "fab+modelo concatenados na marca; potência=\"550\" (infere \"Trina Solar\")"
+        }
+      ]
+    },
+    {
+      "_id": "6a2aa1c61222567143ff3942",
+      "projeto": "Therra Mater 1",
+      "cliente": "—",
+      "itens_causa_D": [
+        {
+          "marca": "TRINA SOLAR TALLMAX TSM-DE18",
+          "modelo": "550",
+          "sub_causa": "C",
+          "recuperabilidade": "regra_simples",
+          "motivo": "fab+modelo concatenados na marca; potência=\"550\" (infere \"Trina Solar\")"
+        }
+      ]
+    },
+    {
+      "_id": "6a2aa1c61222567143ff3945",
+      "projeto": "140,2 Projeto Grafica 02",
+      "cliente": "—",
+      "itens_causa_D": [
+        {
+          "marca": "TRINA SOLAR TALLMAX TSM-DE18",
+          "modelo": "550",
+          "sub_causa": "C",
+          "recuperabilidade": "regra_simples",
+          "motivo": "fab+modelo concatenados na marca; potência=\"550\" (infere \"Trina Solar\")"
+        }
+      ]
+    },
+    {
+      "_id": "6a2aa1c61222567143ff3947",
+      "projeto": "Cond .Tropical Residence",
+      "cliente": "—",
+      "itens_causa_D": [
+        {
+          "marca": "DAH",
+          "modelo": "DAH",
+          "sub_causa": "B",
+          "recuperabilidade": "manual",
+          "motivo": "só nome de fabricante, sem modelo"
+        }
+      ]
+    },
+    {
+      "_id": "6a2aa1c71222567143ff394f",
+      "projeto": "Escola Mater Dei",
+      "cliente": "—",
+      "itens_causa_D": [
+        {
+          "marca": "TRINA SOLAR TALLMAX TSM-DE18",
+          "modelo": "550",
+          "sub_causa": "C",
+          "recuperabilidade": "regra_simples",
+          "motivo": "fab+modelo concatenados na marca; potência=\"550\" (infere \"Trina Solar\")"
+        }
+      ]
+    },
+    {
+      "_id": "6a2aa1c81222567143ff3961",
+      "projeto": "198 - Tapera bar espetaria",
+      "cliente": "—",
+      "itens_causa_D": [
+        {
+          "marca": "ZXMR-UPLDD144-600W",
+          "modelo": "ZXMR-UPLDD144-600W",
+          "sub_causa": "A",
+          "recuperabilidade": "auto",
+          "motivo": "fabricante ausente; modelo no campo marca (infere \"Znshine\")"
+        }
+      ]
+    },
+    {
+      "_id": "6a2aa1c91222567143ff396e",
+      "projeto": "197 - Escola Pinheiros",
+      "cliente": "—",
+      "itens_causa_D": [
+        {
+          "marca": "ZXMR-UPLDD144",
+          "modelo": "ZXMR-UPLDD144",
+          "sub_causa": "A",
+          "recuperabilidade": "auto",
+          "motivo": "fabricante ausente; modelo no campo marca (infere \"Znshine\")"
+        }
+      ]
+    },
+    {
+      "_id": "6a2aa1c91222567143ff3973",
+      "projeto": "208 - Cond Sun Set - Torre A",
+      "cliente": "—",
+      "itens_causa_D": [
+        {
+          "marca": "JAM72D42-630/LB",
+          "modelo": "JAM72D42-630/LB",
+          "sub_causa": "A",
+          "recuperabilidade": "regra_simples",
+          "motivo": "fabricante ausente; modelo no campo marca (infere \"Ja Solar\")"
+        }
+      ]
+    },
+    {
+      "_id": "6a2aa1c91222567143ff3977",
+      "projeto": "223 - Somagraf Comércio Ltda",
+      "cliente": "—",
+      "itens_causa_D": [
+        {
+          "marca": "ZXMR-UPLDD144-600W",
+          "modelo": "ZXMR-UPLDD144-600W",
+          "sub_causa": "A",
+          "recuperabilidade": "auto",
+          "motivo": "fabricante ausente; modelo no campo marca (infere \"Znshine\")"
+        }
+      ]
+    },
+    {
+      "_id": "6a2aa1ca1222567143ff3986",
+      "projeto": "221 - Augusto  Wagner Marinho Benfica- Bianca",
+      "cliente": "—",
+      "itens_causa_D": [
+        {
+          "marca": "ZXMR-UPLDD144",
+          "modelo": "ZXMR-UPLDD144",
+          "sub_causa": "A",
+          "recuperabilidade": "auto",
+          "motivo": "fabricante ausente; modelo no campo marca (infere \"Znshine\")"
+        }
+      ]
+    },
+    {
+      "_id": "6a2aa1cb1222567143ff3999",
+      "projeto": "231 - Maria de Fatima Bezerra D. Menezes",
+      "cliente": "—",
+      "itens_causa_D": [
+        {
+          "marca": "ZXMR-UPLDD144-600W",
+          "modelo": "ZXMR-UPLDD144-600W",
+          "sub_causa": "A",
+          "recuperabilidade": "auto",
+          "motivo": "fabricante ausente; modelo no campo marca (infere \"Znshine\")"
+        }
+      ]
+    },
+    {
+      "_id": "6a2aa1cc1222567143ff399f",
+      "projeto": "224 -  Ewerton Thiago de Lima Silva Casa ex esposa",
+      "cliente": "—",
+      "itens_causa_D": [
+        {
+          "marca": "ZXM7-UPLDD144-595",
+          "modelo": "ZXM7-UPLDD144-595",
+          "sub_causa": "A",
+          "recuperabilidade": "regra_simples",
+          "motivo": "fabricante ausente; modelo no campo marca (infere \"Znshine\")"
+        }
+      ]
+    },
+    {
+      "_id": "6a2aa1cd1222567143ff39ae",
+      "projeto": "Residencial Solaris",
+      "cliente": "—",
+      "itens_causa_D": [
+        {
+          "marca": "ZNSHINE",
+          "modelo": "ZNSHINE",
+          "sub_causa": "B",
+          "recuperabilidade": "manual",
+          "motivo": "só nome de fabricante, sem modelo"
+        }
+      ]
+    },
+    {
+      "_id": "6a2aa1cd1222567143ff39b3",
+      "projeto": "259 - Luiz de França Afonso Ferreira - Marcilio",
+      "cliente": "—",
+      "itens_causa_D": [
+        {
+          "marca": "DHN-SU1K5T-G0",
+          "modelo": "DHN-SU1K5T-G0",
+          "sub_causa": "A",
+          "recuperabilidade": "regra_simples",
+          "motivo": "fabricante ausente; modelo no campo marca (infere \"Dah\")"
+        }
+      ]
+    },
+    {
+      "_id": "6a2aa1cd1222567143ff39b7",
+      "projeto": "242 -  Emanuel Pereira Sobrinho Ampliação 03/2025",
+      "cliente": "—",
+      "itens_causa_D": [
+        {
+          "marca": "ZXMR-UPLDD144-600/N",
+          "modelo": "ZXMR-UPLDD144-600/N",
+          "sub_causa": "A",
+          "recuperabilidade": "regra_simples",
+          "motivo": "fabricante ausente; modelo no campo marca (infere \"Znshine\")"
+        }
+      ]
+    },
+    {
+      "_id": "6a2aa1cd1222567143ff39bc",
+      "projeto": "Posto",
+      "cliente": "—",
+      "itens_causa_D": [
+        {
+          "marca": "600W",
+          "modelo": "Bifacial",
+          "sub_causa": "E",
+          "recuperabilidade": "manual",
+          "motivo": "wattage usado como marca; modelo genérico \"Bifacial\""
+        }
+      ]
+    },
+    {
+      "_id": "6a2aa1cd1222567143ff39bd",
+      "projeto": "Casa",
+      "cliente": "—",
+      "itens_causa_D": [
+        {
+          "marca": "600w",
+          "modelo": "Bifacial com grafeno",
+          "sub_causa": "E",
+          "recuperabilidade": "manual",
+          "motivo": "wattage usado como marca; modelo genérico \"Bifacial com grafeno\""
+        }
+      ]
+    },
+    {
+      "_id": "6a2aa1cf1222567143ff39da",
+      "projeto": "Wagner - micro",
+      "cliente": "—",
+      "itens_causa_D": [
+        {
+          "marca": "630",
+          "modelo": "630",
+          "sub_causa": "A",
+          "recuperabilidade": "manual",
+          "motivo": "fabricante ausente; modelo no campo marca"
+        }
+      ]
+    },
+    {
+      "_id": "6a2aa1d01222567143ff39e5",
+      "projeto": "El shaday - casa",
+      "cliente": "—",
+      "itens_causa_D": [
+        {
+          "marca": "DHN-SU1K5T-G0",
+          "modelo": "DHN-SU1K5T-G0",
+          "sub_causa": "A",
+          "recuperabilidade": "regra_simples",
+          "motivo": "fabricante ausente; modelo no campo marca (infere \"Dah\")"
+        }
+      ]
+    },
+    {
+      "_id": "6a2aa1d11222567143ff39f6",
+      "projeto": "281 -  José Medeiros dos Santos - Ricardo",
+      "cliente": "—",
+      "itens_causa_D": [
+        {
+          "marca": "HELIUS HMB132T12R",
+          "modelo": "630",
+          "sub_causa": "C",
+          "recuperabilidade": "regra_simples",
+          "motivo": "fab+modelo concatenados na marca; potência=\"630\" (infere \"Helius\")"
+        }
+      ]
+    },
+    {
+      "_id": "6a2aa1d21222567143ff3a01",
+      "projeto": "HIbrido",
+      "cliente": "—",
+      "itens_causa_D": [
+        {
+          "marca": "NVFX-H-MO-220-10.5K",
+          "modelo": "NVFX-H-MO-220-10.5K",
+          "sub_causa": "A",
+          "recuperabilidade": "regra_simples",
+          "motivo": "fabricante ausente; modelo no campo marca (infere \"Nvolt\")"
+        }
+      ]
+    }
+  ],
+  "casos_obrigatorios": [
+    {
+      "nome_buscado": "Paulo Carlos",
+      "projeto": "207 - Paulo Carlos de Andrade Filho",
+      "cliente": "—",
+      "tem_arranjos": false,
+      "n_arranjos": 0,
+      "inversor": "TSUN TSOL-MS2000",
+      "paineis": [
+        "PULLING ENERGY PU-620-SNM102"
+      ],
+      "sinal_multiarranjo_texto": false,
+      "proposta_sm_equipamentos": [
+        {
+          "cat": "KIT",
+          "item": "26 Honor 590",
+          "qnt": 1
+        },
+        {
+          "cat": "Módulo",
+          "item": "PULLING ENERGY PU-620-SNM102",
+          "qnt": 8
+        },
+        {
+          "cat": "Inversor",
+          "item": "TSUN TSOL-MS2000",
+          "qnt": 2
+        }
+      ]
+    },
+    {
+      "nome_buscado": "Paulo Carlos",
+      "projeto": "207.2 - Paulo Carlos de Andrade Filho ( ampliação)",
+      "cliente": "—",
+      "tem_arranjos": false,
+      "n_arranjos": 0,
+      "inversor": "NEP BDM-2250",
+      "paineis": [
+        "HELIUS HMF132T12R-600HL"
+      ],
+      "sinal_multiarranjo_texto": false,
+      "proposta_sm_equipamentos": [
+        {
+          "cat": "KIT",
+          "item": "Helius 600",
+          "qnt": 1
+        },
+        {
+          "cat": "Módulo",
+          "item": "HELIUS HMF132T12R-600HL",
+          "qnt": 8
+        },
+        {
+          "cat": "Inversor",
+          "item": "NEP BDM-2250",
+          "qnt": 2
+        }
+      ]
+    },
+    {
+      "nome_buscado": "Fazenda Alice",
+      "projeto": "132.2 - Fazenda Sta Alice - 7015263045",
+      "cliente": "—",
+      "tem_arranjos": false,
+      "n_arranjos": 0,
+      "inversor": "KEHUA TECH TECH SPI60K-B",
+      "paineis": [
+        "DAH DHN66Z16/DG-610W"
+      ],
+      "sinal_multiarranjo_texto": true,
+      "proposta_sm_equipamentos": [
+        {
+          "cat": "KIT",
+          "item": "132 dah 610",
+          "qnt": 1
+        },
+        {
+          "cat": "Módulo",
+          "item": "DAH DHN66Z16/DG-610W",
+          "qnt": 132
+        },
+        {
+          "cat": "Inversor",
+          "item": "KEHUA TECH SPI60K-B",
+          "qnt": 1
+        }
+      ]
+    },
+    {
+      "nome_buscado": "Fazenda Alice",
+      "projeto": "132.1 - Fazenda Alice - 7015251560",
+      "cliente": "—",
+      "tem_arranjos": false,
+      "n_arranjos": 0,
+      "inversor": "DEYE SUN-3K-G",
+      "paineis": [
+        "LEAPTON SOLAR LP182*199-M-66-NH-585W"
+      ],
+      "sinal_multiarranjo_texto": false,
+      "proposta_sm_equipamentos": [
+        {
+          "cat": "KIT",
+          "item": "MFVLE-MO-132-585W",
+          "qnt": 1
+        },
+        {
+          "cat": "Módulo",
+          "item": "LEAPTON SOLAR LP182*199-M-66-NH-585W",
+          "qnt": 3
+        },
+        {
+          "cat": "Inversor",
+          "item": "DEYE SUN-3K-G",
+          "qnt": 1
+        }
+      ]
+    },
+    {
+      "nome_buscado": "Escola Pinheiro",
+      "projeto": "197 - Escola Pinheiros",
+      "cliente": "—",
+      "tem_arranjos": false,
+      "n_arranjos": 0,
+      "inversor": "SOLAREDGE SE 33.3K SE 33.3K 380/220v",
+      "paineis": [
+        "ZXMR-UPLDD144 ZXMR-UPLDD144"
+      ],
+      "sinal_multiarranjo_texto": true,
+      "proposta_sm_equipamentos": [
+        {
+          "cat": "KIT",
+          "item": "74 ZNSHINE 600 + Solaredge",
+          "qnt": 1
+        },
+        {
+          "cat": "Módulo",
+          "item": "ZXMR-UPLDD144",
+          "qnt": 74
+        },
+        {
+          "cat": "Inversor",
+          "item": "SOLAREDGE SE 33.3K 380/220v",
+          "qnt": 1
+        },
+        {
+          "cat": "Otimizador",
+          "item": "SOLAREDGE S1200",
+          "qnt": 37
+        }
+      ]
+    }
+  ]
+}

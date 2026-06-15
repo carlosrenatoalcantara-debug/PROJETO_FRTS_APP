@@ -1,0 +1,498 @@
+{
+  "sprint": "P1-SOLARMARKET-DATA-CLEANING-APPLY-01",
+  "aplicado": false,
+  "gerado_em": "2026-06-15T13:44:31.117Z",
+  "projetos_alterados": 25,
+  "itens_corrigidos": 26,
+  "itens_manuais_pulados": 8,
+  "diff": [
+    {
+      "_id": "6a2aa1b61222567143ff384f",
+      "projeto": "102 - Leidiane Ferreia da Silva",
+      "mudancas": [
+        {
+          "campo": "paineis[0]",
+          "tipo": "modulo",
+          "antes": {
+            "marca": "LF465M8-72H",
+            "modelo": "LF465M8-72H"
+          },
+          "depois": {
+            "marca": "Leapton",
+            "modelo": "LF465M8-72H"
+          },
+          "regra": "R1"
+        },
+        {
+          "campo": "inversor",
+          "tipo": "inversor",
+          "antes": {
+            "marca": "SI03000",
+            "modelo": "SI03000"
+          },
+          "depois": {
+            "marca": "Solis",
+            "modelo": "SI03000"
+          },
+          "regra": "R1"
+        }
+      ]
+    },
+    {
+      "_id": "6a2aa1c21222567143ff3901",
+      "projeto": "Tarso Santos",
+      "mudancas": [
+        {
+          "campo": "paineis[0]",
+          "tipo": "modulo",
+          "antes": {
+            "marca": "TAOISTIC SOLAR TS-M10/144H",
+            "modelo": "545"
+          },
+          "depois": {
+            "marca": "Taoistic Solar",
+            "modelo": "TS-M10/144H"
+          },
+          "regra": "R2"
+        }
+      ]
+    },
+    {
+      "_id": "6a2aa1af1222567143ff37e7",
+      "projeto": "038 - Big Blue (Residência)",
+      "mudancas": [
+        {
+          "campo": "paineis[0]",
+          "tipo": "modulo",
+          "antes": {
+            "marca": "TRINA SOLAR TALLMAX TSM-DE18",
+            "modelo": "550"
+          },
+          "depois": {
+            "marca": "Trina Solar",
+            "modelo": "TALLMAX TSM-DE18"
+          },
+          "regra": "R2"
+        }
+      ]
+    },
+    {
+      "_id": "6a2aa1b91222567143ff387d",
+      "projeto": "113 - Aline Beatriz de Medeiros Costa Helinsk",
+      "mudancas": [
+        {
+          "campo": "paineis[0]",
+          "tipo": "modulo",
+          "antes": {
+            "marca": "HELIUS HMB132T12R",
+            "modelo": "630"
+          },
+          "depois": {
+            "marca": "Helius",
+            "modelo": "HMB132T12R"
+          },
+          "regra": "R2"
+        }
+      ]
+    },
+    {
+      "_id": "6a2aa1bb1222567143ff38a3",
+      "projeto": "139 - Condomínio Residencial Solar Atlântico",
+      "mudancas": [
+        {
+          "campo": "paineis[0]",
+          "tipo": "modulo",
+          "antes": {
+            "marca": "TRINA SOLAR TALLMAX TSM-DE18",
+            "modelo": "550"
+          },
+          "depois": {
+            "marca": "Trina Solar",
+            "modelo": "TALLMAX TSM-DE18"
+          },
+          "regra": "R2"
+        }
+      ]
+    },
+    {
+      "_id": "6a2aa1bc1222567143ff38b5",
+      "projeto": "141 - Carlos Renato Aquino de Alcantara",
+      "mudancas": [
+        {
+          "campo": "paineis[0]",
+          "tipo": "modulo",
+          "antes": {
+            "marca": "HCP78x9-400w",
+            "modelo": "HCP78x9-400w"
+          },
+          "depois": {
+            "marca": "Honor",
+            "modelo": "HCP78x9-400w"
+          },
+          "regra": "R1"
+        }
+      ]
+    },
+    {
+      "_id": "6a2aa1c11222567143ff38f1",
+      "projeto": "155 - Elizete - Patrícia e Debora",
+      "mudancas": [
+        {
+          "campo": "paineis[0]",
+          "tipo": "modulo",
+          "antes": {
+            "marca": "ZXM7-SHLD144-550/M",
+            "modelo": "ZXM7-SHLD144-550/M"
+          },
+          "depois": {
+            "marca": "Znshine",
+            "modelo": "ZXM7-SHLD144-550/M"
+          },
+          "regra": "R1"
+        }
+      ]
+    },
+    {
+      "_id": "6a2aa1c11222567143ff38ff",
+      "projeto": "Jose Eriberto da Silva",
+      "mudancas": [
+        {
+          "campo": "paineis[0]",
+          "tipo": "modulo",
+          "antes": {
+            "marca": "MFVHN-MI-MO-144-550W",
+            "modelo": "MFVHN-MI-MO-144-550W"
+          },
+          "depois": {
+            "marca": "Belenergy",
+            "modelo": "MFVHN-MI-MO-144-550W"
+          },
+          "regra": "R1"
+        }
+      ]
+    },
+    {
+      "_id": "6a2aa1c51222567143ff3933",
+      "projeto": "192 - EMERSON CARLOS DA SILVA",
+      "mudancas": [
+        {
+          "campo": "inversor",
+          "tipo": "inversor",
+          "antes": {
+            "marca": "SUN-M225G4-EU-Q0",
+            "modelo": "SUN-M225G4-EU-Q0"
+          },
+          "depois": {
+            "marca": "Deye",
+            "modelo": "SUN-M225G4-EU-Q0"
+          },
+          "regra": "R1"
+        }
+      ]
+    },
+    {
+      "_id": "6a2aa1c51222567143ff3939",
+      "projeto": "187. Nizyara Costa da Silva -RB Gráfica projeto 02",
+      "mudancas": [
+        {
+          "campo": "paineis[0]",
+          "tipo": "modulo",
+          "antes": {
+            "marca": "TRINA SOLAR TALLMAX TSM-DE18",
+            "modelo": "550"
+          },
+          "depois": {
+            "marca": "Trina Solar",
+            "modelo": "TALLMAX TSM-DE18"
+          },
+          "regra": "R2"
+        }
+      ]
+    },
+    {
+      "_id": "6a2aa1c61222567143ff3942",
+      "projeto": "Therra Mater 1",
+      "mudancas": [
+        {
+          "campo": "paineis[0]",
+          "tipo": "modulo",
+          "antes": {
+            "marca": "TRINA SOLAR TALLMAX TSM-DE18",
+            "modelo": "550"
+          },
+          "depois": {
+            "marca": "Trina Solar",
+            "modelo": "TALLMAX TSM-DE18"
+          },
+          "regra": "R2"
+        }
+      ]
+    },
+    {
+      "_id": "6a2aa1c61222567143ff3945",
+      "projeto": "140,2 Projeto Grafica 02",
+      "mudancas": [
+        {
+          "campo": "paineis[0]",
+          "tipo": "modulo",
+          "antes": {
+            "marca": "TRINA SOLAR TALLMAX TSM-DE18",
+            "modelo": "550"
+          },
+          "depois": {
+            "marca": "Trina Solar",
+            "modelo": "TALLMAX TSM-DE18"
+          },
+          "regra": "R2"
+        }
+      ]
+    },
+    {
+      "_id": "6a2aa1c71222567143ff394f",
+      "projeto": "Escola Mater Dei",
+      "mudancas": [
+        {
+          "campo": "paineis[0]",
+          "tipo": "modulo",
+          "antes": {
+            "marca": "TRINA SOLAR TALLMAX TSM-DE18",
+            "modelo": "550"
+          },
+          "depois": {
+            "marca": "Trina Solar",
+            "modelo": "TALLMAX TSM-DE18"
+          },
+          "regra": "R2"
+        }
+      ]
+    },
+    {
+      "_id": "6a2aa1c81222567143ff3961",
+      "projeto": "198 - Tapera bar espetaria",
+      "mudancas": [
+        {
+          "campo": "paineis[0]",
+          "tipo": "modulo",
+          "antes": {
+            "marca": "ZXMR-UPLDD144-600W",
+            "modelo": "ZXMR-UPLDD144-600W"
+          },
+          "depois": {
+            "marca": "Znshine",
+            "modelo": "ZXMR-UPLDD144-600W"
+          },
+          "regra": "R1"
+        }
+      ]
+    },
+    {
+      "_id": "6a2aa1c91222567143ff396e",
+      "projeto": "197 - Escola Pinheiros",
+      "mudancas": [
+        {
+          "campo": "paineis[0]",
+          "tipo": "modulo",
+          "antes": {
+            "marca": "ZXMR-UPLDD144",
+            "modelo": "ZXMR-UPLDD144"
+          },
+          "depois": {
+            "marca": "Znshine",
+            "modelo": "ZXMR-UPLDD144"
+          },
+          "regra": "R1"
+        }
+      ]
+    },
+    {
+      "_id": "6a2aa1c91222567143ff3973",
+      "projeto": "208 - Cond Sun Set - Torre A",
+      "mudancas": [
+        {
+          "campo": "paineis[0]",
+          "tipo": "modulo",
+          "antes": {
+            "marca": "JAM72D42-630/LB",
+            "modelo": "JAM72D42-630/LB"
+          },
+          "depois": {
+            "marca": "Ja Solar",
+            "modelo": "JAM72D42-630/LB"
+          },
+          "regra": "R1"
+        }
+      ]
+    },
+    {
+      "_id": "6a2aa1c91222567143ff3977",
+      "projeto": "223 - Somagraf Comércio Ltda",
+      "mudancas": [
+        {
+          "campo": "paineis[0]",
+          "tipo": "modulo",
+          "antes": {
+            "marca": "ZXMR-UPLDD144-600W",
+            "modelo": "ZXMR-UPLDD144-600W"
+          },
+          "depois": {
+            "marca": "Znshine",
+            "modelo": "ZXMR-UPLDD144-600W"
+          },
+          "regra": "R1"
+        }
+      ]
+    },
+    {
+      "_id": "6a2aa1ca1222567143ff3986",
+      "projeto": "221 - Augusto  Wagner Marinho Benfica- Bianca",
+      "mudancas": [
+        {
+          "campo": "paineis[0]",
+          "tipo": "modulo",
+          "antes": {
+            "marca": "ZXMR-UPLDD144",
+            "modelo": "ZXMR-UPLDD144"
+          },
+          "depois": {
+            "marca": "Znshine",
+            "modelo": "ZXMR-UPLDD144"
+          },
+          "regra": "R1"
+        }
+      ]
+    },
+    {
+      "_id": "6a2aa1cb1222567143ff3999",
+      "projeto": "231 - Maria de Fatima Bezerra D. Menezes",
+      "mudancas": [
+        {
+          "campo": "paineis[0]",
+          "tipo": "modulo",
+          "antes": {
+            "marca": "ZXMR-UPLDD144-600W",
+            "modelo": "ZXMR-UPLDD144-600W"
+          },
+          "depois": {
+            "marca": "Znshine",
+            "modelo": "ZXMR-UPLDD144-600W"
+          },
+          "regra": "R1"
+        }
+      ]
+    },
+    {
+      "_id": "6a2aa1cc1222567143ff399f",
+      "projeto": "224 -  Ewerton Thiago de Lima Silva Casa ex esposa",
+      "mudancas": [
+        {
+          "campo": "paineis[0]",
+          "tipo": "modulo",
+          "antes": {
+            "marca": "ZXM7-UPLDD144-595",
+            "modelo": "ZXM7-UPLDD144-595"
+          },
+          "depois": {
+            "marca": "Znshine",
+            "modelo": "ZXM7-UPLDD144-595"
+          },
+          "regra": "R1"
+        }
+      ]
+    },
+    {
+      "_id": "6a2aa1cd1222567143ff39b3",
+      "projeto": "259 - Luiz de França Afonso Ferreira - Marcilio",
+      "mudancas": [
+        {
+          "campo": "inversor",
+          "tipo": "inversor",
+          "antes": {
+            "marca": "DHN-SU1K5T-G0",
+            "modelo": "DHN-SU1K5T-G0"
+          },
+          "depois": {
+            "marca": "Dah",
+            "modelo": "DHN-SU1K5T-G0"
+          },
+          "regra": "R1"
+        }
+      ]
+    },
+    {
+      "_id": "6a2aa1cd1222567143ff39b7",
+      "projeto": "242 -  Emanuel Pereira Sobrinho Ampliação 03/2025",
+      "mudancas": [
+        {
+          "campo": "paineis[0]",
+          "tipo": "modulo",
+          "antes": {
+            "marca": "ZXMR-UPLDD144-600/N",
+            "modelo": "ZXMR-UPLDD144-600/N"
+          },
+          "depois": {
+            "marca": "Znshine",
+            "modelo": "ZXMR-UPLDD144-600/N"
+          },
+          "regra": "R1"
+        }
+      ]
+    },
+    {
+      "_id": "6a2aa1d01222567143ff39e5",
+      "projeto": "El shaday - casa",
+      "mudancas": [
+        {
+          "campo": "inversor",
+          "tipo": "inversor",
+          "antes": {
+            "marca": "DHN-SU1K5T-G0",
+            "modelo": "DHN-SU1K5T-G0"
+          },
+          "depois": {
+            "marca": "Dah",
+            "modelo": "DHN-SU1K5T-G0"
+          },
+          "regra": "R1"
+        }
+      ]
+    },
+    {
+      "_id": "6a2aa1d11222567143ff39f6",
+      "projeto": "281 -  José Medeiros dos Santos - Ricardo",
+      "mudancas": [
+        {
+          "campo": "paineis[0]",
+          "tipo": "modulo",
+          "antes": {
+            "marca": "HELIUS HMB132T12R",
+            "modelo": "630"
+          },
+          "depois": {
+            "marca": "Helius",
+            "modelo": "HMB132T12R"
+          },
+          "regra": "R2"
+        }
+      ]
+    },
+    {
+      "_id": "6a2aa1d21222567143ff3a01",
+      "projeto": "HIbrido",
+      "mudancas": [
+        {
+          "campo": "inversor",
+          "tipo": "inversor",
+          "antes": {
+            "marca": "NVFX-H-MO-220-10.5K",
+            "modelo": "NVFX-H-MO-220-10.5K"
+          },
+          "depois": {
+            "marca": "Nvolt",
+            "modelo": "NVFX-H-MO-220-10.5K"
+          },
+          "regra": "R1"
+        }
+      ]
+    }
+  ]
+}
