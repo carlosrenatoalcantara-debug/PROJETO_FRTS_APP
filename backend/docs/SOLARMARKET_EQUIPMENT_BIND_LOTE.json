@@ -1,48 +1,32 @@
 {
-  "lote": "BIND-202606151345",
+  "lote": "BIND-202606151351",
   "dry_run": false,
-  "gerado_em": "2026-06-15T13:45:17.910Z",
+  "gerado_em": "2026-06-15T13:51:32.154Z",
   "rel": {
     "projetos_processados": 514,
     "paineis": {
       "exato": 0,
-      "normalizado": 0,
-      "flexivel": 0,
-      "fuzzy": 8,
-      "sem_match": 49,
+      "normalizado": 23,
+      "flexivel": 2,
+      "fuzzy": 2,
+      "sem_match": 30,
       "ja_vinculado": 467,
       "erros": 0
     },
     "inversores": {
       "exato": 0,
-      "normalizado": 1,
+      "normalizado": 2,
       "flexivel": 0,
       "fuzzy": 3,
-      "sem_match": 20,
-      "ja_vinculado": 490,
+      "sem_match": 18,
+      "ja_vinculado": 491,
       "erros": 0
     },
-    "binds_gravados": 1,
-    "projetos_totalmente_vinculados": 440,
+    "binds_gravados": 27,
+    "projetos_totalmente_vinculados": 467,
     "sem_match_detail": []
   },
   "sem_match_top50": [
-    {
-      "marca": "TSUN",
-      "modelo": "TS-S8B-144-560W",
-      "tipo": "modulo",
-      "projetos": 9,
-      "classe": "sem_match",
-      "confianca": 0
-    },
-    {
-      "marca": "Trina Solar",
-      "modelo": "TALLMAX TSM-DE18",
-      "tipo": "modulo",
-      "projetos": 6,
-      "classe": "sem_match",
-      "confianca": 0
-    },
     {
       "marca": "DEYE",
       "modelo": "SUN-3K-G",
@@ -50,14 +34,6 @@
       "projetos": 3,
       "classe": "fuzzy",
       "confianca": 0.89
-    },
-    {
-      "marca": "Znshine",
-      "modelo": "ZXMR-UPLDD144-600W",
-      "tipo": "modulo",
-      "projetos": 3,
-      "classe": "fuzzy",
-      "confianca": 0.92
     },
     {
       "marca": "EMPALUX MF",
@@ -76,28 +52,12 @@
       "confianca": 0
     },
     {
-      "marca": "Helius",
-      "modelo": "HMB132T12R",
-      "tipo": "modulo",
-      "projetos": 2,
-      "classe": "sem_match",
-      "confianca": 0
-    },
-    {
       "marca": "DAH",
       "modelo": "Solar Unit",
       "tipo": "inversor",
       "projetos": 2,
       "classe": "sem_match",
       "confianca": 0
-    },
-    {
-      "marca": "Znshine",
-      "modelo": "ZXMR-UPLDD144",
-      "tipo": "modulo",
-      "projetos": 2,
-      "classe": "fuzzy",
-      "confianca": 0.89
     },
     {
       "marca": "Solar",
@@ -110,14 +70,6 @@
     {
       "marca": "Dah",
       "modelo": "SOlar unit",
-      "tipo": "inversor",
-      "projetos": 2,
-      "classe": "sem_match",
-      "confianca": 0
-    },
-    {
-      "marca": "Dah",
-      "modelo": "DHN-SU1K5T-G0",
       "tipo": "inversor",
       "projetos": 2,
       "classe": "sem_match",
@@ -244,14 +196,6 @@
       "confianca": 0
     },
     {
-      "marca": "Znshine",
-      "modelo": "ZXM7-SHLD144-550/M",
-      "tipo": "modulo",
-      "projetos": 1,
-      "classe": "sem_match",
-      "confianca": 0
-    },
-    {
       "marca": "Belenergy",
       "modelo": "MFVHN-MI-MO-144-550W",
       "tipo": "modulo",
@@ -364,14 +308,6 @@
       "confianca": 0
     },
     {
-      "marca": "Znshine",
-      "modelo": "ZXM7-UPLDD144-595",
-      "tipo": "modulo",
-      "projetos": 1,
-      "classe": "sem_match",
-      "confianca": 0
-    },
-    {
       "marca": "ZXMR-UOLDD144 -",
       "modelo": "570w",
       "tipo": "modulo",
@@ -386,14 +322,6 @@
       "projetos": 1,
       "classe": "sem_match",
       "confianca": 0
-    },
-    {
-      "marca": "Znshine",
-      "modelo": "ZXMR-UPLDD144-600/N",
-      "tipo": "modulo",
-      "projetos": 1,
-      "classe": "fuzzy",
-      "confianca": 0.89
     },
     {
       "marca": "DAH",
@@ -422,6 +350,46 @@
     {
       "marca": "CANADIAN SOLAR CANADIAN SOLAR CSI",
       "modelo": "5K-MTL",
+      "tipo": "inversor",
+      "projetos": 1,
+      "classe": "sem_match",
+      "confianca": 0
+    },
+    {
+      "marca": "SOLAREDGE SE 20.1K",
+      "modelo": "SE 20.1K 380/220v",
+      "tipo": "inversor",
+      "projetos": 1,
+      "classe": "sem_match",
+      "confianca": 0
+    },
+    {
+      "marca": "630",
+      "modelo": "630",
+      "tipo": "modulo",
+      "projetos": 1,
+      "classe": "sem_match",
+      "confianca": 0
+    },
+    {
+      "marca": "RENEPV",
+      "modelo": "ZY-700-G12HNHB-132",
+      "tipo": "modulo",
+      "projetos": 1,
+      "classe": "sem_match",
+      "confianca": 0
+    },
+    {
+      "marca": "RENEPV",
+      "modelo": "ZY-615-G12RNHB-132",
+      "tipo": "modulo",
+      "projetos": 1,
+      "classe": "sem_match",
+      "confianca": 0
+    },
+    {
+      "marca": "Nvolt",
+      "modelo": "NVFX-H-MO-220-10.5K",
       "tipo": "inversor",
       "projetos": 1,
       "classe": "sem_match",

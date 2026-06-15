@@ -1,20 +1,20 @@
 {
   "sprint": "P0-CATALOG-REMAINING-GAPS-01",
-  "gerado_em": "2026-06-15T13:45:20.144Z",
+  "gerado_em": "2026-06-15T13:51:34.528Z",
   "read_only": true,
   "resumo": {
     "projetos_total": 514,
-    "projetos_completos": 440,
-    "projetos_incompletos": 74,
-    "itens_unicos_sem_bind": 55,
+    "projetos_completos": 467,
+    "projetos_incompletos": 47,
+    "itens_unicos_sem_bind": 46,
     "causas": {
       "A_ausente_total": {
         "ocorrencias": 17,
         "projetos": 14
       },
       "B_modelo_ausente": {
-        "ocorrencias": 45,
-        "projetos": 44
+        "ocorrencias": 18,
+        "projetos": 17
       },
       "C_alias_faltando": {
         "ocorrencias": 10,
@@ -33,32 +33,12 @@
         "projetos": 0
       }
     },
-    "projetos_resolviveis_por_importacao": 62,
+    "projetos_resolviveis_por_importacao": 35,
     "projetos_com_dado_corrompido_irrecuperavel": 8
   },
   "ranking_fabricantes_bloqueantes": [
     {
-      "fabricante": "TSUN",
-      "projetos_bloqueados": 9,
-      "causa_principal": "B"
-    },
-    {
-      "fabricante": "Znshine",
-      "projetos_bloqueados": 8,
-      "causa_principal": "B"
-    },
-    {
-      "fabricante": "Trina Solar",
-      "projetos_bloqueados": 6,
-      "causa_principal": "B"
-    },
-    {
       "fabricante": "DAH",
-      "projetos_bloqueados": 4,
-      "causa_principal": "B"
-    },
-    {
-      "fabricante": "Dah",
       "projetos_bloqueados": 4,
       "causa_principal": "B"
     },
@@ -73,14 +53,14 @@
       "causa_principal": "A"
     },
     {
-      "fabricante": "Helius",
-      "projetos_bloqueados": 2,
-      "causa_principal": "B"
-    },
-    {
       "fabricante": "Solar",
       "projetos_bloqueados": 2,
       "causa_principal": "C"
+    },
+    {
+      "fabricante": "Dah",
+      "projetos_bloqueados": 2,
+      "causa_principal": "B"
     },
     {
       "fabricante": "AE SOLAR",
@@ -260,51 +240,6 @@
   ],
   "roi_ranking": [
     {
-      "fabricante": "TSUN",
-      "projetos_liberados": 9,
-      "modelos_ausentes": [
-        "TS-S8B-144-560W"
-      ],
-      "n_modelos": 1,
-      "causa": "B",
-      "acao": "Importar modelos específicos"
-    },
-    {
-      "fabricante": "Znshine",
-      "projetos_liberados": 8,
-      "modelos_ausentes": [
-        "ZXMR-UPLDD144-600W",
-        "ZXMR-UPLDD144",
-        "ZXM7-SHLD144-550/M",
-        "ZXM7-UPLDD144-595",
-        "ZXMR-UPLDD144-600/N"
-      ],
-      "n_modelos": 5,
-      "causa": "B",
-      "acao": "Importar modelos específicos"
-    },
-    {
-      "fabricante": "Trina Solar",
-      "projetos_liberados": 6,
-      "modelos_ausentes": [
-        "TALLMAX TSM-DE18"
-      ],
-      "n_modelos": 1,
-      "causa": "B",
-      "acao": "Importar modelos específicos"
-    },
-    {
-      "fabricante": "Dah",
-      "projetos_liberados": 4,
-      "modelos_ausentes": [
-        "SOlar unit",
-        "DHN-SU1K5T-G0"
-      ],
-      "n_modelos": 2,
-      "causa": "B",
-      "acao": "Importar modelos específicos"
-    },
-    {
       "fabricante": "DEYE",
       "projetos_liberados": 3,
       "modelos_ausentes": [
@@ -337,10 +272,10 @@
       "acao": "Importar modelos específicos"
     },
     {
-      "fabricante": "Helius",
+      "fabricante": "Dah",
       "projetos_liberados": 2,
       "modelos_ausentes": [
-        "HMB132T12R"
+        "SOlar unit"
       ],
       "n_modelos": 1,
       "causa": "B",
@@ -562,47 +497,6 @@
   ],
   "itens_sem_bind": [
     {
-      "marca": "TSUN",
-      "modelo": "TS-S8B-144-560W",
-      "tipo": "modulo",
-      "causa": "B",
-      "detalhe": "fabricante \"Tsun\" no Atlas (5 modelos), mas este modelo \"TS-S8B-144-560W\" ausente",
-      "projetos_bloqueados": 9,
-      "atlas_fab_similar": "Tsun",
-      "atlas_modelos_count": 5,
-      "tem_datasheet_cache": false,
-      "projetos": [
-        "202 - André Lamartine",
-        "130 - Wagner Godzicki",
-        "147 - Heredina Veras Marty",
-        "152 - Ana Lucia - Stepherson Medeiros",
-        "igreja Petencostal",
-        "166 - Maria Dinailce Saraiva",
-        "171 - Empório Erva Doce -  Isael Teixeira Filho",
-        "Reginaldo",
-        "154.6 - Pousada Nair Complemento"
-      ]
-    },
-    {
-      "marca": "Trina Solar",
-      "modelo": "TALLMAX TSM-DE18",
-      "tipo": "modulo",
-      "causa": "B",
-      "detalhe": "fabricante \"Trina Solar\" no Atlas (6 modelos), mas este modelo \"TALLMAX TSM-DE18\" ausente",
-      "projetos_bloqueados": 6,
-      "atlas_fab_similar": "Trina Solar",
-      "atlas_modelos_count": 6,
-      "tem_datasheet_cache": false,
-      "projetos": [
-        "038 - Big Blue (Residência)",
-        "139 - Condomínio Residencial Solar Atlântico",
-        "187. Nizyara Costa da Silva -RB Gráfica projeto 02",
-        "Therra Mater 1",
-        "140,2 Projeto Grafica 02",
-        "Escola Mater Dei"
-      ]
-    },
-    {
       "marca": "DEYE",
       "modelo": "SUN-3K-G",
       "tipo": "inversor",
@@ -616,22 +510,6 @@
         "132.1 - Fazenda Alice - 7015251560",
         "Ana Katarina",
         "Edilson Nascimento"
-      ]
-    },
-    {
-      "marca": "Znshine",
-      "modelo": "ZXMR-UPLDD144-600W",
-      "tipo": "modulo",
-      "causa": "B",
-      "detalhe": "fabricante \"Znshine\" no Atlas (16 modelos), mas este modelo \"ZXMR-UPLDD144-600W\" ausente",
-      "projetos_bloqueados": 3,
-      "atlas_fab_similar": "Znshine",
-      "atlas_modelos_count": 16,
-      "tem_datasheet_cache": false,
-      "projetos": [
-        "198 - Tapera bar espetaria",
-        "223 - Somagraf Comércio Ltda",
-        "231 - Maria de Fatima Bezerra D. Menezes"
       ]
     },
     {
@@ -664,48 +542,18 @@
       ]
     },
     {
-      "marca": "Helius",
-      "modelo": "HMB132T12R",
-      "tipo": "modulo",
-      "causa": "B",
-      "detalhe": "fabricante \"Helius\" no Atlas (6 modelos), mas este modelo \"HMB132T12R\" ausente",
-      "projetos_bloqueados": 2,
-      "atlas_fab_similar": "Helius",
-      "atlas_modelos_count": 6,
-      "tem_datasheet_cache": false,
-      "projetos": [
-        "113 - Aline Beatriz de Medeiros Costa Helinsk",
-        "281 -  José Medeiros dos Santos - Ricardo"
-      ]
-    },
-    {
       "marca": "DAH",
       "modelo": "Solar Unit",
       "tipo": "inversor",
       "causa": "B",
-      "detalhe": "fabricante \"Dah\" no Atlas (13 modelos), mas este modelo \"Solar Unit\" ausente",
+      "detalhe": "fabricante \"Dah\" no Atlas (14 modelos), mas este modelo \"Solar Unit\" ausente",
       "projetos_bloqueados": 2,
       "atlas_fab_similar": "Dah",
-      "atlas_modelos_count": 13,
+      "atlas_modelos_count": 14,
       "tem_datasheet_cache": false,
       "projetos": [
         "131.4 Monique Pia cs5",
         "ROBSON FERREIRA MAGALHAES"
-      ]
-    },
-    {
-      "marca": "Znshine",
-      "modelo": "ZXMR-UPLDD144",
-      "tipo": "modulo",
-      "causa": "B",
-      "detalhe": "fabricante \"Znshine\" no Atlas (16 modelos), mas este modelo \"ZXMR-UPLDD144\" ausente",
-      "projetos_bloqueados": 2,
-      "atlas_fab_similar": "Znshine",
-      "atlas_modelos_count": 16,
-      "tem_datasheet_cache": false,
-      "projetos": [
-        "197 - Escola Pinheiros",
-        "221 - Augusto  Wagner Marinho Benfica- Bianca"
       ]
     },
     {
@@ -728,29 +576,14 @@
       "modelo": "SOlar unit",
       "tipo": "inversor",
       "causa": "B",
-      "detalhe": "fabricante \"Dah\" no Atlas (13 modelos), mas este modelo \"SOlar unit\" ausente",
+      "detalhe": "fabricante \"Dah\" no Atlas (14 modelos), mas este modelo \"SOlar unit\" ausente",
       "projetos_bloqueados": 2,
       "atlas_fab_similar": "Dah",
-      "atlas_modelos_count": 13,
+      "atlas_modelos_count": 14,
       "tem_datasheet_cache": false,
       "projetos": [
         "Robson",
         "237- Eduardo de Andrade Melo (Alberto Leopoldo)"
-      ]
-    },
-    {
-      "marca": "Dah",
-      "modelo": "DHN-SU1K5T-G0",
-      "tipo": "inversor",
-      "causa": "B",
-      "detalhe": "fabricante \"Dah\" no Atlas (13 modelos), mas este modelo \"DHN-SU1K5T-G0\" ausente",
-      "projetos_bloqueados": 2,
-      "atlas_fab_similar": "Dah",
-      "atlas_modelos_count": 13,
-      "tem_datasheet_cache": false,
-      "projetos": [
-        "259 - Luiz de França Afonso Ferreira - Marcilio",
-        "El shaday - casa"
       ]
     },
     {
@@ -964,20 +797,6 @@
       ]
     },
     {
-      "marca": "Znshine",
-      "modelo": "ZXM7-SHLD144-550/M",
-      "tipo": "modulo",
-      "causa": "B",
-      "detalhe": "fabricante \"Znshine\" no Atlas (16 modelos), mas este modelo \"ZXM7-SHLD144-550/M\" ausente",
-      "projetos_bloqueados": 1,
-      "atlas_fab_similar": "Znshine",
-      "atlas_modelos_count": 16,
-      "tem_datasheet_cache": false,
-      "projetos": [
-        "155 - Elizete - Patrícia e Debora"
-      ]
-    },
-    {
       "marca": "Belenergy",
       "modelo": "MFVHN-MI-MO-144-550W",
       "tipo": "modulo",
@@ -1094,10 +913,10 @@
       "modelo": "650w",
       "tipo": "modulo",
       "causa": "B",
-      "detalhe": "fabricante \"Znshine\" no Atlas (16 modelos), mas este modelo \"650w\" ausente",
+      "detalhe": "fabricante \"Znshine\" no Atlas (21 modelos), mas este modelo \"650w\" ausente",
       "projetos_bloqueados": 1,
       "atlas_fab_similar": "Znshine",
-      "atlas_modelos_count": 16,
+      "atlas_modelos_count": 21,
       "tem_datasheet_cache": false,
       "projetos": [
         "196 - Pinheiros Educação LTDA"
@@ -1174,20 +993,6 @@
       ]
     },
     {
-      "marca": "Znshine",
-      "modelo": "ZXM7-UPLDD144-595",
-      "tipo": "modulo",
-      "causa": "B",
-      "detalhe": "fabricante \"Znshine\" no Atlas (16 modelos), mas este modelo \"ZXM7-UPLDD144-595\" ausente",
-      "projetos_bloqueados": 1,
-      "atlas_fab_similar": "Znshine",
-      "atlas_modelos_count": 16,
-      "tem_datasheet_cache": false,
-      "projetos": [
-        "224 -  Ewerton Thiago de Lima Silva Casa ex esposa"
-      ]
-    },
-    {
       "marca": "ZXMR-UOLDD144 -",
       "modelo": "570w",
       "tipo": "modulo",
@@ -1216,28 +1021,14 @@
       ]
     },
     {
-      "marca": "Znshine",
-      "modelo": "ZXMR-UPLDD144-600/N",
-      "tipo": "modulo",
-      "causa": "B",
-      "detalhe": "fabricante \"Znshine\" no Atlas (16 modelos), mas este modelo \"ZXMR-UPLDD144-600/N\" ausente",
-      "projetos_bloqueados": 1,
-      "atlas_fab_similar": "Znshine",
-      "atlas_modelos_count": 16,
-      "tem_datasheet_cache": false,
-      "projetos": [
-        "242 -  Emanuel Pereira Sobrinho Ampliação 03/2025"
-      ]
-    },
-    {
       "marca": "DAH",
       "modelo": "Solar UNIT",
       "tipo": "inversor",
       "causa": "B",
-      "detalhe": "fabricante \"Dah\" no Atlas (13 modelos), mas este modelo \"Solar UNIT\" ausente",
+      "detalhe": "fabricante \"Dah\" no Atlas (14 modelos), mas este modelo \"Solar UNIT\" ausente",
       "projetos_bloqueados": 1,
       "atlas_fab_similar": "Dah",
-      "atlas_modelos_count": 13,
+      "atlas_modelos_count": 14,
       "tem_datasheet_cache": false,
       "projetos": [
         "TVi"
@@ -1505,21 +1296,6 @@
       "total_sem_bind": 1
     },
     {
-      "_id": "6a2aa1af1222567143ff37e7",
-      "projeto": "038 - Big Blue (Residência)",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "Trina Solar",
-          "modelo": "TALLMAX TSM-DE18",
-          "categoria": "modulo",
-          "causa": "B",
-          "detalhe": "fabricante \"Trina Solar\" no Atlas (6 modelos), mas este modelo \"TALLMAX TSM-DE18\" ausente"
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
       "_id": "6a2aa1b11222567143ff3804",
       "projeto": "Tarcisio",
       "cliente": "—",
@@ -1550,21 +1326,6 @@
       "total_sem_bind": 1
     },
     {
-      "_id": "6a2aa1b31222567143ff3823",
-      "projeto": "202 - André Lamartine",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "TSUN",
-          "modelo": "TS-S8B-144-560W",
-          "categoria": "modulo",
-          "causa": "B",
-          "detalhe": "fabricante \"Tsun\" no Atlas (5 modelos), mas este modelo \"TS-S8B-144-560W\" ausente"
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
       "_id": "6a2aa1b51222567143ff3844",
       "projeto": "Michel Platini",
       "cliente": "—",
@@ -1575,51 +1336,6 @@
           "categoria": "modulo",
           "causa": "A",
           "detalhe": "fabricante \"EMPALUX MF\" não encontrado no Atlas"
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
-      "_id": "6a2aa1b91222567143ff387d",
-      "projeto": "113 - Aline Beatriz de Medeiros Costa Helinsk",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "Helius",
-          "modelo": "HMB132T12R",
-          "categoria": "modulo",
-          "causa": "B",
-          "detalhe": "fabricante \"Helius\" no Atlas (6 modelos), mas este modelo \"HMB132T12R\" ausente"
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
-      "_id": "6a2aa1bb1222567143ff38a1",
-      "projeto": "130 - Wagner Godzicki",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "TSUN",
-          "modelo": "TS-S8B-144-560W",
-          "categoria": "modulo",
-          "causa": "B",
-          "detalhe": "fabricante \"Tsun\" no Atlas (5 modelos), mas este modelo \"TS-S8B-144-560W\" ausente"
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
-      "_id": "6a2aa1bb1222567143ff38a3",
-      "projeto": "139 - Condomínio Residencial Solar Atlântico",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "Trina Solar",
-          "modelo": "TALLMAX TSM-DE18",
-          "categoria": "modulo",
-          "causa": "B",
-          "detalhe": "fabricante \"Trina Solar\" no Atlas (6 modelos), mas este modelo \"TALLMAX TSM-DE18\" ausente"
         }
       ],
       "total_sem_bind": 1
@@ -1700,21 +1416,6 @@
       "total_sem_bind": 1
     },
     {
-      "_id": "6a2aa1be1222567143ff38cb",
-      "projeto": "147 - Heredina Veras Marty",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "TSUN",
-          "modelo": "TS-S8B-144-560W",
-          "categoria": "modulo",
-          "causa": "B",
-          "detalhe": "fabricante \"Tsun\" no Atlas (5 modelos), mas este modelo \"TS-S8B-144-560W\" ausente"
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
       "_id": "6a2aa1bf1222567143ff38d8",
       "projeto": "159 - Tiago Paulo da Silva Pimentel Gomes",
       "cliente": "—",
@@ -1760,21 +1461,6 @@
       "total_sem_bind": 1
     },
     {
-      "_id": "6a2aa1c01222567143ff38e9",
-      "projeto": "152 - Ana Lucia - Stepherson Medeiros",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "TSUN",
-          "modelo": "TS-S8B-144-560W",
-          "categoria": "modulo",
-          "causa": "B",
-          "detalhe": "fabricante \"Tsun\" no Atlas (5 modelos), mas este modelo \"TS-S8B-144-560W\" ausente"
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
       "_id": "6a2aa1c01222567143ff38ed",
       "projeto": "169 - Cond. Res. B. D. Arvores",
       "cliente": "—",
@@ -1785,36 +1471,6 @@
           "categoria": "modulo",
           "causa": "D",
           "detalhe": "marca e modelo idênticos — dado corrompido"
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
-      "_id": "6a2aa1c01222567143ff38ef",
-      "projeto": "igreja Petencostal",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "TSUN",
-          "modelo": "TS-S8B-144-560W",
-          "categoria": "modulo",
-          "causa": "B",
-          "detalhe": "fabricante \"Tsun\" no Atlas (5 modelos), mas este modelo \"TS-S8B-144-560W\" ausente"
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
-      "_id": "6a2aa1c11222567143ff38f1",
-      "projeto": "155 - Elizete - Patrícia e Debora",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "Znshine",
-          "modelo": "ZXM7-SHLD144-550/M",
-          "categoria": "modulo",
-          "causa": "B",
-          "detalhe": "fabricante \"Znshine\" no Atlas (16 modelos), mas este modelo \"ZXM7-SHLD144-550/M\" ausente"
         }
       ],
       "total_sem_bind": 1
@@ -1835,36 +1491,6 @@
       "total_sem_bind": 1
     },
     {
-      "_id": "6a2aa1c11222567143ff3900",
-      "projeto": "166 - Maria Dinailce Saraiva",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "TSUN",
-          "modelo": "TS-S8B-144-560W",
-          "categoria": "modulo",
-          "causa": "B",
-          "detalhe": "fabricante \"Tsun\" no Atlas (5 modelos), mas este modelo \"TS-S8B-144-560W\" ausente"
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
-      "_id": "6a2aa1c21222567143ff3902",
-      "projeto": "171 - Empório Erva Doce -  Isael Teixeira Filho",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "TSUN",
-          "modelo": "TS-S8B-144-560W",
-          "categoria": "modulo",
-          "causa": "B",
-          "detalhe": "fabricante \"Tsun\" no Atlas (5 modelos), mas este modelo \"TS-S8B-144-560W\" ausente"
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
       "_id": "6a2aa1c21222567143ff3907",
       "projeto": "HELDER MELO AMPLIAÇÃO",
       "cliente": "—",
@@ -1875,21 +1501,6 @@
           "categoria": "inversor",
           "causa": "D",
           "detalhe": "marca e modelo idênticos — dado corrompido"
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
-      "_id": "6a2aa1c41222567143ff3929",
-      "projeto": "Reginaldo",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "TSUN",
-          "modelo": "TS-S8B-144-560W",
-          "categoria": "modulo",
-          "causa": "B",
-          "detalhe": "fabricante \"Tsun\" no Atlas (5 modelos), mas este modelo \"TS-S8B-144-560W\" ausente"
         }
       ],
       "total_sem_bind": 1
@@ -1910,21 +1521,6 @@
       "total_sem_bind": 1
     },
     {
-      "_id": "6a2aa1c51222567143ff3939",
-      "projeto": "187. Nizyara Costa da Silva -RB Gráfica projeto 02",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "Trina Solar",
-          "modelo": "TALLMAX TSM-DE18",
-          "categoria": "modulo",
-          "causa": "B",
-          "detalhe": "fabricante \"Trina Solar\" no Atlas (6 modelos), mas este modelo \"TALLMAX TSM-DE18\" ausente"
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
       "_id": "6a2aa1c51222567143ff393d",
       "projeto": "131.4 Monique Pia cs5",
       "cliente": "—",
@@ -1934,52 +1530,7 @@
           "modelo": "Solar Unit",
           "categoria": "inversor",
           "causa": "B",
-          "detalhe": "fabricante \"Dah\" no Atlas (13 modelos), mas este modelo \"Solar Unit\" ausente"
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
-      "_id": "6a2aa1c61222567143ff3942",
-      "projeto": "Therra Mater 1",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "Trina Solar",
-          "modelo": "TALLMAX TSM-DE18",
-          "categoria": "modulo",
-          "causa": "B",
-          "detalhe": "fabricante \"Trina Solar\" no Atlas (6 modelos), mas este modelo \"TALLMAX TSM-DE18\" ausente"
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
-      "_id": "6a2aa1c61222567143ff3943",
-      "projeto": "154.6 - Pousada Nair Complemento",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "TSUN",
-          "modelo": "TS-S8B-144-560W",
-          "categoria": "modulo",
-          "causa": "B",
-          "detalhe": "fabricante \"Tsun\" no Atlas (5 modelos), mas este modelo \"TS-S8B-144-560W\" ausente"
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
-      "_id": "6a2aa1c61222567143ff3945",
-      "projeto": "140,2 Projeto Grafica 02",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "Trina Solar",
-          "modelo": "TALLMAX TSM-DE18",
-          "categoria": "modulo",
-          "causa": "B",
-          "detalhe": "fabricante \"Trina Solar\" no Atlas (6 modelos), mas este modelo \"TALLMAX TSM-DE18\" ausente"
+          "detalhe": "fabricante \"Dah\" no Atlas (14 modelos), mas este modelo \"Solar Unit\" ausente"
         }
       ],
       "total_sem_bind": 1
@@ -2000,21 +1551,6 @@
       "total_sem_bind": 1
     },
     {
-      "_id": "6a2aa1c71222567143ff394f",
-      "projeto": "Escola Mater Dei",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "Trina Solar",
-          "modelo": "TALLMAX TSM-DE18",
-          "categoria": "modulo",
-          "causa": "B",
-          "detalhe": "fabricante \"Trina Solar\" no Atlas (6 modelos), mas este modelo \"TALLMAX TSM-DE18\" ausente"
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
       "_id": "6a2aa1c81222567143ff395e",
       "projeto": "196 - Pinheiros Educação LTDA",
       "cliente": "—",
@@ -2024,37 +1560,7 @@
           "modelo": "650w",
           "categoria": "modulo",
           "causa": "B",
-          "detalhe": "fabricante \"Znshine\" no Atlas (16 modelos), mas este modelo \"650w\" ausente"
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
-      "_id": "6a2aa1c81222567143ff3961",
-      "projeto": "198 - Tapera bar espetaria",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "Znshine",
-          "modelo": "ZXMR-UPLDD144-600W",
-          "categoria": "modulo",
-          "causa": "B",
-          "detalhe": "fabricante \"Znshine\" no Atlas (16 modelos), mas este modelo \"ZXMR-UPLDD144-600W\" ausente"
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
-      "_id": "6a2aa1c91222567143ff396e",
-      "projeto": "197 - Escola Pinheiros",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "Znshine",
-          "modelo": "ZXMR-UPLDD144",
-          "categoria": "modulo",
-          "causa": "B",
-          "detalhe": "fabricante \"Znshine\" no Atlas (16 modelos), mas este modelo \"ZXMR-UPLDD144\" ausente"
+          "detalhe": "fabricante \"Znshine\" no Atlas (21 modelos), mas este modelo \"650w\" ausente"
         }
       ],
       "total_sem_bind": 1
@@ -2070,21 +1576,6 @@
           "categoria": "modulo",
           "causa": "B",
           "detalhe": "fabricante \"Ja Solar\" no Atlas (4 modelos), mas este modelo \"JAM72D42-630/LB\" ausente"
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
-      "_id": "6a2aa1c91222567143ff3977",
-      "projeto": "223 - Somagraf Comércio Ltda",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "Znshine",
-          "modelo": "ZXMR-UPLDD144-600W",
-          "categoria": "modulo",
-          "causa": "B",
-          "detalhe": "fabricante \"Znshine\" no Atlas (16 modelos), mas este modelo \"ZXMR-UPLDD144-600W\" ausente"
         }
       ],
       "total_sem_bind": 1
@@ -2115,21 +1606,6 @@
           "categoria": "modulo",
           "causa": "C",
           "detalhe": "alias de fabricante similar: SM=\"ZNS\" → possível Atlas=\"Znshine\""
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
-      "_id": "6a2aa1ca1222567143ff3986",
-      "projeto": "221 - Augusto  Wagner Marinho Benfica- Bianca",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "Znshine",
-          "modelo": "ZXMR-UPLDD144",
-          "categoria": "modulo",
-          "causa": "B",
-          "detalhe": "fabricante \"Znshine\" no Atlas (16 modelos), mas este modelo \"ZXMR-UPLDD144\" ausente"
         }
       ],
       "total_sem_bind": 1
@@ -2175,36 +1651,6 @@
           "categoria": "modulo",
           "causa": "C",
           "detalhe": "alias de fabricante similar: SM=\"Ronma\" → possível Atlas=\"Ronma Solar\""
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
-      "_id": "6a2aa1cb1222567143ff3999",
-      "projeto": "231 - Maria de Fatima Bezerra D. Menezes",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "Znshine",
-          "modelo": "ZXMR-UPLDD144-600W",
-          "categoria": "modulo",
-          "causa": "B",
-          "detalhe": "fabricante \"Znshine\" no Atlas (16 modelos), mas este modelo \"ZXMR-UPLDD144-600W\" ausente"
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
-      "_id": "6a2aa1cc1222567143ff399f",
-      "projeto": "224 -  Ewerton Thiago de Lima Silva Casa ex esposa",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "Znshine",
-          "modelo": "ZXM7-UPLDD144-595",
-          "categoria": "modulo",
-          "causa": "B",
-          "detalhe": "fabricante \"Znshine\" no Atlas (16 modelos), mas este modelo \"ZXM7-UPLDD144-595\" ausente"
         }
       ],
       "total_sem_bind": 1
@@ -2279,22 +1725,7 @@
           "modelo": "SOlar unit",
           "categoria": "inversor",
           "causa": "B",
-          "detalhe": "fabricante \"Dah\" no Atlas (13 modelos), mas este modelo \"SOlar unit\" ausente"
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
-      "_id": "6a2aa1cd1222567143ff39b3",
-      "projeto": "259 - Luiz de França Afonso Ferreira - Marcilio",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "Dah",
-          "modelo": "DHN-SU1K5T-G0",
-          "categoria": "inversor",
-          "causa": "B",
-          "detalhe": "fabricante \"Dah\" no Atlas (13 modelos), mas este modelo \"DHN-SU1K5T-G0\" ausente"
+          "detalhe": "fabricante \"Dah\" no Atlas (14 modelos), mas este modelo \"SOlar unit\" ausente"
         }
       ],
       "total_sem_bind": 1
@@ -2309,22 +1740,7 @@
           "modelo": "SOlar unit",
           "categoria": "inversor",
           "causa": "B",
-          "detalhe": "fabricante \"Dah\" no Atlas (13 modelos), mas este modelo \"SOlar unit\" ausente"
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
-      "_id": "6a2aa1cd1222567143ff39b7",
-      "projeto": "242 -  Emanuel Pereira Sobrinho Ampliação 03/2025",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "Znshine",
-          "modelo": "ZXMR-UPLDD144-600/N",
-          "categoria": "modulo",
-          "causa": "B",
-          "detalhe": "fabricante \"Znshine\" no Atlas (16 modelos), mas este modelo \"ZXMR-UPLDD144-600/N\" ausente"
+          "detalhe": "fabricante \"Dah\" no Atlas (14 modelos), mas este modelo \"SOlar unit\" ausente"
         }
       ],
       "total_sem_bind": 1
@@ -2339,7 +1755,7 @@
           "modelo": "Solar UNIT",
           "categoria": "inversor",
           "causa": "B",
-          "detalhe": "fabricante \"Dah\" no Atlas (13 modelos), mas este modelo \"Solar UNIT\" ausente"
+          "detalhe": "fabricante \"Dah\" no Atlas (14 modelos), mas este modelo \"Solar UNIT\" ausente"
         }
       ],
       "total_sem_bind": 1
@@ -2384,7 +1800,7 @@
           "modelo": "Solar Unit",
           "categoria": "inversor",
           "causa": "B",
-          "detalhe": "fabricante \"Dah\" no Atlas (13 modelos), mas este modelo \"Solar Unit\" ausente"
+          "detalhe": "fabricante \"Dah\" no Atlas (14 modelos), mas este modelo \"Solar Unit\" ausente"
         }
       ],
       "total_sem_bind": 1
@@ -2450,21 +1866,6 @@
       "total_sem_bind": 1
     },
     {
-      "_id": "6a2aa1d01222567143ff39e5",
-      "projeto": "El shaday - casa",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "Dah",
-          "modelo": "DHN-SU1K5T-G0",
-          "categoria": "inversor",
-          "causa": "B",
-          "detalhe": "fabricante \"Dah\" no Atlas (13 modelos), mas este modelo \"DHN-SU1K5T-G0\" ausente"
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
       "_id": "6a2aa1d11222567143ff39f4",
       "projeto": "Ocean View tabatinga",
       "cliente": "—",
@@ -2475,21 +1876,6 @@
           "categoria": "modulo",
           "causa": "A",
           "detalhe": "fabricante \"RENEPV\" não encontrado no Atlas"
-        }
-      ],
-      "total_sem_bind": 1
-    },
-    {
-      "_id": "6a2aa1d11222567143ff39f6",
-      "projeto": "281 -  José Medeiros dos Santos - Ricardo",
-      "cliente": "—",
-      "itens_sem_bind": [
-        {
-          "marca": "Helius",
-          "modelo": "HMB132T12R",
-          "categoria": "modulo",
-          "causa": "B",
-          "detalhe": "fabricante \"Helius\" no Atlas (6 modelos), mas este modelo \"HMB132T12R\" ausente"
         }
       ],
       "total_sem_bind": 1

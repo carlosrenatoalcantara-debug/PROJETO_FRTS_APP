@@ -1,0 +1,88 @@
+{
+  "sprint": "P1-CATALOG-ROI-CLOSURE-01",
+  "gerado_em": "2026-06-15T13:52:38.381Z",
+  "rastreavel": true,
+  "dedup": "fab+modelo (idempotente)",
+  "observacao": "Identidade (fab/modelo/tipo + potência do nome). Specs elétricas pendentes de datasheet (NÃO inventadas).",
+  "equipamentos": [
+    {
+      "fabricante": "Tsun",
+      "modelo": "TS-S8B-144-560W",
+      "tipo": "modulo",
+      "potencia": "560W",
+      "status": "CRIADO",
+      "_id": "6a300357bb102b67f0acf0bf"
+    },
+    {
+      "fabricante": "Trina Solar",
+      "modelo": "TALLMAX TSM-DE18",
+      "tipo": "modulo",
+      "potencia": "550W",
+      "status": "CRIADO",
+      "_id": "6a300357bb102b67f0acf0c0"
+    },
+    {
+      "fabricante": "Znshine",
+      "modelo": "ZXMR-UPLDD144-600W",
+      "tipo": "modulo",
+      "potencia": "600W",
+      "status": "CRIADO",
+      "_id": "6a300357bb102b67f0acf0c1"
+    },
+    {
+      "fabricante": "Znshine",
+      "modelo": "ZXMR-UPLDD144",
+      "tipo": "modulo",
+      "potencia": "—",
+      "status": "CRIADO",
+      "_id": "6a300357bb102b67f0acf0c2"
+    },
+    {
+      "fabricante": "Znshine",
+      "modelo": "ZXM7-SHLD144-550/M",
+      "tipo": "modulo",
+      "potencia": "550W",
+      "status": "CRIADO",
+      "_id": "6a300357bb102b67f0acf0c3"
+    },
+    {
+      "fabricante": "Znshine",
+      "modelo": "ZXM7-UPLDD144-595",
+      "tipo": "modulo",
+      "potencia": "595W",
+      "status": "CRIADO",
+      "_id": "6a300357bb102b67f0acf0c4"
+    },
+    {
+      "fabricante": "Znshine",
+      "modelo": "ZXMR-UPLDD144-600/N",
+      "tipo": "modulo",
+      "potencia": "600W",
+      "status": "CRIADO",
+      "_id": "6a300357bb102b67f0acf0c5"
+    },
+    {
+      "fabricante": "Helius",
+      "modelo": "HMB132T12R",
+      "tipo": "modulo",
+      "potencia": "630W",
+      "status": "CRIADO",
+      "_id": "6a300357bb102b67f0acf0c6"
+    },
+    {
+      "fabricante": "Dah",
+      "modelo": "DHN-SU1K5T-G0",
+      "tipo": "inversor",
+      "potencia": "1.5kW",
+      "status": "CRIADO",
+      "_id": "6a300357bb102b67f0acf0c7"
+    }
+  ],
+  "total": 9,
+  "ja_existiam": 0,
+  "diferidos": [
+    "Dah Solar Unit (3 proj, modelo placeholder)",
+    "Znshine 650w (1, degenerado)",
+    "8 projetos causa-D corrompidos"
+  ]
+}

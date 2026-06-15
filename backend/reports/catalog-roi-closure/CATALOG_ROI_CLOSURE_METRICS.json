@@ -1,0 +1,70 @@
+{
+  "sprint": "P1-CATALOG-ROI-CLOSURE-01",
+  "gerado_em": "2026-06-15T13:52:38.383Z",
+  "fase5": {
+    "completos_antes": 440,
+    "completos_depois": 467,
+    "recuperados": 27,
+    "incompletos_restantes": 47,
+    "equipamentos_novos": 9
+  },
+  "fase6": {
+    "ainda_faltam": 47,
+    "exigem_revisao_manual": 8,
+    "alias_fixaveis": 9,
+    "proximo_roi": [
+      {
+        "fabricante": "DEYE",
+        "projetos": 3,
+        "causa": "B"
+      },
+      {
+        "fabricante": "EMPALUX MF",
+        "projetos": 3,
+        "causa": "A"
+      },
+      {
+        "fabricante": "DAH",
+        "projetos": 3,
+        "causa": "B"
+      },
+      {
+        "fabricante": "Dah",
+        "projetos": 2,
+        "causa": "B"
+      },
+      {
+        "fabricante": "AE SOLAR",
+        "projetos": 2,
+        "causa": "A"
+      }
+    ],
+    "causas": {
+      "A_ausente_total": {
+        "ocorrencias": 17,
+        "projetos": 14
+      },
+      "B_modelo_ausente": {
+        "ocorrencias": 18,
+        "projetos": 17
+      },
+      "C_alias_faltando": {
+        "ocorrencias": 10,
+        "projetos": 9
+      },
+      "D_dado_corrompido": {
+        "ocorrencias": 8,
+        "projetos": 8
+      },
+      "E_ambiguo": {
+        "ocorrencias": 0,
+        "projetos": 0
+      },
+      "F_outro": {
+        "ocorrencias": 0,
+        "projetos": 0
+      }
+    }
+  },
+  "arco_cumulativo": "426 (pré-Wave2) -> 439 (import alvos) -> 440 (cleaning) -> 467 (closure)"
+}

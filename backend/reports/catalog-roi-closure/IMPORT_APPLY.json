@@ -1,0 +1,79 @@
+{
+  "aplicado": true,
+  "gerado_em": "2026-06-15T13:51:20.040Z",
+  "criados": 9,
+  "ja_existem": 0,
+  "detalhe": [
+    {
+      "fab": "Tsun",
+      "modelo": "TS-S8B-144-560W",
+      "tipo": "modulo",
+      "potencia_w": 560,
+      "status": "CRIADO",
+      "_id": "6a300357bb102b67f0acf0bf"
+    },
+    {
+      "fab": "Trina Solar",
+      "modelo": "TALLMAX TSM-DE18",
+      "tipo": "modulo",
+      "potencia_w": 550,
+      "status": "CRIADO",
+      "_id": "6a300357bb102b67f0acf0c0"
+    },
+    {
+      "fab": "Znshine",
+      "modelo": "ZXMR-UPLDD144-600W",
+      "tipo": "modulo",
+      "potencia_w": 600,
+      "status": "CRIADO",
+      "_id": "6a300357bb102b67f0acf0c1"
+    },
+    {
+      "fab": "Znshine",
+      "modelo": "ZXMR-UPLDD144",
+      "tipo": "modulo",
+      "status": "CRIADO",
+      "_id": "6a300357bb102b67f0acf0c2"
+    },
+    {
+      "fab": "Znshine",
+      "modelo": "ZXM7-SHLD144-550/M",
+      "tipo": "modulo",
+      "potencia_w": 550,
+      "status": "CRIADO",
+      "_id": "6a300357bb102b67f0acf0c3"
+    },
+    {
+      "fab": "Znshine",
+      "modelo": "ZXM7-UPLDD144-595",
+      "tipo": "modulo",
+      "potencia_w": 595,
+      "status": "CRIADO",
+      "_id": "6a300357bb102b67f0acf0c4"
+    },
+    {
+      "fab": "Znshine",
+      "modelo": "ZXMR-UPLDD144-600/N",
+      "tipo": "modulo",
+      "potencia_w": 600,
+      "status": "CRIADO",
+      "_id": "6a300357bb102b67f0acf0c5"
+    },
+    {
+      "fab": "Helius",
+      "modelo": "HMB132T12R",
+      "tipo": "modulo",
+      "potencia_w": 630,
+      "status": "CRIADO",
+      "_id": "6a300357bb102b67f0acf0c6"
+    },
+    {
+      "fab": "Dah",
+      "modelo": "DHN-SU1K5T-G0",
+      "tipo": "inversor",
+      "potencia_kw": 1.5,
+      "status": "CRIADO",
+      "_id": "6a300357bb102b67f0acf0c7"
+    }
+  ]
+}

@@ -1,0 +1,70 @@
+{
+  "aplicado": false,
+  "gerado_em": "2026-06-15T13:51:17.391Z",
+  "criados": 9,
+  "ja_existem": 0,
+  "detalhe": [
+    {
+      "fab": "Tsun",
+      "modelo": "TS-S8B-144-560W",
+      "tipo": "modulo",
+      "potencia_w": 560,
+      "status": "CRIARIA"
+    },
+    {
+      "fab": "Trina Solar",
+      "modelo": "TALLMAX TSM-DE18",
+      "tipo": "modulo",
+      "potencia_w": 550,
+      "status": "CRIARIA"
+    },
+    {
+      "fab": "Znshine",
+      "modelo": "ZXMR-UPLDD144-600W",
+      "tipo": "modulo",
+      "potencia_w": 600,
+      "status": "CRIARIA"
+    },
+    {
+      "fab": "Znshine",
+      "modelo": "ZXMR-UPLDD144",
+      "tipo": "modulo",
+      "status": "CRIARIA"
+    },
+    {
+      "fab": "Znshine",
+      "modelo": "ZXM7-SHLD144-550/M",
+      "tipo": "modulo",
+      "potencia_w": 550,
+      "status": "CRIARIA"
+    },
+    {
+      "fab": "Znshine",
+      "modelo": "ZXM7-UPLDD144-595",
+      "tipo": "modulo",
+      "potencia_w": 595,
+      "status": "CRIARIA"
+    },
+    {
+      "fab": "Znshine",
+      "modelo": "ZXMR-UPLDD144-600/N",
+      "tipo": "modulo",
+      "potencia_w": 600,
+      "status": "CRIARIA"
+    },
+    {
+      "fab": "Helius",
+      "modelo": "HMB132T12R",
+      "tipo": "modulo",
+      "potencia_w": 630,
+      "status": "CRIARIA"
+    },
+    {
+      "fab": "Dah",
+      "modelo": "DHN-SU1K5T-G0",
+      "tipo": "inversor",
+      "potencia_kw": 1.5,
+      "status": "CRIARIA"
+    }
+  ]
+}
