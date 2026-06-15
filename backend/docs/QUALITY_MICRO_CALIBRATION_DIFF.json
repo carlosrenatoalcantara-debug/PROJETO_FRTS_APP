@@ -1,0 +1,140 @@
+{
+  "sprint": "P1-QUALITY-MICRO-CALIBRATION-APPLY-01",
+  "gerado_em": "2026-06-15T12:46:50.372Z",
+  "mudancas_codigo": [
+    {
+      "arquivo": "src/services/regrasPlausibilidade.js",
+      "regra": "MPPT_INCOERENTE",
+      "de": "max >= voc -> invalido",
+      "para": "max > voc -> invalido (permite max == voc)"
+    },
+    {
+      "arquivo": "src/services/regrasPlausibilidade.js",
+      "regra": "VOC_MAX_DC_IMPLAUSIVEL",
+      "de": "[200,1500] universal",
+      "para": "micro [16,150] / string|hibrido [200,1500]"
+    },
+    {
+      "arquivo": "src/services/regrasPlausibilidade.js",
+      "regra": "MPPT_FAIXA_IMPLAUSIVEL",
+      "de": "min[50,400] max[200,1000] universal",
+      "para": "micro min[10,80] max[20,150] / string|hibrido min[50,400] max[200,1000]"
+    },
+    {
+      "arquivo": "src/services/regrasPlausibilidade.js",
+      "item": "helper tecnologiaInversor()",
+      "obs": "detecção micro/string/híbrido (não persiste classificação)"
+    },
+    {
+      "item": "enriquecimento (apply-wave1)",
+      "de": "origem nao setada",
+      "para": "origem.tipo=datasheet_pdfparse"
+    }
+  ],
+  "equipamentos_5": [
+    {
+      "modelo": "SUN2000G3-US-220",
+      "antes": {
+        "nivel": "suspeito",
+        "score": 43,
+        "alertas": [
+          "VOC_MAX_DC_IMPLAUSIVEL:alto",
+          "MPPT_FAIXA_IMPLAUSIVEL:medio"
+        ]
+      },
+      "depois": {
+        "nivel": "utilizavel",
+        "score": 83,
+        "alertas": []
+      },
+      "alertas_removidos": [
+        "VOC_MAX_DC_IMPLAUSIVEL:alto",
+        "MPPT_FAIXA_IMPLAUSIVEL:medio"
+      ]
+    },
+    {
+      "modelo": "TSOL-MX2250",
+      "antes": {
+        "nivel": "invalido",
+        "score": 38,
+        "alertas": [
+          "MPPT_INCOERENTE:critico",
+          "VOC_MAX_DC_IMPLAUSIVEL:alto",
+          "MPPT_FAIXA_IMPLAUSIVEL:medio"
+        ]
+      },
+      "depois": {
+        "nivel": "utilizavel",
+        "score": 83,
+        "alertas": []
+      },
+      "alertas_removidos": [
+        "MPPT_INCOERENTE:critico",
+        "VOC_MAX_DC_IMPLAUSIVEL:alto",
+        "MPPT_FAIXA_IMPLAUSIVEL:medio"
+      ]
+    },
+    {
+      "modelo": "TSOL-MP2250",
+      "antes": {
+        "nivel": "invalido",
+        "score": 38,
+        "alertas": [
+          "MPPT_INCOERENTE:critico",
+          "VOC_MAX_DC_IMPLAUSIVEL:alto",
+          "MPPT_FAIXA_IMPLAUSIVEL:medio"
+        ]
+      },
+      "depois": {
+        "nivel": "utilizavel",
+        "score": 83,
+        "alertas": []
+      },
+      "alertas_removidos": [
+        "MPPT_INCOERENTE:critico",
+        "VOC_MAX_DC_IMPLAUSIVEL:alto",
+        "MPPT_FAIXA_IMPLAUSIVEL:medio"
+      ]
+    },
+    {
+      "modelo": "MIN 5000TL-X",
+      "antes": {
+        "nivel": "invalido",
+        "score": 38,
+        "alertas": [
+          "MPPT_INCOERENTE:critico"
+        ]
+      },
+      "depois": {
+        "nivel": "utilizavel",
+        "score": 83,
+        "alertas": []
+      },
+      "alertas_removidos": [
+        "MPPT_INCOERENTE:critico"
+      ]
+    },
+    {
+      "modelo": "M2-2.25K-S4",
+      "antes": {
+        "nivel": "invalido",
+        "score": 38,
+        "alertas": [
+          "MPPT_INCOERENTE:critico",
+          "VOC_MAX_DC_IMPLAUSIVEL:alto",
+          "MPPT_FAIXA_IMPLAUSIVEL:medio"
+        ]
+      },
+      "depois": {
+        "nivel": "utilizavel",
+        "score": 83,
+        "alertas": []
+      },
+      "alertas_removidos": [
+        "MPPT_INCOERENTE:critico",
+        "VOC_MAX_DC_IMPLAUSIVEL:alto",
+        "MPPT_FAIXA_IMPLAUSIVEL:medio"
+      ]
+    }
+  ]
+}

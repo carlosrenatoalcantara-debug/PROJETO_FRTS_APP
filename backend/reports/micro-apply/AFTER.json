@@ -1,0 +1,49 @@
+{
+  "fase": "DEPOIS",
+  "gerado_em": "2026-06-15T12:45:32.632Z",
+  "niveis": {
+    "suspeito": 164,
+    "invalido": 150,
+    "incompleto": 11,
+    "utilizavel": 32,
+    "validado": 1
+  },
+  "score_global": 35.28,
+  "cinco": [
+    {
+      "modelo": "SUN2000G3-US-220",
+      "origem": "datasheet_pdfparse",
+      "nivel": "utilizavel",
+      "score": 83,
+      "alertas": []
+    },
+    {
+      "modelo": "TSOL-MX2250",
+      "origem": "datasheet_pdfparse",
+      "nivel": "utilizavel",
+      "score": 83,
+      "alertas": []
+    },
+    {
+      "modelo": "TSOL-MP2250",
+      "origem": "datasheet_pdfparse",
+      "nivel": "utilizavel",
+      "score": 83,
+      "alertas": []
+    },
+    {
+      "modelo": "MIN 5000TL-X",
+      "origem": "datasheet_pdfparse",
+      "nivel": "utilizavel",
+      "score": 83,
+      "alertas": []
+    },
+    {
+      "modelo": "M2-2.25K-S4",
+      "origem": "datasheet_pdfparse",
+      "nivel": "utilizavel",
+      "score": 83,
+      "alertas": []
+    }
+  ]
+}

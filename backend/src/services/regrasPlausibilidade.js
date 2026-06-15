@@ -360,8 +360,22 @@ export const REGRAS_MODULO = [
 
 // ─── Regras para INVERSORES ─────────────────────────────────────────────────
 
+// P1-QUALITY-MICRO-CALIBRATION-APPLY-01 — detecção mínima de tecnologia do inversor
+// (micro/string/híbrido) para faixas de plausibilidade específicas. Heurística, não
+// cria nova classificação persistida — usada só dentro das regras de tensão.
+function tecnologiaInversor(specs) {
+  const nome = `${specs.fabricante || ''} ${specs.modelo || ''}`.toLowerCase()
+  if (/hibrid|hybrid|\bbess\b|storage|all-?in-?one|h1-|hb-|sun-?\d+k-?sg|-eu-sg/.test(nome)) return 'hibrido'
+  if (/micro|sun-?m\d|tsol-?m[xpps]|hms-|hmt-|\bm2-|bdm-|iq[78]|ds3|mi-?\d{3,4}/.test(nome)) return 'microinversor'
+  const voc = num(specs.voc_max_dc_v)
+  if (voc !== null && voc <= 100) return 'microinversor'
+  if (voc !== null && voc >= 200) return 'string'
+  if (num(specs.potencia_kw_ca) !== null && num(specs.potencia_kw_ca) <= 3.5 && (num(specs.n_mppts) || 0) >= 4) return 'microinversor'
+  return 'string'
+}
+
 export const REGRAS_INVERSOR = [
-  // I1 — MPPT coerente: min < max < voc_max_dc
+  // I1 — MPPT coerente: min < max <= voc_max_dc
   {
     codigo: 'MPPT_INCOERENTE',
     severidade: 'critico',
@@ -377,11 +391,11 @@ export const REGRAS_INVERSOR = [
           valor_atual: min, valor_esperado_max: max - 1,
         }
       }
-      if (vocmax !== null && max >= vocmax) {
+      if (vocmax !== null && max > vocmax) {
         return {
           ok: false,
-          mensagem: `MPPT max (${max}V) >= Voc max DC (${vocmax}V).`,
-          valor_atual: max, valor_esperado_max: vocmax - 10,
+          mensagem: `MPPT max (${max}V) > Voc max DC (${vocmax}V).`,
+          valor_atual: max, valor_esperado_max: vocmax,
         }
       }
       return { ok: true }
@@ -396,12 +410,15 @@ export const REGRAS_INVERSOR = [
     descricao: 'Voc max DC fora da faixa típica de inversores comerciais',
     valida(specs) {
       if (!isPresent(specs.voc_max_dc_v)) return { ok: true }
-      if (!inRange(specs.voc_max_dc_v, 200, 1500)) {
+      // P1-MICRO-CALIBRATION: faixa por tecnologia (micro opera em baixa tensão DC)
+      const tech = tecnologiaInversor(specs)
+      const [lo, hi] = tech === 'microinversor' ? [16, 150] : [200, 1500]
+      if (!inRange(specs.voc_max_dc_v, lo, hi)) {
         return {
           ok: false,
-          mensagem: `Voc max DC ${specs.voc_max_dc_v}V fora de [200, 1500].`,
+          mensagem: `Voc max DC ${specs.voc_max_dc_v}V fora de [${lo}, ${hi}] (${tech}).`,
           valor_atual: num(specs.voc_max_dc_v),
-          valor_esperado_min: 200, valor_esperado_max: 1500,
+          valor_esperado_min: lo, valor_esperado_max: hi,
         }
       }
       return { ok: true }
@@ -416,11 +433,14 @@ export const REGRAS_INVERSOR = [
     descricao: 'Faixa MPPT fora dos limites práticos',
     valida(specs) {
       const min = num(specs.mppt_min_v), max = num(specs.mppt_max_v)
-      if (min !== null && !inRange(min, 50, 400)) {
-        return { ok: false, mensagem: `MPPT min ${min}V fora de [50, 400].`, valor_atual: min, valor_esperado_min: 50, valor_esperado_max: 400 }
+      // P1-MICRO-CALIBRATION: faixa por tecnologia (micro opera em 16–60V típico)
+      const tech = tecnologiaInversor(specs)
+      const [minLo, minHi, maxLo, maxHi] = tech === 'microinversor' ? [10, 80, 20, 150] : [50, 400, 200, 1000]
+      if (min !== null && !inRange(min, minLo, minHi)) {
+        return { ok: false, mensagem: `MPPT min ${min}V fora de [${minLo}, ${minHi}] (${tech}).`, valor_atual: min, valor_esperado_min: minLo, valor_esperado_max: minHi }
       }
-      if (max !== null && !inRange(max, 200, 1000)) {
-        return { ok: false, mensagem: `MPPT max ${max}V fora de [200, 1000].`, valor_atual: max, valor_esperado_min: 200, valor_esperado_max: 1000 }
+      if (max !== null && !inRange(max, maxLo, maxHi)) {
+        return { ok: false, mensagem: `MPPT max ${max}V fora de [${maxLo}, ${maxHi}] (${tech}).`, valor_atual: max, valor_esperado_min: maxLo, valor_esperado_max: maxHi }
       }
       return { ok: true }
     },

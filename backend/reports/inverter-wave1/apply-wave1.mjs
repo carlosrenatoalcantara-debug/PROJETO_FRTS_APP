@@ -55,6 +55,9 @@ for (const item of LOTE) {
     } else { pulados.push(k) }   // nunca sobrescreve (idempotente)
   }
   if (APPLY && preenchidos.length) {
+    // P1-MICRO-CALIBRATION-APPLY: specs vieram de datasheet oficial -> origem datasheet
+    eq.origem = { ...(eq.origem || {}), tipo: 'datasheet_pdfparse', fonte: 'datasheet_oficial (Wave1)', em: new Date() }
+    eq.markModified('origem')
     eq.markModified('especificacoes'); eq.markModified('fonte_dados')
     const r = processarEquipamento(eq.toObject(), { tipoEvento:'enriquecimento_datasheet_wave1' })
     eq.specs_canonicas = r.specs_canonicas; eq.identificacao = r.identificacao

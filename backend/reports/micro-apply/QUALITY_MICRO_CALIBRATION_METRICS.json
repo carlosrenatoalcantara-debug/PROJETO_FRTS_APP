@@ -1,0 +1,31 @@
+{
+  "sprint": "P1-QUALITY-MICRO-CALIBRATION-APPLY-01",
+  "cenario": "C (cirúrgico)",
+  "gerado_em": "2026-06-15T12:46:50.371Z",
+  "fase5": {
+    "invalidos_antes": 154,
+    "invalidos_depois": 150,
+    "utilizaveis_antes": 27,
+    "utilizaveis_depois": 32,
+    "score_global_antes": 34.67,
+    "score_global_depois": 35.28,
+    "projetos_recuperados_sairam_de_invalido": 54,
+    "projetos_com_inversor_utilizavel_apos_onda": 164
+  },
+  "distribuicao_antes": {
+    "invalido": 154,
+    "suspeito": 165,
+    "validado": 1,
+    "utilizavel": 27,
+    "incompleto": 11
+  },
+  "distribuicao_depois": {
+    "suspeito": 164,
+    "invalido": 150,
+    "incompleto": 11,
+    "utilizavel": 32,
+    "validado": 1
+  },
+  "sem_inflar_import_solarmarket": true,
+  "observacao": "BASE_POR_ORIGEM nao foi alterada. Os 126 inversores SEM_ESPECIFICACOES permanecem invalidos."
+}

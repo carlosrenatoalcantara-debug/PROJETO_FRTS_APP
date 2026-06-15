@@ -1,0 +1,81 @@
+{
+  "fase": "ANTES",
+  "gerado_em": "2026-06-15T12:41:37.672Z",
+  "niveis": {
+    "invalido": 154,
+    "suspeito": 165,
+    "validado": 1,
+    "utilizavel": 27,
+    "incompleto": 11
+  },
+  "score_global": 34.67,
+  "cinco": [
+    {
+      "id": "6a272aff0bb8928e11abce10",
+      "fab": "Deye",
+      "modelo": "SUN2000G3-US-220",
+      "origem_tipo": "import_solarmarket",
+      "nivel": "suspeito",
+      "score": 43,
+      "alertas": [
+        "VOC_MAX_DC_IMPLAUSIVEL:alto",
+        "MPPT_FAIXA_IMPLAUSIVEL:medio"
+      ],
+      "tem_fonte_datasheet": true
+    },
+    {
+      "id": "6a272b000bb8928e11abce25",
+      "fab": "Tsun",
+      "modelo": "TSOL-MX2250",
+      "origem_tipo": "import_solarmarket",
+      "nivel": "invalido",
+      "score": 38,
+      "alertas": [
+        "MPPT_INCOERENTE:critico",
+        "VOC_MAX_DC_IMPLAUSIVEL:alto",
+        "MPPT_FAIXA_IMPLAUSIVEL:medio"
+      ],
+      "tem_fonte_datasheet": true
+    },
+    {
+      "id": "6a272b010bb8928e11abce3b",
+      "fab": "Tsun",
+      "modelo": "TSOL-MP2250",
+      "origem_tipo": "import_solarmarket",
+      "nivel": "invalido",
+      "score": 38,
+      "alertas": [
+        "MPPT_INCOERENTE:critico",
+        "VOC_MAX_DC_IMPLAUSIVEL:alto",
+        "MPPT_FAIXA_IMPLAUSIVEL:medio"
+      ],
+      "tem_fonte_datasheet": true
+    },
+    {
+      "id": "6a272b000bb8928e11abce23",
+      "fab": "Growatt",
+      "modelo": "MIN 5000TL-X",
+      "origem_tipo": "import_solarmarket",
+      "nivel": "invalido",
+      "score": 38,
+      "alertas": [
+        "MPPT_INCOERENTE:critico"
+      ],
+      "tem_fonte_datasheet": true
+    },
+    {
+      "id": "6a272aff0bb8928e11abce13",
+      "fab": "Saj",
+      "modelo": "M2-2.25K-S4",
+      "origem_tipo": "import_solarmarket",
+      "nivel": "invalido",
+      "score": 38,
+      "alertas": [
+        "MPPT_INCOERENTE:critico",
+        "VOC_MAX_DC_IMPLAUSIVEL:alto",
+        "MPPT_FAIXA_IMPLAUSIVEL:medio"
+      ],
+      "tem_fonte_datasheet": true
+    }
+  ]
+}
