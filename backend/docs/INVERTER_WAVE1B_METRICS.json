@@ -1,0 +1,97 @@
+{
+  "sprint": "P1-INVERTER-DATASHEET-ENRICH-WAVE1B-01",
+  "gerado_em": "2026-06-15T13:05:35.580Z",
+  "fase5": {
+    "enriquecidos": 3,
+    "sairam_de_invalido": 3,
+    "tornaram_se_utilizaveis": 3,
+    "projetos_beneficiados": 78,
+    "score_global_antes": 35.28,
+    "score_global_depois": 35.84,
+    "invalidos_restantes": 147
+  },
+  "fase6": {
+    "inversores_sem_especificacoes_restantes": 122,
+    "proximos_10_roi": [
+      {
+        "fab": "Solaredge",
+        "modelo": "SE 27.6K 380/220v",
+        "proj": 11
+      },
+      {
+        "fab": "Solaredge",
+        "modelo": "SE 20.1K 380/220v",
+        "proj": 9
+      },
+      {
+        "fab": "Hoymiles",
+        "modelo": "HMS-2000DW-4T",
+        "proj": 8
+      },
+      {
+        "fab": "Solaredge",
+        "modelo": "SE 33.3K 380/220v",
+        "proj": 8
+      },
+      {
+        "fab": "Nep",
+        "modelo": "BDM-2250",
+        "proj": 7
+      },
+      {
+        "fab": "Deye",
+        "modelo": "SUN-8K-G03",
+        "proj": 6
+      },
+      {
+        "fab": "Growatt",
+        "modelo": "MIN 6000TL-X",
+        "proj": 6
+      },
+      {
+        "fab": "Deye",
+        "modelo": "SUN-4K-G",
+        "proj": 5
+      },
+      {
+        "fab": "Growatt",
+        "modelo": "MIC 3000TL-X",
+        "proj": 4
+      },
+      {
+        "fab": "Deye",
+        "modelo": "SUN-10K-G",
+        "proj": 4
+      }
+    ],
+    "projetos_top10": 68
+  },
+  "distribuicao_antes": {
+    "suspeito": 164,
+    "invalido": 150,
+    "incompleto": 11,
+    "utilizavel": 32,
+    "validado": 1
+  },
+  "distribuicao_depois": {
+    "invalido": 147,
+    "suspeito": 164,
+    "validado": 1,
+    "utilizavel": 35,
+    "incompleto": 11
+  },
+  "diferidos": [
+    {
+      "id": "6a272aff0bb8928e11abce1a",
+      "modelo": "SolarEdge SE 27.6K 380/220v",
+      "proj": 11,
+      "motivo": "solaredge.com 403; arquitetura otimizador (sem faixa MPPT tradicional)"
+    },
+    {
+      "id": "6a272aff0bb8928e11abce19",
+      "modelo": "SolarEdge SE 20.1K 380/220v",
+      "proj": 9,
+      "motivo": "solaredge.com 403; modelo SE20.1K a confirmar"
+    }
+  ]
+}

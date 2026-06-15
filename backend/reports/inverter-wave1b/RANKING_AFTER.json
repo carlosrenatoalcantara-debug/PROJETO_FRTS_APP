@@ -1,0 +1,682 @@
+{
+  "niveis": {
+    "incompleto": 11,
+    "utilizavel": 35,
+    "suspeito": 164,
+    "validado": 1,
+    "invalido": 147
+  },
+  "score_global": 35.84,
+  "inversores_sem_especificacoes": 122,
+  "inversores_invalidos_restantes": 123,
+  "top10_proximos": [
+    {
+      "fab": "Solaredge",
+      "modelo": "SE 27.6K 380/220v",
+      "proj": 11
+    },
+    {
+      "fab": "Solaredge",
+      "modelo": "SE 20.1K 380/220v",
+      "proj": 9
+    },
+    {
+      "fab": "Hoymiles",
+      "modelo": "HMS-2000DW-4T",
+      "proj": 8
+    },
+    {
+      "fab": "Solaredge",
+      "modelo": "SE 33.3K 380/220v",
+      "proj": 8
+    },
+    {
+      "fab": "Nep",
+      "modelo": "BDM-2250",
+      "proj": 7
+    },
+    {
+      "fab": "Deye",
+      "modelo": "SUN-8K-G03",
+      "proj": 6
+    },
+    {
+      "fab": "Growatt",
+      "modelo": "MIN 6000TL-X",
+      "proj": 6
+    },
+    {
+      "fab": "Deye",
+      "modelo": "SUN-4K-G",
+      "proj": 5
+    },
+    {
+      "fab": "Growatt",
+      "modelo": "MIC 3000TL-X",
+      "proj": 4
+    },
+    {
+      "fab": "Deye",
+      "modelo": "SUN-10K-G",
+      "proj": 4
+    }
+  ],
+  "top10_projetos": 68,
+  "ranking_completo": [
+    {
+      "fab": "Solaredge",
+      "modelo": "SE 27.6K 380/220v",
+      "proj": 11
+    },
+    {
+      "fab": "Solaredge",
+      "modelo": "SE 20.1K 380/220v",
+      "proj": 9
+    },
+    {
+      "fab": "Hoymiles",
+      "modelo": "HMS-2000DW-4T",
+      "proj": 8
+    },
+    {
+      "fab": "Solaredge",
+      "modelo": "SE 33.3K 380/220v",
+      "proj": 8
+    },
+    {
+      "fab": "Nep",
+      "modelo": "BDM-2250",
+      "proj": 7
+    },
+    {
+      "fab": "Deye",
+      "modelo": "SUN-8K-G03",
+      "proj": 6
+    },
+    {
+      "fab": "Growatt",
+      "modelo": "MIN 6000TL-X",
+      "proj": 6
+    },
+    {
+      "fab": "Deye",
+      "modelo": "SUN-4K-G",
+      "proj": 5
+    },
+    {
+      "fab": "Growatt",
+      "modelo": "MIC 3000TL-X",
+      "proj": 4
+    },
+    {
+      "fab": "Deye",
+      "modelo": "SUN-10K-G",
+      "proj": 4
+    },
+    {
+      "fab": "Deye",
+      "modelo": "SUN-5K-G @220",
+      "proj": 3
+    },
+    {
+      "fab": "Growatt",
+      "modelo": "MAX 75KTL3 LV",
+      "proj": 3
+    },
+    {
+      "fab": "Growatt",
+      "modelo": "MIN 8000TL-X(E)",
+      "proj": 3
+    },
+    {
+      "fab": "Deye",
+      "modelo": "SUN-8K-G",
+      "proj": 3
+    },
+    {
+      "fab": "Growatt",
+      "modelo": "MID 36KTL3-X",
+      "proj": 3
+    },
+    {
+      "fab": "Growatt",
+      "modelo": "MIC 2000TL-X",
+      "proj": 3
+    },
+    {
+      "fab": "Deye",
+      "modelo": "SUN-25K-G02",
+      "proj": 3
+    },
+    {
+      "fab": "Kehua",
+      "modelo": "TECH SPI15K-B",
+      "proj": 3
+    },
+    {
+      "fab": "Deye",
+      "modelo": "SUN-6K-G",
+      "proj": 3
+    },
+    {
+      "fab": "Deye",
+      "modelo": "SUN-12K-G",
+      "proj": 3
+    },
+    {
+      "fab": "Deye",
+      "modelo": "SUN-75K-G03",
+      "proj": 3
+    },
+    {
+      "fab": "Kehua",
+      "modelo": "TECH SPI36K-B X2",
+      "proj": 3
+    },
+    {
+      "fab": "Kehua",
+      "modelo": "TECH SPI20K-B X2",
+      "proj": 3
+    },
+    {
+      "fab": "Solplanet",
+      "modelo": "ASW6000-S-G2",
+      "proj": 3
+    },
+    {
+      "fab": "Deye",
+      "modelo": "SUN-35K-G03",
+      "proj": 2
+    },
+    {
+      "fab": "Growatt",
+      "modelo": "MAC 60KTL3-X LV",
+      "proj": 2
+    },
+    {
+      "fab": "Deye",
+      "modelo": "SUN-35K-G02",
+      "proj": 2
+    },
+    {
+      "fab": "Growatt",
+      "modelo": "MIN 10000 TL-X",
+      "proj": 2
+    },
+    {
+      "fab": "Kehua",
+      "modelo": "TECH SPI20K-B",
+      "proj": 2
+    },
+    {
+      "fab": "Growatt",
+      "modelo": "MIC 2500TL-X",
+      "proj": 2
+    },
+    {
+      "fab": "Kehua",
+      "modelo": "TECH SPI15K-B X2",
+      "proj": 2
+    },
+    {
+      "fab": "Kehua",
+      "modelo": "TECH SPI30K-B X2",
+      "proj": 2
+    },
+    {
+      "fab": "Growatt",
+      "modelo": "50000TL3-S",
+      "proj": 2
+    },
+    {
+      "fab": "Kehua",
+      "modelo": "TECH SPI8000-B X2",
+      "proj": 2
+    },
+    {
+      "fab": "Deye",
+      "modelo": "SUN-15K-G02-LV",
+      "proj": 2
+    },
+    {
+      "fab": "Kehua",
+      "modelo": "TECH SPI17K-B",
+      "proj": 2
+    },
+    {
+      "fab": "Solaredge",
+      "modelo": "SE 100K Manager 380/220v",
+      "proj": 2
+    },
+    {
+      "fab": "Solplanet",
+      "modelo": "ASW20K-LT-G2 Pro",
+      "proj": 2
+    },
+    {
+      "fab": "Hoymiles",
+      "modelo": "HMS-1800-4T",
+      "proj": 2
+    },
+    {
+      "fab": "Enphase",
+      "modelo": "IQ8P-72-2-BR",
+      "proj": 2
+    },
+    {
+      "fab": "Tsun",
+      "modelo": "TSOL-MS2000",
+      "proj": 2
+    },
+    {
+      "fab": "Deye",
+      "modelo": "MINVDE-MO-220-2.25KW",
+      "proj": 2
+    },
+    {
+      "fab": "Deye",
+      "modelo": "SUN-6.6K-G05P1-EU-AM2",
+      "proj": 2
+    },
+    {
+      "fab": "Deye",
+      "modelo": "SUN-5K-G05",
+      "proj": 2
+    },
+    {
+      "fab": "Deye",
+      "modelo": "SUN-15K-G03",
+      "proj": 2
+    },
+    {
+      "fab": "Solplanet",
+      "modelo": "ASW5000-S-G2",
+      "proj": 2
+    },
+    {
+      "fab": "Growatt",
+      "modelo": "MAC 25KTL3-XL",
+      "proj": 2
+    },
+    {
+      "fab": "Solplanet",
+      "modelo": "ASW3000-S-G2",
+      "proj": 2
+    },
+    {
+      "fab": "Solax",
+      "modelo": "X1-BOOST-6K-G4",
+      "proj": 2
+    },
+    {
+      "fab": "Deye",
+      "modelo": "SUN-75K-G",
+      "proj": 1
+    },
+    {
+      "fab": "Solaredge",
+      "modelo": "SE 75K 380/220v",
+      "proj": 1
+    },
+    {
+      "fab": "Deye",
+      "modelo": "SUN-30K-G",
+      "proj": 1
+    },
+    {
+      "fab": "Solaredge",
+      "modelo": "SE 27.6K 220/127v",
+      "proj": 1
+    },
+    {
+      "fab": "Growatt",
+      "modelo": "MID 40KTL3-X",
+      "proj": 1
+    },
+    {
+      "fab": "Deye",
+      "modelo": "SUN-20K-G",
+      "proj": 1
+    },
+    {
+      "fab": "Solis",
+      "modelo": "50K",
+      "proj": 1
+    },
+    {
+      "fab": "Solaredge",
+      "modelo": "SE 20.1K 220/127v",
+      "proj": 1
+    },
+    {
+      "fab": "Kehua",
+      "modelo": "TECH SPI60K-B",
+      "proj": 1
+    },
+    {
+      "fab": "Chint",
+      "modelo": "POWER CPS SCA50KTL-T/EU",
+      "proj": 1
+    },
+    {
+      "fab": "Fronius",
+      "modelo": "PRIMO 6.0-1",
+      "proj": 1
+    },
+    {
+      "fab": "Growatt",
+      "modelo": "MAX 60KTL3 LV",
+      "proj": 1
+    },
+    {
+      "fab": "Growatt",
+      "modelo": "MAC 50KTL3-X LV",
+      "proj": 1
+    },
+    {
+      "fab": "Solplanet",
+      "modelo": "ASW33K-LT-G3",
+      "proj": 1
+    },
+    {
+      "fab": "Growatt",
+      "modelo": "MID 30KTL3-X",
+      "proj": 1
+    },
+    {
+      "fab": "Deye",
+      "modelo": "SUN-8K-SG01LP1-EU",
+      "proj": 1
+    },
+    {
+      "fab": "Chint",
+      "modelo": "POWER CPS SCA15KTL-T/EU",
+      "proj": 1
+    },
+    {
+      "fab": "Sofar",
+      "modelo": "7.5KTLM",
+      "proj": 1
+    },
+    {
+      "fab": "Kehua",
+      "modelo": "TECH SPI9000-B X2",
+      "proj": 1
+    },
+    {
+      "fab": "Apsystems",
+      "modelo": "DS3D-220",
+      "proj": 1
+    },
+    {
+      "fab": "Deye",
+      "modelo": "SUN1000G3-US-220",
+      "proj": 1
+    },
+    {
+      "fab": "Solaredge",
+      "modelo": "SE8250H 220V",
+      "proj": 1
+    },
+    {
+      "fab": "Sofar",
+      "modelo": "4KTLM-G3",
+      "proj": 1
+    },
+    {
+      "fab": "Deye",
+      "modelo": "SUN-15K-G05",
+      "proj": 1
+    },
+    {
+      "fab": "Deye",
+      "modelo": "SUN-18K-G03",
+      "proj": 1
+    },
+    {
+      "fab": "Tsun",
+      "modelo": "TSOL-MX2500D",
+      "proj": 1
+    },
+    {
+      "fab": "Deye",
+      "modelo": "SUN-20K-G04",
+      "proj": 1
+    },
+    {
+      "fab": "Deye",
+      "modelo": "SUN-7K-G",
+      "proj": 1
+    },
+    {
+      "fab": "Deye",
+      "modelo": "SUN-40K-G03",
+      "proj": 1
+    },
+    {
+      "fab": "Solaredge",
+      "modelo": "SE 75K Manager 380/220v",
+      "proj": 1
+    },
+    {
+      "fab": "Deye",
+      "modelo": "SUN-35K-G",
+      "proj": 1
+    },
+    {
+      "fab": "Deye",
+      "modelo": "SUN-40K-G",
+      "proj": 1
+    },
+    {
+      "fab": "Deye",
+      "modelo": "SUN-18K-G04",
+      "proj": 1
+    },
+    {
+      "fab": "Kehua",
+      "modelo": "TECH SPI40K-B",
+      "proj": 1
+    },
+    {
+      "fab": "Deye",
+      "modelo": "SUN-25K-G",
+      "proj": 1
+    },
+    {
+      "fab": "Deye",
+      "modelo": "SUN-60K-G",
+      "proj": 1
+    },
+    {
+      "fab": "Kehua",
+      "modelo": "TECH SPI125K-B",
+      "proj": 1
+    },
+    {
+      "fab": "Apsystems",
+      "modelo": "QT2D-380",
+      "proj": 1
+    },
+    {
+      "fab": "Solis",
+      "modelo": "S6-GR1P5K-S",
+      "proj": 1
+    },
+    {
+      "fab": "Deye",
+      "modelo": "SUN-20K-G02-LV",
+      "proj": 1
+    },
+    {
+      "fab": "Sungrow",
+      "modelo": "SG75CX-P2",
+      "proj": 1
+    },
+    {
+      "fab": "Kehua",
+      "modelo": "TECH SPI10000-B X2P",
+      "proj": 1
+    },
+    {
+      "fab": "Solis",
+      "modelo": "MINI-1500-4G",
+      "proj": 1
+    },
+    {
+      "fab": "Kehua",
+      "modelo": "TECH SPI50K-B",
+      "proj": 1
+    },
+    {
+      "fab": "Kehua",
+      "modelo": "TECH SPI10K-B X2",
+      "proj": 1
+    },
+    {
+      "fab": "Goodwe",
+      "modelo": "GW10K-MS",
+      "proj": 1
+    },
+    {
+      "fab": "Goodwe",
+      "modelo": "GW5000-DNS-30",
+      "proj": 1
+    },
+    {
+      "fab": "Goodwe",
+      "modelo": "GW15K-SDT-20",
+      "proj": 1
+    },
+    {
+      "fab": "Sungrow",
+      "modelo": "SG8K3-D",
+      "proj": 1
+    },
+    {
+      "fab": "Goodwe",
+      "modelo": "GW8000-DT",
+      "proj": 1
+    },
+    {
+      "fab": "Solis",
+      "modelo": "S5-GC37.5K",
+      "proj": 1
+    },
+    {
+      "fab": "Kehua",
+      "modelo": "TECH SPI25K-B X2",
+      "proj": 1
+    },
+    {
+      "fab": "Solplanet",
+      "modelo": "ASW15K-LT-G2 Pro",
+      "proj": 1
+    },
+    {
+      "fab": "Deye",
+      "modelo": "SUN-10K-G @380",
+      "proj": 1
+    },
+    {
+      "fab": "Goodwe",
+      "modelo": "GW7.5K-MS-G40",
+      "proj": 1
+    },
+    {
+      "fab": "Deye",
+      "modelo": "SUN-7.5K-G",
+      "proj": 1
+    },
+    {
+      "fab": "Solis",
+      "modelo": "S6-GR1P5K",
+      "proj": 1
+    },
+    {
+      "fab": "Sungrow",
+      "modelo": "SG6K-D",
+      "proj": 1
+    },
+    {
+      "fab": "Deye",
+      "modelo": "SUN1300G-US-220",
+      "proj": 1
+    },
+    {
+      "fab": "Deye",
+      "modelo": "SUN-20K-G02",
+      "proj": 1
+    },
+    {
+      "fab": "Kehua",
+      "modelo": "TECH SPI25K-B",
+      "proj": 1
+    },
+    {
+      "fab": "Growatt",
+      "modelo": "20000TL3-S",
+      "proj": 1
+    },
+    {
+      "fab": "Hoymiles",
+      "modelo": "HMS-2000-4T",
+      "proj": 0
+    },
+    {
+      "fab": "Deye",
+      "modelo": "SUN-75K-G05",
+      "proj": 0
+    },
+    {
+      "fab": "Solplanet",
+      "modelo": "ASW4000-S-G2",
+      "proj": 0
+    },
+    {
+      "fab": "Growatt",
+      "modelo": "NEO 2000M-X",
+      "proj": 0
+    },
+    {
+      "fab": "Solis",
+      "modelo": "S6-GR1P3K-S",
+      "proj": 0
+    },
+    {
+      "fab": "Deye",
+      "modelo": "SUN-5K-G @380",
+      "proj": 0
+    },
+    {
+      "fab": "Growatt",
+      "modelo": "15000TL3-S",
+      "proj": 0
+    },
+    {
+      "fab": "Tsun",
+      "modelo": "TSOL-MP3000",
+      "proj": 0
+    },
+    {
+      "fab": "Goodwe",
+      "modelo": "GW5000-DT",
+      "proj": 0
+    },
+    {
+      "fab": "Goodwe",
+      "modelo": "GW8000-MS-C30",
+      "proj": 0
+    },
+    {
+      "fab": "Sungrow",
+      "modelo": "SG15RT-P2",
+      "proj": 0
+    },
+    {
+      "fab": "Goodwe",
+      "modelo": "GW3300-XS-30",
+      "proj": 0
+    }
+  ]
+}

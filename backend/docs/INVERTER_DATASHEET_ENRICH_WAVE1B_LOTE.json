@@ -1,0 +1,80 @@
+{
+  "sprint": "P1-INVERTER-DATASHEET-ENRICH-WAVE1B-01",
+  "gerado_em": "2026-06-15T13:05:35.577Z",
+  "metodo": "PDF/página oficial do fabricante lido; sem dados de terceiros; origem=datasheet_pdfparse",
+  "aplicados": [
+    {
+      "modelo": "SUN2000G-US-220",
+      "projetos": 36,
+      "campos_preenchidos": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "campos_pulados_existentes": [],
+      "nivel": "invalido->utilizavel",
+      "score": 83,
+      "alertas": []
+    },
+    {
+      "modelo": "SUN-M225G4-EU-Q0",
+      "projetos": 30,
+      "campos_preenchidos": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "campos_pulados_existentes": [],
+      "nivel": "invalido->utilizavel",
+      "score": 83,
+      "alertas": []
+    },
+    {
+      "modelo": "TECH SPI6000-B2",
+      "projetos": 12,
+      "campos_preenchidos": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases"
+      ],
+      "campos_pulados_existentes": [],
+      "nivel": "invalido->utilizavel",
+      "score": 83,
+      "alertas": []
+    }
+  ],
+  "diferidos": [
+    {
+      "id": "6a272aff0bb8928e11abce1a",
+      "modelo": "SolarEdge SE 27.6K 380/220v",
+      "proj": 11,
+      "motivo": "solaredge.com 403; arquitetura otimizador (sem faixa MPPT tradicional)"
+    },
+    {
+      "id": "6a272aff0bb8928e11abce19",
+      "modelo": "SolarEdge SE 20.1K 380/220v",
+      "proj": 9,
+      "motivo": "solaredge.com 403; modelo SE20.1K a confirmar"
+    }
+  ]
+}

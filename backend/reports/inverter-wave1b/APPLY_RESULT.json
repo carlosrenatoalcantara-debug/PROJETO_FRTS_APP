@@ -1,0 +1,106 @@
+{
+  "sprint": "P1-INVERTER-DATASHEET-ENRICH-WAVE1B-01",
+  "aplicado": true,
+  "gerado_em": "2026-06-15T12:55:59.609Z",
+  "antes": {
+    "niveis": {
+      "suspeito": 164,
+      "invalido": 150,
+      "incompleto": 11,
+      "utilizavel": 32,
+      "validado": 1
+    },
+    "score": 35.28
+  },
+  "depois": {
+    "niveis": {
+      "invalido": 147,
+      "suspeito": 164,
+      "validado": 1,
+      "utilizavel": 35,
+      "incompleto": 11
+    },
+    "score": 35.84
+  },
+  "detalhe": [
+    {
+      "modelo": "SUN2000G-US-220",
+      "proj": 36,
+      "preench": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "pulados": [],
+      "nivel_antes": "invalido",
+      "nivel_depois": "utilizavel",
+      "score_antes": 16,
+      "score_depois": 83,
+      "alertas_depois": []
+    },
+    {
+      "modelo": "SUN-M225G4-EU-Q0",
+      "proj": 30,
+      "preench": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "pulados": [],
+      "nivel_antes": "invalido",
+      "nivel_depois": "utilizavel",
+      "score_antes": 16,
+      "score_depois": 83,
+      "alertas_depois": []
+    },
+    {
+      "modelo": "TECH SPI6000-B2",
+      "proj": 12,
+      "preench": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases"
+      ],
+      "pulados": [],
+      "nivel_antes": "invalido",
+      "nivel_depois": "utilizavel",
+      "score_antes": 16,
+      "score_depois": 83,
+      "alertas_depois": []
+    }
+  ],
+  "diferidos": [
+    {
+      "id": "6a272aff0bb8928e11abce1a",
+      "modelo": "SolarEdge SE 27.6K 380/220v",
+      "proj": 11,
+      "motivo": "solaredge.com 403; arquitetura otimizador (sem faixa MPPT tradicional)"
+    },
+    {
+      "id": "6a272aff0bb8928e11abce19",
+      "modelo": "SolarEdge SE 20.1K 380/220v",
+      "proj": 9,
+      "motivo": "solaredge.com 403; modelo SE20.1K a confirmar"
+    }
+  ]
+}
