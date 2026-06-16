@@ -9,6 +9,7 @@ import { ProjetoFV } from '../models/ProjetoFV.js'
 import { Equipamento } from '../models/Equipamento.js'
 import { gerarAtivosProjeto, gerarQrCode } from '../services/ativoService.js'
 import { criptografar, descriptografar } from '../services/ativoSeguranca.js'
+import { parseEtiqueta } from '../services/etiquetaParser.js'
 
 function _dbOk(res) {
   if (mongoose.connection.readyState !== 1) {
@@ -193,6 +194,25 @@ export const comissionarPorQr = async (req, res) => {
     if (obj.conectividade) obj.conectividade.senha_wifi = obj.conectividade.senha_wifi ? '••••••' : null  // nunca devolve a senha em claro
     res.json({ sucesso: true, qr_code: qr, alteracoes_registradas: alteracoes.length, status: ativo.status, item: obj })
   } catch (e) { res.status(400).json({ erro: e.message }) }
+}
+
+// POST /api/ativos/scan — P1-COMMISSIONING-SCAN-01
+// Extrai serial/MAC/SSID/senha de um QR (body.texto) ou de uma FOTO da etiqueta (campo "foto", OCR).
+// Pura extração: NÃO grava nada (o salvar é o /comissionar). Não toca Atlas/ProjetoFV.
+export const scanEtiqueta = async (req, res) => {
+  try {
+    let texto = (req.body?.texto || '').toString()
+    let fonte = texto ? 'qr' : null
+    if (!texto && req.file) {
+      const mod = await import('tesseract.js'); const Tesseract = mod.default ?? mod
+      const { data } = await Tesseract.recognize(req.file.buffer, 'por+eng')
+      texto = data?.text || ''
+      fonte = 'ocr'
+    }
+    if (!texto.trim()) return res.status(400).json({ erro: 'Envie {texto} (QR) ou uma foto no campo "foto".' })
+    const r = parseEtiqueta(texto, { fabricante: req.body?.fabricante })
+    res.json({ sucesso: true, fonte, campos: r.campos, confianca: r.confianca, texto_bruto: r.texto_normalizado.slice(0, 500) })
+  } catch (e) { res.status(500).json({ erro: e.message }) }
 }
 
 // POST /api/ativos  — cria um ativo avulso (gera QR se ausente)

@@ -1,0 +1,154 @@
+{
+  "sprint": "P1-COMMISSIONING-SCAN-01",
+  "gerado_em": "2026-06-16T13:12:33.954Z",
+  "total_casos": 9,
+  "casos_100pct": 9,
+  "campos_esperados": 22,
+  "campos_extraidos": 22,
+  "recall_campos_pct": 100,
+  "casos": [
+    {
+      "fabricante": "Deye",
+      "fonte": "QR k:v",
+      "esperados": [
+        "numero_serie",
+        "wifi_ssid",
+        "wifi_senha",
+        "mac_address"
+      ],
+      "obtidos": [
+        "mac_address",
+        "numero_serie",
+        "wifi_ssid",
+        "wifi_senha"
+      ],
+      "faltando": [],
+      "extras": [],
+      "ok": true
+    },
+    {
+      "fabricante": "Deye",
+      "fonte": "OCR",
+      "esperados": [
+        "numero_serie",
+        "wifi_ssid",
+        "wifi_senha",
+        "mac_address"
+      ],
+      "obtidos": [
+        "mac_address",
+        "numero_serie",
+        "wifi_ssid",
+        "wifi_senha"
+      ],
+      "faltando": [],
+      "extras": [],
+      "ok": true
+    },
+    {
+      "fabricante": "TSUN",
+      "fonte": "OCR",
+      "esperados": [
+        "numero_serie",
+        "wifi_ssid",
+        "wifi_senha"
+      ],
+      "obtidos": [
+        "numero_serie",
+        "wifi_ssid",
+        "wifi_senha"
+      ],
+      "faltando": [],
+      "extras": [],
+      "ok": true
+    },
+    {
+      "fabricante": "Hoymiles",
+      "fonte": "QR puro",
+      "esperados": [
+        "numero_serie"
+      ],
+      "obtidos": [
+        "numero_serie"
+      ],
+      "faltando": [],
+      "extras": [],
+      "ok": true
+    },
+    {
+      "fabricante": "SolarEdge",
+      "fonte": "OCR",
+      "esperados": [
+        "numero_serie"
+      ],
+      "obtidos": [
+        "numero_serie"
+      ],
+      "faltando": [],
+      "extras": [],
+      "ok": true
+    },
+    {
+      "fabricante": "Growatt",
+      "fonte": "OCR",
+      "esperados": [
+        "numero_serie",
+        "wifi_ssid",
+        "wifi_senha"
+      ],
+      "obtidos": [
+        "numero_serie",
+        "wifi_ssid",
+        "wifi_senha"
+      ],
+      "faltando": [],
+      "extras": [],
+      "ok": true
+    },
+    {
+      "fabricante": "Kehua",
+      "fonte": "OCR",
+      "esperados": [
+        "numero_serie"
+      ],
+      "obtidos": [
+        "numero_serie"
+      ],
+      "faltando": [],
+      "extras": [],
+      "ok": true
+    },
+    {
+      "fabricante": "NEP",
+      "fonte": "OCR",
+      "esperados": [
+        "numero_serie",
+        "mac_address"
+      ],
+      "obtidos": [
+        "mac_address",
+        "numero_serie"
+      ],
+      "faltando": [],
+      "extras": [],
+      "ok": true
+    },
+    {
+      "fabricante": "Deye",
+      "fonte": "JSON QR",
+      "esperados": [
+        "numero_serie",
+        "wifi_ssid",
+        "wifi_senha"
+      ],
+      "obtidos": [
+        "numero_serie",
+        "wifi_ssid",
+        "wifi_senha"
+      ],
+      "faltando": [],
+      "extras": [],
+      "ok": true
+    }
+  ]
+}
