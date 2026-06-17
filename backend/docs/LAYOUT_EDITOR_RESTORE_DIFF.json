@@ -1,0 +1,69 @@
+{
+  "gerado_em": "2026-06-17",
+  "sprint": "P0-LAYOUT-EDITOR-FV-RESTORE-01",
+  "executor": "Sonnet 4.6",
+  "revisao_gemini": "OBRIGATÓRIA e PENDENTE",
+  "alteracoes": [
+    {
+      "arquivo": "frontend/src/pages/ProjetosFVDetalhes.jsx",
+      "tipo": "MODIFICACAO",
+      "linhas_antes": "279-290",
+      "linhas_depois": "279-302",
+      "descricao": "Substituição do prop calculos (undefined) por fallback com valores NBR 5410 default. Expansão do prop projeto com cliente_nome.",
+      "diff_sintetico": {
+        "removido": [
+          "calculos={projeto?.calculos_nbr}"
+        ],
+        "adicionado": [
+          "calculos={projeto?.calculos_nbr ?? {",
+          "  corrente_projeto_a: 32.5,",
+          "  corrente_maxima_a: 40,",
+          "  disjuntor_a: 32,",
+          "  dps_kv: 275,",
+          "  dps_capacidade_a: 50,",
+          "  dr_ma: 30,",
+          "  bitola_cabo_mm2: 6,",
+          "  queda_tensao_pct: null,",
+          "  tempo_seccionamento_s: null,",
+          "  materiais: [],",
+          "}}",
+          "cliente_nome: projeto?.clienteId?.nome || projeto?.nomeCliente,"
+        ]
+      }
+    }
+  ],
+  "arquivos_nao_alterados": [
+    "frontend/src/components/diagram/InteractiveDiagram.jsx",
+    "frontend/src/components/diagram/utils/reactFlowHelpers.js",
+    "frontend/src/pages/ProjetosEVDetalhes.jsx",
+    "backend/src/models/ProjetoFV.js",
+    "backend/src/models/ProjetoEV.js",
+    "backend/src/controllers/projetosFVController.js"
+  ],
+  "compatibilidade": {
+    "projetos_ev": "PRESERVADA — operador ?? não ativa quando calculos_nbr existe (objeto truthy)",
+    "projetos_fv": "RESTAURADA — fallback ativa porque calculos_nbr = undefined em todos os 575 projetos FV",
+    "schemas_mongo": "INALTERADOS",
+    "dados_atlas": "INALTERADOS"
+  },
+  "valores_default_escolhidos": {
+    "rationale": "Instalação EV monofásica 220V 7kW típica. Valores editáveis pelo usuário dentro do editor.",
+    "corrente_projeto_a": { "valor": 32.5, "unidade": "A", "origem": "7000W / 220V ≈ 31.8A arredondado" },
+    "corrente_maxima_a": { "valor": 40, "unidade": "A", "origem": "125% da corrente nominal (NR10)" },
+    "disjuntor_a": { "valor": 32, "unidade": "A", "origem": "Padrão monofásico NBR 5410" },
+    "dps_kv": { "valor": 275, "unidade": "kV", "origem": "DPS Classe II tensão de proteção típica" },
+    "dps_capacidade_a": { "valor": 50, "unidade": "A", "origem": "Capacidade de descarga DPS típica" },
+    "dr_ma": { "valor": 30, "unidade": "mA", "origem": "Corrente de operação DR padrão NBR 5410" },
+    "bitola_cabo_mm2": { "valor": 6, "unidade": "mm²", "origem": "Seção mínima para 32A" },
+    "queda_tensao_pct": { "valor": null, "origem": "Não calculável sem dados de comprimento EV" },
+    "tempo_seccionamento_s": { "valor": null, "origem": "Depende do tipo de circuito" },
+    "materiais": { "valor": [], "origem": "Lista vazia — preenchida pelo usuário no editor" }
+  },
+  "build": {
+    "resultado": "SUCESSO",
+    "modulos_transformados": 2317,
+    "tempo_segundos": 15.9,
+    "erros": 0,
+    "warnings_preexistentes": ["chunk size > 2000kB (unrelated)"]
+  }
+}

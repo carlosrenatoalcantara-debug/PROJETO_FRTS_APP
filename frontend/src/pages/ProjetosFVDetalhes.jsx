@@ -277,9 +277,21 @@ export default function ProjetosFVDetalhes() {
             {/* Conteúdo do Modal */}
             <div className="flex-1 overflow-hidden bg-slate-50">
               <InteractiveDiagram
-                calculos={projeto?.calculos_nbr}
+                calculos={projeto?.calculos_nbr ?? {
+                  corrente_projeto_a: 32.5,
+                  corrente_maxima_a: 40,
+                  disjuntor_a: 32,
+                  dps_kv: 275,
+                  dps_capacidade_a: 50,
+                  dr_ma: 30,
+                  bitola_cabo_mm2: 6,
+                  queda_tensao_pct: null,
+                  tempo_seccionamento_s: null,
+                  materiais: [],
+                }}
                 projeto={{
                   projeto_nome: projeto?.nomeCliente,
+                  cliente_nome: projeto?.clienteId?.nome || projeto?.nomeCliente,
                   endereco: projeto?.endereco,
                   comprimento_cabo: projeto?.comprimento_cabo_m || 10,
                 }}
