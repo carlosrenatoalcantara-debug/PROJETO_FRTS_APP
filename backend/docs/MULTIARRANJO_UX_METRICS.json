@@ -1,0 +1,47 @@
+{
+  "sprint": "P1-MULTIARRANJO-UX-RESTORE-01",
+  "gerado_em": "2026-06-17T12:57:16.571Z",
+  "escopo": "UX de engenharia FV (frontend GerenciadorArranjos.jsx). Backend/Mongo/ProjetoFV intactos.",
+  "fase1_antes": {
+    "modulos_por_arranjo": 1,
+    "inversores_por_arranjo": 1,
+    "selecao": "dropdown unico (lista gigante) sem fabricante->modelo",
+    "quantidade": "so modulos",
+    "orientacao_inclinacao": false,
+    "duplicar_arranjo": false
+  },
+  "fase2_3_depois": {
+    "modulos_por_arranjo": "N (add/remover)",
+    "inversores_por_arranjo": "N (add/remover)",
+    "selecao": "hierarquica Fabricante->Modelo",
+    "quantidade": "por linha (cada modulo e inversor)",
+    "mesmo_fab_modelos_diferentes": true,
+    "fabricantes_diferentes_mesmo_arranjo": true
+  },
+  "fase4_arranjos": {
+    "novo": true,
+    "duplicar": true,
+    "excluir": true,
+    "orientacao": true,
+    "inclinacao": true,
+    "nota_persistencia_orientacao": "UX/informativa — subdoc de arranjo nao tem orientacao/inclinacao; canonico nos panos (E6). Schema NAO alterado."
+  },
+  "fase5_cenarios_reais_validados_schema": {
+    "Fazenda Alice": "2 arranjos (75 OSDA+1 Deye / 80 DAH+1 Kehua) — 0 erros",
+    "Paulo Carlos": "original(somente_leitura)+ampliacao — 0 erros",
+    "Escola Pinheiro": "1 arranjo, 138 mod em 2 modelos + 2 inversores — 0 erros"
+  },
+  "fase6_persistencia": {
+    "shape_aceito_pelo_schema": true,
+    "salva_via": "salvarArranjos -> salvarEtapa(arranjos)",
+    "pass_through_E7": "blocoParaBackend ja faz pass-through de paineis[]/inversores[]",
+    "round_trip_e2e_autenticado": "nao percorrido (rota atras de login)"
+  },
+  "fase7_ux": {
+    "selecao_hierarquica": true,
+    "listas_gigantes_eliminadas": true,
+    "layout": "linhas compactas (grid 4 col) — menos vertical",
+    "arquitetura_alterada": false,
+    "action_usada": "SET_ARRANJOS (existente)"
+  }
+}
