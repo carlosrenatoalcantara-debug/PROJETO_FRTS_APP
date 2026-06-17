@@ -8,6 +8,9 @@
  * (unifilar/memorial/homologação/certificados). Marca `_fonte: 'catalogo'`.
  */
 
+// P0-DIMENSIONAMENTO-ENGINEERING-RESTORE-01: reúso da fonte única de tecnologia (sem duplicar regras).
+import { tecnologiaInversor } from '../../../backend/src/services/regrasPlausibilidade.js'
+
 const num = (v) => { if (v == null || v === '') return null; const n = Number(v); return Number.isFinite(n) ? n : null }
 const pick = (e, ks) => { for (const k of ks) { const v = num(e?.[k]); if (v !== null) return v } return null }
 const pickStr = (e, ks) => { for (const k of ks) { const v = e?.[k]; if (v != null && v !== '') return v } return null }
@@ -76,10 +79,12 @@ export function adaptarInversor(eq) {
     _catalogo_original: eq,
     // Dados elétricos inline (substituem DADOS_ELETRICOS_INVERSORES p/ itens do catálogo)
     _eletrico: {
-      tensao_max_entrada: pick(e, ['voc_max', 'voc_max_dc', 'tensao_max_dc']),
-      mppt_min: pick(e, ['faixa_mppt_min', 'mppt_min']),
-      mppt_max: pick(e, ['faixa_mppt_max', 'mppt_max']),
-      corrente_max_mppt: pick(e, ['corrente_max_mppt', 'isc_max_mppt', 'ipv_max']),
+      // RESTORE-01: lê também as chaves canônicas do enriquecimento (tensao_max_entrada, tensao_mppt_*,
+      // corrente_max_por_mppt) — antes só lia voc_max/mppt_min/max e perdia o dado já existente no banco.
+      tensao_max_entrada: pick(e, ['tensao_max_entrada', 'voc_max', 'voc_max_dc', 'tensao_max_dc']),
+      mppt_min: pick(e, ['tensao_mppt_min', 'faixa_mppt_min', 'mppt_min']),
+      mppt_max: pick(e, ['tensao_mppt_max', 'faixa_mppt_max', 'mppt_max']),
+      corrente_max_mppt: pick(e, ['corrente_max_por_mppt', 'corrente_max_mppt', 'isc_max_mppt', 'ipv_max']),
       isc_max_mppt: pick(e, ['isc_max_mppt', 'corrente_curto_mppt', 'isc_max']),  // audit S8.1.1
       potencia_fv_max: pick(e, ['potencia_cc_max', 'potencia_dc_max', 'pdc_max']), // audit S8.1.1
       oversizing_max: pick(e, ['oversizing_max']) ?? 1.30,
@@ -91,11 +96,20 @@ export function adaptarInversor(eq) {
 }
 
 export function agruparInversores(equipamentos) {
-  // tree: tipo → marca → fase → [modelos]. Catálogo não traz tipo → assume 'string'.
+  // tree: tecnologia → marca → fase → [modelos].
+  // RESTORE-01: classifica via tecnologiaInversor (fonte única reusada) em vez do hard-code 'string'.
   const tree = {}
   for (const eq of equipamentos) {
     const inv = adaptarInversor(eq)
-    const tipo = 'string'
+    const e = eq.especificacoes || {}
+    const tec = tecnologiaInversor({
+      fabricante: eq.fabricante,
+      modelo:     eq.modelo,
+      voc_max_dc_v:   pick(e, ['tensao_max_entrada', 'voc_max', 'voc_max_dc', 'tensao_max_dc']),
+      potencia_kw_ca: pick(e, ['potencia_kw', 'potencia', 'potencia_ca']),
+      n_mppts:        pick(e, ['n_mppts', 'mppts', 'numero_mppt']),
+    })
+    const tipo = tec === 'microinversor' ? 'micro' : tec   // micro | string | otimizador | hibrido
     const marca = eq.fabricante || '—'
     const fase = inv._fases === 3 ? 'trifasico' : 'monofasico'
     tree[tipo] = tree[tipo] || {}

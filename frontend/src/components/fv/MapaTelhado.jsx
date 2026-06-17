@@ -15,7 +15,7 @@ import { geocodificarEndereco } from '../../services/geocodingApi'
 const API_URL = '' /* URL relativa forcada - Vercel proxy → Railway */
 const BRASIL_CENTER = { lat: -14, lng: -54 }
 const BRASIL_ZOOM = 4
-const LOCAL_ZOOM = 17
+const LOCAL_ZOOM = 19   // RESTORE-01: zoom inicial mais próximo p/ visualizar telhado (era 17). Sem maxZoom (default Google).
 
 function temCoordenadasValidas(lat, lng) {
   return Number.isFinite(Number(lat)) && Number.isFinite(Number(lng))

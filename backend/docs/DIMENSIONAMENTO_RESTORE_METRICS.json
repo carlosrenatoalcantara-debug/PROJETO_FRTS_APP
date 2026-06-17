@@ -1,0 +1,85 @@
+{
+  "sprint": "P0-DIMENSIONAMENTO-ENGINEERING-RESTORE-01",
+  "gerado_em": "2026-06-17T12:42:04.394Z",
+  "causa_raiz_validada": true,
+  "fase1_classificacao": {
+    "micro": 16,
+    "string": 149,
+    "otimizador": 9,
+    "hibrido": 1,
+    "sem_classificacao": 0,
+    "total": 175
+  },
+  "fase2_fix": "agruparInversores reusa tecnologiaInversor (regrasPlausibilidade.js) — hard-code removido; +otimizador na fonte unica",
+  "fase3_filtro": {
+    "Deye": {
+      "micro": 3,
+      "string": 38,
+      "otimizador": 0,
+      "hibrido": 1
+    },
+    "Hoymiles": {
+      "micro": 3,
+      "string": 0,
+      "otimizador": 0,
+      "hibrido": 0
+    },
+    "TSUN": {
+      "micro": 5,
+      "string": 0,
+      "otimizador": 0,
+      "hibrido": 0
+    },
+    "SolarEdge": {
+      "micro": 0,
+      "string": 0,
+      "otimizador": 9,
+      "hibrido": 0
+    },
+    "APsystems": {
+      "micro": 2,
+      "string": 0,
+      "otimizador": 0,
+      "hibrido": 0
+    }
+  },
+  "fase4_potencia": {
+    "ainda_interrogacao_kW": 122,
+    "ainda_interrogacao_W": 3,
+    "leitura_corrigida": [
+      "adaptarInversor _eletrico: + tensao_max_entrada/tensao_mppt_min/max/corrente_max_por_mppt",
+      "GerenciadorArranjos: + especificacoes.potencia_w/potencia"
+    ],
+    "dado_inventado": false
+  },
+  "fase5_arranjos": {
+    "backend": true,
+    "frontend": true,
+    "persistencia": true,
+    "api": true,
+    "funcional": true,
+    "regressao": false
+  },
+  "fase6_quantidade": {
+    "auto": "E5Dimensionamento",
+    "manual": "E7/ConfiguradorArranjoFV",
+    "persistencia": true,
+    "regressao": false
+  },
+  "fase7_mapa": {
+    "local_zoom_antes": 17,
+    "local_zoom_depois": 19,
+    "maxZoom": "default Google (sem cap)",
+    "satellite": "hybrid"
+  },
+  "fase8_e2e": {
+    "classificacao_verificada_no_browser": true,
+    "abas": [
+      "micro",
+      "otimizador",
+      "string",
+      "(hibrido qdo presente)"
+    ],
+    "wizard_autenticado_e2e": "parcial (verificado o nucleo da regressao)"
+  }
+}

@@ -23,8 +23,8 @@ function inversorDoBloco(b) { return b.inversor || b.inversores?.[0] || null }
 function rotuloEquip(e, tipo) {
   if (!e) return '— selecionar —'
   const pot = tipo === 'modulo'
-    ? `${e.potencia_w || e.potenciaW || e.especificacoes?.potencia_wp || '?'}W`
-    : `${e.potencia_kw || e.potenciaKW || e.especificacoes?.potencia_kw || '?'}kW`
+    ? `${e.potencia_w || e.potenciaW || e.especificacoes?.potencia_wp || e.especificacoes?.potencia_w || e.especificacoes?.potencia || '?'}W`
+    : `${e.potencia_kw || e.potenciaKW || e.especificacoes?.potencia_kw || e.especificacoes?.potencia || '?'}kW`
   return `${e.fabricante || e.marca || ''} ${e.modelo || ''} · ${pot}`.trim()
 }
 

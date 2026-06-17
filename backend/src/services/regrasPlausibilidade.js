@@ -363,10 +363,14 @@ export const REGRAS_MODULO = [
 // P1-QUALITY-MICRO-CALIBRATION-APPLY-01 — detecção mínima de tecnologia do inversor
 // (micro/string/híbrido) para faixas de plausibilidade específicas. Heurística, não
 // cria nova classificação persistida — usada só dentro das regras de tensão.
-function tecnologiaInversor(specs) {
+// Fonte ÚNICA de tecnologia do inversor (micro/string/otimizador/hibrido). Exportada para
+// reúso no adaptador de engenharia (P0-DIMENSIONAMENTO-ENGINEERING-RESTORE-01) — sem duplicar regras.
+// Nas regras de qualidade, só 'microinversor' altera faixas; 'otimizador' usa faixas de string (igual antes).
+export function tecnologiaInversor(specs) {
   const nome = `${specs.fabricante || ''} ${specs.modelo || ''}`.toLowerCase()
   if (/hibrid|hybrid|\bbess\b|storage|all-?in-?one|h1-|hb-|sun-?\d+k-?sg|-eu-sg/.test(nome)) return 'hibrido'
-  if (/micro|sun-?m\d|tsol-?m[xpps]|hms-|hmt-|\bm2-|bdm-|iq[78]|ds3|mi-?\d{3,4}/.test(nome)) return 'microinversor'
+  if (/solaredge|hd-?wave|\boptimi|otimizad/.test(nome)) return 'otimizador'
+  if (/micro|sun-?m\d|tsol-?m[xpps]|hms-|hmt-|\bm2-|bdm-|iq[78]|ds3|apsystem|ez1|qs1|yc[56]\d{2}|mi-?\d{3,4}/.test(nome)) return 'microinversor'
   const voc = num(specs.voc_max_dc_v)
   if (voc !== null && voc <= 100) return 'microinversor'
   if (voc !== null && voc >= 200) return 'string'

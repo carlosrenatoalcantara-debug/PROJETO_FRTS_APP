@@ -1,0 +1,756 @@
+{
+  "counts": {
+    "micro": 16,
+    "string": 149,
+    "otimizador": 9,
+    "hibrido": 1
+  },
+  "total": 175,
+  "sem_classificacao": 0,
+  "grupos": {
+    "micro": [
+      {
+        "fabricante": "Deye",
+        "modelo": "SUN2000G-US-220"
+      },
+      {
+        "fabricante": "Deye",
+        "modelo": "SUN2000G3-US-220"
+      },
+      {
+        "fabricante": "Saj",
+        "modelo": "M2-2.25K-S4"
+      },
+      {
+        "fabricante": "Hoymiles",
+        "modelo": "HMS-2000DW-4T"
+      },
+      {
+        "fabricante": "Tsun",
+        "modelo": "TSOL-MX2250"
+      },
+      {
+        "fabricante": "Deye",
+        "modelo": "SUN-M225G4-EU-Q0"
+      },
+      {
+        "fabricante": "Tsun",
+        "modelo": "TSOL-MP2250"
+      },
+      {
+        "fabricante": "Apsystems",
+        "modelo": "DS3D-220"
+      },
+      {
+        "fabricante": "Hoymiles",
+        "modelo": "HMS-2000-4T"
+      },
+      {
+        "fabricante": "Hoymiles",
+        "modelo": "HMS-1800-4T"
+      },
+      {
+        "fabricante": "Tsun",
+        "modelo": "TSOL-MX2500D"
+      },
+      {
+        "fabricante": "Enphase",
+        "modelo": "IQ8P-72-2-BR"
+      },
+      {
+        "fabricante": "Tsun",
+        "modelo": "TSOL-MS2000"
+      },
+      {
+        "fabricante": "Nep",
+        "modelo": "BDM-2250"
+      },
+      {
+        "fabricante": "Apsystems",
+        "modelo": "QT2D-380"
+      },
+      {
+        "fabricante": "Tsun",
+        "modelo": "TSOL-MP3000"
+      }
+    ],
+    "string": [
+      {
+        "fabricante": "Goodwe",
+        "modelo": "GW25K-DT"
+      },
+      {
+        "fabricante": "Solplanet",
+        "modelo": "ASW7300-S"
+      },
+      {
+        "fabricante": "Solplanet",
+        "modelo": "ASW12K-LT-G2"
+      },
+      {
+        "fabricante": "Chint",
+        "modelo": "SCA50KTL-T"
+      },
+      {
+        "fabricante": "Chint",
+        "modelo": "SCA60KTL-T"
+      },
+      {
+        "fabricante": "Goodwe",
+        "modelo": "GW17K-DT"
+      },
+      {
+        "fabricante": "Goodwe",
+        "modelo": "GW20K-DT"
+      },
+      {
+        "fabricante": "Solis",
+        "modelo": "1P7K-4G"
+      },
+      {
+        "fabricante": "Solis",
+        "modelo": "1P7K-5G"
+      },
+      {
+        "fabricante": "Deye",
+        "modelo": "SUN-23K-G04-LV"
+      },
+      {
+        "fabricante": "Huawei",
+        "modelo": "SUN2000-30KTL-M3"
+      },
+      {
+        "fabricante": "Huawei",
+        "modelo": "SUN2000-36KTL-M3"
+      },
+      {
+        "fabricante": "Huawei",
+        "modelo": "SUN2000-40KTL-M3"
+      },
+      {
+        "fabricante": "Huawei",
+        "modelo": "SUN2000-100KTL-M"
+      },
+      {
+        "fabricante": "Huawei",
+        "modelo": "SUN2000-100KTL-M2"
+      },
+      {
+        "fabricante": "Huawei",
+        "modelo": "SUN2000-100KTL"
+      },
+      {
+        "fabricante": "Goodwe",
+        "modelo": "GW73KLV-HT"
+      },
+      {
+        "fabricante": "Goodwe",
+        "modelo": "GW80K-HT"
+      },
+      {
+        "fabricante": "Goodwe",
+        "modelo": "GW100K-HT"
+      },
+      {
+        "fabricante": "Goodwe",
+        "modelo": "GW110K-HT"
+      },
+      {
+        "fabricante": "Goodwe",
+        "modelo": "GW120K-HT"
+      },
+      {
+        "fabricante": "Goodwe",
+        "modelo": "GW136K-HTH"
+      },
+      {
+        "fabricante": "Solplanet",
+        "modelo": "ASW9100-S"
+      },
+      {
+        "fabricante": "Growatt",
+        "modelo": "MID15KTL3-X"
+      },
+      {
+        "fabricante": "Growatt",
+        "modelo": "MID20KTL3-X"
+      },
+      {
+        "fabricante": "Growatt",
+        "modelo": "MID25KTL3-X"
+      },
+      {
+        "fabricante": "Solplanet",
+        "modelo": "ASW30K-LT-G2"
+      },
+      {
+        "fabricante": "Solplanet",
+        "modelo": "ASW33K-LT-G2"
+      },
+      {
+        "fabricante": "Solplanet",
+        "modelo": "ASW36K-LT-G2"
+      },
+      {
+        "fabricante": "Solplanet",
+        "modelo": "ASW40K-LT-G2"
+      },
+      {
+        "fabricante": "Solplanet",
+        "modelo": "ASW45K-LT-G2"
+      },
+      {
+        "fabricante": "Solplanet",
+        "modelo": "ASW50K-LT-G2"
+      },
+      {
+        "fabricante": "SolaX",
+        "modelo": "X3-ULT-15K"
+      },
+      {
+        "fabricante": "SolaX",
+        "modelo": "X3-ULT-15KP"
+      },
+      {
+        "fabricante": "SolaX",
+        "modelo": "X3-ULT-19.9K"
+      },
+      {
+        "fabricante": "SolaX",
+        "modelo": "X3-ULT-20K"
+      },
+      {
+        "fabricante": "SolaX",
+        "modelo": "X3-ULT-20KP"
+      },
+      {
+        "fabricante": "SolaX",
+        "modelo": "X3-ULT-25K"
+      },
+      {
+        "fabricante": "SolaX",
+        "modelo": "X3-ULT-30K"
+      },
+      {
+        "fabricante": "SolaX",
+        "modelo": "X1-SPT-10K"
+      },
+      {
+        "fabricante": "SolaX",
+        "modelo": "X1-SPT-12K"
+      },
+      {
+        "fabricante": "Deye",
+        "modelo": "SUN-5K-G @220"
+      },
+      {
+        "fabricante": "Deye",
+        "modelo": "SUN-75K-G"
+      },
+      {
+        "fabricante": "Deye",
+        "modelo": "SUN-35K-G03"
+      },
+      {
+        "fabricante": "Growatt",
+        "modelo": "MAC 60KTL3-X LV"
+      },
+      {
+        "fabricante": "Deye",
+        "modelo": "SUN-8K-G03"
+      },
+      {
+        "fabricante": "Growatt",
+        "modelo": "MIC 3000TL-X"
+      },
+      {
+        "fabricante": "Growatt",
+        "modelo": "MIN 5000TL-X"
+      },
+      {
+        "fabricante": "Deye",
+        "modelo": "SUN-35K-G02"
+      },
+      {
+        "fabricante": "Growatt",
+        "modelo": "MAX 75KTL3 LV"
+      },
+      {
+        "fabricante": "Growatt",
+        "modelo": "MIN 8000TL-X(E)"
+      },
+      {
+        "fabricante": "Deye",
+        "modelo": "SUN-30K-G"
+      },
+      {
+        "fabricante": "Deye",
+        "modelo": "SUN-8K-G"
+      },
+      {
+        "fabricante": "Growatt",
+        "modelo": "MIN 6000TL-X"
+      },
+      {
+        "fabricante": "Growatt",
+        "modelo": "MID 36KTL3-X"
+      },
+      {
+        "fabricante": "Growatt",
+        "modelo": "MIN 10000 TL-X"
+      },
+      {
+        "fabricante": "Kehua",
+        "modelo": "TECH SPI20K-B"
+      },
+      {
+        "fabricante": "Growatt",
+        "modelo": "MID 40KTL3-X"
+      },
+      {
+        "fabricante": "Growatt",
+        "modelo": "MIC 2000TL-X"
+      },
+      {
+        "fabricante": "Growatt",
+        "modelo": "MIC 2500TL-X"
+      },
+      {
+        "fabricante": "Kehua",
+        "modelo": "TECH SPI15K-B X2"
+      },
+      {
+        "fabricante": "Deye",
+        "modelo": "SUN-20K-G"
+      },
+      {
+        "fabricante": "Solis",
+        "modelo": "50K"
+      },
+      {
+        "fabricante": "Kehua",
+        "modelo": "TECH SPI60K-B"
+      },
+      {
+        "fabricante": "Deye",
+        "modelo": "SUN-25K-G02"
+      },
+      {
+        "fabricante": "Kehua",
+        "modelo": "TECH SPI30K-B X2"
+      },
+      {
+        "fabricante": "Growatt",
+        "modelo": "50000TL3-S"
+      },
+      {
+        "fabricante": "Chint",
+        "modelo": "POWER CPS SCA50KTL-T/EU"
+      },
+      {
+        "fabricante": "Deye",
+        "modelo": "SUN-10K-G"
+      },
+      {
+        "fabricante": "Fronius",
+        "modelo": "PRIMO 6.0-1"
+      },
+      {
+        "fabricante": "Deye",
+        "modelo": "SUN-4K-G"
+      },
+      {
+        "fabricante": "Growatt",
+        "modelo": "MAX 60KTL3 LV"
+      },
+      {
+        "fabricante": "Growatt",
+        "modelo": "MAC 50KTL3-X LV"
+      },
+      {
+        "fabricante": "Kehua",
+        "modelo": "TECH SPI15K-B"
+      },
+      {
+        "fabricante": "Solplanet",
+        "modelo": "ASW33K-LT-G3"
+      },
+      {
+        "fabricante": "Kehua",
+        "modelo": "TECH SPI8000-B X2"
+      },
+      {
+        "fabricante": "Growatt",
+        "modelo": "MID 30KTL3-X"
+      },
+      {
+        "fabricante": "Deye",
+        "modelo": "SUN-15K-G02-LV"
+      },
+      {
+        "fabricante": "Deye",
+        "modelo": "SUN-6K-G"
+      },
+      {
+        "fabricante": "Chint",
+        "modelo": "POWER CPS SCA15KTL-T/EU"
+      },
+      {
+        "fabricante": "Sofar",
+        "modelo": "7.5KTLM"
+      },
+      {
+        "fabricante": "Deye",
+        "modelo": "SUN-12K-G"
+      },
+      {
+        "fabricante": "Kehua",
+        "modelo": "TECH SPI9000-B X2"
+      },
+      {
+        "fabricante": "Deye",
+        "modelo": "SUN-75K-G03"
+      },
+      {
+        "fabricante": "Kehua",
+        "modelo": "TECH SPI17K-B"
+      },
+      {
+        "fabricante": "Deye",
+        "modelo": "SUN1000G3-US-220"
+      },
+      {
+        "fabricante": "Solplanet",
+        "modelo": "ASW20K-LT-G2 Pro"
+      },
+      {
+        "fabricante": "Sofar",
+        "modelo": "4KTLM-G3"
+      },
+      {
+        "fabricante": "Deye",
+        "modelo": "SUN-15K-G05"
+      },
+      {
+        "fabricante": "Deye",
+        "modelo": "SUN-18K-G03"
+      },
+      {
+        "fabricante": "Deye",
+        "modelo": "SUN-20K-G04"
+      },
+      {
+        "fabricante": "Deye",
+        "modelo": "SUN-75K-G05"
+      },
+      {
+        "fabricante": "Solplanet",
+        "modelo": "ASW4000-S-G2"
+      },
+      {
+        "fabricante": "Deye",
+        "modelo": "MINVDE-MO-220-2.25KW"
+      },
+      {
+        "fabricante": "Deye",
+        "modelo": "SUN-7K-G"
+      },
+      {
+        "fabricante": "Deye",
+        "modelo": "SUN-6.6K-G05P1-EU-AM2"
+      },
+      {
+        "fabricante": "Deye",
+        "modelo": "SUN-40K-G03"
+      },
+      {
+        "fabricante": "Kehua",
+        "modelo": "TECH SPI6000-B2"
+      },
+      {
+        "fabricante": "Deye",
+        "modelo": "SUN-35K-G"
+      },
+      {
+        "fabricante": "Deye",
+        "modelo": "SUN-40K-G"
+      },
+      {
+        "fabricante": "Deye",
+        "modelo": "SUN-18K-G04"
+      },
+      {
+        "fabricante": "Deye",
+        "modelo": "SUN-5K-G05"
+      },
+      {
+        "fabricante": "Kehua",
+        "modelo": "TECH SPI40K-B"
+      },
+      {
+        "fabricante": "Deye",
+        "modelo": "SUN-25K-G"
+      },
+      {
+        "fabricante": "Deye",
+        "modelo": "SUN-60K-G"
+      },
+      {
+        "fabricante": "Growatt",
+        "modelo": "NEO 2000M-X"
+      },
+      {
+        "fabricante": "Kehua",
+        "modelo": "TECH SPI125K-B"
+      },
+      {
+        "fabricante": "Solis",
+        "modelo": "S6-GR1P5K-S"
+      },
+      {
+        "fabricante": "Deye",
+        "modelo": "SUN-15K-G03"
+      },
+      {
+        "fabricante": "Solis",
+        "modelo": "S6-GR1P3K-S"
+      },
+      {
+        "fabricante": "Deye",
+        "modelo": "SUN-5K-G @380"
+      },
+      {
+        "fabricante": "Deye",
+        "modelo": "SUN-20K-G02-LV"
+      },
+      {
+        "fabricante": "Sungrow",
+        "modelo": "SG75CX-P2"
+      },
+      {
+        "fabricante": "Kehua",
+        "modelo": "TECH SPI36K-B X2"
+      },
+      {
+        "fabricante": "Solplanet",
+        "modelo": "ASW5000-S-G2"
+      },
+      {
+        "fabricante": "Kehua",
+        "modelo": "TECH SPI10000-B X2P"
+      },
+      {
+        "fabricante": "Kehua",
+        "modelo": "TECH SPI20K-B X2"
+      },
+      {
+        "fabricante": "Solis",
+        "modelo": "MINI-1500-4G"
+      },
+      {
+        "fabricante": "Kehua",
+        "modelo": "TECH SPI50K-B"
+      },
+      {
+        "fabricante": "Kehua",
+        "modelo": "TECH SPI10K-B X2"
+      },
+      {
+        "fabricante": "Goodwe",
+        "modelo": "GW10K-MS"
+      },
+      {
+        "fabricante": "Growatt",
+        "modelo": "15000TL3-S"
+      },
+      {
+        "fabricante": "Growatt",
+        "modelo": "MAC 25KTL3-XL"
+      },
+      {
+        "fabricante": "Goodwe",
+        "modelo": "GW5000-DNS-30"
+      },
+      {
+        "fabricante": "Goodwe",
+        "modelo": "GW15K-SDT-20"
+      },
+      {
+        "fabricante": "Sungrow",
+        "modelo": "SG8K3-D"
+      },
+      {
+        "fabricante": "Goodwe",
+        "modelo": "GW8000-DT"
+      },
+      {
+        "fabricante": "Solplanet",
+        "modelo": "ASW6000-S-G2"
+      },
+      {
+        "fabricante": "Goodwe",
+        "modelo": "GW5000-DT"
+      },
+      {
+        "fabricante": "Goodwe",
+        "modelo": "GW8000-MS-C30"
+      },
+      {
+        "fabricante": "Solis",
+        "modelo": "S5-GC37.5K"
+      },
+      {
+        "fabricante": "Kehua",
+        "modelo": "TECH SPI25K-B X2"
+      },
+      {
+        "fabricante": "Solplanet",
+        "modelo": "ASW3000-S-G2"
+      },
+      {
+        "fabricante": "Sungrow",
+        "modelo": "SG15RT-P2"
+      },
+      {
+        "fabricante": "Solplanet",
+        "modelo": "ASW15K-LT-G2 Pro"
+      },
+      {
+        "fabricante": "Deye",
+        "modelo": "SUN-10K-G @380"
+      },
+      {
+        "fabricante": "Goodwe",
+        "modelo": "GW7.5K-MS-G40"
+      },
+      {
+        "fabricante": "Goodwe",
+        "modelo": "GW3300-XS-30"
+      },
+      {
+        "fabricante": "Solax",
+        "modelo": "X1-BOOST-6K-G4"
+      },
+      {
+        "fabricante": "Deye",
+        "modelo": "SUN-7.5K-G"
+      },
+      {
+        "fabricante": "Solis",
+        "modelo": "S6-GR1P5K"
+      },
+      {
+        "fabricante": "Sungrow",
+        "modelo": "SG6K-D"
+      },
+      {
+        "fabricante": "Deye",
+        "modelo": "SUN1300G-US-220"
+      },
+      {
+        "fabricante": "Deye",
+        "modelo": "SUN-20K-G02"
+      },
+      {
+        "fabricante": "Kehua",
+        "modelo": "TECH SPI25K-B"
+      },
+      {
+        "fabricante": "Growatt",
+        "modelo": "20000TL3-S"
+      },
+      {
+        "fabricante": "Belenergy",
+        "modelo": "BEL-4K-G"
+      },
+      {
+        "fabricante": "Belenergy",
+        "modelo": "60K-4G"
+      },
+      {
+        "fabricante": "Dah",
+        "modelo": "DHN-SU1K5T-G0"
+      }
+    ],
+    "otimizador": [
+      {
+        "fabricante": "Solaredge",
+        "modelo": "SE 20.1K 380/220v"
+      },
+      {
+        "fabricante": "Solaredge",
+        "modelo": "SE 27.6K 380/220v"
+      },
+      {
+        "fabricante": "Solaredge",
+        "modelo": "SE 75K 380/220v"
+      },
+      {
+        "fabricante": "Solaredge",
+        "modelo": "SE 27.6K 220/127v"
+      },
+      {
+        "fabricante": "Solaredge",
+        "modelo": "SE 20.1K 220/127v"
+      },
+      {
+        "fabricante": "Solaredge",
+        "modelo": "SE 33.3K 380/220v"
+      },
+      {
+        "fabricante": "Solaredge",
+        "modelo": "SE 100K Manager 380/220v"
+      },
+      {
+        "fabricante": "Solaredge",
+        "modelo": "SE8250H 220V"
+      },
+      {
+        "fabricante": "Solaredge",
+        "modelo": "SE 75K Manager 380/220v"
+      }
+    ],
+    "hibrido": [
+      {
+        "fabricante": "Deye",
+        "modelo": "SUN-8K-SG01LP1-EU"
+      }
+    ]
+  },
+  "filtro": {
+    "Deye": {
+      "micro": 3,
+      "string": 38,
+      "otimizador": 0,
+      "hibrido": 1
+    },
+    "Hoymiles": {
+      "micro": 3,
+      "string": 0,
+      "otimizador": 0,
+      "hibrido": 0
+    },
+    "TSUN": {
+      "micro": 5,
+      "string": 0,
+      "otimizador": 0,
+      "hibrido": 0
+    },
+    "SolarEdge": {
+      "micro": 0,
+      "string": 0,
+      "otimizador": 9,
+      "hibrido": 0
+    },
+    "APsystems": {
+      "micro": 2,
+      "string": 0,
+      "otimizador": 0,
+      "hibrido": 0
+    }
+  },
+  "potencia": {
+    "inversores_sem_potencia": 122,
+    "modulos_sem_potencia": 3
+  }
+}

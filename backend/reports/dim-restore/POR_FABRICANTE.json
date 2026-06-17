@@ -1,0 +1,70 @@
+{
+  "Deye": {
+    "micro": 3,
+    "string": 38,
+    "hibrido": 1
+  },
+  "Saj": {
+    "micro": 1
+  },
+  "Hoymiles": {
+    "micro": 3
+  },
+  "Tsun": {
+    "micro": 5
+  },
+  "Apsystems": {
+    "micro": 2
+  },
+  "Enphase": {
+    "micro": 1
+  },
+  "Nep": {
+    "micro": 1
+  },
+  "Goodwe": {
+    "string": 17
+  },
+  "Solplanet": {
+    "string": 16
+  },
+  "Chint": {
+    "string": 4
+  },
+  "Solis": {
+    "string": 8
+  },
+  "Huawei": {
+    "string": 6
+  },
+  "Growatt": {
+    "string": 22
+  },
+  "SolaX": {
+    "string": 9
+  },
+  "Kehua": {
+    "string": 18
+  },
+  "Fronius": {
+    "string": 1
+  },
+  "Sofar": {
+    "string": 2
+  },
+  "Sungrow": {
+    "string": 4
+  },
+  "Solax": {
+    "string": 1
+  },
+  "Belenergy": {
+    "string": 2
+  },
+  "Dah": {
+    "string": 1
+  },
+  "Solaredge": {
+    "otimizador": 9
+  }
+}
