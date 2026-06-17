@@ -1,0 +1,114 @@
+{
+  "gerado_em": "2026-06-17",
+  "sprint": "P0-FV-WORKFLOW-RESTORE-01",
+  "executor": "Sonnet 4.6",
+  "revisao_gemini": "OBRIGATÓRIA E PENDENTE",
+  "arquivo": "frontend/src/pages/ProjetosFVDetalhes.jsx",
+
+  "alteracoes": [
+    {
+      "gap": "GAP-04",
+      "descricao": "Import Homologacao component",
+      "tipo": "IMPORT_ADD",
+      "linha_aproximada": 25,
+      "antes": null,
+      "depois": "import Homologacao from '../components/fv/homologacao/Homologacao'"
+    },
+    {
+      "gap": "GAP-04",
+      "descricao": "nomeCliente → clienteId?.nome || nome — em salvarDiagramaEditado (projeto_nome)",
+      "tipo": "FIELD_ACCESS_FIX",
+      "linha_aproximada": 95,
+      "antes": "projeto_nome: projeto?.nomeCliente,",
+      "depois": "projeto_nome: projeto?.clienteId?.nome || projeto?.nome,"
+    },
+    {
+      "gap": "GAP-04",
+      "descricao": "nomeCliente → clienteId?.nome || nome — cabeçalho h1",
+      "tipo": "FIELD_ACCESS_FIX",
+      "linha_aproximada": 173,
+      "antes": "{projeto.nomeCliente}",
+      "depois": "{projeto.clienteId?.nome || projeto.nome}"
+    },
+    {
+      "gap": "GAP-04",
+      "descricao": "nomeCliente → clienteId?.nome || nome — InteractiveDiagram projeto_nome e cliente_nome",
+      "tipo": "FIELD_ACCESS_FIX",
+      "linha_aproximada": 294,
+      "antes": "projeto_nome: projeto?.nomeCliente, cliente_nome: projeto?.clienteId?.nome || projeto?.nomeCliente,",
+      "depois": "projeto_nome: projeto?.clienteId?.nome || projeto?.nome, cliente_nome: projeto?.clienteId?.nome || projeto?.nome,"
+    },
+    {
+      "gap": "GAP-04",
+      "descricao": "nomeCliente → clienteId?.nome || nome — AbaResumo campo 'Cliente'",
+      "tipo": "FIELD_ACCESS_FIX",
+      "linha_aproximada": 469,
+      "antes": "{projeto.nomeCliente}",
+      "depois": "{projeto.clienteId?.nome || projeto.nome}"
+    },
+    {
+      "gap": "GAP-04",
+      "descricao": "nomeCliente → clienteId?.nome || nome — CrmPainel cliente prop",
+      "tipo": "FIELD_ACCESS_FIX",
+      "linha_aproximada": 287,
+      "antes": "cliente={{ nome: projeto.clienteId?.nome || projeto.nomeCliente, ... }}",
+      "depois": "cliente={{ nome: projeto.clienteId?.nome || projeto.nome, ... }}"
+    },
+    {
+      "gap": "GAP-02",
+      "descricao": "Função derivarResultadoFinanceiro() — deriva resultadoFinanceiro de governanca.snapshot_financeiro ou orcamento v3",
+      "tipo": "FUNCTION_ADD",
+      "linha_aproximada": 168,
+      "antes": null,
+      "depois": "function derivarResultadoFinanceiro(proj) — retorna {orcamento, margem, tarifa, retorno} ou null"
+    },
+    {
+      "gap": "GAP-02",
+      "descricao": "PropostaEnterprise: resultadoFinanceiro={null} → derivarResultadoFinanceiro(projeto)",
+      "tipo": "PROP_FIX",
+      "linha_aproximada": 275,
+      "antes": "resultadoFinanceiro={null}",
+      "depois": "resultadoFinanceiro={derivarResultadoFinanceiro(projeto)}"
+    },
+    {
+      "gap": "GAP-02",
+      "descricao": "PropostaEnterprise: adicionar consumoAnualKwh e tipoLigacao derivados do projeto",
+      "tipo": "PROP_ADD",
+      "linha_aproximada": 276,
+      "antes": "(ausente)",
+      "depois": "consumoAnualKwh={(projeto.consumoEnergetico?.consumoMensalKwh ?? projeto.consumoMensal ?? 0) * 12} tipoLigacao={projeto.consumoEnergetico?.tipoLigacao ?? projeto.tipo_ligacao ?? 'monofasico'}"
+    },
+    {
+      "gap": "GAP-03",
+      "descricao": "Função construirSnapshotsProjeto() — preserva snapshots existentes de governanca durante re-congelamento",
+      "tipo": "FUNCTION_ADD",
+      "linha_aproximada": 194,
+      "antes": null,
+      "depois": "function construirSnapshotsProjeto() — retorna {snapshot_tecnico, snapshot_catalogo, snapshot_unifilar, snapshot_financeiro, snapshot_memorial} dos dados existentes"
+    },
+    {
+      "gap": "GAP-03",
+      "descricao": "GovernancaPainel: adicionar prop construirSnapshots={construirSnapshotsProjeto}",
+      "tipo": "PROP_ADD",
+      "linha_aproximada": 261,
+      "antes": "(ausente — GovernancaPainel.congelar() enviava snapshots={} vazio)",
+      "depois": "construirSnapshots={construirSnapshotsProjeto}"
+    },
+    {
+      "gap": "GAP-01",
+      "descricao": "Substituir render {abaAtiva === 'homologacao' && <AbaHomologacao />} pelo componente real",
+      "tipo": "COMPONENT_CONNECT",
+      "linha_aproximada": 293,
+      "antes": "{abaAtiva === 'homologacao' && <AbaHomologacao />}",
+      "depois": "{abaAtiva === 'homologacao' && <Homologacao projetoId={id} projeto={projeto} cliente={projeto?.clienteId} />}"
+    },
+    {
+      "gap": "GAP-01",
+      "descricao": "Remover função stub AbaHomologacao()",
+      "tipo": "FUNCTION_REMOVE",
+      "linha_aproximada": 596,
+      "antes": "function AbaHomologacao() { return <Card>...</Card> } — stub sem funcionalidade",
+      "depois": null
+    }
+  ]
+}

@@ -22,6 +22,7 @@ import { formatarDataSegura } from '../utils/dataSegura'
 import InteractiveDiagram from '../components/diagram/InteractiveDiagram'
 import { carregarDiagramaLocal, salvarDiagramaLocal, deletarDiagramaLocal } from '../components/diagram/utils/diagramPersistence'
 import BeneficiariasPainel from '../components/fv/BeneficiariasPainel'
+import Homologacao from '../components/fv/homologacao/Homologacao'
 
 export default function ProjetosFVDetalhes() {
   const { id } = useParams()
@@ -91,7 +92,7 @@ export default function ProjetosFVDetalhes() {
         diagramaEditado.nodes,
         diagramaEditado.edges,
         {
-          projeto_nome: projeto?.nomeCliente,
+          projeto_nome: projeto?.clienteId?.nome || projeto?.nome,
           endereco: projeto?.endereco,
           projeto_id: id,
           timestamp: new Date().toISOString()
@@ -164,12 +165,49 @@ export default function ProjetosFVDetalhes() {
   const pipelineCrm = projeto.governanca?.comercial?.crm_pipeline
   const cfgCrm = pipelineCrm ? getPipelineConfig(pipelineCrm) : null
 
+  // GAP-02: deriva resultadoFinanceiro a partir dos dados persistidos no projeto
+  function derivarResultadoFinanceiro(proj) {
+    const sf = proj?.governanca?.snapshot_financeiro
+    const orc = proj?.orcamento
+    if (!sf && !orc) return null
+    const preco_venda = sf?.proposta_final ?? orc?.preco_venda_r ?? null
+    if (!preco_venda) return null
+    return {
+      orcamento: {
+        preco_venda,
+        custo_total: sf?.custo_total ?? orc?.custo_total_r ?? null,
+      },
+      margem: {
+        margem_liquida_pct: sf?.margem ?? orc?.margem_pct ?? null,
+        custo_total: sf?.custo_total ?? orc?.custo_total_r ?? null,
+      },
+      tarifa: {
+        tarifa_kwh: sf?.tarifa ?? orc?.tarifa_kwh ?? 0.95,
+      },
+      retorno: {
+        payback_anos: sf?.retorno ?? orc?.payback_anos ?? null,
+      },
+    }
+  }
+
+  // GAP-03: preserva snapshots existentes ao congelar da tela de detalhes
+  function construirSnapshotsProjeto() {
+    const gov = projeto?.governanca ?? {}
+    const snapshots = {}
+    if (gov.snapshot_tecnico)    snapshots.snapshot_tecnico    = gov.snapshot_tecnico
+    if (gov.snapshot_catalogo)   snapshots.snapshot_catalogo   = gov.snapshot_catalogo
+    if (gov.snapshot_unifilar)   snapshots.snapshot_unifilar   = gov.snapshot_unifilar
+    if (gov.snapshot_financeiro) snapshots.snapshot_financeiro = gov.snapshot_financeiro
+    if (gov.snapshot_memorial)   snapshots.snapshot_memorial   = gov.snapshot_memorial
+    return snapshots
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4">
         <div>
           <div className="flex items-center gap-3 flex-wrap">
-            <h1 className="text-3xl font-bold text-slate-900">{projeto.nomeCliente}</h1>
+            <h1 className="text-3xl font-bold text-slate-900">{projeto.clienteId?.nome || projeto.nome}</h1>
             {cfgGov && <Badge cor={cfgGov.cor}>{cfgGov.label}</Badge>}
             {cfgCom && <Badge cor={cfgCom.cor}>{cfgCom.label}</Badge>}
             {cfgCrm && <Badge cor={cfgCrm.cor}>{cfgCrm.label}</Badge>}
@@ -220,6 +258,7 @@ export default function ProjetosFVDetalhes() {
               governanca={projeto.governanca}
               onAtualizar={(g) => setProjeto(p => ({ ...p, governanca: g }))}
               usuario={null}
+              construirSnapshots={construirSnapshotsProjeto}
             />
             <ComparadorRevisoes
               governanca={projeto.governanca}
@@ -232,7 +271,9 @@ export default function ProjetosFVDetalhes() {
           <PropostaEnterprise
             projetoId={id}
             snapshotTecnico={projeto.governanca?.snapshot_tecnico}
-            resultadoFinanceiro={null}
+            resultadoFinanceiro={derivarResultadoFinanceiro(projeto)}
+            consumoAnualKwh={(projeto.consumoEnergetico?.consumoMensalKwh ?? projeto.consumoMensal ?? 0) * 12}
+            tipoLigacao={projeto.consumoEnergetico?.tipoLigacao ?? projeto.tipo_ligacao ?? 'monofasico'}
             governancaComercial={projeto.governanca?.comercial}
             onAtualizar={(c) => setProjeto(p => ({ ...p, governanca: { ...p.governanca, comercial: c } }))}
             usuario={null}
@@ -242,13 +283,19 @@ export default function ProjetosFVDetalhes() {
           <CrmPainel
             projetoId={id}
             comercial={projeto.governanca?.comercial}
-            cliente={{ nome: projeto.clienteId?.nome || projeto.nomeCliente, email: projeto.clienteId?.email, telefone: projeto.clienteId?.telefone }}
+            cliente={{ nome: projeto.clienteId?.nome || projeto.nome, email: projeto.clienteId?.email, telefone: projeto.clienteId?.telefone }}
             resumo={{ potenciaKwp: projeto.dimensionamento?.potenciaArredondada ?? projeto.potencia_kwp, valor: projeto.governanca?.snapshot_financeiro?.proposta_final }}
             onAtualizar={(c) => setProjeto(p => ({ ...p, governanca: { ...p.governanca, comercial: c } }))}
             usuario={null}
           />
         )}
-        {abaAtiva === 'homologacao' && <AbaHomologacao />}
+        {abaAtiva === 'homologacao' && (
+          <Homologacao
+            projetoId={id}
+            projeto={projeto}
+            cliente={projeto?.clienteId}
+          />
+        )}
         {abaAtiva === 'beneficiarias' && (
           <Card className="mt-4">
             <CardBody>
@@ -290,8 +337,8 @@ export default function ProjetosFVDetalhes() {
                   materiais: [],
                 }}
                 projeto={{
-                  projeto_nome: projeto?.nomeCliente,
-                  cliente_nome: projeto?.clienteId?.nome || projeto?.nomeCliente,
+                  projeto_nome: projeto?.clienteId?.nome || projeto?.nome,
+                  cliente_nome: projeto?.clienteId?.nome || projeto?.nome,
                   endereco: projeto?.endereco,
                   comprimento_cabo: projeto?.comprimento_cabo_m || 10,
                 }}
@@ -465,7 +512,7 @@ function AbaResumo({ projeto }) {
           <div className="grid grid-cols-2 gap-6">
             <div>
               <p className="text-sm text-slate-600">Cliente</p>
-              <p className="font-semibold text-slate-900">{projeto.nomeCliente}</p>
+              <p className="font-semibold text-slate-900">{projeto.clienteId?.nome || projeto.nome}</p>
             </div>
             <div>
               <p className="text-sm text-slate-600">Endereço</p>
@@ -593,13 +640,3 @@ function AbaFinanceiro({ projeto }) {
   )
 }
 
-function AbaHomologacao() {
-  return (
-    <Card>
-      <CardHeader>Documentos de Homologação</CardHeader>
-      <CardBody>
-        <p className="text-slate-600">Homologação em desenvolvimento...</p>
-      </CardBody>
-    </Card>
-  )
-}

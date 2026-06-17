@@ -1,0 +1,78 @@
+{
+  "gerado_em": "2026-06-17",
+  "sprint": "P0-FV-WORKFLOW-RESTORE-01",
+  "executor": "Sonnet 4.6",
+  "revisao_gemini": "OBRIGATÓRIA E PENDENTE",
+
+  "gaps_corrigidos": 4,
+  "gaps_pendentes": 0,
+
+  "detalhes_por_gap": [
+    {
+      "id": "GAP-01",
+      "titulo": "Homologação stub substituído por componente real",
+      "status": "CORRIGIDO",
+      "impacto_estimado": "575 projetos FV ganham acesso a checklist, memorial descritivo, carta à concessionária e dados para ART",
+      "arquivo_modificado": "frontend/src/pages/ProjetosFVDetalhes.jsx",
+      "linhas_adicionadas": 6,
+      "linhas_removidas": 9,
+      "componente_conectado": "frontend/src/components/fv/homologacao/Homologacao.jsx",
+      "nota": "Componente estava 100% funcional mas desconectado. Fix: import + render com projetoId, projeto, cliente."
+    },
+    {
+      "id": "GAP-02",
+      "titulo": "resultadoFinanceiro derivado de dados persistidos",
+      "status": "CORRIGIDO",
+      "impacto_estimado": "Projetos com snapshot_financeiro congelado ou orcamento v3 preenchido passam a exibir comparações multi-cenário, tarifa e margens na aba Comercial",
+      "arquivo_modificado": "frontend/src/pages/ProjetosFVDetalhes.jsx",
+      "linhas_adicionadas": 20,
+      "linhas_removidas": 1,
+      "fontes_de_dados": [
+        "projeto.governanca.snapshot_financeiro (preferido — congelado no wizard)",
+        "projeto.orcamento (v3: preco_venda_r, custo_total_r, margem_pct, tarifa_kwh)"
+      ],
+      "caveat": "Projetos sem snapshot_financeiro e sem orcamento.preco_venda_r retornam null (comportamento anterior preservado). Projetos novos criados pelo wizard têm snapshot_financeiro disponível.",
+      "nota": "Não executado em projetos reais — verificação Gemini obrigatória."
+    },
+    {
+      "id": "GAP-03",
+      "titulo": "GovernancaPainel recebe construirSnapshots para preservar dados ao congelar",
+      "status": "CORRIGIDO",
+      "impacto_estimado": "Ao clicar 'Congelar' na aba Governança de projetos existentes, os snapshots técnicos, catálogo, unifilar e financeiro previamente salvos são preservados (não sobrescritos com {})",
+      "arquivo_modificado": "frontend/src/pages/ProjetosFVDetalhes.jsx",
+      "linhas_adicionadas": 9,
+      "linhas_removidas": 0,
+      "estrategia": "Preservação de snapshots existentes (não regeneração). A regeneração completa exigiria o contexto do wizard (state camelCase) indisponível na tela de detalhes.",
+      "nota": "Projetos nunca congelados via wizard terão snapshots={} como antes. A melhoria é evitar que re-congelamentos apaguem snapshots já existentes."
+    },
+    {
+      "id": "GAP-04",
+      "titulo": "nomeCliente substituído por clienteId?.nome || nome em 5 locais",
+      "status": "CORRIGIDO",
+      "impacto_estimado": "Cabeçalho, AbaResumo, CrmPainel e InteractiveDiagram exibem o nome correto em projetos novos (v3) onde nomeCliente é undefined",
+      "arquivo_modificado": "frontend/src/pages/ProjetosFVDetalhes.jsx",
+      "locais_corrigidos": [
+        "salvarDiagramaEditado → projeto_nome (linha ~95)",
+        "h1 cabeçalho principal (linha ~173)",
+        "InteractiveDiagram → projeto_nome e cliente_nome (linha ~294)",
+        "AbaResumo → campo 'Cliente' (linha ~469)",
+        "CrmPainel → cliente.nome (linha ~287)"
+      ],
+      "nota": "Projetos legados importados do SolarMarket podem ter nomeCliente como campo raw. O fallback projeto.nome captura esses casos quando clienteId não está populado."
+    }
+  ],
+
+  "build": {
+    "status": "SUCESSO",
+    "modulos_transformados": 2322,
+    "tempo_build_s": 9.64,
+    "aviso_chunk": "pre-existente (2047 kB > 2000 kB) — não causado por esta sprint",
+    "erros_compilacao": 0
+  },
+
+  "testes_executados": {
+    "build_vite": true,
+    "projetos_reais": false,
+    "nota": "Testes em projetos reais (Fazenda Alice, Paulo Carlos, Escola Pinheiro, novo, legado) NÃO executados nesta sessão. Revisão Gemini obrigatória antes de deploy."
+  }
+}
