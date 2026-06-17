@@ -15,7 +15,7 @@ import mongoose from 'mongoose'
 const HistoricoSchema = new mongoose.Schema({
   tipo: {
     type: String,
-    enum: ['criacao', 'instalacao', 'troca', 'garantia', 'manutencao', 'comissionamento', 'falha', 'inspecao', 'mudanca_status'],
+    enum: ['criacao', 'instalacao', 'troca', 'garantia', 'manutencao', 'comissionamento', 'monitoramento', 'falha', 'inspecao', 'mudanca_status'],
   },
   data:        { type: Date,   default: () => new Date() },
   usuario:     { type: String, default: null },
@@ -68,6 +68,20 @@ const AtivoEquipamentoSchema = new mongoose.Schema({
     senha_wifi:  { type: String, default: null },   // sensível — NÃO exposto em consulta pública
     firmware:    { type: String, default: null },
     endereco_ip: { type: String, default: null },
+  },
+
+  // ── Monitoramento (P1-ASSET-MONITORING-REGISTRY-01) — repositório permanente ────
+  // ADITIVO. usuario/senha são criptografados em repouso (AES-256-GCM) e NUNCA expostos.
+  monitoramento: {
+    portal:     { type: String, default: null },   // ex.: Solarman, SolisCloud, ShinePhone…
+    plant_id:   { type: String, default: null },
+    gateway_sn: { type: String, default: null },
+    logger_id:  { type: String, default: null },
+    usuario:    { type: String, default: null },   // SENSÍVEL — criptografado
+    senha:      { type: String, default: null },   // SENSÍVEL — criptografado
+    url:        { type: String, default: null },
+    atualizado_em:  { type: Date, default: null },
+    atualizado_por: { type: String, default: null },
   },
 
   // ── Substituição (cadeia de troca) ────────────────────────────────────────────

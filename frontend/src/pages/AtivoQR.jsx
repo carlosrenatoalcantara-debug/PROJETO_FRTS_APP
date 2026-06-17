@@ -23,6 +23,80 @@ function Linha({ rotulo, valor }) {
   )
 }
 
+const MON_CAMPOS = [
+  ['portal', 'Portal'], ['plant_id', 'Plant ID'], ['gateway_sn', 'Gateway SN'],
+  ['logger_id', 'Logger ID'], ['url', 'URL'], ['usuario', 'Usuário'], ['senha', 'Senha'],
+]
+
+// FASE 5 — Aba Monitoramento (registro permanente; usuario/senha criptografados no backend)
+function MonitoramentoCard({ ativoId }) {
+  const [mon, setMon] = useState(null)
+  const [editar, setEditar] = useState(false)
+  const [form, setForm] = useState({})
+  const [salvando, setSalvando] = useState(false)
+  const [msg, setMsg] = useState(null)
+
+  const carregar = useCallback(async () => {
+    try {
+      const r = await fetch(`/api/ativos/${ativoId}/monitoramento`)
+      if (r.ok) { const j = await r.json(); setMon(j.monitoramento) }
+    } catch { /* silencioso */ }
+  }, [ativoId])
+  useEffect(() => { carregar() }, [carregar])
+
+  async function salvar() {
+    setSalvando(true); setMsg(null)
+    try {
+      const payload = {}
+      for (const [k] of MON_CAMPOS) if (form[k] !== '' && form[k] != null) payload[k] = form[k]
+      const r = await fetch(`/api/ativos/${ativoId}/monitoramento`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
+      })
+      const j = await r.json()
+      if (!r.ok) { setMsg(j.erro || 'Erro ao salvar'); return }
+      setMon(j.monitoramento); setEditar(false); setForm({}); setMsg('Monitoramento salvo.')
+    } catch { setMsg('Falha de conexão') } finally { setSalvando(false) }
+  }
+
+  return (
+    <div className="bg-white rounded-2xl shadow p-5">
+      <div className="flex items-center justify-between mb-2">
+        <div className="text-xs font-semibold text-slate-400 uppercase">Monitoramento</div>
+        {!editar && <button onClick={() => { setEditar(true); setForm({}); setMsg(null) }} className="text-emerald-700 text-xs font-semibold">Editar</button>}
+      </div>
+      {msg && <div className="text-xs text-emerald-700 mb-2">{msg}</div>}
+      {!editar && (
+        <div>
+          <Linha rotulo="Portal" valor={mon?.portal} />
+          <Linha rotulo="Plant ID" valor={mon?.plant_id} />
+          <Linha rotulo="Gateway SN" valor={mon?.gateway_sn} />
+          <Linha rotulo="Logger ID" valor={mon?.logger_id} />
+          <Linha rotulo="URL" valor={mon?.url} />
+          <Linha rotulo="Usuário" valor={mon?.usuario_definido ? '•••••• (definido)' : null} />
+          <Linha rotulo="Senha" valor={mon?.senha_definida ? '•••••• (definida)' : null} />
+        </div>
+      )}
+      {editar && (
+        <div className="space-y-2">
+          {MON_CAMPOS.map(([k, rotulo]) => (
+            <label key={k} className="block">
+              <span className="text-xs text-slate-500">{rotulo}</span>
+              <input type={k === 'senha' ? 'password' : 'text'} value={form[k] ?? ''} autoComplete="off"
+                onChange={(e) => setForm(f => ({ ...f, [k]: e.target.value }))}
+                placeholder={k === 'senha' && mon?.senha_definida ? '(manter atual)' : (k === 'usuario' && mon?.usuario_definido ? '(manter atual)' : '')}
+                className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" />
+            </label>
+          ))}
+          <div className="flex gap-2 pt-1">
+            <button onClick={() => setEditar(false)} className="flex-1 border border-slate-200 text-slate-600 py-2.5 rounded-xl">Cancelar</button>
+            <button onClick={salvar} disabled={salvando} className="flex-1 bg-emerald-600 text-white font-semibold py-2.5 rounded-xl disabled:opacity-50">{salvando ? 'Salvando…' : 'Salvar'}</button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 const CAMPOS = [
   ['numero_serie', 'Nº de série'],
   ['mac_address', 'MAC address'],
@@ -185,6 +259,9 @@ export default function AtivoQR() {
                 </div>
               </div>
             )}
+
+            {/* Monitoramento (registro permanente) */}
+            {dados.ativo?._id && <MonitoramentoCard ativoId={dados.ativo._id} />}
 
             {/* Histórico */}
             {dados.ativo?.historico?.length > 0 && (

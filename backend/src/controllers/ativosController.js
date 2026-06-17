@@ -196,6 +196,61 @@ export const comissionarPorQr = async (req, res) => {
   } catch (e) { res.status(400).json({ erro: e.message }) }
 }
 
+// ─── P1-ASSET-MONITORING-REGISTRY-01 ─────────────────────────────────────────
+// Campos não-secretos do monitoramento + (usuario/senha = SENSÍVEIS, criptografados)
+const MON_CAMPOS = ['portal', 'plant_id', 'gateway_sn', 'logger_id', 'url']
+const MON_SECRETOS = ['usuario', 'senha']
+
+// POST /api/ativos/:id/monitoramento — grava/atualiza o registro de monitoramento.
+// usuario/senha são criptografados (AES-256-GCM). Nunca devolve segredo.
+export const salvarMonitoramento = async (req, res) => {
+  try {
+    if (!_dbOk(res)) return
+    const { id } = req.params
+    if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ erro: 'ID inválido' })
+    const ativo = await AtivoEquipamento.findById(id)
+    if (!ativo) return res.status(404).json({ erro: 'Ativo não encontrado' })
+
+    const body = req.body || {}
+    ativo.monitoramento = ativo.monitoramento || {}
+    for (const c of MON_CAMPOS) if (c in body) ativo.monitoramento[c] = body[c] === '' ? null : body[c]
+    for (const s of MON_SECRETOS) {
+      if (!(s in body)) continue
+      const v = body[s]
+      ativo.monitoramento[s] = (v == null || v === '') ? null : criptografar(v, ativo._id)
+    }
+    ativo.monitoramento.atualizado_em = new Date()
+    ativo.monitoramento.atualizado_por = body.usuario_acao || req.auth?.email || 'campo'
+    ativo.markModified('monitoramento')
+    ativo.historico.push({ tipo: 'monitoramento', data: new Date(), usuario: ativo.monitoramento.atualizado_por,
+      descricao: `Monitoramento atualizado — portal ${ativo.monitoramento.portal || '—'}` })
+    await ativo.save()
+    res.json({ sucesso: true, monitoramento: _monView(ativo.monitoramento) })
+  } catch (e) { res.status(400).json({ erro: e.message }) }
+}
+
+// GET /api/ativos/:id/monitoramento — devolve sem expor segredos (só *_definido).
+export const consultarMonitoramento = async (req, res) => {
+  try {
+    if (!_dbOk(res)) return
+    const { id } = req.params
+    if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ erro: 'ID inválido' })
+    const ativo = await AtivoEquipamento.findById(id, 'monitoramento').lean()
+    if (!ativo) return res.status(404).json({ erro: 'Ativo não encontrado' })
+    res.json({ sucesso: true, monitoramento: _monView(ativo.monitoramento || {}) })
+  } catch (e) { res.status(500).json({ erro: e.message }) }
+}
+
+function _monView(m = {}) {
+  const out = {}
+  for (const c of MON_CAMPOS) out[c] = m[c] ?? null
+  out.usuario_definido = !!m.usuario   // nunca devolve usuario/senha
+  out.senha_definida = !!m.senha
+  out.atualizado_em = m.atualizado_em ?? null
+  out.atualizado_por = m.atualizado_por ?? null
+  return out
+}
+
 // POST /api/ativos/scan — P1-COMMISSIONING-SCAN-01
 // Extrai serial/MAC/SSID/senha de um QR (body.texto) ou de uma FOTO da etiqueta (campo "foto", OCR).
 // Pura extração: NÃO grava nada (o salvar é o /comissionar). Não toca Atlas/ProjetoFV.
