@@ -149,6 +149,31 @@ const protecoesV3Schema = new mongoose.Schema({
  * Expande e substitui o subdoc `financeiro` de v2 em novos projetos.
  * O subdoc `financeiro` legado é mantido intocado.
  */
+/**
+ * Item adicional do orçamento (P1-FV-COMMERCIAL-KIT-FIRST-01 — additive).
+ * Ex.: ampliação, inversor adicional, módulos adicionais, estrutura, BESS,
+ * adequação elétrica. Compõe Total Material ou Total Serviços conforme `tipo`.
+ */
+const itemOrcamentoFVSchema = new mongoose.Schema({
+  descricao:  { type: String, default: null },
+  quantidade: { type: Number, default: 1 },
+  valor:      { type: Number, default: 0 },              // valor unitário (R$)
+  tipo:       { type: String, enum: ['material', 'servico'], default: 'material' },
+}, { _id: false })
+
+/**
+ * Orçamento por Kit (P1-FV-COMMERCIAL-KIT-FIRST-01 — additive).
+ * Modo padrão do fluxo comercial FV: o kit fechado do fornecedor é a base.
+ */
+const kitOrcamentoFVSchema = new mongoose.Schema({
+  fornecedor:  { type: String, default: null },
+  valor_kit_r: { type: Number, default: null },          // valor do kit (material)
+  frete_r:     { type: Number, default: null },          // frete (material)
+  projeto_r:   { type: Number, default: null },          // projeto elétrico / ART (serviço)
+  mao_obra_r:  { type: Number, default: null },          // mão de obra (serviço)
+  observacoes: { type: String, default: null },
+}, { _id: false })
+
 const orcamentoV3Schema = new mongoose.Schema({
   custo_total_r:        { type: Number, default: null },
   custo_equipamentos_r: { type: Number, default: null },
@@ -167,6 +192,16 @@ const orcamentoV3Schema = new mongoose.Schema({
   tarifa_kwh:           { type: Number, default: null },
   reajuste_anual_pct:   { type: Number, default: null },
   calculado_em:         { type: Date,   default: null },
+
+  // ── P1-FV-COMMERCIAL-KIT-FIRST-01 (additive) ────────────────────────────────
+  // Modo do orçamento: 'kit' (padrão, kit fechado de fornecedor) ou 'detalhado'
+  // (composição item a item — compatibilidade com módulos/inversores/estrutura).
+  modo:             { type: String, enum: ['kit', 'detalhado', null], default: 'kit' },
+  kit:              { type: kitOrcamentoFVSchema, default: null },
+  itens_adicionais: { type: [itemOrcamentoFVSchema], default: [] },
+  total_material_r: { type: Number, default: null },     // material (kit/equip + frete + itens material)
+  total_servicos_r: { type: Number, default: null },     // serviços (projeto + mão de obra + itens serviço)
+  total_venda_r:    { type: Number, default: null },     // material + serviços (preço de venda base)
 }, { _id: false })
 
 /**

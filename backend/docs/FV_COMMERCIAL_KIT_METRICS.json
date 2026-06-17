@@ -1,0 +1,60 @@
+{
+  "gerado_em": "2026-06-17",
+  "sprint": "P1-FV-COMMERCIAL-KIT-FIRST-01",
+  "executor": "Sonnet 4.6",
+  "revisao_gemini": "OBRIGATÓRIA E PENDENTE",
+
+  "fases": {
+    "fase_1_forense": "COMPLETA",
+    "fase_2_modo_kit": "COMPLETA",
+    "fase_3_kit": "COMPLETA",
+    "fase_4_itens_adicionais": "COMPLETA",
+    "fase_5_modo_detalhado": "COMPLETA (compatibilidade preservada)",
+    "fase_6_congelamento": "DOCUMENTADA (sem alteração de unifilar/engenharia/homologação)",
+    "fase_7_validacao": "ESTATICA APENAS (runtime não executado)"
+  },
+
+  "arquivos_modificados": 3,
+  "arquivos": [
+    "backend/src/models/ProjetoFV.js",
+    "frontend/src/services/projetoFVApi.js",
+    "frontend/src/components/fv/etapas/E8Orcamento.jsx"
+  ],
+
+  "schema": {
+    "tipo": "ADITIVO",
+    "novos_subschemas": ["itemOrcamentoFVSchema", "kitOrcamentoFVSchema"],
+    "novos_campos_orcamento": ["modo", "kit", "itens_adicionais", "total_material_r", "total_servicos_r", "total_venda_r"],
+    "destrutivo": false,
+    "migracao_dados": "nenhuma",
+    "atlas_alterado": false
+  },
+
+  "campos_kit": ["fornecedor", "valor_kit_r", "frete_r", "projeto_r", "mao_obra_r", "observacoes"],
+  "campos_item_adicional": ["descricao", "quantidade", "valor", "tipo"],
+  "totais_calculados": ["total_material_r", "total_servicos_r", "total_venda_r"],
+
+  "build": {
+    "status": "SUCESSO",
+    "modulos_transformados": 2322,
+    "tempo_build_s": 9.69,
+    "erros_compilacao": 0,
+    "schema_node_check": "OK",
+    "aviso_chunk": "pre-existente (> 2000 kB), não causado por esta sprint"
+  },
+
+  "validacao_runtime": {
+    "projeto_novo": "NAO_EXECUTADO",
+    "projeto_legado": "NAO_EXECUTADO",
+    "fazenda_alice": "NAO_EXECUTADO",
+    "paulo_carlos": "NAO_EXECUTADO",
+    "escola_pinheiro": "NAO_EXECUTADO",
+    "nota": "Sem acesso ao Atlas/ambiente nesta sessão. Compatibilidade do modo detalhado garantida por construção; confirmação manual + Gemini pendente."
+  },
+
+  "limitacoes_conhecidas": [
+    "Geradores de PDF (gerarPropostaPDF/gerarPdfOrcamento) ainda montam linhas a partir dos subtotais detalhados; total de venda correto mas linhas de item não refletem o kit.",
+    "CentroFinanceiroFV recebe custosIniciais detalhados; total propagado já é o Total Venda.",
+    "Gate de unifilar (orçamento congelado → unifilar) documentado, não implementado."
+  ]
+}

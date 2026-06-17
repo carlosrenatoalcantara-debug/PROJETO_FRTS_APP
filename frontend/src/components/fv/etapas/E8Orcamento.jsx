@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback } from 'react'
-import { Download, Save, CheckCircle, XCircle, Sun, Zap, Layers, BarChart2, ArrowRight, Cloud, FileText, GitBranch, MessageCircle, Mail, Copy } from 'lucide-react'
+import { Download, Save, CheckCircle, XCircle, Sun, Zap, Layers, BarChart2, ArrowRight, Cloud, FileText, GitBranch, MessageCircle, Mail, Copy, Package, Plus, Trash2 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useProjetoFV } from '../../../contexts/ProjetoFVContext'
 import { useEmpresa }   from '../../../contexts/EmpresaContext'
@@ -106,12 +106,80 @@ export default function E8Orcamento() {
   const [maoDeTrabaho,   setMaoDeTrabaho]   = useState(fin.precoMaoDeObra     ?? 50)   // R$/painel
   const [cabosProtecao,  setCabosProtecao]  = useState(fin.precoCabosProtecao ?? 1500) // R$ fixo
 
+  // ── P1-FV-COMMERCIAL-KIT-FIRST-01: modo de orçamento (Kit = padrão) ──────────
+  const [modoOrcamento, setModoOrcamento] = useState('kit')   // 'kit' | 'detalhado'
+  // Campos do Kit (modo padrão — kit fechado do fornecedor)
+  const [kitFornecedor,  setKitFornecedor]  = useState('')
+  const [kitValor,       setKitValor]       = useState(0)     // valor do kit (material)
+  const [kitFrete,       setKitFrete]       = useState(0)     // frete (material)
+  const [kitProjeto,     setKitProjeto]     = useState(0)     // projeto elétrico / ART (serviço)
+  const [kitMaoObra,     setKitMaoObra]     = useState(0)     // mão de obra (serviço)
+  const [kitObservacoes, setKitObservacoes] = useState('')
+  // Itens adicionais (ampliação, inversor extra, BESS, adequação elétrica, etc.)
+  const [itensAdicionais, setItensAdicionais] = useState([])
+
+  const adicionarItem  = useCallback(() => setItensAdicionais((l) => [...l, { descricao: '', quantidade: 1, valor: 0, tipo: 'material' }]), [])
+  const removerItem    = useCallback((i) => setItensAdicionais((l) => l.filter((_, idx) => idx !== i)), [])
+  const atualizarItem  = useCallback((i, patch) => setItensAdicionais((l) => l.map((it, idx) => idx === i ? { ...it, ...patch } : it)), [])
+
+  // ── Modo DETALHADO: composição item a item (compatibilidade preservada) ──────
   const subtotalPaineis    = dim.numPaineis * precoPainel
   const subtotalInversores = dim.numInversores * precoInversor
   const subtotalEstrutura  = dim.numPaineis * precoEstrutura
   const subtotalMaoDeTrabaho = dim.numPaineis * maoDeTrabaho
   const subtotalCabosProtecao = cabosProtecao
-  const total              = subtotalPaineis + subtotalInversores + subtotalEstrutura + subtotalMaoDeTrabaho + subtotalCabosProtecao
+  const totalDetalhadoBase = subtotalPaineis + subtotalInversores + subtotalEstrutura + subtotalMaoDeTrabaho + subtotalCabosProtecao
+
+  // ── Itens adicionais: somatório por tipo ────────────────────────────────────
+  const totalItensMaterial = itensAdicionais
+    .filter((i) => i.tipo === 'material')
+    .reduce((s, i) => s + (Number(i.quantidade) || 0) * (Number(i.valor) || 0), 0)
+  const totalItensServico = itensAdicionais
+    .filter((i) => i.tipo === 'servico')
+    .reduce((s, i) => s + (Number(i.quantidade) || 0) * (Number(i.valor) || 0), 0)
+
+  // ── Totais unificados (por modo) ────────────────────────────────────────────
+  const isKit = modoOrcamento === 'kit'
+  const totalMaterial = isKit
+    ? (Number(kitValor) || 0) + (Number(kitFrete) || 0) + totalItensMaterial
+    : subtotalPaineis + subtotalInversores + subtotalEstrutura + totalItensMaterial
+  const totalServicos = isKit
+    ? (Number(kitProjeto) || 0) + (Number(kitMaoObra) || 0) + totalItensServico
+    : subtotalMaoDeTrabaho + subtotalCabosProtecao + totalItensServico
+  // Total de venda = material + serviços. Em modo detalhado sem itens adicionais,
+  // é idêntico ao total legado (compatibilidade verificada).
+  const total = totalMaterial + totalServicos
+
+  // ── Payload de orçamento persistido (compartilhado: salvar + snapshots) ──────
+  const montarOrcamentoLocal = useCallback(() => ({
+    total,
+    subtotalPaineis,
+    subtotalInversores,
+    subtotalEstrutura,
+    subtotalMaoDeTrabaho,
+    subtotalCabosProtecao,
+    // P1-FV-COMMERCIAL-KIT-FIRST-01
+    modo: modoOrcamento,
+    kit: {
+      fornecedor:  kitFornecedor || null,
+      valor_kit_r: Number(kitValor)   || null,
+      frete_r:     Number(kitFrete)   || null,
+      projeto_r:   Number(kitProjeto) || null,
+      mao_obra_r:  Number(kitMaoObra) || null,
+      observacoes: kitObservacoes || null,
+    },
+    itensAdicionais: itensAdicionais.map((i) => ({
+      descricao:  i.descricao || null,
+      quantidade: Number(i.quantidade) || 0,
+      valor:      Number(i.valor) || 0,
+      tipo:       i.tipo === 'servico' ? 'servico' : 'material',
+    })),
+    totalMaterial,
+    totalServicos,
+    totalVenda: total,
+  }), [total, subtotalPaineis, subtotalInversores, subtotalEstrutura, subtotalMaoDeTrabaho,
+       subtotalCabosProtecao, modoOrcamento, kitFornecedor, kitValor, kitFrete, kitProjeto,
+       kitMaoObra, kitObservacoes, itensAdicionais, totalMaterial, totalServicos])
 
   // ── S4: snapshot técnico LIVE (engineering lock p/ o módulo financeiro) ──────
   // Calculado de forma determinística pelo mesmo motor que congela em S3.5.
@@ -297,14 +365,7 @@ export default function E8Orcamento() {
       }
 
       // ── 2. Salvar todos os slices acumulados ───────────────────────────────
-      const orcamentoLocal = {
-        total:                 total,
-        subtotalPaineis,
-        subtotalInversores,
-        subtotalEstrutura,
-        subtotalMaoDeTrabaho,
-        subtotalCabosProtecao,
-      }
+      const orcamentoLocal = montarOrcamentoLocal()
 
       const resultado = await salvarTodosSlices(projetoIdAtual, state, orcamentoLocal)
 
@@ -399,10 +460,7 @@ export default function E8Orcamento() {
 
   // ── S3.5: constrói todos os snapshots para congelamento ─────────────────────
   function construirSnapshotsE8() {
-    const orcamentoLocal = {
-      total, subtotalPaineis, subtotalInversores,
-      subtotalEstrutura, subtotalMaoDeTrabaho, subtotalCabosProtecao,
-    }
+    const orcamentoLocal = montarOrcamentoLocal()
     return construirTodosSnapshots({
       state,
       orcamentoLocal,
@@ -548,6 +606,28 @@ export default function E8Orcamento() {
         </p>
       </div>
 
+      {/* P1-FV-COMMERCIAL-KIT-FIRST-01: seletor de modo (Kit = padrão) */}
+      <div className="inline-flex rounded-xl border border-slate-200 bg-slate-50 p-1">
+        <button
+          type="button"
+          onClick={() => setModoOrcamento('kit')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            isKit ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+          }`}
+        >
+          <Package size={15} /> Orçamento por Kit
+        </button>
+        <button
+          type="button"
+          onClick={() => setModoOrcamento('detalhado')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            !isKit ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+          }`}
+        >
+          <Layers size={15} /> Orçamento detalhado
+        </button>
+      </div>
+
       {/* Resumo */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div className="bg-slate-50 border border-slate-200 rounded-xl p-5">
@@ -568,95 +648,251 @@ export default function E8Orcamento() {
           <LinhaResumo rotulo="Orientação"           valor={`${area.orientacao} / ${area.inclinacao}°`} />
         </div>
 
-        <div className="space-y-3">
-          <p className="text-xs font-semibold text-slate-500 uppercase">Equipamentos</p>
-          {painel && (
-            <CardEquipSelecionado
-              icone={Sun} titulo="Módulo FV" item={painel}
-              qtd={dim.numPaineis}
-              precoUnitario={precoPainel}
-              setPrecoUnitario={setPrecoPainel}
-              total={subtotalPaineis}
-            />
-          )}
-          {inversor && (
-            <CardEquipSelecionado
-              icone={Zap} titulo="Inversor" item={inversor}
-              qtd={dim.numInversores}
-              precoUnitario={precoInversor}
-              setPrecoUnitario={setPrecoInversor}
-              total={subtotalInversores}
-            />
-          )}
-          {estrutura && (
-            <CardEquipSelecionado
-              icone={Layers} titulo="Estrutura" item={estrutura}
-              qtd={dim.numPaineis}
-              precoUnitario={precoEstrutura}
-              setPrecoUnitario={setPrecoEstrutura}
-              total={subtotalEstrutura}
-            />
-          )}
-        </div>
+        {isKit ? (
+          /* P1-FV-COMMERCIAL-KIT-FIRST-01: formulário do Kit (modo padrão) */
+          <div className="bg-white border border-slate-200 rounded-xl p-5 space-y-3">
+            <div className="flex items-center gap-2">
+              <Package size={15} className="text-primary-600" style={{ color: 'var(--cor-primaria)' }} />
+              <p className="text-xs font-semibold text-slate-500 uppercase">Kit fechado</p>
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-slate-700 block mb-1">Fornecedor</label>
+              <input
+                type="text" value={kitFornecedor}
+                onChange={(e) => setKitFornecedor(e.target.value)}
+                placeholder="Ex.: Aldo, Edeltec, Soulen…"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-semibold text-slate-700 block mb-1">Valor do Kit (R$)</label>
+                <input type="number" min="0" step="0.01" value={kitValor}
+                  onChange={(e) => setKitValor(Number(e.target.value))}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-slate-700 block mb-1">Frete (R$)</label>
+                <input type="number" min="0" step="0.01" value={kitFrete}
+                  onChange={(e) => setKitFrete(Number(e.target.value))}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-slate-700 block mb-1">Projeto (R$)</label>
+                <input type="number" min="0" step="0.01" value={kitProjeto}
+                  onChange={(e) => setKitProjeto(Number(e.target.value))}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-slate-700 block mb-1">Mão de obra (R$)</label>
+                <input type="number" min="0" step="0.01" value={kitMaoObra}
+                  onChange={(e) => setKitMaoObra(Number(e.target.value))}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-slate-700 block mb-1">Observações</label>
+              <textarea value={kitObservacoes} rows={2}
+                onChange={(e) => setKitObservacoes(e.target.value)}
+                placeholder="Condições, prazo de entrega, garantia…"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <p className="text-xs font-semibold text-slate-500 uppercase">Equipamentos</p>
+            {painel && (
+              <CardEquipSelecionado
+                icone={Sun} titulo="Módulo FV" item={painel}
+                qtd={dim.numPaineis}
+                precoUnitario={precoPainel}
+                setPrecoUnitario={setPrecoPainel}
+                total={subtotalPaineis}
+              />
+            )}
+            {inversor && (
+              <CardEquipSelecionado
+                icone={Zap} titulo="Inversor" item={inversor}
+                qtd={dim.numInversores}
+                precoUnitario={precoInversor}
+                setPrecoUnitario={setPrecoInversor}
+                total={subtotalInversores}
+              />
+            )}
+            {estrutura && (
+              <CardEquipSelecionado
+                icone={Layers} titulo="Estrutura" item={estrutura}
+                qtd={dim.numPaineis}
+                precoUnitario={precoEstrutura}
+                setPrecoUnitario={setPrecoEstrutura}
+                total={subtotalEstrutura}
+              />
+            )}
+          </div>
+        )}
       </div>
 
-      {/* Campos editáveis - Mão de obra e Cabos */}
+      {/* Campos editáveis - Mão de obra e Cabos (modo DETALHADO) */}
+      {!isKit && (
+        <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
+          <p className="text-sm font-semibold text-slate-700">Custos Adicionais</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs font-semibold text-slate-700 block mb-1">Mão de obra por painel (R$)</label>
+              <input
+                type="number"
+                value={maoDeTrabaho}
+                onChange={(e) => setMaoDeTrabaho(Number(e.target.value))}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                step="0.01"
+                min="0"
+              />
+              <p className="text-xs text-slate-500 mt-1">Total: R$ {subtotalMaoDeTrabaho.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-slate-700 block mb-1">Cabos e proteções (R$)</label>
+              <input
+                type="number"
+                value={cabosProtecao}
+                onChange={(e) => setCabosProtecao(Number(e.target.value))}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                step="0.01"
+                min="0"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* P1-FV-COMMERCIAL-KIT-FIRST-01: itens adicionais (ambos os modos) */}
       <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
-        <p className="text-sm font-semibold text-slate-700">Custos Adicionais</p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="text-xs font-semibold text-slate-700 block mb-1">Mão de obra por painel (R$)</label>
-            <input
-              type="number"
-              value={maoDeTrabaho}
-              onChange={(e) => setMaoDeTrabaho(Number(e.target.value))}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              step="0.01"
-              min="0"
-            />
-            <p className="text-xs text-slate-500 mt-1">Total: R$ {subtotalMaoDeTrabaho.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-          </div>
-          <div>
-            <label className="text-xs font-semibold text-slate-700 block mb-1">Cabos e proteções (R$)</label>
-            <input
-              type="number"
-              value={cabosProtecao}
-              onChange={(e) => setCabosProtecao(Number(e.target.value))}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              step="0.01"
-              min="0"
-            />
-          </div>
+        <div className="flex items-center justify-between">
+          <p className="text-sm font-semibold text-slate-700">Itens adicionais</p>
+          <Button variante="secundario" icone={Plus} onClick={adicionarItem} className="text-xs py-1.5">
+            Adicionar Item
+          </Button>
         </div>
+        {itensAdicionais.length === 0 ? (
+          <p className="text-xs text-slate-500">
+            Ex.: ampliação, inversor adicional, módulos adicionais, estrutura, BESS, adequação elétrica.
+          </p>
+        ) : (
+          <div className="space-y-2">
+            {itensAdicionais.map((item, i) => {
+              const subtotal = (Number(item.quantidade) || 0) * (Number(item.valor) || 0)
+              return (
+                <div key={i} className="grid grid-cols-12 gap-2 items-end bg-white border border-slate-200 rounded-lg p-3">
+                  <div className="col-span-12 sm:col-span-5">
+                    <label className="text-xs text-slate-500 block mb-1">Descrição</label>
+                    <input type="text" value={item.descricao}
+                      onChange={(e) => atualizarItem(i, { descricao: e.target.value })}
+                      placeholder="Ex.: Inversor adicional 5kW"
+                      className="w-full px-2 py-1.5 text-sm border border-slate-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                  </div>
+                  <div className="col-span-4 sm:col-span-2">
+                    <label className="text-xs text-slate-500 block mb-1">Qtd</label>
+                    <input type="number" min="0" step="1" value={item.quantidade}
+                      onChange={(e) => atualizarItem(i, { quantidade: Number(e.target.value) })}
+                      className="w-full px-2 py-1.5 text-sm border border-slate-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                  </div>
+                  <div className="col-span-4 sm:col-span-2">
+                    <label className="text-xs text-slate-500 block mb-1">Valor (R$)</label>
+                    <input type="number" min="0" step="0.01" value={item.valor}
+                      onChange={(e) => atualizarItem(i, { valor: Number(e.target.value) })}
+                      className="w-full px-2 py-1.5 text-sm border border-slate-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                  </div>
+                  <div className="col-span-3 sm:col-span-2">
+                    <label className="text-xs text-slate-500 block mb-1">Tipo</label>
+                    <select value={item.tipo}
+                      onChange={(e) => atualizarItem(i, { tipo: e.target.value })}
+                      className="w-full px-2 py-1.5 text-sm border border-slate-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+                      <option value="material">Material</option>
+                      <option value="servico">Serviço</option>
+                    </select>
+                  </div>
+                  <div className="col-span-1 flex justify-end">
+                    <button type="button" onClick={() => removerItem(i)}
+                      className="p-2 text-slate-400 hover:text-red-600 transition-colors" title="Remover item">
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                  <div className="col-span-12 text-right text-xs text-slate-500">
+                    Subtotal: R$ {subtotal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
       </div>
 
-      {/* Total */}
+      {/* Total — composição por modo + Total Material / Serviços / Venda */}
       <div className="bg-slate-900 text-white rounded-xl p-6 space-y-3">
         <div className="space-y-2">
-          <div className="flex items-center justify-between text-sm text-slate-400">
-            <span>{dim.numPaineis} painéis × R$ {precoPainel.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-            <span>R$ {subtotalPaineis.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+          {isKit ? (
+            <>
+              <div className="flex items-center justify-between text-sm text-slate-400">
+                <span>Valor do Kit{kitFornecedor ? ` — ${kitFornecedor}` : ''}</span>
+                <span>R$ {(Number(kitValor) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm text-slate-400">
+                <span>Frete</span>
+                <span>R$ {(Number(kitFrete) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm text-slate-400">
+                <span>Projeto</span>
+                <span>R$ {(Number(kitProjeto) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm text-slate-400">
+                <span>Mão de obra</span>
+                <span>R$ {(Number(kitMaoObra) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="flex items-center justify-between text-sm text-slate-400">
+                <span>{dim.numPaineis} painéis × R$ {precoPainel.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                <span>R$ {subtotalPaineis.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm text-slate-400">
+                <span>{dim.numInversores} inversor(es) × R$ {precoInversor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                <span>R$ {subtotalInversores.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm text-slate-400">
+                <span>Estrutura ({dim.numPaineis} un × R$ {precoEstrutura.toLocaleString('pt-BR', { minimumFractionDigits: 2 })})</span>
+                <span>R$ {subtotalEstrutura.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm text-slate-400">
+                <span>Mão de obra ({dim.numPaineis} painéis × R$ {maoDeTrabaho.toLocaleString('pt-BR', { minimumFractionDigits: 2 })})</span>
+                <span>R$ {subtotalMaoDeTrabaho.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm text-slate-400">
+                <span>Cabos e proteções</span>
+                <span>R$ {subtotalCabosProtecao.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+              </div>
+            </>
+          )}
+          {(totalItensMaterial > 0 || totalItensServico > 0) && (
+            <div className="flex items-center justify-between text-sm text-slate-400">
+              <span>Itens adicionais ({itensAdicionais.length})</span>
+              <span>R$ {(totalItensMaterial + totalItensServico).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+            </div>
+          )}
+        </div>
+
+        <div className="border-t border-slate-700 pt-3 space-y-1.5">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-slate-300">Total Material</span>
+            <span className="font-medium">R$ {totalMaterial.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
           </div>
-          <div className="flex items-center justify-between text-sm text-slate-400">
-            <span>{dim.numInversores} inversor(es) × R$ {precoInversor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-            <span>R$ {subtotalInversores.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-          </div>
-          <div className="flex items-center justify-between text-sm text-slate-400">
-            <span>Estrutura ({dim.numPaineis} un × R$ {precoEstrutura.toLocaleString('pt-BR', { minimumFractionDigits: 2 })})</span>
-            <span>R$ {subtotalEstrutura.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-          </div>
-          <div className="flex items-center justify-between text-sm text-slate-400">
-            <span>Mão de obra ({dim.numPaineis} painéis × R$ {maoDeTrabaho.toLocaleString('pt-BR', { minimumFractionDigits: 2 })})</span>
-            <span>R$ {subtotalMaoDeTrabaho.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-          </div>
-          <div className="flex items-center justify-between text-sm text-slate-400">
-            <span>Cabos e proteções</span>
-            <span>R$ {subtotalCabosProtecao.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-slate-300">Total Serviços</span>
+            <span className="font-medium">R$ {totalServicos.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
           </div>
         </div>
 
         <div className="border-t border-slate-700 pt-4 flex items-center justify-between">
-          <span className="font-semibold">TOTAL DO INVESTIMENTO</span>
+          <span className="font-semibold">TOTAL DE VENDA</span>
           <span
             className="text-3xl font-bold"
             style={{ color: 'var(--cor-primaria, #f97316)' }}
@@ -665,7 +901,9 @@ export default function E8Orcamento() {
           </span>
         </div>
         <p className="text-xs text-slate-500">
-          * Não inclui projeto elétrico, ART, homologação na concessionária e outros serviços.
+          {isKit
+            ? '* Kit fechado do fornecedor. Itens adicionais e serviços somados ao total de venda.'
+            : '* Composição detalhada item a item. Confira projeto elétrico, ART e homologação nos serviços.'}
         </p>
       </div>
 

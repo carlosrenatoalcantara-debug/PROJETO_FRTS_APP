@@ -133,13 +133,24 @@ export function adaptarLayoutSolar(area) {
  * Adapter: orcamento
  * Estado local do E8Orcamento (preços, subtotais, total).
  */
-export function adaptarOrcamento({ total, subtotalPaineis, subtotalInversores,
-  subtotalEstrutura, subtotalMaoDeTrabaho, subtotalCabosProtecao }) {
+export function adaptarOrcamento({
+  total, subtotalPaineis, subtotalInversores,
+  subtotalEstrutura, subtotalMaoDeTrabaho, subtotalCabosProtecao,
+  // P1-FV-COMMERCIAL-KIT-FIRST-01 (additive)
+  modo, kit, itensAdicionais, totalMaterial, totalServicos, totalVenda,
+}) {
   return {
     custo_total_r:        total                ?? null,
     custo_equipamentos_r: (subtotalPaineis ?? 0) + (subtotalInversores ?? 0) + (subtotalEstrutura ?? 0),
     custo_mao_obra_r:     subtotalMaoDeTrabaho ?? null,
     custo_outros_r:       subtotalCabosProtecao ?? null,
+    // ── Kit-first (modo padrão) ───────────────────────────────────────────────
+    modo:             modo ?? 'kit',
+    kit:              kit ?? null,
+    itens_adicionais: Array.isArray(itensAdicionais) ? itensAdicionais : [],
+    total_material_r: totalMaterial ?? null,
+    total_servicos_r: totalServicos ?? null,
+    total_venda_r:    totalVenda    ?? null,
     calculado_em:         new Date().toISOString(),
   }
 }

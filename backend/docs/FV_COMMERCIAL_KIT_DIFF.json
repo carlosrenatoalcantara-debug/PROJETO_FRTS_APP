@@ -1,0 +1,55 @@
+{
+  "gerado_em": "2026-06-17",
+  "sprint": "P1-FV-COMMERCIAL-KIT-FIRST-01",
+  "executor": "Sonnet 4.6",
+  "revisao_gemini": "OBRIGATÓRIA E PENDENTE",
+  "escopo": "Projeto FV apenas. Não tocou ProjetoEV, Atlas, Homologação, Governança, Ativos, QR.",
+
+  "alteracoes": [
+    {
+      "arquivo": "backend/src/models/ProjetoFV.js",
+      "tipo": "SCHEMA_ADDITIVE",
+      "fase": 3,
+      "descricao": "Novos subschemas itemOrcamentoFVSchema e kitOrcamentoFVSchema; campos aditivos em orcamentoV3Schema: modo, kit, itens_adicionais, total_material_r, total_servicos_r, total_venda_r",
+      "destrutivo": false,
+      "nota": "Aditivo. Projetos existentes ficam com os novos campos null/[] (default). strict:true preservado. Nenhuma migração de dados."
+    },
+    {
+      "arquivo": "frontend/src/services/projetoFVApi.js",
+      "tipo": "ADAPTER_EXTEND",
+      "fase": "3-4",
+      "funcao": "adaptarOrcamento",
+      "descricao": "Aceita modo, kit, itensAdicionais, totalMaterial, totalServicos, totalVenda e mapeia para os campos aditivos do schema. Campos legados (custo_total_r etc.) mantidos.",
+      "destrutivo": false
+    },
+    {
+      "arquivo": "frontend/src/components/fv/etapas/E8Orcamento.jsx",
+      "tipo": "FEATURE_ADD",
+      "fase": "2-5",
+      "mudancas": [
+        "Import de ícones Package, Plus, Trash2",
+        "Estado: modoOrcamento ('kit' default), kitFornecedor, kitValor, kitFrete, kitProjeto, kitMaoObra, kitObservacoes, itensAdicionais[]",
+        "Handlers: adicionarItem, removerItem, atualizarItem",
+        "Cálculo: totalItensMaterial, totalItensServico, totalMaterial, totalServicos, total (=Total Venda) unificado por modo",
+        "montarOrcamentoLocal() compartilhado entre salvarProposta e construirSnapshotsE8",
+        "UI: seletor de modo (toggle Kit/Detalhado)",
+        "UI: formulário Kit (Fornecedor, Valor, Frete, Projeto, Mão de obra, Observações) — modo kit",
+        "UI: composição de equipamentos — modo detalhado (preservada)",
+        "UI: bloco Custos Adicionais condicionado a !isKit",
+        "UI: seção Itens Adicionais (ambos os modos) com Adicionar Item / Descrição / Qtd / Valor / Tipo / remover",
+        "UI: card de total reescrito — Total Material, Total Serviços, TOTAL DE VENDA, com breakdown por modo"
+      ],
+      "destrutivo": false,
+      "compatibilidade": "Modo detalhado preserva total legado quando sem itens adicionais."
+    }
+  ],
+
+  "nao_alterado": [
+    "Geração do unifilar (gerarUnifilarSVG) — apenas documentada na Fase 6",
+    "Homologacao.jsx e rotas de homologação",
+    "GovernancaPainel e fluxo de congelamento técnico",
+    "Módulo de Ativos / QR",
+    "ProjetoEV e qualquer schema EV",
+    "Backend controller case 'orcamento' (continua $set.orcamento = dados — agora recebe os campos kit por estar no schema)"
+  ]
+}
