@@ -1,0 +1,128 @@
+{
+  "gerado_em": "2026-06-18",
+  "sprint": "P0-FV-OPEN-BUGS-CONSOLIDATION-01",
+  "executor": "Opus (READ-ONLY — nenhuma alteração de código)",
+  "revisao_gemini": "OBRIGATÓRIA E PENDENTE",
+  "metodo": "Auditoria estática (leitura de código + forenses anteriores). NÃO houve query ao Atlas vivo nem execução da aplicação. Contagens de catálogo vêm das forenses de 2026-06-15/17.",
+
+  "bugs_abertos": [
+    {
+      "id": "BUG-CAT-01",
+      "area": "Catálogo / Potência desconhecida",
+      "titulo": "122 inversores sem especificações (69.7% do catálogo)",
+      "fase": 3,
+      "evidencia": "UNKNOWN_POWER_INVENTORY.json: 122/175 inversores com especificacoes{} vazia (identity-only import SolarMarket). 87 deriváveis por regex do modelo, 35 não. 3/186 módulos sem potência (sem impacto em projetos).",
+      "derivavel": { "inversores_derivaveis_por_regex": 87, "inversores_nao_derivaveis": 35, "modulos_sem_pot": 3 },
+      "impacto_ativo": "Projeto 'Cristiano 600kw' (Goodwe GW8000-DT, potencia_kw=null). Demais sem vínculo ativo.",
+      "estado": "ABERTO — enriquecimento tentado (WAVE1 +5, WAVE1B +3) mas restam ~122 sem specs (WAVE1B fase6).",
+      "prioridade": "P0"
+    },
+    {
+      "id": "BUG-QUAL-01",
+      "area": "Catálogo / Regras de qualidade",
+      "titulo": "Regras de plausibilidade invalidam microinversores e import_solarmarket nunca atinge 'utilizável'",
+      "fase": 3,
+      "evidencia": "INVERTER_WAVE1_METRICS.json: MPPT_INCOERENTE exige MPPT_max < Voc_max_DC (estrito) → falso-positivo crítico em micros e strings com MPPT_max==Voc_max_DC (Growatt 550=550). origem.tipo=import_solarmarket ausente de BASE_POR_ORIGEM → confiança base 20 → score nunca alcança utilizável(75) mesmo com completude 95.",
+      "impacto": "4/5 enriquecidos na WAVE1 permaneceram inválidos apesar de specs corretas. Bloqueia ROI de qualquer enriquecimento.",
+      "estado": "ABERTO (documentado, não corrigido — fora de escopo das sprints anteriores)",
+      "prioridade": "P0"
+    },
+    {
+      "id": "BUG-BEN-01",
+      "area": "Beneficiárias",
+      "titulo": "UI não expõe tipoRateio='prioridade' (Lei 14.300/2022)",
+      "fase": 1,
+      "evidencia": "BeneficiariasPainel.jsx:48 novoForm.tipoRateio fixo em 'percentual'; formulário (linhas 332-353) não tem seletor. UnidadeBeneficiaria.js:31 aceita enum ['percentual','prioridade']. Backend pronto, UI nunca envia 'prioridade'.",
+      "impacto": "Projetos GD com rateio por prioridade não configuráveis pela UI.",
+      "estado": "ABERTO (= GAP-09 da forense de fluxo)",
+      "prioridade": "P1"
+    },
+    {
+      "id": "BUG-SCAN-01",
+      "area": "Scanner / OCR",
+      "titulo": "Sem upload de galeria — OCR impossível quando a câmera está indisponível",
+      "fase": 5,
+      "evidencia": "EtiquetaScanner.jsx: captura via getUserMedia (foto OCR) + BarcodeDetector (QR) + colar texto. NÃO há <input type=file accept=image/*> para escolher foto da galeria. Estado 'sem_camera' só permite colar texto — não permite enviar foto salva para OCR.",
+      "impacto": "Em desktop sem webcam ou quando a permissão de câmera é negada, o usuário não consegue usar OCR a partir de uma foto existente.",
+      "constraint": "EtiquetaScanner pertence ao domínio Ativos/Comissionamento/QR — correção exige tocar área sob restrição 'Não alterar'.",
+      "estado": "ABERTO",
+      "prioridade": "P1"
+    },
+    {
+      "id": "BUG-SCAN-02",
+      "area": "Scanner / QR",
+      "titulo": "QR automático indisponível no iOS Safari (sem BarcodeDetector)",
+      "fase": 5,
+      "evidencia": "EtiquetaScanner.jsx:12 temBarcode = 'BarcodeDetector' in window. iOS Safari não implementa BarcodeDetector → leitura automática de QR não funciona; cai em foto OCR / colar texto.",
+      "impacto": "Em iPhone, QR precisa ser lido por foto OCR ou colado manualmente — fricção, não bloqueio total.",
+      "estado": "ABERTO (limitação de plataforma, fallback existe)",
+      "prioridade": "P2"
+    },
+    {
+      "id": "BUG-EQID-01",
+      "area": "equipamento_id / Linkagem catálogo",
+      "titulo": "equipamento_id ausente em arranjos de projetos legados → linkagem Atlas inoperante",
+      "fase": 4,
+      "evidencia": "E7Equipamentos.jsx:131/139 grava equipamento_id = painel._id||null (preenchido para seleções novas do catálogo). Projetos legados/SolarMarket têm equipamento_id=null (UNKNOWN_POWER_INVENTORY: 'equipamento_id=null em todos os arranjos'). homologacaoController._carregarDepsDocumento e detectarDivergencia tentam por equipamento_id e caem em (fabricante,modelo).",
+      "impacto": "Para projetos legados, a vinculação ao Atlas vivo por ID não dispara (memorial usa inline/snapshot; divergência por nome). snapshotEquipamento herda equipamento_id (null nesses casos).",
+      "estado": "ABERTO — MAPEADO, NÃO CORRIGIR (FASE 4)",
+      "prioridade": "P1"
+    },
+    {
+      "id": "BUG-ART-01",
+      "area": "Homologação / ART",
+      "titulo": "DadosART faz GET sem corpo, controller lê req.body.projeto",
+      "fase": 5,
+      "evidencia": "DadosART.jsx:29 fetch GET sem body; obterDadosART (homologacaoController) exige req.body.projeto → tende a 400. Achado na sprint P1-HOMOLOGACAO-SNAPSHOT-01.",
+      "impacto": "Aba 'Dados para ART' provavelmente não retorna dados (transporte quebrado), independente de snapshot.",
+      "estado": "ABERTO (pré-existente, não corrigido)",
+      "prioridade": "P1"
+    },
+    {
+      "id": "BUG-LAY-01",
+      "area": "Layout Editor",
+      "titulo": "Editor de diagrama usa cálculos genéricos e não representa multiarranjo (FV)",
+      "fase": 2,
+      "evidencia": "ProjetosFVDetalhes.jsx:280 InteractiveDiagram recebe calculos padrão (fallback da sprint P0-LAYOUT-EDITOR-FV-RESTORE-01). InteractiveDiagram é EV-exclusivo; não renderiza múltiplos arranjos FV. AbaLayout (linha 562) exibe panos congelados/roof_planes em modo leitura.",
+      "impacto": "Editor abre (correção da Sprint 1) mas com valores representativos genéricos; multiarranjo não é desenhado. Limitação, não regressão.",
+      "estado": "ABERTO (limitação de design conhecida)",
+      "prioridade": "P2"
+    },
+    {
+      "id": "BUG-ARCH-01",
+      "area": "Arquitetura / Beneficiárias",
+      "titulo": "Frontend importa diretamente do backend/src",
+      "fase": 1,
+      "evidencia": "BeneficiariasPainel.jsx:4 import '../../../../backend/src/utils/beneficiarias/beneficiariaRateio.js'. O bundle do frontend referencia a árvore do backend.",
+      "impacto": "Fragilidade de build/deploy: mover/alterar o arquivo backend quebra o frontend. Acoplamento indevido entre camadas.",
+      "estado": "ABERTO",
+      "prioridade": "P2"
+    },
+    {
+      "id": "BUG-MOD-01",
+      "area": "Catálogo / Módulos",
+      "titulo": "3 módulos sem potência",
+      "fase": 3,
+      "evidencia": "UNKNOWN_POWER_INVENTORY: modulos_sem_potencia=3 (1.6%), projetos_afetados_mod=0.",
+      "impacto": "Nenhum projeto afetado atualmente.",
+      "estado": "ABERTO (baixo impacto)",
+      "prioridade": "P2"
+    }
+  ],
+
+  "bugs_ja_corrigidos": [
+    { "id": "GAP-01", "titulo": "Homologação stub conectada ao componente real", "sprint": "P0-FV-WORKFLOW-RESTORE-01", "commit": "3370390" },
+    { "id": "GAP-02", "titulo": "resultadoFinanceiro derivado (não mais null)", "sprint": "P0-FV-WORKFLOW-RESTORE-01", "commit": "3370390" },
+    { "id": "GAP-03", "titulo": "GovernancaPainel recebe construirSnapshots", "sprint": "P0-FV-WORKFLOW-RESTORE-01", "commit": "3370390" },
+    { "id": "GAP-04", "titulo": "nomeCliente → clienteId.nome", "sprint": "P0-FV-WORKFLOW-RESTORE-01", "commit": "3370390" },
+    { "id": "LAYOUT-FV", "titulo": "Editor FV 'Dados incompletos' → fallback calculos", "sprint": "P0-LAYOUT-EDITOR-FV-RESTORE-01", "commit": "82f26e4" },
+    { "id": "PDF-KIT", "titulo": "PDFs refletem modo kit/detalhado (divergência tela×PDF)", "sprint": "P1-FV-PDF-KIT-RESTORE-01", "commit": "ba5a09f" },
+    { "id": "FREEZE-ENG", "titulo": "APROVADO + congelamento de itens adicionais/arranjos", "sprint": "P1-FV-FREEZE-TO-ENGINEERING-01", "commit": "ead644b" },
+    { "id": "HOMOLOG-SNAP", "titulo": "Homologação usa snapshot quando congelado", "sprint": "P1-HOMOLOGACAO-SNAPSHOT-01", "commit": "db4c58a" }
+  ],
+
+  "regressoes": {
+    "detectadas": 0,
+    "nota": "Nenhuma regressão detectada na revisão ESTÁTICA. Testes runtime e query ao Atlas NÃO foram executados nesta auditoria — não é possível afirmar ausência de regressão em runtime."
+  }
+}

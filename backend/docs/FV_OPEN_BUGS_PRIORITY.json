@@ -1,0 +1,75 @@
+{
+  "gerado_em": "2026-06-18",
+  "sprint": "P0-FV-OPEN-BUGS-CONSOLIDATION-01",
+  "executor": "Opus (READ-ONLY)",
+  "revisao_gemini": "OBRIGATÓRIA E PENDENTE",
+  "legenda_esforco": "small=<1d, medium=1-3d, large=3-7d",
+
+  "P0": [
+    {
+      "id": "BUG-QUAL-01",
+      "titulo": "Recalibrar regras de qualidade (micro + import_solarmarket)",
+      "esforco": "medium",
+      "dependencias": [],
+      "habilita": ["BUG-CAT-01"],
+      "justificativa": "Pré-requisito: sem recalibrar, qualquer enriquecimento de specs continua sendo marcado inválido e não atinge 'utilizável'. Destrava o ROI de todo o catálogo.",
+      "constraint": "Toca o motor de qualidade do catálogo (não Atlas de dados; lógica)."
+    },
+    {
+      "id": "BUG-CAT-01",
+      "titulo": "Enriquecer 87 inversores deriváveis por regex + Goodwe GW8000-DT",
+      "esforco": "medium",
+      "dependencias": ["BUG-QUAL-01"],
+      "habilita": ["snapshots fiéis", "homologação com specs reais"],
+      "justificativa": "87/122 têm kW no nome (derivável sem datasheet). Goodwe GW8000-DT impacta projeto ativo 'Cristiano 600kw'. 35 restantes exigem datasheet/manual."
+    }
+  ],
+
+  "P1": [
+    {
+      "id": "BUG-BEN-01",
+      "titulo": "Expor seletor tipoRateio (percentual/prioridade) na UI de beneficiárias",
+      "esforco": "small",
+      "dependencias": [],
+      "justificativa": "Backend já suporta. Adicionar seletor no novoForm + import em lote. Escopo FV puro.",
+      "constraint": "Nenhuma — área FV."
+    },
+    {
+      "id": "BUG-EQID-01",
+      "titulo": "Backfill de equipamento_id em arranjos legados (linkagem por fabricante+modelo)",
+      "esforco": "medium",
+      "dependencias": ["BUG-CAT-01"],
+      "justificativa": "Resolve a vinculação Atlas para homologação/divergência por ID. Requer script de migração idempotente (NÃO nesta sprint — FASE 4 proíbe correção).",
+      "constraint": "Mexe em dados do Atlas (migração) — exige autorização explícita."
+    },
+    {
+      "id": "BUG-SCAN-01",
+      "titulo": "Adicionar upload de galeria (input file image) ao EtiquetaScanner para OCR",
+      "esforco": "small",
+      "dependencias": [],
+      "justificativa": "Permite OCR sem câmera. Mudança pequena de UI.",
+      "constraint": "EtiquetaScanner pertence a Ativos/Comissionamento/QR — sob restrição 'Não alterar'. Requer liberação de escopo."
+    },
+    {
+      "id": "BUG-ART-01",
+      "titulo": "Corrigir transporte ART (GET sem corpo vs req.body)",
+      "esforco": "small",
+      "dependencias": [],
+      "justificativa": "Aba ART provavelmente quebrada. Alinhar método/payload entre DadosART.jsx e obterDadosART. Escopo FV/Homologação."
+    }
+  ],
+
+  "P2": [
+    { "id": "BUG-SCAN-02", "titulo": "Polyfill/QR para iOS (jsQR) quando BarcodeDetector ausente", "esforco": "medium", "dependencias": ["BUG-SCAN-01"], "constraint": "domínio scanner sob restrição" },
+    { "id": "BUG-LAY-01", "titulo": "Editor de diagrama FV com cálculos reais + multiarranjo", "esforco": "large", "dependencias": [], "constraint": "exigiria reescrever InteractiveDiagram (proibido na Sprint 1)" },
+    { "id": "BUG-ARCH-01", "titulo": "Mover beneficiariaRateio para pacote compartilhado (frontend não importar de backend/src)", "esforco": "small", "dependencias": [] },
+    { "id": "BUG-MOD-01", "titulo": "Completar 3 módulos sem potência", "esforco": "small", "dependencias": [] }
+  ],
+
+  "proxima_sprint_recomendada": {
+    "id": "P0-FV-CATALOG-QUALITY-RECAL-01",
+    "escopo": "BUG-QUAL-01 (recalibração) → BUG-CAT-01 (enriquecimento dos 87 deriváveis)",
+    "motivo": "É o gargalo de maior alcance: destrava a fidelidade dos snapshots e da homologação (que agora dependem do catálogo congelado). Os fixes de UI (BUG-BEN-01, BUG-ART-01) podem entrar como sprint P1 paralela de baixo risco.",
+    "observacao": "Itens que tocam Ativos/QR/Comissionamento (BUG-SCAN-01/02) e migração de dados do Atlas (BUG-EQID-01) exigem liberação explícita das restrições antes de agendar."
+  }
+}
