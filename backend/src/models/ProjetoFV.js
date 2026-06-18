@@ -793,6 +793,14 @@ const projetoFVSchema = new mongoose.Schema({
     iniciada_por: String,
     concluida_em: Date,
     concluida_por: String,
+    // P1-CENTRAL-HOMOLOGACAO-MVP — protocolo da concessionária (aditivo, opcional)
+    numero_protocolo: { type: String, default: null },
+    protocolo_atualizado_em: { type: Date, default: null },
+    protocolo_historico: [{
+      em: { type: Date, default: Date.now },
+      valor: String,
+      por: String,
+    }],
   },
   observacoes: String,
 

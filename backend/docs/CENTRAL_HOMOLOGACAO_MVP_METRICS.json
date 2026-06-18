@@ -1,0 +1,87 @@
+{
+  "sprint": "P1-CENTRAL-HOMOLOGACAO-MVP",
+  "modelo": "Opus 4.8",
+  "data": "2026-06-18",
+  "revisao_gemini": "OBRIGATÓRIA E PENDENTE",
+
+  "escopo": {
+    "arquivos_criados": 5,
+    "arquivos_alterados": 3,
+    "componentes_reutilizados_sem_alteracao": 6,
+    "endpoints_criados": 1,
+    "endpoints_removidos": 0,
+    "rotas_existentes_alteradas": 0,
+    "schema_campos_adicionados": 3,
+    "schema_campos_removidos": 0
+  },
+
+  "sub_abas": {
+    "total": 6,
+    "novas_de_apresentacao": ["Dados", "Equipamentos", "Histórico"],
+    "reutilizadas_diretas": ["Beneficiárias", "Checklist"],
+    "consolidadora": ["Documentos (Memorial+Carta+ART)"],
+    "responsivo": true
+  },
+
+  "cobertura_central": {
+    "antes_sprint": "~65% (componentes dispersos em abas/contextos separados)",
+    "depois_sprint": "~90% (consolidado numa Central com 6 sub-abas)",
+    "nota": "Estimativa estrutural. Itens fora do MVP: PDF real (.txt atual), unificação status legado×S9.0, ENEL no concessionariaProvider (GAP-10)."
+  },
+
+  "fases": {
+    "fase_1_auditoria": "completa",
+    "fase_2_estrutura": "completa (6 sub-abas)",
+    "fase_3_dados": "completa (copy/paste por seção + geral)",
+    "fase_4_equipamentos": "completa (snapshot-aware)",
+    "fase_5_beneficiarias": "completa (reuso direto)",
+    "fase_6_documentos": "completa (consolidação, sem recriar)",
+    "fase_7_checklist": "completa (reuso direto)",
+    "fase_8_historico": "completa (timeline de históricos existentes)",
+    "fase_9_protocolo": "completa (campo aditivo + PATCH persistido)",
+    "fase_10_validacao": "parcial — build + leitura de código; sem teste de integração real"
+  },
+
+  "snapshot": {
+    "preservado": true,
+    "mecanismo": "obterEquipamentosEngenharia() — única fonte de verdade snapshot vs vivo",
+    "exibicao": "Aba Equipamentos exibe 'DADOS CONGELADOS DO ORÇAMENTO APROVADO' quando origem=snapshot",
+    "logica_duplicada": false
+  },
+
+  "beneficiarias": {
+    "reuso": "BeneficiariasPainel direto (projetoId)",
+    "duplicacao": false,
+    "dados_em_dados": "UC/CPF/concessionária via GET /beneficiarias/resumo (read-only)"
+  },
+
+  "protocolo": {
+    "persistencia": "ProjetoFV.homologacao.numero_protocolo (Atlas)",
+    "historico": "protocolo_historico[] (em/valor/por)",
+    "endpoint": "PATCH /homologacao/protocolo",
+    "opcional": true,
+    "auditado": true
+  },
+
+  "regressoes": {
+    "total_identificadas": 0,
+    "observacoes": [
+      "Homologacao.jsx reescrito: as 4 abas antigas (checklist/memorial/carta/art) foram reorganizadas nas 6 novas; nenhuma funcionalidade removida.",
+      "Memorial/Carta/ART/Checklist/Beneficiárias inalterados — apenas remontados.",
+      "Snapshot, Governança, Catálogo, Segurança intactos."
+    ]
+  },
+
+  "build": { "executado": true, "resultado": "sucesso", "erros": 0, "tempo": "11.72s", "modulos": 2327 },
+  "syntax_check_backend": { "executado": true, "resultado": "OK" },
+  "teste_integracao_real": { "executado": false, "motivo": "requer deploy Railway/Atlas" },
+
+  "pendencias_pos_mvp": [
+    "Revisão Gemini obrigatória antes de deploy",
+    "Teste de integração real do PATCH /protocolo contra Atlas",
+    "GAP-06: PDF real (memorial/carta atualmente .txt)",
+    "GAP-02: unificar status legado × S9.0",
+    "GAP-10: adicionar ENEL em concessionariaProvider.js",
+    "GAP-08: 39 inversores sem potencia_kw (memorial incompleto p/ esses)"
+  ]
+}

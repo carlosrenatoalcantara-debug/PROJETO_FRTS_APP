@@ -1,0 +1,110 @@
+{
+  "sprint": "P1-CENTRAL-HOMOLOGACAO-MVP",
+  "modelo": "Opus 4.8",
+  "data": "2026-06-18",
+  "revisao_gemini": "OBRIGATÓRIA E PENDENTE",
+  "tipo": "IMPLEMENTACAO_MVP",
+  "codigo_alterado": true,
+  "atlas_alterado_manualmente": false,
+  "schema_alterado": "aditivo (apenas adições em homologacao)",
+
+  "arquivos_criados": [
+    {
+      "arquivo": "frontend/src/components/fv/homologacao/CampoCopiavel.jsx",
+      "responsabilidade": "Campo/Seção copiável reutilizável (copy/paste assistido)",
+      "exports": ["CampoCopiavel", "SecaoDados"]
+    },
+    {
+      "arquivo": "frontend/src/components/fv/homologacao/CentralDados.jsx",
+      "responsabilidade": "FASE 3 — dados consolidados com botões de cópia por seção e geral",
+      "reutiliza": ["obterEquipamentosEngenharia", "GET /beneficiarias/resumo", "SecaoDados"]
+    },
+    {
+      "arquivo": "frontend/src/components/fv/homologacao/CentralEquipamentos.jsx",
+      "responsabilidade": "FASE 4 — módulos/inversores com destaque de congelamento",
+      "reutiliza": ["obterEquipamentosEngenharia"]
+    },
+    {
+      "arquivo": "frontend/src/components/fv/homologacao/CentralDocumentos.jsx",
+      "responsabilidade": "FASE 6 — consolida Memorial/Carta/ART (sem recriar geradores)",
+      "reutiliza": ["MemorialDescritivo", "CartaConcessionaria", "DadosART"]
+    },
+    {
+      "arquivo": "frontend/src/components/fv/homologacao/CentralHistorico.jsx",
+      "responsabilidade": "FASE 8 + 9 — timeline (históricos existentes) + protocolo persistido",
+      "reutiliza": ["getHistoricoTipoConfig", "PATCH /homologacao/protocolo", "Button"]
+    }
+  ],
+
+  "arquivos_alterados": [
+    {
+      "arquivo": "frontend/src/components/fv/homologacao/Homologacao.jsx",
+      "tipo": "frontend",
+      "mudanca": "Reescrito como hub de 6 sub-abas (Dados, Equipamentos, Beneficiárias, Documentos, Checklist, Histórico). Banner com badge de congelamento. Estado local para propagar protocolo.",
+      "preserva": ["banner snapshot (P1-HOMOLOGACAO-SNAPSHOT-01)", "obterEquipamentosEngenharia"]
+    },
+    {
+      "arquivo": "backend/src/models/ProjetoFV.js",
+      "tipo": "backend-schema",
+      "mudanca": "Campos aditivos em homologacao: numero_protocolo, protocolo_atualizado_em, protocolo_historico[]",
+      "aditivo": true,
+      "remove_campos": false
+    },
+    {
+      "arquivo": "backend/src/routes/homologacao.js",
+      "tipo": "backend-rota",
+      "mudanca": "Nova rota PATCH /protocolo (inline, padrão das rotas /assistida/*): persiste protocolo no Atlas + auditoria + histórico",
+      "remove_rotas": false
+    }
+  ],
+
+  "componentes_reutilizados_sem_alteracao": [
+    "BeneficiariasPainel.jsx",
+    "ChecklistDocumentos.jsx",
+    "MemorialDescritivo.jsx",
+    "CartaConcessionaria.jsx",
+    "DadosART.jsx",
+    "engenhariaGovernanca.js (obterEquipamentosEngenharia, getHistoricoTipoConfig)"
+  ],
+
+  "nao_alterado": {
+    "ProjetoEV": true,
+    "Ativos": true,
+    "QR": true,
+    "Comissionamento": true,
+    "Seguranca": true,
+    "Catalogo": true,
+    "Snapshot": true,
+    "Governanca": true
+  },
+
+  "nao_implementado_por_design": [
+    "Selenium / automação de portais",
+    "Login em portais (Neoenergia/Enel/Equatorial)",
+    "Integrações externas",
+    "Preenchimento automático de formulários"
+  ],
+
+  "novo_endpoint": {
+    "metodo": "PATCH",
+    "rota": "/api/projetos-fv/:projetoId/homologacao/protocolo",
+    "body": { "numero_protocolo": "string|null" },
+    "resposta": { "sucesso": true, "numero_protocolo": "string|null", "protocolo_atualizado_em": "Date", "protocolo_historico": "[]" },
+    "persistencia": "Atlas (ProjetoFV.homologacao)",
+    "auditoria": "PROTOCOLO_ATUALIZADO via _auditar",
+    "guarda": "503 DB_OFFLINE quando readyState !== 1"
+  },
+
+  "build": {
+    "ferramenta": "Vite 5.4.21",
+    "resultado": "sucesso",
+    "tempo": "11.72s",
+    "erros": 0,
+    "modulos": 2327,
+    "warnings": ["chunk size > 2000kB (pré-existente)"]
+  },
+  "syntax_check_backend": {
+    "routes/homologacao.js": "OK (node --check)",
+    "models/ProjetoFV.js": "OK (node --check)"
+  }
+}

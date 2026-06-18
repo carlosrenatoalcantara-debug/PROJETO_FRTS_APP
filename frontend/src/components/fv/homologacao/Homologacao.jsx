@@ -1,79 +1,66 @@
 import { useState } from 'react'
-import { FileText, Mail, Award, CheckSquare, Lock } from 'lucide-react'
-import MemorialDescritivo from './MemorialDescritivo'
-import CartaConcessionaria from './CartaConcessionaria'
-import DadosART from './DadosART'
+import { ClipboardCopy, Cpu, Users, FileText, CheckSquare, History, Lock } from 'lucide-react'
+import CentralDados from './CentralDados'
+import CentralEquipamentos from './CentralEquipamentos'
+import CentralDocumentos from './CentralDocumentos'
+import CentralHistorico from './CentralHistorico'
 import ChecklistDocumentos from './ChecklistDocumentos'
+import BeneficiariasPainel from '../BeneficiariasPainel'
 import { obterEquipamentosEngenharia } from '../../../utils/engenhariaGovernanca'
 
+/**
+ * P1-CENTRAL-HOMOLOGACAO-MVP — Central Operacional de Homologação.
+ * Reorganiza a aba Homologação em 6 sub-abas, reutilizando os componentes
+ * existentes (Memorial, Carta, ART, Checklist, Beneficiárias) e o snapshot.
+ * NÃO automatiza portais — apenas consolida e facilita o copy/paste manual.
+ */
 export default function Homologacao({ projetoId, projeto, cliente }) {
-  const [abaAtiva, setAbaAtiva] = useState('checklist')
+  const [abaAtiva, setAbaAtiva] = useState('dados')
+  const [projetoLocal, setProjetoLocal] = useState(projeto)
+  const proj = projetoLocal || projeto
 
-  // P1-HOMOLOGACAO-SNAPSHOT-01: quando o projeto está congelado, os documentos
-  // usam os equipamentos do orçamento aprovado (snapshot), não o catálogo vivo.
-  const eng = obterEquipamentosEngenharia(projeto)
+  // P1-HOMOLOGACAO-SNAPSHOT-01: origem dos equipamentos (snapshot quando congelado).
+  const eng = obterEquipamentosEngenharia(proj)
   const usaSnapshot = eng.origem === 'snapshot'
 
+  const idProjeto = projetoId || proj?._id
+  const estado = proj?.estado || proj?.localizacao?.estado
+  const concessionaria = proj?.homologacao?.concessionaria || proj?.concessionaria
+
   const abas = [
-    {
-      id: 'checklist',
-      rotulo: 'Checklist',
-      icone: CheckSquare,
-      descricao: 'Acompanhe os documentos',
-    },
-    {
-      id: 'memorial',
-      rotulo: 'Memorial Descritivo',
-      icone: FileText,
-      descricao: 'Gere automaticamente',
-    },
-    {
-      id: 'carta',
-      rotulo: 'Carta à Concessionária',
-      icone: Mail,
-      descricao: 'Documento de solicitação',
-    },
-    {
-      id: 'art',
-      rotulo: 'Dados para ART',
-      icone: Award,
-      descricao: 'Informações técnicas',
-    },
+    { id: 'dados', rotulo: 'Dados', icone: ClipboardCopy },
+    { id: 'equipamentos', rotulo: 'Equipamentos', icone: Cpu },
+    { id: 'beneficiarias', rotulo: 'Beneficiárias', icone: Users },
+    { id: 'documentos', rotulo: 'Documentos', icone: FileText },
+    { id: 'checklist', rotulo: 'Checklist', icone: CheckSquare },
+    { id: 'historico', rotulo: 'Histórico', icone: History },
   ]
+
+  function aplicarProtocolo(patch) {
+    setProjetoLocal((p) => ({
+      ...(p || {}),
+      homologacao: { ...((p || {}).homologacao || {}), ...patch },
+    }))
+  }
 
   return (
     <div className="space-y-4">
-      {/* Informação Geral */}
-      <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
+      {/* Cabeçalho da Central */}
+      <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4 flex items-start justify-between gap-3 flex-wrap">
         <p className="text-sm text-indigo-900">
-          <strong>🎯 Objetivo:</strong> Prepare todos os documentos necessários para homologar
-          seu sistema na concessionária {projeto?.concessionaria || 'N/A'} ({projeto?.estado || 'N/A'}).
+          <strong>Central de Homologação</strong> — consolida dados, equipamentos, documentos e
+          checklist para homologar em {concessionaria || 'N/A'} ({estado || 'N/A'}).
         </p>
+        {usaSnapshot && (
+          <span className="flex items-center gap-1 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full">
+            <Lock size={13} /> Orçamento congelado
+          </span>
+        )}
       </div>
 
-      {/* P1-HOMOLOGACAO-SNAPSHOT-01: origem dos equipamentos nos documentos */}
-      {usaSnapshot ? (
-        <div className="flex items-start gap-2 bg-emerald-50 border border-emerald-200 rounded-lg p-3 text-sm text-emerald-800">
-          <Lock size={16} className="mt-0.5 shrink-0" />
-          <span>
-            <strong>Equipamentos congelados do orçamento aprovado.</strong> Memorial, carta e ART
-            usam o snapshot do projeto ({eng.modulo?.fabricante || '—'} {eng.modulo?.modelo || ''} ·{' '}
-            {eng.inversor?.fabricante || '—'} {eng.inversor?.modelo || ''})
-            {Array.isArray(eng.itens_adicionais) && eng.itens_adicionais.length > 0
-              ? ` + ${eng.itens_adicionais.length} item(ns) adicional(is)`
-              : ''}. Mudanças no catálogo não afetam estes documentos.
-          </span>
-        </div>
-      ) : (
-        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-800">
-          Projeto não congelado — os documentos usam o catálogo atual. Aprove e congele a proposta
-          para travar os equipamentos da homologação.
-        </div>
-      )}
-
-      {/* Abas */}
+      {/* Sub-abas (scroll horizontal no mobile) */}
       <div className="border-b border-slate-200">
-        <div className="flex gap-2 overflow-x-auto">
+        <div className="flex gap-1 overflow-x-auto">
           {abas.map((aba) => {
             const Icon = aba.icone
             const isActive = abaAtiva === aba.id
@@ -81,13 +68,13 @@ export default function Homologacao({ projetoId, projeto, cliente }) {
               <button
                 key={aba.id}
                 onClick={() => setAbaAtiva(aba.id)}
-                className={`px-4 py-3 border-b-2 font-medium text-sm whitespace-nowrap flex items-center gap-2 transition-colors ${
+                className={`px-3 sm:px-4 py-3 border-b-2 font-medium text-sm whitespace-nowrap flex items-center gap-2 transition-colors ${
                   isActive
-                    ? 'border-blue-500 text-blue-600'
+                    ? 'border-indigo-500 text-indigo-600'
                     : 'border-transparent text-slate-600 hover:text-slate-900'
                 }`}
               >
-                <Icon size={18} />
+                <Icon size={17} />
                 {aba.rotulo}
               </button>
             )
@@ -95,63 +82,30 @@ export default function Homologacao({ projetoId, projeto, cliente }) {
         </div>
       </div>
 
-      {/* Conteúdo das Abas */}
-      <div className="bg-white rounded-lg p-6">
+      {/* Conteúdo */}
+      <div className="bg-white rounded-lg p-4 sm:p-6">
+        {abaAtiva === 'dados' && (
+          <CentralDados projeto={proj} cliente={cliente} />
+        )}
+        {abaAtiva === 'equipamentos' && (
+          <CentralEquipamentos projeto={proj} />
+        )}
+        {abaAtiva === 'beneficiarias' && (
+          <BeneficiariasPainel projetoId={idProjeto} />
+        )}
+        {abaAtiva === 'documentos' && (
+          <CentralDocumentos projetoId={idProjeto} projeto={proj} cliente={cliente} />
+        )}
         {abaAtiva === 'checklist' && (
           <ChecklistDocumentos
-            projetoId={projetoId}
-            estado={projeto?.estado}
-            concessionaria={projeto?.concessionaria}
+            projetoId={idProjeto}
+            estado={estado}
+            concessionaria={concessionaria}
           />
         )}
-
-        {abaAtiva === 'memorial' && (
-          <MemorialDescritivo
-            projetoId={projetoId}
-            projeto={projeto}
-            cliente={cliente}
-          />
+        {abaAtiva === 'historico' && (
+          <CentralHistorico projeto={proj} onAtualizar={aplicarProtocolo} />
         )}
-
-        {abaAtiva === 'carta' && (
-          <CartaConcessionaria
-            projetoId={projetoId}
-            projeto={projeto}
-            cliente={cliente}
-          />
-        )}
-
-        {abaAtiva === 'art' && (
-          <DadosART
-            projetoId={projetoId}
-            projeto={projeto}
-            estado={projeto?.estado}
-          />
-        )}
-      </div>
-
-      {/* Legenda de Status */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs">
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 bg-slate-100 rounded"></div>
-          <span>Rascunho</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 bg-blue-100 rounded"></div>
-          <span>Enviado</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 bg-yellow-100 rounded"></div>
-          <span>Em Análise</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 bg-green-100 rounded"></div>
-          <span>Aprovado</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 bg-emerald-100 rounded"></div>
-          <span>Conectado</span>
-        </div>
       </div>
     </div>
   )

@@ -168,6 +168,38 @@ router.patch('/assistida/status', async (req, res) => {
   }
 })
 
+// PATCH /api/projetos-fv/:projetoId/homologacao/protocolo
+// P1-CENTRAL-HOMOLOGACAO-MVP — persiste o protocolo da concessionária (aditivo)
+router.patch('/protocolo', async (req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) return res.status(503).json({ erro: 'DB_OFFLINE' })
+    const { numero_protocolo } = req.body || {}
+    const projeto = await ProjetoFV.findById(req.params.projetoId)
+    if (!projeto) return res.status(404).json({ erro: 'Projeto não encontrado' })
+
+    projeto.homologacao = projeto.homologacao || {}
+    const usuario = req.auth?.id || req.auth?.email || req.body?.usuario || 'anonymous'
+    const valor = (numero_protocolo ?? '').toString().trim() || null
+
+    projeto.homologacao.numero_protocolo = valor
+    projeto.homologacao.protocolo_atualizado_em = new Date()
+    projeto.homologacao.protocolo_historico = projeto.homologacao.protocolo_historico || []
+    projeto.homologacao.protocolo_historico.push({ valor, por: usuario })
+
+    _auditar(req, 'PROTOCOLO_ATUALIZADO', projeto._id, valor || '(removido)')
+    projeto.markModified('homologacao')
+    await projeto.save()
+    res.json({
+      sucesso: true,
+      numero_protocolo: projeto.homologacao.numero_protocolo,
+      protocolo_atualizado_em: projeto.homologacao.protocolo_atualizado_em,
+      protocolo_historico: projeto.homologacao.protocolo_historico,
+    })
+  } catch (err) {
+    res.status(500).json({ erro: err.message })
+  }
+})
+
 // GET /api/projetos-fv/:projetoId/homologacao/assistida/regras?concessionaria=X
 router.get('/assistida/regras', (req, res) => {
   const regras = obterRegras(req.query.concessionaria)
