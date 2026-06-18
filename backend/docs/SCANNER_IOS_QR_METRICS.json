@@ -1,0 +1,74 @@
+{
+  "sprint": "P1-SCANNER-IOS-QR-01",
+  "modelo": "Sonnet",
+  "data": "2026-06-18",
+  "bug": "BUG-SCAN-02",
+
+  "causa_raiz": {
+    "descricao": "BarcodeDetector ausente no Safari iOS; EtiquetaScanner não tinha fallback → iPhone só usava OCR",
+    "arquivo": "frontend/src/pages/EtiquetaScanner.jsx",
+    "linha_original": 14,
+    "confirmada_por": "leitura de código"
+  },
+
+  "estrategia": {
+    "solucao": "fallback jsQR (1.4.0) puro-JS sobre canvas/ImageData",
+    "dependencia_adicionada": "jsqr@^1.4.0",
+    "wasm": false,
+    "altera_backend": false
+  },
+
+  "escopo": {
+    "arquivos_alterados": 1,
+    "dependencias_adicionadas": 1,
+    "linhas_aprox_adicionadas": 60,
+    "ramo_android_inalterado": true
+  },
+
+  "compatibilidade": {
+    "android_chrome": { "qr_ao_vivo": "BarcodeDetector (inalterado)", "status": "preservado" },
+    "ios_safari": { "qr_ao_vivo": "jsQR (novo)", "status": "suportado" },
+    "foto": { "fluxo": "QR-first → OCR", "status": "ocr_preservado" },
+    "galeria": { "fluxo": "QR-first → OCR", "status": "ocr_preservado" },
+    "texto_colado": { "status": "inalterado" }
+  },
+
+  "campos_qr_validados": {
+    "serial": "repassado como texto ao parser backend (não alterado)",
+    "ssid": "idem",
+    "senha": "idem",
+    "mac": "idem",
+    "nota": "A extração desses campos é do parser /api/ativos/scan, fora do escopo. O frontend apenas entrega o conteúdo do QR como { texto }, igual ao BarcodeDetector."
+  },
+
+  "validacao": {
+    "build": { "executado": true, "resultado": "sucesso", "erros": 0, "tempo": "9.63s" },
+    "device_fisico": { "utilizado": false },
+    "iphone_real_safari": { "utilizado": false },
+    "android_real": { "utilizado": false },
+    "galeria_hardware": { "utilizado": false },
+    "testes_automatizados": { "executados": false },
+    "metodo_validacao": "leitura de código + build de produção"
+  },
+
+  "regressoes": {
+    "identificadas": 0,
+    "observacoes": [
+      "Ramo BarcodeDetector (Android) idêntico ao original",
+      "OCR mantido como fallback em foto e galeria",
+      "Contrato { texto }/{ foto } e endpoint inalterados",
+      "Cleanup do useEffect agora limpa setTimeout do loop iOS"
+    ]
+  },
+
+  "limitacoes": [
+    "Data Matrix ao vivo no iOS não suportado por jsQR (cai em OCR)",
+    "Recomendado teste em iPhone real (Safari) antes de fechar BUG-SCAN-02"
+  ],
+
+  "pendencias": [
+    "Teste em iPhone físico (Safari) com QR real contendo serial/SSID/senha/MAC",
+    "Teste de regressão em Android físico",
+    "Considerar @zxing/library se Data Matrix em iOS virar requisito"
+  ]
+}

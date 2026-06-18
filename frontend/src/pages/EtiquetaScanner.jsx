@@ -1,8 +1,45 @@
 // P1-COMMISSIONING-SCAN-01 — Scanner de etiqueta (câmera): QR → OCR → manual.
 // P1-SCANNER-GALLERY-01 — upload de galeria: <input type="file"> → OCR (mesmo endpoint).
+// P1-SCANNER-IOS-QR-01 — fallback jsQR para iOS/Safari (sem BarcodeDetector): lê QR ao vivo,
+//   na foto e na galeria, mantendo OCR como segundo nível. NÃO altera parser/backend/endpoint.
 // Captura serial/SSID/senha/MAC e devolve via onCapture(campos). NÃO grava nada (o salvar
 // é o /comissionar). Reutiliza o endpoint /api/ativos/scan.
 import { useEffect, useRef, useState } from 'react'
+import jsQR from 'jsqr'
+
+// ── Decodificação QR (pura) ───────────────────────────────────────────────
+// jsQR opera sobre ImageData (canvas). Usado quando BarcodeDetector não existe
+// (iOS Safari) e como QR-first na foto/galeria antes de cair no OCR.
+function lerQRDeContexto(ctx, w, h) {
+  try {
+    const img = ctx.getImageData(0, 0, w, h)
+    const res = jsQR(img.data, img.width, img.height, { inversionAttempts: 'attemptBoth' })
+    return res?.data || null
+  } catch { return null }
+}
+
+// Frame do vídeo → canvas reduzido (máx 640px) → QR. Reduzir mantém o loop fluido no iPhone.
+function lerQRDoVideo(video, canvas) {
+  const w = video.videoWidth, h = video.videoHeight
+  if (!w || !h) return null
+  const escala = Math.min(1, 640 / Math.max(w, h))
+  const cw = Math.max(1, Math.round(w * escala)), ch = Math.max(1, Math.round(h * escala))
+  canvas.width = cw; canvas.height = ch
+  const ctx = canvas.getContext('2d', { willReadFrequently: true })
+  ctx.drawImage(video, 0, 0, cw, ch)
+  return lerQRDeContexto(ctx, cw, ch)
+}
+
+// Carrega um File/Blob de imagem num HTMLImageElement (para decodificar QR da galeria).
+function carregarImagem(file) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file)
+    const im = new Image()
+    im.onload = () => { URL.revokeObjectURL(url); resolve(im) }
+    im.onerror = (err) => { URL.revokeObjectURL(url); reject(err) }
+    im.src = url
+  })
+}
 
 export default function EtiquetaScanner({ fabricante, onCapture, onClose }) {
   const videoRef = useRef(null)
@@ -15,7 +52,7 @@ export default function EtiquetaScanner({ fabricante, onCapture, onClose }) {
 
   useEffect(() => {
     let cancelado = false
-    let detector = null, loopId = null
+    let detector = null, loopId = null, timerId = null
     async function iniciar() {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } } })
@@ -23,7 +60,7 @@ export default function EtiquetaScanner({ fabricante, onCapture, onClose }) {
         streamRef.current = stream
         if (videoRef.current) { videoRef.current.srcObject = stream; await videoRef.current.play().catch(() => {}) }
         setEstado('pronto')
-        // QR automático (Android/Chrome). iOS Safari cai no "Capturar foto" (OCR).
+        // QR automático ao vivo. Android/Chrome usa BarcodeDetector; iOS Safari usa jsQR.
         if (temBarcode) {
           detector = new window.BarcodeDetector({ formats: ['qr_code', 'data_matrix'] })
           const tick = async () => {
@@ -35,6 +72,17 @@ export default function EtiquetaScanner({ fabricante, onCapture, onClose }) {
             loopId = requestAnimationFrame(tick)
           }
           loopId = requestAnimationFrame(tick)
+        } else {
+          // P1-SCANNER-IOS-QR-01: fallback iOS — decodifica QR via jsQR sobre o frame do vídeo.
+          const cv = document.createElement('canvas')
+          const tick = () => {
+            if (cancelado || !videoRef.current) return
+            const texto = lerQRDoVideo(videoRef.current, cv)
+            if (texto) { enviar({ texto }); return }
+            // throttle ~200ms para não saturar a CPU do iPhone com jsQR
+            timerId = setTimeout(() => { loopId = requestAnimationFrame(tick) }, 200)
+          }
+          loopId = requestAnimationFrame(tick)
         }
       } catch {
         setEstado('sem_camera')
@@ -42,7 +90,12 @@ export default function EtiquetaScanner({ fabricante, onCapture, onClose }) {
       }
     }
     iniciar()
-    return () => { cancelado = true; if (loopId) cancelAnimationFrame(loopId); parar() }
+    return () => {
+      cancelado = true
+      if (loopId) cancelAnimationFrame(loopId)
+      if (timerId) clearTimeout(timerId)
+      parar()
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -69,19 +122,34 @@ export default function EtiquetaScanner({ fabricante, onCapture, onClose }) {
     } catch { setMsg('Falha de conexão'); setEstado('pronto') }
   }
 
-  // Galeria: File extends Blob — FormData.append funciona identicamente ao canvas.toBlob
+  // Galeria: tenta QR (jsQR) na imagem; se não houver QR, mantém o OCR (comportamento original).
   async function onGalleryChange(e) {
     const file = e.target.files?.[0]
     if (!file) return
     e.target.value = '' // permite re-selecionar o mesmo arquivo
-    await enviar({ foto: file })
+    try {
+      const im = await carregarImagem(file)
+      const cv = document.createElement('canvas')
+      const escala = Math.min(1, 1280 / Math.max(im.width || 1, im.height || 1))
+      cv.width = Math.max(1, Math.round((im.width || 1) * escala))
+      cv.height = Math.max(1, Math.round((im.height || 1) * escala))
+      const ctx = cv.getContext('2d', { willReadFrequently: true })
+      ctx.drawImage(im, 0, 0, cv.width, cv.height)
+      const texto = lerQRDeContexto(ctx, cv.width, cv.height)
+      if (texto) { await enviar({ texto }); return }
+    } catch { /* falha ao decodificar QR → cai no OCR abaixo */ }
+    await enviar({ foto: file }) // File extends Blob — FormData.append idêntico ao canvas.toBlob
   }
 
   async function tirarFoto() {
     const v = videoRef.current; if (!v) return
     const cv = document.createElement('canvas')
     cv.width = v.videoWidth || 720; cv.height = v.videoHeight || 1280
-    cv.getContext('2d').drawImage(v, 0, 0, cv.width, cv.height)
+    const ctx = cv.getContext('2d', { willReadFrequently: true })
+    ctx.drawImage(v, 0, 0, cv.width, cv.height)
+    // QR-first: se a foto contém um QR, lê direto; senão envia para OCR (comportamento original).
+    const texto = lerQRDeContexto(ctx, cv.width, cv.height)
+    if (texto) { enviar({ texto }); return }
     cv.toBlob((b) => b && enviar({ foto: b }), 'image/jpeg', 0.9)
   }
 
@@ -104,13 +172,13 @@ export default function EtiquetaScanner({ fabricante, onCapture, onClose }) {
         <div className="p-4 space-y-3">
           {msg && <div className="text-sm text-amber-700 bg-amber-50 rounded-lg p-2">{msg}</div>}
           <div className="text-xs text-slate-500 text-center">
-            {temBarcode ? 'QR é lido automaticamente. ' : ''}Sem QR? Use a foto (OCR) ou cole o texto.
+            QR é lido automaticamente. Sem QR? Use a foto (OCR) ou cole o texto.
           </div>
 
           {estado !== 'sem_camera' && (
             <button onClick={tirarFoto} disabled={estado === 'processando'}
               className="w-full bg-emerald-600 text-white font-semibold py-3 rounded-xl disabled:opacity-50">
-              📷 Capturar foto (OCR)
+              📷 Capturar foto (QR/OCR)
             </button>
           )}
 
@@ -121,7 +189,7 @@ export default function EtiquetaScanner({ fabricante, onCapture, onClose }) {
             disabled={estado === 'processando'}
             className="w-full border border-indigo-500 text-indigo-700 font-semibold py-3 rounded-xl disabled:opacity-50"
           >
-            🖼️ Selecionar da galeria (OCR)
+            🖼️ Selecionar da galeria (QR/OCR)
           </button>
 
           {/* Fallback universal: colar conteúdo do QR / texto da etiqueta */}

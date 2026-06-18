@@ -1,0 +1,82 @@
+{
+  "sprint": "P1-SCANNER-IOS-QR-01",
+  "modelo": "Sonnet",
+  "data": "2026-06-18",
+  "revisao_gemini": "não necessária",
+  "tipo": "CORRECAO_MOBILE",
+  "codigo_alterado": true,
+  "backend_alterado": false,
+  "parser_alterado": false,
+  "endpoint_alterado": false,
+
+  "arquivos_alterados": [
+    {
+      "arquivo": "frontend/src/pages/EtiquetaScanner.jsx",
+      "tipo": "frontend",
+      "mudancas": [
+        "import jsQR from 'jsqr'",
+        "helper lerQRDeContexto(ctx,w,h) — jsQR sobre ImageData",
+        "helper lerQRDoVideo(video,canvas) — frame → canvas 640px → QR",
+        "helper carregarImagem(file) — File/Blob → HTMLImageElement",
+        "useEffect: ramo else (iOS) com loop jsQR (throttle 200ms via setTimeout+rAF)",
+        "useEffect cleanup: clearTimeout(timerId) adicional",
+        "tirarFoto: QR-first (jsQR) antes do OCR",
+        "onGalleryChange: QR-first (jsQR) antes do OCR",
+        "UI: hint 'QR é lido automaticamente.' e rótulos 'QR/OCR'"
+      ],
+      "ramo_android_inalterado": true
+    },
+    {
+      "arquivo": "frontend/package.json",
+      "tipo": "dependencia",
+      "mudanca": "+ jsqr ^1.4.0"
+    },
+    {
+      "arquivo": "frontend/package-lock.json",
+      "tipo": "lockfile",
+      "mudanca": "lock da dependência jsqr"
+    }
+  ],
+
+  "nao_alterado": {
+    "ProjetoEV": true,
+    "Ativos": true,
+    "QR_do_ativo": true,
+    "Comissionamento": true,
+    "Seguranca": true,
+    "Atlas": true,
+    "parser": true,
+    "backend": true,
+    "POST_/api/ativos/scan": true
+  },
+
+  "prioridade_preservada": {
+    "ordem": ["QR", "OCR", "texto_colado"],
+    "ao_vivo_android": "BarcodeDetector (qr_code, data_matrix)",
+    "ao_vivo_ios": "jsQR (qr_code)",
+    "foto": "QR-first (jsQR) → OCR fallback",
+    "galeria": "QR-first (jsQR) → OCR fallback",
+    "texto_colado": "inalterado"
+  },
+
+  "contrato_inalterado": {
+    "qr_envia": "{ texto }",
+    "ocr_envia": "{ foto }",
+    "endpoint": "/api/ativos/scan (POST)"
+  },
+
+  "limitacoes_declaradas": [
+    "Data Matrix ao vivo no iOS continua em OCR (jsQR só decodifica QR)",
+    "Decodificação ao vivo iOS reduz frame a 640px e roda a ~200ms para preservar CPU"
+  ],
+
+  "build": {
+    "ferramenta": "Vite 5.4.21",
+    "resultado": "sucesso",
+    "tempo": "9.63s",
+    "erros": 0,
+    "chunk_principal_kb": 2215.19,
+    "delta_chunk_aprox_kb": 132,
+    "warnings": ["chunk size > 2000kB (pré-existente)"]
+  }
+}
