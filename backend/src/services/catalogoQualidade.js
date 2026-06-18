@@ -259,11 +259,19 @@ function calcularCompletude(equipamento, specs_canonicas) {
 
 // ─── Score de confiança ─────────────────────────────────────────────────────
 
+// P0-FV-CATALOG-QUALITY-RECAL-01: a tabela omitia `import_solarmarket` (origem.tipo
+// VÁLIDA no schema Equipamento) → caía em `desconhecido` (20), travando o score em
+// ~52 mesmo com completude 95 (nunca atingia 'utilizável'=75). SolarMarket é um
+// marketplace curado com identidade confiável; quando as specs estão completas, o item
+// deve ser utilizável. `derivado_modelo` cobre specs inferidas do nome (confiança menor
+// que datasheet, maior que desconhecido).
 const BASE_POR_ORIGEM = {
   manual: 100,
   datasheet_gemini: 90,
   datasheet_pdfparse: 75,
+  import_solarmarket: 65,   // P0-FV-CATALOG-QUALITY-RECAL-01 (era omisso → 20)
   import_planilha: 60,
+  derivado_modelo: 45,      // P0-FV-CATALOG-QUALITY-RECAL-01 (specs inferidas do modelo)
   import_legado: 40,
   desconhecido: 20,
 }

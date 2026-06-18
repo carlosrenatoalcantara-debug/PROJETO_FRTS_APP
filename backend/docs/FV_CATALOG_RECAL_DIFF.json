@@ -1,0 +1,55 @@
+{
+  "gerado_em": "2026-06-18",
+  "sprint": "P0-FV-CATALOG-QUALITY-RECAL-01",
+  "modelo": "Opus",
+  "revisao_gemini": "OBRIGATÓRIA E PENDENTE",
+  "escopo": "Catálogo, Qualidade, Importação. Não tocou ProjetoEV, Ativos, QR, Comissionamento, Segurança. NENHUMA gravação no Atlas.",
+
+  "alteracoes": [
+    {
+      "arquivo": "backend/src/services/catalogoQualidade.js",
+      "tipo": "QUALIDADE_RECALIBRACAO",
+      "fase": 1,
+      "descricao": "BASE_POR_ORIGEM ganha import_solarmarket:65 (era omisso → desconhecido=20) e derivado_modelo:45.",
+      "antes": "{ manual:100, datasheet_gemini:90, datasheet_pdfparse:75, import_planilha:60, import_legado:40, desconhecido:20 }",
+      "depois": "{ ...+ import_solarmarket:65, derivado_modelo:45 }",
+      "impacto": "Item SolarMarket completo passa de ~52 (incompleto) para 79 (utilizável). Empty-spec continua suspeito (39).",
+      "regressao": "nenhuma observada (empty-spec não é promovido; sem teste afetado)"
+    },
+    {
+      "arquivo": "backend/src/models/Equipamento.js",
+      "tipo": "ENUM_ADDITIVE",
+      "fase": 3,
+      "descricao": "origem.tipo enum ganha 'derivado_modelo' (specs inferidas do nome).",
+      "destrutivo": false
+    },
+    {
+      "arquivo": "backend/src/services/catalogoDerivacaoModelo.js",
+      "tipo": "NOVO_UTIL",
+      "fase": "3-4",
+      "descricao": "Derivação pura: derivarPotenciaKwDoModelo (Regra A kW / Regra B watts), derivarTensaoSaidaDoModelo, derivarInversorPorModelo. Registra confiança e método. MPPT/Voc NÃO derivados.",
+      "exports": ["derivarPotenciaKwDoModelo", "derivarTensaoSaidaDoModelo", "derivarInversorPorModelo"]
+    },
+    {
+      "arquivo": "backend/scripts/recal-catalogo-dryrun.mjs",
+      "tipo": "NOVO_SCRIPT_DRYRUN",
+      "fase": "3-6",
+      "descricao": "Dry-run EXECUTADO: roda derivação + motor de qualidade real sobre os 122 inversores da forense e valida as 4 tecnologias. Não grava nada.",
+      "executado": true
+    },
+    {
+      "arquivo": "backend/scripts/aplicar-derivacao-catalogo.mjs",
+      "tipo": "NOVO_SCRIPT_APPLY",
+      "fase": 3,
+      "descricao": "Aplicação guardada por --apply + MONGODB_URI. Idempotente (só preenche potencia_kw ausente; mantém origem import_solarmarket; grava proveniência em especificacoes._derivado).",
+      "executado": false,
+      "nota": "NÃO executado nesta sessão (sem DB)."
+    }
+  ],
+
+  "nao_alterado": [
+    "regrasPlausibilidade.js (micro/MPPT já calibrados; nenhuma regra alterada)",
+    "Atlas (nenhuma gravação — dry-run apenas)",
+    "ProjetoEV, Ativos, QR, Comissionamento, Segurança"
+  ]
+}

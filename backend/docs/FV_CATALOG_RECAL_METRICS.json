@@ -1,0 +1,74 @@
+{
+  "gerado_em": "2026-06-18",
+  "sprint": "P0-FV-CATALOG-QUALITY-RECAL-01",
+  "modelo": "Opus",
+  "revisao_gemini": "OBRIGATÓRIA E PENDENTE",
+
+  "respostas": {
+    "1_corrigidos": "Derivação EXECUTADA para 114/122 (83 alta confiança + 31 média). Persistência no Atlas NÃO realizada (sem DB).",
+    "2_pendentes": "8 sem potência derivável (datasheet) + MPPT/Voc de todos os 114 + 31 parciais a revisar.",
+    "3_impacto_projetos": "Goodwe GW8000-DT → 8 kW (Cristiano 600kw) em dry-run; aplicar para propagar.",
+    "4_impacto_snapshots": "Snapshots futuros capturariam a potência; congelados não retroagem (imutáveis).",
+    "5_impacto_homologacao": "Com a recal, itens completos chegam a 'utilizável'; homologação reflete via snapshot ao re-congelar; não retroage.",
+    "6_regressoes": "Nenhuma na execução em Node (4 tecnologias sem falso-positivo crítico; empty-spec permanece suspeito).",
+    "7_commit": "ver git log do branch sprint/p0-fv-catalog-quality-recal-01"
+  },
+
+  "fases": {
+    "fase_1_bug_qual": "COMPLETA (causa = tabela de confiança, não regras)",
+    "fase_2_bug_cat": "COMPLETA",
+    "fase_3_auto_enriquecimento": "COMPLETA (código + dry-run; apply pronto não-executado)",
+    "fase_4_goodwe": "COMPLETA (derivado em Node; não aplicado ao Atlas)",
+    "fase_5_recalculo_qualidade": "COMPLETA (4 tecnologias validadas)",
+    "fase_6_matriz": "COMPLETA"
+  },
+
+  "matriz_derivacao_122": {
+    "derivavel_alta_kW": 83,
+    "parcial_media_watts": 31,
+    "nao_derivavel_datasheet": 8,
+    "com_potencia_derivada": 114,
+    "itens_com_score_melhorado": 118,
+    "crosscheck_forense_concordancia": 87,
+    "crosscheck_forense_divergencias": 0
+  },
+
+  "nao_derivaveis_8": [
+    "Fronius PRIMO 6.0-1", "Apsystems DS3D-220", "Apsystems QT2D-380",
+    "Deye SUN1000G3-US-220", "Deye SUN1300G-US-220", "Enphase IQ8P-72-2-BR",
+    "Sungrow SG75CX-P2", "Sungrow SG15RT-P2"
+  ],
+
+  "goodwe_gw8000dt": { "potencia_kw": 8, "tecnologia": "string", "confianca": "media", "metodo": "regex_watts" },
+
+  "fase5_qualidade_por_tecnologia": {
+    "string":     { "nivel": "validado", "score": 94, "criticos": [] },
+    "micro":      { "nivel": "validado", "score": 94, "criticos": [] },
+    "otimizador": { "nivel": "validado", "score": 94, "criticos": [] },
+    "hibrido":    { "nivel": "validado", "score": 94, "criticos": [] }
+  },
+
+  "recalibracao_confianca": {
+    "import_solarmarket_novo": 65,
+    "import_solarmarket_antigo_efetivo": 20,
+    "derivado_modelo": 45,
+    "item_solarmarket_completo_nivel": "utilizavel",
+    "item_solarmarket_completo_score": 79,
+    "item_solarmarket_completo_antes_aprox": 52
+  },
+
+  "verificacao": {
+    "node_check": "OK (catalogoQualidade, catalogoDerivacaoModelo, Equipamento, 2 scripts)",
+    "dry_run_executado": true,
+    "atlas_gravado": false,
+    "app_executada": false,
+    "testes_afetados": 0
+  },
+
+  "limitacoes": [
+    "Nada gravado no Atlas — aplicar-derivacao-catalogo.mjs --apply pendente (sem MONGODB_URI).",
+    "31 derivações por watts têm risco residual de falso-positivo (confiança média, revisar).",
+    "import_solarmarket=65 é valor de calibração (juízo), ajustável.",
+    "Contagens partem da forense UNKNOWN_POWER_INVENTORY (2026-06-17)."
+  ]
+}
