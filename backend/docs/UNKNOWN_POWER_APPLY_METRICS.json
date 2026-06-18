@@ -1,0 +1,70 @@
+{
+  "gerado_em": "2026-06-18",
+  "sprint": "P1-UNKNOWN-POWER-APPLY-01",
+  "modelo": "Sonnet",
+  "revisao_gemini": "Opcional",
+
+  "respostas": {
+    "1_quantos_aplicados": "83 inversores — todos de alta confiança (regex_kW, potência explícita no nome). Gravados no Atlas com proveniência _derivado.",
+    "2_quantos_pendentes": "39 total: 31 média confiança (pendente revisão humana) + 8 não-deriváveis (requerem datasheet).",
+    "3_impacto_catalogo": "83/175 inversores (47.4%) passam de ?kW para potência conhecida. Score qualidade sobe de ~39 (empty-spec) para ~79 (utilizável) com import_solarmarket=65 base.",
+    "4_impacto_projetos": "0 projetos têm problema resolvido imediatamente. O único projeto afetado (Cristiano 600kw / Goodwe GW8000-DT) usa inversor de média confiança — não aplicado nesta sprint. Futuras oportunidades para os 83 aplicados estão agora disponíveis.",
+    "5_impacto_homologacao": "Homologações futuras para projetos com os 83 inversores agora capturam potência no snapshot. Homologações congeladas não retroagem (imutáveis).",
+    "6_regressoes": "Nenhuma. Idempotência confirmada: segunda corrida encontrou 0 alta confiança restante. Script grava apenas onde potencia_kw == null.",
+    "7_commit": "ver git log branch sprint/p1-unknown-power-apply-01"
+  },
+
+  "execucao": {
+    "modo": "APPLY_ALTA_CONFIANCA",
+    "candidatos_antes": 122,
+    "alta_confianca_derivada": 83,
+    "media_confianca_pendente": 31,
+    "nao_derivavel_datasheet": 8,
+    "gravados_no_atlas": 83,
+    "skipped_media": 35,
+    "candidatos_apos": 39,
+    "atlas_gravado": true,
+    "idempotencia_confirmada": true,
+    "qualidade_reprocessada_inline": true
+  },
+
+  "fase4_goodwe_gw8000dt": {
+    "fabricante": "Goodwe",
+    "modelo": "GW8000-DT",
+    "potencia_kw": 8,
+    "confianca": "media",
+    "metodo": "regex_watts",
+    "aplicado": false,
+    "motivo": "Confiança média — apenas alta confiança aplicada nesta sprint.",
+    "projeto_afetado": "Cristiano 600kw",
+    "status_projeto": "PENDENTE — inversor ainda sem potencia_kw no Atlas.",
+    "acao_necessaria": "Confirmar potência 8kW via datasheet Goodwe GW8000-DT e aplicar com --incluir-media após revisão humana."
+  },
+
+  "nao_derivaveis_8": [
+    { "fabricante": "Fronius", "modelo": "PRIMO 6.0-1", "motivo": "Potência no sufixo '6.0' após hífen — ambíguo com versão de hardware; sem K explícito." },
+    { "fabricante": "Apsystems", "modelo": "DS3D-220", "motivo": "220 = tensão, não potência. Modelo não codifica kW." },
+    { "fabricante": "Apsystems", "modelo": "QT2D-380", "motivo": "380 = tensão. Sem potência no nome." },
+    { "fabricante": "Deye", "modelo": "SUN1000G3-US-220", "motivo": "1000 < threshold 1500W (ambíguo com números de série). Potência real ~1kW requer datasheet." },
+    { "fabricante": "Deye", "modelo": "SUN1300G-US-220", "motivo": "1300 < threshold 1500W. Potência real ~1.3kW requer datasheet." },
+    { "fabricante": "Enphase", "modelo": "IQ8P-72-2-BR", "motivo": "Nome não codifica potência por watts/kW diretamente. Requer especificação técnica." },
+    { "fabricante": "Sungrow", "modelo": "SG75CX-P2", "motivo": "75kW no padrão SG{kW}CX sem sufixo K explícito — regex não cobre este padrão." },
+    { "fabricante": "Sungrow", "modelo": "SG15RT-P2", "motivo": "15kW no padrão SG{kW}RT sem sufixo K explícito — regex não cobre este padrão." }
+  ],
+
+  "media_confianca_31": {
+    "nota": "Todos derivados por regex_watts (4-6 dígitos no nome). Risco de falso-positivo menor que o esperado na sprint P0, mas ainda pendente revisão humana antes de aplicar.",
+    "goodwe_gw8000dt_incluido": true,
+    "comando_para_aplicar": "node scripts/aplicar-derivacao-catalogo.mjs --apply --incluir-media (APÓS revisão manual da lista)"
+  },
+
+  "verificacao": {
+    "dry_run_antes": { "candidatos": 122, "alta": 83, "media": 31, "nao_derivavel": 8 },
+    "apply_executado": { "gravados": 83, "skipped_media": 35 },
+    "idempotencia_apos": { "candidatos": 39, "alta": 0, "media": 31, "nao_derivavel": 8 },
+    "node_check": "OK",
+    "atlas_gravado": true,
+    "regressoes": 0,
+    "testes_afetados": 0
+  }
+}

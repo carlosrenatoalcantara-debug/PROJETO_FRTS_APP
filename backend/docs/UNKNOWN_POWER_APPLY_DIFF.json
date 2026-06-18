@@ -1,0 +1,58 @@
+{
+  "gerado_em": "2026-06-18",
+  "sprint": "P1-UNKNOWN-POWER-APPLY-01",
+  "modelo": "Sonnet",
+  "revisao_gemini": "Opcional",
+  "escopo": "Catálogo, Qualidade. Não tocou ProjetoEV, Ativos, QR, Comissionamento, Segurança.",
+  "atlas_gravado": true,
+
+  "alteracoes": [
+    {
+      "arquivo": "backend/scripts/aplicar-derivacao-catalogo.mjs",
+      "tipo": "SCRIPT_ENRIQUECIDO",
+      "descricao": "Gate de alta confiança adicionado. --apply agora grava APENAS categoria==='derivavel' (confianca==='alta'). --incluir-media necessário para incluir parcial. Matriz de saída agora detalha listas por categoria (não só contagem). DNS fix (dns.setServers) adicionado ao próprio script (independente do database.js).",
+      "antes": "aplicava todos os campos_derivados.length > 0 (alta + média misturados)",
+      "depois": "grava apenas alta confiança por padrão; matriz retorna listas detalhadas",
+      "novo_flag": "--incluir-media (para aplicação futura da confiança média após revisão)"
+    },
+    {
+      "objeto": "Atlas/Equipamento",
+      "tipo": "DADOS_ENRIQUECIDOS",
+      "descricao": "83 documentos tipo=inversor atualizados com especificacoes.potencia_kw (e tensao_ac onde derivável do nome). Campos adicionados: especificacoes._derivado com metodo/confianca/tecnologia/em (proveniência de auditoria). Campos existentes preservados. Origem mantida como import_solarmarket.",
+      "docs_gravados": 83,
+      "idempotente": true,
+      "rollback": "Possível via Equipamento.updateMany({}, {$unset:{'especificacoes._derivado':1}}) para remover proveniência; ou $unset potencia_kw para reverter specs. Identificáveis por especificacoes._derivado.confianca==='alta'."
+    }
+  ],
+
+  "nao_alterado": [
+    "regrasPlausibilidade.js",
+    "catalogoQualidade.js",
+    "catalogoDerivacaoModelo.js",
+    "Equipamento.js (schema)",
+    "ProjetoEV, Ativos, QR, Comissionamento, Segurança",
+    "31 inversores média confiança (skipped — pendente revisão humana)",
+    "8 inversores não-deriváveis (requerem datasheet)",
+    "Snapshots existentes (imutáveis — não retroagem)"
+  ],
+
+  "amostra_aplicados": [
+    { "fabricante": "Deye", "modelo": "SUN-5K-G @220", "potencia_kw": 5, "tensao_ac": 220, "metodo": "regex_kW" },
+    { "fabricante": "Deye", "modelo": "SUN-75K-G", "potencia_kw": 75, "metodo": "regex_kW" },
+    { "fabricante": "Growatt", "modelo": "MAC 60KTL3-X LV", "potencia_kw": 60, "tensao_ac": 220, "metodo": "regex_kW" },
+    { "fabricante": "Solaredge", "modelo": "SE 20.1K 380/220v", "potencia_kw": 20.1, "tensao_ac": 220, "metodo": "regex_kW" },
+    { "fabricante": "Solaredge", "modelo": "SE 27.6K 380/220v", "potencia_kw": 27.6, "tensao_ac": 220, "metodo": "regex_kW" },
+    { "fabricante": "Deye", "modelo": "SUN-25K-G", "potencia_kw": 25, "metodo": "regex_kW" },
+    { "fabricante": "Kehua", "modelo": "TECH SPI20K-B", "potencia_kw": 20, "metodo": "regex_kW" },
+    { "fabricante": "Chint", "modelo": "POWER CPS SCA50KTL-T/EU", "potencia_kw": 50, "metodo": "regex_kW" }
+  ],
+
+  "nao_aplicados_goodwe_cristiano": {
+    "fabricante": "Goodwe",
+    "modelo": "GW8000-DT",
+    "projeto": "Cristiano 600kw",
+    "confianca": "media",
+    "potencia_estimada_kw": 8,
+    "status": "PENDENTE — requer revisão humana ou datasheet antes de aplicar"
+  }
+}
