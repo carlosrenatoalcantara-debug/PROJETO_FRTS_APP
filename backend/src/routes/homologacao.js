@@ -58,8 +58,8 @@ router.post('/memorial', gerarMemorial)
 // POST para gerar carta à concessionária
 router.post('/carta', gerarCarta)
 
-// GET para obter dados para preenchimento de ART
-router.get('/art', obterDadosART)
+// POST para obter dados para preenchimento de ART (envia projeto no body)
+router.post('/art', obterDadosART)
 
 // GET para obter checklist de documentos
 router.get('/checklist', obterChecklist)

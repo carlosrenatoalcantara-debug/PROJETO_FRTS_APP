@@ -1,0 +1,70 @@
+{
+  "sprint": "P1-BUG-ART-01",
+  "modelo": "Sonnet",
+  "data": "2026-06-18",
+  "branch": "sprint/p1-bug-art-01",
+
+  "escopo_minimo": {
+    "arquivos_modificados": 2,
+    "linhas_adicionadas": 1,
+    "linhas_removidas": 0,
+    "linhas_substituidas": 2,
+    "modulos_nao_tocados": ["ProjetoEV", "Ativos", "QR", "Comissionamento", "Segurança", "Snapshots", "homologacaoAssistida", "concessionariaProvider", "ChecklistDocumentos", "MemorialDescritivo", "CartaConcessionaria"]
+  },
+
+  "bug_caracterizacao": {
+    "id": "BUG-ART-01",
+    "tipo": "transport_error",
+    "severidade": "P1_CRITICO",
+    "detectado_em": "P2-CENTRAL-HOMOLOGACAO-FORENSICS-01 (forense read-only)",
+    "descricao": "GET HTTP sem body → req.body.projeto undefined → 400 Bad Request",
+    "rota_afetada": "GET /api/projetos-fv/:id/homologacao/art",
+    "rota_corrigida": "POST /api/projetos-fv/:id/homologacao/art",
+    "funcionalidade_afetada": "Aba ART da homologação — dados para CREA inacessíveis via UI",
+    "projetos_afetados": "todos",
+    "usuarios_afetados": "todos com acesso à aba Homologação"
+  },
+
+  "impacto_correcao": {
+    "aba_art_funcionando": true,
+    "dados_art_acessiveis": true,
+    "snapshot_compativel": true,
+    "projeto_novo_compativel": true,
+    "projeto_congelado_compativel": true,
+    "retroatividade": "imediata — sem migração de dados necessária"
+  },
+
+  "regressoes": {
+    "total": 0,
+    "por_area": {
+      "ProjetoEV": "sem regressão",
+      "Ativos": "sem regressão",
+      "QR": "sem regressão",
+      "Comissionamento": "sem regressão",
+      "Segurança": "sem regressão",
+      "HomologacaoAssistida": "sem regressão",
+      "Memorial": "sem regressão",
+      "Carta": "sem regressão",
+      "Checklist": "sem regressão",
+      "Status": "sem regressão",
+      "Snapshots": "sem regressão",
+      "LegacyDadosART": "sem regressão (componente diferente, sem fetch)"
+    }
+  },
+
+  "testes": {
+    "build_vite": { "executado": true, "resultado": "sucesso", "erros": 0 },
+    "integracao_ui_railway": { "executado": false, "motivo": "requer deploy no Railway" },
+    "unit_controller": { "executado": false, "motivo": "sem runner de testes configurado no projeto" }
+  },
+
+  "gaps_restantes_relacionados": [
+    { "id": "GAP-12", "titulo": "CREA mapeado para apenas 8 estados", "prioridade": "P3_BAIXO" }
+  ],
+
+  "proximas_acoes_recomendadas": [
+    "Deploy no Railway para teste de integração real",
+    "Verificar aba ART em projeto novo e projeto congelado via UI",
+    "GAP-10: adicionar ENEL em concessionariaProvider.js (P2_MEDIO)"
+  ]
+}

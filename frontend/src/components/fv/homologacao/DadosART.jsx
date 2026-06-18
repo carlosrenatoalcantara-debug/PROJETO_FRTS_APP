@@ -27,8 +27,9 @@ export default function DadosART({ projetoId, projeto, estado }) {
 
     try {
       const res = await fetch(`${API_URL}/api/projetos-fv/${projetoId}/homologacao/art`, {
-        method: 'GET',
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projeto }),
       })
 
       if (!res.ok) {

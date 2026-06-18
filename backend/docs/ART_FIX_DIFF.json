@@ -1,0 +1,91 @@
+{
+  "sprint": "P1-BUG-ART-01",
+  "modelo": "Sonnet",
+  "data": "2026-06-18",
+  "branch": "sprint/p1-bug-art-01",
+  "codigo_alterado": true,
+  "atlas_alterado": false,
+
+  "arquivos_alterados": [
+    {
+      "arquivo": "frontend/src/components/fv/homologacao/DadosART.jsx",
+      "linhas_alteradas": [29, 30, 31, 32],
+      "tipo": "frontend",
+      "diff": {
+        "antes": [
+          "      const res = await fetch(`${API_URL}/api/projetos-fv/${projetoId}/homologacao/art`, {",
+          "        method: 'GET',",
+          "        headers: { 'Content-Type': 'application/json' },",
+          "      })"
+        ],
+        "depois": [
+          "      const res = await fetch(`${API_URL}/api/projetos-fv/${projetoId}/homologacao/art`, {",
+          "        method: 'POST',",
+          "        headers: { 'Content-Type': 'application/json' },",
+          "        body: JSON.stringify({ projeto }),",
+          "      })"
+        ],
+        "linhas_removidas": 0,
+        "linhas_adicionadas": 1,
+        "net_delta": "+1"
+      }
+    },
+    {
+      "arquivo": "backend/src/routes/homologacao.js",
+      "linhas_alteradas": [61, 62],
+      "tipo": "backend",
+      "diff": {
+        "antes": [
+          "// GET para obter dados para preenchimento de ART",
+          "router.get('/art', obterDadosART)"
+        ],
+        "depois": [
+          "// POST para obter dados para preenchimento de ART (envia projeto no body)",
+          "router.post('/art', obterDadosART)"
+        ],
+        "linhas_removidas": 0,
+        "linhas_adicionadas": 0,
+        "net_delta": "0 (substituição in-place)"
+      }
+    }
+  ],
+
+  "arquivos_auditados_sem_alteracao": [
+    {
+      "arquivo": "backend/src/controllers/homologacaoController.js",
+      "motivo": "obterDadosART já lê req.body.projeto corretamente — não precisava mudar"
+    },
+    {
+      "arquivo": "frontend/src/components/homologacao/DadosART.jsx",
+      "motivo": "Componente legado usa prop `dados` + gerarDadosART() local, sem fetch — sem bug"
+    }
+  ],
+
+  "verbo_http": {
+    "antes": "GET",
+    "depois": "POST",
+    "motivo": "HTTP GET não possui body confiável por especificação (RFC 7231 §4.3.1). O controller precisa do objeto `projeto` no body para funcionar. POST é o verbo semântico correto para uma operação que envia dados e recebe resultado derivado."
+  },
+
+  "body_enviado": {
+    "campo": "projeto",
+    "tipo": "objeto ProjetoFV populado",
+    "origem": "prop disponível em DadosART({ projetoId, projeto, estado })",
+    "ja_disponivel": true,
+    "nova_busca_necessaria": false
+  },
+
+  "snapshot_compatibilidade": {
+    "preservado": true,
+    "mecanismo": "_aplicarSnapshotEquip(projeto) detecta snapshot automaticamente no controller",
+    "inalterado": true
+  },
+
+  "build": {
+    "ferramenta": "Vite 5.4.21",
+    "resultado": "sucesso",
+    "tempo": "9.85s",
+    "erros": 0,
+    "warnings": ["chunk size > 2000kB (pré-existente, não relacionado)"]
+  }
+}
