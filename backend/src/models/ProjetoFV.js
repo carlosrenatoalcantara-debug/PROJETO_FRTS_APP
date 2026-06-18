@@ -479,10 +479,14 @@ const governancaV3Schema = new mongoose.Schema({
   /** Versão do motor de engenharia que gerou os snapshots (ex: 'ENG-2.0'). */
   engineering_version: { type: String, default: null },
 
-  /** Status do ciclo de vida da proposta. CONGELADO/HOMOLOGADO travam recálculo. */
+  /**
+   * Status do ciclo de vida da proposta. CONGELADO/HOMOLOGADO travam recálculo.
+   * APROVADO (P1-FV-FREEZE-TO-ENGINEERING-01): aprovação comercial — habilita o
+   * congelamento. Fluxo: RASCUNHO → APROVADO → CONGELADO → HOMOLOGADO.
+   */
   freeze_status: {
     type: String,
-    enum: ['RASCUNHO', 'EM_REVISAO', 'CONGELADO', 'HOMOLOGADO', null],
+    enum: ['RASCUNHO', 'EM_REVISAO', 'APROVADO', 'CONGELADO', 'HOMOLOGADO', null],
     default: 'RASCUNHO',
   },
 

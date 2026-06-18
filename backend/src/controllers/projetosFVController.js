@@ -1024,7 +1024,7 @@ export const alterarStatusGovernanca = async (req, res) => {
     if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ erro: 'ID inválido' })
 
     const { status, usuario = null } = req.body || {}
-    const STATUS_VALIDOS = ['RASCUNHO', 'EM_REVISAO', 'CONGELADO', 'HOMOLOGADO']
+    const STATUS_VALIDOS = ['RASCUNHO', 'EM_REVISAO', 'APROVADO', 'CONGELADO', 'HOMOLOGADO']
     if (!STATUS_VALIDOS.includes(status)) {
       return res.status(400).json({ erro: `status deve ser um de: ${STATUS_VALIDOS.join(', ')}` })
     }
@@ -1037,6 +1037,24 @@ export const alterarStatusGovernanca = async (req, res) => {
     const auditoria = Array.isArray(gov.auditoria) ? [...gov.auditoria] : []
     const historico = Array.isArray(gov.historico) ? [...gov.historico] : []
     const anterior = gov.freeze_status || 'RASCUNHO'
+
+    // P1-FV-FREEZE-TO-ENGINEERING-01: valida a transição do ciclo de vida.
+    // CONGELADO/HOMOLOGADO via /governanca/congelar (capturam snapshot); aqui
+    // tratamos as transições de status sem snapshot (aprovação, reabertura).
+    const TRANSICOES_VALIDAS = {
+      RASCUNHO:   ['APROVADO', 'EM_REVISAO'],
+      EM_REVISAO: ['APROVADO', 'RASCUNHO'],
+      APROVADO:   ['CONGELADO', 'RASCUNHO', 'EM_REVISAO'],
+      CONGELADO:  ['HOMOLOGADO', 'EM_REVISAO'],
+      HOMOLOGADO: ['EM_REVISAO'],
+    }
+    if (status !== anterior && !(TRANSICOES_VALIDAS[anterior] || []).includes(status)) {
+      return res.status(422).json({
+        erro: `Transição inválida: ${anterior} → ${status}.`,
+        transicoes_validas: TRANSICOES_VALIDAS[anterior] || [],
+        codigo: 'TRANSICAO_INVALIDA',
+      })
+    }
 
     auditoria.push({
       timestamp: agora, usuario, acao: 'status_alterado',
@@ -1086,11 +1104,17 @@ export const detectarDivergenciaProjetoFV = async (req, res) => {
       })
     }
 
-    // snapshot_catalogo: { modulo: {...}, inversor: {...}, ... }
+    // snapshot_catalogo: { modulo: {...}, inversor: {...}, itens_adicionais: [...], ... }
     const divergencias = []
 
     for (const [chave, snap] of Object.entries(snapCat)) {
       if (!snap || typeof snap !== 'object') continue
+      // P1-FV-FREEZE-TO-ENGINEERING-01: ignora chaves não-equipamento.
+      // (criado_em é string; itens_adicionais/arranjos_extra são arrays; equipamentos
+      //  têm equipamento_id ou fabricante+modelo). Itens adicionais são livres — não
+      //  existem no catálogo vivo, logo não geram divergência de catálogo.
+      if (Array.isArray(snap)) continue
+      if (!snap.equipamento_id && !(snap.fabricante && snap.modelo)) continue
 
       // Localiza o equipamento atual: por id, senão por fabricante+modelo
       let atual = null
@@ -1156,6 +1180,11 @@ export const detectarDivergenciaProjetoFV = async (req, res) => {
       engineering_version: projeto.governanca?.engineering_version ?? null,
       total_divergencias: divergencias.length,
       divergente: divergencias.length > 0,
+      // P1-FV-FREEZE-TO-ENGINEERING-01: mensagem orientada ao orçamento aprovado.
+      // A engenharia permanece usando o snapshot congelado mesmo com divergência.
+      mensagem: divergencias.length > 0
+        ? 'Equipamento divergiu do orçamento aprovado. A engenharia continua usando o snapshot congelado.'
+        : 'Equipamentos congelados idênticos ao catálogo atual.',
       divergencias,
     })
   } catch (err) {

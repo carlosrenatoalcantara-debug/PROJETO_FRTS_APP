@@ -229,13 +229,45 @@ function snapshotEquipamento(tipo, eq, quantidade = null) {
   return base
 }
 
-export function construirSnapshotCatalogo({ painel, inversor, bateria, carregadorEV, dimensionamento }) {
+/**
+ * Congela um item adicional do orçamento (ampliação, inversor extra, BESS, etc.).
+ * P1-FV-FREEZE-TO-ENGINEERING-01: itens aprovados comercialmente entram no snapshot.
+ */
+function snapshotItemAdicional(item) {
+  if (!item) return null
+  const quantidade = Number(item.quantidade) || 0
+  const valor = Number(item.valor) || 0
+  return {
+    descricao:  item.descricao ?? null,
+    quantidade,
+    valor,
+    tipo:       item.tipo === 'servico' ? 'servico' : 'material',
+    subtotal:   +(quantidade * valor).toFixed(2),
+  }
+}
+
+export function construirSnapshotCatalogo({ painel, inversor, bateria, carregadorEV, dimensionamento, itensAdicionais, arranjos }) {
+  // Arranjos extra (blocos multi-MPPT além do primário) — congela painel/inversor de cada.
+  const arranjosExtra = (Array.isArray(arranjos) ? arranjos : [])
+    .filter((a) => a && (a.painel || a.inversor))
+    .map((a) => ({
+      rotulo:   a.rotulo ?? null,
+      tipo:     a.tipo ?? 'secundario',
+      modulo:   a.painel   ? snapshotEquipamento('modulo',   a.painel,   a.quantidadeModulos ?? null) : null,
+      inversor: a.inversor ? snapshotEquipamento('inversor', a.inversor, null) : null,
+    }))
+
   return {
     criado_em: new Date().toISOString(),
     modulo:       snapshotEquipamento('modulo',   painel,       dimensionamento?.numPaineis ?? null),
     inversor:     snapshotEquipamento('inversor', inversor,     dimensionamento?.numInversores ?? null),
     bateria:      bateria      ? snapshotEquipamento('bateria',      bateria)      : null,
     carregadorEV: carregadorEV ? snapshotEquipamento('carregador_ev', carregadorEV) : null,
+    // P1-FV-FREEZE-TO-ENGINEERING-01 (additive): equipamentos extra e itens aprovados.
+    arranjos_extra:   arranjosExtra,
+    itens_adicionais: (Array.isArray(itensAdicionais) ? itensAdicionais : [])
+      .map(snapshotItemAdicional)
+      .filter(Boolean),
   }
 }
 
@@ -366,7 +398,7 @@ export function construirSnapshotFinanceiro({ resultadoFinanceiro, orcamento, sn
  * Retorna o payload pronto para POST /governanca/congelar.
  */
 export function construirTodosSnapshots({ state, orcamentoLocal, unifilarSVG, resultadoFinanceiro, tarifa, empresa }) {
-  const { equipamentos, dimensionamento, dadosConsumo, localizacao, irradiancia, area } = state
+  const { equipamentos, dimensionamento, dadosConsumo, localizacao, irradiancia, area, arranjos } = state
   const painel = equipamentos?.painel || null
   const inversor = equipamentos?.inversor || null
 
@@ -392,7 +424,11 @@ export function construirTodosSnapshots({ state, orcamentoLocal, unifilarSVG, re
     geoespacial,
     empresa: construirSnapshotEmpresa(empresa),
     tecnico_identificacao: construirSnapshotTecnicoIdentificacao(empresa),
-    catalogo: construirSnapshotCatalogo({ painel, inversor, dimensionamento }),
+    catalogo: construirSnapshotCatalogo({
+      painel, inversor, dimensionamento,
+      itensAdicionais: orcamentoLocal?.itensAdicionais ?? orcamentoLocal?.itens_adicionais ?? [],
+      arranjos: arranjos ?? [],
+    }),
     unifilar: construirSnapshotUnifilar(unifilarSVG),
     memorial: construirSnapshotMemorial({ snapshotTecnico: tecnico, dadosConsumo, localizacao }),
     financeiro: construirSnapshotFinanceiro({
@@ -410,12 +446,61 @@ export function construirTodosSnapshots({ state, orcamentoLocal, unifilarSVG, re
 export const FREEZE_STATUS_CONFIG = {
   RASCUNHO:   { label: 'RASCUNHO',   cor: 'cinza',   corHex: '#64748b', descricao: 'Em edição — pode ser recalculado livremente.' },
   EM_REVISAO: { label: 'EM REVISÃO', cor: 'azul',    corHex: '#3b82f6', descricao: 'Revisão aberta para ajustes de engenharia.' },
+  APROVADO:   { label: 'APROVADO',   cor: 'azul',    corHex: '#2563eb', descricao: 'Aprovado comercialmente — pronto para congelar a engenharia.' },
   CONGELADO:  { label: 'CONGELADO',  cor: 'laranja', corHex: '#f97316', descricao: 'Snapshots travados — não recalcula automaticamente.' },
   HOMOLOGADO: { label: 'HOMOLOGADO', cor: 'verde',   corHex: '#10b981', descricao: 'Aprovado e estável — documento técnico definitivo.' },
 }
 
 export function getFreezeStatusConfig(status) {
   return FREEZE_STATUS_CONFIG[status] || FREEZE_STATUS_CONFIG.RASCUNHO
+}
+
+/**
+ * P1-FV-FREEZE-TO-ENGINEERING-01: transições válidas do ciclo de vida.
+ * Espelha o backend (alterarStatusGovernanca). CONGELADO/HOMOLOGADO são feitos
+ * pelo endpoint de congelamento (capturam snapshot), mas constam aqui para a UI.
+ */
+export const TRANSICOES_FREEZE = {
+  RASCUNHO:   ['APROVADO', 'EM_REVISAO'],
+  EM_REVISAO: ['APROVADO', 'RASCUNHO'],
+  APROVADO:   ['CONGELADO', 'RASCUNHO', 'EM_REVISAO'],
+  CONGELADO:  ['HOMOLOGADO', 'EM_REVISAO'],
+  HOMOLOGADO: ['EM_REVISAO'],
+}
+
+export function transicaoFreezeValida(de, para) {
+  if (de === para) return true
+  return (TRANSICOES_FREEZE[de || 'RASCUNHO'] || []).includes(para)
+}
+
+/**
+ * P1-FV-FREEZE-TO-ENGINEERING-01: fonte de equipamentos para a engenharia.
+ * Quando o projeto está CONGELADO/HOMOLOGADO, a engenharia (unifilar, relatórios,
+ * homologação) DEVE priorizar o snapshot_catalogo congelado sobre o catálogo vivo.
+ * Retorna { origem: 'snapshot'|'vivo', modulo, inversor, itens_adicionais, arranjos_extra }.
+ */
+export function obterEquipamentosEngenharia(projeto) {
+  const gov = projeto?.governanca || {}
+  const congelado = gov.freeze_status === 'CONGELADO' || gov.freeze_status === 'HOMOLOGADO'
+  const snap = gov.snapshot_catalogo || null
+
+  if (congelado && snap) {
+    return {
+      origem: 'snapshot',
+      modulo:           snap.modulo ?? null,
+      inversor:         snap.inversor ?? null,
+      itens_adicionais: Array.isArray(snap.itens_adicionais) ? snap.itens_adicionais : [],
+      arranjos_extra:   Array.isArray(snap.arranjos_extra) ? snap.arranjos_extra : [],
+    }
+  }
+  // Catálogo vivo (projeto em edição)
+  return {
+    origem: 'vivo',
+    modulo:           projeto?.equipamentos?.painel ?? projeto?.dimensionamento?.painel ?? null,
+    inversor:         projeto?.equipamentos?.inversor ?? projeto?.dimensionamento?.inversor ?? null,
+    itens_adicionais: Array.isArray(projeto?.orcamento?.itens_adicionais) ? projeto.orcamento.itens_adicionais : [],
+    arranjos_extra:   Array.isArray(projeto?.arranjos) ? projeto.arranjos : [],
+  }
 }
 
 export const HISTORICO_TIPO_CONFIG = {

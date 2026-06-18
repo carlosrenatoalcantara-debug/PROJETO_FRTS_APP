@@ -1,0 +1,79 @@
+{
+  "gerado_em": "2026-06-18",
+  "sprint": "P1-FV-FREEZE-TO-ENGINEERING-01",
+  "executor": "Sonnet 4.6",
+  "revisao_gemini": "OBRIGATÓRIA E PENDENTE",
+
+  "respostas": {
+    "1_o_que_foi_congelado": "Módulos, inversores, potências, quantidades, fabricantes, modelos (já existia) + itens adicionais + arranjos extra (novo), em snapshot_catalogo",
+    "2_o_que_continuou_dinamico": "Catálogo vivo (Equipamento) e dados do projeto enquanto não congelado; após CONGELADO a engenharia prioriza o snapshot via obterEquipamentosEngenharia",
+    "3_documentos_usando_snapshot": "Unifilar (já usava, confirmado); helper único obterEquipamentosEngenharia criado para unifilar/relatórios/homologação (adoção por homologação/relatórios pendente)",
+    "4_divergencia_detectada": "Mecanismo reforçado: mensagem 'Equipamento divergiu do orçamento aprovado' + guard contra falsos positivos. Nenhuma divergência real medida (sem runtime)",
+    "5_regressoes": "Nenhuma nas verificações executadas; mudança intencional de UX (congelar exige APROVADO)",
+    "6_commit": "ver git log do branch sprint/p1-fv-freeze-to-engineering-01"
+  },
+
+  "fases": {
+    "fase_1_forense": "COMPLETA",
+    "fase_2_snapshot_equipamentos": "COMPLETA (itens adicionais + arranjos extra; equipamentos já cobertos)",
+    "fase_3_congelamento_comercial": "COMPLETA (APROVADO + transições + UI)",
+    "fase_4_engenharia_prioriza_snapshot": "PARCIAL (unifilar OK; helper criado; homologação/relatórios pendentes de adoção)",
+    "fase_5_divergencia": "COMPLETA (guard + mensagem)",
+    "fase_6_validacao": "PARCIAL (build + node logic; 5 projetos reais NÃO testados em runtime)"
+  },
+
+  "arquivos_alterados": 4,
+  "arquivos": [
+    "backend/src/models/ProjetoFV.js",
+    "backend/src/controllers/projetosFVController.js",
+    "frontend/src/utils/engenhariaGovernanca.js",
+    "frontend/src/components/fv/GovernancaPainel.jsx"
+  ],
+
+  "ciclo_de_vida": ["RASCUNHO", "APROVADO", "CONGELADO", "HOMOLOGADO"],
+  "transicoes_validas": {
+    "RASCUNHO": ["APROVADO", "EM_REVISAO"],
+    "EM_REVISAO": ["APROVADO", "RASCUNHO"],
+    "APROVADO": ["CONGELADO", "RASCUNHO", "EM_REVISAO"],
+    "CONGELADO": ["HOMOLOGADO", "EM_REVISAO"],
+    "HOMOLOGADO": ["EM_REVISAO"]
+  },
+
+  "schema_alterado": true,
+  "schema_tipo": "ADITIVO (enum freeze_status + APROVADO; snapshot_catalogo é Mixed, sem mudança de tipo)",
+  "atlas_alterado": false,
+  "migracao_necessaria": false,
+
+  "build": {
+    "status": "SUCESSO",
+    "modulos_transformados": 2322,
+    "tempo_build_s": 15.59,
+    "erros_compilacao": 0,
+    "node_check_modelo": "OK",
+    "node_check_controller": "OK"
+  },
+
+  "teste_logica_node": {
+    "executado": true,
+    "metodo": "cópia verbatim das funções puras (módulo real não importa em Node por imports sem extensão; validado via Vite build)",
+    "asserts_total": 16,
+    "asserts_pass": 16,
+    "asserts_fail": 0,
+    "cobertura": ["snapshot itens/arranjos (FASE 2)", "transições (FASE 3)", "prioridade snapshot (FASE 4)", "guard divergência (FASE 5)"]
+  },
+
+  "validacao_runtime_projetos": {
+    "projeto_novo": "NAO_EXECUTADO",
+    "projeto_legado": "NAO_EXECUTADO",
+    "fazenda_alice": "NAO_EXECUTADO",
+    "paulo_carlos": "NAO_EXECUTADO",
+    "escola_pinheiro": "NAO_EXECUTADO",
+    "nota": "Sem acesso ao Atlas/ambiente. Lógica validada em Node; integração real pendente de runtime + Gemini."
+  },
+
+  "limitacoes_conhecidas": [
+    "Homologação/relatórios ainda não consomem obterEquipamentosEngenharia (helper criado, adoção pendente).",
+    "5 projetos reais não validados em runtime.",
+    "Congelar agora exige APROVADO antes (mudança intencional de UX)."
+  ]
+}

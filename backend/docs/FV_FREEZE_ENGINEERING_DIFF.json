@@ -1,0 +1,58 @@
+{
+  "gerado_em": "2026-06-18",
+  "sprint": "P1-FV-FREEZE-TO-ENGINEERING-01",
+  "executor": "Sonnet 4.6",
+  "revisao_gemini": "OBRIGATÓRIA E PENDENTE",
+  "escopo": "Projeto FV / Governança / Engenharia. Não tocou ProjetoEV, Ativos, QR, Comissionamento, Segurança.",
+
+  "alteracoes": [
+    {
+      "arquivo": "backend/src/models/ProjetoFV.js",
+      "tipo": "SCHEMA_ENUM_ADDITIVE",
+      "fase": 3,
+      "descricao": "freeze_status enum estendido com 'APROVADO'. Aditivo, não destrutivo, sem migração.",
+      "antes": "['RASCUNHO','EM_REVISAO','CONGELADO','HOMOLOGADO',null]",
+      "depois": "['RASCUNHO','EM_REVISAO','APROVADO','CONGELADO','HOMOLOGADO',null]"
+    },
+    {
+      "arquivo": "backend/src/controllers/projetosFVController.js",
+      "tipo": "TRANSITION_VALIDATION + DIVERGENCE_GUARD",
+      "fases": [3, 5],
+      "mudancas": [
+        "alterarStatusGovernanca: 'APROVADO' em STATUS_VALIDOS + TRANSICOES_VALIDAS (422 TRANSICAO_INVALIDA)",
+        "detectarDivergenciaProjetoFV: guard ignora chaves não-equipamento (arrays itens_adicionais/arranjos_extra, criado_em); mensagem 'Equipamento divergiu do orçamento aprovado...'"
+      ]
+    },
+    {
+      "arquivo": "frontend/src/utils/engenhariaGovernanca.js",
+      "tipo": "SNAPSHOT_EXTEND + HELPERS",
+      "fases": [2, 3, 4],
+      "mudancas": [
+        "snapshotItemAdicional(item): congela descricao/quantidade/valor/tipo/subtotal",
+        "construirSnapshotCatalogo: novos params itensAdicionais + arranjos → campos itens_adicionais[] e arranjos_extra[]",
+        "construirTodosSnapshots: repassa orcamentoLocal.itensAdicionais e state.arranjos",
+        "FREEZE_STATUS_CONFIG.APROVADO",
+        "TRANSICOES_FREEZE + transicaoFreezeValida(de,para)",
+        "obterEquipamentosEngenharia(projeto): prioriza snapshot_catalogo quando CONGELADO/HOMOLOGADO"
+      ]
+    },
+    {
+      "arquivo": "frontend/src/components/fv/GovernancaPainel.jsx",
+      "tipo": "UI_WORKFLOW",
+      "fases": [3, 5],
+      "mudancas": [
+        "Import alterarStatusGovernanca + ícone ThumbsUp",
+        "aprovar(): RASCUNHO → APROVADO via /governanca/status",
+        "Botão 'Aprovar Comercialmente'; 'Congelar Proposta' disabled até APROVADO",
+        "Divergência exibe mensagem 'divergiu do orçamento aprovado'"
+      ]
+    }
+  ],
+
+  "nao_alterado": [
+    "UnifilarFV.jsx (já priorizava snapshot — confirmado, sem mudança)",
+    "Homologacao.jsx e relatórios (helper criado, adoção pendente — próximo passo)",
+    "Atlas (nenhuma migração; enum e snapshot são aditivos)",
+    "ProjetoEV, Ativos, QR, Comissionamento, Segurança"
+  ]
+}

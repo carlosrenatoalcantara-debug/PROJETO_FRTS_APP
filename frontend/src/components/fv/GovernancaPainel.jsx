@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Lock, GitBranch, AlertTriangle, CheckCircle, RefreshCw, Clock, ShieldCheck, TrendingUp } from 'lucide-react'
+import { Lock, GitBranch, AlertTriangle, CheckCircle, RefreshCw, Clock, ShieldCheck, TrendingUp, ThumbsUp } from 'lucide-react'
 import Badge from '../ui/Badge'
 import Button from '../ui/Button'
 import {
@@ -12,6 +12,7 @@ import {
   congelarProjeto,
   criarRevisao,
   buscarDivergencia,
+  alterarStatusGovernanca,
 } from '../../services/projetoFVApi'
 
 /**
@@ -31,6 +32,7 @@ export default function GovernancaPainel({ projetoId, governanca, construirSnaps
   const status = gov.freeze_status || 'RASCUNHO'
   const cfg = getFreezeStatusConfig(status)
   const congelado = status === 'CONGELADO' || status === 'HOMOLOGADO'
+  const aprovado = status === 'APROVADO'
 
   const [acaoEmCurso, setAcaoEmCurso] = useState(false)
   const [erro, setErro] = useState('')
@@ -63,6 +65,21 @@ export default function GovernancaPainel({ projetoId, governanca, construirSnaps
         usuario,
         novo_status: novoStatus,
       })
+      onAtualizar?.(res.governanca)
+    } catch (e) {
+      setErro(e.message)
+    } finally {
+      setAcaoEmCurso(false)
+    }
+  }
+
+  // P1-FV-FREEZE-TO-ENGINEERING-01: aprovação comercial (RASCUNHO → APROVADO).
+  // Habilita o congelamento da engenharia sem capturar snapshot ainda.
+  async function aprovar() {
+    setAcaoEmCurso(true)
+    setErro('')
+    try {
+      const res = await alterarStatusGovernanca(projetoId, 'APROVADO', usuario)
       onAtualizar?.(res.governanca)
     } catch (e) {
       setErro(e.message)
@@ -126,8 +143,11 @@ export default function GovernancaPainel({ projetoId, governanca, construirSnaps
           </div>
           {divergencia?.divergente ? (
             <div className="space-y-1.5">
+              <p className="text-orange-700 font-medium">
+                {divergencia.mensagem || 'Equipamento divergiu do orçamento aprovado. A engenharia continua usando o snapshot congelado.'}
+              </p>
               <p className="text-orange-700">
-                Este projeto usa uma revisão antiga do equipamento. {divergencia.total_divergencias} item(ns) mudaram no catálogo:
+                {divergencia.total_divergencias} item(ns) mudaram no catálogo desde o congelamento:
               </p>
               {divergencia.divergencias.map((d, i) => (
                 <div key={i} className="bg-orange-50 rounded px-2 py-1">
@@ -215,14 +235,23 @@ export default function GovernancaPainel({ projetoId, governanca, construirSnaps
       <div className="flex flex-wrap gap-2 pt-1 border-t border-slate-100">
         {!congelado ? (
           <>
+            {/* P1-FV-FREEZE-TO-ENGINEERING-01: RASCUNHO → APROVADO → CONGELADO */}
+            {!aprovado && (
+              <Button variante="secundario" tamanho="sm" icone={ThumbsUp}
+                onClick={aprovar} carregando={acaoEmCurso} disabled={!projetoId}>
+                Aprovar Comercialmente
+              </Button>
+            )}
             <Button variante="secundario" tamanho="sm" icone={Lock}
-              onClick={() => congelar('CONGELADO')} carregando={acaoEmCurso} disabled={!projetoId}>
+              onClick={() => congelar('CONGELADO')} carregando={acaoEmCurso} disabled={!projetoId || !aprovado}
+              title={aprovado ? 'Congelar snapshots de engenharia' : 'Aprove comercialmente antes de congelar'}>
               Congelar Proposta
             </Button>
-            <Button variante="secundario" tamanho="sm" icone={ShieldCheck}
-              onClick={() => congelar('HOMOLOGADO')} carregando={acaoEmCurso} disabled={!projetoId}>
-              Homologar
-            </Button>
+            {!aprovado && (
+              <span className="text-[11px] text-slate-400 self-center">
+                Aprove a proposta para liberar o congelamento.
+              </span>
+            )}
           </>
         ) : (
           <>
