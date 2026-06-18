@@ -1,0 +1,63 @@
+{
+  "gerado_em": "2026-06-18",
+  "sprint": "P1-EQUIPMENT-ID-MIGRATION-FORENSICS-01",
+  "modelo": "Opus 4.8",
+  "tipo": "FORENSE_READ_ONLY",
+  "revisao_gemini": "OBRIGATÓRIA E PENDENTE",
+  "atlas_acessado": false,
+  "nota_honestidade": "Estrutura de código medida por leitura (determinística). Contagens de produção NÃO medidas — sem MONGODB_URI nesta sessão. Campos 'contagem' = null significam PENDENTE.",
+
+  "persistencia": [
+    { "arquivo": "backend/src/models/ProjetoFV.js", "linha": 645, "caminho": "equipamentos.paineis[].equipamento_id", "tipo": "ObjectId", "ref": "Equipamento", "default": null, "contexto": "arranjo_legado_unico" },
+    { "arquivo": "backend/src/models/ProjetoFV.js", "linha": 661, "caminho": "equipamentos.inversor.equipamento_id", "tipo": "ObjectId", "ref": "Equipamento", "default": null, "contexto": "arranjo_legado_unico" },
+    { "arquivo": "backend/src/models/ProjetoFV.js", "linha": 695, "caminho": "arranjos[].paineis[].equipamento_id", "tipo": "ObjectId", "ref": "Equipamento", "default": null, "contexto": "multiarranjo" },
+    { "arquivo": "backend/src/models/ProjetoFV.js", "linha": 701, "caminho": "arranjos[].inversores[].equipamento_id", "tipo": "ObjectId", "ref": "Equipamento", "default": null, "contexto": "multiarranjo" },
+    { "arquivo": "backend/src/models/ProjetoFV.js", "linha": 707, "caminho": "arranjos[].baterias[].equipamento_id", "tipo": "ObjectId", "ref": "Equipamento", "default": null, "contexto": "bess_por_arranjo" },
+    { "arquivo": "backend/src/models/ProjetoEV.js", "linha": 135, "caminho": "snapshot_carregador.equipamento_id", "tipo": "ObjectId", "ref": "Equipamento", "default": null, "contexto": "projeto_ev" },
+    { "arquivo": "backend/src/models/AtivoEquipamento.js", "linha": 33, "caminho": "equipamento_id", "tipo": "ObjectId", "ref": "Equipamento", "default": null, "contexto": "gemeo_digital" }
+  ],
+
+  "consumo": [
+    { "arquivo": "backend/src/controllers/homologacaoController.js", "linhas": "83-91", "funcao": "_carregarDepsDocumento", "via": "vivo", "estrategia": "equipamento_id || id legado → Equipamento.find($in); ObjectId válido apenas", "depende_de_id": "PRIMARIO_COM_FALLBACK" },
+    { "arquivo": "backend/src/controllers/homologacaoController.js", "linhas": "30-53", "funcao": "_depsDoSnapshot", "via": "congelado", "estrategia": "usa só fabricante/modelo/especificacoes; IGNORA equipamento_id", "depende_de_id": "NAO" },
+    { "arquivo": "backend/src/controllers/projetosFVController.js", "linha": 1117, "funcao": "detectarDivergenciaProjetoFV", "estrategia": "skip se !equipamento_id && !(fabricante && modelo)", "depende_de_id": "FALLBACK" },
+    { "arquivo": "backend/src/controllers/projetosFVController.js", "linhas": "1121-1124", "funcao": "detectarDivergenciaProjetoFV", "estrategia": "findById(equipamento_id) senão find por fabricante+modelo", "depende_de_id": "PRIMARIO_COM_FALLBACK" },
+    { "arquivo": "backend/src/services/ativoService.js", "linhas": "67,84,101,117", "funcao": "montarSpecsAtivos", "estrategia": "p.equipamento_id || null (cópia best-effort); chave_origem usa modelo", "depende_de_id": "NAO" },
+    { "arquivo": "backend/src/services/equipamentoMatcherService.js", "linhas": "169-321", "funcao": "matchEquipamento", "estrategia": "5 camadas por fabricante/modelo/potência; retorna equipamento_id=eq.id (string do catálogo estático)", "depende_de_id": "NAO_USA_COMO_ENTRADA" },
+    { "arquivo": "frontend/src/utils/engenharia/engenhariaPayload.js", "linha": 95, "funcao": "montar payload", "estrategia": "equipamento_id: painel._id || null", "depende_de_id": "ESCRITA" },
+    { "arquivo": "frontend/src/utils/engenhariaGovernanca.js", "linha": 213, "funcao": "snapshot base", "estrategia": "equipamento_id: eq._id || eq.id || null (registra no snapshot; resolvers não dependem)", "depende_de_id": "ESCRITA_INERTE" }
+  ],
+
+  "fallback_identidade": [
+    { "arquivo": "backend/src/utils/catalogo/fabricanteModeloFallback.js", "papel": "extrai fabricante+modelo de texto bruto via regex (24+ fabricantes BR)", "grava": false },
+    { "arquivo": "backend/src/utils/fabricanteQuery.js", "papel": "filtro Mongo $or por fabricante bruto/canônico/alias", "grava": false },
+    { "arquivo": "backend/src/services/engineeringFallback.js", "papel": "preenche specs ausentes em runtime, sem gravar, proveniência fallback_conservador", "grava": false }
+  ],
+
+  "campo_nao_persistido_em": [
+    "strings[] (só geometria elétrica)",
+    "equipamentos.estrutura (tipo/descricao)",
+    "bess (objeto raiz legado)",
+    "snapshot_unifilar (topologia, não vincula por id)"
+  ],
+
+  "ambiguidade_documentada": {
+    "descricao": "equipamento_id pode conter ObjectId (Atlas/Equipamento) OU id-string (catálogo estático catalogoPaineis.js/catalogoInversores.js via matcher).",
+    "origem": "equipamentoMatcherService retorna eq.id (string) do catálogo estático; engenhariaPayload grava painel._id (ObjectId Atlas).",
+    "impacto": "findById(equipamento_id) só resolve quando é ObjectId válido; ids-string caem no fallback fabricante+modelo automaticamente."
+  },
+
+  "superficie_total": { "pontos_persistencia": 7, "pontos_consumo": 8, "camadas_fallback": 3 },
+
+  "contagens_producao": {
+    "status": "PENDENTE_REQUER_DB",
+    "projetos_com_id": null,
+    "projetos_null": null,
+    "projetos_fallback": null,
+    "projetos_mistos": null,
+    "arranjos_null": null,
+    "ativos_null": null,
+    "catalogo_orfao_pct": null,
+    "sinal_indireto": "146 projetos bind SUN2000 por fabricante=Deye (forense 2026-06-14 com DB) — binding por string é dominante"
+  }
+}

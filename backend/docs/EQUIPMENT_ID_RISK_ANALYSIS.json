@@ -1,0 +1,80 @@
+{
+  "gerado_em": "2026-06-18",
+  "sprint": "P1-EQUIPMENT-ID-MIGRATION-FORENSICS-01",
+  "modelo": "Opus 4.8",
+  "tipo": "FORENSE_READ_ONLY",
+  "revisao_gemini": "OBRIGATÓRIA E PENDENTE",
+  "atlas_acessado": false,
+  "escala_risco": ["SEM_RISCO", "BAIXO", "MEDIO", "ALTO", "CRITICO"],
+
+  "matriz_impacto": [
+    {
+      "modulo": "Projetos FV",
+      "risco_de_null": "BAIXO",
+      "justificativa": "Todo subdoc tem fallback fabricante+modelo de primeira classe. equipamento_id é metadado de vínculo, não chave de funcionamento. Dimensionamento e engenharia operam por specs, não por id.",
+      "quebra_se_null": false,
+      "degradacao": "Perde link clicável projeto→catálogo vivo; re-match por string a cada leitura."
+    },
+    {
+      "modulo": "Homologação",
+      "risco_de_null": "SEM_RISCO",
+      "justificativa": "Congelado usa snapshot_catalogo (auto-contido por valor, ignora equipamento_id). Vivo usa equipamento_id||id com fallback fabricante+modelo, e engineeringFallback cobre specs ausentes em runtime.",
+      "quebra_se_null": false,
+      "degradacao": "Nenhuma no caminho congelado. No vivo, cai para query por string (mesma saída)."
+    },
+    {
+      "modulo": "Unifilar",
+      "risco_de_null": "SEM_RISCO",
+      "justificativa": "snapshot_unifilar é topologia elétrica; não vincula catálogo por id. Quando congelado, usa snapshot. Especificações elétricas vêm das specs materializadas.",
+      "quebra_se_null": false,
+      "degradacao": "Nenhuma."
+    },
+    {
+      "modulo": "Ativos (Gêmeo Digital)",
+      "risco_de_null": "BAIXO",
+      "justificativa": "Identidade real = numero_serie + qr_code + fabricante/modelo. chave_origem (idempotência) deriva de modelo, não de equipamento_id. Geração funciona idêntica com null.",
+      "quebra_se_null": false,
+      "degradacao": "Perde rastreabilidade ao catálogo (feature O&M futura), não a operação atual."
+    },
+    {
+      "modulo": "QR",
+      "risco_de_null": "SEM_RISCO",
+      "justificativa": "QR = FORTE-<TIPO3>-<SEQ6>, sequência institucional própria (Contador atômico). Independe totalmente de equipamento_id.",
+      "quebra_se_null": false,
+      "degradacao": "Nenhuma."
+    },
+    {
+      "modulo": "Comissionamento",
+      "risco_de_null": "SEM_RISCO",
+      "justificativa": "Opera sobre o AtivoEquipamento por qr_code/numero_serie. Captura serial/MAC/SSID via scan. Não consulta equipamento_id para funcionar.",
+      "quebra_se_null": false,
+      "degradacao": "Nenhuma."
+    },
+    {
+      "modulo": "Gêmeo Digital (rastreabilidade catálogo)",
+      "risco_de_null": "MEDIO",
+      "justificativa": "É o ÚNICO consumidor onde equipamento_id agrega valor real (link as-built → as-specified para O&M, garantia, recall por lote). Com null, perde-se a junção automática ao registro de catálogo.",
+      "quebra_se_null": false,
+      "degradacao": "Features futuras de O&M (recall por equipamento, agregação de garantia por modelo de catálogo) precisam re-resolver por fabricante+modelo."
+    }
+  ],
+
+  "risco_global": {
+    "nivel": "BAIXO_A_MEDIO",
+    "quebra_de_integridade": "NENHUMA identificada por leitura de código",
+    "concentracao": "O valor de equipamento_id é rastreabilidade/conveniência, não integridade operacional.",
+    "maior_exposicao": "Gêmeo Digital / O&M futuro (MEDIO); demais módulos SEM_RISCO ou BAIXO."
+  },
+
+  "riscos_de_uma_migracao_mal_feita": [
+    { "risco": "Bind incorreto por match ambíguo", "severidade": "ALTO", "mitigacao": "Gate de score ≥ 0.85 (matcher já distingue ALTO/MEDIO/BAIXO e marca equipamento_ambiguo); deixar null quando incerto." },
+    { "risco": "Ambiguidade ObjectId Atlas vs id-string estático", "severidade": "MEDIO", "mitigacao": "Backfill só com _id de Equipamento (Atlas); nunca gravar id-string do catálogo estático no campo ref." },
+    { "risco": "Tocar snapshots congelados", "severidade": "CRITICO", "mitigacao": "PROIBIDO. Snapshots são imutáveis por design regulatório; migração só toca projetos RASCUNHO/vivos." },
+    { "risco": "Sobrescrever equipamento_id já correto", "severidade": "MEDIO", "mitigacao": "Idempotência: só preencher onde == null; nunca alterar valor existente." }
+  ],
+
+  "contagens_para_quantificar_risco": {
+    "status": "PENDENTE_REQUER_DB",
+    "observacao": "Severidade dos níveis acima é estrutural (independe de contagem). A PREVALÊNCIA (quantos docs afetados) exige rodar Q2.x/Q3.1/Q5.1 do REPORT."
+  }
+}
