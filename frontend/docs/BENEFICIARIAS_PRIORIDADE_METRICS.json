@@ -1,0 +1,37 @@
+{
+  "gerado_em": "2026-06-18",
+  "sprint": "P1-BENEFICIARIAS-PRIORIDADE-01",
+  "modelo": "Sonnet",
+
+  "respostas": {
+    "1_arquivos_alterados": "frontend/src/components/fv/BeneficiariasPainel.jsx (único arquivo).",
+    "2_persistencia_validada": "Backend e schema já suportavam tipoRateio='prioridade'. Frontend envia tipoRateio correto e valor como integer. App não executada contra DB real.",
+    "3_percentual_preservado": "SIM — RateioBadge, validarRateio, import Excel/CSV, validação soma — todos preservados integralmente.",
+    "4_prioridade_funcionando": "SIM — seletor, badge, tabela, formulário, validação integer ≥ 1, envio correto ao backend.",
+    "5_campos_removidos": "Nenhum campo removido. Campo concessionaria ADICIONADO ao formulário (estava em novoForm mas sem UI).",
+    "6_regressoes": "Nenhuma. Vite build 0 erros. Modo percentual integralmente preservado. Componente ModalBeneficiaria não tocado.",
+    "7_commit": "ver git log branch sprint/p1-beneficiarias-prioridade-01"
+  },
+
+  "fases": {
+    "fase_1_auditoria": "COMPLETA",
+    "fase_2_seletor": "COMPLETA",
+    "fase_3_percentual": "COMPLETA (preservado)",
+    "fase_4_prioridade": "COMPLETA",
+    "fase_5_autopreenchimento": "COMPLETA (escopo: lista existente)",
+    "fase_6_validacao": "COMPLETA (análise de fluxo — app não executada)"
+  },
+
+  "limitacoes": [
+    "Auto-preenchimento limitado à lista existente (sem endpoint externo de UCs).",
+    "Import Excel/CSV no modo prioridade: parser produz tipoRateio='percentual' (fora de escopo desta sprint).",
+    "App não executada contra DB real (sem MONGODB_URI nesta sessão)."
+  ],
+
+  "verificacao": {
+    "vite_build": "OK",
+    "testes_afetados": 0,
+    "atlas_gravado": false,
+    "app_executada": false
+  }
+}

@@ -4,14 +4,17 @@ import Card, { CardHeader, CardBody } from '../ui/Card'
 import { parsearTextoExcel, validarRateio, normalizarParaCem, MODALIDADES_GD } from '../../../../backend/src/utils/beneficiarias/beneficiariaRateio.js'
 
 /**
- * BeneficiariasPainel — Sprint 8.7 (Lei 14.300/2022)
+ * BeneficiariasPainel — Sprint 8.7 (Lei 14.300/2022) + P1-BENEFICIARIAS-PRIORIDADE-01
  * Gestão completa de beneficiárias de uma usina GD.
  *
  * Funcionalidades:
- *  - Tabela editável inline (UC / Titular / CPF/CNPJ / Concessionária / % / Ativa)
+ *  - Modo Percentual: rateio com soma = 100%
+ *  - Modo Prioridade: ordem de consumo (P1, P2, P3...)
+ *  - Tabela editável inline (UC / Titular / CPF/CNPJ / Concessionária / Valor / Ativa)
  *  - Colar Excel (TSV/CSV) → parse automático
  *  - Upload de arquivo CSV
- *  - Validação do rateio em tempo real (soma = 100%)
+ *  - Auto-preenchimento de titular/CPF/concessionária ao informar UC
+ *  - Validação do rateio em tempo real (soma = 100% no modo percentual)
  *  - Histórico de alterações por registro
  *  - Modalidade GD (Lei 14.300)
  *  - Integração com /api/projetos-fv/:projetoId/beneficiarias/*
@@ -20,7 +23,7 @@ import { parsearTextoExcel, validarRateio, normalizarParaCem, MODALIDADES_GD } f
 const API = ''
 const inp = 'px-2 py-1 border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 w-full'
 
-// Badge do rateio
+// Badge para modo percentual
 function RateioBadge({ rateio }) {
   if (!rateio) return null
   const { ok, soma, diferenca, status } = rateio
@@ -37,6 +40,24 @@ function RateioBadge({ rateio }) {
   )
 }
 
+// Badge para modo prioridade
+function PrioridadeBadge({ lista }) {
+  const ativos = lista.filter(b => b.ativa !== false && b.tipoRateio === 'prioridade')
+  if (!ativos.length) return null
+  const prioridades = ativos.map(b => Number(b.valor))
+  const hasDup = new Set(prioridades).size < prioridades.length
+  return (
+    <span className={`flex items-center gap-1 text-sm font-medium px-3 py-1 rounded-full border ${
+      hasDup ? 'text-amber-700 bg-amber-50 border-amber-200' : 'text-indigo-700 bg-indigo-50 border-indigo-200'
+    }`}>
+      {hasDup ? <AlertTriangle size={14} /> : <CheckCircle size={14} />}
+      {ativos.length} UC{ativos.length > 1 ? 's' : ''} · prioridade{hasDup ? ' (duplicatas!)' : ''}
+    </span>
+  )
+}
+
+const MODO_LABEL = { percentual: 'Percentual (%)', prioridade: 'Prioridade (P1, P2…)' }
+
 export default function BeneficiariasPainel({ projetoId, somenteLeitura = false }) {
   const [lista, setLista] = useState([])
   const [rateio, setRateio] = useState(null)
@@ -45,12 +66,21 @@ export default function BeneficiariasPainel({ projetoId, somenteLeitura = false 
   const [msg, setMsg] = useState(null)
   const [editandoId, setEditandoId] = useState(null)
   const [editForm, setEditForm] = useState({})
-  const [novoForm, setNovoForm] = useState({ contaContrato: '', valor: '', titular: '', cpf_cnpj: '', concessionaria: '', tipoRateio: 'percentual' })
+  const [novoForm, setNovoForm] = useState({
+    contaContrato: '', valor: '', titular: '', cpf_cnpj: '', concessionaria: '', tipoRateio: 'percentual',
+  })
+  const [tipoRateioGlobal, setTipoRateioGlobal] = useState('percentual')
   const [modoImport, setModoImport] = useState(null) // null | 'colar' | 'arquivo'
   const [textoColado, setTextoColado] = useState('')
   const [preview, setPreview] = useState(null)
   const [modalHistorico, setModalHistorico] = useState(null)
   const fileRef = useRef()
+
+  // Modo de rateio: derivado da lista quando tem itens; do seletor quando vazia
+  const modoRateio = lista.length > 0
+    ? (lista.some(b => b.tipoRateio === 'prioridade') ? 'prioridade' : 'percentual')
+    : tipoRateioGlobal
+  const isPrioridade = modoRateio === 'prioridade'
 
   const flash = (texto, tipo = 'sucesso') => { setMsg({ texto, tipo }); setTimeout(() => setMsg(null), 3000) }
 
@@ -68,23 +98,52 @@ export default function BeneficiariasPainel({ projetoId, somenteLeitura = false 
 
   useEffect(() => { carregar() }, [carregar])
 
-  // Recalcula rateio localmente em tempo real
+  // Recalcula rateio localmente em tempo real (modo percentual)
   useEffect(() => { setRateio(validarRateio(lista)) }, [lista])
+
+  // Sincroniza tipoRateio do formulário com o modo atual
+  useEffect(() => {
+    setNovoForm(f => ({ ...f, tipoRateio: modoRateio }))
+  }, [modoRateio])
+
+  // ── Auto-preenchimento ───────────────────────────────────────────────────
+  // Ao informar UC, busca dados de registros existentes na lista (mesmo projeto)
+  function onUcChange(uc) {
+    setNovoForm(f => {
+      const match = uc.trim() ? lista.find(b => b.contaContrato === uc.trim()) : null
+      return {
+        ...f,
+        contaContrato: uc,
+        titular: match?.titular && !f.titular ? match.titular : f.titular,
+        cpf_cnpj: match?.cpf_cnpj && !f.cpf_cnpj ? match.cpf_cnpj : f.cpf_cnpj,
+        concessionaria: match?.concessionaria && !f.concessionaria ? match.concessionaria : f.concessionaria,
+      }
+    })
+  }
 
   // ── CRUD individual ──────────────────────────────────────────────────────
 
   async function adicionar(e) {
     e.preventDefault()
-    const pct = parseFloat(novoForm.valor)
-    if (!novoForm.contaContrato || isNaN(pct)) { flash('UC e percentual são obrigatórios.', 'erro'); return }
+    if (!novoForm.contaContrato) { flash('UC é obrigatória.', 'erro'); return }
+    if (isPrioridade) {
+      const prio = parseInt(novoForm.valor, 10)
+      if (isNaN(prio) || prio < 1) { flash('Prioridade deve ser um número inteiro ≥ 1.', 'erro'); return }
+    } else {
+      const pct = parseFloat(novoForm.valor)
+      if (isNaN(pct)) { flash('UC e percentual são obrigatórios.', 'erro'); return }
+    }
     try {
       const r = await fetch(`${API}/api/projetos-fv/${projetoId}/beneficiarias`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...novoForm, valor: pct }),
+        body: JSON.stringify({
+          ...novoForm,
+          valor: isPrioridade ? parseInt(novoForm.valor, 10) : parseFloat(novoForm.valor),
+        }),
       })
       const d = await r.json()
       if (!r.ok) { flash(d.mensagem || 'Erro ao adicionar.', 'erro'); return }
-      setNovoForm({ contaContrato: '', valor: '', titular: '', cpf_cnpj: '', concessionaria: '', tipoRateio: 'percentual' })
+      setNovoForm({ contaContrato: '', valor: '', titular: '', cpf_cnpj: '', concessionaria: '', tipoRateio: modoRateio })
       flash('Beneficiária adicionada.')
       carregar()
     } catch (e) { flash(e.message, 'erro') }
@@ -97,7 +156,10 @@ export default function BeneficiariasPainel({ projetoId, somenteLeitura = false 
     try {
       const r = await fetch(`${API}/api/projetos-fv/${projetoId}/beneficiarias/${editandoId}`, {
         method: 'PUT', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...editForm, valor: parseFloat(editForm.valor) }),
+        body: JSON.stringify({
+          ...editForm,
+          valor: isPrioridade ? parseInt(editForm.valor, 10) : parseFloat(editForm.valor),
+        }),
       })
       const d = await r.json()
       if (!r.ok) { flash(d.mensagem || 'Erro ao salvar.', 'erro'); return }
@@ -145,7 +207,6 @@ export default function BeneficiariasPainel({ projetoId, somenteLeitura = false 
     reader.readAsText(file)
   }
 
-  const edicaoAtiva = (campo) => editandoId && editForm[campo] !== undefined
   const cInput = (campo, tipo = 'text') => (
     <input type={tipo} value={editForm[campo] ?? ''} className={inp}
       onChange={e => setEditForm(f => ({ ...f, [campo]: e.target.value }))} />
@@ -153,15 +214,25 @@ export default function BeneficiariasPainel({ projetoId, somenteLeitura = false 
 
   return (
     <div className="space-y-4">
-      {/* Header com rateio badge */}
+      {/* Header com badge e seletor de modo */}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2">
           <Users size={18} className="text-indigo-600" />
           <h3 className="font-semibold text-slate-900">Beneficiárias GD</h3>
           {lista.length > 0 && <span className="text-xs text-slate-400">({lista.length} UC{lista.length > 1 ? 's' : ''})</span>}
+          {/* Modo ativo (read-only quando lista tem itens) */}
+          {lista.length > 0 && (
+            <span className="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded">
+              {MODO_LABEL[modoRateio]}
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          <RateioBadge rateio={rateio} />
+          {/* Badge de status */}
+          {lista.length > 0 && (isPrioridade
+            ? <PrioridadeBadge lista={lista} />
+            : <RateioBadge rateio={rateio} />
+          )}
           {!somenteLeitura && (
             <>
               <button onClick={() => setModoImport(modoImport === 'colar' ? null : 'colar')}
@@ -177,6 +248,29 @@ export default function BeneficiariasPainel({ projetoId, somenteLeitura = false 
           )}
         </div>
       </div>
+
+      {/* Seletor de modo — visível somente quando lista vazia */}
+      {!somenteLeitura && lista.length === 0 && (
+        <div className="flex items-center gap-4 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg">
+          <span className="text-xs font-medium text-slate-600">Tipo de rateio:</span>
+          {['percentual', 'prioridade'].map(modo => (
+            <label key={modo} className="flex items-center gap-1.5 cursor-pointer text-sm text-slate-700">
+              <input
+                type="radio" name="tipoRateioGlobal" value={modo}
+                checked={tipoRateioGlobal === modo}
+                onChange={() => setTipoRateioGlobal(modo)}
+                className="accent-indigo-600"
+              />
+              {MODO_LABEL[modo]}
+            </label>
+          ))}
+          {isPrioridade && (
+            <span className="text-xs text-slate-400 ml-2">
+              Cada UC recebe uma posição de prioridade (1 = maior prioridade).
+            </span>
+          )}
+        </div>
+      )}
 
       {/* Banner mensagem */}
       {msg && (
@@ -261,7 +355,7 @@ export default function BeneficiariasPainel({ projetoId, somenteLeitura = false 
         <table className="w-full text-sm">
           <thead>
             <tr className="text-xs text-slate-500 border-b border-slate-100">
-              {['UC / Conta', 'Titular', 'CPF/CNPJ', 'Concessionária', '% Rateio', 'Ativa', ''].map(h => (
+              {['UC / Conta', 'Titular', 'CPF/CNPJ', 'Concessionária', isPrioridade ? 'Prioridade' : '% Rateio', 'Ativa', ''].map(h => (
                 <th key={h} className="text-left py-1.5 px-2">{h}</th>
               ))}
             </tr>
@@ -285,10 +379,17 @@ export default function BeneficiariasPainel({ projetoId, somenteLeitura = false 
                   </td>
                   <td className="py-1 px-2 font-semibold text-slate-900 whitespace-nowrap">
                     {emEd ? (
-                      <input type="number" min="0" max="100" step="0.01" value={editForm.valor ?? ''} className={inp + ' w-20'}
-                        onChange={e => setEditForm(f => ({ ...f, valor: e.target.value }))} />
+                      <input
+                        type="number"
+                        min={isPrioridade ? '1' : '0'}
+                        max={isPrioridade ? undefined : '100'}
+                        step={isPrioridade ? '1' : '0.01'}
+                        value={editForm.valor ?? ''}
+                        className={inp + ' w-20'}
+                        onChange={e => setEditForm(f => ({ ...f, valor: e.target.value }))}
+                      />
                     ) : (
-                      `${b.valor}%`
+                      isPrioridade ? `P${b.valor}` : `${b.valor}%`
                     )}
                   </td>
                   <td className="py-1 px-2">
@@ -333,19 +434,61 @@ export default function BeneficiariasPainel({ projetoId, somenteLeitura = false 
         <form onSubmit={adicionar} className="flex flex-wrap items-end gap-2 border-t border-slate-100 pt-3">
           <div>
             <label className="text-[11px] text-slate-500 block mb-0.5">UC / Conta *</label>
-            <input className={inp + ' w-32'} value={novoForm.contaContrato} onChange={e => setNovoForm(f => ({ ...f, contaContrato: e.target.value }))} placeholder="123456" />
+            <input
+              className={inp + ' w-32'}
+              value={novoForm.contaContrato}
+              onChange={e => onUcChange(e.target.value)}
+              placeholder="123456"
+            />
           </div>
           <div>
             <label className="text-[11px] text-slate-500 block mb-0.5">Titular</label>
-            <input className={inp + ' w-36'} value={novoForm.titular} onChange={e => setNovoForm(f => ({ ...f, titular: e.target.value }))} placeholder="Nome" />
+            <input
+              className={inp + ' w-36'}
+              value={novoForm.titular}
+              onChange={e => setNovoForm(f => ({ ...f, titular: e.target.value }))}
+              placeholder="Nome"
+            />
           </div>
           <div>
             <label className="text-[11px] text-slate-500 block mb-0.5">CPF/CNPJ</label>
-            <input className={inp + ' w-32'} value={novoForm.cpf_cnpj} onChange={e => setNovoForm(f => ({ ...f, cpf_cnpj: e.target.value }))} placeholder="00.000.000/0001-00" />
+            <input
+              className={inp + ' w-32'}
+              value={novoForm.cpf_cnpj}
+              onChange={e => setNovoForm(f => ({ ...f, cpf_cnpj: e.target.value }))}
+              placeholder="00.000.000/0001-00"
+            />
           </div>
           <div>
-            <label className="text-[11px] text-slate-500 block mb-0.5">% Rateio *</label>
-            <input type="number" min="0" max="100" step="0.01" className={inp + ' w-20'} value={novoForm.valor} onChange={e => setNovoForm(f => ({ ...f, valor: e.target.value }))} placeholder="50" />
+            <label className="text-[11px] text-slate-500 block mb-0.5">Concessionária</label>
+            <input
+              className={inp + ' w-28'}
+              value={novoForm.concessionaria}
+              onChange={e => setNovoForm(f => ({ ...f, concessionaria: e.target.value }))}
+              placeholder="CEMIG"
+            />
+          </div>
+          <div>
+            <label className="text-[11px] text-slate-500 block mb-0.5">
+              {isPrioridade ? 'Prioridade *' : '% Rateio *'}
+            </label>
+            {isPrioridade ? (
+              <input
+                type="number" min="1" step="1"
+                className={inp + ' w-20'}
+                value={novoForm.valor}
+                onChange={e => setNovoForm(f => ({ ...f, valor: e.target.value }))}
+                placeholder="1"
+              />
+            ) : (
+              <input
+                type="number" min="0" max="100" step="0.01"
+                className={inp + ' w-20'}
+                value={novoForm.valor}
+                onChange={e => setNovoForm(f => ({ ...f, valor: e.target.value }))}
+                placeholder="50"
+              />
+            )}
           </div>
           <button type="submit" className="flex items-center gap-1 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded text-sm font-medium">
             <Plus size={14} /> Adicionar

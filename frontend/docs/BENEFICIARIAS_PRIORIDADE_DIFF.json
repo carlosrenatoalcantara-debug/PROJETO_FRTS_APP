@@ -1,0 +1,46 @@
+{
+  "gerado_em": "2026-06-18",
+  "sprint": "P1-BENEFICIARIAS-PRIORIDADE-01",
+  "modelo": "Sonnet",
+  "revisao_gemini": "Opcional",
+  "escopo": "BeneficiariasPainel.jsx apenas. Backend, schema, Atlas, ProjetoEV, Governança, Homologação, Snapshot, Ativos, QR — intocados.",
+
+  "alteracoes": [
+    {
+      "arquivo": "frontend/src/components/fv/BeneficiariasPainel.jsx",
+      "tipo": "FEATURE_ADDITIVE",
+      "descricao": "Adiciona modo Prioridade ao painel de beneficiárias GD.",
+      "detalhes": [
+        "Novo componente PrioridadeBadge (conta UCs, alerta duplicatas)",
+        "Estado tipoRateioGlobal para seleção de modo quando lista vazia",
+        "Derivação modoRateio: da lista (quando tem itens) ou do seletor (quando vazia)",
+        "Seletor radio Percentual/Prioridade exibido só quando lista === 0",
+        "Badge de modo ativo exibido quando lista tem itens (texto read-only)",
+        "Coluna tabela condicional: 'Prioridade' vs '% Rateio'",
+        "Valor tabela condicional: 'P1' vs '50%'",
+        "Input edição condicional: inteiro min=1 vs decimal min=0 max=100",
+        "Formulário de adição: label e input condicionais por modo",
+        "Validação adicionar: integer ≥ 1 (prioridade) vs float (percentual)",
+        "Auto-preenchimento: onUcChange busca na lista existente",
+        "Campo concessionaria adicionado ao formulário de adição (estava oculto)",
+        "useEffect sincroniza novoForm.tipoRateio com modoRateio"
+      ]
+    }
+  ],
+
+  "nao_alterado": [
+    "UnidadeBeneficiaria.js (schema já suportava prioridade)",
+    "beneficiariasController.js (backend já suportava prioridade)",
+    "beneficiariaRateio.js (validarRateio preservada)",
+    "ModalBeneficiaria.jsx (modal legado independente)",
+    "Atlas, ProjetoEV, Governança, Homologação, Snapshot, Ativos, QR"
+  ],
+
+  "verificacao": {
+    "vite_build": "OK (0 erros, 2322 módulos, 17.57s)",
+    "node_check": "N/A (JSX — validado via vite build)",
+    "atlas_gravado": false,
+    "app_executada": false,
+    "testes_afetados": 0
+  }
+}
