@@ -1,12 +1,18 @@
 import { useState } from 'react'
-import { FileText, Mail, Award, CheckSquare } from 'lucide-react'
+import { FileText, Mail, Award, CheckSquare, Lock } from 'lucide-react'
 import MemorialDescritivo from './MemorialDescritivo'
 import CartaConcessionaria from './CartaConcessionaria'
 import DadosART from './DadosART'
 import ChecklistDocumentos from './ChecklistDocumentos'
+import { obterEquipamentosEngenharia } from '../../../utils/engenhariaGovernanca'
 
 export default function Homologacao({ projetoId, projeto, cliente }) {
   const [abaAtiva, setAbaAtiva] = useState('checklist')
+
+  // P1-HOMOLOGACAO-SNAPSHOT-01: quando o projeto está congelado, os documentos
+  // usam os equipamentos do orçamento aprovado (snapshot), não o catálogo vivo.
+  const eng = obterEquipamentosEngenharia(projeto)
+  const usaSnapshot = eng.origem === 'snapshot'
 
   const abas = [
     {
@@ -44,6 +50,26 @@ export default function Homologacao({ projetoId, projeto, cliente }) {
           seu sistema na concessionária {projeto?.concessionaria || 'N/A'} ({projeto?.estado || 'N/A'}).
         </p>
       </div>
+
+      {/* P1-HOMOLOGACAO-SNAPSHOT-01: origem dos equipamentos nos documentos */}
+      {usaSnapshot ? (
+        <div className="flex items-start gap-2 bg-emerald-50 border border-emerald-200 rounded-lg p-3 text-sm text-emerald-800">
+          <Lock size={16} className="mt-0.5 shrink-0" />
+          <span>
+            <strong>Equipamentos congelados do orçamento aprovado.</strong> Memorial, carta e ART
+            usam o snapshot do projeto ({eng.modulo?.fabricante || '—'} {eng.modulo?.modelo || ''} ·{' '}
+            {eng.inversor?.fabricante || '—'} {eng.inversor?.modelo || ''})
+            {Array.isArray(eng.itens_adicionais) && eng.itens_adicionais.length > 0
+              ? ` + ${eng.itens_adicionais.length} item(ns) adicional(is)`
+              : ''}. Mudanças no catálogo não afetam estes documentos.
+          </span>
+        </div>
+      ) : (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-800">
+          Projeto não congelado — os documentos usam o catálogo atual. Aprove e congele a proposta
+          para travar os equipamentos da homologação.
+        </div>
+      )}
 
       {/* Abas */}
       <div className="border-b border-slate-200">

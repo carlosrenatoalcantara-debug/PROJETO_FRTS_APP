@@ -1,0 +1,47 @@
+{
+  "gerado_em": "2026-06-18",
+  "sprint": "P1-HOMOLOGACAO-SNAPSHOT-01",
+  "executor": "Sonnet 4.6",
+  "revisao_gemini": "OBRIGATÓRIA E PENDENTE",
+  "escopo": "Projeto FV / Homologação / Snapshot. Não tocou ProjetoEV, Ativos, QR, Scanner, Comissionamento, Segurança.",
+
+  "alteracoes": [
+    {
+      "arquivo": "backend/src/controllers/homologacaoController.js",
+      "tipo": "SNAPSHOT_PRIORITY",
+      "fases": [2, 3, 4],
+      "mudancas": [
+        "_estaCongelado(proj): freeze_status CONGELADO/HOMOLOGADO",
+        "_depsDoSnapshot(snapCat): snapshot_catalogo.{modulo,inversor} → deps.equipamentos [{tipo,fabricante,modelo,especificacoes,garantia}]",
+        "_carregarDepsDocumento: quando CONGELADO usa snapshot e NÃO consulta Atlas vivo; retorna origem + itens_adicionais",
+        "_aplicarSnapshotEquip(projeto): sobrepõe inversor/painel/num_paineis/num_inversores do snapshot (carta/ART)",
+        "gerarMemorial/gerarCarta/obterDadosART: aplicam snapshot e retornam origem + usou_snapshot"
+      ],
+      "antes": "Memorial consultava ATLAS VIVO (Equipamento.find por _id) com prioridade sobre o snapshot; carta/ART liam inline do projeto.",
+      "depois": "Projeto CONGELADO → documentos usam snapshot_catalogo (orçamento aprovado); Atlas vivo não é consultado.",
+      "regressao": "nenhuma (projeto não congelado mantém ATLAS VIVO)"
+    },
+    {
+      "arquivo": "frontend/src/components/fv/homologacao/Homologacao.jsx",
+      "tipo": "UI_ORIGIN_BANNER",
+      "fase": 4,
+      "mudancas": [
+        "Import obterEquipamentosEngenharia",
+        "Banner verde 'Equipamentos congelados do orçamento aprovado' quando origem='snapshot' (módulo/inversor + itens adicionais)",
+        "Aviso âmbar quando não congelado"
+      ],
+      "regressao": "nenhuma (apenas UI informativa)"
+    }
+  ],
+
+  "nao_alterado": [
+    "memorialDescritivoService.js (resolvers reaproveitados sem mudança)",
+    "MemorialDescritivo.jsx / CartaConcessionaria.jsx / DadosART.jsx / ChecklistDocumentos.jsx (continuam enviando projeto)",
+    "Schema ProjetoFV / Atlas (nenhuma mudança; snapshot_catalogo já existia)",
+    "ProjetoEV, Ativos, QR, Scanner, Comissionamento, Segurança"
+  ],
+
+  "observacoes": [
+    "Pré-existente fora de escopo: DadosART.jsx faz GET sem corpo enquanto obterDadosART lê req.body.projeto (transporte ART potencialmente quebrado). Não corrigido nesta sprint."
+  ]
+}

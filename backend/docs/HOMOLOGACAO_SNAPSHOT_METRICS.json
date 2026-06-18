@@ -1,0 +1,68 @@
+{
+  "gerado_em": "2026-06-18",
+  "sprint": "P1-HOMOLOGACAO-SNAPSHOT-01",
+  "executor": "Sonnet 4.6",
+  "revisao_gemini": "OBRIGATÓRIA E PENDENTE",
+
+  "respostas": {
+    "1_passou_a_usar_snapshot": "memorial, carta e ART (módulos, inversores, potências, quantidades, itens adicionais) quando o projeto está CONGELADO/HOMOLOGADO",
+    "2_continuou_dinamico": "projetos não congelados (RASCUNHO/APROVADO/EM_REVISAO) usam ATLAS VIVO; checklist documental por estado/concessionária",
+    "3_divergencias": "nenhuma divergência real medida (sem runtime); homologação mantém snapshot e sinaliza origem; comparação campo-a-campo no GovernancaPainel",
+    "4_regressoes": "nenhuma nas verificações executadas",
+    "5_commit": "ver git log do branch sprint/p1-homologacao-snapshot-01"
+  },
+
+  "fases": {
+    "fase_1_forense": "COMPLETA",
+    "fase_2_substituicao": "COMPLETA",
+    "fase_3_validacao_campos": "COMPLETA (Node + services reais)",
+    "fase_4_divergencia": "COMPLETA (homologação no snapshot + banner de origem)",
+    "fase_5_validacao_projetos": "PARCIAL (build + node services; 5 projetos reais NÃO testados em runtime)"
+  },
+
+  "arquivos_alterados": 2,
+  "arquivos": [
+    "backend/src/controllers/homologacaoController.js",
+    "frontend/src/components/fv/homologacao/Homologacao.jsx"
+  ],
+
+  "documentos_que_usam_snapshot_quando_congelado": ["memorial_descritivo", "carta_concessionaria", "dados_art"],
+  "campos_do_snapshot": ["modulo.fabricante/modelo/quantidade/especificacoes", "inversor.fabricante/modelo/quantidade/especificacoes", "itens_adicionais"],
+
+  "schema_alterado": false,
+  "atlas_alterado": false,
+  "migracao_necessaria": false,
+
+  "build": {
+    "status": "SUCESSO",
+    "modulos_transformados": 2322,
+    "tempo_build_s": 13.45,
+    "erros_compilacao": 0,
+    "node_check_controller": "OK"
+  },
+
+  "teste_node_services_reais": {
+    "executado": true,
+    "metodo": "import dos services reais (gerarMemorialDescritivo/Carta/ART) + helpers do controller transcritos (parte com mongoose não é importável em Node puro)",
+    "asserts_total": 10,
+    "asserts_pass": 10,
+    "asserts_fail": 0,
+    "cenario": "projeto CONGELADO snapshot Canadian/Growatt vs inline vivo TrinaVELHO/HuaweiVELHO",
+    "comprovado": "memorial cita equipamento congelado e exclui o vivo antigo; carta sem inversor vivo; RASCUNHO mantém vivo"
+  },
+
+  "validacao_runtime_projetos": {
+    "fazenda_alice": "NAO_EXECUTADO",
+    "paulo_carlos": "NAO_EXECUTADO",
+    "escola_pinheiro": "NAO_EXECUTADO",
+    "projeto_novo": "NAO_EXECUTADO",
+    "projeto_legado": "NAO_EXECUTADO",
+    "nota": "Sem acesso ao Atlas/ambiente. Lógica validada contra services reais em Node; integração real pendente de runtime + Gemini."
+  },
+
+  "limitacoes_conhecidas": [
+    "Pré-existente fora de escopo: DadosART.jsx faz GET sem corpo enquanto obterDadosART lê req.body.projeto (transporte ART potencialmente quebrado). Não corrigido.",
+    "Mapeamento potência inversor (kW vs W) herda ambiguidade existente do service.",
+    "5 projetos reais não validados em runtime."
+  ]
+}
