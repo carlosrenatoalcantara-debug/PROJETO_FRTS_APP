@@ -1,0 +1,193 @@
+{
+  "gerado_em": "2026-06-18",
+  "sprint": "P2-CENTRAL-HOMOLOGACAO-FORENSICS-01",
+  "modelo": "Sonnet",
+  "tipo": "FORENSE_READ_ONLY",
+  "revisao_gemini": "OBRIGATÓRIA E PENDENTE",
+  "atlas_acessado": false,
+  "codigo_alterado": false,
+
+  "escala": ["0%","25%","50%","75%","100%"],
+
+  "cobertura_por_area": [
+    {
+      "area": "Dados Técnicos",
+      "cobertura": "75%",
+      "implementado": [
+        "potencia_kwp (ProjetoFV.dimensionamento)",
+        "modulos fabricante/modelo/specs (snapshot_catalogo + Equipamento)",
+        "inversores fabricante/modelo (83/175 com potencia_kw após P1-UNKNOWN-POWER-APPLY-01)",
+        "irradiância mensal via NASA API",
+        "consumo mensal via fatura parser",
+        "área do telhado (geoEngine)"
+      ],
+      "lacunas": [
+        "39 inversores ainda sem potencia_kw (31 média confiança + 8 não-deriváveis)",
+        "MPPT/Voc ausentes em inversores SolarMarket (identidade-only)",
+        "certificações INMETRO/IEC parcialmente preenchidas no catálogo",
+        "specs de estrutura de fixação não padronizadas"
+      ]
+    },
+    {
+      "area": "Documentos",
+      "cobertura": "50%",
+      "implementado": [
+        "Memorial Descritivo (geração automática, texto completo, snapshot-aware)",
+        "Carta à Concessionária (geração automática, template com RT + equipamentos + UC)",
+        "Dados para ART (campos estruturados, link ao CREA por estado)",
+        "Copiar texto (clipboard) em todos os 3 documentos",
+        "Download TXT (memorial e carta)",
+        "Templates estáticos em templatesHomologacao.js"
+      ],
+      "lacunas": [
+        "BUG-ART-01: GET /art sem body → req.body.projeto falha (P1, aberto)",
+        "Procuração não existe (nem template)",
+        "Laudo de conformidade: apenas flag no checklist, sem geração",
+        "Projeto de execução: apenas flag no checklist, sem geração",
+        "Nota fiscal: não integrada",
+        "Download PDF real (atual é .txt); gerarPdfHomologacao.js existe mas limitado",
+        "Diagramas: snapshot_unifilar existe, mas geração de PDF do unifilar não integrada à Central",
+        "Relatório de geração estimada: sem template específico"
+      ]
+    },
+    {
+      "area": "Beneficiárias",
+      "cobertura": "100%",
+      "implementado": [
+        "CRUD completo (UnidadeBeneficiaria model + routes + BeneficiariasPainel)",
+        "contaContrato, tipoRateio (percentual/prioridade), valor",
+        "titular, cpf_cnpj, concessionaria, modalidade_gd (S8.7)",
+        "ativa/inativa, historico de eventos",
+        "Validação soma 100% (percentual) — sprint P1-BENEFICIARIAS-PRIORIDADE-01",
+        "Badge de duplicatas de prioridade",
+        "Auto-preenchimento por lookup na lista existente",
+        "Integração no memorial (_secaoBeneficiarias)",
+        "Integração no checklist assistido (_rateioOk)"
+      ],
+      "lacunas": [
+        "Número de acesso/UC não tem campo estruturado no ProjetoFV raiz (só via UnidadeBeneficiaria)",
+        "Sem validação de formato da conta contrato por concessionária",
+        "modalidade_gd sem UI de seleção ainda"
+      ]
+    },
+    {
+      "area": "Rateio",
+      "cobertura": "100%",
+      "implementado": [
+        "Modo percentual (soma 100% validada)",
+        "Modo prioridade (P1-BENEFICIARIAS-PRIORIDADE-01)",
+        "Detecção automática de duplicatas de prioridade",
+        "Cálculo de rateio em beneficiariaRateio.js",
+        "Checklist assistido verifica rateio"
+      ],
+      "lacunas": [
+        "Sem simulação de distribuição de créditos por mês",
+        "Sem cálculo do ganho por UC beneficiária"
+      ]
+    },
+    {
+      "area": "Coordenadas",
+      "cobertura": "75%",
+      "implementado": [
+        "lat/lon em ProjetoFV.localizacao (geocoding automático)",
+        "geocodificado_em + geocoding_origem + geocoding_confianca",
+        "localizacaoV3Schema estruturado (endereco_completo, latitude, longitude, estado, cidade)",
+        "Exibição no mapa (aba 'mapa' em ProjetosFVDetalhes)",
+        "snapshot_geoespacial"
+      ],
+      "lacunas": [
+        "Coordenadas não exibidas na aba Homologação em formato copy/paste",
+        "Sem link direto Google Maps / Street View na Central",
+        "Sem cálculo automático de orientação do telhado pela coordenada"
+      ]
+    },
+    {
+      "area": "Equipamentos",
+      "cobertura": "75%",
+      "implementado": [
+        "fabricante + modelo em todos os equipamentos",
+        "snapshot_catalogo (imutável quando congelado)",
+        "certificacoes.inmetro.numero onde preenchido",
+        "certificacoes.normas_iec onde preenchido",
+        "datasheet_original.hash (link ao documento)",
+        "aprovacao_tecnica.status",
+        "83/175 inversores com potencia_kw (P1-UNKNOWN-POWER-APPLY-01)"
+      ],
+      "lacunas": [
+        "39 inversores sem potencia_kw (31 média confiança + 8 requerem datasheet)",
+        "Certificação INMETRO: preenchida em percentagem desconhecida do catálogo",
+        "Normas IEC (IEC 62116): preenchidas em minoria",
+        "Número de série não associado na fase de projeto (só no ativo comissionado)",
+        "Sem NF dos equipamentos integrada"
+      ]
+    },
+    {
+      "area": "Checklist",
+      "cobertura": "75%",
+      "implementado": [
+        "Checklist assistido automático (homologacaoAssistida.js) — 7 categorias de itens",
+        "Checklist estático por concessionária (checklistsHomologacao.js) — 7 grupos",
+        "Persistência de checklist manual (checklist_documentos em ProjetoFV.homologacao)",
+        "Status da homologação com 7 estados + status sugerido automático",
+        "UI com toggle por item + barra de progresso (ChecklistDocumentos.jsx)",
+        "Validação de documentos por concessionária (validarDocumentos)",
+        "Pacote documental (montarPacoteDocumental)"
+      ],
+      "lacunas": [
+        "Sem campo para número de protocolo da concessionária",
+        "Sem data de envio / retorno previsto",
+        "Histórico de checklist: sem timestamps por item marcado",
+        "Sem alerta/notificação de pendências urgentes",
+        "Status legado (rascunho/enviado/analise/aprovado/conectado) e S9.0 parcialmente sobrepostos — UI não unifica"
+      ]
+    },
+    {
+      "area": "Histórico",
+      "cobertura": "25%",
+      "implementado": [
+        "historico_status em ProjetoFV.homologacao (de/para/por/motivo/em)",
+        "AuditLog._auditar em cada ação da rota assistida",
+        "historico em UnidadeBeneficiaria por evento",
+        "revisoes[] no ProjetoFV (S4.3)"
+      ],
+      "lacunas": [
+        "Sem UI de timeline de histórico de homologação (apenas backend)",
+        "Sem exibição de histórico de status na aba Homologação",
+        "Sem registro do número de protocolo da concessionária",
+        "Sem alerta de SLA (prazo legal de 30 dias úteis)"
+      ]
+    }
+  ],
+
+  "cobertura_global": {
+    "percentual_estimado": "~65%",
+    "calculo": "Média ponderada das 8 áreas (dados técnicos 75%, documentos 50%, beneficiárias 100%, rateio 100%, coordenadas 75%, equipamentos 75%, checklist 75%, histórico 25%)",
+    "nota": "Estimativa estrutural — sem contagens de Atlas. Dados técnicos e equipamentos podem variar com a completude real do catálogo."
+  },
+
+  "dados_disponíveis_por_campo": {
+    "cliente_nome":       { "status": "DISPONÍVEL", "onde": "ProjetoFV.clienteId.nome, UnidadeBeneficiaria.titular" },
+    "cpf_cnpj":           { "status": "DISPONÍVEL", "onde": "UnidadeBeneficiaria.cpf_cnpj, ProjetoFV.clienteId.cpf_cnpj" },
+    "uc_conta_contrato":  { "status": "DISPONÍVEL", "onde": "UnidadeBeneficiaria.contaContrato" },
+    "coordenadas":        { "status": "DISPONÍVEL", "onde": "ProjetoFV.localizacao.latitude/longitude" },
+    "endereco":           { "status": "DISPONÍVEL", "onde": "ProjetoFV.localizacao.endereco_completo" },
+    "estado":             { "status": "DISPONÍVEL", "onde": "ProjetoFV.localizacao.estado" },
+    "modulos":            { "status": "DISPONÍVEL", "onde": "snapshot_catalogo.modulo ou Equipamento" },
+    "inversores":         { "status": "DISPONÍVEL", "onde": "snapshot_catalogo.inversor ou Equipamento" },
+    "potencia_kwp":       { "status": "DISPONÍVEL", "onde": "ProjetoFV.dimensionamento.potencia_kwp" },
+    "potencia_inversores":{ "status": "PARCIAL",    "onde": "83/175 com potencia_kw; 39 pendentes" },
+    "beneficiarias":      { "status": "DISPONÍVEL", "onde": "UnidadeBeneficiaria.* (completo)" },
+    "rateio":             { "status": "DISPONÍVEL", "onde": "UnidadeBeneficiaria.tipoRateio + valor" },
+    "concessionaria":     { "status": "PARCIAL",    "onde": "ProjetoFV.homologacao.concessionaria (string manual, sem normalização obrigatória)" },
+    "responsavel_tecnico":{ "status": "PARCIAL",    "onde": "governanca.snapshot_responsavel_tecnico (quando congelado); tecnico_principal_id (vinculo)" },
+    "registro_crea":      { "status": "PARCIAL",    "onde": "EmpresaContext (contexto global), não persistido por projeto" },
+    "inmetro":            { "status": "PARCIAL",    "onde": "Equipamento.certificacao.inmetro.numero (parcialmente preenchido)" },
+    "normas_iec":         { "status": "PARCIAL",    "onde": "Equipamento.certificacao.normas_iec (parcialmente preenchido)" },
+    "irradiancia":        { "status": "DISPONÍVEL", "onde": "ProjetoFV via NASA API geocodificada" },
+    "consumo_mensal":     { "status": "DISPONÍVEL", "onde": "ProjetoFV.consumo / parser de fatura" },
+    "numero_protocolo":   { "status": "AUSENTE",    "onde": "Campo não existe no schema" },
+    "data_envio_concession": { "status": "PARCIAL", "onde": "ProjetoFV.homologacao.data_envio existe mas UI não preenche" },
+    "nota_fiscal":        { "status": "AUSENTE",    "onde": "Sem integração" },
+    "procuracao":         { "status": "AUSENTE",    "onde": "Sem template ou campo" }
+  }
+}

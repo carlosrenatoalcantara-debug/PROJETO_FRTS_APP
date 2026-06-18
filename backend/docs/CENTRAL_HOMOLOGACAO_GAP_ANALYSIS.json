@@ -1,0 +1,142 @@
+{
+  "gerado_em": "2026-06-18",
+  "sprint": "P2-CENTRAL-HOMOLOGACAO-FORENSICS-01",
+  "modelo": "Sonnet",
+  "tipo": "FORENSE_READ_ONLY",
+  "revisao_gemini": "OBRIGATÓRIA E PENDENTE",
+  "codigo_alterado": false,
+
+  "gaps_por_prioridade": [
+    {
+      "id": "GAP-01",
+      "prioridade": "P1_CRITICO",
+      "titulo": "BUG-ART-01: GET /art sem body",
+      "descricao": "DadosART.jsx faz GET /api/projetos-fv/:id/homologacao/art sem body. O controller espera req.body.projeto. HTTP GET não tem body → projeto sempre undefined → ART retorna dados vazios/erro.",
+      "impacto": "A aba ART não funciona. Dados para preenchimento do CREA inacessíveis via UI.",
+      "arquivo_frontend": "frontend/src/components/fv/homologacao/DadosART.jsx:29",
+      "arquivo_backend": "backend/src/controllers/homologacaoController.js (obterDadosART)",
+      "solucao": "Mudar para POST ou passar projeto como query param. Solução mínima: POST /art com { projeto } no body.",
+      "esforco": "XS (< 2h)"
+    },
+    {
+      "id": "GAP-02",
+      "prioridade": "P1_ALTO",
+      "titulo": "Dois sistemas de status sobrepostos (legado + S9.0)",
+      "descricao": "ProjetoFV.homologacao.status (rascunho/enviado/analise/aprovado/conectado) e homologacao.status_homologacao (S9.0 com 7 estados) coexistem sem sincronização. UI usa o legado no ChecklistDocumentos; API /assistida usa o S9.0. Operador pode ver statuses divergentes.",
+      "impacto": "Confusão operacional. Histórico fragmentado. UI do checklist legado PATCH /checklist salva no schema legado; PATCH /assistida/status salva no S9.0.",
+      "solucao": "Unificar na Central de Homologação com status_homologacao (S9.0) como fonte de verdade. Migrar o legado para legacy/deprecated.",
+      "esforco": "S (1 sprint)"
+    },
+    {
+      "id": "GAP-03",
+      "prioridade": "P1_ALTO",
+      "titulo": "Beneficiárias fora da aba Homologação",
+      "descricao": "BeneficiariasPainel está na aba separada 'Beneficiárias' em ProjetosFVDetalhes. A Central de Homologação (aba 'Homologação') não acessa nem exibe as UCs cadastradas diretamente.",
+      "impacto": "Operador precisa alternar entre abas para ver rateio + gerar memorial. O memorial inclui beneficiárias (via API), mas a UI da homologação não as exibe.",
+      "solucao": "Na Central: adicionar card summary de beneficiárias (UC, titular, %) com link para a aba completa.",
+      "esforco": "XS–S"
+    },
+    {
+      "id": "GAP-04",
+      "prioridade": "P1_ALTO",
+      "titulo": "Coordenadas não acessíveis na Central (copy/paste)",
+      "descricao": "Coordenadas lat/lon existem em ProjetoFV.localizacao mas não são exibidas na aba Homologação. Operador não consegue copiar para o portal da concessionária.",
+      "impacto": "Campo obrigatório em vários portais de concessionárias (CEMIG, COPEL, etc.). Operador precisa ir ao Google Maps e copiar manualmente.",
+      "solucao": "Card 'Localização' na Central com lat/lon, link Google Maps, endereço formatado — todos copiáveis.",
+      "esforco": "XS"
+    },
+    {
+      "id": "GAP-05",
+      "prioridade": "P1_ALTO",
+      "titulo": "Número de protocolo e data de envio não têm UI",
+      "descricao": "ProjetoFV.homologacao.data_envio existe no schema mas não é exibido nem editável pela UI. Número de protocolo da concessionária não existe no schema.",
+      "impacto": "Operador não consegue registrar o protocolo de submissão nem a data. Impossível controle de SLA (30 dias úteis).",
+      "solucao": "Adicionar campo numero_protocolo ao schema (aditivo) + UI de input na Central.",
+      "esforco": "XS"
+    },
+    {
+      "id": "GAP-06",
+      "prioridade": "P2_MEDIO",
+      "titulo": "PDF real ausente (download como .txt)",
+      "descricao": "Memorial e Carta são baixados como .txt. gerarPdfHomologacao.js existe mas capacidade de geração de PDF formatado não está integrada à Central.",
+      "impacto": "Operador precisa colar em Word e formatar manualmente para impressão.",
+      "solucao": "Integrar biblioteca PDF (jsPDF ou similar, já potencialmente presente no frontend) ao gerarPdfHomologacao.js.",
+      "esforco": "M (1 sprint)"
+    },
+    {
+      "id": "GAP-07",
+      "prioridade": "P2_MEDIO",
+      "titulo": "Histórico de homologação sem UI",
+      "descricao": "historico_status existe no backend (ProjetoFV.homologacao.historico_status com de/para/por/motivo/em). Não há UI de timeline na aba Homologação.",
+      "impacto": "Sem rastreabilidade visual do processo. Auditoria possível apenas por consulta direta ao Atlas.",
+      "solucao": "Timeline simples na Central: lista de eventos de status com data, quem alterou e motivo.",
+      "esforco": "XS"
+    },
+    {
+      "id": "GAP-08",
+      "prioridade": "P2_MEDIO",
+      "titulo": "39 inversores sem potência (catálogo)",
+      "descricao": "31 inversores de média confiança + 8 não-deriváveis ainda sem potencia_kw. O memorial gerado para projetos com esses inversores mostra potência vazia.",
+      "impacto": "Memorial incompleto para ~22% do catálogo de inversores.",
+      "solucao": "Aplicar --incluir-media após revisão humana (31); obter datasheets para os 8 restantes.",
+      "esforco": "S (revisão + sprint)"
+    },
+    {
+      "id": "GAP-09",
+      "prioridade": "P2_MEDIO",
+      "titulo": "Certificações INMETRO/IEC incompletas no catálogo",
+      "descricao": "Equipamento.certificacao.inmetro e normas_iec existem no schema mas não são preenchidos uniformemente. O checklist assistido detecta ausência mas a contagem real é desconhecida (sem acesso Atlas).",
+      "impacto": "Checklist assistido reporta erros de certificação para equipamentos sem dados — pode ser falso positivo ou real.",
+      "solucao": "Sprint de enriquecimento de certificações (Gemini Vision + datasheet sourcing).",
+      "esforco": "M"
+    },
+    {
+      "id": "GAP-10",
+      "prioridade": "P2_MEDIO",
+      "titulo": "ENEL (SP/Rio/CE) ausente em concessionariaProvider.js",
+      "descricao": "checklistsHomologacao.js tem ENEL SP, ENEL Rio, ENEL CE com checklists específicos. concessionariaProvider.js (backend) NÃO tem regras para o grupo ENEL — retorna REGRAS_PADRAO.",
+      "impacto": "Checklist assistido (API) não diferencia ENEL de genérico. Checklists frontend corretos mas backend desatualizado.",
+      "solucao": "Adicionar REGRAS_POR_GRUPO.ENEL em concessionariaProvider.js.",
+      "esforco": "XS"
+    },
+    {
+      "id": "GAP-11",
+      "prioridade": "P3_BAIXO",
+      "titulo": "Procuração sem template",
+      "descricao": "Procuração não existe como template gerado. Não há campo no schema.",
+      "impacto": "Operador precisa de documento externo para casos que exigem procuração.",
+      "solucao": "Template simples (opcional — nem todas concessionárias exigem).",
+      "esforco": "XS"
+    },
+    {
+      "id": "GAP-12",
+      "prioridade": "P3_BAIXO",
+      "titulo": "CREA mapeado para apenas 8 estados",
+      "descricao": "DadosART.jsx CREAS_POR_ESTADO tem SP, RJ, MG, RN, CE, BA, PE, RS. Brasil tem 26 estados + DF.",
+      "impacto": "Link ao CREA vai para confea.org.br (fallback) para os demais estados.",
+      "solucao": "Expandir o mapa CREAS_POR_ESTADO para todos os estados.",
+      "esforco": "XS"
+    },
+    {
+      "id": "GAP-13",
+      "prioridade": "P3_BAIXO",
+      "titulo": "modalidade_gd sem UI de seleção",
+      "descricao": "UnidadeBeneficiaria.modalidade_gd (autoconsumo_local/remoto/compartilhada/condominio) existe no schema (S8.7) mas não tem UI de seleção no BeneficiariasPainel.",
+      "impacto": "Campo relevante para classificação legal mas não editável.",
+      "solucao": "Select na linha de cada beneficiária.",
+      "esforco": "XS"
+    }
+  ],
+
+  "gaps_tecnicos_abertos": [
+    "BUG-ART-01 (P1) — GET/POST transport fix",
+    "BUG-SCAN-02 (P2) — iOS QR polyfill (fora do escopo desta sprint)"
+  ],
+
+  "resumo_lacunas": {
+    "P1_critico_alto": 5,
+    "P2_medio": 5,
+    "P3_baixo": 3,
+    "total": 13
+  }
+}
