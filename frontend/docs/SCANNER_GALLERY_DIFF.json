@@ -1,0 +1,48 @@
+{
+  "gerado_em": "2026-06-18",
+  "sprint": "P1-SCANNER-GALLERY-01",
+  "modelo": "Sonnet",
+  "revisao_gemini": "Não necessária",
+  "escopo": "EtiquetaScanner.jsx apenas. Backend, Atlas, ProjetoEV, Governança, Homologação, Snapshot — intocados.",
+
+  "alteracoes": [
+    {
+      "arquivo": "frontend/src/pages/EtiquetaScanner.jsx",
+      "tipo": "FEATURE_ADDITIVE",
+      "linhas_adicionadas": 20,
+      "descricao": "Upload de galeria via <input type='file'> → OCR (mesmo endpoint /api/ativos/scan).",
+      "detalhes": [
+        "const galleryRef = useRef(null) — ref para o input hidden",
+        "async function onGalleryChange(e) — lê File, reseta input, chama enviar({ foto: file })",
+        "<input type='file' accept='image/*' className='hidden' ref={galleryRef} onChange={onGalleryChange} />",
+        "Botão '🖼️ Selecionar da galeria (OCR)' visível sempre (câmera ativa ou sem câmera)",
+        "disabled={estado === 'processando'} — consistente com os demais botões"
+      ]
+    }
+  ],
+
+  "nao_alterado": [
+    "enviar() — função existente reutilizada sem alteração",
+    "tirarFoto() — câmera existente preservada",
+    "Backend /api/ativos/scan (multer + Tesseract)",
+    "parseEtiqueta (parser de etiqueta)",
+    "Atlas, ProjetoEV, Governança, Homologação, Snapshot"
+  ],
+
+  "compatibilidade_file_blob": "File extends Blob. FormData.append('foto', file) idêntico ao FormData.append('foto', blob, 'etiqueta.jpg') para multer memoryStorage.",
+
+  "comportamento_por_plataforma": {
+    "android_chrome": "Abre seletor nativo: 'Câmera' e 'Galeria de fotos'",
+    "ios_safari": "Abre sheet: 'Tirar Foto ou Vídeo', 'Escolher Foto ou Vídeo', 'Escolher Arquivo'",
+    "desktop_chrome": "Abre file picker do sistema operacional",
+    "nota": "Comportamento baseado em especificação — não testado em hardware real"
+  },
+
+  "verificacao": {
+    "vite_build": "OK (0 erros, 2322 módulos)",
+    "atlas_gravado": false,
+    "app_executada": false,
+    "hardware_testado": false,
+    "testes_afetados": 0
+  }
+}

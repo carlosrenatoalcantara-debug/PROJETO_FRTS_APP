@@ -1,4 +1,5 @@
 // P1-COMMISSIONING-SCAN-01 — Scanner de etiqueta (câmera): QR → OCR → manual.
+// P1-SCANNER-GALLERY-01 — upload de galeria: <input type="file"> → OCR (mesmo endpoint).
 // Captura serial/SSID/senha/MAC e devolve via onCapture(campos). NÃO grava nada (o salvar
 // é o /comissionar). Reutiliza o endpoint /api/ativos/scan.
 import { useEffect, useRef, useState } from 'react'
@@ -6,6 +7,7 @@ import { useEffect, useRef, useState } from 'react'
 export default function EtiquetaScanner({ fabricante, onCapture, onClose }) {
   const videoRef = useRef(null)
   const streamRef = useRef(null)
+  const galleryRef = useRef(null)
   const [estado, setEstado] = useState('iniciando') // iniciando | pronto | processando | sem_camera
   const [msg, setMsg] = useState(null)
   const [paste, setPaste] = useState('')
@@ -67,6 +69,14 @@ export default function EtiquetaScanner({ fabricante, onCapture, onClose }) {
     } catch { setMsg('Falha de conexão'); setEstado('pronto') }
   }
 
+  // Galeria: File extends Blob — FormData.append funciona identicamente ao canvas.toBlob
+  async function onGalleryChange(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    e.target.value = '' // permite re-selecionar o mesmo arquivo
+    await enviar({ foto: file })
+  }
+
   async function tirarFoto() {
     const v = videoRef.current; if (!v) return
     const cv = document.createElement('canvas')
@@ -103,6 +113,16 @@ export default function EtiquetaScanner({ fabricante, onCapture, onClose }) {
               📷 Capturar foto (OCR)
             </button>
           )}
+
+          {/* Galeria — Android: abre seletor (galeria ou câmera). iOS: abre Fotos. */}
+          <input ref={galleryRef} type="file" accept="image/*" className="hidden" onChange={onGalleryChange} />
+          <button
+            onClick={() => galleryRef.current?.click()}
+            disabled={estado === 'processando'}
+            className="w-full border border-indigo-500 text-indigo-700 font-semibold py-3 rounded-xl disabled:opacity-50"
+          >
+            🖼️ Selecionar da galeria (OCR)
+          </button>
 
           {/* Fallback universal: colar conteúdo do QR / texto da etiqueta */}
           <div>

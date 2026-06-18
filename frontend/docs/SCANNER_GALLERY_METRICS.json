@@ -1,0 +1,32 @@
+{
+  "gerado_em": "2026-06-18",
+  "sprint": "P1-SCANNER-GALLERY-01",
+  "modelo": "Sonnet",
+
+  "respostas": {
+    "1_arquivos_alterados": "frontend/src/pages/EtiquetaScanner.jsx (+20 linhas, único arquivo).",
+    "2_backend_reutilizado": "SIM — POST /api/ativos/scan, multer.single('foto'), Tesseract. Zero alterações no backend.",
+    "3_android_funcionando": "NÃO TESTADO em hardware. Especificação: <input type='file' accept='image/*'> sem capture abre seletor nativo (galeria + câmera) no Chrome Android.",
+    "4_iphone_funcionando": "NÃO TESTADO em hardware. Especificação: iOS Safari abre sheet com Fotos/Câmera/Arquivos.",
+    "5_ocr_preenchendo": "SIM (fluxo de código): onGalleryChange → enviar({foto:file}) → FormData → /api/ativos/scan → onCapture(j.campos). Idêntico ao botão 'Capturar foto'.",
+    "6_regressoes": "Nenhuma. Vite build 0 erros. Câmera, QR, OCR câmera, colar texto — todos preservados.",
+    "7_commit": "ver git log branch sprint/p1-scanner-gallery-01"
+  },
+
+  "fases": {
+    "fase_1_auditoria": "COMPLETA",
+    "fase_2_input_file": "COMPLETA",
+    "fase_3_android": "CÓDIGO PRONTO — não testado em hardware",
+    "fase_4_iphone": "CÓDIGO PRONTO — não testado em hardware",
+    "fase_5_fluxo_ocr": "COMPLETO (análise de fluxo)",
+    "fase_6_deye_tsun_nep": "NÃO TESTADO (sem fotos reais, parser backend não alterado)"
+  },
+
+  "verificacao": {
+    "vite_build": "OK",
+    "testes_afetados": 0,
+    "atlas_gravado": false,
+    "hardware_testado": false,
+    "app_executada": false
+  }
+}
