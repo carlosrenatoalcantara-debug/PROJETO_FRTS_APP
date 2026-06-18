@@ -1,0 +1,56 @@
+{
+  "gerado_em": "2026-06-18",
+  "sprint": "P1-FV-PDF-KIT-RESTORE-01",
+  "executor": "Sonnet 4.6",
+  "revisao_gemini": "OBRIGATÓRIA E PENDENTE",
+  "escopo": "Projeto FV / Orçamento / PDF. Não tocou ProjetoEV, Atlas, Governança, Homologação, QR, Ativos. Sem schema, sem migração.",
+
+  "alteracoes": [
+    {
+      "arquivo": "frontend/src/utils/gerarPdfOrcamento.js",
+      "tipo": "PDF_KIT_AWARE",
+      "mudancas": [
+        "Novo parâmetro orcamento (default {}) — aceita camelCase (vivo) e snake_case (persistido)",
+        "Normalização: modoOrc, kit, itensAdic, totalMaterial, totalServicos",
+        "Modo kit: seção 'ORÇAMENTO — KIT' (Fornecedor + Kit principal/Frete/Projeto/Mão de obra com tipo Material/Serviço)",
+        "Modo detalhado: tabela de equipamentos preservada",
+        "Seção 'ITENS ADICIONAIS' (ambos os modos): Descrição, Tipo, Qtd, Valor, Subtotal, com quebra de página",
+        "Totais: total = total_venda_r/totalVenda/total (fallback legado = soma de equipamentos); linhas Total Material / Total Serviços; rótulo 'TOTAL DE VENDA'"
+      ],
+      "antes": "total recalculado internamente = (painel+inversor+estrutura).precoUnitario × qtd. Kit/serviços/itens ignorados.",
+      "depois": "total = Total Venda (material + serviços + itens); kit e itens exibidos.",
+      "regressao": "nenhuma (modo detalhado preservado; fallback legado quando orcamento ausente)"
+    },
+    {
+      "arquivo": "frontend/src/utils/gerarPropostaPDF.js",
+      "tipo": "PDF_KIT_AWARE",
+      "mudancas": [
+        "Normalização: modoOrc, kit, itensAdic, totalMaterial, totalServicos (camelCase + snake_case)",
+        "secaoOrcamento: ramo kit (tabela Fornecedor/Kit/Frete/Projeto/Mão de obra + itens adicionais) vs ramo detalhado (itens[] + itens adicionais anexados)",
+        "blocoTotaisMS: Total Material / Total Serviços quando disponíveis",
+        "Bug corrigido: coluna '% do Total' calcula percentual quando item.percentual ausente (eliminado 'undefined%')",
+        "Substituição do bloco inline 'Orçamento Detalhado' por ${secaoOrcamento}"
+      ],
+      "antes": "Sempre 'Orçamento Detalhado' com itens detalhados; '% do Total' = undefined%.",
+      "depois": "Kit ou detalhado conforme modo; percentual calculado; itens adicionais visíveis.",
+      "regressao": "nenhuma (NovaProposta legado e projetos sem modo caem em detalhado)"
+    },
+    {
+      "arquivo": "frontend/src/components/fv/etapas/E8Orcamento.jsx",
+      "tipo": "CALL_SITE_WIRING",
+      "mudancas": [
+        "baixarPdf(): passa orcamento = montarOrcamentoLocal() a gerarPdfOrcamento",
+        "gerarProposta(): orcamento agora espalha ...montarOrcamentoLocal() (modo/kit/itens/totais) + precoWp + itens detalhados legados"
+      ],
+      "regressao": "nenhuma"
+    }
+  ],
+
+  "nao_alterado": [
+    "Schema ProjetoFV (campos kit/itens já existiam da sprint anterior)",
+    "Atlas (nenhuma migração)",
+    "gerarPdfComercial.js / gerarPdfSimulacao.js (simulações sem orçamento — fora de escopo)",
+    "gerarPdfHomologacao.js (escopo proibido)",
+    "NovaProposta.jsx (compatível sem mudança — cai em detalhado)"
+  ]
+}

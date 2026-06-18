@@ -223,6 +223,8 @@ export default function E8Orcamento() {
         equipamentos,
         irradiancia,
         empresa,
+        // P1-FV-PDF-KIT-RESTORE-01: orçamento (modo kit/detalhado + kit + itens + totais)
+        orcamento:       montarOrcamentoLocal(),
       })
       const nomeArq = `orcamento-${(dadosCliente.nomeCliente || 'projeto').replace(/\s+/g, '-').toLowerCase()}-${Date.now()}.pdf`
       doc.save(nomeArq)
@@ -293,7 +295,8 @@ export default function E8Orcamento() {
           payback,
         },
         orcamento: {
-          total,
+          // P1-FV-PDF-KIT-RESTORE-01: modo kit/detalhado + kit + itens + totais
+          ...montarOrcamentoLocal(),
           precoWp,
           itens: [
             { descricao: `Módulos FV (${dim.numPaineis} × ${painel?.marca || ''} ${painel?.modelo || ''})`, valor: subtotalPaineis    },

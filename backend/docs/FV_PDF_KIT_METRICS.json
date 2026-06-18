@@ -1,0 +1,68 @@
+{
+  "gerado_em": "2026-06-18",
+  "sprint": "P1-FV-PDF-KIT-RESTORE-01",
+  "executor": "Sonnet 4.6",
+  "revisao_gemini": "OBRIGATÓRIA E PENDENTE",
+
+  "respostas": {
+    "1_pdfs_alterados": ["gerarPdfOrcamento.js", "gerarPropostaPDF.js"],
+    "2_arquivos_alterados": 3,
+    "3_modo_kit_refletido": true,
+    "4_modo_detalhado_preservado": true,
+    "5_valores_batem_com_tela": "SIM por construção (mesma fonte montarOrcamentoLocal); confirmado em Node para gerarPropostaPDF; gerarPdfOrcamento apenas build-check",
+    "6_regressoes_encontradas": "nenhuma nas verificações executadas",
+    "7_commit": "ver git log do branch sprint/p1-fv-pdf-kit-restore-01"
+  },
+
+  "fases": {
+    "fase_1_mapeamento": "COMPLETA",
+    "fase_2_modo_kit": "COMPLETA",
+    "fase_3_modo_detalhado": "COMPLETA (sem regressão)",
+    "fase_4_itens_adicionais": "COMPLETA (soma validada em Node)",
+    "fase_5_validacao": "PARCIAL — gerarPropostaPDF executado em Node; 5 projetos reais NÃO testados em runtime",
+    "fase_6_compatibilidade": "COMPLETA"
+  },
+
+  "geradores_pdf_fv": {
+    "total_mapeados": 5,
+    "alvo_da_sprint": ["gerarPdfOrcamento.js", "gerarPropostaPDF.js"],
+    "fora_de_escopo": ["gerarPdfComercial.js", "gerarPdfSimulacao.js", "gerarPdfHomologacao.js"]
+  },
+
+  "build": {
+    "status": "SUCESSO",
+    "modulos_transformados": 2322,
+    "tempo_build_s": 8.46,
+    "erros_compilacao": 0,
+    "aviso_chunk": "pre-existente (> 2000 kB), não causado por esta sprint"
+  },
+
+  "teste_node_gerarPropostaPDF": {
+    "executado": true,
+    "metodo": "import direto da função pura (sem jsPDF) + asserts de presença/soma",
+    "asserts_total": 18,
+    "asserts_pass": 18,
+    "asserts_fail": 0,
+    "cenarios": ["modo kit (Fazenda Alice simulada)", "modo detalhado (Paulo Carlos simulado)", "legado sem modo"],
+    "soma_validada": "Material 47500 + Serviços 5500 = Venda 53000"
+  },
+
+  "validacao_runtime_projetos": {
+    "projeto_novo": "NAO_EXECUTADO",
+    "projeto_legado": "NAO_EXECUTADO",
+    "fazenda_alice": "NAO_EXECUTADO",
+    "paulo_carlos": "NAO_EXECUTADO",
+    "escola_pinheiro": "NAO_EXECUTADO",
+    "nota": "Sem acesso ao Atlas/ambiente. gerarPropostaPDF validado por execução em Node; gerarPdfOrcamento (jsPDF) apenas build-check."
+  },
+
+  "schema_alterado": false,
+  "atlas_alterado": false,
+  "migracao_necessaria": false,
+
+  "limitacoes_conhecidas": [
+    "gerarPdfOrcamento (jsPDF) validado apenas por build; render real não exercido em Node puro.",
+    "5 projetos reais não abertos em runtime.",
+    "gerarPdfComercial/gerarPdfSimulacao (simulações) sem conceito de kit — fora de escopo."
+  ]
+}

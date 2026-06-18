@@ -33,6 +33,13 @@ export const gerarPropostaPDF = (dados) => {
     itens = [],
   } = orcamento
 
+  // P1-FV-PDF-KIT-RESTORE-01: normaliza modo kit/detalhado (vivo ou persistido).
+  const modoOrc       = orcamento.modo || 'detalhado'
+  const kit           = orcamento.kit || {}
+  const itensAdic     = orcamento.itens_adicionais || orcamento.itensAdicionais || []
+  const totalMaterial = orcamento.total_material_r ?? orcamento.totalMaterial ?? null
+  const totalServicos = orcamento.total_servicos_r ?? orcamento.totalServicos ?? null
+
   const {
     nome: nomeEmpresa = 'Forte Solar',
     logo = '',
@@ -178,6 +185,66 @@ export const gerarPropostaPDF = (dados) => {
         </div>
   ` : ''
 
+  // P1-FV-PDF-KIT-RESTORE-01: seção de orçamento por modo (kit / detalhado).
+  const linhasItensAdic = (Array.isArray(itensAdic) ? itensAdic : []).map((it) => {
+    const qt = Number(it.quantidade) || 0
+    const vl = Number(it.valor) || 0
+    return `
+              <tr>
+                <td>${it.descricao || '—'} <span style="color:#999;">(${it.tipo === 'servico' ? 'Serviço' : 'Material'} · ${qt}×)</span></td>
+                <td class="orcamento-valor">${brlFmt(qt * vl)}</td>
+                <td class="orcamento-valor">${total ? Math.round((qt * vl) / total * 100) : 0}%</td>
+              </tr>`
+  }).join('')
+
+  const blocoTotaisMS = (totalMaterial != null || totalServicos != null) ? `
+        <div class="especificacoes">
+          ${totalMaterial != null ? `<div class="especificacoes-item"><span class="especificacoes-label">Total Material</span><span class="especificacoes-valor">${brlFmt(totalMaterial)}</span></div>` : ''}
+          ${totalServicos != null ? `<div class="especificacoes-item"><span class="especificacoes-label">Total Serviços</span><span class="especificacoes-valor">${brlFmt(totalServicos)}</span></div>` : ''}
+        </div>` : ''
+
+  const secaoOrcamento = modoOrc === 'kit' ? `
+        <h2 class="subtitulo">Orçamento — Kit</h2>
+        ${kit.fornecedor ? `<p style="font-size:12px;color:#555;margin-bottom:10px;">Fornecedor: <strong>${kit.fornecedor}</strong></p>` : ''}
+        <table class="orcamento-tabela">
+          <thead><tr><th>Item</th><th>Tipo</th><th class="orcamento-valor">Valor</th></tr></thead>
+          <tbody>
+            <tr><td>Kit principal</td><td>Material</td><td class="orcamento-valor">${brlFmt(kit.valor_kit_r)}</td></tr>
+            <tr><td>Frete</td><td>Material</td><td class="orcamento-valor">${brlFmt(kit.frete_r)}</td></tr>
+            <tr><td>Projeto</td><td>Serviço</td><td class="orcamento-valor">${brlFmt(kit.projeto_r)}</td></tr>
+            <tr><td>Mão de obra</td><td>Serviço</td><td class="orcamento-valor">${brlFmt(kit.mao_obra_r)}</td></tr>
+            ${(Array.isArray(itensAdic) ? itensAdic : []).map((it) => {
+              const qt = Number(it.quantidade) || 0
+              const vl = Number(it.valor) || 0
+              return `<tr><td>${it.descricao || '—'} (${qt}×)</td><td>${it.tipo === 'servico' ? 'Serviço' : 'Material'}</td><td class="orcamento-valor">${brlFmt(qt * vl)}</td></tr>`
+            }).join('')}
+          </tbody>
+        </table>
+        ${blocoTotaisMS}
+  ` : `
+        <h2 class="subtitulo">Orçamento Detalhado</h2>
+        <table class="orcamento-tabela">
+          <thead>
+            <tr>
+              <th>Item</th>
+              <th>Valor</th>
+              <th>% do Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${itens.map((item) => `
+              <tr>
+                <td>${item.descricao}</td>
+                <td class="orcamento-valor">R$ ${Number(item.valor || 0).toLocaleString('pt-BR')}</td>
+                <td class="orcamento-valor">${item.percentual ?? (total ? Math.round(Number(item.valor || 0) / total * 100) : 0)}%</td>
+              </tr>
+            `).join('')}
+            ${linhasItensAdic}
+          </tbody>
+        </table>
+        ${blocoTotaisMS}
+  `
+
   const htmlContent = `
     <!DOCTYPE html>
     <html>
@@ -311,25 +378,7 @@ export const gerarPropostaPDF = (dados) => {
 
         ${secaoLayout}
 
-        <h2 class="subtitulo">Orçamento Detalhado</h2>
-        <table class="orcamento-tabela">
-          <thead>
-            <tr>
-              <th>Item</th>
-              <th>Valor</th>
-              <th>% do Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${itens.map(item => `
-              <tr>
-                <td>${item.descricao}</td>
-                <td class="orcamento-valor">R$ ${item.valor.toLocaleString('pt-BR')}</td>
-                <td class="orcamento-valor">${item.percentual}%</td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
+        ${secaoOrcamento}
 
         <div class="total-box">
           <h3>INVESTIMENTO TOTAL</h3>

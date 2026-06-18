@@ -85,6 +85,9 @@ export function gerarPdfOrcamento({
   equipamentos  = {},
   irradiancia   = {},
   empresa       = {},
+  // P1-FV-PDF-KIT-RESTORE-01: orçamento (modo kit/detalhado + kit + itens + totais).
+  // Aceita tanto o objeto vivo do E8 (camelCase) quanto o persistido (snake_case).
+  orcamento     = {},
 }) {
   const COR1 = hex(empresa.corPrimaria)
   const COR2 = hex(empresa.corSecundaria ?? '#0f172a')
@@ -140,69 +143,140 @@ export function gerarPdfOrcamento({
   })
   y = doc.lastAutoTable.finalY + 8
 
-  // ── EQUIPAMENTOS ──────────────────────────────────────────────────
-  y = secaoTitulo(doc, 'EQUIPAMENTOS SELECIONADOS', y, COR1, COR2)
+  // ── ORÇAMENTO: kit ou detalhado ───────────────────────────────────
+  // Normaliza ambos os formatos (vivo camelCase do E8 / persistido snake_case).
+  const modoOrc       = orcamento.modo || 'detalhado'
+  const kit           = orcamento.kit || {}
+  const itensAdic     = orcamento.itens_adicionais || orcamento.itensAdicionais || []
+  const totalMaterial = orcamento.total_material_r ?? orcamento.totalMaterial ?? null
+  const totalServicos = orcamento.total_servicos_r ?? orcamento.totalServicos ?? null
 
   const { painel, inversor, estrutura } = equipamentos
-  const linhas = []
 
-  if (painel) {
-    const sub = (painel.precoUnitario ?? 0) * (dim.numPaineis ?? 0)
-    linhas.push([
-      'Módulo FV',
-      `${painel.marca ?? ''} ${painel.modelo ?? ''}`.trim(),
-      `${painel.potenciaW ?? '—'} W`,
-      String(dim.numPaineis ?? '—'),
-      brl(painel.precoUnitario),
-      brl(sub),
-    ])
-  }
-  if (inversor) {
-    const sub = (inversor.precoUnitario ?? 0) * (dim.numInversores ?? 0)
-    linhas.push([
-      'Inversor',
-      `${inversor.marca ?? ''} ${inversor.modelo ?? ''}`.trim(),
-      `${inversor.potenciaKW ?? '—'} kW`,
-      String(dim.numInversores ?? '—'),
-      brl(inversor.precoUnitario),
-      brl(sub),
-    ])
-  }
-  if (estrutura) {
-    const sub = (estrutura.precoUnitario ?? 0) * (dim.numPaineis ?? 0)
-    linhas.push([
-      'Estrutura',
-      `${estrutura.marca ?? ''} ${estrutura.modelo ?? ''}`.trim(),
-      estrutura.tipo ?? '—',
-      String(dim.numPaineis ?? '—'),
-      brl(estrutura.precoUnitario),
-      brl(sub),
-    ])
-  }
+  if (modoOrc === 'kit') {
+    // ── Modo Kit: Fornecedor + Kit Principal + Frete + Projeto + Mão de obra ──
+    y = secaoTitulo(doc, 'ORÇAMENTO — KIT', y, COR1, COR2)
 
-  if (linhas.length > 0) {
+    if (kit.fornecedor) { par(doc, 'Fornecedor', kit.fornecedor, 14, y); y += 7 }
+
+    const linhasKit = [
+      ['Kit principal', 'Material', brl(kit.valor_kit_r)],
+      ['Frete',         'Material', brl(kit.frete_r)],
+      ['Projeto',       'Serviço',  brl(kit.projeto_r)],
+      ['Mão de obra',   'Serviço',  brl(kit.mao_obra_r)],
+    ]
     autoTable(doc, {
       startY: y,
-      head: [['Tipo', 'Descrição', 'Especificação', 'Qtd', 'Unit.', 'Subtotal']],
-      body: linhas,
+      head: [['Item', 'Tipo', 'Valor']],
+      body: linhasKit,
       theme: 'striped',
       headStyles: { fillColor: COR2, textColor: W, fontSize: 8, fontStyle: 'bold' },
       styles:     { fontSize: 8, cellPadding: 2.5 },
-      columnStyles: { 4: { halign: 'right' }, 5: { halign: 'right', fontStyle: 'bold' } },
+      columnStyles: { 2: { halign: 'right', fontStyle: 'bold' } },
+      margin: { left: 14, right: 14 },
+    })
+    y = doc.lastAutoTable.finalY + 4
+  } else {
+    // ── Modo Detalhado: tabela de equipamentos (preservada) ──
+    y = secaoTitulo(doc, 'EQUIPAMENTOS SELECIONADOS', y, COR1, COR2)
+
+    const linhas = []
+    if (painel) {
+      const sub = (painel.precoUnitario ?? 0) * (dim.numPaineis ?? 0)
+      linhas.push([
+        'Módulo FV',
+        `${painel.marca ?? ''} ${painel.modelo ?? ''}`.trim(),
+        `${painel.potenciaW ?? '—'} W`,
+        String(dim.numPaineis ?? '—'),
+        brl(painel.precoUnitario),
+        brl(sub),
+      ])
+    }
+    if (inversor) {
+      const sub = (inversor.precoUnitario ?? 0) * (dim.numInversores ?? 0)
+      linhas.push([
+        'Inversor',
+        `${inversor.marca ?? ''} ${inversor.modelo ?? ''}`.trim(),
+        `${inversor.potenciaKW ?? '—'} kW`,
+        String(dim.numInversores ?? '—'),
+        brl(inversor.precoUnitario),
+        brl(sub),
+      ])
+    }
+    if (estrutura) {
+      const sub = (estrutura.precoUnitario ?? 0) * (dim.numPaineis ?? 0)
+      linhas.push([
+        'Estrutura',
+        `${estrutura.marca ?? ''} ${estrutura.modelo ?? ''}`.trim(),
+        estrutura.tipo ?? '—',
+        String(dim.numPaineis ?? '—'),
+        brl(estrutura.precoUnitario),
+        brl(sub),
+      ])
+    }
+
+    if (linhas.length > 0) {
+      autoTable(doc, {
+        startY: y,
+        head: [['Tipo', 'Descrição', 'Especificação', 'Qtd', 'Unit.', 'Subtotal']],
+        body: linhas,
+        theme: 'striped',
+        headStyles: { fillColor: COR2, textColor: W, fontSize: 8, fontStyle: 'bold' },
+        styles:     { fontSize: 8, cellPadding: 2.5 },
+        columnStyles: { 4: { halign: 'right' }, 5: { halign: 'right', fontStyle: 'bold' } },
+        margin: { left: 14, right: 14 },
+      })
+      y = doc.lastAutoTable.finalY + 4
+    }
+  }
+
+  // ── ITENS ADICIONAIS (ambos os modos) ─────────────────────────────
+  if (Array.isArray(itensAdic) && itensAdic.length > 0) {
+    if (y > 250) { doc.addPage(); y = 20 }
+    y = secaoTitulo(doc, 'ITENS ADICIONAIS', y, COR1, COR2)
+    const linhasItens = itensAdic.map((it) => {
+      const qt = Number(it.quantidade) || 0
+      const vl = Number(it.valor) || 0
+      return [
+        it.descricao || '—',
+        it.tipo === 'servico' ? 'Serviço' : 'Material',
+        String(qt),
+        brl(vl),
+        brl(qt * vl),
+      ]
+    })
+    autoTable(doc, {
+      startY: y,
+      head: [['Descrição', 'Tipo', 'Qtd', 'Valor', 'Subtotal']],
+      body: linhasItens,
+      theme: 'striped',
+      headStyles: { fillColor: COR2, textColor: W, fontSize: 8, fontStyle: 'bold' },
+      styles:     { fontSize: 8, cellPadding: 2.5 },
+      columnStyles: { 3: { halign: 'right' }, 4: { halign: 'right', fontStyle: 'bold' } },
       margin: { left: 14, right: 14 },
     })
     y = doc.lastAutoTable.finalY + 4
   }
 
-  // ── TOTAL ─────────────────────────────────────────────────────────
-  const total =
+  // ── TOTAIS ────────────────────────────────────────────────────────
+  // Total de Venda: usa o valor persistido/calculado (inclui serviços e itens).
+  // Fallback legado (apenas equipamentos) quando orçamento não é fornecido.
+  const total = orcamento.total_venda_r ?? orcamento.totalVenda ?? orcamento.total ?? (
     ((painel?.precoUnitario    ?? 0) * (dim.numPaineis    ?? 0)) +
     ((inversor?.precoUnitario  ?? 0) * (dim.numInversores ?? 0)) +
     ((estrutura?.precoUnitario ?? 0) * (dim.numPaineis    ?? 0))
+  )
+
+  if (totalMaterial != null || totalServicos != null) {
+    doc.setFontSize(9).setFont('helvetica', 'normal').setTextColor(...CIN)
+    if (totalMaterial != null) { doc.text(`Total Material: ${brl(totalMaterial)}`, 196, y + 3, { align: 'right' }); y += 5 }
+    if (totalServicos != null) { doc.text(`Total Serviços: ${brl(totalServicos)}`, 196, y + 3, { align: 'right' }); y += 5 }
+    y += 3
+  }
 
   doc.setFillColor(...COR1).rect(120, y, 76, 10, 'F')
   doc.setFontSize(10).setFont('helvetica', 'bold').setTextColor(...W)
-  doc.text(`TOTAL: ${brl(total)}`, 158, y + 7, { align: 'center' })
+  doc.text(`TOTAL DE VENDA: ${brl(total)}`, 158, y + 7, { align: 'center' })
   y += 16
 
   // ── VALIDADE + ASSINATURA ─────────────────────────────────────────
