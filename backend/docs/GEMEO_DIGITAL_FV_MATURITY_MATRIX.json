@@ -1,0 +1,165 @@
+{
+  "sprint": "P3-GEMEO-DIGITAL-FV-FORENSICS-01",
+  "tipo": "FORENSE_READ_ONLY",
+  "data": "2026-06-19",
+  "revisao_gemini": "OBRIGATÓRIA E PENDENTE",
+
+  "maturidade_global_pct": 60,
+
+  "dimensoes": {
+    "projeto": {
+      "pct": 90,
+      "implementado": [
+        "ProjetoFV completo com localização GPS (lat/lon/UF/cidade)",
+        "Dimensionamento FV (kWp, módulos, inversores, strings)",
+        "Consumo e concessionária",
+        "Arranjos multi-inversor (ProjetoFV.arranjos[])",
+        "Ciclo de vida: rascunho→aprovado→em_execucao→concluido",
+        "Tipo de projeto: novo / ampliacao (projeto_origem_id)",
+        "Governança: freeze_status (RASCUNHO→CONGELADO→HOMOLOGADO)",
+        "statusLifecycle.js: máquina de estados pura",
+        "Multiempresa: empresa_id + vendedor_id + tecnico_principal_id"
+      ],
+      "lacunas": ["Dashboard de portfólio por status", "Alertas de prazo"]
+    },
+
+    "engenharia": {
+      "pct": 85,
+      "implementado": [
+        "Motor elétrico ENG-2.0: Voc/Vmpp corrigidos por temperatura, cabos NBR 16690",
+        "8 tipos de snapshot congelado: tecnico, geoespacial, catalogo, unifilar, memorial, financeiro, empresa, RT",
+        "obterEquipamentosEngenharia(): snapshot vs catálogo vivo",
+        "Hash determinístico djb2 para detecção de divergência",
+        "Compatibilidade elétrica (MPPT, string sizing, oversizing, DPS)",
+        "Unifilar interativo (SVG gerado client-side)",
+        "Snapshot do unifilar no congelamento",
+        "Normas aplicadas: NBR 16690, 5410, 16274, PRODIST Módulo 3"
+      ],
+      "lacunas": [
+        "Unifilar não referencia AtivoEquipamento (sem clique → ativo)",
+        "Dados climáticos históricos parcialmente preenchidos (temperatura min/max/media existem no schema)"
+      ]
+    },
+
+    "instalacao": {
+      "pct": 60,
+      "implementado": [
+        "AtivoEquipamento.data_instalacao",
+        "AtivoEquipamento.status = instalado",
+        "Geração idempotente de ativos por arranjo (ativoService.js)",
+        "chave_origem determinística (sem duplicata na re-execução)"
+      ],
+      "lacunas": [
+        "Sem check-in geolocalizado (lat/lon do ativo)",
+        "Sem foto da instalação (documentos[] reservado, não implementado)",
+        "Sem guia de serviço estruturado",
+        "Sem assinatura do instalador",
+        "localizacao no AtivoEquipamento é String livre (não coordenadas)"
+      ]
+    },
+
+    "homologacao": {
+      "pct": 75,
+      "implementado": [
+        "Central de Homologação com 6 sub-abas (Dados, Equipamentos, Beneficiárias, Documentos, Checklist, Histórico)",
+        "Memorial Descritivo PDF (gerado pelo backend)",
+        "Carta à Concessionária PDF",
+        "ART: dados organizados + export PDF",
+        "Protocolo com histórico de alterações (PATCH /homologacao/protocolo)",
+        "Checklist de documentos (GET/PATCH /checklist)",
+        "Status S9.0: 7 estados (nao_iniciado→homologado/reprovado)",
+        "Homologação assistida (regras por concessionária)",
+        "Beneficiárias com rateio de GD"
+      ],
+      "lacunas": [
+        "GAP-10: ENEL ausente no concessionariaProvider.js",
+        "GAP-02: status legado (rascunho/enviado/analise) ≠ S9.0",
+        "Sem integração com portais das concessionárias",
+        "Sem notificação automática de prazo"
+      ]
+    },
+
+    "ativos": {
+      "pct": 70,
+      "implementado": [
+        "AtivoEquipamento: modulo, inversor, microinversor, otimizador, bess, carregador",
+        "QR code: FORTE-<TIPO3>-<SEQ6>, único, imutável",
+        "Histórico com 10 tipos de evento + diff por campo",
+        "Conectividade: MAC, Wi-Fi SSID, firmware, IP (senha AES-256-GCM)",
+        "Monitoramento registry: portal, plant_id, gateway_sn, logger_id, credenciais criptografadas",
+        "Garantia: garantia_inicio, garantia_fim",
+        "Substituição chain: substitui_ativo_id ↔ substituido_por_ativo_id",
+        "Máquina de estados: planejado→instalado→operacional→manutencao→substituido→desativado",
+        "Scanner QR/OCR: EtiquetaScanner.jsx (jsQR iOS + BarcodeDetector Android)",
+        "Página de campo: AtivoQR.jsx (mobile-first, comissionamento inline)"
+      ],
+      "lacunas": [
+        "localizacao é String livre (sem lat/lon próprio do ativo)",
+        "documentos[] reservado, não implementado",
+        "equipamento_id null em muitos ativos (BUG-EQ-ID-01)",
+        "garantia_fim não auto-preenchida do catálogo",
+        "Sem alerta de garantia expirando"
+      ]
+    },
+
+    "operacao": {
+      "pct": 20,
+      "implementado": [
+        "Registro de portal de monitoramento (Solarman, SolisCloud etc.) com credenciais AES",
+        "plant_id, gateway_sn, logger_id persistidos",
+        "Status operacional na máquina de estados"
+      ],
+      "lacunas": [
+        "Sem telemetria real (sem coletor de dados dos portais)",
+        "Sem histórico de geração kWh",
+        "Sem alertas de produção abaixo do esperado",
+        "Sem dashboard de performance (PR, geração vs. estimada)",
+        "Sem comparação geração real vs snapshot estimado"
+      ]
+    },
+
+    "manutencao": {
+      "pct": 15,
+      "implementado": [
+        "HistoricoSchema.tipo inclui: manutencao, falha, inspecao",
+        "Status manutencao na máquina de estados (operacional ↔ manutencao)"
+      ],
+      "lacunas": [
+        "Sem Ordem de Serviço (OS) estruturada",
+        "Sem agendamento preventivo (MTBF, intervalo por tipo)",
+        "Sem SLA / prazo de atendimento",
+        "Sem visita técnica (entidade Visita, checklist, foto, assinatura)",
+        "Sem rastreio de peças substituídas além da chain de ativos",
+        "Sem relatório de O&M"
+      ]
+    },
+
+    "expansao": {
+      "pct": 65,
+      "implementado": [
+        "tipo_projeto: novo / ampliacao",
+        "projeto_origem_id: aponta para o projeto pai",
+        "arranjo.tipo: principal / existente / ampliacao / secundario",
+        "arranjo.somente_leitura: congela o arranjo executado",
+        "Multi-inversor: arranjos[].inversores[] com quantidade",
+        "BESS por arranjo: arranjos[].baterias[]",
+        "substitui_ativo_id chain: rastreabilidade de troca de equipamento",
+        "Snapshot do catálogo congelado preservado no projeto pai"
+      ],
+      "lacunas": [
+        "Sem fluxo UI dedicado para Ampliação (wizard de clone)",
+        "Sem tipo=retrofit explícito",
+        "Sem propagação de garantia na substituição (UI)",
+        "Fluxo de substituição de equipamento não implementado na UI"
+      ]
+    }
+  },
+
+  "identidade_canonica": {
+    "principal": "qr_code (FORTE-<TIPO3>-<SEQ6>) — identidade física no campo",
+    "banco": "_id (MongoDB ObjectId) — identidade de banco",
+    "geracao": "chave_origem (determinística) — idempotência",
+    "fabricante": "numero_serie — coletado no comissionamento",
+    "catalogo": "equipamento_id — link ao Equipamento (parcialmente nulo)"
+  }
+}

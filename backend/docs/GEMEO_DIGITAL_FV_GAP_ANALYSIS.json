@@ -1,0 +1,123 @@
+{
+  "sprint": "P3-GEMEO-DIGITAL-FV-FORENSICS-01",
+  "tipo": "FORENSE_READ_ONLY",
+  "data": "2026-06-19",
+
+  "gaps_criticos": [
+    {
+      "id": "GAP-DT-01",
+      "titulo": "Unifilar não referencia AtivoEquipamento",
+      "prioridade": "ALTA",
+      "descricao": "O SVG do unifilar é gerado a partir de ProjetoFV.arranjos[] mas não sabe os QR codes dos ativos instalados. O AtivoEquipamento sabe seu arranjo_id mas não sua posição no SVG. Resultado: nenhuma navegação visual Unifilar → Ativo.",
+      "impacto": "Impossibilidade de clicar num módulo no unifilar e ver dados as-built do Gêmeo Digital",
+      "arquivos_afetados": ["frontend/src/utils/gerarUnifilarSVG.js", "frontend/src/components/fv/UnifilarFV.jsx"],
+      "esforco_estimado": "M (1 sprint) — adicionar data-qr attributes no SVG + handler de clique no React",
+      "pre_requisito": "BUG-EQ-ID-01 resolvido (equipamento_id preenchido) ajuda, mas não é bloqueante"
+    },
+    {
+      "id": "GAP-DT-02",
+      "titulo": "Telemetria de produção ausente",
+      "prioridade": "ALTA",
+      "descricao": "O registro de monitoramento (portal, plant_id, credenciais) existe e é persistido com AES-256-GCM. Mas não há nenhum coletor de dados que use essas credenciais para buscar geração (kWh) dos portais (Solarman, SolisCloud, ShinePhone etc.).",
+      "impacto": "Sem histórico de produção real, PR, alertas e comparação geração vs. estimado",
+      "arquivos_afetados": ["Nenhum ainda (feature ausente)"],
+      "esforco_estimado": "XL (2-3 sprints) — integração por fabricante (Solarman API, SolisCloud API etc.)",
+      "pre_requisito": "GAP-DT-01 (nice to have, não bloqueante)"
+    },
+    {
+      "id": "GAP-DT-03",
+      "titulo": "Módulo de O&M ausente",
+      "prioridade": "ALTA",
+      "descricao": "O HistoricoSchema tem tipos manutencao/falha/inspecao mas não existe entidade Ordem de Serviço, agendamento preventivo, SLA nem entidade Visita Técnica.",
+      "impacto": "Sem O&M, o Digital Twin é apenas um inventário estático após o comissionamento",
+      "arquivos_afetados": ["Nenhum ainda (feature ausente)"],
+      "esforco_estimado": "L (2 sprints) — novo model OrdemServico + telas + integração com AtivoEquipamento",
+      "pre_requisito": "GAP-DT-01"
+    },
+    {
+      "id": "GAP-DT-04",
+      "titulo": "Fluxo UI de Substituição de Equipamento ausente",
+      "prioridade": "MEDIA",
+      "descricao": "AtivoEquipamento já tem substitui_ativo_id ↔ substituido_por_ativo_id, mas não há tela para executar a substituição, transferir garantia nem registrar o evento na timeline do ativo anterior.",
+      "impacto": "Técnico em campo não consegue registrar troca de inversor/módulo pelo sistema",
+      "arquivos_afetados": ["Tela a criar (AtivoQR.jsx seria o ponto de entrada)"],
+      "esforco_estimado": "M (1 sprint) — tela de substituição mobile + endpoint de transferência",
+      "pre_requisito": "Nenhum bloqueante"
+    },
+    {
+      "id": "GAP-DT-05",
+      "titulo": "localizacao do ativo é String livre (sem coordenadas)",
+      "prioridade": "BAIXA",
+      "descricao": "AtivoEquipamento.localizacao é String (ex.: 'Telhado Norte') — sem lat/lon próprio. Para um Gêmeo Digital geoespacial, o ativo deveria ter localização própria (ex.: posição no telhado).",
+      "impacto": "Sem mapa de ativos; sem correlação entre posição física no telhado e ativo",
+      "arquivos_afetados": ["backend/src/models/AtivoEquipamento.js"],
+      "esforco_estimado": "S — campo aditivo {lat, lon, posicao_telhado} + UI opcional",
+      "pre_requisito": "Nenhum"
+    },
+    {
+      "id": "GAP-DT-06",
+      "titulo": "garantia_fim não auto-preenchida do catálogo nem com alerta",
+      "prioridade": "MEDIA",
+      "descricao": "AtivoEquipamento tem garantia_inicio e garantia_fim mas esses campos são preenchidos manualmente. O Equipamento.garantia_produto existe no catálogo mas não é propagado para o ativo na geração. Sem alerta de vencimento.",
+      "impacto": "Sem rastreio de garantias; cliente não é alertado antes do vencimento",
+      "arquivos_afetados": ["backend/src/services/ativoService.js", "backend/src/models/AtivoEquipamento.js"],
+      "esforco_estimado": "S — auto-preenchimento na geração + cron de alerta",
+      "pre_requisito": "BUG-EQ-ID-01 (equipamento_id preenchido para ler garantia_produto)"
+    },
+    {
+      "id": "GAP-DT-07",
+      "titulo": "documentos[] do AtivoEquipamento reservado, não implementado",
+      "prioridade": "BAIXA",
+      "descricao": "AtivoEquipamento.documentos é um campo reservado (Mixed[]) com nota 'RESERVADO — não implementado'. Fotos de instalação, notas fiscais e laudos deveriam estar aqui.",
+      "impacto": "Sem evidência fotográfica da instalação no Digital Twin",
+      "arquivos_afetados": ["backend/src/models/AtivoEquipamento.js", "frontend/src/pages/AtivoQR.jsx"],
+      "esforco_estimado": "M — implementar upload + armazenamento + visualização",
+      "pre_requisito": "Definir storage provider (S3/Cloudinary)"
+    },
+    {
+      "id": "GAP-DT-08",
+      "titulo": "equipamento_id nulo em maioria dos ativos (BUG-EQ-ID-01)",
+      "prioridade": "MEDIA",
+      "descricao": "AtivoEquipamento.equipamento_id é null na maioria dos ativos gerados (referência ao Equipamento do catálogo). Sem esse link, não é possível acessar garantia_produto, especificações técnicas completas e qualidade do catálogo diretamente do ativo.",
+      "impacto": "Rastreabilidade do catálogo → ativo quebrada; auto-preenchimento de garantia bloqueado",
+      "arquivos_afetados": ["backend/src/services/ativoService.js", "scripts/backfill (a criar)"],
+      "esforco_estimado": "M — matching por fabricante+modelo + backfill Atlas",
+      "pre_requisito": "Autorização Atlas (já pendente como BUG-EQ-ID-01)"
+    },
+    {
+      "id": "GAP-DT-09",
+      "titulo": "Fluxo UI de Ampliação de Usina incompleto",
+      "prioridade": "MEDIA",
+      "descricao": "O modelo de dados suporta tipo_projeto=ampliacao e projeto_origem_id, mas não há wizard ou tela guiada para clonar um projeto, congelar o arranjo executado e criar o arranjo de ampliação.",
+      "impacto": "Usuário não consegue registrar ampliação de usina pelo sistema sem intervenção manual",
+      "arquivos_afetados": ["Tela a criar"],
+      "esforco_estimado": "L (1-2 sprints) — wizard de ampliação",
+      "pre_requisito": "Nenhum bloqueante (modelo de dados pronto)"
+    },
+    {
+      "id": "GAP-DT-10",
+      "titulo": "GAP-10: ENEL ausente no concessionariaProvider.js",
+      "prioridade": "MEDIA",
+      "descricao": "O provider de concessionárias para homologação assistida não inclui a ENEL (maior distribuidora do país em número de unidades). Afeta geração de memorial e checklist.",
+      "impacto": "Projetos ENEL não recebem checklist específico nem dados corretos de concessionária",
+      "arquivos_afetados": ["backend/src/utils/homologacao/concessionariaProvider.js"],
+      "esforco_estimado": "XS (horas)",
+      "pre_requisito": "Nenhum"
+    }
+  ],
+
+  "ja_existe_sem_gap": [
+    "AtivoEquipamento como entidade base do Digital Twin",
+    "QR code institucional (FORTE-TIPO-SEQ) único e imutável",
+    "Comissionamento via scanner mobile (QR + OCR iOS/Android)",
+    "Histórico auditável por ativo com diff por campo",
+    "Conectividade (MAC, IP, Wi-Fi, firmware) com senha criptografada",
+    "Monitoramento registry (portal, plant_id, credenciais AES-256-GCM)",
+    "Substituição chain (substitui_ativo_id ↔ substituido_por_ativo_id)",
+    "Máquina de estados (planejado→operacional→substituido)",
+    "Snapshot engine: 8 tipos (técnico, geoespacial, catálogo, unifilar, memorial, financeiro, empresa, RT)",
+    "Arranjos multi-inversor + multi-arranjo",
+    "Tipo de projeto ampliação (tipo_projeto, projeto_origem_id, arranjo.somente_leitura)",
+    "Central de Homologação completa (6 sub-abas, PDF, protocolo, checklist)"
+  ]
+}
