@@ -100,9 +100,9 @@ export default function E8Orcamento() {
 
   // FV-09: preços iniciais vêm do catálogo (precoUnitario dos seletores)
   // O usuário pode ajustar livremente — são apenas sugestões de mercado.
-  const [precoPainel,    setPrecoPainel]    = useState(painel?.precoUnitario    || 620)
-  const [precoInversor,  setPrecoInversor]  = useState(inversor?.precoUnitario  || 4000)
-  const [precoEstrutura, setPrecoEstrutura] = useState(estrutura?.precoUnitario || 130)
+  const [precoPainel,    setPrecoPainel]    = useState(painel?.precoUnitario    || 0)
+  const [precoInversor,  setPrecoInversor]  = useState(inversor?.precoUnitario  || 0)
+  const [precoEstrutura, setPrecoEstrutura] = useState(estrutura?.precoUnitario || 0)
   const [maoDeTrabaho,   setMaoDeTrabaho]   = useState(fin.precoMaoDeObra     ?? 50)   // R$/painel
   const [cabosProtecao,  setCabosProtecao]  = useState(fin.precoCabosProtecao ?? 1500) // R$ fixo
 

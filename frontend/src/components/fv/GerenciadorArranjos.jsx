@@ -41,7 +41,15 @@ function linhaInversor(item, quantidade = 1) {
 
 let _seq = 0
 const novoId = () => `arr_${Date.now()}_${_seq++}`
-const arranjoVazio = (n) => ({ id: novoId(), rotulo: `Arranjo ${String.fromCharCode(65 + n)}`, tipo: 'secundario',
+// Arranjos secundários começam em B (A é sempre o arranjo primário de E7)
+const proximaLetra = (lista) => {
+  const usadas = new Set(lista.map(a => (a.rotulo || '').replace(/^Arranjo\s+/, '').charAt(0)))
+  for (let c = 66; c <= 90; c++) {
+    if (!usadas.has(String.fromCharCode(c))) return String.fromCharCode(c)
+  }
+  return `${lista.length + 1}`
+}
+const arranjoVazio = (lista) => ({ id: novoId(), rotulo: `Arranjo ${proximaLetra(lista)}`, tipo: 'secundario',
   paineis: [], inversores: [], orientacao: 'Norte', inclinacao: '', somente_leitura: false })
 
 export default function GerenciadorArranjos() {
@@ -69,7 +77,7 @@ export default function GerenciadorArranjos() {
   const patch = (i, p) => setArranjos(arranjos.map((a, idx) => idx === i ? { ...a, ...p } : a))
 
   // ── Arranjos ──────────────────────────────────────────────────────────────
-  const addArranjo = () => setArranjos([...arranjos, arranjoVazio(arranjos.length)])
+  const addArranjo = () => { const nova = [...arranjos, arranjoVazio(arranjos)]; setArranjos(nova) }
   const dupArranjo = (i) => { const c = JSON.parse(JSON.stringify(arranjos[i])); c.id = novoId(); c.rotulo = `${arranjos[i].rotulo || 'Arranjo'} (cópia)`; c.somente_leitura = false
     const l = [...arranjos]; l.splice(i + 1, 0, c); setArranjos(l) }
   const delArranjo = (i) => setArranjos(arranjos.filter((_, idx) => idx !== i))

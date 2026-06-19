@@ -1,0 +1,82 @@
+{
+  "sprint": "P0-FV-REAL-WORKFLOW-FIXES-01",
+  "fase": "PREDEPLOY",
+  "data": "2026-06-19",
+  "modelo": "Sonnet 4.6",
+
+  "build": {
+    "executado": true,
+    "resultado": "SUCESSO",
+    "erros": 0,
+    "warnings": 1,
+    "warning": "Chunk > 2000kB — pré-existente, não introduzido por esta sprint",
+    "modulos": 2332,
+    "tempo": "10.08s"
+  },
+
+  "revisao_codigo": {
+    "executada": true,
+    "revisor": "Claude Sonnet 4.6 (revisão de par — não é Gemini)",
+    "resultado": "APROVADO COM RESSALVAS",
+    "issues_encontrados": 1,
+    "issues_corrigidos": 1,
+    "issues_pendentes": 0,
+    "detail": "split(',') → split(/[,\\-]/) em E4Irradiancia.jsx (corrigido antes do commit)"
+  },
+
+  "revisao_gemini": {
+    "executada": false,
+    "motivo": "Gemini não disponível no ambiente de execução",
+    "alternativa": "Revisão de par por Claude Sonnet 4.6 (ver P0_PREDEPLOY_GEMINI.md)"
+  },
+
+  "isolamento": {
+    "arquivos_sprint_identificados": 13,
+    "arquivos_sprint_no_commit": 12,
+    "arquivos_deferred": 2,
+    "motivo_deferred": "ativosController.js e MedicoesAtivoCard.jsx contêm código de outras features não finalizadas"
+  },
+
+  "bugs_no_commit": [
+    "BUG-P0-01", "BUG-P0-02", "BUG-P0-03", "BUG-P0-04", "BUG-P0-05",
+    "BUG-P0-06", "BUG-P0-07",
+    "BUG-P1-01", "BUG-P1-02", "BUG-P1-03_mitigado", "BUG-P1-04", "BUG-P1-05",
+    "BUG-P2-01", "BUG-P2-02", "BUG-P2-03",
+    "BUG-P4-UNIFILAR-01",
+    "BUG-P5-ALERTCENTER-01"
+  ],
+
+  "bugs_deferred": [
+    "BUG-P5-GARANTIA-01",
+    "BUG-P5-MEDICOES-01"
+  ],
+
+  "migracao_atlas": false,
+  "schema_alterado": false,
+  "novos_endpoints": false,
+  "dependencias_novas": false,
+
+  "frontend_vercel": {
+    "pronto": true,
+    "arquivos_alterados": 9,
+    "exige_variavel_env_nova": false,
+    "exige_rebuild": true,
+    "nota": "Deploy automático via Vercel no push ao branch principal"
+  },
+
+  "backend_railway": {
+    "pronto": true,
+    "arquivos_alterados": 3,
+    "exige_variavel_env_nova": false,
+    "exige_restart": false,
+    "nota": "Deploy automático via Railway no push. Sem migrações de schema."
+  },
+
+  "atlas": {
+    "exige_acao": false,
+    "motivo": "Nenhum schema alterado neste commit. Campos novos (garantia_fim, medicoes) são de outros arquivos não incluídos."
+  },
+
+  "resultado_final": "LIBERADO PARA HOMOLOGAÇÃO",
+  "condicao": "Após commit e deploy automático Railway/Vercel. Revisão Gemini permanece pendente como requisito do processo."
+}

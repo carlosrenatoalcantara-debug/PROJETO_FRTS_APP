@@ -230,16 +230,46 @@ function WizardInterno() {
               },
             })
           }
-          // Concessionária / UC / classificação (dados de cadastro)
-          if (cliente.distribuidora || cliente.tipo_ligacao || cliente.numero_cliente) {
+          // Concessionária / UC / classificação / consumo (dados de cadastro)
+          if (cliente.distribuidora || cliente.tipo_ligacao || cliente.consumo_kwh || cliente.numero_cliente) {
+            const normFase = (t) => {
+              if (!t) return 'monofasico'
+              const s = t.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+              if (s.includes('trifas')) return 'trifasico'
+              if (s.includes('bifas'))  return 'bifasico'
+              return 'monofasico'
+            }
             dispatch({
               type: 'SET_CONSUMO',
               payload: {
-                concessionaria: cliente.distribuidora || '',
-                distribuidora:  cliente.distribuidora || '',
-                tipoLigacao:    (cliente.tipo_ligacao || '').toLowerCase().replace('á','a').replace('í','i') || 'monofasico',
-                // numero_cliente fica em fatura_extracao quando fatura é processada
+                concessionaria:   cliente.distribuidora  || '',
+                distribuidora:    cliente.distribuidora  || '',
+                tipoLigacao:      normFase(cliente.tipo_ligacao),
+                consumoMensal:    cliente.consumo_kwh   ? String(cliente.consumo_kwh)  : '',
+                valorKwh:         cliente.valor_kwh     ? String(cliente.valor_kwh)    : '',
+                classificacao:    cliente.classificacao  || '',
+                subgrupo:         cliente.subgrupo       || '',
+                codigoInstalacao: cliente.codigo_instalacao || '',
+                numeroCliente:    cliente.numero_cliente || '',
               },
+            })
+          }
+          // Se o cliente já tem fatura processada, pular direto para E2 (evita upload duplo)
+          if (cliente.consumo_kwh) {
+            dispatch({ type: 'IR_ETAPA', payload: 2 })
+          }
+          // Pré-adicionar a própria UC do cliente como beneficiária (usuário só define Rateio)
+          if (cliente.codigo_instalacao || cliente.numero_cliente) {
+            dispatch({
+              type: 'SET_BENEFICIARIAS',
+              payload: [{
+                localId:       `local_${cliente._id}`,
+                contaContrato: cliente.codigo_instalacao || cliente.numero_cliente || '',
+                titular:       cliente.nome || '',
+                consumoKwh:    cliente.consumo_kwh || null,
+                tipoRateio:    'percentual',
+                valor:         100,
+              }],
             })
           }
         })

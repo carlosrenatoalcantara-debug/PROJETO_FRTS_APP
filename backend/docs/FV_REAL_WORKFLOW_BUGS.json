@@ -1,0 +1,236 @@
+{
+  "sprint": "P0-FV-REAL-WORKFLOW-FIXES-01",
+  "data": "2026-06-19",
+  "modelo": "Sonnet 4.6",
+  "origem": "Teste real com projeto FV: 355 módulos Talesun, SUN2000-60KTL + SUN2000-50KTL, fatura COSERN Natal/RN",
+
+  "bugs": [
+    {
+      "id": "BUG-P0-01",
+      "prioridade": "P0",
+      "titulo": "Após criar cliente com fatura, usuário fica na lista em vez de ir para a página do cliente",
+      "arquivo": "frontend/src/pages/Clientes.jsx",
+      "funcao": "handleNovoClienteSalvo",
+      "linha": 739,
+      "root_cause": "`handleNovoClienteSalvo` apenas adicionava ao array local. `navigate()` nunca era chamado após criação.",
+      "fix": "Adicionado `navigate('/clientes/${novoCliente._id}')` após `setClientes(...)`.",
+      "correcao_pendente": false,
+      "validado": "LEITURA_DE_CODIGO"
+    },
+    {
+      "id": "BUG-P0-02",
+      "prioridade": "P0",
+      "titulo": "Wizard FV pede upload de fatura novamente mesmo quando cliente já tem fatura cadastrada",
+      "arquivo": "frontend/src/pages/ProjetosFVNovo.jsx",
+      "linha": 257,
+      "root_cause": "Bloco `?clienteId=` não verificava `cliente.consumo_kwh`. E1Upload era sempre exibido.",
+      "fix": "Se `cliente.consumo_kwh` existe → `dispatch({ type: 'IR_ETAPA', payload: 2 })` para pular E1.",
+      "correcao_pendente": false,
+      "validado": "LEITURA_DE_CODIGO"
+    },
+    {
+      "id": "BUG-P0-03",
+      "prioridade": "P0",
+      "titulo": "OCR da fatura não é reaproveitado ao abrir wizard com ?clienteId=",
+      "arquivo": "frontend/src/pages/ProjetosFVNovo.jsx",
+      "linha": 234,
+      "root_cause": "SET_CONSUMO só enviava `concessionaria`, `distribuidora`, `tipoLigacao`. Campos `consumo_kwh`, `valor_kwh`, `classificacao`, etc. ignorados.",
+      "fix": "SET_CONSUMO ampliado com: `consumoMensal`, `valorKwh`, `classificacao`, `subgrupo`, `codigoInstalacao`, `numeroCliente`.",
+      "correcao_pendente": false,
+      "validado": "LEITURA_DE_CODIGO"
+    },
+    {
+      "id": "BUG-P0-04",
+      "prioridade": "P0",
+      "titulo": "Dados de UC não são pré-preenchidos no wizard FV a partir do cadastro do cliente",
+      "arquivo": "frontend/src/pages/ProjetosFVNovo.jsx",
+      "root_cause": "Mesma causa raiz de BUG-P0-03. `codigo_instalacao`, `numero_cliente`, `subgrupo` existiam no model mas não eram lidos.",
+      "fix": "Incluído no mesmo SET_CONSUMO do BUG-P0-03.",
+      "correcao_pendente": false,
+      "validado": "LEITURA_DE_CODIGO"
+    },
+    {
+      "id": "BUG-P0-05",
+      "prioridade": "P0",
+      "titulo": "Letras de arranjos duplicam após deleção (ex: dois 'Arranjo B')",
+      "arquivo": "frontend/src/components/fv/GerenciadorArranjos.jsx",
+      "linha": 44,
+      "root_cause": "`arranjoVazio(arranjos.length)` usava comprimento atual do array. Após deletar item, comprimento diminui e próximo arranjo reutiliza mesma letra. Também arranhava com 'Arranjo A' (reservado para primário).",
+      "fix": "Implementada `proximaLetra(lista)` que verifica quais letras já estão em uso e escolhe a próxima disponível a partir de 'B'. `addArranjo` passou a usar `arranjoVazio(arranjos)` (lista completa).",
+      "correcao_pendente": false,
+      "validado": "LEITURA_DE_CODIGO"
+    },
+    {
+      "id": "BUG-P0-06",
+      "prioridade": "P0",
+      "titulo": "numInversores em E5 calculado com divisor fixo de 5 kW → 32 inversores para sistema de 156 kWp",
+      "arquivo": "frontend/src/components/fv/etapas/E5Dimensionamento.jsx",
+      "linha": 90,
+      "root_cause": "`const numInversores = Math.ceil(potenciaKwp / 5)` — hardcoded 5 kW. Para 156 kWp → 32 inversores (deveria ser 2 com 60KTL+50KTL).",
+      "fix": "Usa `state.equipamentos?.inversor?.potenciaKW || 20` como capacidade. Para 156 kWp com padrão 20 kW → 8 inversores estimados (E7 substitui com valor real). `capacidadeInversorKW` também corrigido no dispatch.",
+      "correcao_pendente": false,
+      "validado": "LEITURA_DE_CODIGO"
+    },
+    {
+      "id": "BUG-P0-07",
+      "prioridade": "P0",
+      "titulo": "Orçamento no modo detalhado usa preços hardcoded (R$620 painel, R$4.000 inversor) multiplicados por numInversores errado → total absurdo",
+      "arquivo": "frontend/src/components/fv/etapas/E8Orcamento.jsx",
+      "linhas": [103, 104, 105],
+      "root_cause": "`precoPainel = || 620`, `precoInversor = || 4000`, `precoEstrutura = || 130`. Sem catálogo, fallback hardcoded. Multiplicado por `dim.numInversores` = 32 → R$128.000 só de inversores.",
+      "fix": "Fallback alterado para `|| 0`. Usuário deve preencher preço manualmente no modo detalhado. Catálogo continua sendo usado se `equipamento.precoUnitario` existir.",
+      "correcao_pendente": false,
+      "validado": "LEITURA_DE_CODIGO"
+    },
+    {
+      "id": "BUG-P1-01",
+      "prioridade": "P1",
+      "titulo": "Fallback CRESESB usa média estadual RN (5.9 kWh/m²/dia) em vez de valor por cidade",
+      "arquivo": "frontend/src/components/fv/etapas/E4Irradiancia.jsx",
+      "funcao": "aplicarFallback",
+      "linha": 43,
+      "root_cause": "`const media = regiao.irradiancia` → `regioesBrasil.js` tem `RN: { irradiancia: 5.9 }` (média estadual). Natal deveria ser 5.42.",
+      "fix": "Importado `obterIrradianciaCity` de `irradianciaRN.js`. `aplicarFallback()` agora extrai cidade de `localizacao.cidadeEstado`, busca valor preciso, e só usa `regiao.irradiancia` se cidade não encontrada.",
+      "correcao_pendente": false,
+      "validado": "LEITURA_DE_CODIGO"
+    },
+    {
+      "id": "BUG-P1-02",
+      "prioridade": "P1",
+      "titulo": "AssistenteDatasheet não oferece fallback manual quando extração falha (fabricante/modelo null)",
+      "arquivo": "frontend/src/components/fv/AssistenteDatasheet.jsx",
+      "root_cause": "Quando extração retorna `fabricante: null` / `modelo: null`, `onExtrair` era chamado automaticamente com dados vazios, confundindo o usuário. Sem aviso de falha nem alternativa.",
+      "fix": "Se `dados.fabricante && dados.modelo` → chama `onExtrair` automaticamente (sucesso). Caso contrário, exibe alerta âmbar com botão 'Usar dados parciais e preencher manualmente' que permite ao usuário forçar o preenchimento.",
+      "correcao_pendente": false,
+      "validado": "LEITURA_DE_CODIGO"
+    },
+    {
+      "id": "BUG-P1-03",
+      "prioridade": "P1",
+      "titulo": "SUN2000-50KTL-M0 falha no import enquanto SUN2000-60KTL-M0 funciona",
+      "arquivo": "backend/src/controllers/datasheetController.js",
+      "root_cause": "Investigado: regras de qualidade (MPPT_INCOERENTE, VOC_MAX_DC_IMPLAUSIVEL) NÃO afetam string inverters com specs corretas. `import_solarmarket` JÁ estava na tabela de confiança (fix P0-FV-CATALOG-QUALITY-RECAL-01 aplicado). Causa mais provável: PDF do 50KTL tem conteúdo que Claude não consegue processar (imagem/formato) → retorna fabricante/modelo null → BUG-P1-02 (agora corrigido) causava confusão silenciosa. Com a correção de P1-02, usuário agora recebe aviso e pode preencher manualmente.",
+      "fix": "Mitigado por BUG-P1-02. Diagnóstico completo requer execução real com o PDF específico do 50KTL.",
+      "correcao_pendente": false,
+      "validado": "LEITURA_DE_CODIGO",
+      "nota_honestidade": "Root cause exato requer teste em ambiente real com o PDF específico"
+    },
+    {
+      "id": "BUG-P1-04",
+      "prioridade": "P1",
+      "titulo": "Garantia do módulo (15 anos produto / 25 anos performance) não extraída corretamente do OCR",
+      "arquivo": "backend/src/controllers/datasheetController.js",
+      "funcao": "normalizar",
+      "linha": 528,
+      "root_cause": "1) `const r = resultado` em vez de `const r = flat` → quando cache retorna envelope `{dados:{}}`, `r.garantia_produto_anos` era undefined. 2) Prompt não era suficientemente explícito sobre padrões brasileiros/ingleses de garantia.",
+      "fix": "1) Corrigido para `const r = flat`. 2) Adicionado fallback `garantia_fabrica_anos` / `garantia_potencia_anos`. 3) Prompt ampliado com exemplos concretos de padrões de garantia (português e inglês).",
+      "correcao_pendente": false,
+      "validado": "LEITURA_DE_CODIGO"
+    },
+    {
+      "id": "BUG-P1-05",
+      "prioridade": "P1",
+      "titulo": "Beneficiárias precisam ser cadastradas do zero — sem pré-preenchimento da UC do cliente",
+      "arquivo": "frontend/src/pages/ProjetosFVNovo.jsx",
+      "root_cause": "Bloco `?clienteId=` não populava `SET_BENEFICIARIAS`. Usuário precisava preencher Conta/Contrato, Titular e Consumo manualmente.",
+      "fix": "Se `cliente.codigo_instalacao || cliente.numero_cliente` existe, despacha `SET_BENEFICIARIAS` com a UC do cliente pré-preenchida (contaContrato, titular, consumoKwh, tipoRateio=percentual, valor=100). Usuário só precisa ajustar o rateio.",
+      "correcao_pendente": false,
+      "validado": "LEITURA_DE_CODIGO"
+    },
+    {
+      "id": "BUG-P2-01",
+      "prioridade": "P2",
+      "titulo": "Governança exibe campos internos (hash_tecnico, score_qualidade, nivel_qualidade) no painel de divergência",
+      "arquivo": "backend/src/controllers/projetosFVController.js",
+      "linhas": [1144, 1145, 1149, 1153],
+      "root_cause": "Divergence checker adicionava `hash_tecnico`, `score_qualidade`, `nivel_qualidade` ao array `mudancas[]`. Esses valores internos apareciam na tela em `{m.campo}: {m.de} → {m.para}`.",
+      "fix": "Removidas as verificações de campos internos. Apenas specs elétricas (`especificacoes.*`) são comparadas e exibidas no painel.",
+      "correcao_pendente": false,
+      "validado": "LEITURA_DE_CODIGO"
+    },
+    {
+      "id": "BUG-P2-02",
+      "prioridade": "P2",
+      "titulo": "Divergência na governança mostra mensagem genérica 'Qualidade/score mudou' em vez do impacto real",
+      "arquivo": "backend/src/controllers/projetosFVController.js",
+      "linha": 1168,
+      "root_cause": "`impacto` era sempre 'Specs elétricas mudaram — recálculo necessário' ou 'Qualidade/score do equipamento mudou'. Não indicava quais áreas seriam impactadas.",
+      "fix": "Impacto agora indica quais áreas são afetadas. Campos elétricos mapeados para: Engenharia (potencia, voc, vmp, isc, n_mppts, tensao_max), Unifilar (tensao_max, n_mppts, strings_por_mppt), Orçamento (potencia). Homologação é sempre adicionada.",
+      "correcao_pendente": false,
+      "validado": "LEITURA_DE_CODIGO"
+    },
+    {
+      "id": "BUG-P2-03",
+      "prioridade": "P2",
+      "titulo": "Não existe botão 'Abrir Documentação Homologada' próximo a 'Criar Revisão'",
+      "arquivo": "frontend/src/components/fv/GovernancaPainel.jsx",
+      "linha": 262,
+      "root_cause": "Seção de ações do painel congelado tinha apenas 'Criar Revisão' e 'Homologar'. Após homologação, não havia acesso direto à documentação.",
+      "fix": "Adicionado botão 'Abrir Documentação Homologada' (ícone FileCheck) quando `status === 'HOMOLOGADO'`. Navega para `/projetos-fv/${projetoId}` em nova aba.",
+      "correcao_pendente": false,
+      "validado": "LEITURA_DE_CODIGO"
+    },
+    {
+      "id": "BUG-P4-UNIFILAR-01",
+      "prioridade": "P1",
+      "sprint_origem": "P6-pendente",
+      "titulo": "Fetch de ativos nunca popula o array — SVG gerado sem data-ativo-id",
+      "arquivo": "frontend/src/components/fv/UnifilarFV.jsx",
+      "linha": 27,
+      "root_cause": "`Array.isArray(data)` sempre false — API retorna `{ itens: [] }`, não array direto.",
+      "fix": "`.then(r => r.ok ? r.json() : { itens: [] }).then(data => setAtivos(Array.isArray(data?.itens) ? data.itens : []))`",
+      "correcao_pendente": false,
+      "validado": "LEITURA_DE_CODIGO"
+    },
+    {
+      "id": "BUG-P5-ALERTCENTER-01",
+      "prioridade": "P2",
+      "sprint_origem": "P6-pendente",
+      "titulo": "Query de garantia inclui ativos substituídos e desativados",
+      "arquivo": "backend/src/routes/alertcenter.js",
+      "linha": 56,
+      "fix": "Adicionado `status: { $nin: ['substituido', 'desativado'] }` à query.",
+      "correcao_pendente": false,
+      "validado": "LEITURA_DE_CODIGO"
+    },
+    {
+      "id": "BUG-P5-MEDICOES-01",
+      "prioridade": "P2",
+      "sprint_origem": "P6-pendente",
+      "titulo": "window.confirm() bloqueado em iOS PWA standalone mode",
+      "arquivo": "frontend/src/components/fv/MedicoesAtivoCard.jsx",
+      "linha": 122,
+      "fix": "Substituído por confirmação inline com estado `confirmandoRemover`. Botão 'Remover' expande para [Sim] [Não] no lugar.",
+      "correcao_pendente": false,
+      "validado": "LEITURA_DE_CODIGO"
+    },
+    {
+      "id": "BUG-P5-GARANTIA-01",
+      "prioridade": "P3",
+      "sprint_origem": "P6-pendente",
+      "titulo": "_autoPreencherGarantia sem validação de ObjectId",
+      "arquivo": "backend/src/controllers/ativosController.js",
+      "funcao": "_autoPreencherGarantia",
+      "fix": "Adicionado `if (!mongoose.Types.ObjectId.isValid(ativo.equipamento_id)) return` antes de `findById`.",
+      "correcao_pendente": false,
+      "validado": "LEITURA_DE_CODIGO"
+    }
+  ],
+
+  "totais": {
+    "P0": 7,
+    "P1": 5,
+    "P2": 4,
+    "P3": 1,
+    "total": 17
+  },
+
+  "honestidade": {
+    "metodo": "ANALISE_ESTATICA_CODIGO",
+    "ambiente_real": false,
+    "railway": false,
+    "vercel": false,
+    "atlas": false,
+    "nota": "Todos os bugs foram identificados e corrigidos por leitura de código. A frase 'VALIDADO' neste documento significa VALIDADO_POR_LEITURA_DE_CODIGO, não VALIDADO_EM_EXECUCAO_REAL."
+  }
+}

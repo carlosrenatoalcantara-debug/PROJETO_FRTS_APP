@@ -1,0 +1,160 @@
+{
+  "sprint": "P0-FV-REAL-WORKFLOW-FIXES-01",
+  "data": "2026-06-19",
+  "modelo": "Sonnet 4.6",
+
+  "arquivos_alterados": [
+    {
+      "arquivo": "frontend/src/components/fv/UnifilarFV.jsx",
+      "bug": "BUG-P4-UNIFILAR-01",
+      "tipo": "CORRECAO",
+      "mudanca": "Array.isArray(data) → Array.isArray(data?.itens); fallback [] → { itens: [] }",
+      "linhas_afetadas": [26, 27],
+      "risco_regressao": "NENHUM"
+    },
+    {
+      "arquivo": "backend/src/routes/alertcenter.js",
+      "bug": "BUG-P5-ALERTCENTER-01",
+      "tipo": "CORRECAO",
+      "mudanca": "AtivoEquipamento.find() + status: { $nin: ['substituido', 'desativado'] }",
+      "linhas_afetadas": [56],
+      "risco_regressao": "NENHUM — reduz alertas espúrios"
+    },
+    {
+      "arquivo": "frontend/src/components/fv/MedicoesAtivoCard.jsx",
+      "bug": "BUG-P5-MEDICOES-01",
+      "tipo": "CORRECAO_UX",
+      "mudanca": "window.confirm() removido. Adicionado estado `confirmandoRemover`. Dois botões inline [Sim][Não].",
+      "linhas_afetadas": [121, 122, 233, 234, 235, 242, 243, 244],
+      "risco_regressao": "BAIXO — apenas UX de confirmação"
+    },
+    {
+      "arquivo": "backend/src/controllers/ativosController.js",
+      "bug": "BUG-P5-GARANTIA-01",
+      "tipo": "CORRECAO",
+      "mudanca": "Adicionado mongoose.Types.ObjectId.isValid() check em _autoPreencherGarantia",
+      "linhas_afetadas": [42],
+      "risco_regressao": "NENHUM"
+    },
+    {
+      "arquivo": "frontend/src/pages/Clientes.jsx",
+      "bug": "BUG-P0-01",
+      "tipo": "CORRECAO",
+      "mudanca": "handleNovoClienteSalvo: adicionado navigate(`/clientes/${novoCliente._id}`) após setClientes()",
+      "linhas_afetadas": [741],
+      "risco_regressao": "BAIXO — comportamento de navegação apenas"
+    },
+    {
+      "arquivo": "frontend/src/pages/ProjetosFVNovo.jsx",
+      "bugs": ["BUG-P0-02", "BUG-P0-03", "BUG-P0-04", "BUG-P1-05"],
+      "tipo": "CORRECAO",
+      "mudancas": [
+        "SET_CONSUMO ampliado: consumoMensal, valorKwh, classificacao, subgrupo, codigoInstalacao, numeroCliente",
+        "Se cliente.consumo_kwh → dispatch IR_ETAPA para 2 (pula E1Upload)",
+        "Se cliente tem UC → dispatch SET_BENEFICIARIAS com UC pré-preenchida (rateio 100%)",
+        "normFase() extraída como função local reutilizável"
+      ],
+      "linhas_afetadas": [234, 257, 260, 262, 267, 268, 269, 270, 271, 272, 273, 274, 275],
+      "risco_regressao": "BAIXO — só afeta fluxo ?clienteId="
+    },
+    {
+      "arquivo": "frontend/src/components/fv/etapas/E5Dimensionamento.jsx",
+      "bug": "BUG-P0-06",
+      "tipo": "CORRECAO",
+      "mudanca": "numInversores: / 5 → / (state.equipamentos?.inversor?.potenciaKW || 20). capacidadeInversorKW atualizado no dispatch.",
+      "linhas_afetadas": [90, 105],
+      "risco_regressao": "BAIXO — estimativa melhorada; E7 ainda substitui com valor real"
+    },
+    {
+      "arquivo": "frontend/src/components/fv/etapas/E8Orcamento.jsx",
+      "bug": "BUG-P0-07",
+      "tipo": "CORRECAO",
+      "mudanca": "precoInversor: || 4000 → || 0. precoPainel: || 620 → || 0. precoEstrutura: || 130 → || 0.",
+      "linhas_afetadas": [103, 104, 105],
+      "risco_regressao": "BAIXO — modo Kit não usa esses valores; modo Detalhado pede preenchimento manual"
+    },
+    {
+      "arquivo": "frontend/src/components/fv/etapas/E4Irradiancia.jsx",
+      "bug": "BUG-P1-01",
+      "tipo": "CORRECAO",
+      "mudancas": [
+        "Importado obterIrradianciaCity de irradianciaRN.js",
+        "aplicarFallback() extrai cidade de localizacao.cidadeEstado",
+        "media = obterIrradianciaCity(cidade, uf) ?? regiao.irradiancia"
+      ],
+      "linhas_afetadas": [7, 41, 43, 44, 45],
+      "risco_regressao": "BAIXO — melhoria de precisão; fallback estadual preservado"
+    },
+    {
+      "arquivo": "frontend/src/components/fv/AssistenteDatasheet.jsx",
+      "bugs": ["BUG-P1-02", "BUG-P1-03"],
+      "tipo": "CORRECAO_UX",
+      "mudancas": [
+        "onExtrair(dados) só chamado automaticamente se fabricante && modelo extraídos",
+        "Alerta âmbar quando extração parcial/falhou com botão de preenchimento manual"
+      ],
+      "linhas_afetadas": [55, 56, 57, 122, 123, 136, 137, 138, 139, 140, 141],
+      "risco_regressao": "BAIXO — comportamento mudado apenas no caso de falha"
+    },
+    {
+      "arquivo": "backend/src/controllers/datasheetController.js",
+      "bug": "BUG-P1-04",
+      "tipo": "CORRECAO",
+      "mudancas": [
+        "normalizar(): const r = resultado → const r = flat (envelope-safe)",
+        "Fallback de alias: garantia_fabrica_anos, garantia_potencia_anos",
+        "Prompt ampliado com padrões BR/EN de garantia e exemplos concretos"
+      ],
+      "linhas_afetadas": [121, 122, 528, 532, 533],
+      "risco_regressao": "NENHUM — mudança defensiva"
+    },
+    {
+      "arquivo": "frontend/src/components/fv/GerenciadorArranjos.jsx",
+      "bug": "BUG-P0-05",
+      "tipo": "CORRECAO",
+      "mudancas": [
+        "proximaLetra(lista): função que encontra próxima letra disponível a partir de B",
+        "arranjoVazio(lista) agora recebe a lista completa em vez de n",
+        "addArranjo usa arranjoVazio(arranjos)"
+      ],
+      "linhas_afetadas": [44, 45, 46, 47, 48, 72],
+      "risco_regressao": "BAIXO — apenas rótulo de exibição"
+    },
+    {
+      "arquivo": "backend/src/controllers/projetosFVController.js",
+      "bugs": ["BUG-P2-01", "BUG-P2-02"],
+      "tipo": "CORRECAO",
+      "mudancas": [
+        "Removidas verificações de hash_tecnico, score_qualidade, nivel_qualidade de mudancas[]",
+        "impacto agora lista áreas afetadas: Engenharia, Unifilar, Orçamento, Homologação",
+        "campo nas mudancas: 'especificacoes.X' → 'X' (sem prefixo — mais legível)"
+      ],
+      "linhas_afetadas": [1143, 1144, 1145, 1147, 1148, 1149, 1151, 1152, 1153, 1160, 1168, 1169, 1170],
+      "risco_regressao": "BAIXO — apenas apresentação de dados de divergência"
+    },
+    {
+      "arquivo": "frontend/src/components/fv/GovernancaPainel.jsx",
+      "bug": "BUG-P2-03",
+      "tipo": "CORRECAO_UX",
+      "mudancas": [
+        "Import: FileCheck adicionado de lucide-react",
+        "Botão 'Abrir Documentação Homologada' adicionado quando status === 'HOMOLOGADO'"
+      ],
+      "linhas_afetadas": [2, 262, 263, 264, 265, 266],
+      "risco_regressao": "NENHUM — botão adicional"
+    }
+  ],
+
+  "arquivos_nao_alterados": [
+    "ProjetoEV.js e toda árvore de EV",
+    "segurança (ativoSeguranca.js, AES-256-GCM)",
+    "comissionamento",
+    "EtiquetaScanner.jsx",
+    "MonitoramentoCard.jsx",
+    "homologacaoController.js",
+    "regioesBrasil.js (mantido — fallback estadual ainda usado)",
+    "irradianciaRN.js (apenas lido — não alterado)",
+    "ProjetoFV.js model",
+    "schemas de AtivoEquipamento, Equipamento"
+  ]
+}

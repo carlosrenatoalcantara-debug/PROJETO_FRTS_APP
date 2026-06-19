@@ -21,6 +21,7 @@ import { FaturaEnergia } from '../models/FaturaEnergia.js'
 import { UnidadeBeneficiaria } from '../models/UnidadeBeneficiaria.js'
 import { AuditLog } from '../models/AuditLog.js'
 import { AlertaStatus } from '../models/AlertaStatus.js'
+import { AtivoEquipamento } from '../models/AtivoEquipamento.js'
 import { agregarAlertas, calcularKPIs, filtrarAlertas, SEVERIDADES, ORIGENS } from '../utils/alertcenter/alertDetectors.js'
 import { diagnosticarFicha } from '../utils/catalogo/fichaTecnicaMap.js'
 import { gerarChecklist } from '../utils/homologacao/homologacaoAssistida.js'
@@ -45,12 +46,14 @@ async function obterTodosAlertas({ forcarRefresh = false } = {}) {
     return _cache.alertas
   }
   // Buscas paralelas em todas as fontes
-  const [tecnicos, equipamentos, documentos, projetos, faturas] = await Promise.all([
+  const [tecnicos, equipamentos, documentos, projetos, faturas, ativosGarantia] = await Promise.all([
     Tecnico.find({}).lean(),
     Equipamento.find({}).lean(),
     DocumentoTecnico.find({}).lean().catch(() => []),
     ProjetoFV.find({}).lean(),
     FaturaEnergia.find({}).lean().catch(() => []),
+    // P5-GARANTIA-SIMPLES-01 — apenas ativos com garantia_fim preenchida
+    AtivoEquipamento.find({ garantia_fim: { $ne: null }, status: { $nin: ['substituido', 'desativado'] } }, 'fabricante modelo qr_code garantia_fim status').lean().catch(() => []),
   ])
 
   // Beneficiárias agrupadas por projeto (uma query, hash em memória)
@@ -81,7 +84,7 @@ async function obterTodosAlertas({ forcarRefresh = false } = {}) {
 
   const alertas = agregarAlertas({
     tecnicos, equipamentos, documentos, projetos, beneficiariasPorProjeto, faturas,
-    checklistsPorProjeto, diagnosticarFicha,
+    checklistsPorProjeto, diagnosticarFicha, ativos: ativosGarantia,
   })
   _cache = { em: agora, alertas }
   return alertas

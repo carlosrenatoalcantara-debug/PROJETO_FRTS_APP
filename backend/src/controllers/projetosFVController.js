@@ -1138,36 +1138,29 @@ export const detectarDivergenciaProjetoFV = async (req, res) => {
         continue
       }
 
-      // Compara campos relevantes
+      // Compara specs elétricas (campos técnicos visíveis — sem campos internos de qualidade/hash)
       const mudancas = []
-      const hashAtual = atual.identificacao?.hash_unico ?? null
-      if (snap.hash_tecnico && hashAtual && snap.hash_tecnico !== hashAtual) {
-        mudancas.push({ campo: 'hash_tecnico', de: snap.hash_tecnico, para: hashAtual })
-      }
-      const scoreAtual = atual.qualidade?.score_global ?? null
-      if (snap.score != null && scoreAtual != null && snap.score !== scoreAtual) {
-        mudancas.push({ campo: 'score_qualidade', de: snap.score, para: scoreAtual })
-      }
-      const nivelAtual = atual.qualidade?.nivel ?? null
-      if (snap.nivel && nivelAtual && snap.nivel !== nivelAtual) {
-        mudancas.push({ campo: 'nivel_qualidade', de: snap.nivel, para: nivelAtual })
-      }
-      // Specs elétricas
       const espSnap = snap.especificacoes || {}
       const espAtual = atual.especificacoes || {}
       for (const campo of Object.keys(espSnap)) {
         if (espAtual[campo] !== undefined && espSnap[campo] !== espAtual[campo]) {
-          mudancas.push({ campo: `especificacoes.${campo}`, de: espSnap[campo], para: espAtual[campo] })
+          mudancas.push({ campo, de: espSnap[campo], para: espAtual[campo] })
         }
       }
 
       if (mudancas.length > 0) {
+        const impactosAreas = []
+        const camposEng   = ['potencia_wp', 'potencia_nominal_kw', 'voc', 'vmp', 'isc', 'n_mppts', 'tensao_max_entrada']
+        const camposUnif  = ['tensao_max_entrada', 'n_mppts', 'strings_por_mppt', 'potencia_nominal_kw']
+        const camposOrca  = ['potencia_wp', 'potencia_nominal_kw']
+        if (mudancas.some(m => camposEng.includes(m.campo)))  impactosAreas.push('Engenharia')
+        if (mudancas.some(m => camposUnif.includes(m.campo))) impactosAreas.push('Unifilar')
+        if (mudancas.some(m => camposOrca.includes(m.campo))) impactosAreas.push('Orçamento')
+        impactosAreas.push('Homologação')
         divergencias.push({
           chave, fabricante: snap.fabricante, modelo: snap.modelo,
           tipo_divergencia: 'specs_alteradas',
-          impacto: mudancas.some(m => m.campo.startsWith('especificacoes'))
-            ? 'Specs elétricas mudaram — recálculo necessário para refletir o catálogo atual.'
-            : 'Qualidade/score do equipamento mudou no catálogo.',
+          impacto: `Impacta: ${impactosAreas.join(', ')} — recálculo necessário.`,
           mudancas,
         })
       }

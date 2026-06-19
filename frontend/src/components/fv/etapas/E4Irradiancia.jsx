@@ -5,6 +5,7 @@ import { useEmpresa }   from '../../../contexts/EmpresaContext'
 import Button from '../../ui/Button'
 import { consultarIrradiancia } from '../../../services/nasaPowerApi'
 import { getRegiao }            from '../../../data/regioesBrasil'
+import { obterIrradianciaCity } from '../../../data/irradianciaRN'
 
 const MAX_BARRA = 8
 
@@ -40,7 +41,11 @@ export default function E4Irradiancia() {
 
   function aplicarFallback() {
     const MESES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez']
-    const media = regiao.irradiancia
+    // Tenta irradiância por cidade (dados precisos), depois fallback do estado
+    const cidade = (localizacao.cidadeEstado || '').split(/[,\-]/)[0].trim()
+    const uf     = localizacao.uf || regiao.uf
+    const mediaCity = obterIrradianciaCity(cidade, uf)
+    const media  = mediaCity ?? regiao.irradiancia
     dispatch({
       type: 'SET_IRRADIANCIA',
       payload: {

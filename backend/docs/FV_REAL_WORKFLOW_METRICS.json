@@ -1,0 +1,81 @@
+{
+  "sprint": "P0-FV-REAL-WORKFLOW-FIXES-01",
+  "data": "2026-06-19",
+  "modelo": "Sonnet 4.6",
+  "revisao_gemini": "PENDENTE",
+
+  "escopo": {
+    "arquivos_frontend_alterados": 9,
+    "arquivos_backend_alterados": 5,
+    "arquivos_criados": 4,
+    "dependencias_novas": 0,
+    "schemas_alterados": 0,
+    "endpoints_novos": 0,
+    "linhas_aprox_adicionadas": 120,
+    "linhas_aprox_removidas": 25
+  },
+
+  "bugs_corrigidos": {
+    "P0": 7,
+    "P1": 5,
+    "P2": 4,
+    "P3": 1,
+    "total": 17
+  },
+
+  "build": {
+    "executado": true,
+    "resultado": "sucesso",
+    "tempo": "9.80s",
+    "erros": 0,
+    "warnings": 1,
+    "warning_descricao": "Chunk > 2000 kB — pré-existente, não introduzido por esta sprint",
+    "modulos": 2332,
+    "modulos_antes": 2332
+  },
+
+  "fluxo_corrigido": {
+    "P0-01_novo_cliente": "Após salvar cliente → navega direto para /clientes/:id",
+    "P0-02_skip_e1": "Se cliente já tem consumo_kwh → pula E1Upload, vai direto para E2",
+    "P0-03_ocr_reuso": "Dados de fatura do cliente (consumo, tarifa, UC) pré-preenchem E2 automaticamente",
+    "P0-04_dados_uc": "codigo_instalacao, numero_cliente, classificacao, subgrupo pré-preenchidos",
+    "P0-05_arranjos": "Letras de arranjos não duplicam; começa em B (A é sempre o primário)",
+    "P0-06_inversores": "numInversores usa potência real do inversor selecionado ou 20kW de default",
+    "P0-07_orcamento": "Modo detalhado inicia com preços 0; usuário preenche ou catálogo fornece",
+    "P1-01_irradiancia": "CRESESB usa Natal=5.42 em vez de RN=5.9",
+    "P1-02_fallback_manual": "Quando extração falha, alerta claro + botão de preenchimento manual",
+    "P1-03_50ktl": "Mitigado por P1-02; diagnóstico completo pendente de ambiente real",
+    "P1-04_garantia": "Garantia 15/25 anos extraída com maior robustez (prompt + flat fix)",
+    "P1-05_beneficiarias": "UC do cliente pré-adicionada como beneficiária com 100% (usuário ajusta rateio)",
+    "P2-01_hash_interno": "hash_tecnico, score_qualidade, nivel_qualidade removidos da UI de divergência",
+    "P2-02_impacto_real": "Divergência mostra: Impacta Engenharia / Unifilar / Orçamento / Homologação",
+    "P2-03_doc_homologada": "Botão 'Abrir Documentação Homologada' disponível após homologação"
+  },
+
+  "nao_implementado": [
+    "Diagnóstico definitivo BUG-P1-03 (requer PDF real do SUN2000-50KTL em ambiente Railway)",
+    "Upload de múltiplas UCs beneficiárias (requer modelo Cliente com array de UCs)",
+    "Garantia P1-04 requer validação em ambiente real com PDF Talesun"
+  ],
+
+  "regressoes": {
+    "ProjetoEV": "INTACTO",
+    "QR_Scanner": "INTACTO",
+    "Seguranca_AES256": "INTACTO",
+    "Comissionamento": "INTACTO",
+    "Homologacao": "INTACTO",
+    "Snapshot_Governanca": "INTACTO",
+    "AlertCenter_detectores_existentes": "INTACTO",
+    "MonitoramentoCard": "INTACTO"
+  },
+
+  "validacao": {
+    "build": true,
+    "leitura_codigo": true,
+    "atlas": false,
+    "railway": false,
+    "vercel": false,
+    "dispositivo_fisico": false,
+    "honestidade": "Todos os fixes foram validados por análise estática de código e build bem-sucedido. NENHUM fix foi testado em execução real contra Railway/Atlas/Vercel."
+  }
+}

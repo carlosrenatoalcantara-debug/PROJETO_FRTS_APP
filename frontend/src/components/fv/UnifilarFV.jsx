@@ -1,5 +1,6 @@
-import { useState } from 'react'
-import { Download, RefreshCw, Zap } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import { Download, ExternalLink, RefreshCw, Zap } from 'lucide-react'
 import Card, { CardHeader, CardBody } from '../ui/Card'
 import Button from '../ui/Button'
 import { gerarUnifilarSVG, baixarUnifilarSVG } from '@/utils/gerarUnifilarSVG'
@@ -16,13 +17,23 @@ export default function UnifilarFV({ projeto }) {
   const [origem, setOrigem] = useState(svgCongelado ? 'snapshot' : null)
   const [carregando, setCarregando] = useState(false)
   const [erro, setErro] = useState(null)
+  const navigate = useNavigate()
+  const [ativos, setAtivos] = useState([])
+
+  useEffect(() => {
+    if (!projeto?._id) return
+    fetch(`/api/ativos/projeto/${projeto._id}`)
+      .then(r => r.ok ? r.json() : { itens: [] })
+      .then(data => setAtivos(Array.isArray(data?.itens) ? data.itens : []))
+      .catch(() => {})
+  }, [projeto?._id])
 
   async function handleGerarUnifilar() {
     try {
       setCarregando(true)
       setErro(null)
       // S8.1.1: gera a partir dos dados ATUAIS do projeto (origem declarada)
-      const svg = gerarUnifilarSVG(projeto)
+      const svg = gerarUnifilarSVG(projeto, ativos)
       if (!svg) throw new Error('Não foi possível gerar o unifilar com os dados disponíveis')
       setUnifilar(svg)
       setOrigem('dados_atuais')
@@ -59,6 +70,13 @@ export default function UnifilarFV({ projeto }) {
       URL.revokeObjectURL(url)
     }
     img.src = url
+  }
+
+  function handleSVGClick(e) {
+    const el = e.target.closest('[data-ativo-id]')
+    if (!el) return
+    const qr = el.dataset.qr
+    if (qr) navigate(`/ativo/${encodeURIComponent(qr)}`)
   }
 
   return (
@@ -110,9 +128,19 @@ export default function UnifilarFV({ projeto }) {
           <RefreshCw size={18} className={carregando ? 'animate-spin' : ''} />
           {carregando ? 'Gerando...' : (origem === 'snapshot' ? 'Regerar a partir dos dados atuais' : 'Gerar Unifilar Automático')}
         </Button>
+        {projeto?._id && (
+          <Link
+            to={`/unifilar/${projeto._id}`}
+            className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800 hover:underline"
+          >
+            <ExternalLink size={14} />
+            Gêmeo Digital (unifilar operacional)
+          </Link>
+        )}
         {/* S8.1.1: origem explícita (sem fallback silencioso) */}
         {origem === 'snapshot' && <span className="text-xs text-emerald-700">A partir do snapshot congelado ✓</span>}
         {origem === 'dados_atuais' && <span className="text-xs text-amber-700">Gerado dos dados atuais (não é o snapshot congelado)</span>}
+        {ativos.length > 0 && <span className="text-xs text-slate-500">{ativos.length} ativo{ativos.length !== 1 ? 's' : ''} vinculado{ativos.length !== 1 ? 's' : ''}</span>}
       </div>
 
       {erro && (
@@ -153,6 +181,7 @@ export default function UnifilarFV({ projeto }) {
             <div
               className="overflow-auto bg-slate-50 rounded-lg border border-slate-200 p-4"
               dangerouslySetInnerHTML={{ __html: unifilar }}
+              onClick={handleSVGClick}
             />
           </CardBody>
         </Card>

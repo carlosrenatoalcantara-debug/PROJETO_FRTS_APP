@@ -54,7 +54,10 @@ export default function AssistenteDatasheet({ onExtrair, tipo = 'painel' }) {
 
       const dados = json.dados || json
       setResultado(dados)
-      onExtrair(dados)
+      // Só chama onExtrair automaticamente se extração teve fabricante e modelo
+      if (dados.fabricante && dados.modelo) {
+        onExtrair(dados)
+      }
     } catch (err) {
       setErro(`Erro ao processar PDF: ${err.message}`)
       console.error('Erro ao extrair datasheet:', err)
@@ -119,19 +122,34 @@ export default function AssistenteDatasheet({ onExtrair, tipo = 'painel' }) {
           </div>
         )}
 
-        {resultado && (
+        {resultado && resultado.fabricante && resultado.modelo && (
           <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
-            <div className="flex items-start gap-2 mb-2">
+            <div className="flex items-start gap-2">
               <CheckCircle size={16} className="text-green-700 shrink-0 mt-0.5" />
-              <p className="text-sm font-medium text-green-900">Dados extraídos com sucesso!</p>
+              <p className="text-sm font-medium text-green-900">
+                Extraído: {resultado.fabricante} {resultado.modelo}
+                {resultado.tipo === 'inversor' && resultado.potenciaKW ? ` ${resultado.potenciaKW} kW` : ''}
+                {resultado.tipo === 'modulo' && resultado.potenciaW ? ` ${resultado.potenciaW} W` : ''}
+              </p>
             </div>
-            <div className="text-xs text-green-800 space-y-1">
-              {Object.entries(resultado).map(([chave, valor]) => (
-                <div key={chave}>
-                  <strong>{chave}:</strong> {String(valor)}
-                </div>
-              ))}
+          </div>
+        )}
+
+        {resultado && (!resultado.fabricante || !resultado.modelo) && (
+          <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg space-y-2">
+            <div className="flex items-start gap-2">
+              <AlertCircle size={16} className="text-amber-700 shrink-0 mt-0.5" />
+              <p className="text-sm font-medium text-amber-900">
+                IA não conseguiu identificar o equipamento automaticamente.
+                Preencha os dados manualmente ou tente outro arquivo.
+              </p>
             </div>
+            <button
+              onClick={() => onExtrair(resultado)}
+              className="w-full text-xs text-amber-800 underline text-left hover:text-amber-900"
+            >
+              Usar dados parciais extraídos e preencher manualmente →
+            </button>
           </div>
         )}
       </div>

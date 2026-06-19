@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Lock, GitBranch, AlertTriangle, CheckCircle, RefreshCw, Clock, ShieldCheck, TrendingUp, ThumbsUp } from 'lucide-react'
+import { Lock, GitBranch, AlertTriangle, CheckCircle, RefreshCw, Clock, ShieldCheck, TrendingUp, ThumbsUp, FileCheck } from 'lucide-react'
 import Badge from '../ui/Badge'
 import Button from '../ui/Button'
 import {
@@ -263,6 +263,12 @@ export default function GovernancaPainel({ projetoId, governanca, construirSnaps
               <Button variante="secundario" tamanho="sm" icone={ShieldCheck}
                 onClick={() => congelar('HOMOLOGADO')} carregando={acaoEmCurso}>
                 Homologar
+              </Button>
+            )}
+            {status === 'HOMOLOGADO' && projetoId && (
+              <Button variante="secundario" tamanho="sm" icone={FileCheck}
+                onClick={() => window.open(`/projetos-fv/${projetoId}`, '_blank')}>
+                Abrir Documentação Homologada
               </Button>
             )}
           </>

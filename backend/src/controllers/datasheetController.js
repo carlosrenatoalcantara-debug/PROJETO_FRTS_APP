@@ -118,8 +118,8 @@ FORMATO PARA MÓDULOS (extraia TUDO que encontrar):
   "tipo": "modulo",
   "dimensoes": "<Dimensões em mm, ex: '2278x1134x35'>",
   "peso_kg": <Peso do módulo em kg — número>,
-  "garantia_produto_anos": <OBRIGATÓRIO — procure em TODO o documento incluindo imagens, selos, banners e gráficos de curva de degradação: anos de garantia do produto contra defeitos de fabricação (product warranty, garantia do produto, material warranty). Valores típicos: 10, 12, 15, 25. Ex: 12>,
-  "garantia_performance_anos": <OBRIGATÓRIO — procure em TODO o documento incluindo imagens, selos e gráficos de degradação linear: anos de garantia de potência (linear power warranty, performance warranty, power output warranty). Valores típicos: 25, 30. Ex: 30>,
+  "garantia_produto_anos": <OBRIGATÓRIO — procure em TODO o documento incluindo imagens, selos, banners, badges, tabelas de certificações e rodapé: anos de garantia do produto contra defeitos de fabricação (product warranty, material warranty, garantia do produto, garantia de fábrica, 'X-year product warranty', 'garantia por X anos'). Valores típicos: 10, 12, 15, 25. Se encontrar '15 years' → 15. Ex: 15>,
+  "garantia_performance_anos": <OBRIGATÓRIO — procure em TODO o documento incluindo gráficos de curva de degradação linear, selos e rodapé: anos de garantia de potência/desempenho (linear power warranty, performance warranty, power output warranty, garantia de desempenho, garantia de potência linear, 'X-year linear power warranty'). Valores típicos: 25, 30. Se encontrar '25 years linear power warranty' → 25. Ex: 25>,
   "tipo_celula": "<Tipo de célula, ex: 'Monocristalino N-type', 'Bifacial', 'Half-cell'>",
   "num_celulas": <Número de células — inteiro ou null>,
   "coef_temp_pmax": <Coeficiente de temperatura de Pmax em %/°C — número negativo, ex: -0.30>,
@@ -525,12 +525,13 @@ function normalizar(resultado, metodo) {
       eficiencia: primeira.eficiencia || null,
     })
     // Campos mecânicos e garantias (nível do módulo — iguais para todas variantes)
-    const r = resultado
+    // Usa flat (já desembrulhado de eventual envelope {dados:{}}) para consistência
+    const r = flat
     Object.assign(dados, {
       dimensoes:                 r.dimensoes                 || null,
       peso_kg:                   r.peso_kg                   || null,
-      garantia_produto_anos:     r.garantia_produto_anos     || null,
-      garantia_performance_anos: r.garantia_performance_anos || null,
+      garantia_produto_anos:     r.garantia_produto_anos     || r.garantia_fabrica_anos   || null,
+      garantia_performance_anos: r.garantia_performance_anos || r.garantia_potencia_anos  || null,
       tipo_celula:               r.tipo_celula               || null,
       num_celulas:               r.num_celulas               || null,
       coef_temp_pmax:            r.coef_temp_pmax            || null,

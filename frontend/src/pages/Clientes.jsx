@@ -738,6 +738,7 @@ export default function Clientes() {
 
   function handleNovoClienteSalvo(novoCliente) {
     setClientes(prev => [...prev, novoCliente])
+    navigate(`/clientes/${novoCliente._id}`)
   }
 
   function handleClienteEditado(clienteAtualizado) {

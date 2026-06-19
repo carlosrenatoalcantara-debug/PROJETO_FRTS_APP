@@ -1,0 +1,155 @@
+{
+  "sprint": "P0-FV-REAL-WORKFLOW-FIXES-01",
+  "data": "2026-06-19",
+  "fase": "PREDEPLOY",
+
+  "grupo_a_sprint_p0": {
+    "descricao": "Arquivos que pertencem exclusivamente à sprint P0-FV-REAL-WORKFLOW-FIXES-01",
+    "total": 12,
+    "arquivos": [
+      {
+        "arquivo": "frontend/src/pages/Clientes.jsx",
+        "bug": "BUG-P0-01",
+        "tipo": "M",
+        "linhas_diff": "+1",
+        "status_commit": "INCLUIDO"
+      },
+      {
+        "arquivo": "frontend/src/pages/ProjetosFVNovo.jsx",
+        "bugs": ["BUG-P0-02", "BUG-P0-03", "BUG-P0-04", "BUG-P1-05"],
+        "tipo": "M",
+        "linhas_diff": "+42",
+        "status_commit": "INCLUIDO"
+      },
+      {
+        "arquivo": "frontend/src/components/fv/GerenciadorArranjos.jsx",
+        "bug": "BUG-P0-05",
+        "tipo": "M",
+        "linhas_diff": "+10 -1",
+        "status_commit": "INCLUIDO"
+      },
+      {
+        "arquivo": "frontend/src/components/fv/etapas/E5Dimensionamento.jsx",
+        "bug": "BUG-P0-06",
+        "tipo": "M",
+        "linhas_diff": "+3 -1",
+        "status_commit": "INCLUIDO"
+      },
+      {
+        "arquivo": "frontend/src/components/fv/etapas/E8Orcamento.jsx",
+        "bug": "BUG-P0-07",
+        "tipo": "M",
+        "linhas_diff": "+3 -3",
+        "status_commit": "INCLUIDO"
+      },
+      {
+        "arquivo": "frontend/src/components/fv/etapas/E4Irradiancia.jsx",
+        "bug": "BUG-P1-01",
+        "tipo": "M",
+        "linhas_diff": "+6 -1",
+        "status_commit": "INCLUIDO",
+        "nota": "Fix adicional aplicado durante revisão: split(',') → split(/[,\\-]/) para compatibilidade com formato 'Natal - RN'"
+      },
+      {
+        "arquivo": "frontend/src/components/fv/AssistenteDatasheet.jsx",
+        "bugs": ["BUG-P1-02", "BUG-P1-03"],
+        "tipo": "M",
+        "linhas_diff": "+20",
+        "status_commit": "INCLUIDO"
+      },
+      {
+        "arquivo": "frontend/src/components/fv/UnifilarFV.jsx",
+        "bug": "BUG-P4-UNIFILAR-01",
+        "tipo": "M",
+        "linhas_diff": "+2 -2",
+        "status_commit": "INCLUIDO"
+      },
+      {
+        "arquivo": "frontend/src/components/fv/GovernancaPainel.jsx",
+        "bug": "BUG-P2-03",
+        "tipo": "M",
+        "linhas_diff": "+6 -1",
+        "status_commit": "INCLUIDO"
+      },
+      {
+        "arquivo": "backend/src/controllers/datasheetController.js",
+        "bug": "BUG-P1-04",
+        "tipo": "M",
+        "linhas_diff": "+8 -4",
+        "status_commit": "INCLUIDO"
+      },
+      {
+        "arquivo": "backend/src/controllers/projetosFVController.js",
+        "bugs": ["BUG-P2-01", "BUG-P2-02"],
+        "tipo": "M",
+        "linhas_diff": "+15 -15",
+        "status_commit": "INCLUIDO"
+      },
+      {
+        "arquivo": "backend/src/routes/alertcenter.js",
+        "bug": "BUG-P5-ALERTCENTER-01",
+        "tipo": "M",
+        "linhas_diff": "+1",
+        "status_commit": "INCLUIDO"
+      }
+    ]
+  },
+
+  "grupo_b_deferred": {
+    "descricao": "Arquivos com código da sprint P0 mas entangled com features de outras sprints — DEFERRED",
+    "total": 2,
+    "arquivos": [
+      {
+        "arquivo": "backend/src/controllers/ativosController.js",
+        "bug_p0": "BUG-P5-GARANTIA-01 (ObjectId.isValid check)",
+        "entanglement": "P5-GARANTIA-SIMPLES-01 (_garantiaMeses, _somarMeses, _autoPreencherGarantia) + Gêmeo Digital (consultarPorQr)",
+        "motivo_exclusao": "Fix do P0 está embutido DENTRO de nova função da P5-GARANTIA-SIMPLES-01. Impossível isolar sem stash parcial ou reescrita.",
+        "status_commit": "DEFERIDO — bug BUG-P5-GARANTIA-01 pendente para sprint P5-GARANTIA-SIMPLES-01"
+      },
+      {
+        "arquivo": "frontend/src/components/fv/MedicoesAtivoCard.jsx",
+        "bug_p0": "BUG-P5-MEDICOES-01 (window.confirm → inline confirm)",
+        "entanglement": "Componente usa endpoint /api/ativos/:id/medicoes que depende de AtivoEquipamento.medicoes[] (P5-ATIVO-MEDICOES-01 schema) e ativos.js routes (também excluídas)",
+        "motivo_exclusao": "Componente novo que depende de model e rotas de outra sprint não incluída.",
+        "status_commit": "DEFERIDO — bug BUG-P5-MEDICOES-01 pendente para sprint P5-ATIVO-MEDICOES-01"
+      }
+    ]
+  },
+
+  "grupo_c_outras_features": {
+    "descricao": "Arquivos de outras sprints — NÃO fazem parte da P0-FV-REAL-WORKFLOW-FIXES-01",
+    "total": 9,
+    "arquivos": [
+      { "arquivo": "backend/src/models/AtivoEquipamento.js", "sprint": "P5-ATIVO-MEDICOES-01 + P5-GARANTIA-SIMPLES-01" },
+      { "arquivo": "backend/src/models/Equipamento.js", "sprint": "P5-GARANTIA-SIMPLES-01" },
+      { "arquivo": "backend/src/models/ProjetoFV.js", "sprint": "P4-GEMEO-DIGITAL / Documentos Externos" },
+      { "arquivo": "backend/src/routes/ativos.js", "sprint": "P5-ATIVO-MEDICOES-01" },
+      { "arquivo": "backend/src/utils/alertcenter/alertDetectors.js", "sprint": "P5-GARANTIA-SIMPLES-01" },
+      { "arquivo": "frontend/src/pages/AlertCenter.jsx", "sprint": "P5-GARANTIA-SIMPLES-01 (label 'garantia')" },
+      { "arquivo": "frontend/src/pages/AtivoQR.jsx", "sprint": "P5-GARANTIA-SIMPLES-01 + P5-ATIVO-MEDICOES-01 + Gêmeo Digital" },
+      { "arquivo": "frontend/src/pages/ProjetosFVDetalhes.jsx", "sprint": "Documentos Externos" },
+      { "arquivo": "frontend/src/utils/gerarUnifilarSVG.js", "sprint": "P4-GEMEO-DIGITAL-UNIFILAR-ATIVO-01" }
+    ]
+  },
+
+  "docs_sprint": {
+    "descricao": "Documentação gerada pela sprint — incluída no commit",
+    "arquivos": [
+      "backend/docs/FV_REAL_WORKFLOW_BUGS.json",
+      "backend/docs/FV_REAL_WORKFLOW_DIFF.json",
+      "backend/docs/FV_REAL_WORKFLOW_FIXES_REPORT.md",
+      "backend/docs/FV_REAL_WORKFLOW_METRICS.json",
+      "backend/docs/P0_PREDEPLOY_REPORT.md",
+      "backend/docs/P0_PREDEPLOY_GEMINI.md",
+      "backend/docs/P0_PREDEPLOY_DIFF.json",
+      "backend/docs/P0_PREDEPLOY_READINESS.json"
+    ]
+  },
+
+  "resumo": {
+    "arquivos_no_commit": 12,
+    "arquivos_deferred": 2,
+    "arquivos_outras_features_nao_commitados": 9,
+    "bugs_deferred": ["BUG-P5-GARANTIA-01", "BUG-P5-MEDICOES-01"]
+  }
+}

@@ -87,7 +87,9 @@ export default function E5Dimensionamento() {
     if (!potenciaKwp) return
 
     const numPaineis    = Math.ceil(potenciaKwp * 1000 / PAINEL_REF_W)
-    const numInversores = Math.ceil(potenciaKwp / 5)
+    // Usa potência do inversor já selecionado (E7) se disponível; fallback 20kW
+    const capInv        = state.equipamentos?.inversor?.potenciaKW || 20
+    const numInversores = Math.ceil(potenciaKwp / capInv)
     const areaMinima    = +(numPaineis * 2.0).toFixed(1)
 
     dispatch({
@@ -97,12 +99,12 @@ export default function E5Dimensionamento() {
         potenciaKwp,
         potenciaRealKwp:      potenciaKwp,       // sem arredondamento por painel
         numPaineis,                               // estimativa central — E7 recalculará
-        numInversores,                            // estimativa central — E7 recalculará
+        numInversores,                            // estimativa — E7 substitui com valor real
         energiaDiaria,
         energiaNecessaria:    +(consumoTotal / 30 / fatorEficiencia).toFixed(2),
         areaMinima,
         potenciaPainelW:      PAINEL_REF_W,       // referência padrão para E7
-        capacidadeInversorKW: 5,                  // referência padrão para E7
+        capacidadeInversorKW: capInv,             // referência para E7
         // Estado interno do E5 para re-hidratação
         _fatorEficiencia: fatorEficiencia,
         _crescimentoKwh:  crescimentoManual,
