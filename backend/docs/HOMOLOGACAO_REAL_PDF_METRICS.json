@@ -1,0 +1,73 @@
+{
+  "sprint": "P2-HOMOLOGACAO-REAL-PDF-01",
+  "modelo": "Sonnet",
+  "data": "2026-06-18",
+  "revisao_gemini": "opcional",
+
+  "escopo": {
+    "arquivos_frontend_alterados": 3,
+    "arquivos_backend_alterados": 0,
+    "dependencias_novas": 0,
+    "linhas_aprox_adicionadas": 25,
+    "linhas_aprox_removidas": 10,
+    "endpoints_novos": 0,
+    "schemas_alterados": 0
+  },
+
+  "txt_eliminados": 2,
+  "pdfs_criados": 3,
+  "download_button_adicionado": 1,
+
+  "reutilizacao": {
+    "gerarPdfHomologacao_js": "reutilizado sem modificação",
+    "tipos_ja_suportados": ["memorial", "carta", "art", "checklist"],
+    "identidade_forte_solar": "aplicada pelo utilitário existente"
+  },
+
+  "layout_pdf": {
+    "cabecalho": "faixa escura (#0f172a) + faixa laranja (#f97316) com título",
+    "logo_fallback": "bloco laranja com texto 'Forte Solar'",
+    "fonte_conteudo": "Courier 8.5pt",
+    "rodape": "nome empresa + data + paginacao",
+    "paginacao_automatica": true,
+    "separadores": "━━━ renderizados como linha horizontal"
+  },
+
+  "snapshot": {
+    "preservado": true,
+    "mecanismo": "PDF recebe texto já processado pelo backend (que usa obterEquipamentosEngenharia internamente)",
+    "camada_pdf_nao_interfere": true
+  },
+
+  "regressoes": {
+    "total": 0,
+    "observacoes": [
+      "Conteúdo dos documentos inalterado — mesmo texto que era exibido/copiado",
+      "Botão Copiar preservado em todos os componentes",
+      "Link CREA preservado em DadosART",
+      "Botão Regenerar preservado em Memorial e Carta"
+    ]
+  },
+
+  "build": {
+    "executado": true,
+    "resultado": "sucesso",
+    "tempo": "7.67s",
+    "erros": 0,
+    "modulos": 2329
+  },
+
+  "validacao": {
+    "build": true,
+    "leitura_codigo": true,
+    "download_real": false,
+    "device_fisico": false,
+    "ambiente_real": false
+  },
+
+  "compatibilidade_mobile": {
+    "android_chrome": "download direto (jsPDF padrão)",
+    "ios_safari": "PDF abre em nova aba/visualizador (comportamento padrão jsPDF em iOS — sem suporte a <a download> para blobs)",
+    "nota": "Não testado em device físico"
+  }
+}

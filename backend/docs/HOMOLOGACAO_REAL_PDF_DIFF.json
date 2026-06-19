@@ -1,0 +1,80 @@
+{
+  "sprint": "P2-HOMOLOGACAO-REAL-PDF-01",
+  "modelo": "Sonnet",
+  "data": "2026-06-18",
+  "revisao_gemini": "opcional",
+  "tipo": "MELHORIA_OPERACIONAL",
+  "backend_alterado": false,
+  "schema_alterado": false,
+  "endpoints_alterados": false,
+
+  "arquivos_alterados": [
+    {
+      "arquivo": "frontend/src/components/fv/homologacao/MemorialDescritivo.jsx",
+      "mudancas": [
+        "import { gerarPdfHomologacao } from '../../../utils/gerarPdfHomologacao'",
+        "import Loader removido (não utilizado)",
+        "baixarDocx() substituído por baixarPDF() — chama gerarPdfHomologacao({ tipo:'memorial', dados:{}, texto:memorial }).save(`memorial-descritivo-${projetoId}.pdf`)",
+        "Botão label: 'Baixar TXT' → 'Baixar PDF'"
+      ]
+    },
+    {
+      "arquivo": "frontend/src/components/fv/homologacao/CartaConcessionaria.jsx",
+      "mudancas": [
+        "import { gerarPdfHomologacao } from '../../../utils/gerarPdfHomologacao'",
+        "baixarDocumento() substituído por baixarPDF() — chama gerarPdfHomologacao({ tipo:'carta', dados:{}, texto:carta }).save(`carta-concessionaria-${projetoId}.pdf`)",
+        "Botão label: 'Baixar TXT' → 'Baixar PDF'"
+      ]
+    },
+    {
+      "arquivo": "frontend/src/components/fv/homologacao/DadosART.jsx",
+      "mudancas": [
+        "import { Copy, ExternalLink } → { Copy, ExternalLink, Download }",
+        "import { gerarPdfHomologacao } from '../../../utils/gerarPdfHomologacao'",
+        "Adicionado baixarPDF() — formata campos ART em texto e chama gerarPdfHomologacao({ tipo:'art', ... }).save(`dados-art-${projetoId}.pdf`)",
+        "UI: adicionado botão 'Baixar PDF' entre 'Copiar Dados' e 'CREA {estado}'",
+        "Label 'Copiar Todos os Dados' → 'Copiar Dados' (para caber com 3 botões)"
+      ]
+    }
+  ],
+
+  "nao_alterado": {
+    "ProjetoEV": true,
+    "Ativos": true,
+    "QR": true,
+    "Comissionamento": true,
+    "Seguranca": true,
+    "Snapshot": true,
+    "Catalogo": true,
+    "Engenharia": true,
+    "regras_homologacao": true,
+    "logica_homologacao": true,
+    "endpoints": true,
+    "schemas": true,
+    "conteudo_documentos": true,
+    "gerarPdfHomologacao_js": true
+  },
+
+  "txt_eliminados": [
+    "memorial-{id}.txt",
+    "carta-concessionaria-{id}.txt"
+  ],
+
+  "pdfs_criados": [
+    { "nome": "memorial-descritivo-{projetoId}.pdf", "tipo": "memorial" },
+    { "nome": "carta-concessionaria-{projetoId}.pdf", "tipo": "carta" },
+    { "nome": "dados-art-{projetoId}.pdf", "tipo": "art" }
+  ],
+
+  "dependencias_novas": [],
+  "dependencias_removidas": [],
+
+  "build": {
+    "ferramenta": "Vite 5.4.21",
+    "resultado": "sucesso",
+    "tempo": "7.67s",
+    "erros": 0,
+    "modulos": 2329,
+    "warnings": ["chunk size > 2000kB (pré-existente)"]
+  }
+}

@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { Copy, ExternalLink } from 'lucide-react'
+import { Copy, ExternalLink, Download } from 'lucide-react'
 import Button from '../../ui/Button'
+import { gerarPdfHomologacao } from '../../../utils/gerarPdfHomologacao'
 
 const API_URL = '' /* URL relativa forçada — Vercel proxy → Railway */
 
@@ -43,6 +44,23 @@ export default function DadosART({ projetoId, projeto, estado }) {
     } finally {
       setCarregando(false)
     }
+  }
+
+  function baixarPDF() {
+    const linhas = ['DADOS PARA PREENCHIMENTO DA ART', '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', '']
+    for (const [chave, valor] of Object.entries(dados)) {
+      if (Array.isArray(valor)) {
+        linhas.push(chave.replace(/_/g, ' ').toUpperCase() + ':')
+        for (const item of valor) linhas.push(`  • ${item}`)
+      } else {
+        linhas.push(`${chave.replace(/_/g, ' ').toUpperCase()}: ${valor}`)
+      }
+      linhas.push('')
+    }
+    linhas.push('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+    linhas.push('A ART deve ser registrada no CREA da região antes do início da instalação.')
+    const doc = gerarPdfHomologacao({ tipo: 'art', dados: {}, texto: linhas.join('\n') })
+    doc.save(`dados-art-${projetoId}.pdf`)
   }
 
   function copiarTodosDados() {
@@ -112,7 +130,14 @@ export default function DadosART({ projetoId, projeto, estado }) {
               icone={Copy}
               className="flex-1"
             >
-              {copiado ? '✓ Copiado!' : 'Copiar Todos os Dados'}
+              {copiado ? '✓ Copiado!' : 'Copiar Dados'}
+            </Button>
+            <Button
+              onClick={baixarPDF}
+              icone={Download}
+              className="flex-1"
+            >
+              Baixar PDF
             </Button>
             <Button
               as="a"
@@ -122,7 +147,7 @@ export default function DadosART({ projetoId, projeto, estado }) {
               icone={ExternalLink}
               className="flex-1"
             >
-              Ir para CREA {estado}
+              CREA {estado}
             </Button>
           </div>
 

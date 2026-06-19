@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Copy, Download } from 'lucide-react'
 import Button from '../../ui/Button'
+import { gerarPdfHomologacao } from '../../../utils/gerarPdfHomologacao'
 
 const API_URL = '' /* URL relativa forçada — Vercel proxy → Railway */
 
@@ -40,11 +41,9 @@ export default function CartaConcessionaria({ projetoId, projeto, cliente }) {
     setTimeout(() => setCopiado(false), 2000)
   }
 
-  function baixarDocumento() {
-    const element = document.createElement('a')
-    element.href = `data:text/plain;charset=utf-8,${encodeURIComponent(carta)}`
-    element.download = `carta-concessionaria-${projetoId}.txt`
-    element.click()
+  function baixarPDF() {
+    const doc = gerarPdfHomologacao({ tipo: 'carta', dados: {}, texto: carta })
+    doc.save(`carta-concessionaria-${projetoId}.pdf`)
   }
 
   return (
@@ -81,11 +80,11 @@ export default function CartaConcessionaria({ projetoId, projeto, cliente }) {
               {copiado ? '✓ Copiado!' : 'Copiar Texto'}
             </Button>
             <Button
-              onClick={baixarDocumento}
+              onClick={baixarPDF}
               icone={Download}
               className="flex-1"
             >
-              Baixar TXT
+              Baixar PDF
             </Button>
           </div>
 

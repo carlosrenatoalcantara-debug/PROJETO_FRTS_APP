@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { Copy, Download, Loader } from 'lucide-react'
+import { Copy, Download } from 'lucide-react'
 import Button from '../../ui/Button'
+import { gerarPdfHomologacao } from '../../../utils/gerarPdfHomologacao'
 
 const API_URL = '' /* URL relativa forçada — Vercel proxy → Railway */
 
@@ -40,12 +41,9 @@ export default function MemorialDescritivo({ projetoId, projeto, cliente }) {
     setTimeout(() => setCopiado(false), 2000)
   }
 
-  function baixarDocx() {
-    // Exportar como DOCX simples (para produção, usar library como docx)
-    const element = document.createElement('a')
-    element.href = `data:text/plain;charset=utf-8,${encodeURIComponent(memorial)}`
-    element.download = `memorial-${projetoId}.txt`
-    element.click()
+  function baixarPDF() {
+    const doc = gerarPdfHomologacao({ tipo: 'memorial', dados: {}, texto: memorial })
+    doc.save(`memorial-descritivo-${projetoId}.pdf`)
   }
 
   return (
@@ -82,11 +80,11 @@ export default function MemorialDescritivo({ projetoId, projeto, cliente }) {
               {copiado ? '✓ Copiado!' : 'Copiar Texto'}
             </Button>
             <Button
-              onClick={baixarDocx}
+              onClick={baixarPDF}
               icone={Download}
               className="flex-1"
             >
-              Baixar TXT
+              Baixar PDF
             </Button>
           </div>
 
