@@ -17,8 +17,10 @@
 import crypto from 'crypto'
 import { aplicarRegras } from './regrasPlausibilidade.js'
 import { lerInversor } from '../equipamentos/inversores/index.js'
+// P0-CATALOG-QUALITY-HARDENING-01: gate de liberação por matriz mínima.
+import { avaliarUtilizavel } from './utilizavelProjeto.js'
 
-const MOTOR_VERSAO = 'qualidade-1.0.0'
+const MOTOR_VERSAO = 'qualidade-1.1.0'
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -382,6 +384,12 @@ export function processarEquipamento(equipamento, options = {}) {
   const nivel = determinarNivel(score_global, alertas, equipamento)
   const status_operacional = determinarStatusOperacional(nivel)
 
+  // P0-CATALOG-QUALITY-HARDENING-01: gate de engenharia por matriz mínima.
+  // Equipamento sem os campos mínimos do tipo → utilizavel_em_projeto=false,
+  // com os motivos em bloqueio_engenharia. Antes este campo nunca era setado
+  // pelo motor (ficava no default true) → identity-only vazava para o seletor.
+  const { utilizavel, faltando } = avaliarUtilizavel(equipamento.tipo, equipamento.especificacoes)
+
   const qualidade = {
     completude_score,
     confianca_score,
@@ -421,6 +429,8 @@ export function processarEquipamento(equipamento, options = {}) {
     identificacao,
     qualidade,
     status_operacional,
+    utilizavel_em_projeto: utilizavel,
+    bloqueio_engenharia: faltando,
     evento_historico,
   }
 }
@@ -442,6 +452,13 @@ export function aplicarResultadoNoDoc(doc, resultado) {
   doc.identificacao      = resultado.identificacao
   doc.qualidade          = resultado.qualidade
   doc.status_operacional = resultado.status_operacional
+
+  // P0-CATALOG-QUALITY-HARDENING-01: aplica o gate de engenharia (antes nunca
+  // tocado pelo hook → identity-only permanecia utilizavel_em_projeto=true).
+  if (resultado.utilizavel_em_projeto !== undefined) {
+    doc.utilizavel_em_projeto = resultado.utilizavel_em_projeto
+    doc.bloqueio_engenharia   = resultado.bloqueio_engenharia || []
+  }
 
   // Garantir origem (se ausente, marcar como desconhecido)
   if (!doc.origem || !doc.origem.tipo) {

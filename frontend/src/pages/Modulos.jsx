@@ -35,6 +35,34 @@ function Secao({ titulo, children }) {
   )
 }
 
+// P0-CATALOG-QUALITY-HARDENING-01: badge de status de engenharia do catálogo.
+function StatusEngenharia({ equipamento }) {
+  const utilizavel = equipamento?.utilizavel_em_projeto !== false
+  const nivel = equipamento?.qualidade?.nivel
+  const faltando = equipamento?.bloqueio_engenharia || []
+  if (!utilizavel) {
+    return (
+      <span title={faltando.length ? `Faltando: ${faltando.join(', ')}` : 'Specs mínimas ausentes'}
+        className="text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wide bg-red-100 text-red-700 border border-red-200 shrink-0">
+        ❌ Incompleto{faltando.length ? ` · falta ${faltando.join(', ')}` : ''}
+      </span>
+    )
+  }
+  if (['incompleto', 'suspeito', 'aguardando_revisao', 'invalido'].includes(nivel)) {
+    return (
+      <span title={`Nível de qualidade: ${nivel}`}
+        className="text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wide bg-amber-100 text-amber-700 border border-amber-200 shrink-0">
+        ⚠ Revisão
+      </span>
+    )
+  }
+  return (
+    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wide bg-emerald-100 text-emerald-700 border border-emerald-200 shrink-0">
+      ✅ Utilizável
+    </span>
+  )
+}
+
 // ── Card de módulo ────────────────────────────────────────────────────────────
 
 function CardModulo({ modulo, onEditar, onExcluir }) {
@@ -55,7 +83,10 @@ function CardModulo({ modulo, onEditar, onExcluir }) {
 
         {/* Identidade + resumo elétrico */}
         <div className="flex-1 min-w-0">
-          <p className="font-bold text-slate-900 truncate">{modulo.fabricante} — {modulo.modelo}</p>
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="font-bold text-slate-900 truncate">{modulo.fabricante} — {modulo.modelo}</p>
+            <StatusEngenharia equipamento={modulo} />
+          </div>
           <div className="flex flex-wrap gap-x-4 gap-y-0.5 mt-0.5 text-xs text-slate-500">
             {e.potencia_wp  != null && <span className="font-semibold text-slate-700">{e.potencia_wp} Wp</span>}
             {e.voc          != null && <span>Voc {Number(e.voc).toFixed(2)} V</span>}

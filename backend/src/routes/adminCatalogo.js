@@ -277,11 +277,19 @@ router.post('/reprocessar-todos', async (req, res) => {
     const equipamentos = await Equipamento.find(filtro).lean().limit(limite)
 
     let processados = 0, erros = 0, semMudanca = 0
+    // P0-CATALOG-QUALITY-HARDENING-01: contadores do gate para o backfill.
+    let liberados = 0, bloqueados = 0
+    const motivosBloqueio = {}
     const errosDetalhe = []
 
     for (const eq of equipamentos) {
       try {
         const resultado = processarEquipamento(eq, { tipoEvento: 'reprocessamento_manual' })
+        if (resultado.utilizavel_em_projeto) liberados++
+        else {
+          bloqueados++
+          for (const m of (resultado.bloqueio_engenharia || [])) motivosBloqueio[m] = (motivosBloqueio[m] || 0) + 1
+        }
 
         const update = {
           $set: {
@@ -289,6 +297,9 @@ router.post('/reprocessar-todos', async (req, res) => {
             identificacao:      resultado.identificacao,
             qualidade:          resultado.qualidade,
             status_operacional: resultado.status_operacional,
+            // P0-CATALOG-QUALITY-HARDENING-01: backfill do gate de engenharia.
+            utilizavel_em_projeto: resultado.utilizavel_em_projeto,
+            bloqueio_engenharia:   resultado.bloqueio_engenharia,
           },
         }
 
@@ -315,6 +326,10 @@ router.post('/reprocessar-todos', async (req, res) => {
       total_encontrados: equipamentos.length,
       processados,
       sem_mudanca:       semMudanca,
+      // P0-CATALOG-QUALITY-HARDENING-01: resultado do gate
+      liberados,
+      bloqueados,
+      motivos_bloqueio:  motivosBloqueio,
       erros,
       erros_detalhe:     errosDetalhe.slice(0, 10),
       processado_em:     new Date(),

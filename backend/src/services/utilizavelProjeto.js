@@ -16,32 +16,40 @@ const pick = (esp, chaves) => {
   return null
 }
 
-// Campos OBRIGATÓRIOS por tipo (rótulo amigável → presença)
+// Campos MÍNIMOS por tipo (rótulo amigável → presença em especificacoes).
+// P0-CATALOG-QUALITY-HARDENING-01: a matriz mínima é a do sprint — barra
+// identity-only (sem specs do núcleo) sem super-bloquear registros parciais.
+// fabricante/modelo são exigidos pelo schema (required) → sempre presentes.
 const REGRAS = {
   modulo: [
-    ['Potência', (e) => pick(e, ['potencia', 'potencia_w', 'potenciaW'])],
-    ['Voc', (e) => pick(e, ['voc', 'voc_v'])],
-    ['Isc', (e) => pick(e, ['isc', 'isc_a'])],
-    ['Coef. temperatura', (e) => pick(e, ['coef_temp_voc', 'coef_temp_pmax', 'coef_temp'])],
+    ['potencia_wp', (e) => pick(e, ['potencia', 'potencia_w', 'potenciaW', 'potencia_wp'])],
+    ['voc', (e) => pick(e, ['voc', 'voc_v'])],
+    ['isc', (e) => pick(e, ['isc', 'isc_a'])],
   ],
   inversor: [
-    ['Potência', (e) => pick(e, ['potencia', 'potencia_kw', 'potencia_ca'])],
-    ['MPPT', (e) => pick(e, ['mppts', 'n_mppts', 'numero_mppt'])],
-    ['Corrente MPPT', (e) => pick(e, ['corrente_max_mppt', 'isc_max_mppt', 'ipv_max'])],
-    ['Tensão máx CC', (e) => pick(e, ['voc_max', 'voc_max_dc', 'tensao_max_dc'])],
+    ['potencia_kw', (e) => pick(e, ['potencia', 'potencia_kw', 'potencia_ca'])],
+    ['numero_mppt', (e) => pick(e, ['mppts', 'n_mppts', 'numero_mppt'])],
   ],
+  bateria: [
+    ['capacidade_kwh', (e) => pick(e, ['capacidade_kwh', 'capacidade', 'capacidade_kWh'])],
+  ],
+  // Estrutura: fabricante + modelo (topo) bastam — sem especificacoes mínimas.
+  estrutura: [],
   carregador_ev: [
-    ['Potência', (e) => pick(e, ['potencia', 'potencia_kw'])],
-    ['Tensão', (e) => pick(e, ['tensao', 'tensao_v'])],
-    ['Corrente', (e) => pick(e, ['corrente', 'corrente_a'])],
+    ['potencia', (e) => pick(e, ['potencia', 'potencia_kw'])],
+    ['tensao', (e) => pick(e, ['tensao', 'tensao_v'])],
+    ['corrente', (e) => pick(e, ['corrente', 'corrente_a'])],
   ],
 }
 
 /**
+ * Avalia se o equipamento cumpre a matriz mínima para uso em projeto.
+ * Tipos conhecidos sem regras (estrutura) → utilizável. Tipo desconhecido →
+ * não cai mais em REGRAS.modulo (evita bloqueio falso por specs de módulo).
  * @returns {{ utilizavel:boolean, faltando:string[] }}
  */
 export function avaliarUtilizavel(tipo, especificacoes) {
-  const regras = REGRAS[tipo] || REGRAS.modulo
+  const regras = REGRAS[tipo] ?? []
   const faltando = regras.filter(([, fn]) => fn(especificacoes || {}) === null).map(([rotulo]) => rotulo)
   return { utilizavel: faltando.length === 0, faltando }
 }

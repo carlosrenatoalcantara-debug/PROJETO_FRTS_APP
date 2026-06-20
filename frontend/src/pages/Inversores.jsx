@@ -172,6 +172,36 @@ const SPECS_EXTRA = [
   { key: 'garantia_anos',           label: 'Garantia',              unit: 'anos'},
 ]
 
+// P0-CATALOG-QUALITY-HARDENING-01: badge de status de engenharia do catálogo.
+// ✅ Utilizável · ⚠ Revisão necessária · ❌ Incompleto (com motivos).
+function StatusEngenharia({ equipamento }) {
+  const utilizavel = equipamento?.utilizavel_em_projeto !== false
+  const nivel = equipamento?.qualidade?.nivel
+  const faltando = equipamento?.bloqueio_engenharia || []
+  if (!utilizavel) {
+    return (
+      <span title={faltando.length ? `Faltando: ${faltando.join(', ')}` : 'Specs mínimas ausentes'}
+        className="text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wide bg-red-100 text-red-700 border border-red-200 shrink-0">
+        ❌ Incompleto{faltando.length ? ` · falta ${faltando.join(', ')}` : ''}
+      </span>
+    )
+  }
+  const precisaRevisao = ['incompleto', 'suspeito', 'aguardando_revisao', 'invalido'].includes(nivel)
+  if (precisaRevisao) {
+    return (
+      <span title={`Nível de qualidade: ${nivel}`}
+        className="text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wide bg-amber-100 text-amber-700 border border-amber-200 shrink-0">
+        ⚠ Revisão
+      </span>
+    )
+  }
+  return (
+    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wide bg-emerald-100 text-emerald-700 border border-emerald-200 shrink-0">
+      ✅ Utilizável
+    </span>
+  )
+}
+
 function SpecGroup({ titulo, specs, espec, payload }) {
   const visiveis = specs.filter(s => espec?.[s.key] != null)
   // P1-ENGINEERING-CONSUME-01: campos AUSENTES que têm fallback conservador (ex.:
@@ -361,6 +391,7 @@ export default function Inversores() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <p className="font-bold text-slate-900 truncate">{inv.fabricante} — {inv.modelo}</p>
+                      <StatusEngenharia equipamento={inv} />
                       {espec.subtipo && (
                         <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wide shrink-0
                           ${espec.subtipo === 'microinversor' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
