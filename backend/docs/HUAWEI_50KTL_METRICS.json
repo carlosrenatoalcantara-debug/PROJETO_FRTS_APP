@@ -1,0 +1,51 @@
+{
+  "sprint": "P1-HUAWEI-50KTL-RCA-01",
+  "data": "2026-06-19",
+  "modelo": "Claude Sonnet 4.6",
+
+  "metricas_codigo": {
+    "arquivos_alterados": 1,
+    "linhas_adicionadas": 3,
+    "linhas_modificadas": 2,
+    "linhas_removidas": 0,
+    "novos_arquivos": 0,
+    "arquivos_excluidos": 0,
+    "build_resultado": "SUCCESS",
+    "build_tempo_s": 12.89,
+    "build_erros": 0,
+    "build_warnings": 1,
+    "build_warning_descricao": "chunk > 2000kB (pré-existente, não introduzido por esta sprint)"
+  },
+
+  "rca": {
+    "arquivo_raiz": "backend/src/utils/catalogo/fabricanteModeloFallback.js",
+    "linha_raiz": "94-95",
+    "tipo_erro": "Regex \\w* não captura hífen em JavaScript",
+    "modelo_afetado": "SUN2000-50KTL-M0",
+    "modelo_capturado_truncado": "SUN2000-50KTL",
+    "sufixo_perdido": "-M0",
+    "causa_secundaria": "Ausência de padrão órfão para SUN2000 — PDFs sem 'Huawei' no OCR falhavam totalmente",
+    "etapa_falha": "InternalAdapter.extrairFabricanteModelo() → cascata exausta → normalizarMulti() → itens=[] → IMPORTACAO_FALHOU"
+  },
+
+  "compatibilidade": {
+    "SUN2000-60KTL": "PRESERVADA — sem sufixo após TL, \\w* e [-A-Z0-9]* equivalentes",
+    "SUN2000-100KTL-H1": "MELHORADA — sufixo -H1 agora capturado corretamente",
+    "outros_fabricantes": "PRESERVADA — alteração isolada ao bloco Huawei e orphans",
+    "ModalNovoInversor": "PRESERVADA",
+    "datasheetMultiController": "PRESERVADA",
+    "AIOrchestrator": "PRESERVADA"
+  },
+
+  "validacao": {
+    "build": "SIM",
+    "regex_validacao_codigo": "SIM — /\\b(SUN2000-\\d{1,3}K?TL[-A-Z0-9]*)\\b/i.test('SUN2000-50KTL-M0') === true",
+    "runtime_50KTL_M0": "NAO — requer PDF real em Railway",
+    "runtime_60KTL_regressao": "NAO — requer PDF real em Railway",
+    "testes_unitarios": "NAO_EXECUTADOS",
+    "testes_e2e": "NAO_EXECUTADOS"
+  },
+
+  "resultado_final": "CORRECAO_APLICADA_BUILD_VALIDO",
+  "nota": "Fix mínimo: 1 arquivo, 5 linhas. Raiz em fabricanteModeloFallback.js (\\w* → [-A-Z0-9]* + orphan SUN2000). Runtime pendente de validação com PDF real em Railway."
+}
