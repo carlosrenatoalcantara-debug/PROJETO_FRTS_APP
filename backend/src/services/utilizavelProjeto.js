@@ -35,11 +35,10 @@ const REGRAS = {
   ],
   // Estrutura: fabricante + modelo (topo) bastam — sem especificacoes mínimas.
   estrutura: [],
-  carregador_ev: [
-    ['potencia', (e) => pick(e, ['potencia', 'potencia_kw'])],
-    ['tensao', (e) => pick(e, ['tensao', 'tensao_v'])],
-    ['corrente', (e) => pick(e, ['corrente', 'corrente_a'])],
-  ],
+  // carregador_ev FORA do escopo desta sprint (P0-CATALOG-QUALITY-HARDENING-01
+  // cobre FV: modulo/inversor/estrutura/bateria) e o domínio EV não deve ser
+  // alterado. Sem regras → não-gateado (preserva o comportamento anterior).
+  carregador_ev: [],
 }
 
 /**
