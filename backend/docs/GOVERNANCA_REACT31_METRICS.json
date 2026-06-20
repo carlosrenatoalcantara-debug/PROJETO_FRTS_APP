@@ -1,0 +1,51 @@
+{
+  "sprint": "P1-GOVERNANCA-REACT31-RCA-01",
+  "data": "2026-06-19",
+  "modelo": "Claude Sonnet 4.6",
+
+  "metricas_codigo": {
+    "arquivos_alterados": 2,
+    "linhas_adicionadas": 1,
+    "linhas_modificadas": 4,
+    "linhas_removidas": 0,
+    "novos_arquivos": 0,
+    "arquivos_excluidos": 0,
+    "build_resultado": "SUCCESS",
+    "build_tempo_s": 13.95,
+    "build_erros": 0,
+    "build_warnings": 1,
+    "build_warning_descricao": "chunk > 2000kB (pré-existente, não introduzido por esta sprint)"
+  },
+
+  "rca": {
+    "componente_crash": "ComparadorRevisoes.jsx",
+    "linha_crash": 116,
+    "arquivo_origem": "diffRevisoes.js",
+    "linha_origem": "36-37",
+    "tipo_erro": "React Error #31 — object rendered as React child",
+    "objeto": "{imax, secao, disj}",
+    "campo_errado": "cabos.dc.bitola",
+    "campo_correto": "cabos.dc.secao",
+    "motivo_latencia": "ComparadorRevisoes só renderiza com 2+ revisões congeladas; projetos sem revisão arquivada não trigavam o crash"
+  },
+
+  "compatibilidade": {
+    "GovernancaPainel": "PRESERVADA",
+    "E8Orcamento": "PRESERVADA",
+    "ProjetosFVDetalhes": "PRESERVADA",
+    "engenhariaNormativa": "PRESERVADA",
+    "engenhariaGovernanca": "PRESERVADA",
+    "snapshot_schema": "PRESERVADO"
+  },
+
+  "validacao": {
+    "build": "SIM",
+    "runtime_T15": "NAO — requer projeto com revisoes congeladas no ambiente de producao",
+    "runtime_T16": "NAO — requer status HOMOLOGADO no ambiente de producao",
+    "testes_unitarios": "NAO_EXECUTADOS",
+    "testes_e2e": "NAO_EXECUTADOS"
+  },
+
+  "resultado_final": "CORRECAO_APLICADA_BUILD_VALIDO",
+  "nota": "Fix mínimo: 2 arquivos, 5 linhas. Root cause em diffRevisoes.js (campo errado). Safety net em ComparadorRevisoes.jsx (serialize defensivo). Runtime pendente de validação em produção."
+}

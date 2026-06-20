@@ -33,8 +33,8 @@ function extrair(bundle) {
       'Voc máx (V)': fmtNum(g(t, 'resumo.vocMaxGlobal'), ' V'),
       'Vmpp (V)': fmtNum(g(t, 'modulo.vmpp'), ' V'),
       'Isc total (A)': fmtNum(g(t, 'resumo.iscTotalDC'), ' A'),
-      'Cabo CC (mm²)': g(t, 'cabos.dc.bitola') ?? g(t, 'cabos.dc') ?? null,
-      'Cabo CA (mm²)': g(t, 'cabos.ac.bitola') ?? g(t, 'cabos.ac') ?? null,
+      'Cabo CC (mm²)': g(t, 'cabos.dc.secao') ?? g(t, 'cabos.dc.bitola') ?? null,
+      'Cabo CA (mm²)': g(t, 'cabos.ac.secao') ?? g(t, 'cabos.ac.bitola') ?? null,
       'DPS': g(t, 'protecoes.dps') ? String(g(t, 'protecoes.dps')) : null,
     },
     financeiro: {
