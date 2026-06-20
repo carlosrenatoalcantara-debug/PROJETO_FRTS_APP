@@ -1,0 +1,53 @@
+{
+  "sprint": "P1-CADASTRO-MANUAL-EQUIPAMENTOS-01",
+  "data": "2026-06-20",
+  "commit": "a2fa744",
+
+  "cobertura_por_tipo": {
+    "modulo": {
+      "cadastro_manual_existia": true,
+      "campos_minimos_cobertos_antes": ["fabricante", "modelo", "potencia_wp", "voc", "vmp"],
+      "campos_minimos_cobertos_depois": ["fabricante", "modelo", "potencia_wp", "voc", "vmp", "isc", "imp", "garantia_produto", "garantia_performance"],
+      "aparece_em_e7": true,
+      "status": "COMPLETO"
+    },
+    "inversor": {
+      "cadastro_manual_existia": false,
+      "campos_minimos_cobertos_antes": [],
+      "campos_minimos_cobertos_depois": ["fabricante", "modelo", "potencia_kw", "n_mppts", "entradas_por_mppt", "tensao_max_entrada", "corrente_max_por_mppt"],
+      "aparece_em_e7": true,
+      "status": "COMPLETO"
+    },
+    "estrutura": {
+      "cadastro_manual_existia": false,
+      "campos_minimos_cobertos_antes": ["N/A (hardcoded)"],
+      "campos_minimos_cobertos_depois": ["fabricante", "modelo", "tipo (via modelo)", "garantia", "preco"],
+      "aparece_em_e7": true,
+      "nota": "Criação via Catálogo geral ou API direta. SeletorEstrutura agora lê MongoDB.",
+      "status": "COMPLETO"
+    },
+    "bateria": {
+      "cadastro_manual_existia": false,
+      "campos_minimos_cobertos_antes": [],
+      "campos_minimos_cobertos_depois": ["fabricante", "modelo", "capacidade_kwh", "voltagem", "tipo_quimica", "garantia_anos"],
+      "aparece_em_e7": false,
+      "nota": "Baterias não têm seletor em E7 (sistema FV padrão). Cadastro no catálogo disponível.",
+      "status": "COMPLETO_CATALOGO"
+    }
+  },
+
+  "validacao_runtime": {
+    "modulo_criado": "PENDENTE",
+    "inversor_criado": "PENDENTE",
+    "estrutura_criada": "PENDENTE",
+    "bateria_criada": "PENDENTE",
+    "equipamento_aparece_e7": "PENDENTE",
+    "fluxo_completo_sem_ocr": "PENDENTE"
+  },
+
+  "arquivos_modificados": 4,
+  "linhas_adicionadas": 316,
+  "backend_modificado": false,
+  "deploy_commit": "a2fa744",
+  "deploy_status": "em_andamento"
+}

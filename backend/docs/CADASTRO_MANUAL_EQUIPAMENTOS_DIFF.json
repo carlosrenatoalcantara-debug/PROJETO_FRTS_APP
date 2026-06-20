@@ -1,0 +1,69 @@
+{
+  "sprint": "P1-CADASTRO-MANUAL-EQUIPAMENTOS-01",
+  "data": "2026-06-20",
+  "commit": "a2fa744",
+
+  "arquivos_alterados": [
+    {
+      "arquivo": "frontend/src/components/equipamentos/ModalNovoModulo.jsx",
+      "tipo": "fix",
+      "descricao": "Adiciona Isc, Imp, garantia_produto e garantia_performance ao modo manual",
+      "linhas_adicionadas": 30,
+      "campos_adicionados": ["isc", "imp", "garantia_produto", "garantia_performance"]
+    },
+    {
+      "arquivo": "frontend/src/components/equipamentos/ModalNovoInversor.jsx",
+      "tipo": "feat",
+      "descricao": "Adiciona aba 'Preencher Manualmente' ao modal de inversores",
+      "linhas_adicionadas": 144,
+      "campos_adicionados": ["fabricante", "modelo", "potencia_kw", "n_mppts", "entradas_por_mppt", "tensao_max_entrada", "corrente_max_por_mppt", "preco_sugerido"]
+    },
+    {
+      "arquivo": "frontend/src/components/fv/SeletorEstrutura.jsx",
+      "tipo": "feat",
+      "descricao": "Adiciona leitura de MongoDB para estruturas customizadas e mescla com base hardcoded",
+      "linhas_adicionadas": 32,
+      "comportamento": "GET /api/equipamentos/engenharia?tipo=estrutura + merge com ESTRUTURAS_BASE"
+    },
+    {
+      "arquivo": "frontend/src/pages/Baterias.jsx",
+      "tipo": "fix",
+      "descricao": "Implementa ModalNovaBateria — botão 'Nova Bateria' estava quebrado (sem modal renderizado)",
+      "linhas_adicionadas": 110,
+      "campos_adicionados": ["fabricante", "modelo", "capacidade_kwh", "voltagem", "tipo_quimica", "garantia_anos", "preco_sugerido"]
+    }
+  ],
+
+  "falhas_pre_sprint": [
+    {
+      "id": "F01",
+      "tipo": "campos_faltantes",
+      "arquivo": "ModalNovoModulo.jsx",
+      "descricao": "Modo manual não permitia salvar Isc, Imp, garantia_produto, garantia_performance",
+      "impacto": "Módulos manuais ficavam sem dados elétricos essenciais para validação de strings"
+    },
+    {
+      "id": "F02",
+      "tipo": "funcionalidade_ausente",
+      "arquivo": "ModalNovoInversor.jsx",
+      "descricao": "Nenhum modo manual existia. Somente upload de PDF/datasheet.",
+      "impacto": "Operador bloqueado sem datasheet. Não havia caminho alternativo."
+    },
+    {
+      "id": "F03",
+      "tipo": "modal_nao_renderizado",
+      "arquivo": "Baterias.jsx",
+      "descricao": "setModalAberto(true) chamado mas sem <ModalNovaBateria> no JSX",
+      "impacto": "Botão 'Nova Bateria' completamente disfuncional — 0% de cadastro manual possível"
+    },
+    {
+      "id": "F04",
+      "tipo": "dados_hardcoded",
+      "arquivo": "SeletorEstrutura.jsx",
+      "descricao": "Lista de estruturas era hardcoded. Nenhuma estrutura cadastrada no MongoDB aparecia no E7.",
+      "impacto": "Estruturas personalizadas não podiam ser usadas em projetos"
+    }
+  ],
+
+  "backend_alteracoes": "NENHUMA — todas as correções foram no frontend. O backend já aceitava POST /api/equipamentos para todos os tipos."
+}
