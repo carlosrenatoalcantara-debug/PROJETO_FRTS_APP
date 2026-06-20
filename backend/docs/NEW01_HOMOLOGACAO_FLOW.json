@@ -1,0 +1,78 @@
+{
+  "sprint": "P0-NEW01-HOMOLOGACAO-PERSISTENCE-RCA-01",
+  "data": "2026-06-20",
+  "modelo": "Claude Opus 4.8",
+  "tipo": "rca_readonly",
+  "revisao_gemini": "PENDENTE — ferramenta indisponivel",
+
+  "armazenamento_memoria": {
+    "existe": true,
+    "tipo": "Map() singleton de modulo",
+    "arquivo": "backend/src/controllers/homologacaoController.js",
+    "linha": 13,
+    "declaracao": "const homologacoesDB = new Map()",
+    "comentario_codigo": "Mock database - em producao usar banco real",
+    "chave": "homologacao:${projetoId}",
+    "escritas": [
+      { "fn": "atualizarChecklist", "linha": 252, "rota": "PATCH /homologacao/checklist", "payload": ["documentos", "observacoes", "status"] },
+      { "fn": "atualizarStatusHomologacao", "linha": 307, "rota": "PATCH /homologacao/status", "payload": ["status", "data_envio", "data_aprovacao", "art_numero", "observacoes"] }
+    ],
+    "leituras": [
+      { "fn": "atualizarStatusHomologacao", "linha": 295, "rota": "PATCH /homologacao/status" },
+      { "fn": "obterStatusHomologacao", "linha": 325, "rota": "GET /homologacao/status" }
+    ]
+  },
+
+  "sistemas_paralelos": {
+    "A_legado_memoria": {
+      "store": "homologacoesDB (Map)",
+      "persistente": false,
+      "rotas": ["PATCH /homologacao/checklist", "PATCH /homologacao/status", "GET /homologacao/status"],
+      "callers_frontend": ["ChecklistDocumentos.jsx (PATCH /checklist)"],
+      "rotas_mortas": ["PATCH /homologacao/status", "GET /homologacao/status (sem caller na UI)"]
+    },
+    "B_assistida_mongo": {
+      "store": "ProjetoFV.homologacao (MongoDB)",
+      "persistente": true,
+      "rotas": ["PATCH /homologacao/assistida/status", "PATCH /homologacao/protocolo"],
+      "callers_frontend": ["CentralHistorico.jsx (PATCH /protocolo)", "CentralDados.jsx (le status_homologacao)"]
+    }
+  },
+
+  "bug_secundario_checklist": {
+    "descricao": "obterChecklist (GET /checklist) regenera template via gerarChecklistDocumentos() e NUNCA le o Map",
+    "arquivo": "backend/src/controllers/homologacaoController.js",
+    "linha_get": 223,
+    "consequencia": "tick-state do checklist se perde a cada reload de pagina, independente de restart; escrita no Map e write-only/morta",
+    "gravidade": "defeito ativo, mais amplo que o restart"
+  },
+
+  "fluxo": {
+    "origem_status": "projeto.homologacao (Mongo) para a UI atual; Map para checklist tick-state",
+    "caminho": "Projeto (Mongo) -> Central de Homologacao (6 abas) -> Checklist[Map volatil] / Protocolo+Status[Mongo persistente] -> Documentos regenerados sob demanda"
+  },
+
+  "persistencia_mongo": {
+    "modelo": "ProjetoFV.homologacao",
+    "linhas_schema": "763-804",
+    "campos_persistidos": [
+      "status (enum legado)",
+      "status_homologacao (enum S9.0)",
+      "historico_status[]",
+      "numero_protocolo",
+      "protocolo_atualizado_em",
+      "protocolo_historico[]",
+      "iniciada_em", "iniciada_por", "concluida_em", "concluida_por",
+      "checklist_documentos (schema existe, atualmente nao populado pela rota legada)",
+      "documento_memorial", "documento_carta", "documento_art",
+      "concessionaria"
+    ]
+  },
+
+  "respostas_fase3": {
+    "status_atual_salvo_no_mongo": "SIM",
+    "historico_salvo_no_mongo": "SIM",
+    "transicoes_salvas": "SIM (via /assistida/status; NAO via rota legada /status sem uso)",
+    "perdido_apos_restart": ["checklist: documentos[].concluido", "checklist: observacoes", "checklist: status", "rota legada /status: art_numero, data_envio, data_aprovacao (sem uso pela UI)"]
+  }
+}

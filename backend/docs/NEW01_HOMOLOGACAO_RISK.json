@@ -1,0 +1,56 @@
+{
+  "sprint": "P0-NEW01-HOMOLOGACAO-PERSISTENCE-RCA-01",
+  "data": "2026-06-20",
+  "veredito": "P0_CONFIRMADO",
+  "falso_positivo": false,
+  "nota_veredito": "Map em memoria existe e perde dados em restart — confirmado. Porem blast radius MUITO menor que a auditoria indicou: status/historico/protocolo ja persistem em Mongo.",
+
+  "gravidade_real": "MEDIA",
+  "gravidade_auditoria_original": "ALTA (maior risco operacional / P1)",
+  "justificativa_rebaixamento": "Nucleo de homologacao (status_homologacao, historico_status, numero_protocolo, protocolo_historico) ja persiste em ProjetoFV.homologacao. Documentos sao regenerados sob demanda. So o tick-state do checklist e uma rota de status legada sem uso vivem no Map.",
+
+  "o_que_se_perde": {
+    "no_restart_deploy": [
+      { "item": "checklist documentos[].concluido", "impacto": "operador re-marca os documentos coletados", "severidade": "MEDIA" },
+      { "item": "checklist observacoes", "impacto": "anotacao do checklist perdida", "severidade": "BAIXA" },
+      { "item": "checklist status", "impacto": "estado do checklist perdido", "severidade": "BAIXA" },
+      { "item": "rota legada /status (art_numero, data_envio, data_aprovacao)", "impacto": "nenhum — rota sem caller na UI atual", "severidade": "BAIXA" }
+    ],
+    "tambem_no_reload_sem_restart": {
+      "item": "checklist tick-state",
+      "motivo": "obterChecklist (GET) regenera template e nao le o Map — escrita morta",
+      "severidade": "MEDIA",
+      "observacao": "defeito mais grave que o restart; o checklist nunca persistiu de fato"
+    }
+  },
+
+  "o_que_NAO_se_perde": [
+    "status_homologacao (Mongo)",
+    "historico_status[] (Mongo)",
+    "numero_protocolo + protocolo_historico[] (Mongo)",
+    "iniciada/concluida_em/por (Mongo)",
+    "documentos memorial/carta/ART (regenerados do projeto persistido)",
+    "snapshot de equipamentos quando congelado (Mongo)"
+  ],
+
+  "impacto_operacional": {
+    "instaladora_perde_homologacao_em_andamento": false,
+    "instaladora_perde_progresso_de_checklist": true,
+    "dado_legal_ou_financeiro_perdido": false,
+    "retrabalho": "re-marcar checklist de documentos"
+  },
+
+  "correcao_recomendada": {
+    "implementar_agora": false,
+    "estrategia": "Unificar no subdoc ProjetoFV.homologacao (ja existente). Migrar atualizarChecklist/obterChecklist para Mongo; fazer GET ler o estado persistido (corrige bug de nao-leitura); aposentar rota legada /status; remover o Map.",
+    "necessita_migracao_dados": false,
+    "necessita_migracao_codigo": true,
+    "necessita_migracao_schema": "minima (checklist_documentos ja existe; opcional formalizar array de itens)",
+    "esforco_estimado": "BAIXO-MEDIO",
+    "arquivos_alvo": [
+      "backend/src/controllers/homologacaoController.js (atualizarChecklist, obterChecklist, atualizar/obterStatusHomologacao, remover homologacoesDB)"
+    ]
+  },
+
+  "proxima_sprint_sugerida": "P1-NEW01-HOMOLOGACAO-PERSISTENCE-FIX-01 (escopo: checklist -> Mongo + GET le estado + aposentar rota legada)"
+}
