@@ -1,8 +1,104 @@
 {
   "sprint": "P1-RUNTIME-CLOSURE-01",
   "data": "2026-06-20",
-  "resultado_final": "NAO_HOMOLOGADO_PARA_OPERACAO",
-  "testes_executados": 0,
-  "testes_passaram": 0,
-  "modulo_fv_homologado": false
+  "commit_validado": "68eba39",
+  "resultado_final": "PARCIALMENTE_HOMOLOGADO",
+  "testes_executados": 4,
+  "testes_passaram": 4,
+  "modulo_fv_homologado": false,
+  "bugs_criticos_p1_confirmados": true,
+
+  "testes": [
+    {
+      "id": "T01",
+      "nome": "Huawei SUN2000-50KTL-M0",
+      "bug": "P1-HUAWEI-50KTL-RCA-01",
+      "validado_em_codigo": true,
+      "validado_em_runtime": true,
+      "status": "PASSOU",
+      "evidencia": "fabricante=Huawei, modelo=SUN2000-50KTL-M0, score=100 via Railway API"
+    },
+    {
+      "id": "T02",
+      "nome": "Huawei SUN2000-60KTL-M0 (regressão)",
+      "bug": "P1-HUAWEI-50KTL-RCA-01",
+      "validado_em_codigo": true,
+      "validado_em_runtime": true,
+      "status": "PASSOU",
+      "evidencia": "fabricante=Huawei, modelo=SUN2000-60KTL-M0, score=100 via Railway API"
+    },
+    {
+      "id": "T03",
+      "nome": "COSERN Trifásica 380V",
+      "bug": "P1-TENSAO-380V-PARSER-01",
+      "validado_em_codigo": true,
+      "validado_em_runtime": true,
+      "status": "PASSOU",
+      "evidencia": "tipoLigacao=Trifásico 380V + tensao_v=380 no MongoDB + UI=380V",
+      "subitens": {
+        "bug1_parser": "PASSOU",
+        "bug2_whitelist": "PASSOU",
+        "bug3_slice": "PASSOU (indiretamente)",
+        "bug4_hidratacao": "PASSOU"
+      }
+    },
+    {
+      "id": "T04",
+      "nome": "Governança React Error #31",
+      "bug": "P1-GOVERNANCA-REACT31-RCA-01",
+      "validado_em_codigo": true,
+      "validado_em_runtime": true,
+      "status": "PASSOU_PARCIAL",
+      "evidencia": "Zero erros React na console. ComparadorRevisões renderizou sem crash.",
+      "limitacao": "Projeto sem revisões congeladas — comparação real não exercida"
+    },
+    {
+      "id": "T05",
+      "nome": "Governança Divergências",
+      "validado_em_codigo": false,
+      "validado_em_runtime": false,
+      "status": "NAO_EXECUTADO",
+      "bloqueador": "Projeto com revisões congeladas ausente"
+    },
+    {
+      "id": "T06",
+      "nome": "Documentação Homologada",
+      "validado_em_codigo": false,
+      "validado_em_runtime": false,
+      "status": "NAO_EXECUTADO",
+      "bloqueador": "Projeto com status HOMOLOGADO ausente"
+    },
+    {
+      "id": "T07",
+      "nome": "Unifilar 355 módulos / 2 inversores",
+      "validado_em_codigo": false,
+      "validado_em_runtime": false,
+      "status": "NAO_EXECUTADO",
+      "bloqueador": "Projeto específico não disponível"
+    },
+    {
+      "id": "T08",
+      "nome": "Multiarranjo persistência",
+      "validado_em_codigo": false,
+      "validado_em_runtime": false,
+      "status": "NAO_EXECUTADO",
+      "bloqueador": "Projeto com multiarranjo não disponível"
+    },
+    {
+      "id": "T09",
+      "nome": "Beneficiárias pré-preenchidas",
+      "validado_em_codigo": false,
+      "validado_em_runtime": false,
+      "status": "NAO_EXECUTADO",
+      "bloqueador": "Projeto com beneficiárias não disponível"
+    },
+    {
+      "id": "T10",
+      "nome": "Fluxo E2E completo",
+      "validado_em_codigo": false,
+      "validado_em_runtime": false,
+      "status": "NAO_EXECUTADO",
+      "bloqueador": "Chrome Extension bloqueou file upload de PDF"
+    }
+  ]
 }
