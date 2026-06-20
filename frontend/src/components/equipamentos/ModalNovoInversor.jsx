@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react'
-import { X, Upload, CheckCircle, AlertCircle, Loader, FileText, Zap } from 'lucide-react'
+import { X, Upload, CheckCircle, AlertCircle, Loader, FileText, Zap, PenLine } from 'lucide-react'
 import Button from '../ui/Button'
 import Card from '../ui/Card'
 
@@ -37,10 +37,45 @@ function statusLabel(item) {
 
 export default function ModalNovoInversor({ arquivosIniciais = [], onClose, onSalvar }) {
   const inputRef  = useRef(null)
+  const [modo, setModo]             = useState('lote')  // 'lote' | 'manual'
   const [fila, setFila]             = useState(() => arquivosIniciais.map(criarItem))
   const [arrastando, setArrastando] = useState(false)
   const [processando, setProcessando] = useState(false)
   const [concluido, setConcluido]   = useState(false)
+
+  // ── Modo manual ─────────────────────────────────────────────────────────────
+  const [formManual, setFormManual] = useState({
+    tipo: 'inversor',
+    fabricante: '',
+    modelo: '',
+    especificacoes: {},
+    preco_sugerido: 0,
+  })
+  const [salvandoManual, setSalvandoManual] = useState(false)
+
+  function setEspec(key, valor) {
+    setFormManual(f => ({
+      ...f,
+      especificacoes: { ...f.especificacoes, [key]: valor === '' ? undefined : valor },
+    }))
+  }
+
+  async function handleSalvarManual() {
+    if (!formManual.fabricante || !formManual.modelo) {
+      return alert('Preencha fabricante e modelo')
+    }
+    setSalvandoManual(true)
+    try {
+      const res = await fetch(`${API_URL}/api/equipamentos`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formManual),
+      })
+      if (res.ok) { onSalvar(); onClose() }
+      else alert('Erro ao salvar inversor')
+    } catch { alert('Erro ao salvar inversor') }
+    finally { setSalvandoManual(false) }
+  }
 
   function criarItem(file) {
     return { id: `${file.name}-${Date.now()}-${Math.random()}`, file, nome: file.name,
@@ -165,8 +200,8 @@ export default function ModalNovoInversor({ arquivosIniciais = [], onClose, onSa
               <Zap size={20} className="text-blue-600" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-slate-900">Importar Inversores</h2>
-              <p className="text-xs text-slate-500">Claude extrai todos os dados para o unifilar</p>
+              <h2 className="text-xl font-bold text-slate-900">Novo Inversor</h2>
+              <p className="text-xs text-slate-500">Importe um datasheet ou preencha manualmente</p>
             </div>
           </div>
           <button onClick={onClose} className="p-1 hover:bg-slate-100 rounded">
@@ -175,6 +210,91 @@ export default function ModalNovoInversor({ arquivosIniciais = [], onClose, onSa
         </div>
 
         <div className="overflow-y-auto flex-1 p-6 space-y-5">
+
+          {/* Abas */}
+          <div className="flex gap-2">
+            <Button
+              onClick={() => setModo('lote')}
+              variante={modo === 'lote' ? 'primario' : 'secundario'}
+              className="flex items-center gap-2"
+            >
+              <Upload size={15} /> Upload de Datasheet
+            </Button>
+            <Button
+              onClick={() => setModo('manual')}
+              variante={modo === 'manual' ? 'primario' : 'secundario'}
+              className="flex items-center gap-2"
+            >
+              <PenLine size={15} /> Preencher Manualmente
+            </Button>
+          </div>
+
+          {/* ── MODO MANUAL ── */}
+          {modo === 'manual' && (
+            <div className="grid grid-cols-2 gap-4">
+              <input
+                type="text"
+                placeholder="Fabricante *"
+                value={formManual.fabricante}
+                onChange={e => setFormManual(f => ({ ...f, fabricante: e.target.value }))}
+                className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <input
+                type="text"
+                placeholder="Modelo *"
+                value={formManual.modelo}
+                onChange={e => setFormManual(f => ({ ...f, modelo: e.target.value }))}
+                className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <input
+                type="number"
+                placeholder="Potência CA (kW) *"
+                step="0.1"
+                value={formManual.especificacoes?.potencia_kw ?? ''}
+                onChange={e => setEspec('potencia_kw', e.target.value === '' ? '' : parseFloat(e.target.value))}
+                className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <input
+                type="number"
+                placeholder="Número de MPPTs"
+                value={formManual.especificacoes?.n_mppts ?? ''}
+                onChange={e => setEspec('n_mppts', e.target.value === '' ? '' : parseInt(e.target.value))}
+                className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <input
+                type="number"
+                placeholder="Entradas por MPPT"
+                value={formManual.especificacoes?.entradas_por_mppt ?? ''}
+                onChange={e => setEspec('entradas_por_mppt', e.target.value === '' ? '' : parseInt(e.target.value))}
+                className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <input
+                type="number"
+                placeholder="Tensão máx. CC (V)"
+                value={formManual.especificacoes?.tensao_max_entrada ?? ''}
+                onChange={e => setEspec('tensao_max_entrada', e.target.value === '' ? '' : parseFloat(e.target.value))}
+                className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <input
+                type="number"
+                placeholder="Corrente máx. por MPPT (A)"
+                step="0.1"
+                value={formManual.especificacoes?.corrente_max_por_mppt ?? ''}
+                onChange={e => setEspec('corrente_max_por_mppt', e.target.value === '' ? '' : parseFloat(e.target.value))}
+                className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <input
+                type="number"
+                placeholder="Preço (R$)"
+                value={formManual.preco_sugerido}
+                onChange={e => setFormManual(f => ({ ...f, preco_sugerido: parseFloat(e.target.value) || 0 }))}
+                className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          )}
+
+          {/* ── MODO LOTE (PDF) ── */}
+          {modo === 'lote' && (<>
 
           {/* Banner aviso IA — mostra o erro real do servidor */}
           {temAvisoIA && (
@@ -237,20 +357,28 @@ export default function ModalNovoInversor({ arquivosIniciais = [], onClose, onSa
               {totalErros    > 0 && <p className="text-red-600">✗ {totalErros} com erro — verifique e tente novamente</p>}
             </div>
           )}
+        </>)}
         </div>
 
         {/* Footer */}
         <div className="p-6 border-t shrink-0 flex items-center justify-between gap-4">
-          <p className="text-xs text-slate-400">
-            {fila.length === 0 ? 'Nenhum arquivo selecionado'
-              : `${fila.length} arquivo${fila.length > 1 ? 's' : ''} na fila`}
-          </p>
+          {modo === 'lote' ? (
+            <p className="text-xs text-slate-400">
+              {fila.length === 0 ? 'Nenhum arquivo selecionado'
+                : `${fila.length} arquivo${fila.length > 1 ? 's' : ''} na fila`}
+            </p>
+          ) : <span />}
           <div className="flex gap-3">
             <Button onClick={onClose} variante="secundario">Fechar</Button>
-            {podeProcesar && (
+            {modo === 'lote' && podeProcesar && (
               <Button onClick={processarFila} className="flex items-center gap-2">
                 <Zap size={16} />
                 Processar {totalPendente} PDF{totalPendente > 1 ? 's' : ''}
+              </Button>
+            )}
+            {modo === 'manual' && (
+              <Button onClick={handleSalvarManual} disabled={salvandoManual}>
+                {salvandoManual ? 'Salvando…' : 'Salvar'}
               </Button>
             )}
           </div>

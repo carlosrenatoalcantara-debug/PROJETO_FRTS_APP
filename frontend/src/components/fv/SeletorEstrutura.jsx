@@ -1,8 +1,10 @@
 /**
  * SeletorEstrutura.jsx — FV-09: adicionado precoUnitario (por painel) para E8.
+ * Lê estruturas customizadas do MongoDB e mescla com a lista base.
  */
+import { useState, useEffect } from 'react'
 
-const ESTRUTURAS = [
+const ESTRUTURAS_BASE = [
   { id: 'fbco', tipo: 'Fibrocimento',  descricao: 'Estrutura + gancho (fibrocimento)',      garantia: 10, precoUnitario: 120 },
   { id: 'cera', tipo: 'Cerâmico',      descricao: 'Gancho para telha cerâmica',             garantia: 10, precoUnitario: 130 },
   { id: 'meta', tipo: 'Metálico',      descricao: 'Grampo/parafuso para cobertura metálica',garantia: 10, precoUnitario: 110 },
@@ -11,7 +13,35 @@ const ESTRUTURAS = [
   { id: 'solo', tipo: 'Solo',          descricao: 'Estrutura fixada no solo (ground mount)', garantia: 15, precoUnitario: 250 },
 ]
 
+function adaptarEstruturaMongo(eq) {
+  const g = eq.garantia_produto
+  const garantia = (g && typeof g === 'object' ? Number(g.value) : Number(g)) || 10
+  return {
+    id: String(eq._id),
+    tipo: eq.modelo || eq.fabricante || 'Personalizada',
+    descricao: `${eq.fabricante || ''} — ${eq.modelo || ''}`.trim().replace(/^—\s*|^|\s*—$/, '') || 'Estrutura personalizada',
+    garantia,
+    precoUnitario: Number(eq.preco_sugerido) || 0,
+    _custom: true,
+  }
+}
+
 export default function SeletorEstrutura({ onSelecionar, selecionado }) {
+  const [estruturasExtra, setEstruturasExtra] = useState([])
+
+  useEffect(() => {
+    fetch('/api/equipamentos/engenharia?tipo=estrutura')
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (Array.isArray(d?.equipamentos) && d.equipamentos.length > 0) {
+          setEstruturasExtra(d.equipamentos.map(adaptarEstruturaMongo))
+        }
+      })
+      .catch(() => {})
+  }, [])
+
+  const ESTRUTURAS = [...ESTRUTURAS_BASE, ...estruturasExtra]
+
   return (
     <div className="space-y-4 pt-2">
       <h4 className="font-semibold text-slate-900">Tipo de Estrutura</h4>

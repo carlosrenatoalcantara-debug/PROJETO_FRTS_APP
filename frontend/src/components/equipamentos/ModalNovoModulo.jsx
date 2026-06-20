@@ -482,6 +482,36 @@ export default function ModalNovoModulo({ modulo, onClose, onSalvar }) {
                 onChange={e => setFormData({ ...formData, especificacoes: { ...formData.especificacoes, vmp: parseFloat(e.target.value) } })}
                 className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
+              <input
+                type="number"
+                placeholder="Isc (A)"
+                step="0.01"
+                value={formData.especificacoes?.isc || ''}
+                onChange={e => setFormData({ ...formData, especificacoes: { ...formData.especificacoes, isc: parseFloat(e.target.value) } })}
+                className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <input
+                type="number"
+                placeholder="Imp (A)"
+                step="0.01"
+                value={formData.especificacoes?.imp || ''}
+                onChange={e => setFormData({ ...formData, especificacoes: { ...formData.especificacoes, imp: parseFloat(e.target.value) } })}
+                className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <input
+                type="number"
+                placeholder="Garantia produto (anos)"
+                value={formData.garantia_produto?.value || ''}
+                onChange={e => setFormData({ ...formData, garantia_produto: { value: parseFloat(e.target.value), unit: 'anos' } })}
+                className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <input
+                type="number"
+                placeholder="Garantia performance (anos)"
+                value={formData.garantia_performance?.value || ''}
+                onChange={e => setFormData({ ...formData, garantia_performance: { value: parseFloat(e.target.value), unit: 'anos' } })}
+                className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
             </div>
           )}
         </div>

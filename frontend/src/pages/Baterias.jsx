@@ -1,9 +1,107 @@
 import { useState, useEffect, useRef } from 'react'
-import { Plus, Edit2, Trash2, ChevronDown, ChevronUp, Battery, Upload } from 'lucide-react'
+import { Plus, Edit2, Trash2, ChevronDown, ChevronUp, Battery, Upload, X } from 'lucide-react'
 import Card, { CardBody } from '../components/ui/Card'
 import Button from '../components/ui/Button'
 
 const API_URL = '' /* URL relativa forçada — Vercel proxy → Railway. Não usar VITE_API_URL */
+
+// ── Modal de cadastro/edição de bateria ───────────────────────────────────────
+
+function ModalNovaBateria({ bateria, onClose, onSalvar }) {
+  const [form, setForm] = useState(bateria || {
+    tipo: 'bateria',
+    fabricante: '',
+    modelo: '',
+    especificacoes: {},
+    preco_sugerido: 0,
+  })
+  const [salvando, setSalvando] = useState(false)
+
+  function setEspec(key, valor) {
+    setForm(f => ({ ...f, especificacoes: { ...f.especificacoes, [key]: valor === '' ? undefined : valor } }))
+  }
+
+  async function salvar() {
+    if (!form.fabricante || !form.modelo) return alert('Preencha fabricante e modelo')
+    setSalvando(true)
+    try {
+      const url = bateria ? `${API_URL}/api/equipamentos/${bateria._id}` : `${API_URL}/api/equipamentos`
+      const res = await fetch(url, {
+        method: bateria ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      })
+      if (res.ok) { onSalvar(); onClose() }
+      else alert('Erro ao salvar bateria')
+    } catch { alert('Erro ao salvar bateria') }
+    finally { setSalvando(false) }
+  }
+
+  const inp = 'px-4 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-full'
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <Card className="w-full max-w-lg max-h-[90vh] flex flex-col">
+        <div className="flex items-center justify-between p-5 border-b shrink-0">
+          <h2 className="text-lg font-bold text-slate-900">{bateria ? 'Editar Bateria' : 'Nova Bateria'}</h2>
+          <button onClick={onClose} className="p-1 hover:bg-slate-100 rounded"><X size={20} /></button>
+        </div>
+        <div className="overflow-y-auto flex-1 p-5 space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-medium text-slate-600 block mb-1">Fabricante *</label>
+              <input value={form.fabricante} onChange={e => setForm(f => ({ ...f, fabricante: e.target.value }))} placeholder="Ex: BYD" className={inp} />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-slate-600 block mb-1">Modelo *</label>
+              <input value={form.modelo} onChange={e => setForm(f => ({ ...f, modelo: e.target.value }))} placeholder="Ex: Battery-Box Premium HVS" className={inp} />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-slate-600 block mb-1">Capacidade (kWh) *</label>
+              <input type="number" step="0.1" value={form.especificacoes?.capacidade_kwh ?? ''}
+                onChange={e => setEspec('capacidade_kwh', e.target.value === '' ? '' : parseFloat(e.target.value))}
+                placeholder="Ex: 10.24" className={inp} />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-slate-600 block mb-1">Voltagem nominal (V)</label>
+              <input type="number" value={form.especificacoes?.voltagem ?? ''}
+                onChange={e => setEspec('voltagem', e.target.value === '' ? '' : parseFloat(e.target.value))}
+                placeholder="Ex: 51.2" className={inp} />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-slate-600 block mb-1">Tipo de química</label>
+              <select value={form.especificacoes?.tipo_quimica ?? ''}
+                onChange={e => setEspec('tipo_quimica', e.target.value)}
+                className={inp + ' bg-white'}>
+                <option value="">Selecionar…</option>
+                <option value="LiFePO4">LiFePO4</option>
+                <option value="Li-NMC">Li-NMC</option>
+                <option value="Chumbo-Ácido">Chumbo-Ácido</option>
+                <option value="Outra">Outra</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-slate-600 block mb-1">Garantia (anos)</label>
+              <input type="number" value={form.especificacoes?.garantia_anos ?? ''}
+                onChange={e => setEspec('garantia_anos', e.target.value === '' ? '' : parseInt(e.target.value))}
+                placeholder="Ex: 10" className={inp} />
+            </div>
+            <div className="col-span-2">
+              <label className="text-xs font-medium text-slate-600 block mb-1">Preço sugerido (R$)</label>
+              <input type="number" value={form.preco_sugerido || ''}
+                onChange={e => setForm(f => ({ ...f, preco_sugerido: parseFloat(e.target.value) || 0 }))}
+                placeholder="Ex: 18000" className={inp} />
+            </div>
+          </div>
+        </div>
+        <div className="p-5 border-t flex justify-end gap-3 shrink-0">
+          <Button onClick={onClose} variante="secundario">Cancelar</Button>
+          <Button onClick={salvar} disabled={salvando}>{salvando ? 'Salvando…' : 'Salvar'}</Button>
+        </div>
+      </Card>
+    </div>
+  )
+}
 
 function val(v, decimais = 2, sufixo = '') {
   if (v == null || v === '') return '—'
@@ -199,7 +297,7 @@ export default function Baterias() {
           <div className="text-center py-10 text-slate-400">
             <Battery size={44} className="mx-auto mb-3 opacity-25" />
             <p className="font-medium text-slate-600">Nenhuma bateria cadastrada</p>
-            <p className="text-sm mt-1">Clique em <strong>Nova Bateria</strong> ou arraste um datasheet PDF</p>
+            <p className="text-sm mt-1">Clique em <strong>Nova Bateria</strong> para cadastrar manualmente</p>
           </div>
         </CardBody></Card>
       ) : (
@@ -217,6 +315,14 @@ export default function Baterias() {
             />
           ))}
         </div>
+      )}
+
+      {modalAberto && (
+        <ModalNovaBateria
+          bateria={bateriaEditar}
+          onClose={() => setModalAberto(false)}
+          onSalvar={handleSalvar}
+        />
       )}
     </div>
   )
