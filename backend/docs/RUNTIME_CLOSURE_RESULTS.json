@@ -1,0 +1,49 @@
+{
+  "sprint": "P1-RUNTIME-CLOSURE-01",
+  "data": "2026-06-20",
+  "modelo": "Claude Sonnet 4.6",
+
+  "ambiente": {
+    "railway_acessado": false,
+    "vercel_acessado": false,
+    "atlas_acessado": false,
+    "runtime_executado": false
+  },
+
+  "resumo": {
+    "total": 10,
+    "executados": 0,
+    "passaram": 0,
+    "falharam": 0,
+    "nao_executados": 10
+  },
+
+  "testes": [
+    { "id": "T01", "status": "NAO_EXECUTADO", "resultado": null },
+    { "id": "T02", "status": "NAO_EXECUTADO", "resultado": null },
+    { "id": "T03", "status": "NAO_EXECUTADO", "resultado": null },
+    { "id": "T04", "status": "NAO_EXECUTADO", "resultado": null },
+    { "id": "T05", "status": "NAO_EXECUTADO", "resultado": null },
+    { "id": "T06", "status": "NAO_EXECUTADO", "resultado": null },
+    { "id": "T07", "status": "NAO_EXECUTADO", "resultado": null },
+    { "id": "T08", "status": "NAO_EXECUTADO", "resultado": null },
+    { "id": "T09", "status": "NAO_EXECUTADO", "resultado": null },
+    { "id": "T10", "status": "NAO_EXECUTADO", "resultado": null }
+  ],
+
+  "perguntas_obrigatorias": {
+    "testes_executados": 0,
+    "testes_passaram": 0,
+    "testes_falharam": 0,
+    "huawei_50ktl_validado": false,
+    "parser_380v_validado": false,
+    "governanca_validada": false,
+    "unifilar_validado": false,
+    "snapshot_validado": false,
+    "fluxo_completo_validado": false,
+    "modulo_fv_homologado": false
+  },
+
+  "resultado_final": "NAO_HOMOLOGADO_PARA_OPERACAO",
+  "motivo": "0/10 testes executados. Insumos necessários (PDFs reais, sessão autenticada) não fornecidos."
+}
