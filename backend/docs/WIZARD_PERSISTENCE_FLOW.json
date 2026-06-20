@@ -1,0 +1,66 @@
+{
+  "sprint": "P0-FV-WIZARD-PERSISTENCE-RCA-01",
+  "data": "2026-06-20",
+  "modelo": "Claude Opus 4.8",
+  "tipo": "rca_readonly",
+  "revisao_gemini": "PENDENTE — ferramenta indisponivel",
+  "evidencia": { "validado_em_codigo": true, "validado_em_runtime": "parcial (POST /projetos-fv exige clienteId+nome: 400)" },
+
+  "wizard_oficial": {
+    "rota": "/projetos-fv/novo",
+    "componente": "pages/ProjetosFVNovo.jsx",
+    "deprecado": "NovaProposta/funilv2 (App.jsx:54 DEPRECATED_DO_NOT_USE)"
+  },
+
+  "criacao_projeto": {
+    "ponto_unico": "components/fv/etapas/E8Orcamento.jsx:354",
+    "funcao": "criarProjeto -> POST /api/projetos-fv",
+    "controller": "projetosFVController.criarProjetoFV:119",
+    "requisitos_runtime": ["clienteId", "nome"],
+    "validacao_linha": 133,
+    "status_default_enviado": "proposta (E8) / rascunho (default da fn)"
+  },
+
+  "autosave": {
+    "hook": "ProjetosFVNovo.jsx:283-304",
+    "condicao": "etapaAtual > etapaAnterior && state.projetoId",
+    "ativo_para_projeto_novo": false,
+    "motivo": "projetoId e null ate a etapa 8",
+    "ativo_em_retomada_id": true
+  },
+
+  "localStorage": {
+    "chave": "forte_solar_wizard_fv_v3",
+    "escrita": "ProjetoFVContext.jsx:163 setItem em todo state (exceto arquivo)",
+    "remocao": ["ProjetoFVContext.jsx:180 resetar", "ProjetosFVNovo.jsx:204 fallback"],
+    "leitura": "NENHUMA (nao existe getItem(LS_KEY) no frontend)",
+    "classificacao": "write-only / morto",
+    "hidratar_origem": "somente banco via ?id= (ProjetosFVNovo:107, dentro de if(idParam))",
+    "apagado_no_mount_sem_id": true
+  },
+
+  "persistencia_por_etapa": [
+    { "etapa": "E1", "conteudo": "cliente + arquivo fatura", "mongo": false, "localStorage": "parcial", "memoria": true, "nota": "arquivo (File) so memoria" },
+    { "etapa": "E2", "conteudo": "consumo/concessionaria/tensao", "mongo": false, "localStorage": "write-only", "memoria": true },
+    { "etapa": "E2.5", "conteudo": "beneficiarias[]", "mongo": false, "localStorage": "write-only", "memoria": true, "nota": "DB so em E8 (lote)" },
+    { "etapa": "E3", "conteudo": "localizacao", "mongo": false, "localStorage": "write-only", "memoria": true },
+    { "etapa": "E4", "conteudo": "irradiancia", "mongo": false, "localStorage": "write-only", "memoria": true },
+    { "etapa": "E5", "conteudo": "dimensionamento", "mongo": false, "localStorage": "write-only", "memoria": true },
+    { "etapa": "E6", "conteudo": "area/panos", "mongo": false, "localStorage": "write-only", "memoria": true },
+    { "etapa": "E7", "conteudo": "equipamentos/arranjos", "mongo": false, "localStorage": "write-only", "memoria": true },
+    { "etapa": "E8", "conteudo": "orcamento + cria projeto + salva todos slices", "mongo": true, "localStorage": "-", "memoria": false }
+  ],
+
+  "backend_ops": {
+    "POST /api/projetos-fv": "apenas em E8; exige clienteId+nome",
+    "PUT /api/projetos-fv/:id/etapa": "E8 (salvarTodosSlices 7 slices) + autosave so com projetoId",
+    "PATCH": "nao usado na criacao do wizard"
+  },
+
+  "respostas_fase2_resumo": {
+    "E1_E7_salva_mongo": false,
+    "E1_E7_salva_localStorage": "escreve mas nao restaura (morto)",
+    "E1_E7_salva_memoria": true,
+    "E8_salva_mongo": true
+  }
+}

@@ -1,0 +1,56 @@
+{
+  "sprint": "P0-FV-WIZARD-PERSISTENCE-RCA-01",
+  "data": "2026-06-20",
+  "veredito": "P0_CONFIRMADO",
+  "falso_positivo": false,
+  "nota_veredito": "Confirmado e MAIS grave que a auditoria: o localStorage tido como mitigacao e write-only (nunca restaurado) e apagado no mount sem ?id=.",
+
+  "gravidade_real": "ALTA",
+  "gravidade_comparada": "Maior que NEW-01 (homologacao=MEDIA): la o nucleo ja persistia em Mongo; aqui 7/8 etapas nao tem persistencia server-side.",
+
+  "cenarios": {
+    "A_fecha_navegador_em_E3": { "perde": "TUDO (E1-E3)", "motivo": "projeto nunca criado; reabrir reseta; LS nao restaura" },
+    "B_F5_em_E6": { "perde": "TUDO (E1-E6)", "motivo": "remount sem ?id= -> resetar() apaga LS + estado; UI 'salvo no navegador' e enganosa" },
+    "C_troca_de_computador": { "perde": "TUDO", "motivo": "localStorage e local ao navegador; projeto nao esta no banco" },
+    "D_railway_reinicia": { "perde": "NADA (atribuivel ao wizard)", "motivo": "E1-E7 nao tocam o servidor; pos-E8 esta no Mongo (duravel)" }
+  },
+
+  "o_que_se_perde": {
+    "memoria_pura": ["arquivo da fatura (File, excluido do localStorage)"],
+    "localStorage_write_only": ["cliente", "consumo", "beneficiarias", "localizacao", "irradiancia", "dimensionamento", "area/panos", "equipamentos/arranjos"],
+    "condicao": "qualquer F5 / fechar aba / trocar PC antes da etapa 8"
+  },
+
+  "o_que_NAO_se_perde": [
+    "Projetos ja salvos (pos-E8) — duraveis no Mongo",
+    "Retomada via ?id= apos primeiro save — hidrata do banco",
+    "Nada no restart do Railway (wizard nao tem estado de servidor)"
+  ],
+
+  "impacto_operacional": {
+    "perde_sessao_de_entrada_em_F5": true,
+    "tempo_de_trabalho_em_risco_min": "15-30",
+    "dado_committed_perdido": false,
+    "ui_enganosa": true,
+    "recuperavel_por_redigitacao": true
+  },
+
+  "justificativa_gravidade": {
+    "por_que_ALTA": "F5/fechar/crash apaga 100% de E1-E7 sem aviso correto; a rede de seguranca anunciada (localStorage) e morta.",
+    "por_que_nao_CRITICA": "nenhum dado de negocio committed/persistido e perdido ou corrompido; recuperavel; pos-E8 duravel."
+  },
+
+  "correcao_recomendada": {
+    "implementar_agora": false,
+    "opcao_1_recomendada": "Criar ProjetoFV rascunho em E2/E3 (quando ha clienteId) e setar projetoId no Context -> ativa o autosave por slice JA existente. E8 detecta projetoId e nao duplica.",
+    "opcao_2_complementar": "Restaurar rascunho do localStorage no mount (vinculado ao clienteId para evitar contaminacao).",
+    "opcao_3_minima": "Corrigir UI enganosa: 'Rascunho nao salvo ate a etapa 8'.",
+    "reusa_infra_existente": true,
+    "arquivos_alvo": ["pages/ProjetosFVNovo.jsx", "components/fv/etapas/E2Consumo.jsx ou E3Localizacao.jsx", "contexts/ProjetoFVContext.jsx"],
+    "necessita_migracao_dados": false,
+    "necessita_migracao_schema": false,
+    "esforco_estimado": "MEDIO"
+  },
+
+  "proxima_sprint_sugerida": "P1-FV-WIZARD-PERSISTENCE-FIX-01 (escopo: projeto rascunho precoce + ativar autosave + corrigir UI)"
+}
