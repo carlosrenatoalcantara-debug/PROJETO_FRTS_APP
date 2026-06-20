@@ -1,0 +1,48 @@
+{
+  "sprint": "P2-FV-MULTIARRANJO-UX-01",
+  "data": "2026-06-19",
+  "modelo": "Claude Sonnet 4.6",
+
+  "metricas_codigo": {
+    "arquivos_alterados": 3,
+    "linhas_adicionadas": 41,
+    "linhas_removidas": 1,
+    "linhas_modificadas": 1,
+    "novos_arquivos": 0,
+    "arquivos_excluidos": 0,
+    "build_resultado": "SUCCESS",
+    "build_tempo_s": 14.40,
+    "build_erros": 0,
+    "build_warnings": 1,
+    "build_warning_descricao": "chunk > 2000kB (pré-existente, não introduzido por esta sprint)"
+  },
+
+  "cobertura_gaps": {
+    "GAP-01_arranjo_A_visual": "RESOLVIDO",
+    "GAP-02_estrutura_por_arranjo": "RESOLVIDO",
+    "GAP-03_ux_inconsistente": "PARCIALMENTE_RESOLVIDO",
+    "GAP-04_distribuicao_modulos": "NAO_ENDEREÇADO",
+    "GAP-05_shape_incompativel": "MITIGADO"
+  },
+
+  "compatibilidade": {
+    "E8Orcamento": "PRESERVADA",
+    "ConfiguradorArranjoFV": "PRESERVADA",
+    "Homologacao_snapshot": "PRESERVADA",
+    "Unifilar": "PRESERVADA",
+    "Governanca": "PRESERVADA",
+    "MongoDB_schema": "ADITIVO_COMPATIVEL",
+    "salvarArranjos_API": "PRESERVADA"
+  },
+
+  "validacao": {
+    "build": "SIM",
+    "runtime": "NAO",
+    "testes_unitarios": "NAO_EXECUTADOS",
+    "testes_e2e": "NAO_EXECUTADOS"
+  },
+
+  "resultado_final": "ATENDE_O_REQUISITO",
+  "percentual_gaps_resolvidos": 60,
+  "nota": "GAP-03 parcialmente resolvido (estrutura visual similar mas seletores internamente diferentes). GAP-04 fora do escopo desta sprint."
+}

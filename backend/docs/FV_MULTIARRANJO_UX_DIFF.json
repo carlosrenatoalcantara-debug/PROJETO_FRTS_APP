@@ -1,0 +1,93 @@
+{
+  "sprint": "P2-FV-MULTIARRANJO-UX-01",
+  "data": "2026-06-19",
+  "modelo": "Claude Sonnet 4.6",
+  "build": "✓ 0 erros, 14.40s, 2332 módulos",
+
+  "arquivos_alterados": [
+    {
+      "arquivo": "frontend/src/contexts/ProjetoFVContext.jsx",
+      "tipo": "shape",
+      "descricao": "Adiciona estrutura: null ao novoArranjoVazio()",
+      "diff": {
+        "antes": "quantidadeModulos: null,\n  }",
+        "depois": "quantidadeModulos: null,\n    estrutura: null,  // P2-FV-MULTIARRANJO-UX-01: estrutura por arranjo\n  }"
+      },
+      "linhas_modificadas": 1
+    },
+    {
+      "arquivo": "frontend/src/components/fv/GerenciadorArranjos.jsx",
+      "tipo": "ui + shape",
+      "descricao": "Adiciona TIPOS_ESTRUTURA, estrutura a arranjoVazio, seção de estrutura por card",
+      "diff": {
+        "adicoes": [
+          "Constante TIPOS_ESTRUTURA com 6 tipos (Fibrocimento, Cerâmico, Metálico, Mini Trilho, Laje, Solo)",
+          "Campo estrutura: null em arranjoVazio()",
+          "Seção 'Estrutura' com select compacto em cada card (entre Inversores e Orientação)"
+        ]
+      },
+      "linhas_adicionadas": 18,
+      "linhas_removidas": 1
+    },
+    {
+      "arquivo": "frontend/src/components/fv/etapas/E7Equipamentos.jsx",
+      "tipo": "visual + persistencia",
+      "descricao": "Wrapper visual Arranjo A + estrutura em blocoParaBackend e montarArranjosPayload",
+      "diff": {
+        "adicoes": [
+          "Card externo border-emerald-300 com header 'Arranjo A' + badge PRINCIPAL",
+          "Resumo inline dos equipamentos selecionados no header",
+          "Campo estrutura: b.estrutura || null em blocoParaBackend()",
+          "Campo estrutura: equipamentos.estrutura?.id || null em montarArranjosPayload() para Arranjo A"
+        ],
+        "sem_alteracao": [
+          "Props de SeletorPaineis, SeletorInversores, SeletorEstrutura",
+          "Props de ConfiguradorArranjoFV",
+          "Lógica de validar()",
+          "Lógica de persistirArranjos()",
+          "GerenciadorArranjos (mantido abaixo do card Arranjo A)"
+        ]
+      },
+      "linhas_adicionadas": 22,
+      "linhas_removidas": 0
+    }
+  ],
+
+  "shape_antes": {
+    "novoArranjoVazio": ["id", "rotulo", "tipo", "somente_leitura", "painel", "inversor", "quantidadeModulos"],
+    "arranjoVazio_GerenciadorArranjos": ["id", "rotulo", "tipo", "paineis", "inversores", "orientacao", "inclinacao", "somente_leitura"],
+    "blocoParaBackend_retorno": ["id", "rotulo", "tipo", "somente_leitura", "paineis", "inversores"]
+  },
+
+  "shape_depois": {
+    "novoArranjoVazio": ["id", "rotulo", "tipo", "somente_leitura", "painel", "inversor", "quantidadeModulos", "estrutura"],
+    "arranjoVazio_GerenciadorArranjos": ["id", "rotulo", "tipo", "paineis", "inversores", "estrutura", "orientacao", "inclinacao", "somente_leitura"],
+    "blocoParaBackend_retorno": ["id", "rotulo", "tipo", "somente_leitura", "paineis", "inversores", "estrutura"]
+  },
+
+  "ui_antes": {
+    "E7_layout": [
+      "Módulos Fotovoltaicos (seção global âmbar)",
+      "Inversores (seção global azul)",
+      "Estruturas de Fixação (seção global slate)",
+      "Configuração Elétrica do Arranjo (seção global violeta)",
+      "Arranjos do Sistema [GerenciadorArranjos] (cards B, C...)"
+    ],
+    "arranjo_A_visivel": false,
+    "estrutura_por_arranjo_B_C": false
+  },
+
+  "ui_depois": {
+    "E7_layout": [
+      "Arranjo A [PRINCIPAL] (card emerald contendo:)",
+      "  └─ Módulos Fotovoltaicos (seção âmbar)",
+      "  └─ Inversores (seção azul)",
+      "  └─ Estrutura de Fixação (seção slate)",
+      "  └─ Configuração Elétrica do Arranjo (seção violeta)",
+      "Arranjos Secundários [GerenciadorArranjos] (cards B, C...)",
+      "  └─ Cada card: Módulos + Inversores + Estrutura (select) + Orientação/Inclinação"
+    ],
+    "arranjo_A_visivel": true,
+    "estrutura_por_arranjo_B_C": true
+  }
+}

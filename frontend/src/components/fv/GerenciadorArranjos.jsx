@@ -22,6 +22,15 @@ import Button from '../ui/Button'
 const potW  = (e) => e?.especificacoes?.potencia_wp || e?.especificacoes?.potencia_w || e?.especificacoes?.potencia || e?.potencia_w || null
 const potKW = (e) => e?.especificacoes?.potencia_kw || e?.especificacoes?.potencia || e?.potencia_kw || null
 
+const TIPOS_ESTRUTURA = [
+  { id: 'fbco', label: 'Fibrocimento' },
+  { id: 'cera', label: 'Cerâmico' },
+  { id: 'meta', label: 'Metálico' },
+  { id: 'mini', label: 'Mini Trilho' },
+  { id: 'laje', label: 'Laje' },
+  { id: 'solo', label: 'Solo' },
+]
+
 function groupByFab(items) {
   const m = {}
   for (const it of items) { const f = it.fabricante || '—'; (m[f] = m[f] || []).push(it) }
@@ -50,7 +59,7 @@ const proximaLetra = (lista) => {
   return `${lista.length + 1}`
 }
 const arranjoVazio = (lista) => ({ id: novoId(), rotulo: `Arranjo ${proximaLetra(lista)}`, tipo: 'secundario',
-  paineis: [], inversores: [], orientacao: 'Norte', inclinacao: '', somente_leitura: false })
+  paineis: [], inversores: [], estrutura: null, orientacao: 'Norte', inclinacao: '', somente_leitura: false })
 
 export default function GerenciadorArranjos() {
   const { state, dispatch } = useProjetoFV()
@@ -165,6 +174,22 @@ export default function GerenciadorArranjos() {
               <div className="flex items-center gap-1 text-xs font-semibold text-slate-600"><Zap size={12} className="text-blue-500" /> Inversores</div>
               {linhas(a, 'inversores').map((l, j) => <LinhaEquip key={j} i={i} campo="inversores" j={j} linha={l} ro={ro} />)}
               {!ro && <button type="button" onClick={() => addLinha(i, 'inversores')} className="text-xs text-emerald-700 font-medium flex items-center gap-1"><Plus size={12} /> Adicionar inversor</button>}
+            </div>
+
+            {/* Estrutura */}
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-1 text-xs font-semibold text-slate-600">
+                <Layers size={12} className="text-slate-500" /> Estrutura
+              </div>
+              <select
+                disabled={ro}
+                value={a.estrutura || ''}
+                onChange={(e) => patch(i, { estrutura: e.target.value || null })}
+                className="w-full text-xs px-2 py-1.5 rounded border border-slate-300 bg-white disabled:bg-slate-50"
+              >
+                <option value="">Selecionar tipo...</option>
+                {TIPOS_ESTRUTURA.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
+              </select>
             </div>
 
             {/* Orientação / Inclinação (UX) */}
