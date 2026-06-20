@@ -1,0 +1,145 @@
+{
+  "sprint": "P1-RUNTIME-FINAL-VALIDATION-01",
+  "data": "2026-06-20",
+  "modelo": "Claude Sonnet 4.6",
+
+  "matriz": [
+    {
+      "id": "T01",
+      "nome": "Huawei SUN2000-50KTL-M0",
+      "sprint_origem": "P1-HUAWEI-50KTL-RCA-01",
+      "commit_correcao": "3e42c9a",
+      "validado_em_codigo": true,
+      "validado_em_runtime": false,
+      "status": "NAO_EXECUTADO",
+      "bloqueador": "PDF real ausente",
+      "resultado": null,
+      "huawei_50ktl_validado": null,
+      "regressao_60ktl": null
+    },
+    {
+      "id": "T02",
+      "nome": "Huawei SUN2000-60KTL (regressão)",
+      "sprint_origem": "P1-HUAWEI-50KTL-RCA-01",
+      "commit_correcao": "3e42c9a",
+      "validado_em_codigo": true,
+      "validado_em_runtime": false,
+      "status": "NAO_EXECUTADO",
+      "bloqueador": "PDF real ausente",
+      "resultado": null,
+      "regressao_detectada": null
+    },
+    {
+      "id": "T03",
+      "nome": "COSERN Trifásica 380V",
+      "sprint_origem": "P1-TENSAO-380V-PARSER-01",
+      "commit_correcao": "e2a3afd",
+      "validado_em_codigo": true,
+      "validado_em_runtime": false,
+      "status": "NAO_EXECUTADO",
+      "bloqueador": "PDF real COSERN ausente",
+      "resultado": null,
+      "tensao_extraida": null,
+      "tensao_persistida": null,
+      "tensao_380v_validado": null
+    },
+    {
+      "id": "T04",
+      "nome": "Governança React #31",
+      "sprint_origem": "P1-GOVERNANCA-REACT31-RCA-01",
+      "commit_correcao": "9b41554",
+      "validado_em_codigo": true,
+      "validado_em_runtime": false,
+      "status": "NAO_EXECUTADO",
+      "bloqueador": "Projeto com revisões congeladas e sessão autenticada",
+      "resultado": null,
+      "react_error_31": null,
+      "governanca_validada": null
+    },
+    {
+      "id": "T05",
+      "nome": "Governança Divergências",
+      "sprint_origem": "P6",
+      "validado_em_codigo": false,
+      "validado_em_runtime": false,
+      "status": "NAO_EXECUTADO",
+      "bloqueador": "Projeto congelado e sessão autenticada",
+      "resultado": null
+    },
+    {
+      "id": "T06",
+      "nome": "Governança Documentação Homologada",
+      "sprint_origem": "P6",
+      "validado_em_codigo": false,
+      "validado_em_runtime": false,
+      "status": "NAO_EXECUTADO",
+      "bloqueador": "Projeto HOMOLOGADO e sessão autenticada",
+      "resultado": null
+    },
+    {
+      "id": "T07",
+      "nome": "Unifilar 355 módulos / 2 inversores",
+      "sprint_origem": "Unifilar",
+      "validado_em_codigo": false,
+      "validado_em_runtime": false,
+      "status": "NAO_EXECUTADO",
+      "bloqueador": "Projeto configurado com 355 módulos + SUN2000-60KTL + SUN2000-50KTL",
+      "resultado": null,
+      "unifilar_validado": null
+    },
+    {
+      "id": "T08",
+      "nome": "Multiarranjo persistência",
+      "sprint_origem": "P2-MULTIARRANJO-UX-01",
+      "validado_em_codigo": false,
+      "validado_em_runtime": false,
+      "status": "NAO_EXECUTADO",
+      "bloqueador": "Projeto existente e sessão autenticada",
+      "resultado": null,
+      "multiarranjo_validado": null
+    },
+    {
+      "id": "T09",
+      "nome": "Beneficiárias pré-preenchidas",
+      "sprint_origem": "OCR beneficiárias",
+      "validado_em_codigo": false,
+      "validado_em_runtime": false,
+      "status": "NAO_EXECUTADO",
+      "bloqueador": "Projeto com beneficiárias cadastradas",
+      "resultado": null
+    },
+    {
+      "id": "T10",
+      "nome": "Fluxo E2E completo",
+      "sprint_origem": "Todos",
+      "validado_em_codigo": false,
+      "validado_em_runtime": false,
+      "status": "NAO_EXECUTADO",
+      "bloqueador": "Todos os insumos: PDFs + projeto + sessão autenticada",
+      "resultado": null
+    }
+  ],
+
+  "perguntas_obrigatorias": {
+    "testes_executados": 0,
+    "testes_passaram": 0,
+    "testes_falharam": 0,
+    "huawei_50ktl_validado": false,
+    "governanca_validada": false,
+    "tensao_380v_validado": false,
+    "unifilar_validado": false,
+    "multiarranjo_validado": false,
+    "deploy_aprovado": false,
+    "commit_validado": "e2a3afd (último) — não validado em runtime"
+  },
+
+  "resultado_final": "NAO_APROVADO_PARA_USO_OPERACIONAL",
+  "motivo": "Testes não executados (0/10) — ausência de PDFs reais e sessão autenticada no Vercel",
+  "proximos_passos": [
+    "Usuário fornece PDF COSERN trifásico 380V → executar T03",
+    "Usuário fornece datasheets Huawei → executar T01/T02",
+    "Usuário abre sessão no Vercel com projeto de teste → executar T04/T05/T06",
+    "Usuário confirma projeto com multiarranjo existente → executar T08",
+    "Após T01-T10 concluídos, gerar relatório final APROVADO/NÃO APROVADO baseado em evidências reais"
+  ]
+}
