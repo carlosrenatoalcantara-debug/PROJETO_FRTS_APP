@@ -1,0 +1,55 @@
+{
+  "sprint": "P0-CATALOG-QUALITY-HARDENING-01",
+  "data": "2026-06-20",
+  "commits": ["75299cd", "a0415f9"],
+
+  "arquivos_alterados": [
+    {
+      "arquivo": "backend/src/services/utilizavelProjeto.js",
+      "mudancas": [
+        "REGRAS alinhada à matriz mínima do sprint: inversor=[potencia_kw, numero_mppt], modulo=[potencia_wp, voc, isc]",
+        "adiciona bateria=[capacidade_kwh] e estrutura=[] (só fabricante/modelo de topo)",
+        "carregador_ev=[] (fora do escopo FV; não altera EV)",
+        "fallback de tipo desconhecido: REGRAS[tipo] ?? [] (antes caía em REGRAS.modulo → bloqueio falso)"
+      ]
+    },
+    {
+      "arquivo": "backend/src/services/catalogoQualidade.js",
+      "mudancas": [
+        "import avaliarUtilizavel",
+        "processarEquipamento computa e retorna utilizavel_em_projeto + bloqueio_engenharia",
+        "aplicarResultadoNoDoc aplica os dois campos ao doc (antes nunca tocados pelo hook)",
+        "MOTOR_VERSAO 1.0.0 -> 1.1.0"
+      ]
+    },
+    {
+      "arquivo": "backend/src/routes/adminCatalogo.js",
+      "mudancas": [
+        "/reprocessar-todos: $set inclui utilizavel_em_projeto + bloqueio_engenharia (backfill aplica o gate)",
+        "resposta reporta liberados/bloqueados/motivos_bloqueio"
+      ]
+    },
+    {
+      "arquivo": "frontend/src/pages/Inversores.jsx",
+      "mudancas": ["badge StatusEngenharia (✅ Utilizável / ⚠ Revisão / ❌ Incompleto + motivos) no card"]
+    },
+    {
+      "arquivo": "frontend/src/pages/Modulos.jsx",
+      "mudancas": ["badge StatusEngenharia no card"]
+    }
+  ],
+
+  "causa_raiz": {
+    "funcao_gate": "avaliarUtilizavel (utilizavelProjeto.js) — existia e correta",
+    "estava_ligada_a": "apenas PATCH /admin/catalogo/equipamento/:id (edição manual)",
+    "nao_estava_ligada_a": ["model pre('save') hook (aplicarResultadoNoDoc)", "POST /reprocessar-todos (backfill)", "imports de datasheet"],
+    "efeito": "utilizavel_em_projeto ficava no default true para identity-only"
+  },
+
+  "nao_alterado": ["ProjetoEV", "Governanca", "Homologacao", "Snapshot", "Medicoes", "Garantias", "Scanner", "Ativos", "schema MongoDB (campos ja existiam)"],
+
+  "migracao": {
+    "dados": "backfill recalculou utilizavel_em_projeto + bloqueio_engenharia para 382 equipamentos (updateOne em Equipamento; nenhum ProjetoFV/snapshot tocado)",
+    "schema": false
+  }
+}

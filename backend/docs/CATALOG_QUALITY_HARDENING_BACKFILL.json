@@ -1,0 +1,41 @@
+{
+  "sprint": "P0-CATALOG-QUALITY-HARDENING-01",
+  "data": "2026-06-20",
+  "endpoint": "POST /api/admin/catalogo/reprocessar-todos?limite=2000",
+  "ambiente": "Railway + MongoDB Atlas (produção)",
+  "commit_codigo": "a0415f9 (sobre 75299cd)",
+
+  "resultado": {
+    "total_encontrados": 382,
+    "processados": 382,
+    "liberados": 229,
+    "bloqueados": 153,
+    "erros": 0,
+    "motivos_bloqueio": {
+      "numero_mppt": 132,
+      "potencia_kw": 39,
+      "isc": 21,
+      "voc": 18,
+      "potencia_wp": 3
+    }
+  },
+
+  "por_tipo": {
+    "modulo":    { "total": 189, "utilizaveis": 168, "bloqueados": 21 },
+    "inversor":  { "total": 177, "utilizaveis": 45,  "bloqueados": 132 },
+    "carregador_ev": { "total": 16, "utilizaveis": 16, "bloqueados": 0, "nota": "fora do escopo FV — gate desativado p/ não alterar EV" },
+    "estrutura": { "total": 0, "utilizaveis": 0, "bloqueados": 0 },
+    "bateria":   { "total": 0, "utilizaveis": 0, "bloqueados": 0 }
+  },
+
+  "validacao_falso_bloqueio": {
+    "verificado": true,
+    "achado": "Os 132 inversores bloqueados por numero_mppt genuinamente não têm MPPT (especificacoes vazias ou só potencia_kw/_derivado). Única chave de contagem no catálogo é n_mppts (checada pelo gate). Sem alias perdido."
+  },
+
+  "antes_vs_depois": {
+    "inversor_utilizavel": { "antes": 177, "depois": 45 },
+    "modulo_utilizavel":   { "antes": 189, "depois": 168 },
+    "gate_confiavel": { "antes": false, "depois": true }
+  }
+}

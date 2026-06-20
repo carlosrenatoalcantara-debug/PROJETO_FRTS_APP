@@ -1,0 +1,58 @@
+{
+  "sprint": "P0-CATALOG-QUALITY-HARDENING-01",
+  "data": "2026-06-20",
+  "resultado": "APROVADO",
+  "revisao_gemini": "PENDENTE — ferramenta indisponivel",
+
+  "evidencia": {
+    "validado_em_codigo": true,
+    "validado_em_runtime": true,
+    "build_frontend": "OK",
+    "syntax_backend": "OK",
+    "gate_unit_test": "OK (identity-only bloqueia; minimo libera; estrutura/bateria corretos)",
+    "backfill_runtime": "382 processados, 0 erros (Railway/Atlas)"
+  },
+
+  "classificacao_real_atlas": {
+    "inversor": { "total": 177, "utilizaveis_pos": 45, "bloqueados_pos": 132 },
+    "modulo":   { "total": 189, "utilizaveis_pos": 168, "bloqueados_pos": 21 },
+    "estrutura": { "total": 0 },
+    "bateria":   { "total": 0 },
+    "carregador_ev": { "total": 16, "fora_escopo": true }
+  },
+
+  "matriz_minima_aplicada": {
+    "inversor": ["potencia_kw", "numero_mppt"],
+    "modulo": ["potencia_wp", "voc", "isc"],
+    "estrutura": ["fabricante", "modelo (topo, sem especificacoes)"],
+    "bateria": ["capacidade_kwh"]
+  },
+
+  "gate_antes": {
+    "como_funcionava": "processarEquipamento setava qualidade+status_operacional; utilizavel_em_projeto NUNCA era recalculado pelo motor (default true). avaliarUtilizavel existia mas só no PATCH manual.",
+    "consequencia": "Identity-only liberado no seletor /engenharia (177 inversores e 189 modulos passavam)."
+  },
+
+  "gate_depois": {
+    "como_funciona": "processarEquipamento computa utilizavel_em_projeto + bloqueio_engenharia via avaliarUtilizavel; aplicarResultadoNoDoc (hook pre-save) e /reprocessar-todos (backfill) aplicam. Seletor /engenharia passa a filtrar corretamente.",
+    "confiavel": true
+  },
+
+  "respostas_obrigatorias": {
+    "1_como_motor_estava": "Computava qualidade/status_operacional mas nunca utilizavel_em_projeto (hook e backfill omitiam o gate).",
+    "2_qual_era_o_bug": "utilizavel_em_projeto (campo que o seletor /engenharia filtra) ficava no default true; a funcao-gate avaliarUtilizavel so era chamada no PATCH manual.",
+    "3_incorretamente_liberados": 153,
+    "4_ficaram_bloqueados": 153,
+    "5_permaneceram_utilizaveis": 229,
+    "6_projetos_afetados": "159 de 577 referenciam equipamento bloqueado; 0 congelados/homologados (snapshots intactos); nenhum quebra (gate é filtro de seleção).",
+    "7_regressoes": "Nenhuma quebra. Efeito esperado: inversores utilizaveis 177->45 (reflete estado real do catalogo). Re-edicao de E7 em projetos antigos pode exigir toggle 'mostrar incompletos' (Admin) ou enriquecimento.",
+    "8_runtime_executado": true,
+    "9_backfill_executado": true,
+    "10_commit": "75299cd + a0415f9 + docs"
+  },
+
+  "criterio_aceitacao": {
+    "utilizavel_em_projeto_confiavel": true,
+    "nenhum_identity_only_liberado": true
+  }
+}
