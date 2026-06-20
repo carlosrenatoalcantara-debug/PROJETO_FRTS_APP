@@ -2,13 +2,17 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useEffect, useRef } from 'react'
 import { X, AlertTriangle, Cloud, CloudOff, Check } from 'lucide-react'
 import { ProjetoFVProvider, useProjetoFV } from '../contexts/ProjetoFVContext'
-import { buscarProjeto, salvarEtapa, adaptarLocalizacao, adaptarDimensionamento,
+import { buscarProjeto, salvarEtapa, criarProjeto, resolverClientePorNome,
+         adaptarLocalizacao, adaptarDimensionamento, adaptarFatura,
          adaptarEquipamentos, adaptarLayoutSolar, adaptarWorkflow } from '../services/projetoFVApi'
 
 const LS_KEY = 'forte_solar_wizard_fv_v3'
 
-// Mapa: número da etapa → slice que deve ser salvo AO SAIR dela
+// Mapa: número da etapa → slice que deve ser salvo AO SAIR dela.
+// P1-FV-WIZARD-PERSISTENCE-FIX-01: E2 (consumo) passa a salvar o slice 'fatura'
+// assim que o projeto rascunho nasce — antes só era salvo no E8.
 const ETAPA_PARA_SLICE = {
+  2:   'fatura',
   3:   'localizacao',
   5:   'dimensionamento',
   6:   'layout_solar',
@@ -41,10 +45,12 @@ const COMPONENTES = {
 
 function WizardInterno() {
   const navigate    = useNavigate()
-  const [params]    = useSearchParams()
+  const [params, setParams] = useSearchParams()
   const { state, irParaEtapa, dispatch, resetar, ETAPAS } = useProjetoFV()
   const EtapaAtual  = COMPONENTES[state.etapa]
   const etapaAnteriorRef = useRef(state.etapa)
+  // P1-FV-WIZARD-PERSISTENCE-FIX-01: guarda contra criação concorrente de rascunho
+  const criandoRascunhoRef = useRef(false)
 
   // ── FV-11 (fix): regra arquitetural de hidratação na montagem ───────────────
   // - ?id=        → retomada de projeto existente: busca no banco e hidrata
@@ -195,6 +201,17 @@ function WizardInterno() {
           })
         })
         .catch(err => console.warn('[Wizard] Falha ao carregar projeto:', err.message))
+
+      // P1-FV-WIZARD-PERSISTENCE-FIX-01: hidrata beneficiárias persistidas (E2.5)
+      // para que F5/reabertura preserve o que foi salvo no banco.
+      fetch(`/api/projetos-fv/${idParam}/beneficiarias`)
+        .then(r => (r.ok ? r.json() : []))
+        .then(bens => {
+          if (Array.isArray(bens) && bens.length > 0) {
+            dispatch({ type: 'SET_BENEFICIARIAS', payload: bens })
+          }
+        })
+        .catch(() => {})
       return
     }
 
@@ -279,28 +296,84 @@ function WizardInterno() {
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── S2.8: autosave de slice ao avançar etapa (só se projetoId existe) ────────
+  // ── P1-FV-WIZARD-PERSISTENCE-FIX-01: nascimento antecipado do projeto ────────
+  // Cria o ProjetoFV como rascunho assim que houver dados mínimos (cliente
+  // resolvível + consumo na etapa 2), ancora o id na URL (?id=) para que F5 /
+  // reabertura hidratem do banco, e ativa o autosave por slice já existente.
+  // Sem cliente cadastrado → retorna null e mantém o comportamento anterior
+  // (sem regressão): o projeto nasce no E8 como antes.
+  async function garantirProjetoRascunho() {
+    if (state.projetoId) return state.projetoId
+    if (criandoRascunhoRef.current) return null
+    criandoRascunhoRef.current = true
+    try {
+      let clienteId = state.clienteId
+      if (!clienteId) {
+        const cliente = await resolverClientePorNome(state.dadosCliente?.nomeCliente)
+        clienteId = cliente?._id || null
+      }
+      if (!clienteId) return null   // cliente ainda não cadastrado → adia para o E8
+
+      const nome = state.dadosCliente?.nomeProjeto?.trim()
+        || `Sistema FV ${state.dimensionamento?.potenciaRealKwp ?? state.dimensionamento?.potenciaKwp ?? 'novo'} kWp`
+
+      const projeto = await criarProjeto({
+        clienteId,
+        nome,
+        status:            'rascunho',
+        endereco_completo: state.localizacao?.cidadeEstado || state.localizacao?.endereco || '',
+        latitude:          state.localizacao?.lat ?? null,
+        longitude:         state.localizacao?.lon ?? null,
+      })
+      const pid = String(projeto._id)
+      dispatch({ type: 'SET_PROJETO_ID', payload: pid })
+      dispatch({ type: 'SET_CLIENTE_ID', payload: String(clienteId) })
+      // Âncora de retomada: F5 / reabrir passam a hidratar do banco via ?id=
+      setParams(prev => {
+        const p = new URLSearchParams(prev)
+        p.set('id', pid)
+        return p
+      }, { replace: true })
+      console.info(`[Wizard] ✓ rascunho criado no banco: ${pid}`)
+      return pid
+    } catch (err) {
+      console.warn('[Wizard] criação de rascunho falhou:', err.message)
+      return null
+    } finally {
+      criandoRascunhoRef.current = false
+    }
+  }
+
+  // ── Autosave de slice ao avançar etapa (com nascimento antecipado) ───────────
   useEffect(() => {
     const etapaAnterior = etapaAnteriorRef.current
     const etapaAtual    = state.etapa
+    etapaAnteriorRef.current = etapaAtual
 
     // Só salva quando avança (não na volta)
-    if (etapaAtual > etapaAnterior && state.projetoId) {
+    if (etapaAtual <= etapaAnterior) return
+
+    ;(async () => {
+      let pid = state.projetoId
+      // A partir de E2 (consumo concluído), garante o rascunho no banco.
+      if (!pid && etapaAnterior >= 2) {
+        pid = await garantirProjetoRascunho()
+      }
+      if (!pid) return  // sem projeto (cliente não cadastrado) → comportamento anterior
+
       const sliceNome = ETAPA_PARA_SLICE[etapaAnterior]
       if (sliceNome) {
         const dados = buildSliceDados(sliceNome, state)
         if (dados) {
-          salvarEtapa(state.projetoId, sliceNome, dados)
+          salvarEtapa(pid, sliceNome, dados)
             .then(() => console.info(`[Wizard] ✓ slice "${sliceNome}" salvo`))
             .catch(err => console.warn(`[Wizard] slice "${sliceNome}" falhou:`, err.message))
         }
       }
       // Sempre atualiza workflow
-      salvarEtapa(state.projetoId, 'workflow', adaptarWorkflow(etapaAtual, []))
+      salvarEtapa(pid, 'workflow', adaptarWorkflow(etapaAtual, []))
         .catch(() => {/* silencioso */})
-    }
-
-    etapaAnteriorRef.current = etapaAtual
+    })()
   }, [state.etapa]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function fechar() {
@@ -395,13 +468,16 @@ function WizardInterno() {
         <EtapaAtual />
       </div>
 
-      {/* S2.8: aviso atualizado — localStorage protege do refresh */}
-      {state.etapa > 3 && (
-        <div className="flex items-center gap-2 text-xs text-slate-400 px-1">
-          <AlertTriangle size={12} />
+      {/* P1-FV-WIZARD-PERSISTENCE-FIX-01: aviso HONESTO de persistência.
+          Com projetoId, cada etapa é salva no banco automaticamente; sem ele,
+          o rascunho ainda não foi criado (cliente não cadastrado) e os dados
+          NÃO estão protegidos contra F5/fechamento. */}
+      {state.etapa > 1 && (
+        <div className="flex items-center gap-2 text-xs px-1">
+          <AlertTriangle size={12} className={state.projetoId ? 'text-emerald-500' : 'text-amber-500'} />
           {state.projetoId
-            ? `Projeto salvo no banco. ID: ${state.projetoId}`
-            : 'Dados salvos no navegador. Salve a proposta na etapa 8 para persistir definitivamente.'
+            ? <span className="text-emerald-600">Projeto salvo no banco automaticamente a cada etapa. ID: {state.projetoId}</span>
+            : <span className="text-amber-600">Rascunho ainda não salvo no servidor — conclua a Etapa 2 (consumo) com um cliente cadastrado para ativar o salvamento automático. Até lá, evite atualizar a página.</span>
           }
         </div>
       )}
@@ -415,6 +491,8 @@ function WizardInterno() {
  */
 function buildSliceDados(sliceNome, state) {
   switch (sliceNome) {
+    case 'fatura':
+      return adaptarFatura(state.dadosConsumo)
     case 'localizacao':
       return adaptarLocalizacao(state.localizacao, state.irradiancia)
     case 'dimensionamento':

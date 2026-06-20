@@ -13,6 +13,7 @@ import { gerarLinkWhatsAppBR } from '../../../utils/validacaoBR'
 import {
   resolverClientePorNome,
   criarProjeto,
+  atualizarProjeto,
   salvarTodosSlices,
 } from '../../../services/projetoFVApi'
 import GovernancaPainel from '../GovernancaPainel'
@@ -365,6 +366,11 @@ export default function E8Orcamento() {
         // Persiste projetoId no contexto (futuros autosaves usarão este ID)
         dispatch({ type: 'SET_PROJETO_ID',  payload: projetoIdAtual })
         dispatch({ type: 'SET_CLIENTE_ID',  payload: String(cliente._id) })
+      } else {
+        // P1-FV-WIZARD-PERSISTENCE-FIX-01: projeto já nasceu como rascunho durante
+        // o wizard. Promove a 'proposta' (mantém o resultado de status do fluxo legado).
+        try { await atualizarProjeto(projetoIdAtual, { status: 'proposta' }) }
+        catch (err) { console.warn('[E8] promoção de status falhou:', err.message) }
       }
 
       // ── 2. Salvar todos os slices acumulados ───────────────────────────────

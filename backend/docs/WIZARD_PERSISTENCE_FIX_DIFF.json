@@ -1,0 +1,57 @@
+{
+  "sprint": "P1-FV-WIZARD-PERSISTENCE-FIX-01",
+  "data": "2026-06-20",
+  "modelo": "Claude Opus 4.8",
+  "revisao_gemini": "PENDENTE — ferramenta indisponivel",
+
+  "arquivos_alterados": [
+    {
+      "arquivo": "frontend/src/pages/ProjetosFVNovo.jsx",
+      "mudancas": [
+        "import criarProjeto, resolverClientePorNome, adaptarFatura",
+        "ETAPA_PARA_SLICE: adiciona 2 -> 'fatura'",
+        "useSearchParams agora expoe setParams (ancora ?id= na URL)",
+        "novo garantirProjetoRascunho(): cria projeto rascunho ao avancar de E2, com guard de concorrencia (criandoRascunhoRef)",
+        "autosave reescrito: cria draft (se nao existir e etapa>=2) e entao salva slice via salvarEtapa existente",
+        "buildSliceDados: caso 'fatura' -> adaptarFatura",
+        "hidratacao de beneficiarias no branch ?id= (GET /beneficiarias)",
+        "mensagem de persistencia reescrita (Opcao A) — remove texto enganoso de localStorage"
+      ]
+    },
+    {
+      "arquivo": "frontend/src/services/projetoFVApi.js",
+      "mudancas": [
+        "novo helper atualizarProjeto(projetoId, patch) -> PUT /api/projetos-fv/:id"
+      ]
+    },
+    {
+      "arquivo": "frontend/src/components/fv/etapas/E8Orcamento.jsx",
+      "mudancas": [
+        "import atualizarProjeto",
+        "quando projetoId ja existe (draft), promove status rascunho -> proposta (mantem resultado do fluxo legado)"
+      ]
+    }
+  ],
+
+  "backend_alterado": false,
+  "endpoints_novos": [],
+  "endpoints_reutilizados": [
+    "POST /api/projetos-fv (criarProjeto, status rascunho)",
+    "PUT /api/projetos-fv/:id/etapa (salvarEtapa por slice)",
+    "PUT /api/projetos-fv/:id (atualizarProjeto, bump status)",
+    "GET /api/projetos-fv/:id (hidratacao)",
+    "GET /api/projetos-fv/:id/beneficiarias (hidratacao beneficiarias)",
+    "POST/PUT /api/projetos-fv/:id/beneficiarias (handleSalvo em tempo real, ja existente)"
+  ],
+
+  "localStorage_estrategia": "A (remover mensagem enganosa; sem restauracao)",
+  "motivo_estrategia": "Durabilidade vem do banco (draft + ?id=). Restauracao de LS reintroduziria contaminacao entre clientes que o codigo evita.",
+
+  "infra_reutilizada": [
+    "salvarEtapa", "adaptarFatura/Localizacao/Dimensionamento/Equipamentos/LayoutSolar/Workflow",
+    "criarProjeto", "resolverClientePorNome", "E2BBeneficiarias.handleSalvo (sync por projetoId)",
+    "mecanismo de retomada via ?id= (HIDRATAR)"
+  ],
+
+  "nao_alterado": ["ProjetoEV", "Homologacao", "Snapshot", "Governanca", "schema MongoDB"]
+}

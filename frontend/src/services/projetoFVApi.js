@@ -215,6 +215,18 @@ export function criarProjeto({ clienteId, nome, status = 'rascunho',
 }
 
 /**
+ * P1-FV-WIZARD-PERSISTENCE-FIX-01: atualização leve de campos de topo do projeto
+ * (ex.: promover rascunho → proposta na etapa 8). PUT /api/projetos-fv/:id faz
+ * $set apenas dos campos enviados (não clobra subdocs ausentes).
+ */
+export function atualizarProjeto(projetoId, patch) {
+  return _fetch(`/api/projetos-fv/${projetoId}`, {
+    method: 'PUT',
+    body: JSON.stringify(patch),
+  })
+}
+
+/**
  * Salva um slice individualmente via PUT /api/projetos-fv/:id/etapa.
  * etapa: 'localizacao' | 'dimensionamento' | 'equipamentos' |
  *        'layout_solar' | 'orcamento' | 'workflow' | ...

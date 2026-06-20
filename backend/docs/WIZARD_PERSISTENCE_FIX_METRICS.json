@@ -1,0 +1,60 @@
+{
+  "sprint": "P1-FV-WIZARD-PERSISTENCE-FIX-01",
+  "data": "2026-06-20",
+  "resultado": "APROVADO",
+
+  "evidencia": {
+    "validado_em_codigo": true,
+    "validado_em_runtime_api": true,
+    "validado_em_browser_fisico": false,
+    "build_frontend": "OK (2332 modulos, vite build 10.42s)"
+  },
+
+  "projeto_nasce_em": "Etapa 2 (avanco do consumo) — fallback E8 se cliente nao cadastrado",
+  "primeiro_save_real": "Etapa 2 (POST rascunho + PUT slice fatura)",
+  "autosave_ativado": true,
+  "autosave_etapas": ["E2 fatura", "E2.5 beneficiarias (tempo real)", "E3 localizacao", "E5 dimensionamento", "E6 layout_solar", "E7 equipamentos"],
+
+  "persistencia_por_etapa_depois": [
+    { "etapa": "E1", "mongo": false, "nota": "cliente/nome ainda em contexto; arquivo so memoria" },
+    { "etapa": "E2", "mongo": true,  "nota": "nasce o rascunho + slice fatura" },
+    { "etapa": "E2.5", "mongo": true, "nota": "beneficiarias via API quando projetoId existe" },
+    { "etapa": "E3", "mongo": true,  "nota": "localizacao" },
+    { "etapa": "E4", "mongo": true,  "nota": "irradiancia dentro de localizacao" },
+    { "etapa": "E5", "mongo": true,  "nota": "dimensionamento" },
+    { "etapa": "E6", "mongo": true,  "nota": "layout_solar" },
+    { "etapa": "E7", "mongo": true,  "nota": "equipamentos + arranjos" },
+    { "etapa": "E8", "mongo": true,  "nota": "orcamento + consolidacao + status proposta" }
+  ],
+
+  "cenarios_pos_fix": {
+    "F5_em_E3": "preserva (draft + ?id= hidrata)",
+    "F5_em_E6": "preserva",
+    "fechar_navegador": "preserva ao reabrir com ?id=",
+    "troca_de_computador": "preserva (dados no Mongo; abrir pela lista)",
+    "railway_restart": "sem impacto (dados no Mongo)"
+  },
+
+  "testes_runtime": {
+    "cliente": "6a3588caf3fada9effa61ce6 (COMERCIAL OLIVEIRA E AVELINO LTDA)",
+    "projeto_teste": "6a370c6decad41f353b384b3 (removido apos teste)",
+    "post_rascunho": "OK",
+    "put_fatura_tensao_v": 380,
+    "put_localizacao_lat": -5.79,
+    "get_reabertura_preservado": true,
+    "bump_status_proposta": "OK",
+    "cleanup_delete": "excluido=true"
+  },
+
+  "regressoes": {
+    "encontradas": 0,
+    "efeito_esperado": "wizards iniciados (com cliente cadastrado) deixam um rascunho na lista de projetos — tradeoff documentado do draft"
+  },
+
+  "residual_conhecido": "Cliente digitado por nome ainda NAO cadastrado: draft so nasce no E8 (backend exige clienteId). UI agora avisa. Fora do escopo 'nao refatorar'.",
+
+  "arquivos_alterados": 3,
+  "backend_alterado": false,
+  "migracao_dados": false,
+  "migracao_schema": false
+}
