@@ -141,6 +141,7 @@ export default function E7Equipamentos() {
     return {
       id: b.id, rotulo: b.rotulo || rotuloFallback, tipo: b.tipo || tipoFallback,
       somente_leitura: !!b.somente_leitura, paineis, inversores,
+      estrutura: b.estrutura || null,  // P2-FV-MULTIARRANJO-UX-01: estrutura por arranjo
     }
   }
 
@@ -154,7 +155,8 @@ export default function E7Equipamentos() {
       lista.push(blocoParaBackend(
         { id: 'arr_primario', rotulo: 'Arranjo A', tipo: 'principal',
           painel: equipamentos.painel, inversor: equipamentos.inversor,
-          quantidadeModulos: equipamentos.quantidadeModulos ?? dim.numPaineis ?? null },
+          quantidadeModulos: equipamentos.quantidadeModulos ?? dim.numPaineis ?? null,
+          estrutura: equipamentos.estrutura?.id || null },  // P2-FV-MULTIARRANJO-UX-01
         'Arranjo A', 'principal',
       ))
     }
@@ -231,146 +233,160 @@ export default function E7Equipamentos() {
         )}
       </div>
 
-      {/* ── Painéis ──────────────────────────────────────────────────────── */}
-      <section className="border border-amber-200 rounded-xl overflow-hidden bg-amber-50">
-        <button
-          className="w-full flex items-center justify-between px-5 py-4"
-          onClick={() => setPainelExp(v => !v)}
-          aria-expanded={painelExp}
-        >
-          <div className="flex items-center gap-2 flex-wrap">
-            <Sun size={18} className="text-amber-600" />
-            <h3 className="font-semibold text-slate-900">Módulos Fotovoltaicos</h3>
-            <Badge cor="amarelo">~{dim.numPaineis ?? '?'} un. (estimativa E5)</Badge>
-            {equipamentos.painel && (
-              <span className="text-xs text-amber-700 font-medium bg-amber-100 border border-amber-200 rounded-full px-2 py-0.5">
-                ✓ {equipamentos.painel.marca} {equipamentos.painel.modelo} · {equipamentos.painel.potenciaW}W
-                {equipamentos.painel.tecnologia && ` · ${equipamentos.painel.tecnologia}`}
-                {equipamentos.painel.bifacial   && ' · Bifacial'}
-              </span>
-            )}
-          </div>
-          {painelExp
-            ? <ChevronUp size={16} className="text-slate-400 shrink-0" />
-            : <ChevronDown size={16} className="text-slate-400 shrink-0" />}
-        </button>
-
-        {painelExp && (
-          <div className="px-5 pb-5 border-t border-amber-100">
-            <SeletorPaineis onSelecionar={selecionarPainel} selecionado={equipamentos.painel} />
-          </div>
-        )}
-      </section>
-
-      {/* ── Inversores ───────────────────────────────────────────────────── */}
-      <section className="border border-blue-200 rounded-xl overflow-hidden bg-blue-50">
-        <button
-          className="w-full flex items-center justify-between px-5 py-4"
-          onClick={() => setInversorExp(v => !v)}
-          aria-expanded={inversorExp}
-        >
-          <div className="flex items-center gap-2 flex-wrap">
-            <Zap size={18} className="text-blue-600" />
-            <h3 className="font-semibold text-slate-900">Inversores</h3>
-            <Badge cor="azul">~{dim.numInversores ?? '?'} un. (estimativa E5)</Badge>
-            {equipamentos.inversor && (
-              <>
-                <span className="text-xs text-blue-700 font-medium bg-blue-100 border border-blue-200 rounded-full px-2 py-0.5">
-                  ✓ {equipamentos.inversor.marca} {equipamentos.inversor.modelo} · {equipamentos.inversor.potenciaKW} kW · {equipamentos.inversor.nMppts} MPPT(s)
-                </span>
-                {equipamentos.inversor.tipo && (
-                  <Badge cor={TIPO_BADGE_COR[equipamentos.inversor.tipo] ?? 'cinza'}>
-                    {equipamentos.inversor.tipo}
-                  </Badge>
-                )}
-              </>
-            )}
-          </div>
-          {inversorExp
-            ? <ChevronUp size={16} className="text-slate-400 shrink-0" />
-            : <ChevronDown size={16} className="text-slate-400 shrink-0" />}
-        </button>
-
-        {inversorExp && (
-          <div className="px-5 pb-5 border-t border-blue-100">
-            <SeletorInversores onSelecionar={selecionarInversor} selecionado={equipamentos.inversor} />
-          </div>
-        )}
-      </section>
-
-      {/* ── Estruturas ───────────────────────────────────────────────────── */}
-      <section className="border border-slate-300 rounded-xl overflow-hidden bg-slate-50">
-        <button
-          className="w-full flex items-center justify-between px-5 py-4"
-          onClick={() => setEstruturaExp(v => !v)}
-          aria-expanded={estruturaExp}
-        >
-          <div className="flex items-center gap-2 flex-wrap">
-            <Layers size={18} className="text-slate-600" />
-            <h3 className="font-semibold text-slate-900">Estruturas de Fixação</h3>
-            {equipamentos.estrutura && (
-              <span className="text-xs text-slate-700 font-medium bg-slate-100 border border-slate-300 rounded-full px-2 py-0.5">
-                ✓ {equipamentos.estrutura.tipo}
-              </span>
-            )}
-          </div>
-          {estruturaExp
-            ? <ChevronUp size={16} className="text-slate-400 shrink-0" />
-            : <ChevronDown size={16} className="text-slate-400 shrink-0" />}
-        </button>
-
-        {estruturaExp && (
-          <div className="px-5 pb-5 border-t border-slate-200">
-            <SeletorEstrutura onSelecionar={selecionarEstrutura} selecionado={equipamentos.estrutura} />
-          </div>
-        )}
-      </section>
-
-      {/* ── Configurador Elétrico ────────────────────────────────────────── */}
-      <section className="border border-violet-200 rounded-xl bg-violet-50 p-5 space-y-3">
+      {/* ── Arranjo A (principal) — P2-FV-MULTIARRANJO-UX-01 ────────────── */}
+      <section className="border border-emerald-300 rounded-xl bg-white space-y-4 p-4">
+        {/* Header Arranjo A */}
         <div className="flex items-center gap-2 flex-wrap">
-          <Zap size={18} className="text-violet-600" />
-          <h3 className="font-semibold text-slate-900">Configuração Elétrica do Arranjo</h3>
-          <span className="text-[10px] text-violet-500 font-bold tracking-widest bg-violet-100 border border-violet-200 rounded-full px-2 py-0.5">
-            TEMPO REAL
-          </span>
-          {engenhariaInicial?.compatibilidade?.analisado_em && (
-            <span className="text-[10px] text-slate-400 bg-slate-50 border border-slate-200 rounded-full px-2 py-0.5">
-              Salvo: {new Date(engenhariaInicial.compatibilidade.analisado_em).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}
+          <Layers size={18} className="text-emerald-600" />
+          <span className="font-bold text-slate-900">Arranjo A</span>
+          <span className="text-[10px] text-emerald-700 font-bold tracking-widest bg-emerald-100 border border-emerald-200 rounded-full px-2 py-0.5">PRINCIPAL</span>
+          {(equipamentos.painel || equipamentos.inversor || equipamentos.estrutura) && (
+            <span className="text-[10px] text-slate-500 ml-auto">
+              {[
+                equipamentos.painel  && `${equipamentos.painel.marca} ${equipamentos.painel.modelo}`,
+                equipamentos.inversor && `${equipamentos.inversor.marca} ${equipamentos.inversor.modelo}`,
+                equipamentos.estrutura && equipamentos.estrutura.tipo,
+              ].filter(Boolean).join(' · ')}
             </span>
           )}
         </div>
 
-        {carregandoProjeto && (
-          <div className="flex items-center gap-2 text-sm text-slate-500 py-2">
-            <Loader2 className="w-4 h-4 animate-spin text-violet-400" />
-            Recuperando configuração elétrica salva...
-          </div>
-        )}
+        {/* Módulos Fotovoltaicos */}
+        <section className="border border-amber-200 rounded-xl overflow-hidden bg-amber-50">
+          <button
+            className="w-full flex items-center justify-between px-5 py-4"
+            onClick={() => setPainelExp(v => !v)}
+            aria-expanded={painelExp}
+          >
+            <div className="flex items-center gap-2 flex-wrap">
+              <Sun size={18} className="text-amber-600" />
+              <h3 className="font-semibold text-slate-900">Módulos Fotovoltaicos</h3>
+              <Badge cor="amarelo">~{dim.numPaineis ?? '?'} un. (estimativa E5)</Badge>
+              {equipamentos.painel && (
+                <span className="text-xs text-amber-700 font-medium bg-amber-100 border border-amber-200 rounded-full px-2 py-0.5">
+                  ✓ {equipamentos.painel.marca} {equipamentos.painel.modelo} · {equipamentos.painel.potenciaW}W
+                  {equipamentos.painel.tecnologia && ` · ${equipamentos.painel.tecnologia}`}
+                  {equipamentos.painel.bifacial   && ' · Bifacial'}
+                </span>
+              )}
+            </div>
+            {painelExp
+              ? <ChevronUp size={16} className="text-slate-400 shrink-0" />
+              : <ChevronDown size={16} className="text-slate-400 shrink-0" />}
+          </button>
+          {painelExp && (
+            <div className="px-5 pb-5 border-t border-amber-100">
+              <SeletorPaineis onSelecionar={selecionarPainel} selecionado={equipamentos.painel} />
+            </div>
+          )}
+        </section>
 
-        {!ambosSelecionados && !carregandoProjeto ? (
-          <p className="text-sm text-slate-500 py-2">
-            Selecione um módulo e um inversor acima para configurar as strings e
-            ver a análise de compatibilidade elétrica em tempo real.
-          </p>
-        ) : ambosSelecionados && (
-          <ConfiguradorArranjoFV
-            painel={equipamentos.painel}
-            inversor={equipamentos.inversor}
-            numPaineis={dim.numPaineis ?? 0}
-            uf={localizacao?.uf ?? null}
-            projetoId={projetoId}
-            initialValues={engenhariaInicial}
-            areaDisponivel={areaDisponivel}
-            tipoLigacao={tipoLigacao}
-            dispatch={dispatch}
-            onSaved={() => {}}
-            onSaveAndNext={avancar}
-          />
-        )}
+        {/* Inversores */}
+        <section className="border border-blue-200 rounded-xl overflow-hidden bg-blue-50">
+          <button
+            className="w-full flex items-center justify-between px-5 py-4"
+            onClick={() => setInversorExp(v => !v)}
+            aria-expanded={inversorExp}
+          >
+            <div className="flex items-center gap-2 flex-wrap">
+              <Zap size={18} className="text-blue-600" />
+              <h3 className="font-semibold text-slate-900">Inversores</h3>
+              <Badge cor="azul">~{dim.numInversores ?? '?'} un. (estimativa E5)</Badge>
+              {equipamentos.inversor && (
+                <>
+                  <span className="text-xs text-blue-700 font-medium bg-blue-100 border border-blue-200 rounded-full px-2 py-0.5">
+                    ✓ {equipamentos.inversor.marca} {equipamentos.inversor.modelo} · {equipamentos.inversor.potenciaKW} kW · {equipamentos.inversor.nMppts} MPPT(s)
+                  </span>
+                  {equipamentos.inversor.tipo && (
+                    <Badge cor={TIPO_BADGE_COR[equipamentos.inversor.tipo] ?? 'cinza'}>
+                      {equipamentos.inversor.tipo}
+                    </Badge>
+                  )}
+                </>
+              )}
+            </div>
+            {inversorExp
+              ? <ChevronUp size={16} className="text-slate-400 shrink-0" />
+              : <ChevronDown size={16} className="text-slate-400 shrink-0" />}
+          </button>
+          {inversorExp && (
+            <div className="px-5 pb-5 border-t border-blue-100">
+              <SeletorInversores onSelecionar={selecionarInversor} selecionado={equipamentos.inversor} />
+            </div>
+          )}
+        </section>
+
+        {/* Estrutura de Fixação */}
+        <section className="border border-slate-300 rounded-xl overflow-hidden bg-slate-50">
+          <button
+            className="w-full flex items-center justify-between px-5 py-4"
+            onClick={() => setEstruturaExp(v => !v)}
+            aria-expanded={estruturaExp}
+          >
+            <div className="flex items-center gap-2 flex-wrap">
+              <Layers size={18} className="text-slate-600" />
+              <h3 className="font-semibold text-slate-900">Estrutura de Fixação</h3>
+              {equipamentos.estrutura && (
+                <span className="text-xs text-slate-700 font-medium bg-slate-100 border border-slate-300 rounded-full px-2 py-0.5">
+                  ✓ {equipamentos.estrutura.tipo}
+                </span>
+              )}
+            </div>
+            {estruturaExp
+              ? <ChevronUp size={16} className="text-slate-400 shrink-0" />
+              : <ChevronDown size={16} className="text-slate-400 shrink-0" />}
+          </button>
+          {estruturaExp && (
+            <div className="px-5 pb-5 border-t border-slate-200">
+              <SeletorEstrutura onSelecionar={selecionarEstrutura} selecionado={equipamentos.estrutura} />
+            </div>
+          )}
+        </section>
+
+        {/* Configurador Elétrico */}
+        <section className="border border-violet-200 rounded-xl bg-violet-50 p-5 space-y-3">
+          <div className="flex items-center gap-2 flex-wrap">
+            <Zap size={18} className="text-violet-600" />
+            <h3 className="font-semibold text-slate-900">Configuração Elétrica do Arranjo</h3>
+            <span className="text-[10px] text-violet-500 font-bold tracking-widest bg-violet-100 border border-violet-200 rounded-full px-2 py-0.5">
+              TEMPO REAL
+            </span>
+            {engenhariaInicial?.compatibilidade?.analisado_em && (
+              <span className="text-[10px] text-slate-400 bg-slate-50 border border-slate-200 rounded-full px-2 py-0.5">
+                Salvo: {new Date(engenhariaInicial.compatibilidade.analisado_em).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}
+              </span>
+            )}
+          </div>
+          {carregandoProjeto && (
+            <div className="flex items-center gap-2 text-sm text-slate-500 py-2">
+              <Loader2 className="w-4 h-4 animate-spin text-violet-400" />
+              Recuperando configuração elétrica salva...
+            </div>
+          )}
+          {!ambosSelecionados && !carregandoProjeto ? (
+            <p className="text-sm text-slate-500 py-2">
+              Selecione um módulo e um inversor acima para configurar as strings e
+              ver a análise de compatibilidade elétrica em tempo real.
+            </p>
+          ) : ambosSelecionados && (
+            <ConfiguradorArranjoFV
+              painel={equipamentos.painel}
+              inversor={equipamentos.inversor}
+              numPaineis={dim.numPaineis ?? 0}
+              uf={localizacao?.uf ?? null}
+              projetoId={projetoId}
+              initialValues={engenhariaInicial}
+              areaDisponivel={areaDisponivel}
+              tipoLigacao={tipoLigacao}
+              dispatch={dispatch}
+              onSaved={() => {}}
+              onSaveAndNext={avancar}
+            />
+          )}
+        </section>
       </section>
 
-      {/* ── Múltiplos Arranjos (FASE 1/3) ───────────────────────────────────── */}
+      {/* ── Arranjos Secundários (B, C, D…) — GerenciadorArranjos ──────────── */}
       <GerenciadorArranjos />
 
       {/* Aviso sobre preço */}

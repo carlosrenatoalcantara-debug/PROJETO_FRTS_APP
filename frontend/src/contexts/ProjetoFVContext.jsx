@@ -91,6 +91,7 @@ function novoArranjoVazio() {
     painel: null,
     inversor: null,
     quantidadeModulos: null,
+    estrutura: null,  // P2-FV-MULTIARRANJO-UX-01: estrutura por arranjo
   }
 }
 

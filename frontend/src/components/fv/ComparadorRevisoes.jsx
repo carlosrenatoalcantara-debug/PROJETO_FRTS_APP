@@ -61,6 +61,7 @@ export default function ComparadorRevisoes({ governanca, onEvento }) {
   }
 
   const sel = 'px-2 py-1.5 rounded border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500'
+  const fmt = (v) => v == null ? '—' : typeof v === 'object' ? JSON.stringify(v) : String(v)
 
   return (
     <Card>
@@ -113,8 +114,8 @@ export default function ComparadorRevisoes({ governanca, onEvento }) {
                       <tr key={i} className={`border-b border-slate-50 ${s.bg}`}>
                         <td className={`py-1.5 pr-2 font-bold ${s.cor}`}>{s.icone}</td>
                         <td className="py-1.5 pr-3 text-slate-600">{l.campo}</td>
-                        <td className="py-1.5 pr-3 text-slate-500">{l.de ?? '—'}</td>
-                        <td className={`py-1.5 pr-3 font-medium ${l.status === 'alterado' ? 'text-amber-800' : 'text-slate-800'}`}>{l.para ?? '—'}</td>
+                        <td className="py-1.5 pr-3 text-slate-500">{fmt(l.de)}</td>
+                        <td className={`py-1.5 pr-3 font-medium ${l.status === 'alterado' ? 'text-amber-800' : 'text-slate-800'}`}>{fmt(l.para)}</td>
                       </tr>
                     )
                   })}

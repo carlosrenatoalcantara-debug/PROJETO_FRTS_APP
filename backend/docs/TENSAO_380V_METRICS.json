@@ -1,0 +1,55 @@
+{
+  "sprint": "P1-TENSAO-380V-PARSER-01",
+  "data": "2026-06-19",
+  "modelo": "Claude Sonnet 4.6",
+
+  "metricas_codigo": {
+    "arquivos_alterados": 5,
+    "linhas_adicionadas": 27,
+    "linhas_modificadas": 12,
+    "linhas_removidas": 7,
+    "novos_arquivos": 0,
+    "arquivos_excluidos": 0,
+    "build_resultado": "SUCCESS",
+    "build_tempo_s": 7.91,
+    "build_erros": 0,
+    "build_warnings": 1,
+    "build_warning_descricao": "chunk > 2000kB (pré-existente, não introduzido por esta sprint)"
+  },
+
+  "bugs_corrigidos": 4,
+  "bugs_por_camada": {
+    "parser_backend": 1,
+    "whitelist_backend": 1,
+    "persistencia_frontend": 1,
+    "normalizacao_frontend": 1,
+    "hidracao_frontend": 1
+  },
+
+  "rca": {
+    "bug_primario": "Parser retornava 'Trifásico 220V' para non-NEO sem ler tensão explícita do texto",
+    "bug_secundario_a": "tensao_v ausente de CAMPOS_FATURA_PERMITIDOS — nunca salvo no DB",
+    "bug_secundario_b": "salvarTodosSlices sem slice 'fatura' — dadosConsumo perdido ao fechar projeto",
+    "bug_terciario": "tipoLigacao='Trifásico 380V' não normalizado para valores do Select",
+    "bug_quaternario": "Hidratação: fallback '220' sem considerar tipo_ligacao"
+  },
+
+  "compatibilidade": {
+    "projetos_antigos_sem_tensao_v": "PRESERVADA — fallback inteligente (trifasico→380, outros→220)",
+    "distribuidoras_NEO": "PRESERVADA — detector explícito tem prioridade, heurística isNeo como fallback",
+    "monofasico_bifasico": "PRESERVADA — sem alteração de comportamento",
+    "projetoEV_ativos_qr_governanca": "PRESERVADA — não tocados"
+  },
+
+  "validacao": {
+    "build": "SIM",
+    "logica_parser_codigo": "SIM — tensaoNaLinha(/\\b(440|380|220|127)V\\b/) testado em código",
+    "runtime_cosern_380v": "NAO — requer PDF real em Railway",
+    "runtime_non_neo_380v": "NAO — requer PDF real em Railway",
+    "testes_unitarios": "NAO_EXECUTADOS",
+    "testes_e2e": "NAO_EXECUTADOS"
+  },
+
+  "resultado_final": "CORRIGIDO",
+  "nota": "4 bugs encadeados em 5 arquivos. Cadeia: parser→normalização→persistência→hidratação. Runtime pendente com PDF COSERN trifásico 380V real em Railway."
+}

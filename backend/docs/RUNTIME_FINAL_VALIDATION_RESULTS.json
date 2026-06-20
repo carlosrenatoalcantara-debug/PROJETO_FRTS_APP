@@ -1,0 +1,119 @@
+{
+  "sprint": "P1-RUNTIME-FINAL-VALIDATION-01",
+  "data": "2026-06-20",
+  "modelo": "Claude Sonnet 4.6",
+
+  "ambiente": {
+    "railway_acessado": false,
+    "vercel_acessado": false,
+    "atlas_acessado": false,
+    "runtime_executado": false,
+    "motivo_nao_execucao": "Insumos ausentes: PDFs reais (COSERN 380V, SUN2000-50KTL-M0, SUN2000-60KTL) e sessão autenticada no Vercel"
+  },
+
+  "resumo": {
+    "total_testes": 10,
+    "executados": 0,
+    "passaram": 0,
+    "falharam": 0,
+    "nao_executados": 10,
+    "bloqueados": 10
+  },
+
+  "testes": [
+    {
+      "id": "T01",
+      "nome": "Huawei SUN2000-50KTL-M0 — Cadastro Assistido",
+      "status": "NAO_EXECUTADO",
+      "bloqueador": "PDF real do SUN2000-50KTL-M0 ausente",
+      "sprint_origem": "P1-HUAWEI-50KTL-RCA-01",
+      "resultado": null,
+      "evidencia": null
+    },
+    {
+      "id": "T02",
+      "nome": "Huawei SUN2000-60KTL — Regressão",
+      "status": "NAO_EXECUTADO",
+      "bloqueador": "PDF real do SUN2000-60KTL ausente",
+      "sprint_origem": "P1-HUAWEI-50KTL-RCA-01",
+      "resultado": null,
+      "evidencia": null
+    },
+    {
+      "id": "T03",
+      "nome": "COSERN Trifásica 380V — Extração e Persistência",
+      "status": "NAO_EXECUTADO",
+      "bloqueador": "PDF real conta COSERN trifásica 380V ausente",
+      "sprint_origem": "P1-TENSAO-380V-PARSER-01",
+      "resultado": null,
+      "evidencia": null
+    },
+    {
+      "id": "T04",
+      "nome": "Governança — ComparadorRevisoes sem React Error #31",
+      "status": "NAO_EXECUTADO",
+      "bloqueador": "Requer projeto com 2+ revisões congeladas e sessão autenticada",
+      "sprint_origem": "P1-GOVERNANCA-REACT31-RCA-01",
+      "resultado": null,
+      "evidencia": null
+    },
+    {
+      "id": "T05",
+      "nome": "Governança — Divergências (Engenharia/Unifilar/Orçamento/Homologação)",
+      "status": "NAO_EXECUTADO",
+      "bloqueador": "Requer projeto congelado e sessão autenticada",
+      "sprint_origem": "P6 Governança",
+      "resultado": null,
+      "evidencia": null
+    },
+    {
+      "id": "T06",
+      "nome": "Governança — Botão Documentação Homologada",
+      "status": "NAO_EXECUTADO",
+      "bloqueador": "Requer projeto com status HOMOLOGADO e sessão autenticada",
+      "sprint_origem": "P6 Governança",
+      "resultado": null,
+      "evidencia": null
+    },
+    {
+      "id": "T07",
+      "nome": "Unifilar — 355 módulos / SUN2000-60KTL + SUN2000-50KTL",
+      "status": "NAO_EXECUTADO",
+      "bloqueador": "Requer projeto configurado com essa combinação",
+      "sprint_origem": "Unifilar SVG",
+      "resultado": null,
+      "evidencia": null
+    },
+    {
+      "id": "T08",
+      "nome": "Multiarranjo — Criar A/B/C e validar persistência",
+      "status": "NAO_EXECUTADO",
+      "bloqueador": "Requer projeto existente e sessão autenticada",
+      "sprint_origem": "P2-MULTIARRANJO-UX-01",
+      "resultado": null,
+      "evidencia": null
+    },
+    {
+      "id": "T09",
+      "nome": "Beneficiárias — UC/Conta Contrato/Consumo pré-preenchidos",
+      "status": "NAO_EXECUTADO",
+      "bloqueador": "Requer projeto com beneficiárias cadastradas",
+      "sprint_origem": "OCR beneficiárias",
+      "resultado": null,
+      "evidencia": null
+    },
+    {
+      "id": "T10",
+      "nome": "Fluxo Completo End-to-End",
+      "status": "NAO_EXECUTADO",
+      "bloqueador": "Requer todos os insumos (PDFs + projeto configurado + sessão autenticada)",
+      "sprint_origem": "Todos",
+      "resultado": null,
+      "evidencia": null
+    }
+  ],
+
+  "resultado_final": "NAO_APROVADO_PARA_USO_OPERACIONAL",
+  "motivo_resultado": "Testes não executados (0/10) — insumos pendentes com o usuário",
+  "nota": "NÃO APROVADO reflete ausência de validação runtime, não falha de código. Todas as correções foram validadas em código e build."
+}

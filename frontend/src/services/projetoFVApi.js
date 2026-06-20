@@ -156,6 +156,26 @@ export function adaptarOrcamento({
 }
 
 /**
+ * Adapter: fatura
+ * P1-TENSAO-380V-PARSER-01 — persiste tipoLigacao e tensão real no DB.
+ * Context.dadosConsumo → fatura_extracao (snake_case v3)
+ */
+export function adaptarFatura(dadosConsumo) {
+  if (!dadosConsumo) return null
+  const tensaoNum = Number(dadosConsumo.tensao)
+  return {
+    concessionaria:     dadosConsumo.concessionaria || dadosConsumo.distribuidora || null,
+    grupo_tarifario:    dadosConsumo.grupoTarifario || null,
+    tipo_ligacao:       dadosConsumo.tipoLigacao    || null,
+    tensao_v:           Number.isFinite(tensaoNum) && tensaoNum > 0 ? tensaoNum : null,
+    consumo_mensal_kwh: dadosConsumo.consumoMensal ? Number(dadosConsumo.consumoMensal) || null : null,
+    media_anual_kwh:    dadosConsumo.mediaAnual     || null,
+    historico_12meses:  dadosConsumo.historico12Meses || null,
+    valor_kwh:          dadosConsumo.valorKwh ? Number(dadosConsumo.valorKwh) || null : null,
+  }
+}
+
+/**
  * Adapter: workflow
  * Context: { etapa, dadosCliente }
  * v3: { etapa_atual, etapas_completas, fluxo_origem, ultima_atividade }
@@ -416,9 +436,10 @@ export async function resolverClientePorNome(nomeCliente) {
  * Retorna relatório de { salvo: [], falhou: [] }
  */
 export async function salvarTodosSlices(projetoId, state, orcamentoLocal) {
-  const { localizacao, irradiancia, dimensionamento, area, equipamentos, etapa, beneficiarias } = state
+  const { localizacao, irradiancia, dimensionamento, area, equipamentos, etapa, beneficiarias, dadosConsumo } = state
 
   const slices = [
+    { etapa: 'fatura',          dados: adaptarFatura(dadosConsumo) },
     { etapa: 'localizacao',     dados: adaptarLocalizacao(localizacao, irradiancia) },
     { etapa: 'dimensionamento', dados: adaptarDimensionamento(dimensionamento, irradiancia) },
     { etapa: 'equipamentos',    dados: adaptarEquipamentos(equipamentos, dimensionamento) },

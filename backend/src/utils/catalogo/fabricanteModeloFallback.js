@@ -91,8 +91,10 @@ const PADROES = [
     fabricante: 'Huawei',
     aliases: ['huawei'],
     modelos: [
-      /\b(SUN2000-\d{1,3}K?TL\w*)\b/i,           // SUN2000-100KTL-H1
-      /\b(SUN2000-\d{1,3}\w*)\b/i,
+      // P1-HUAWEI-50KTL-RCA-01: \w* não captura hífen — SUN2000-50KTL-M0 perdia o sufixo -M0.
+      // [-A-Z0-9]* substitui \w* para cobrir variantes como -M0, -H1, -H3, -US, etc.
+      /\b(SUN2000-\d{1,3}K?TL[-A-Z0-9]*)\b/i,    // SUN2000-50KTL-M0, SUN2000-100KTL-H1
+      /\b(SUN2000-\d{1,3}[-A-Z0-9]*)\b/i,         // fallback genérico SUN2000
     ],
   },
   {
@@ -405,6 +407,8 @@ export function extrairFabricanteModelo(texto) {
     { regex: /\b(SP[I1]\s?-?\d{3,4}-?B\d?)\b/i, fabricante: 'Kehua' },                                // SPI6000-B2 / OCR SP13000-B2
     // P1-PARSER-SAJ-01: SAJ R5/R6-…-S2 — os datasheets SAJ não escrevem "SAJ" no corpo.
     { regex: /\b(R[56]-\d{1,2}(?:\.\d)?K[-\w]*)\b/i, fabricante: 'SAJ' },                              // R5-5K-S2
+    // P1-HUAWEI-50KTL-RCA-01: SUN2000 sem "Huawei" no OCR (marca só em imagem/logo).
+    { regex: /\b(SUN2000-\d{1,3}K?TL[-A-Z0-9]*)\b/i, fabricante: 'Huawei' },                           // SUN2000-50KTL-M0
   ]
   for (const { regex, fabricante } of modelosOrfaos) {
     const m = texto.match(regex)

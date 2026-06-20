@@ -136,7 +136,9 @@ function WizardInterno() {
                 concessionaria: fe.concessionaria || '',
                 distribuidora:  fe.concessionaria || '',
                 tipoLigacao:    normalizarFase(fe.tipo_ligacao),
-                tensao:         fe.tensao_v ? String(fe.tensao_v) : '220',
+                // P1-TENSAO-380V-PARSER-01: fallback derivado do tipo quando tensao_v ausente
+                tensao:         fe.tensao_v ? String(fe.tensao_v)
+                                : normalizarFase(fe.tipo_ligacao) === 'trifasico' ? '380' : '220',
                 valorKwh:       String(fe.valor_kwh || ''),
                 grupoTarifario: fe.grupo_tarifario || '',
                 fase:           fe.tipo_ligacao    || '',

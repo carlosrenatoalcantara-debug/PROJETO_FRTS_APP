@@ -1,0 +1,70 @@
+{
+  "sprint": "P1-GOVERNANCA-REACT31-RCA-01",
+  "data": "2026-06-19",
+  "modelo": "Claude Sonnet 4.6",
+  "build": "✓ 0 erros, 13.95s, 2332 módulos",
+
+  "causa_raiz": {
+    "arquivo": "frontend/src/utils/diffRevisoes.js",
+    "linha": "36-37",
+    "descricao": "Campo 'bitola' inexistente no shape de cabos; fallback retornava objeto {imax,secao,disj} inteiro",
+    "campo_errado": "cabos.dc.bitola",
+    "campo_correto": "cabos.dc.secao"
+  },
+
+  "crash_site": {
+    "arquivo": "frontend/src/components/fv/ComparadorRevisoes.jsx",
+    "linha": "116-117",
+    "descricao": "Renderizava l.de e l.para sem verificar tipo — objeto passado diretamente como React child"
+  },
+
+  "objeto_causador": {
+    "keys": ["imax", "secao", "disj"],
+    "origem": "engenhariaNormativa.js:335 — cabos.dc shape retornado por montarModeloEletrico()",
+    "exemplo": { "imax": 61, "secao": "16", "disj": "50" }
+  },
+
+  "arquivos_alterados": [
+    {
+      "arquivo": "frontend/src/utils/diffRevisoes.js",
+      "tipo": "correcao_raiz",
+      "diff": {
+        "antes": [
+          "'Cabo CC (mm²)': g(t, 'cabos.dc.bitola') ?? g(t, 'cabos.dc') ?? null,",
+          "'Cabo CA (mm²)': g(t, 'cabos.ac.bitola') ?? g(t, 'cabos.ac') ?? null,"
+        ],
+        "depois": [
+          "'Cabo CC (mm²)': g(t, 'cabos.dc.secao') ?? g(t, 'cabos.dc.bitola') ?? null,",
+          "'Cabo CA (mm²)': g(t, 'cabos.ac.secao') ?? g(t, 'cabos.ac.bitola') ?? null,"
+        ]
+      },
+      "linhas_modificadas": 2,
+      "linhas_adicionadas": 0,
+      "linhas_removidas": 0
+    },
+    {
+      "arquivo": "frontend/src/components/fv/ComparadorRevisoes.jsx",
+      "tipo": "safety_net",
+      "diff": {
+        "adicoes": [
+          "const fmt = (v) => v == null ? '—' : typeof v === 'object' ? JSON.stringify(v) : String(v)",
+          "Substituição de {l.de ?? '—'} por {fmt(l.de)}",
+          "Substituição de {l.para ?? '—'} por {fmt(l.para)}"
+        ]
+      },
+      "linhas_modificadas": 2,
+      "linhas_adicionadas": 1,
+      "linhas_removidas": 0
+    }
+  ],
+
+  "arquivos_nao_alterados": [
+    "GovernancaPainel.jsx",
+    "engenhariaNormativa.js",
+    "engenhariaGovernanca.js",
+    "ProjetosFVDetalhes.jsx",
+    "E8Orcamento.jsx"
+  ],
+
+  "regressoes": "NENHUMA"
+}

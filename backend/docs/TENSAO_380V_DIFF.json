@@ -1,0 +1,118 @@
+{
+  "sprint": "P1-TENSAO-380V-PARSER-01",
+  "data": "2026-06-19",
+  "modelo": "Claude Sonnet 4.6",
+  "build": "✓ 0 erros, 7.91s, 2332 módulos",
+
+  "bugs_identificados": [
+    {
+      "id": "BUG-1",
+      "arquivo": "backend/src/controllers/faturaController.js",
+      "linha": "400",
+      "descricao": "Heurística isNeo retorna 'Trifásico 220V' para distribuidoras fora da lista, mesmo com '380V' explícito no PDF",
+      "antes": "if (/TRIF[AÁ]SICO/i.test(textoOriginal)) return isNeo ? 'Trifásico 380V' : 'Trifásico 220V'"
+    },
+    {
+      "id": "BUG-2a",
+      "arquivo": "backend/src/controllers/projetosFVController.js",
+      "linha": "654-658",
+      "descricao": "'tensao_v' ausente de CAMPOS_FATURA_PERMITIDOS — backend ignora o campo quando enviado"
+    },
+    {
+      "id": "BUG-2b",
+      "arquivo": "frontend/src/services/projetoFVApi.js",
+      "linha": "418-428",
+      "descricao": "salvarTodosSlices não inclui slice 'fatura' — dadosConsumo nunca persiste no DB"
+    },
+    {
+      "id": "BUG-3",
+      "arquivo": "frontend/src/components/fv/etapas/E1Upload.jsx",
+      "linha": "55",
+      "descricao": "tipoLigacao armazenado como 'Trifásico 380V' (string completa) não bate com valores do Select ('trifasico')"
+    },
+    {
+      "id": "BUG-4",
+      "arquivo": "frontend/src/pages/ProjetosFVNovo.jsx",
+      "linha": "139",
+      "descricao": "Hidratação: fallback tensao_v=null → '220' mesmo para trifásico",
+      "antes": "tensao: fe.tensao_v ? String(fe.tensao_v) : '220',"
+    }
+  ],
+
+  "arquivos_alterados": [
+    {
+      "arquivo": "backend/src/controllers/faturaController.js",
+      "tipo": "correcao_parser",
+      "descricao": "extrairTipoLigacao: detecta tensão explícita na linha antes de aplicar heurística; loop verifica linha atual e próxima após 'TIPO DE FORNECIMENTO'; fallback padrão 380V para trifásico",
+      "linhas_adicionadas": 14,
+      "linhas_modificadas": 6,
+      "linhas_removidas": 7,
+      "antes_key": [
+        "return isNeo ? 'Trifásico 380V' : 'Trifásico 220V'"
+      ],
+      "depois_key": [
+        "const v = tensaoExplicita || '380'",
+        "return `Trifásico ${v}V`"
+      ]
+    },
+    {
+      "arquivo": "backend/src/controllers/projetosFVController.js",
+      "tipo": "correcao_whitelist",
+      "descricao": "Adicionado 'tensao_v' a CAMPOS_FATURA_PERMITIDOS",
+      "linhas_adicionadas": 0,
+      "linhas_modificadas": 1,
+      "linhas_removidas": 0,
+      "antes_key": "'classificacao', 'tipo_ligacao', 'consumo_mensal_kwh'",
+      "depois_key": "'classificacao', 'tipo_ligacao', 'tensao_v', 'consumo_mensal_kwh'"
+    },
+    {
+      "arquivo": "frontend/src/services/projetoFVApi.js",
+      "tipo": "correcao_persistencia",
+      "descricao": "Função adaptarFatura() criada; slice 'fatura' adicionado a salvarTodosSlices; dadosConsumo incluído na desestruturação",
+      "linhas_adicionadas": 21,
+      "linhas_modificadas": 2,
+      "linhas_removidas": 0
+    },
+    {
+      "arquivo": "frontend/src/components/fv/etapas/E1Upload.jsx",
+      "tipo": "correcao_normalizacao",
+      "descricao": "normFase() normaliza tipoLigacao para valores do Select; tensaoDoTipo() extrai tensão como fallback do tipoLigacao completo",
+      "linhas_adicionadas": 10,
+      "linhas_modificadas": 2,
+      "linhas_removidas": 0
+    },
+    {
+      "arquivo": "frontend/src/pages/ProjetosFVNovo.jsx",
+      "tipo": "correcao_hidracao",
+      "descricao": "Fallback tensao_v: trifasico → '380', outros → '220'",
+      "linhas_adicionadas": 2,
+      "linhas_modificadas": 1,
+      "linhas_removidas": 0
+    }
+  ],
+
+  "arquivos_nao_alterados": [
+    "faturaParser.js",
+    "faturaIntelligenceService.js",
+    "faturaAliases.js",
+    "faturaValidador.js",
+    "E2Consumo.jsx",
+    "E8Orcamento.jsx",
+    "ProjetosFVDetalhes.jsx",
+    "ProjetoFVContext.jsx",
+    "engenhariaNormativa.js",
+    "gerarUnifilarSVG.js"
+  ],
+
+  "casos_cobertos": [
+    { "caso": "Monofásico 220V",              "tipoLigacao": "monofasico", "tensao": "220", "status": "OK" },
+    { "caso": "Bifásico 220V",                "tipoLigacao": "bifasico",   "tensao": "220", "status": "OK" },
+    { "caso": "Trifásico 220V (explícito)",   "tipoLigacao": "trifasico",  "tensao": "220", "status": "OK" },
+    { "caso": "Trifásico 380V (explícito)",   "tipoLigacao": "trifasico",  "tensao": "380", "status": "OK" },
+    { "caso": "Trifásico 440V (explícito)",   "tipoLigacao": "trifasico",  "tensao": "440", "status": "OK" },
+    { "caso": "Trifásico sem voltagem",       "tipoLigacao": "trifasico",  "tensao": "380", "status": "OK_FALLBACK" },
+    { "caso": "Monofásico 127V (non-NEO)",    "tipoLigacao": "monofasico", "tensao": "127", "status": "OK_PRESERVADO" }
+  ],
+
+  "regressoes": "NENHUMA"
+}
