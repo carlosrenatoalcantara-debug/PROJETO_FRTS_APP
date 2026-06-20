@@ -384,21 +384,39 @@ function extrairSubgrupo(linhas, textoOriginal) {
 }
 
 function extrairTipoLigacao(linhas, textoOriginal, distribuidora) {
-  // COSERN: "TIPO DE FORNECIMENTO: Conv. Monômia - Monofásico"
-  for (const linha of linhas) {
-    if (/TIPO\s*DE\s*FORNECIMENTO/i.test(linha)) {
-      if (/TRIF[AÁ]SICO/i.test(linha)) return 'Trifásico 380V'
-      if (/BIF[AÁ]SICO/i.test(linha)) return 'Bifásico 220V'
-      if (/MONOF[AÁ]SICO/i.test(linha)) return 'Monofásico 220V'
+  // P1-TENSAO-380V-PARSER-01: detecta voltagem explícita na linha (440V, 380V, 220V, 127V)
+  const tensaoNaLinha = (linha) => {
+    const m = linha.match(/\b(440|380|220|127)\s*V\b/i)
+    return m ? m[1] : null
+  }
+
+  // COSERN: "TIPO DE FORNECIMENTO: Conv. Monômia - Trifásico 380V"
+  // Verifica a linha com o rótulo E a próxima linha (layout com quebra)
+  for (let i = 0; i < linhas.length; i++) {
+    if (/TIPO\s*DE\s*FORNECIMENTO/i.test(linhas[i])) {
+      const candidatas = [linhas[i], linhas[i + 1] || '']
+      for (const l of candidatas) {
+        const v = tensaoNaLinha(l)
+        if (/TRIF[AÁ]SICO/i.test(l)) return `Trifásico ${v || '380'}V`
+        if (/BIF[AÁ]SICO/i.test(l)) return `Bifásico ${v || '220'}V`
+        if (/MONOF[AÁ]SICO/i.test(l)) return `Monofásico ${v || '220'}V`
+      }
     }
   }
 
-  // Busca livre no texto
+  // Busca livre: procura tensão explícita na linha que contém o tipo de ligação
+  const linhaTipo = linhas.find(l => /TRIF[AÁ]SICO|BIF[AÁ]SICO|MONOF[AÁ]SICO/i.test(l))
+  const tensaoExplicita = linhaTipo ? tensaoNaLinha(linhaTipo) : null
+
   const redeNeo = ['COSERN','COELBA','CELPE','ELEKTRO','NEOENERGIA']
   const isNeo = redeNeo.includes(distribuidora)
 
-  if (/TRIF[AÁ]SICO/i.test(textoOriginal)) return isNeo ? 'Trifásico 380V' : 'Trifásico 220V'
-  if (/BIF[AÁ]SICO/i.test(textoOriginal)) return isNeo ? 'Bifásico 220V' : 'Bifásico 220V'
+  if (/TRIF[AÁ]SICO/i.test(textoOriginal)) {
+    // Prioridade: tensão explícita no texto; fallback: 380V (padrão BR para trifásico)
+    const v = tensaoExplicita || '380'
+    return `Trifásico ${v}V`
+  }
+  if (/BIF[AÁ]SICO/i.test(textoOriginal)) return 'Bifásico 220V'
   if (/MONOF[AÁ]SICO/i.test(textoOriginal)) return isNeo ? 'Monofásico 220V' : 'Monofásico 127V'
 
   return null

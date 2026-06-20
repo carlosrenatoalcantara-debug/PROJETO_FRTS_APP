@@ -653,7 +653,7 @@ export const salvarEtapaProjetoFV = async (req, res) => {
         // (não permite sobrescrever dados_brutos ou arquivo_original_nome via esta rota)
         const CAMPOS_FATURA_PERMITIDOS = [
           'confirmado_pelo_usuario', 'concessionaria', 'grupo_tarifario',
-          'classificacao', 'tipo_ligacao', 'consumo_mensal_kwh', 'media_anual_kwh',
+          'classificacao', 'tipo_ligacao', 'tensao_v', 'consumo_mensal_kwh', 'media_anual_kwh',
           'historico_12meses', 'valor_total_r', 'valor_kwh', 'irradiancia_local',
         ]
         for (const campo of CAMPOS_FATURA_PERMITIDOS) {

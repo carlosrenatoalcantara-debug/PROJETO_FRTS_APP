@@ -45,6 +45,21 @@ export default function E1Upload() {
       const dados = await res.json()
 
       if (dados.consumoKwh || dados.valorR || dados.distribuidora || dados.endereco) {
+        // P1-TENSAO-380V-PARSER-01: normaliza tipoLigacao para valores do Select
+        const normFase = (t) => {
+          const tl = (t || '').toLowerCase()
+          if (tl.includes('trif')) return 'trifasico'
+          if (tl.includes('bif')) return 'bifasico'
+          if (tl.includes('mono')) return 'monofasico'
+          return t || ''
+        }
+        // Extrai tensão do campo tipoLigacao como fallback ("Trifásico 380V" → "380")
+        const tensaoDoTipo = (t) => {
+          const m = (t || '').match(/\b(440|380|220|127)\b/)
+          return m ? m[1] : null
+        }
+        const tensaoFinal = dados.tensao || tensaoDoTipo(dados.tipoLigacao) || '220'
+
         dispatch({
           type: 'SET_CONSUMO',
           payload: {
@@ -52,8 +67,8 @@ export default function E1Upload() {
             distribuidora: dados.distribuidora || '',
             historico12Meses: dados.historico12Meses || null,
             mediaAnual: dados.mediaAnual || null,
-            tipoLigacao: dados.tipoLigacao || '',
-            tensao: dados.tensao || '220',
+            tipoLigacao: normFase(dados.tipoLigacao),
+            tensao: tensaoFinal,
             grupoTarifario: dados.grupoTarifario || '',
             fase: dados.fase || '',
             valorKwh: dados.valorKwh || '',
