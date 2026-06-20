@@ -1,0 +1,118 @@
+{
+  "sprint": "P1-FV-PRODUCTION-READINESS-01",
+  "data": "2026-06-20",
+  "ordenado_por": "impacto_operacional_desc",
+
+  "top_10_riscos": [
+    {
+      "rank": 1,
+      "id": "NEW-01",
+      "risco": "Status de homologacao em memoria (Map)",
+      "severidade": "P1",
+      "probabilidade": "ALTA",
+      "impacto": "CRITICO",
+      "descricao": "Checklist, status (enviado/analise/aprovado/conectado), numero da ART e datas vivem em homologacoesDB = new Map(). Railway redeploya a cada push -> perda total do tracking. Ja ocorre em producao.",
+      "mitigacao_atual": "Documentos (memorial/ART/carta) sao regenerados sob demanda do ProjetoFV; apenas o tracking de workflow se perde.",
+      "correcao": "Migrar para subdoc no ProjetoFV (governanca.homologacao ou homologacao_status)."
+    },
+    {
+      "rank": 2,
+      "id": "BUG-QUAL-01",
+      "risco": "Motor de qualidade miscalibrado",
+      "severidade": "P0",
+      "probabilidade": "ALTA",
+      "impacto": "ALTO",
+      "descricao": "MPPT_INCOERENTE gera falso-positivo em microinversores; import_solarmarket nunca atinge nivel utilizavel. Gate utilizavel_em_projeto (default true) nunca rebaixado para registros incompletos.",
+      "mitigacao_atual": "Cadastro manual permite criar equipamento com specs completas.",
+      "correcao": "Recalibrar regras de plausibilidade + recalcular utilizavel_em_projeto com base em specs minimas presentes."
+    },
+    {
+      "rank": 3,
+      "id": "BUG-CAT-01",
+      "risco": "Inversores ocos no seletor de engenharia",
+      "severidade": "P0",
+      "probabilidade": "MEDIA",
+      "impacto": "ALTO",
+      "descricao": "~122 inversores identity-only sem especificacoes. Runtime confirma que os 177 passam o filtro utilizavel. Selecao de inversor sem potencia_kw quebra dimensionamento/unifilar.",
+      "mitigacao_atual": "Operador pode notar campos vazios; cadastro manual disponivel.",
+      "correcao": "Enriquecer specs (regex derivavel 87) + barrar registros sem specs minimas no gate."
+    },
+    {
+      "rank": 4,
+      "id": "NEW-02",
+      "risco": "Wizard sem persistencia antes do passo 8",
+      "severidade": "P1",
+      "probabilidade": "MEDIA",
+      "impacto": "ALTO",
+      "descricao": "E1-E7 vivem so em localStorage. Fechar antes do passo 8, trocar dispositivo ou limpar storage perde tudo.",
+      "mitigacao_atual": "localStorage sobrevive a refresh; UI avisa 'Nao salvo'.",
+      "correcao": "Criar projeto (rascunho) na etapa 2/3 e ligar o autosave server-side existente."
+    },
+    {
+      "rank": 5,
+      "id": "OCR-IMG-GEMINI",
+      "risco": "OCR de fatura-imagem depende de Gemini",
+      "severidade": "P1",
+      "probabilidade": "BAIXA",
+      "impacto": "MEDIO",
+      "descricao": "Sem GEMINI_API_KEY/GOOGLE_API_KEY, fatura em imagem retorna 422. PDF e datasheet tem fallback proprio.",
+      "mitigacao_atual": "E2Consumo permite entrada manual; mensagem orienta 'preencha manualmente'.",
+      "correcao": "Documentar a chave como requisito de deploy ou adicionar OCR de imagem alternativo."
+    },
+    {
+      "rank": 6,
+      "id": "BUG-EQID-01",
+      "risco": "Projetos legados sem equipamento_id",
+      "severidade": "P1",
+      "probabilidade": "MEDIA",
+      "impacto": "MEDIO",
+      "descricao": "Vinculo ao Atlas vivo por ID nao dispara; memorial/divergencia caem em fabricante+modelo.",
+      "mitigacao_atual": "Fallback por nome funciona; snapshot preserva dados.",
+      "correcao": "Backfill de equipamento_id por (fabricante,modelo) nos arranjos legados."
+    },
+    {
+      "rank": 7,
+      "id": "NEW-03",
+      "risco": "Catalogo de estruturas e baterias vazio",
+      "severidade": "P2",
+      "probabilidade": "ALTA",
+      "impacto": "BAIXO",
+      "descricao": "0 estruturas e 0 baterias no Mongo. SeletorEstrutura usa lista hardcoded (funciona); baterias sem itens no catalogo.",
+      "mitigacao_atual": "6 estruturas hardcoded cobrem o comum; cadastro manual de bateria existe.",
+      "correcao": "Semear catalogo de estruturas/baterias ou criar page de cadastro de estruturas."
+    },
+    {
+      "rank": 8,
+      "id": "BUG-ARCH-01",
+      "risco": "Frontend importa de backend/src",
+      "severidade": "P2",
+      "probabilidade": "BAIXA",
+      "impacto": "MEDIO",
+      "descricao": "E7, Inversores e BeneficiariasPainel importam modulos de backend/src. Mover/alterar o arquivo backend quebra o build do frontend.",
+      "mitigacao_atual": "Funciona enquanto a arvore nao muda.",
+      "correcao": "Extrair utilitarios compartilhados para um pacote/dir comum."
+    },
+    {
+      "rank": 9,
+      "id": "BUG-LAY-01",
+      "risco": "Editor de layout nao representa multiarranjo",
+      "severidade": "P2",
+      "probabilidade": "BAIXA",
+      "impacto": "BAIXO",
+      "descricao": "InteractiveDiagram e EV-exclusivo; usa calculos genericos no FV.",
+      "mitigacao_atual": "AbaLayout exibe panos congelados em leitura.",
+      "correcao": "Diagrama FV multiarranjo dedicado (fora de readiness imediata)."
+    },
+    {
+      "rank": 10,
+      "id": "E8-CLIENTE-NOME",
+      "risco": "Salvar depende de resolverClientePorNome",
+      "severidade": "P2",
+      "probabilidade": "MEDIA",
+      "impacto": "MEDIO",
+      "descricao": "E8 resolve cliente por NOME para criar o projeto. Se o nome nao casar, salvar falha com 'Cliente nao encontrado'.",
+      "mitigacao_atual": "Fluxo via ?clienteId= ja carrega clienteId; mensagem clara ao operador.",
+      "correcao": "Priorizar state.clienteId quando presente em vez de resolver por nome."
+    }
+  ]
+}

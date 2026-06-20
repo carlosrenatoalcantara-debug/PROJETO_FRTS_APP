@@ -1,0 +1,126 @@
+{
+  "sprint": "P1-FV-PRODUCTION-READINESS-01",
+  "data": "2026-06-20",
+  "modelo": "Claude Opus 4.8",
+  "tipo": "auditoria_readonly",
+  "revisao_gemini": "PENDENTE — ferramenta indisponível no ambiente",
+
+  "maturidade_fv_pct": 80,
+  "resultado_final": "PRONTO_PARA_PRODUCAO_COM_RESSALVAS",
+
+  "evidencia": {
+    "validado_em_codigo": true,
+    "validado_em_runtime": "parcial",
+    "runtime_checks": [
+      { "check": "mongodb_conectado", "resultado": true },
+      { "check": "equipamentos_total", "resultado": 382 },
+      { "check": "modulos", "resultado": 189 },
+      { "check": "inversores", "resultado": 177 },
+      { "check": "carregadores_ev", "resultado": 16 },
+      { "check": "estruturas_no_catalogo", "resultado": 0 },
+      { "check": "inversores_passam_gate_utilizavel", "resultado": 177, "nota": "gate nao filtra registros ocos" }
+    ]
+  },
+
+  "fluxos": [
+    { "etapa": "cliente",          "estado": "COMPLETO" },
+    { "etapa": "ocr",              "estado": "COMPLETO", "nota": "PDF parser proprio; imagem Gemini; sempre ha saida manual E2" },
+    { "etapa": "projeto_fv",       "estado": "PARCIAL",  "nota": "so persiste no banco na etapa 8 (NEW-02)" },
+    { "etapa": "dimensionamento",  "estado": "COMPLETO" },
+    { "etapa": "equipamentos",     "estado": "COMPLETO" },
+    { "etapa": "orcamento",        "estado": "COMPLETO" },
+    { "etapa": "aprovacao",        "estado": "COMPLETO" },
+    { "etapa": "freeze",           "estado": "COMPLETO" },
+    { "etapa": "homologacao_docs", "estado": "COMPLETO" },
+    { "etapa": "homologacao_status","estado": "QUEBRADO", "nota": "tracking em Map() em memoria (NEW-01)" }
+  ],
+
+  "bugs_p0_restantes": [
+    {
+      "id": "BUG-CAT-01",
+      "titulo": "Inversores identity-only sem especificacoes vazam para o seletor",
+      "evidencia": "Forense: ~122/175 inversores especificacoes{} vazia. Runtime: 177/177 passam o filtro utilizavel_em_projeto.",
+      "impacto": "Operador pode selecionar inversor sem dados eletricos (potencia_kw=null).",
+      "estado": "ABERTO"
+    },
+    {
+      "id": "BUG-QUAL-01",
+      "titulo": "Motor de qualidade miscalibrado e desacoplado do gate utilizavel_em_projeto",
+      "evidencia": "MPPT_INCOERENTE falso-positivo em micros; import_solarmarket nunca atinge nivel utilizavel. utilizavel_em_projeto default=true nunca rebaixado.",
+      "impacto": "Gate de catalogo nao confiavel.",
+      "estado": "ABERTO",
+      "ref_memoria": "quality_rules_micro_miscalibration"
+    }
+  ],
+
+  "bugs_p1_restantes": [
+    {
+      "id": "NEW-01",
+      "titulo": "Status/checklist de homologacao em Map() em memoria",
+      "evidencia": "homologacaoController.js:13 const homologacoesDB = new Map(); usos 252/295/307/325.",
+      "impacto": "Perda de status (enviado/analise/aprovado/conectado), numero ART e datas a cada redeploy do Railway.",
+      "estado": "ABERTO",
+      "novo": true
+    },
+    {
+      "id": "NEW-02",
+      "titulo": "Wizard sem persistencia server-side antes da etapa 8",
+      "evidencia": "Projeto criado em E8Orcamento.jsx:354. Autosave em ProjetosFVNovo so dispara com state.projetoId (null ate o passo 8). E1-E7 vivem em localStorage.",
+      "impacto": "Perda total de dados se fechar antes do passo 8, trocar dispositivo ou limpar storage.",
+      "estado": "ABERTO",
+      "novo": true
+    },
+    {
+      "id": "BUG-EQID-01",
+      "titulo": "equipamento_id ausente em projetos legados",
+      "evidencia": "E7 grava equipamento_id para selecoes novas; legados/SolarMarket tem null.",
+      "impacto": "Vinculo Atlas por ID nao dispara (cai em fabricante+modelo).",
+      "estado": "ABERTO_MAPEADO"
+    }
+  ],
+
+  "bugs_p2_restantes": [
+    { "id": "NEW-03", "titulo": "Catalogo de estruturas (0) e baterias (0) vazio", "estado": "ABERTO", "novo": true },
+    { "id": "BUG-ARCH-01", "titulo": "Frontend importa de backend/src", "estado": "ABERTO" },
+    { "id": "BUG-LAY-01", "titulo": "Editor de layout nao representa multiarranjo", "estado": "ABERTO" },
+    { "id": "BUG-MOD-01", "titulo": "3 modulos sem potencia (0 projetos afetados)", "estado": "ABERTO" }
+  ],
+
+  "bugs_fora_de_escopo": [
+    { "id": "BUG-SCAN-01", "severidade": "P1", "motivo": "Scanner excluido do escopo" },
+    { "id": "BUG-SCAN-02", "severidade": "P2", "motivo": "Scanner excluido do escopo / limitacao iOS" }
+  ],
+
+  "bugs_corrigidos_desde_matriz_anterior": [
+    { "id": "BUG-BEN-01", "titulo": "rateio prioridade na UI", "estado": "CORRIGIDO" },
+    { "id": "BUG-ART-01", "titulo": "DadosART agora usa POST com body", "estado": "CORRIGIDO" },
+    { "id": "P1-HUAWEI-50KTL-RCA-01", "estado": "CORRIGIDO" },
+    { "id": "P1-TENSAO-380V-PARSER-01", "estado": "CORRIGIDO" },
+    { "id": "P1-GOVERNANCA-REACT31-RCA-01", "estado": "CORRIGIDO" },
+    { "id": "P1-CADASTRO-MANUAL-EQUIPAMENTOS-01", "estado": "CORRIGIDO_EM_CODIGO" }
+  ],
+
+  "producao": {
+    "cadastrar_cliente": true,
+    "criar_projeto": true,
+    "dimensionar": true,
+    "aprovar": true,
+    "congelar": true,
+    "homologar_documentos": true,
+    "acompanhar_status_homologacao": false,
+    "sem_intervencao_desenvolvedor": "SIM_COM_RESSALVAS"
+  },
+
+  "respostas_obrigatorias": {
+    "maturidade_pct": 80,
+    "bugs_p0_restantes": 2,
+    "bugs_p1_restantes_em_escopo": 3,
+    "maior_risco_operacional": "NEW-01 (status de homologacao em memoria)",
+    "maior_divida_tecnica": "BUG-QUAL-01 (motor de qualidade miscalibrado)",
+    "producao_aprovada": false,
+    "producao_aprovada_com_ressalvas": true,
+    "producao_reprovada": false,
+    "proxima_sprint": "P0-FV-PERSISTENCE-HARDENING-01",
+    "commit_gerado": "ver entregaveis da auditoria"
+  }
+}
