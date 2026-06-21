@@ -21,6 +21,7 @@ import SeletorInversores from '../SeletorInversores'
 import SeletorEstrutura from '../SeletorEstrutura'
 import ConfiguradorArranjoFV from '../ConfiguradorArranjoFV'
 import GerenciadorArranjos from '../GerenciadorArranjos'
+import ResumoTecnicoArranjo from '../ResumoTecnicoArranjo'
 import { salvarArranjos } from '../../../services/projetoFVApi'
 import { consolidarPanos, dimensoesModulo } from '../../../utils/geoEngine'
 import { snapshotEquipamentoSelecao } from '../../../utils/catalogoEngenhariaAdapter'
@@ -342,6 +343,29 @@ export default function E7Equipamentos() {
             </div>
           )}
         </section>
+
+        {/* Resumo técnico do Arranjo A (paridade com B/C/D) — Fase 7/10/11 */}
+        {ambosSelecionados && (
+          <ResumoTecnicoArranjo
+            arranjo={{
+              paineis: equipamentos.painel ? [{
+                modelo: equipamentos.painel.modelo,
+                potencia_w: equipamentos.painel.potenciaW,
+                quantidade: equipamentos.quantidadeModulos ?? dim.numPaineis ?? 0,
+              }] : [],
+              inversores: equipamentos.inversor ? [{ modelo: equipamentos.inversor.modelo, quantidade: 1 }] : [],
+            }}
+            catalogo={{
+              modulos: equipamentos.painel ? [{ _id: 'A_mod', modelo: equipamentos.painel.modelo, especificacoes: {
+                potencia_wp: equipamentos.painel.potenciaW, voc: equipamentos.painel.voc,
+              } }] : [],
+              inversores: equipamentos.inversor ? [{ _id: 'A_inv', modelo: equipamentos.inversor.modelo, especificacoes: {
+                potencia_kw: equipamentos.inversor.potenciaKW, n_mppts: equipamentos.inversor.nMppts,
+                entradas_por_mppt: equipamentos.inversor.entradasPorMppt, tensao_max_entrada: equipamentos.inversor.tensaoMaxV,
+              } }] : [],
+            }}
+          />
+        )}
 
         {/* Configurador Elétrico */}
         <section className="border border-violet-200 rounded-xl bg-violet-50 p-5 space-y-3">

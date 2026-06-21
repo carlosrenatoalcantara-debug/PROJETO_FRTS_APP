@@ -86,4 +86,69 @@ export function validarAlocacao(totalModulos, inversores = []) {
   }
 }
 
-export default { agregarTotaisArranjos, validarAlocacao }
+// ── P0-E7-ARRANJO-WORKFLOW-REFACTOR-01: resumo técnico em tempo real por arranjo ──
+
+const numEsp = (esp, ks) => { for (const k of ks) { const v = Number(esp?.[k]); if (Number.isFinite(v) && v !== 0) return v } return null }
+
+/**
+ * Resumo técnico de UM arranjo: P CC, P CA, oversizing, MPPT, entradas, strings,
+ * módulos atendidos vs sem inversor, com avisos visuais. NÃO bloqueia.
+ *
+ * @param {object} arranjo  { paineis:[{quantidade,potencia_w,modelo,equipamento_id}], inversores:[...] }
+ * @param {object} cat      { modulos:[docCatalogo], inversores:[docCatalogo] }
+ */
+export function resumoTecnicoArranjo(arranjo, cat = {}) {
+  const catMod = cat.modulos || []
+  const catInv = cat.inversores || []
+  const acharDoc = (lista, l) => lista.find(d => String(d._id) === String(l.equipamento_id)) || lista.find(d => d.modelo === l.modelo) || null
+
+  // Módulos + potência CC + Voc do módulo (para estimar módulos/string)
+  let modulos = 0, pCC = 0, vocModulo = null
+  for (const p of (arranjo.paineis || [])) {
+    const q = num(p.quantidade); modulos += q
+    const doc = acharDoc(catMod, p)
+    const pw = num(p.potencia_w) || numEsp(doc?.especificacoes, ['potencia_wp', 'potencia_w', 'potencia']) || 0
+    pCC += q * pw / 1000
+    const vc = numEsp(doc?.especificacoes, ['voc', 'voc_v'])
+    if (vc && !vocModulo) vocModulo = vc
+  }
+
+  // Inversores + potência CA + MPPT + entradas + capacidade estimada de módulos
+  let pCA = 0, nMppt = 0, entradas = 0, capacidade = 0, qtdInv = 0
+  for (const it of (arranjo.inversores || [])) {
+    const q = num(it.quantidade); qtdInv += q
+    const doc = acharDoc(catInv, it)
+    const esp = doc?.especificacoes || {}
+    const pkw = num(it.potencia_kw) || numEsp(esp, ['potencia_kw', 'potencia', 'potencia_ca']) || 0
+    const nm  = numEsp(esp, ['n_mppts', 'mppts', 'numero_mppt']) || 1
+    const epm = numEsp(esp, ['entradas_por_mppt', 'strings_por_mppt']) || 1
+    const vmax = numEsp(esp, ['tensao_max_entrada', 'voc_max', 'voc_max_dc'])
+    pCA += pkw * q
+    nMppt += nm * q
+    entradas += nm * epm * q
+    // módulos por string estimado por Voc; fallback conservador 16
+    const modPorString = (vmax && vocModulo) ? Math.max(1, Math.floor(vmax / vocModulo)) : 16
+    capacidade += nm * epm * modPorString * q
+  }
+
+  const oversizing = pCA > 0 ? +(pCC / pCA).toFixed(2) : null
+  // alocação: sem inversor → tudo sem alocar; com inversor e capacidade conhecida → diferença
+  let atendidos, semInversor
+  if (qtdInv === 0) { atendidos = 0; semInversor = modulos }
+  else if (capacidade > 0) { atendidos = Math.min(modulos, capacidade); semInversor = Math.max(0, modulos - capacidade) }
+  else { atendidos = modulos; semInversor = 0 }   // inversor sem specs → não falso-alarme
+
+  const avisos = []
+  if (semInversor > 0) avisos.push({ nivel: 'warn', msg: `${semInversor} módulo(s) sem inversor` })
+  if (oversizing != null && oversizing > 1.5) avisos.push({ nivel: 'crit', msg: `Oversizing ${oversizing}× muito alto` })
+  else if (oversizing != null && oversizing > 1.3) avisos.push({ nivel: 'warn', msg: `Oversizing ${oversizing}× acima do recomendado` })
+
+  return {
+    modulos, inversores: qtdInv,
+    pCC: +pCC.toFixed(2), pCA: +pCA.toFixed(2), oversizing,
+    nMppt, entradas, strings: entradas,   // 1 string por entrada (estimativa)
+    capacidade, atendidos, semInversor, avisos,
+  }
+}
+
+export default { agregarTotaisArranjos, validarAlocacao, resumoTecnicoArranjo }

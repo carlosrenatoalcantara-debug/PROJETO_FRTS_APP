@@ -18,6 +18,14 @@ import { useState, useEffect, useMemo } from 'react'
 import { Plus, Trash2, Copy, Sun, Zap, Lock, Layers, Package, FileText } from 'lucide-react'
 import { useProjetoFV } from '../../contexts/ProjetoFVContext'
 import Button from '../ui/Button'
+import ResumoTecnicoArranjo from './ResumoTecnicoArranjo'
+
+// P0-E7-ARRANJO-WORKFLOW-REFACTOR-01 — arquitetura FV (Fase 2)
+const ARQUITETURAS = [
+  { id: 'string', label: 'String' },
+  { id: 'micro',  label: 'Microinversor' },
+  { id: 'otimizador', label: 'Otimizador' },
+]
 
 const potW  = (e) => e?.especificacoes?.potencia_wp || e?.especificacoes?.potencia_w || e?.especificacoes?.potencia || e?.potencia_w || null
 const potKW = (e) => e?.especificacoes?.potencia_kw || e?.especificacoes?.potencia || e?.potencia_kw || null
@@ -60,6 +68,8 @@ const proximaLetra = (lista) => {
 }
 const arranjoVazio = (lista) => ({ id: novoId(), rotulo: `Arranjo ${proximaLetra(lista)}`, tipo: 'secundario',
   paineis: [], inversores: [], estrutura: null, orientacao: 'Norte', inclinacao: '', somente_leitura: false,
+  // P0-E7-ARRANJO-WORKFLOW-REFACTOR-01 — arquitetura FV obrigatória (default string)
+  topologia: 'string',
   // P0-FV-ENGINEERING-WORKFLOW-CONSOLIDATION-01 — fornecedor + orçamento (Fase 3/4)
   fornecedor: { nome: '', contato: '', observacoes: '' }, orcamento_distribuidor: null })
 
@@ -199,6 +209,23 @@ export default function GerenciadorArranjos() {
               {!ro && <button type="button" onClick={() => addLinha(i, 'paineis')} className="text-xs text-emerald-700 font-medium flex items-center gap-1"><Plus size={12} /> Adicionar módulo</button>}
             </div>
 
+            {/* Arquitetura FV (obrigatória) — Fase 2 */}
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-1 text-xs font-semibold text-slate-600"><Zap size={12} className="text-violet-500" /> Arquitetura FV</div>
+              <div className="flex flex-wrap gap-2">
+                {ARQUITETURAS.map(arq => (
+                  <label key={arq.id} className={`flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg border cursor-pointer transition-colors ${
+                    (a.topologia || 'string') === arq.id ? 'border-violet-500 bg-violet-50 text-violet-700 font-medium' : 'border-slate-200 text-slate-600 hover:border-slate-300'
+                  }`}>
+                    <input type="radio" name={`arq-${i}`} value={arq.id} disabled={ro}
+                      checked={(a.topologia || 'string') === arq.id}
+                      onChange={() => patch(i, { topologia: arq.id })} className="accent-violet-600" />
+                    {arq.label}
+                  </label>
+                ))}
+              </div>
+            </div>
+
             {/* Inversores */}
             <div className="space-y-1.5">
               <div className="flex items-center gap-1 text-xs font-semibold text-slate-600"><Zap size={12} className="text-blue-500" /> Inversores</div>
@@ -284,6 +311,9 @@ export default function GerenciadorArranjos() {
                 </label>
               </div>
             )}
+
+            {/* Resumo técnico em tempo real (Fase 7/11) */}
+            <ResumoTecnicoArranjo arranjo={a} catalogo={catalogo} />
           </div>
         )
       })}
