@@ -1,0 +1,33 @@
+{
+  "sprint": "P0-ARRANJO-ELECTRICAL-ISOLATION-01",
+  "data": "2026-06-20",
+  "resultado": "APROVADO",
+  "revisao_gemini": "PENDENTE",
+  "ambiente": "Railway + MongoDB Atlas (produção)",
+  "commits": ["1278fe8", "8fdf2ab"],
+
+  "evidencia": { "validado_em_codigo": true, "validado_em_runtime": true, "ui_navegador_exercida": false, "build": "OK", "syntax_backend": "OK" },
+
+  "runtime_por_arranjo": [
+    { "rotulo": "Arranjo A", "arquitetura": "string", "inversor": "SUN2000-60KTL-M0", "modulos": 180, "topologia_entradas": ["15", "15"], "kwp": 80.10 },
+    { "rotulo": "Arranjo B", "arquitetura": "string", "inversor": "SUN2000-50KTL-M0", "modulos": 174, "topologia_entradas": ["14", "15"], "kwp": 77.43 },
+    { "rotulo": "Arranjo C", "arquitetura": "micro", "inversor": "TSUN-2250", "modulos": 20, "topologia_entradas": ["1", "1"], "kwp": 8.90 }
+  ],
+  "topologias_independentes": true,
+  "cada_arranjo_topologia_propria": true,
+  "avelino_a_mais_b": { "modulos": 354, "inversores": 2, "kwp": 157.53, "mantido": true },
+  "legado_abre": { "http": 200, "sem_erro": true },
+
+  "respostas": {
+    "1_onde_hoje": "engenharia_eletrica.arranjo (único) + agora arranjos[].configuracao_eletrica (por arranjo)",
+    "2_novo_modelo": "arranjos[].configuracao_eletrica.mppts[].entradas[].strings[].modulos (independente por arranjo)",
+    "3_migracao_necessaria": false,
+    "4_arranjo_B_topologia_propria": true,
+    "5_arranjo_C_topologia_propria": true,
+    "6_persistencia_validada": true,
+    "7_runtime_validado": true,
+    "8_regressoes": "nenhuma",
+    "9_commit": "1278fe8 + 8fdf2ab",
+    "10_fv_estruturalmente_concluido": true
+  }
+}
