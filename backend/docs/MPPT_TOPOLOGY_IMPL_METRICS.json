@@ -1,0 +1,47 @@
+{
+  "sprint": "P1-MPPT-TOPOLOGY-IMPLEMENTATION-01",
+  "data": "2026-06-20",
+  "resultado": "APROVADO",
+  "revisao_gemini": "PENDENTE",
+
+  "evidencia": {
+    "validado_em_codigo": true,
+    "validado_em_runtime": true,
+    "ui_navegador_exercida": false,
+    "build_frontend": "OK",
+    "syntax_backend": "OK"
+  },
+
+  "teste_runtime_huawei": {
+    "caso": "SUN2000-50KTL — 6 MPPT, 2 entradas/MPPT",
+    "put_http": 200,
+    "round_trip": {
+      "MPPT1": "ent1=[10] ent2=[10]",
+      "MPPT2": "ent1=[12] ent2=VAZIA",
+      "MPPT3": "ent1=[10+8] ent2=VAZIA",
+      "MPPT4": "ent1=VAZIA ent2=VAZIA"
+    },
+    "total_modulos": 50,
+    "entradas_vazias_ok": true,
+    "modulos_independentes": [8, 10, 12],
+    "strings_paralelas_ok": true,
+    "mppt_parcial_ok": true
+  },
+
+  "requisitos": {
+    "entradas_independentes": "OK",
+    "strings_independentes": "OK",
+    "modulos_por_string_independentes": "OK",
+    "entradas_vazias": "OK",
+    "mppt_parcialmente_utilizado": "OK",
+    "compativel_huawei_sungrow_solis_growatt_tsun_micro": "OK",
+    "reaproveita_persistencia_mppts": "OK",
+    "nao_altera_homologacao_governanca_snapshot": "OK"
+  },
+
+  "migracao_dados": false,
+  "regressoes": "nenhuma (modo simples preservado como default; legado abre)",
+  "commit": "66fbabf",
+
+  "ressalva_honesta": "UI do editor não exercida em navegador (sem ferramenta de wizard headless); componente validado por build e a persistência/schema por runtime real."
+}

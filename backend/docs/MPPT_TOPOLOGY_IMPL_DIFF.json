@@ -1,0 +1,43 @@
+{
+  "sprint": "P1-MPPT-TOPOLOGY-IMPLEMENTATION-01",
+  "data": "2026-06-20",
+  "commit": "66fbabf",
+  "revisao_gemini": "PENDENTE",
+
+  "arquivos_alterados": [
+    {
+      "arquivo": "backend/src/models/ProjetoFV.js",
+      "mudanca": "schema aditivo: mppts[].entradas[].strings[].modulos (topologia real)",
+      "compat": "campos de contagem mantidos como resumo derivado; default undefined p/ legado"
+    },
+    {
+      "arquivo": "frontend/src/components/fv/TopologiaMPPTEditor.jsx",
+      "mudanca": "NOVO — editor controlado MPPT→Entrada→String com Voc/string, entradas vazias, +Entrada/+String/remover",
+      "exports": ["default TopologiaMPPTEditor", "topologiaVazia", "derivarTopologia", "resumoTopologia"]
+    },
+    {
+      "arquivo": "frontend/src/components/fv/ConfiguradorArranjoFV.jsx",
+      "mudanca": "toggle modo detalhado; deriva do simples; sincroniza mppts (worst-case); total exato; reidrata entradas[]; persiste entradas[] no payload"
+    }
+  ],
+
+  "modelo_persistido": "engenharia_eletrica.arranjo.mppts[{mppt, strings_paralelo(resumo), modulos_por_string(resumo), total_modulos, entradas:[{entrada, strings:[{modulos}]}]}]",
+
+  "capacidades": {
+    "entradas_independentes": true,
+    "strings_independentes": true,
+    "modulos_por_string_independentes": true,
+    "entradas_vazias": true,
+    "mppt_parcial": true
+  },
+
+  "fabricantes": {
+    "huawei": "ok (caso de teste)",
+    "sungrow": "ok", "solis": "ok", "growatt": "ok", "tsun": "ok",
+    "microinversores": "ok via caminho dedicado (1 modulo = 1 entrada)"
+  },
+
+  "nao_alterado": ["Homologacao", "Governanca", "Snapshot", "Unifilar", "Multiarranjo", "EV", "Catalogo"],
+  "migracao_dados": false,
+  "backend_persist_reaproveitado": "P0-ENGENHARIA-ELETRICA-PERSIST-FIX-01 (mppts[])"
+}
