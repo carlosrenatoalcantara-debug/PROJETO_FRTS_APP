@@ -729,6 +729,15 @@ export const salvarEtapaProjetoFV = async (req, res) => {
       await ProjetoFV.updateOne({ _id: id }, { $set: { workflow: {} } })
     }
 
+    // P0-ENGENHARIA-ELETRICA-PERSIST-FIX-01: mesmo null-guard para engenharia_eletrica.
+    // O campo tem default:null e o save usa dot-notation ($set['engenharia_eletrica.arranjo']),
+    // que falha com "Cannot create field 'arranjo' in element {engenharia_eletrica: null}".
+    // updateOne condicional (filtro engenharia_eletrica:null) inicializa {} apenas quando
+    // ainda é null — idempotente e nunca sobrescreve dados existentes.
+    if (etapa === 'engenharia_eletrica') {
+      await ProjetoFV.updateOne({ _id: id, engenharia_eletrica: null }, { $set: { engenharia_eletrica: {} } })
+    }
+
     // Sempre atualiza ultima_atividade + schema_version.
     // Quando etapa === 'workflow', o switch default já fez $set.workflow = dados (objeto inteiro);
     // nesse caso, embutimos ultima_atividade dentro do objeto para evitar conflito de path

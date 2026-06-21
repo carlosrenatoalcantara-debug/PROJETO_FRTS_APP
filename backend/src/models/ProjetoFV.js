@@ -273,6 +273,20 @@ const engenhariaEletricaV3Schema = new mongoose.Schema({
     quantidade_modulos_por_string: { type: Number, default: null },
     quantidade_strings_paralelo:   { type: Number, default: null },
     total_modulos:                 { type: Number, default: null },
+    // P0-ENGENHARIA-ELETRICA-PERSIST-FIX-01 (ADITIVO) — persiste a topologia por
+    // MPPT que o ConfiguradorArranjoFV já produz e que antes era descartada pelo
+    // strict-mode. NÃO implementa entradas/strings individuais (fora do escopo);
+    // apenas guarda o array de contagem por MPPT. Legado sem o campo lê undefined.
+    num_mppts_usados: { type: Number, default: null },
+    mppts: {
+      type: [new mongoose.Schema({
+        mppt:               { type: Number, default: null },
+        strings_paralelo:   { type: Number, default: null },
+        modulos_por_string: { type: Number, default: null },
+        total_modulos:      { type: Number, default: null },
+      }, { _id: false })],
+      default: undefined,
+    },
   },
 
   // Dados climáticos usados na análise (pode ser fallback ou dados reais)
@@ -803,6 +817,18 @@ const projetoFVSchema = new mongoose.Schema({
     }],
   },
   observacoes: String,
+
+  // P5-PROJETO-DOCUMENTOS-EXTERNOS-01 (additive) — índice de pastas externas.
+  // NÃO armazena arquivos. Apenas links (OneDrive, Google Drive, SharePoint, Dropbox...).
+  // Projetos legados lêem null sem nenhum erro.
+  documentacao_externa: {
+    pasta_principal:   { type: String, default: null },
+    pasta_fotos:       { type: String, default: null },
+    pasta_homologacao: { type: String, default: null },
+    pasta_garantia:    { type: String, default: null },
+    pasta_medicoes:    { type: String, default: null },
+    observacoes:       { type: String, default: null },
+  },
 
   // ─── S2.7: Campos v3 (additive — não alteram documentos existentes) ─────────
   // Todos opcionais/null por padrão. Documentos v2 continuam válidos.
