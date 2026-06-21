@@ -767,6 +767,36 @@ const projetoFVSchema = new mongoose.Schema({
       tensao_string_v:   { type: Number, default: null },  // string
       n_microinversores: { type: Number, default: null },  // micro
       entradas_por_micro:{ type: Number, default: null },  // micro
+      // P0-ARRANJO-ELECTRICAL-ISOLATION-01 (ADITIVO) — TOPOLOGIA PRÓPRIA por arranjo.
+      // Elimina a limitação de `engenharia_eletrica.arranjo` ser ÚNICO p/ o projeto:
+      // cada arranjo passa a ter sua engenharia elétrica independente. Mesma forma do
+      // engenharia_eletrica.arranjo.mppts. Legado lê null/undefined (sem erro).
+      num_mppts_usados:              { type: Number, default: null },
+      total_modulos:                 { type: Number, default: null },
+      quantidade_modulos_por_string: { type: Number, default: null },
+      quantidade_strings_paralelo:   { type: Number, default: null },
+      mppts: {
+        type: [new mongoose.Schema({
+          mppt:               { type: Number, default: null },
+          strings_paralelo:   { type: Number, default: null },
+          modulos_por_string: { type: Number, default: null },
+          total_modulos:      { type: Number, default: null },
+          entradas: {
+            type: [new mongoose.Schema({
+              entrada: { type: Number, default: null },
+              strings: {
+                type: [new mongoose.Schema({ modulos: { type: Number, default: 0 } }, { _id: false })],
+                default: undefined,
+              },
+            }, { _id: false })],
+            default: undefined,
+          },
+        }, { _id: false })],
+        default: undefined,
+      },
+      // engenharia por arranjo (clima + resultado de compatibilidade) — flexível
+      clima_utilizado: { type: mongoose.Schema.Types.Mixed, default: null },
+      compatibilidade: { type: mongoose.Schema.Types.Mixed, default: null },
     },
     // FASE 4 — dimensionamento POR ARRANJO (cache; recalculado pelo service)
     dimensionamento: {
