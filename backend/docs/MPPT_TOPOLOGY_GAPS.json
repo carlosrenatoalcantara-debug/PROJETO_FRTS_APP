@@ -1,0 +1,98 @@
+{
+  "sprint": "P1-MPPT-TOPOLOGY-RCA-01",
+  "data": "2026-06-20",
+  "total_gaps": 10,
+  "maior_gap": "GAP-MPPT-10 + GAP-MPPT-05 (config MPPT não persiste)",
+
+  "gaps": [
+    {
+      "id": "GAP-MPPT-01",
+      "titulo": "Entradas por MPPT não modeladas",
+      "evidencia": "Configurador usa 'strings paralelas' (numStrings 0-10); catalogo tem entradas_por_mppt/strings_por_mppt mas nao sao usados como limite.",
+      "severidade": "ALTA",
+      "validado": "codigo"
+    },
+    {
+      "id": "GAP-MPPT-02",
+      "titulo": "Strings não editáveis individualmente",
+      "evidencia": "string = contagem numStrings; nao ha identidade/edicao por string (cada uma identica).",
+      "severidade": "ALTA",
+      "validado": "codigo"
+    },
+    {
+      "id": "GAP-MPPT-03",
+      "titulo": "Módulos por string é GLOBAL",
+      "evidencia": "setModulosPorStringGlobal aplica a todos os MPPTs; sem variacao por-string nem por-MPPT.",
+      "severidade": "ALTA",
+      "validado": "codigo"
+    },
+    {
+      "id": "GAP-MPPT-04",
+      "titulo": "MPPT parcialmente utilizado / entradas vazias",
+      "evidencia": "numStrings=0 representa MPPT vazio; nao ha entrada parcial dentro de um MPPT.",
+      "severidade": "MEDIA",
+      "validado": "codigo"
+    },
+    {
+      "id": "GAP-MPPT-05",
+      "titulo": "Schema engenharia_eletrica.arranjo sem mppts[]",
+      "evidencia": "engenhariaEletricaV3Schema.arranjo so tem quantidade_modulos_por_string/quantidade_strings_paralelo/total_modulos. Payload arranjo.mppts[] descartado (strict).",
+      "severidade": "CRITICA",
+      "validado": "codigo"
+    },
+    {
+      "id": "GAP-MPPT-06",
+      "titulo": "Reidratação empilha strings no MPPT1",
+      "evidencia": "ConfiguradorArranjoFV: setMppts(... i===0 ? s : 0) ao reidratar do legado.",
+      "severidade": "ALTA",
+      "validado": "codigo"
+    },
+    {
+      "id": "GAP-MPPT-07",
+      "titulo": "Multiarranjo secundário sem config elétrica",
+      "evidencia": "GerenciadorArranjos so seta paineis/inversores/estrutura/orientacao; configuracao_eletrica nunca populada (e e contagem no schema).",
+      "severidade": "ALTA",
+      "validado": "codigo"
+    },
+    {
+      "id": "GAP-MPPT-08",
+      "titulo": "numStrings sem limite por entradas do inversor",
+      "evidencia": "slider hardcoded 0-10; nao deriva de entradas_por_mppt/strings_por_mppt.",
+      "severidade": "MEDIA",
+      "validado": "codigo"
+    },
+    {
+      "id": "GAP-MPPT-09",
+      "titulo": "Sem nível 'Entrada' na hierarquia",
+      "evidencia": "Arranjo->Inversor->MPPT->[Entrada ausente]->String. Nao ha entidade Entrada em nenhum schema/UI.",
+      "severidade": "ALTA",
+      "validado": "codigo"
+    },
+    {
+      "id": "GAP-MPPT-10",
+      "titulo": "Gravação de engenharia_eletrica falha (500) em projeto novo",
+      "evidencia": "Runtime: PUT engenharia_eletrica -> 500 'Cannot create field arranjo in element {engenharia_eletrica: null}'. Campo default null; handler usa dot-notation sem null-guard (so workflow tem guard).",
+      "severidade": "CRITICA",
+      "validado": "runtime"
+    }
+  ],
+
+  "impacto": {
+    "dimensionamento": "MEDIO",
+    "engenharia": "ALTO",
+    "unifilar": "ALTO",
+    "homologacao": "MEDIO_ALTO",
+    "digital_twin": "ALTO"
+  },
+
+  "arquitetura_futura": {
+    "modelo": "Arranjo -> Inversor -> MPPT -> Entrada -> String -> qtd_modulos",
+    "recomendado": true,
+    "compativel": {
+      "huawei": true, "sungrow": true, "solis": true, "growatt": true,
+      "tsun": true, "microinversores": "caso especial (1 modulo = 1 entrada)"
+    },
+    "necessita_migracao_dados": true,
+    "estrategia_migracao": "schema aditivo (mppts[].entradas[].strings[]) + null-guard de engenharia_eletrica; leitura tolerante derivando strings do legado worst-case"
+  }
+}

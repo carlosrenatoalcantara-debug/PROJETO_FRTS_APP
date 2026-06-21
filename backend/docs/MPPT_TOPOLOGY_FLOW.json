@@ -1,0 +1,59 @@
+{
+  "sprint": "P1-MPPT-TOPOLOGY-RCA-01",
+  "data": "2026-06-20",
+  "modelo": "Claude Opus 4.8",
+  "tipo": "rca_readonly",
+  "revisao_gemini": "PENDENTE",
+  "veredito": "ATENDE_PARCIALMENTE",
+
+  "evidencia": {
+    "validado_em_codigo": true,
+    "validado_em_runtime": true,
+    "runtime_proof": "PUT engenharia_eletrica em projeto novo -> HTTP 500 'Cannot create field arranjo in element {engenharia_eletrica: null}'; arranjo persistido vazio"
+  },
+
+  "modelo_atual": {
+    "mppt": { "modelado": true, "onde": "ConfiguradorArranjoFV.mppts[{numStrings, modulosPorString}]", "escopo": "apenas Arranjo A" },
+    "entradas_por_mppt": { "modelado": false, "nota": "campo entradas_por_mppt existe no catalogo mas nao limita nem aparece" },
+    "qtd_max_strings": { "modelado": "parcial", "nota": "slider hardcoded 0-10, nao derivado do inversor" },
+    "strings_independentes": { "modelado": false, "nota": "string = contagem numStrings; todas identicas" },
+    "modulos_por_string": { "modelado": "parcial", "nota": "GLOBAL via setModulosPorStringGlobal" },
+    "entradas_vazias": { "modelado": false, "nota": "MPPT vazio sim (numStrings=0); entrada parcial nao" }
+  },
+
+  "hierarquia": {
+    "arranjo_A": "Inversor -> MPPT[] -> strings(contagem) -> modulosPorString(global)",
+    "arranjos_secundarios": "Inversor -> quantidade (sem MPPT/string)",
+    "nivel_entrada": "INEXISTENTE"
+  },
+
+  "persistencia": {
+    "schema_engenharia_eletrica_arranjo": ["quantidade_modulos_por_string", "quantidade_strings_paralelo", "total_modulos"],
+    "mppts_array_no_schema": false,
+    "payload_frontend_envia_mppts": true,
+    "consequencia_schema": "mppts[] e num_mppts_usados descartados (strict)",
+    "bug_runtime_null_guard": "engenharia_eletrica default null; handler usa dot-notation sem guard (so workflow tem) -> 500 na 1a gravacao",
+    "reidratacao": "legado empilha todas as strings no MPPT1 (i===0?s:0)"
+  },
+
+  "unifilar": {
+    "desenha_mppt": true,
+    "desenha_strings": true,
+    "desenha_pontos_entrada": "um ponto por MPPT (nao as 2 entradas fisicas)",
+    "string_box_dj_dc": "quando numStrings > 1",
+    "fonte": "arranjoMPPTs (contagem); strings identicas"
+  },
+
+  "multiarranjo": {
+    "arranjo_A_tem_mppt": true,
+    "secundarios_tem_mppt": false,
+    "configuracao_eletrica_no_schema": ["n_mppts", "strings_por_mppt", "tensao_string_v"],
+    "configuracao_eletrica_populada_pela_ui": false
+  },
+
+  "caso_real_sun2000_50ktl": {
+    "esperado": "6 MPPT x 2 entradas (A..L)",
+    "representavel": false,
+    "quebra_em": ["sem nivel de entrada", "modulosPorString global", "per-MPPT nao persiste (schema)", "500 na 1a gravacao", "reidratacao empilha no MPPT1"]
+  }
+}
