@@ -1,0 +1,48 @@
+{
+  "sprint": "P0-FV-ENGINEERING-WORKFLOW-CONSOLIDATION-01",
+  "data": "2026-06-20",
+  "ambiente": "Railway + MongoDB Atlas (produção)",
+  "revisao_gemini": "PENDENTE",
+
+  "fase1_unit_agregador": {
+    "caso": "Avelino — Arranjo A 180×445W + 60KTL; Arranjo B 174×445W + 50KTL",
+    "resultado": { "modulos": 354, "inversores": 2, "kwp": 157.53 },
+    "passou": true,
+    "metodo": "unit test node do agregarTotaisArranjos"
+  },
+
+  "fase5_unit_alocacao": {
+    "caso": "100 módulos, TSUN2250 ×10 (cap 4 mód cada = 40)",
+    "resultado": { "atendidos": 40, "semInversor": 60 },
+    "passou": true
+  },
+
+  "fase9_runtime_avelino": {
+    "metodo": "PUT /api/projetos-fv/:id/etapa etapa=arranjos + GET",
+    "put_http": 200,
+    "arranjos_persistidos": 2,
+    "por_arranjo": [
+      { "rotulo": "Arranjo A", "modulos": 180, "inversores": 1, "kwp": 80.10, "fornecedor": "Aldo", "orcamento": "orc_aldo.pdf" },
+      { "rotulo": "Arranjo B", "modulos": 174, "inversores": 1, "kwp": 77.43, "fornecedor": "Genyx", "orcamento": null }
+    ],
+    "total_agregado": { "modulos": 354, "inversores": 2, "kwp": 157.53 },
+    "criterio_avelino_354_2_157_53": true,
+    "fornecedor_round_trip": true,
+    "orcamento_distribuidor_round_trip": true
+  },
+
+  "testes_solicitados": {
+    "1_projeto_avelino": "OK (runtime — 354/2/157.53)",
+    "2_multiarranjo": "OK (A+B agregados)",
+    "3_huawei_50ktl": "OK (Arranjo B inversor 50KTL persistido)",
+    "4_huawei_60ktl": "OK (Arranjo A inversor 60KTL persistido)",
+    "5_tsun": "OK (alocacao TSUN2250 unit: 40 atendidos/60 sem inversor)",
+    "6_orcamento_final": "OK em código (E8 deriva de arranjos) — não exercido em navegador",
+    "7_unifilar": "consome dim agregado (header correto) — desenho por-arranjo não alterado",
+    "8_snapshot": "consistente (arranjos[] persistido + dim agregado) — snapshot não alterado"
+  },
+
+  "validado_em_codigo": true,
+  "validado_em_runtime": true,
+  "ui_navegador_exercida": false
+}

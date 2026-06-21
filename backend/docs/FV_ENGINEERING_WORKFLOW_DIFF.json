@@ -1,0 +1,44 @@
+{
+  "sprint": "P0-FV-ENGINEERING-WORKFLOW-CONSOLIDATION-01",
+  "data": "2026-06-20",
+  "commit": "f5b08fa",
+  "revisao_gemini": "PENDENTE",
+
+  "arquivos_alterados": [
+    {
+      "arquivo": "frontend/src/utils/agregarArranjosFV.js",
+      "tipo": "novo",
+      "mudanca": "agregarTotaisArranjos (fonte única arranjos[]) + validarAlocacao (Fase 5)"
+    },
+    {
+      "arquivo": "frontend/src/components/fv/etapas/E8Orcamento.jsx",
+      "tipo": "fix",
+      "mudanca": "BUG-E8-01: dim sombreado pelos totais agregados de arranjos[]; painel breakdown por arranjo"
+    },
+    {
+      "arquivo": "frontend/src/components/fv/GerenciadorArranjos.jsx",
+      "tipo": "feat",
+      "mudanca": "campo fornecedor/distribuidor + upload de orçamento (PDF/XLSX/imagem, cap 4MB, sem OCR) por arranjo"
+    },
+    {
+      "arquivo": "backend/src/models/ProjetoFV.js",
+      "tipo": "schema_aditivo",
+      "mudanca": "arranjos[].fornecedor {nome,contato,observacoes} + arranjos[].orcamento_distribuidor {nome,tipo,tamanho,data_upload,conteudo_base64}"
+    }
+  ],
+
+  "fases": {
+    "fase1_rca_orcamento": "CORRIGIDO (agregador + sombreamento dim)",
+    "fase2_reorg_e7": "PARCIAL (deferido — GerenciadorArranjos já cobre módulo/inversor/estrutura/fornecedor/orçamento)",
+    "fase3_distribuidor": "IMPLEMENTADO",
+    "fase4_upload_orcamento": "IMPLEMENTADO (store-only, sem OCR)",
+    "fase5_alocacao": "HELPER IMPLEMENTADO+TESTADO (surfacing UI parcial)",
+    "fase6_multiarranjo": "PARCIAL (agregação OK; topologia MPPT por arranjo secundário deferida)",
+    "fase7_mppt_integrado": "JÁ EXISTENTE (adaptarInversor + entradas_por_mppt + TopologiaMPPTEditor)",
+    "fase8_consistencia": "IMPLEMENTADO (fonte única = arranjos[])"
+  },
+
+  "nao_alterado": ["Homologacao", "Governanca", "Snapshot", "Unifilar (desenho)", "Catalogo", "EV"],
+  "migracao_dados": false,
+  "backend_persist_reaproveitado": "salvarArranjos (PUT /etapa etapa=arranjos) + schema mppts[]"
+}

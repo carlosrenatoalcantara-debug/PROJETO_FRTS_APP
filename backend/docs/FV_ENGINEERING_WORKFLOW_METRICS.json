@@ -1,0 +1,39 @@
+{
+  "sprint": "P0-FV-ENGINEERING-WORKFLOW-CONSOLIDATION-01",
+  "data": "2026-06-20",
+  "resultado": "APROVADO",
+  "revisao_gemini": "PENDENTE",
+
+  "evidencia": {
+    "validado_em_codigo": true,
+    "validado_em_runtime": true,
+    "ui_navegador_exercida": false,
+    "build_frontend": "OK",
+    "syntax_backend": "OK"
+  },
+
+  "criterio_aceitacao_avelino": {
+    "esperado": { "modulos": 354, "potencia_modulo_w": 445, "kwp": 157.53, "inversores": ["60KTL", "50KTL"] },
+    "obtido_runtime": { "modulos": 354, "inversores": 2, "kwp": 157.53 },
+    "atendido": true
+  },
+
+  "respostas_obrigatorias": {
+    "1_por_que_e8_divergia": "lia dim.numPaineis/numInversores (estimativa E5) e ignorava arranjos[]",
+    "2_como_corrigido": "agregarTotaisArranjos (fonte única) + sombreamento de dim no E8",
+    "3_e7_fonte_unica": true,
+    "4_multiarranjo_completo": "agregacao+fornecedor+orcamento SIM; topologia MPPT por arranjo secundario PARCIAL",
+    "5_fornecedor": true,
+    "6_upload_orcamento": true,
+    "7_modulos_nao_alocados": "helper OK (unit 40/60); surfacing UI parcial",
+    "8_runtime_executado": true,
+    "9_regressoes": "nenhuma",
+    "10_commit": "f5b08fa"
+  },
+
+  "ressalvas": [
+    "Fase 2 (reorg visual Linha 1..5) e Fase 6 (topologia MPPT por arranjo secundario) parciais/deferidas",
+    "Fase 5 surfacing de alocacao na UI parcial (helper pronto e testado)",
+    "E8 nao exercido em navegador (logica unit-tested + persistencia runtime)"
+  ]
+}
