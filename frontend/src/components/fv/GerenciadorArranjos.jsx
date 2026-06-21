@@ -15,7 +15,7 @@
  * armazena (não alteramos o schema).
  */
 import { useState, useEffect, useMemo } from 'react'
-import { Plus, Trash2, Copy, Sun, Zap, Lock, Layers } from 'lucide-react'
+import { Plus, Trash2, Copy, Sun, Zap, Lock, Layers, Package, FileText } from 'lucide-react'
 import { useProjetoFV } from '../../contexts/ProjetoFVContext'
 import Button from '../ui/Button'
 
@@ -59,7 +59,13 @@ const proximaLetra = (lista) => {
   return `${lista.length + 1}`
 }
 const arranjoVazio = (lista) => ({ id: novoId(), rotulo: `Arranjo ${proximaLetra(lista)}`, tipo: 'secundario',
-  paineis: [], inversores: [], estrutura: null, orientacao: 'Norte', inclinacao: '', somente_leitura: false })
+  paineis: [], inversores: [], estrutura: null, orientacao: 'Norte', inclinacao: '', somente_leitura: false,
+  // P0-FV-ENGINEERING-WORKFLOW-CONSOLIDATION-01 — fornecedor + orçamento (Fase 3/4)
+  fornecedor: { nome: '', contato: '', observacoes: '' }, orcamento_distribuidor: null })
+
+// Fase 3 — distribuidores comuns (sugestões; o operador pode digitar outro)
+const DISTRIBUIDORES = ['Aldo', 'Genyx', 'Canal Solar', 'SolarZ', 'Sou Energy', 'Edeltec', 'Fortlev Solar']
+const MAX_ORC_MB = 4   // limite de armazenamento inline do orçamento
 
 export default function GerenciadorArranjos() {
   const { state, dispatch } = useProjetoFV()
@@ -109,6 +115,30 @@ export default function GerenciadorArranjos() {
     setLinha(i, campo, j, campo === 'paineis' ? linhaModulo(item, q) : linhaInversor(item, q))
   }
   function setQtd(i, campo, j, q) { const l = { ...linhas(arranjos[i], campo)[j], quantidade: q === '' ? 0 : Number(q) }; setLinha(i, campo, j, l) }
+
+  // ── Fase 3/4: fornecedor + upload de orçamento do distribuidor (sem OCR) ──────
+  function setFornecedor(i, patchF) {
+    const atual = arranjos[i].fornecedor || { nome: '', contato: '', observacoes: '' }
+    patch(i, { fornecedor: { ...atual, ...patchF } })
+  }
+  function tipoArquivo(file) {
+    const n = (file.name || '').toLowerCase()
+    if (n.endsWith('.pdf') || file.type === 'application/pdf') return 'pdf'
+    if (n.endsWith('.xlsx') || n.endsWith('.xls') || file.type.includes('sheet') || file.type.includes('excel')) return 'xlsx'
+    if (file.type.startsWith('image/') || /\.(png|jpe?g|webp|gif)$/.test(n)) return 'imagem'
+    return null
+  }
+  function anexarOrcamento(i, file) {
+    if (!file) return
+    const tipo = tipoArquivo(file)
+    if (!tipo) { alert('Formato não aceito. Use PDF, XLSX ou imagem.'); return }
+    if (file.size > MAX_ORC_MB * 1024 * 1024) { alert(`Arquivo acima de ${MAX_ORC_MB}MB. Reduza ou anexe o link externo.`); return }
+    const reader = new FileReader()
+    reader.onload = () => patch(i, { orcamento_distribuidor: {
+      nome: file.name, tipo, tamanho: file.size, data_upload: new Date().toISOString(), conteudo_base64: reader.result,
+    } })
+    reader.readAsDataURL(file)
+  }
 
   function LinhaEquip({ i, campo, j, linha, ro }) {
     const fabs = campo === 'paineis' ? fabsMod : fabsInv
@@ -191,6 +221,55 @@ export default function GerenciadorArranjos() {
                 {TIPOS_ESTRUTURA.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
               </select>
             </div>
+
+            {/* Fornecedor / Distribuidor + Orçamento (Fase 3/4) */}
+            {!ro && (
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-1 text-xs font-semibold text-slate-600">
+                  <Package size={12} className="text-violet-500" /> Fornecedor / Distribuidor
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <input
+                    list={`distribuidores-${i}`}
+                    value={a.fornecedor?.nome || ''}
+                    onChange={(e) => setFornecedor(i, { nome: e.target.value })}
+                    placeholder="Ex: Aldo, Genyx, SolarZ…"
+                    className="text-xs px-2 py-1.5 rounded border border-slate-300 bg-white"
+                  />
+                  <datalist id={`distribuidores-${i}`}>
+                    {DISTRIBUIDORES.map(d => <option key={d} value={d} />)}
+                  </datalist>
+                  <input
+                    value={a.fornecedor?.contato || ''}
+                    onChange={(e) => setFornecedor(i, { contato: e.target.value })}
+                    placeholder="Contato (opcional)"
+                    className="text-xs px-2 py-1.5 rounded border border-slate-300 bg-white"
+                  />
+                </div>
+                <input
+                  value={a.fornecedor?.observacoes || ''}
+                  onChange={(e) => setFornecedor(i, { observacoes: e.target.value })}
+                  placeholder="Observações (opcional)"
+                  className="w-full text-xs px-2 py-1.5 rounded border border-slate-300 bg-white"
+                />
+                {/* Upload de orçamento original (PDF/XLSX/imagem) — apenas armazena */}
+                <div className="flex items-center gap-2">
+                  <label className="text-xs text-violet-700 font-medium cursor-pointer inline-flex items-center gap-1 px-2 py-1 rounded border border-violet-200 bg-violet-50 hover:bg-violet-100">
+                    <Plus size={12} /> Anexar orçamento
+                    <input type="file" accept=".pdf,.xlsx,.xls,image/*" className="hidden"
+                      onChange={(e) => { anexarOrcamento(i, e.target.files?.[0]); e.target.value = '' }} />
+                  </label>
+                  {a.orcamento_distribuidor?.nome && (
+                    <span className="text-[11px] text-slate-600 flex items-center gap-1">
+                      <FileText size={11} className="text-violet-500" />
+                      {a.orcamento_distribuidor.nome} ({a.orcamento_distribuidor.tipo})
+                      <button type="button" onClick={() => patch(i, { orcamento_distribuidor: null })}
+                        className="text-slate-300 hover:text-red-400 ml-1" title="Remover orçamento"><Trash2 size={11} /></button>
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Orientação / Inclinação (UX) */}
             {!ro && (

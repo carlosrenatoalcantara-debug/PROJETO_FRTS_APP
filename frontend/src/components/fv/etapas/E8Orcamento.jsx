@@ -21,6 +21,8 @@ import CentroFinanceiroFV from '../CentroFinanceiroFV'
 import PropostaEnterprise from '../PropostaEnterprise'
 import CrmPainel from '../CrmPainel'
 import { construirTodosSnapshots, construirSnapshotTecnico, construirSnapshotGeoespacial } from '../../../utils/engenhariaGovernanca'
+// P0-FV-ENGINEERING-WORKFLOW-CONSOLIDATION-01: fonte única = arranjos[]
+import { agregarTotaisArranjos } from '../../../utils/agregarArranjosFV'
 
 function LinhaResumo({ rotulo, valor }) {
   return (
@@ -72,8 +74,22 @@ export default function E8Orcamento() {
 
   const {
     dadosCliente, dadosConsumo, localizacao,
-    irradiancia, dimensionamento: dim, area, equipamentos,
+    irradiancia, dimensionamento: dimBase, area, equipamentos,
   } = state
+
+  // ── P0-FV-ENGINEERING-WORKFLOW-CONSOLIDATION-01: FONTE ÚNICA = arranjos[] ──────
+  // A E8 NÃO recalcula módulos/inversores/potência: deriva dos arranjos configurados
+  // em E7 (Arranjo A em equipamentos + secundários em state.arranjos). Corrige
+  // BUG-E8-01 (E8 mostrava a estimativa do E5 em vez da config real do E7).
+  // `dim` passa a ser o dimensionamento agregado — todas as referências dim.* abaixo
+  // refletem a fonte única sem alterações pontuais.
+  const totaisArranjos = useMemo(() => agregarTotaisArranjos(state), [state.equipamentos, state.arranjos, state.dimensionamento])
+  const dim = useMemo(() => ({
+    ...dimBase,
+    numPaineis:      totaisArranjos.modulos     > 0 ? totaisArranjos.modulos     : dimBase.numPaineis,
+    numInversores:   totaisArranjos.inversores  > 0 ? totaisArranjos.inversores  : dimBase.numInversores,
+    potenciaRealKwp: totaisArranjos.kwp         > 0 ? totaisArranjos.kwp         : (dimBase.potenciaRealKwp ?? dimBase.potenciaKwp),
+  }), [dimBase, totaisArranjos])
 
   const [gerando,    setGerando]    = useState(false)
   const [salvando,   setSalvando]   = useState(false)
@@ -656,6 +672,27 @@ export default function E8Orcamento() {
           <LinhaResumo rotulo="Área disponível"      valor={area.areaDisponivel ? `${area.areaDisponivel} m²` : null} />
           <LinhaResumo rotulo="Orientação"           valor={`${area.orientacao} / ${area.inclinacao}°`} />
         </div>
+
+        {/* P0-FV-ENGINEERING-WORKFLOW-CONSOLIDATION-01: breakdown por arranjo —
+            prova que módulos/inversores/potência derivam de E7 (arranjos), não do E5. */}
+        {totaisArranjos.porArranjo.length > 0 && (
+          <div className="bg-white border border-emerald-200 rounded-xl p-4 space-y-1.5">
+            <div className="flex items-center gap-2">
+              <Layers size={15} className="text-emerald-600" />
+              <p className="text-xs font-semibold text-slate-500 uppercase">Resumo por arranjo · fonte única (E7)</p>
+            </div>
+            {totaisArranjos.porArranjo.map((a, i) => (
+              <div key={i} className="flex items-center justify-between text-sm border-b border-slate-100 last:border-0 py-1">
+                <span className="text-slate-700 font-medium">{a.rotulo}</span>
+                <span className="text-slate-500 font-mono text-xs">{a.modulos} mód · {a.inversores} inv · {a.kwp} kWp</span>
+              </div>
+            ))}
+            <div className="flex items-center justify-between text-sm font-semibold pt-1">
+              <span className="text-slate-900">Total</span>
+              <span className="text-emerald-700 font-mono">{dim.numPaineis} mód · {dim.numInversores} inv · {dim.potenciaRealKwp} kWp</span>
+            </div>
+          </div>
+        )}
 
         {isKit ? (
           /* P1-FV-COMMERCIAL-KIT-FIRST-01: formulário do Kit (modo padrão) */

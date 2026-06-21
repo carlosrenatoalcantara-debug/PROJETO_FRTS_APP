@@ -719,6 +719,21 @@ const projetoFVSchema = new mongoose.Schema({
       default: 'principal',
     },
     somente_leitura: { type: Boolean, default: false }, // arranjo congelado (ex.: usina executada)
+    // P0-FV-ENGINEERING-WORKFLOW-CONSOLIDATION-01 (ADITIVO) — fornecedor/distribuidor
+    // por arranjo (Fase 3) + orçamento original do distribuidor (Fase 4, apenas
+    // armazenamento, SEM OCR). Projetos legados lêem null sem erro.
+    fornecedor: {
+      nome:        { type: String, default: null },   // Aldo, Genyx, Canal Solar, SolarZ, Sou Energy, ...
+      contato:     { type: String, default: null },
+      observacoes: { type: String, default: null },
+    },
+    orcamento_distribuidor: {
+      nome:            { type: String, default: null },   // nome do arquivo
+      tipo:            { type: String, default: null },   // pdf | xlsx | imagem
+      tamanho:         { type: Number, default: null },
+      data_upload:     { type: Date,   default: null },
+      conteudo_base64: { type: String, default: null },   // dataURL (armazenamento, sem OCR)
+    },
     paineis: [{
       id: String, marca: String, fabricante: String, modelo: String, tipo: String,
       potencia_w: Number, quantidade: Number,
