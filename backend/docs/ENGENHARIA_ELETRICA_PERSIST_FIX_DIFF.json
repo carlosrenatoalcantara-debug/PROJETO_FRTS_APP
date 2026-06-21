@@ -1,0 +1,35 @@
+{
+  "sprint": "P0-ENGENHARIA-ELETRICA-PERSIST-FIX-01",
+  "data": "2026-06-20",
+  "commit": "96aef4f",
+  "revisao_gemini": "PENDENTE",
+
+  "arquivos_alterados": [
+    {
+      "arquivo": "backend/src/controllers/projetosFVController.js",
+      "gap": "GAP-MPPT-10",
+      "mudanca": "null-guard idempotente para engenharia_eletrica antes do $set dot-notation",
+      "codigo": "if (etapa === 'engenharia_eletrica') { await ProjetoFV.updateOne({ _id: id, engenharia_eletrica: null }, { $set: { engenharia_eletrica: {} } }) }",
+      "espelha": "guard ja existente de workflow (linha 728)"
+    },
+    {
+      "arquivo": "backend/src/models/ProjetoFV.js",
+      "gap": "GAP-MPPT-05",
+      "mudanca": "engenhariaEletricaV3Schema.arranjo: adiciona num_mppts_usados + mppts[] (aditivo)",
+      "campos_adicionados": ["num_mppts_usados", "mppts[{mppt, strings_paralelo, modulos_por_string, total_modulos}]"],
+      "subschema": "_id:false, default:undefined (legado le undefined)",
+      "campos_preservados": ["quantidade_modulos_por_string", "quantidade_strings_paralelo", "total_modulos"]
+    }
+  ],
+
+  "linhas_adicionadas": 35,
+  "backend_apenas": true,
+  "frontend_alterado": false,
+  "migracao_dados": false,
+  "backfill": false,
+
+  "escopo_respeitado": {
+    "nao_implementa": ["entradas por MPPT", "strings individuais", "nova topologia MPPT", "nova UX"],
+    "nao_altera": ["Unifilar", "Multiarranjo", "MPPT topology", "Homologacao", "Catalogo", "EV", "Governanca", "Snapshot"]
+  }
+}

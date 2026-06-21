@@ -1,0 +1,53 @@
+{
+  "sprint": "P0-ENGENHARIA-ELETRICA-PERSIST-FIX-01",
+  "data": "2026-06-20",
+  "resultado": "APROVADO",
+  "revisao_gemini": "PENDENTE",
+
+  "evidencia": {
+    "validado_em_codigo": true,
+    "validado_em_runtime": true,
+    "syntax_backend": "OK"
+  },
+
+  "testes_runtime": {
+    "teste1_put_engenharia_projeto_novo": { "esperado": "HTTP 200", "obtido": "HTTP 200 (era 500)", "passou": true },
+    "teste2_put_mppts": { "esperado": "persistido", "obtido": "HTTP 200", "passou": true },
+    "teste3_get_mppts": {
+      "esperado": "mppts[] retornado",
+      "obtido": "3 MPPTs (2x10, 2x10, 1x8), num_mppts_usados=6, legado intacto (10/2/120)",
+      "passou": true
+    },
+    "teste4_projeto_legado": { "esperado": "sem erro", "obtido": "HTTP 200, engenharia_eletrica null", "passou": true }
+  },
+
+  "impacto": {
+    "total_projetos": 578,
+    "engenharia_eletrica_null_antes": 578,
+    "engenharia_eletrica_persistida_antes": 0,
+    "nota": "gravacao estava 100% quebrada — nenhum projeto jamais persistiu engenharia eletrica",
+    "congelados_homologados": 1,
+    "necessita_migracao": false,
+    "necessita_backfill": false,
+    "snapshots_afetados": 0,
+    "governanca_afetada": false
+  },
+
+  "respostas_obrigatorias": {
+    "1_onde_estava_erro": "salvarEtapaProjetoFV case engenharia_eletrica: $set dot-notation com engenharia_eletrica=null (default:null) + schema arranjo sem mppts[]",
+    "2_como_corrigido": "null-guard idempotente + schema aditivo num_mppts_usados/mppts[]",
+    "3_http500_eliminado": true,
+    "4_mppts_persiste": true,
+    "5_projetos_antigos_abrem": true,
+    "6_necessitou_migracao": false,
+    "7_runtime_executado": true,
+    "8_projetos_afetados": "578/578 tinham engenharia_eletrica null; agora todos podem salvar",
+    "9_regressoes": "nenhuma",
+    "10_commit": "96aef4f"
+  },
+
+  "criterio_aceitacao": {
+    "projeto_novo_salva_sem_erro": true,
+    "mppts_sobrevive_put_mongo_get": true
+  }
+}
