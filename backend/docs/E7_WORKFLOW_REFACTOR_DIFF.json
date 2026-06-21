@@ -1,0 +1,50 @@
+{
+  "sprint": "P0-E7-ARRANJO-WORKFLOW-REFACTOR-01",
+  "data": "2026-06-20",
+  "commit": "66e143d",
+  "revisao_gemini": "PENDENTE",
+  "backend_alterado": false,
+  "persistencia_alterada": false,
+
+  "arquivos_alterados": [
+    {
+      "arquivo": "frontend/src/utils/agregarArranjosFV.js",
+      "mudanca": "novo resumoTecnicoArranjo() — P CC/CA, oversizing, MPPT, entradas, strings, alocação, avisos (pure, unit-tested)"
+    },
+    {
+      "arquivo": "frontend/src/components/fv/ResumoTecnicoArranjo.jsx",
+      "tipo": "novo",
+      "mudanca": "card de resumo técnico em tempo real com selos ✓/⚠ (Fase 7/11)"
+    },
+    {
+      "arquivo": "frontend/src/components/fv/GerenciadorArranjos.jsx",
+      "mudanca": "arquitetura FV obrigatória (String/Micro/Otimizador → arranjos[].topologia) + resumo técnico por arranjo; ordem Módulo→Arquitetura→Inversor→Estrutura→Fornecedor→Orçamento→Resumo"
+    },
+    {
+      "arquivo": "frontend/src/components/fv/etapas/E7Equipamentos.jsx",
+      "mudanca": "ResumoTecnicoArranjo no Arranjo A (paridade com B/C/D), após módulo+inversor"
+    }
+  ],
+
+  "fases": {
+    "fase1_mapeamento": "OK",
+    "fase2_arquitetura_fv": "IMPLEMENTADO (radio → topologia persistida)",
+    "fase3_inversor_por_arquitetura": "IMPLEMENTADO (fab/modelo/qtd p/ os 3 modos)",
+    "fase4_estrutura": "MANTIDO",
+    "fase5_fornecedor": "MANTIDO",
+    "fase6_orcamento": "MANTIDO (store-only)",
+    "fase7_resumo_tecnico": "IMPLEMENTADO (tempo real)",
+    "fase8_config_eletrica_condicional": "IMPLEMENTADO (Arranjo A, após módulo+inversor)",
+    "fase9_pre_preenchimento": "JÁ EXISTENTE (specs do inversor via catálogo)",
+    "fase10_multiarranjo": "PARCIAL (paridade de blocos; topologia MPPT detalhada por secundário DEFERIDA — persistência única)",
+    "fase11_validacao_visual": "IMPLEMENTADO (✓/⚠ sem bloquear)",
+    "fase12_runtime": "OK (Avelino + arquitetura persistida)"
+  },
+
+  "deferido": [
+    "Editor de topologia MPPT detalhada (entradas[]) por arranjo secundário — engenharia_eletrica é subdoc único; 'não alterar persistência'",
+    "Card único unificado para A e B/C/D — Arranjo A mantém ConfiguradorArranjoFV; B/C/D usam card + resumo"
+  ],
+
+  "nao_alterado": ["Backend", "Persistência", "Snapshot", "Governança", "Homologação", "Catálogo", "EV"]
+}

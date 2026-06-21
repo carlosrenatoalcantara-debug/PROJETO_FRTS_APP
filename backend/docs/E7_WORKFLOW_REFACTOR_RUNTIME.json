@@ -1,0 +1,35 @@
+{
+  "sprint": "P0-E7-ARRANJO-WORKFLOW-REFACTOR-01",
+  "data": "2026-06-20",
+  "ambiente": "Railway + MongoDB Atlas (produção)",
+  "revisao_gemini": "PENDENTE",
+
+  "unit_resumo_tecnico": {
+    "arranjo_A_180x445_60KTL": { "pCC": 80.1, "pCA": 60, "oversizing": 1.33, "nMppt": 6, "entradas": 12, "atendidos": 180, "semInversor": 0 },
+    "arranjo_sem_inversor_100mod": { "aviso": "100 módulo(s) sem inversor" },
+    "passou": true
+  },
+
+  "runtime_avelino": {
+    "put_http": 200,
+    "por_arranjo": [
+      { "rotulo": "Arranjo A", "arquitetura": "string", "modulos": 180, "inversores": 1, "kwp": 80.10, "fornecedor": "Aldo" },
+      { "rotulo": "Arranjo B", "arquitetura": "micro",  "modulos": 174, "inversores": 1, "kwp": 77.43, "fornecedor": "Genyx" }
+    ],
+    "total": { "modulos": 354, "inversores": 2, "kwp": 157.53 },
+    "criterio_avelino_mantido": true,
+    "arquitetura_por_arranjo_persistida": true,
+    "fornecedor_persistido": true
+  },
+
+  "fase12_validacoes": {
+    "topologia_automatica": "carga de specs do inversor via catálogo (adaptarInversor) + sugestão de entradas (TopologiaMPPTEditor, Arranjo A)",
+    "resumo_tecnico": "OK (tempo real, unit-tested + render no A e B/C/D)",
+    "e8_consistente": "OK (E8 deriva de arranjos[] — sprint anterior)",
+    "persistencia": "OK (arranjos[].topologia/fornecedor/orcamento persistem)"
+  },
+
+  "validado_em_codigo": true,
+  "validado_em_runtime": true,
+  "ui_navegador_exercida": false
+}
