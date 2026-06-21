@@ -19,6 +19,30 @@ import { Plus, Trash2, Copy, Sun, Zap, Lock, Layers, Package, FileText } from 'l
 import { useProjetoFV } from '../../contexts/ProjetoFVContext'
 import Button from '../ui/Button'
 import ResumoTecnicoArranjo from './ResumoTecnicoArranjo'
+import TopologiaMPPTEditor, { topologiaVazia } from './TopologiaMPPTEditor'
+
+// P0-ARRANJO-ELECTRICAL-ISOLATION-01 — mapeamento editor ↔ schema por arranjo
+const numK = (esp, ks) => { for (const k of ks) { const v = Number(esp?.[k]); if (Number.isFinite(v) && v !== 0) return v } return null }
+// schema mppts[] → value do editor [{entradas:[{strings:[{modulos}]}]}]
+function mpptsParaEditor(mppts) {
+  return (mppts || []).map(m => ({ entradas: (m.entradas || []).map(e => ({ strings: (e.strings || []).map(s => ({ modulos: s.modulos ?? 0 })) })) }))
+}
+// value do editor → schema configuracao_eletrica (topologia + resumo derivado)
+function editorParaConfig(value) {
+  const mppts = (value || []).map((m, i) => {
+    const strings = (m.entradas || []).flatMap(e => (e.strings || []).filter(s => (s.modulos || 0) > 0))
+    const mods = strings.map(s => s.modulos)
+    return {
+      mppt: i + 1,
+      strings_paralelo: strings.length,
+      modulos_por_string: mods.length ? Math.max(...mods) : 0,
+      total_modulos: mods.reduce((a, b) => a + b, 0),
+      entradas: (m.entradas || []).map((e, ei) => ({ entrada: ei + 1, strings: (e.strings || []).map(s => ({ modulos: s.modulos || 0 })) })),
+    }
+  })
+  const total = mppts.reduce((s, m) => s + m.total_modulos, 0)
+  return { mppts, num_mppts_usados: mppts.length, total_modulos: total }
+}
 
 // P0-E7-ARRANJO-WORKFLOW-REFACTOR-01 — arquitetura FV (Fase 2)
 const ARQUITETURAS = [
@@ -82,6 +106,8 @@ export default function GerenciadorArranjos() {
   const { arranjos, tipoProjeto } = state
   const [catalogo, setCatalogo] = useState({ modulos: [], inversores: [] })
   const [carregando, setCarregando] = useState(false)
+  // P0-ARRANJO-ELECTRICAL-ISOLATION-01 — quais arranjos têm o editor de topologia aberto
+  const [detalhados, setDetalhados] = useState({})
 
   useEffect(() => {
     let vivo = true; setCarregando(true)
@@ -148,6 +174,33 @@ export default function GerenciadorArranjos() {
       nome: file.name, tipo, tamanho: file.size, data_upload: new Date().toISOString(), conteudo_base64: reader.result,
     } })
     reader.readAsDataURL(file)
+  }
+
+  // ── P0-ARRANJO-ELECTRICAL-ISOLATION-01: topologia elétrica PRÓPRIA por arranjo ──
+  function specsArranjo(a) {
+    const inv = (a.inversores || [])[0]
+    const docInv = inv && (catalogo.inversores.find(d => String(d._id) === String(inv.equipamento_id)) || catalogo.inversores.find(d => d.modelo === inv.modelo))
+    const espInv = docInv?.especificacoes || {}
+    const pnl = (a.paineis || [])[0]
+    const docMod = pnl && (catalogo.modulos.find(d => String(d._id) === String(pnl.equipamento_id)) || catalogo.modulos.find(d => d.modelo === pnl.modelo))
+    const espMod = docMod?.especificacoes || {}
+    return {
+      nMppts: numK(espInv, ['n_mppts', 'mppts', 'numero_mppt']) || a.configuracao_eletrica?.num_mppts_usados || 2,
+      entradasPorMppt: numK(espInv, ['entradas_por_mppt', 'strings_por_mppt']) || 2,
+      eletricoMod: { voc: numK(espMod, ['voc', 'voc_v']), coef_temp_voc: numK(espMod, ['coef_temp_voc']) ?? -0.0028 },
+      eletricoInv: { tensao_max_entrada: numK(espInv, ['tensao_max_entrada', 'voc_max', 'voc_max_dc']), corrente_max_mppt: numK(espInv, ['corrente_max_por_mppt', 'corrente_max_mppt']) },
+    }
+  }
+  function toggleDetalhe(i) {
+    const abrir = !detalhados[i]
+    if (abrir && !(arranjos[i].configuracao_eletrica?.mppts?.length)) {
+      const s = specsArranjo(arranjos[i])
+      patch(i, { configuracao_eletrica: { ...(arranjos[i].configuracao_eletrica || {}), ...editorParaConfig(topologiaVazia(s.nMppts, s.entradasPorMppt)) } })
+    }
+    setDetalhados(d => ({ ...d, [i]: abrir }))
+  }
+  function setTopologiaArranjo(i, value) {
+    patch(i, { configuracao_eletrica: { ...(arranjos[i].configuracao_eletrica || {}), ...editorParaConfig(value) } })
   }
 
   function LinhaEquip({ i, campo, j, linha, ro }) {
@@ -232,6 +285,27 @@ export default function GerenciadorArranjos() {
               {linhas(a, 'inversores').map((l, j) => <LinhaEquip key={j} i={i} campo="inversores" j={j} linha={l} ro={ro} />)}
               {!ro && <button type="button" onClick={() => addLinha(i, 'inversores')} className="text-xs text-emerald-700 font-medium flex items-center gap-1"><Plus size={12} /> Adicionar inversor</button>}
             </div>
+
+            {/* Topologia elétrica PRÓPRIA do arranjo (Fase 10 — isolamento) */}
+            {!ro && (a.inversores || []).length > 0 && (
+              <div className="space-y-1.5">
+                <button type="button" onClick={() => toggleDetalhe(i)}
+                  className={`text-xs font-medium px-3 py-1.5 rounded-lg border transition-colors ${
+                    detalhados[i] ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-blue-700 border-blue-300 hover:bg-blue-50'
+                  }`}>
+                  {detalhados[i] ? '▾ Topologia detalhada deste arranjo' : '▸ Topologia detalhada (entradas/strings) deste arranjo'}
+                </button>
+                {detalhados[i] && (
+                  <TopologiaMPPTEditor
+                    value={mpptsParaEditor(a.configuracao_eletrica?.mppts)}
+                    onChange={(v) => setTopologiaArranjo(i, v)}
+                    eletricoMod={specsArranjo(a).eletricoMod}
+                    eletricoInv={specsArranjo(a).eletricoInv}
+                    tmin={10}
+                  />
+                )}
+              </div>
+            )}
 
             {/* Estrutura */}
             <div className="space-y-1.5">
