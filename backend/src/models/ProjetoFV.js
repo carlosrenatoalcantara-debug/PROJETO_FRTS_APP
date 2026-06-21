@@ -284,6 +284,23 @@ const engenhariaEletricaV3Schema = new mongoose.Schema({
         strings_paralelo:   { type: Number, default: null },
         modulos_por_string: { type: Number, default: null },
         total_modulos:      { type: Number, default: null },
+        // P1-MPPT-TOPOLOGY-IMPLEMENTATION-01 (ADITIVO) — topologia REAL por entrada.
+        // Cada MPPT tem N entradas físicas; cada entrada tem 0+ strings; cada string
+        // tem sua própria quantidade de módulos em série. Permite entradas vazias,
+        // strings independentes e MPPT parcialmente utilizado. Os campos de contagem
+        // acima permanecem como RESUMO derivado (compat unifilar/validação legada).
+        entradas: {
+          type: [new mongoose.Schema({
+            entrada: { type: Number, default: null },
+            strings: {
+              type: [new mongoose.Schema({
+                modulos: { type: Number, default: 0 },
+              }, { _id: false })],
+              default: undefined,
+            },
+          }, { _id: false })],
+          default: undefined,
+        },
       }, { _id: false })],
       default: undefined,
     },

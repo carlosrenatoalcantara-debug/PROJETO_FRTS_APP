@@ -26,6 +26,8 @@ import { useCompatibilidadeEletrica } from '../../hooks/useCompatibilidadeEletri
 import PainelCompatibilidadeFV from '../engenharia/PainelCompatibilidadeFV'
 import { classificarTopologia } from '../../utils/topologiaInversor'
 import { dimensionarMicroinversor, resumoDistribuicao } from '../../utils/dimensionarMicro'
+// P1-MPPT-TOPOLOGY-IMPLEMENTATION-01 — editor da topologia real (entradas/strings)
+import TopologiaMPPTEditor, { derivarTopologia, resumoTopologia, topologiaVazia } from './TopologiaMPPTEditor'
 
 const VERSAO_MOTOR = '2.0.0-sprint2'
 
@@ -188,10 +190,28 @@ export default function ConfiguradorArranjoFV({
   // ── Estado central: MPPTs ───────────────────────────────────────────────
   const [mppts, setMppts] = useState(() => sugerirMPPTs(numPaineis, nMppts))
 
+  // ── P1-MPPT-TOPOLOGY-IMPLEMENTATION-01: topologia detalhada (entradas/strings)
+  // Entradas por MPPT sugeridas pelo catálogo do inversor (Huawei=2, etc.)
+  const entradasPorMppt = inversor?.entradasPorMppt ?? eletricoInv?.entradas_por_mppt ?? 2
+  const [modoDetalhado, setModoDetalhado] = useState(false)
+  const [topologia2, setTopologia2] = useState(null)   // [{ entradas:[{strings:[{modulos}]}] }]
+
+  // Liga/desliga o modo detalhado, derivando do modelo simples na 1ª ativação
+  function alternarDetalhado() {
+    if (!modoDetalhado) {
+      setTopologia2(prev => prev ?? derivarTopologia(mppts, entradasPorMppt))
+    }
+    setModoDetalhado(v => !v)
+  }
+
   // ── Quantidade alvo (user-defined) ─────────────────────────────────────
+  // Em modo detalhado a soma é EXATA (módulos por string podem variar); no modo
+  // simples mantém numStrings × modulosPorString.
   const totalModulosArranjo = useMemo(
-    () => mppts.reduce((s, m) => s + m.numStrings * m.modulosPorString, 0),
-    [mppts]
+    () => (modoDetalhado && topologia2)
+      ? resumoTopologia(topologia2).totalModulos
+      : mppts.reduce((s, m) => s + m.numStrings * m.modulosPorString, 0),
+    [mppts, modoDetalhado, topologia2]
   )
 
   // ── Topologia explícita (string / micro / otimizador) ───────────────────
@@ -222,6 +242,17 @@ export default function ConfiguradorArranjoFV({
         numStrings:       m.strings_paralelo ?? 1,
         modulosPorString: m.modulos_por_string ?? 8,
       })))
+      // P1-MPPT-TOPOLOGY-IMPLEMENTATION-01: se há topologia detalhada persistida,
+      // reidrata o editor de entradas e liga o modo detalhado.
+      const temEntradas = initialValues.arranjo.mppts.some(m => Array.isArray(m.entradas) && m.entradas.length > 0)
+      if (temEntradas) {
+        setTopologia2(initialValues.arranjo.mppts.map(m => ({
+          entradas: (m.entradas || []).map(e => ({
+            strings: (e.strings || []).map(s => ({ modulos: s.modulos ?? 0 })),
+          })),
+        })))
+        setModoDetalhado(true)
+      }
     } else if (initialValues.arranjo) {
       const { quantidade_modulos_por_string: mps, quantidade_strings_paralelo: s } = initialValues.arranjo
       if (mps > 0 && s > 0) {
@@ -249,6 +280,21 @@ export default function ConfiguradorArranjoFV({
     }
     prevNMpptsRef.current = nMppts
   }, [nMppts])
+
+  // P1-MPPT-TOPOLOGY-IMPLEMENTATION-01: em modo detalhado, sincroniza o modelo
+  // simples (mppts) a partir da topologia real, para manter validações, árvore,
+  // propagação e unifilar coerentes. numStrings = nº de strings com módulos;
+  // modulosPorString = pior caso (máx) — Voc frio conservador.
+  useEffect(() => {
+    if (!modoDetalhado || !topologia2) return
+    const legacy = topologia2.map((m) => {
+      const strings = (m.entradas || []).flatMap((e) => (e.strings || []).filter((s) => (s.modulos || 0) > 0))
+      const mods = strings.map((s) => s.modulos)
+      return { numStrings: strings.length, modulosPorString: mods.length ? Math.max(...mods) : 0 }
+    })
+    setMppts(legacy)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [modoDetalhado, topologia2])
 
   // ── Helpers de mutação de estado ────────────────────────────────────────
   function setMpptField(idx, campo, valor) {
@@ -371,12 +417,30 @@ export default function ConfiguradorArranjoFV({
         total_modulos:                 totalModulosArranjo,
         // Multi-MPPT
         num_mppts_usados: nMppts,
-        mppts: mppts.map((m, i) => ({
-          mppt:                i + 1,
-          strings_paralelo:    m.numStrings,
-          modulos_por_string:  m.modulosPorString,
-          total_modulos:       m.numStrings * m.modulosPorString,
-        })),
+        // P1-MPPT-TOPOLOGY-IMPLEMENTATION-01: em modo detalhado persiste a
+        // topologia REAL (entradas[].strings[].modulos) + resumo derivado por MPPT.
+        // No modo simples mantém o resumo por MPPT como antes.
+        mppts: (modoDetalhado && topologia2)
+          ? topologia2.map((m, i) => {
+              const strings = (m.entradas || []).flatMap(e => (e.strings || []).filter(s => (s.modulos || 0) > 0))
+              const mods = strings.map(s => s.modulos)
+              return {
+                mppt:               i + 1,
+                strings_paralelo:   strings.length,
+                modulos_por_string: mods.length ? Math.max(...mods) : 0,
+                total_modulos:      mods.reduce((a, b) => a + b, 0),
+                entradas: (m.entradas || []).map((e, ei) => ({
+                  entrada: ei + 1,
+                  strings: (e.strings || []).map(s => ({ modulos: s.modulos || 0 })),
+                })),
+              }
+            })
+          : mppts.map((m, i) => ({
+              mppt:                i + 1,
+              strings_paralelo:    m.numStrings,
+              modulos_por_string:  m.modulosPorString,
+              total_modulos:       m.numStrings * m.modulosPorString,
+            })),
       },
       clima_utilizado: {
         cidade: cu?.cidade ?? cidadeClima ?? null,
@@ -409,7 +473,7 @@ export default function ConfiguradorArranjoFV({
         analisado_em: new Date().toISOString(),
       },
     }
-  }, [resultado, mppts, piorCaso, totalModulosArranjo, nMppts, cidadeClima, uf, tmin, tmax, bloqueios, avisos, topologia, ehMicro, dimMicro])
+  }, [resultado, mppts, piorCaso, totalModulosArranjo, nMppts, cidadeClima, uf, tmin, tmax, bloqueios, avisos, topologia, ehMicro, dimMicro, modoDetalhado, topologia2])
 
   const salvar = useCallback(async () => {
     if (!projetoId) {
@@ -553,10 +617,38 @@ export default function ConfiguradorArranjoFV({
       {/* ── 2. Configuração por MPPT (apenas STRING) ───────────────────────── */}
       {!ehMicro && (
       <div className="bg-white border border-slate-200 rounded-xl p-5 space-y-4">
-        <div className="flex items-center gap-2">
-          <Sliders className="w-4 h-4 text-slate-400" />
-          <h3 className="text-sm font-semibold text-slate-700">Configuração do Arranjo por MPPT</h3>
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <div className="flex items-center gap-2">
+            <Sliders className="w-4 h-4 text-slate-400" />
+            <h3 className="text-sm font-semibold text-slate-700">Configuração do Arranjo por MPPT</h3>
+          </div>
+          {/* P1-MPPT-TOPOLOGY-IMPLEMENTATION-01: alterna simples ↔ topologia real */}
+          <button
+            type="button"
+            onClick={alternarDetalhado}
+            className={`text-xs font-medium px-3 py-1.5 rounded-lg border transition-colors ${
+              modoDetalhado
+                ? 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700'
+                : 'bg-white text-blue-700 border-blue-300 hover:bg-blue-50'
+            }`}
+          >
+            {modoDetalhado ? '← Modo simples' : 'Topologia detalhada (entradas/strings) →'}
+          </button>
         </div>
+
+        {/* ── Modo DETALHADO: editor de entradas/strings real ── */}
+        {modoDetalhado && topologia2 && (
+          <TopologiaMPPTEditor
+            value={topologia2}
+            onChange={setTopologia2}
+            eletricoMod={eletricoMod}
+            eletricoInv={eletricoInv}
+            tmin={tmin}
+          />
+        )}
+
+        {/* ── Modo SIMPLES: Módulos/string global + strings por MPPT ── */}
+        {!modoDetalhado && (<>
 
         {/* Módulos/string global */}
         <div>
@@ -656,6 +748,7 @@ export default function ConfiguradorArranjoFV({
             )
           })}
         </div>
+        </>)}
       </div>
       )}
 
