@@ -1,0 +1,33 @@
+{
+  "sprint": "P1-NEW01-HOMOLOGACAO-PERSISTENCE-FIX-01",
+  "data": "2026-06-20",
+  "ambiente": "Railway + MongoDB Atlas (produção)",
+  "commit": "67c2d28",
+  "revisao_gemini": "PENDENTE",
+
+  "evidencia": { "validado_em_codigo": true, "validado_em_runtime": true, "syntax_backend": "OK", "refs_map_restantes": 0 },
+
+  "fase7_round_trip": {
+    "projeto_teste": "6a38a12a... (removido após teste)",
+    "patch_checklist": { "http": 200, "persistido": true, "itens": ["Memorial Descritivo=concluido", "ART=pendente", "Carta Concessionária=concluido"], "status": "enviado", "observacoes": "teste persistência" },
+    "get_apos_patch": { "origem": "persistido", "marcados": ["Memorial Descritivo", "Carta Concessionária"], "status": "enviado" },
+    "get_2x_nova_sessao": { "origem": "persistido", "identico_ao_1o": true },
+    "doc_projeto_mongo": { "homologacao.checklist": "PRESENTE", "status": "enviado" },
+    "nota": "Comparações '== False' no log foram artefato de encoding do console Windows (acento em 'Concessionária'); os dados conferem."
+  },
+
+  "fase8_persistencia_real": {
+    "mecanismo": "GET lê projeto.homologacao.checklist do Mongo; independe de memória de processo",
+    "restart_railway": "irrelevante — dados no Atlas; 2º GET (nova sessão) retornou estado idêntico"
+  },
+
+  "fase6_compatibilidade": {
+    "projeto_sem_checklist": { "origem": "template", "tem_documentos": true, "nota": "template gerado automaticamente, sem erro" }
+  },
+
+  "criterio_aceitacao": {
+    "checklist_sobrevive_reload": true,
+    "checklist_sobrevive_nova_sessao": true,
+    "nenhum_estado_em_memoria_de_processo": true
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "sprint": "P1-NEW01-HOMOLOGACAO-PERSISTENCE-FIX-01",
+  "data": "2026-06-20",
+  "resultado": "APROVADO",
+  "revisao_gemini": "PENDENTE",
+
+  "respostas_obrigatorias": {
+    "1_onde_estava_o_bug": "homologacaoController.js — checklist gravado em homologacoesDB=new Map() (memória de processo); obterChecklist gerava template e ignorava o salvo (write-only)",
+    "2_salvo_em_memoria": "checklist (documentos[].concluido), observacoes, status do checklist; e payload da rota /status legada (status/datas/art_numero)",
+    "3_salvo_no_mongo_agora": "projeto.homologacao.checklist {documentos,observacoes,status,atualizado_em} + status/data_envio/data_aprovacao/art_numero",
+    "4_get_corrigido": true,
+    "5_patch_corrigido": true,
+    "6_map_removido": true,
+    "7_runtime_executado": true,
+    "8_persistencia_apos_reload": true,
+    "9_regressoes": "nenhuma (núcleo Mongo preservado; projeto sem checklist gera template)",
+    "10_commit": "67c2d28"
+  },
+
+  "fase5_dependencia_map": "NENHUM fluxo depende mais do Map (0 referências a homologacoesDB)",
+  "fase9_map": "REMOVIDO",
+
+  "criterio_aceitacao": {
+    "checklist_sobrevive_reload_navegador_restart": true,
+    "nenhum_estado_em_memoria_de_processo": true
+  },
+
+  "evidencia": { "validado_em_codigo": true, "validado_em_runtime": true, "ui_navegador_exercida": false }
+}

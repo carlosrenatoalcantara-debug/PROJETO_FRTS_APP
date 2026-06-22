@@ -1,0 +1,34 @@
+{
+  "sprint": "P1-NEW01-HOMOLOGACAO-PERSISTENCE-FIX-01",
+  "data": "2026-06-20",
+  "commit": "67c2d28",
+  "revisao_gemini": "PENDENTE",
+
+  "arquivos_alterados": [
+    {
+      "arquivo": "backend/src/models/ProjetoFV.js",
+      "mudanca": "schema aditivo em homologacao: checklist (Mixed) + art_numero (String) + data_aprovacao (Date)"
+    },
+    {
+      "arquivo": "backend/src/controllers/homologacaoController.js",
+      "mudancas": [
+        "REMOVIDO const homologacoesDB = new Map() (0 referências restantes)",
+        "obterChecklist (GET): lê projeto.homologacao.checklist do Mongo; template só se nunca salvo (origem: persistido|template)",
+        "atualizarChecklist (PATCH): grava projeto.homologacao.checklist via projeto.save()",
+        "atualizarStatusHomologacao (PATCH /status legado): migrado para Mongo (status/data_envio/data_aprovacao/art_numero)",
+        "obterStatusHomologacao (GET /status legado): lê do Mongo"
+      ]
+    }
+  ],
+
+  "fase1_endpoints": {
+    "usavam_map_agora_mongo": ["PATCH /checklist", "GET /checklist", "PATCH /status (legado)", "GET /status (legado)"],
+    "ja_eram_mongo": ["PATCH /assistida/status", "PATCH /protocolo", "GET /assistida/checklist|validacao|pacote (gerados)"],
+    "legados_sem_uso_na_ui": ["GET /status", "PATCH /status"],
+    "usados_pela_ui": ["GET/PATCH /checklist (ChecklistDocumentos)", "PATCH /protocolo (CentralHistorico)", "status_homologacao via GET projeto (CentralDados)"]
+  },
+
+  "schema_novo": "minimo (1 Mixed + 2 campos pequenos) — reuso do subdoc homologacao",
+  "migracao_massiva": false,
+  "nao_alterado": ["status_homologacao", "historico_status", "numero_protocolo", "protocolo_historico", "Governanca", "Snapshot", "EV", "BESS", "OCR", "Datasheet"]
+}
