@@ -1,9 +1,19 @@
 import { useState, useRef } from 'react'
-import { X, Upload, CheckCircle, AlertCircle, Loader, FileText, Zap } from 'lucide-react'
+import { X, Upload, CheckCircle, AlertCircle, Loader, FileText, Zap, PenLine, ChevronDown, ChevronUp } from 'lucide-react'
 import Button from '../ui/Button'
 import Card from '../ui/Card'
 
 const API_URL = '' /* URL relativa forçada — Vercel proxy → Railway */
+
+// P1-EV-CADASTRO-SIMPLIFICADO-01 — opções do cadastro mínimo
+const TENSOES = [127, 220, 380]
+const FASES = [{ id: 1, label: 'Monofásico' }, { id: 2, label: 'Bifásico' }, { id: 3, label: 'Trifásico' }]
+const PLUGS = ['Tipo 1', 'Tipo 2', 'CCS2', 'GB/T', 'NACS']
+// Plug → tipo de carregamento (CCS2/GB-T = DC; demais = AC)
+function tipoCarregadorDe(plug, fases) {
+  if (plug === 'CCS2' || plug === 'GB/T') return 'DC'
+  return Number(fases) === 3 ? 'AC_Tri' : 'AC_Mono'
+}
 
 // ── Status helpers ────────────────────────────────────────────────────────────
 
@@ -37,10 +47,62 @@ function statusLabel(item) {
 
 export default function ModalNovoCarregadorEV({ arquivosIniciais = [], onClose, onSalvar }) {
   const inputRef  = useRef(null)
+  const [modo, setModo]             = useState('datasheet')   // 'datasheet' | 'manual'
   const [fila, setFila]             = useState(() => arquivosIniciais.map(criarItem))
   const [arrastando, setArrastando] = useState(false)
   const [processando, setProcessando] = useState(false)
   const [concluido, setConcluido]   = useState(false)
+
+  // ── P1-EV-CADASTRO-SIMPLIFICADO-01: cadastro manual (sem PDF) ──────────────
+  const [form, setForm] = useState({
+    marca: '', modelo: '', potencia_kw: '', tensao_entrada_v: 220, numero_fases: 3,
+    tipo_conector: 'Tipo 2', qtd_conectores: 1, ocpp: true, grau_protecao_ip: '',
+  })
+  const [avancado, setAvancado] = useState(false)
+  const [salvandoManual, setSalvandoManual] = useState(false)
+  const [erroManual, setErroManual] = useState('')
+  const setF = (k, v) => setForm(f => ({ ...f, [k]: v }))
+
+  async function salvarManual() {
+    setErroManual('')
+    if (!form.marca?.trim() || !form.modelo?.trim() || !form.potencia_kw) {
+      setErroManual('Preencha fabricante, modelo e potência.')
+      return
+    }
+    setSalvandoManual(true)
+    try {
+      const tipo = tipoCarregadorDe(form.tipo_conector, form.numero_fases)
+      const body = {
+        marca: form.marca.trim(), modelo: form.modelo.trim(),
+        potencia_kw: Number(form.potencia_kw),
+        tipo,
+        tensao_entrada_v: Number(form.tensao_entrada_v),
+        numero_fases: Number(form.numero_fases),
+        tipo_conector: form.tipo_conector,
+        qtd_conectores: Number(form.qtd_conectores) || 1,
+        ocpp: !!form.ocpp,
+        comunicacao: form.ocpp ? 'OCPP' : null,
+        ...(form.grau_protecao_ip ? { grau_protecao_ip: form.grau_protecao_ip } : {}),
+        // Dados avançados (opcionais)
+        ...(form.corrente_entrada_a ? { corrente_entrada_a: Number(form.corrente_entrada_a) } : {}),
+        ...(form.peso_kg ? { peso_kg: Number(form.peso_kg) } : {}),
+        ...(form.dimensoes_mm ? { dimensoes_mm: form.dimensoes_mm } : {}),
+        ...(form.temperatura_operacao ? { temperatura_operacao: form.temperatura_operacao } : {}),
+        ...(form.garantia_anos ? { garantia_anos: Number(form.garantia_anos) } : {}),
+        ativo: true,
+      }
+      const res = await fetch(`${API_URL}/api/carregadores-ev`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+      })
+      if (!res.ok) { const j = await res.json().catch(() => ({})); throw new Error(j.erro || `HTTP ${res.status}`) }
+      onSalvar?.()
+      onClose?.()
+    } catch (err) {
+      setErroManual(err.message || 'Erro ao salvar carregador')
+    } finally {
+      setSalvandoManual(false)
+    }
+  }
 
   function criarItem(file) {
     return { id: `${file.name}-${Date.now()}-${Math.random()}`, file, nome: file.name,
@@ -161,6 +223,74 @@ export default function ModalNovoCarregadorEV({ arquivosIniciais = [], onClose, 
 
         <div className="overflow-y-auto flex-1 p-6 space-y-5">
 
+          {/* Abas: Importar Datasheet | Preencher Manualmente */}
+          <div className="flex gap-2">
+            <Button onClick={() => setModo('datasheet')} variante={modo === 'datasheet' ? 'primario' : 'secundario'} className="flex items-center gap-2">
+              <Upload size={15} /> Importar Datasheet
+            </Button>
+            <Button onClick={() => setModo('manual')} variante={modo === 'manual' ? 'primario' : 'secundario'} className="flex items-center gap-2">
+              <PenLine size={15} /> Preencher Manualmente
+            </Button>
+          </div>
+
+          {/* ── MODO MANUAL (sem PDF) ── */}
+          {modo === 'manual' && (
+            <div className="space-y-4">
+              {erroManual && <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{erroManual}</div>}
+              <div className="grid grid-cols-2 gap-3">
+                <Campo label="Fabricante *"><input value={form.marca} onChange={e => setF('marca', e.target.value)} placeholder="Ex: WEG" className={inp} /></Campo>
+                <Campo label="Modelo *"><input value={form.modelo} onChange={e => setF('modelo', e.target.value)} placeholder="Ex: WEMOB Wall" className={inp} /></Campo>
+                <Campo label="Potência (kW) *"><input type="number" step="0.1" value={form.potencia_kw} onChange={e => setF('potencia_kw', e.target.value)} placeholder="7.4" className={inp} /></Campo>
+                <Campo label="Tensão (V)">
+                  <select value={form.tensao_entrada_v} onChange={e => setF('tensao_entrada_v', Number(e.target.value))} className={inp + ' bg-white'}>
+                    {TENSOES.map(t => <option key={t} value={t}>{t}V</option>)}
+                  </select>
+                </Campo>
+                <Campo label="Fases">
+                  <select value={form.numero_fases} onChange={e => setF('numero_fases', Number(e.target.value))} className={inp + ' bg-white'}>
+                    {FASES.map(f => <option key={f.id} value={f.id}>{f.label}</option>)}
+                  </select>
+                </Campo>
+                <Campo label="Tipo de plug">
+                  <select value={form.tipo_conector} onChange={e => setF('tipo_conector', e.target.value)} className={inp + ' bg-white'}>
+                    {PLUGS.map(p => <option key={p} value={p}>{p}</option>)}
+                  </select>
+                </Campo>
+                <Campo label="Qtd. conectores"><input type="number" min="1" value={form.qtd_conectores} onChange={e => setF('qtd_conectores', e.target.value)} className={inp} /></Campo>
+                <Campo label="IP (opcional)"><input value={form.grau_protecao_ip} onChange={e => setF('grau_protecao_ip', e.target.value)} placeholder="IP54" className={inp} /></Campo>
+                <label className="flex items-center gap-2 text-sm text-slate-700 col-span-2">
+                  <input type="checkbox" checked={form.ocpp} onChange={e => setF('ocpp', e.target.checked)} className="accent-blue-600" /> OCPP (comunicação)
+                </label>
+              </div>
+
+              {/* Dados Avançados (colapsado) */}
+              <div className="border border-slate-200 rounded-lg">
+                <button type="button" onClick={() => setAvancado(v => !v)} className="w-full flex items-center justify-between px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">
+                  Dados Avançados (opcional — não afeta dimensionamento)
+                  {avancado ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+                </button>
+                {avancado && (
+                  <div className="grid grid-cols-2 gap-3 p-3 border-t border-slate-100">
+                    <Campo label="Corrente nominal (A)"><input type="number" value={form.corrente_entrada_a || ''} onChange={e => setF('corrente_entrada_a', e.target.value)} className={inp} /></Campo>
+                    <Campo label="Peso (kg)"><input type="number" value={form.peso_kg || ''} onChange={e => setF('peso_kg', e.target.value)} className={inp} /></Campo>
+                    <Campo label="Dimensões (mm)"><input value={form.dimensoes_mm || ''} onChange={e => setF('dimensoes_mm', e.target.value)} placeholder="AxLxP" className={inp} /></Campo>
+                    <Campo label="Temperatura"><input value={form.temperatura_operacao || ''} onChange={e => setF('temperatura_operacao', e.target.value)} placeholder="-30 a 50°C" className={inp} /></Campo>
+                    <Campo label="Garantia (anos)"><input type="number" value={form.garantia_anos || ''} onChange={e => setF('garantia_anos', e.target.value)} className={inp} /></Campo>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-end">
+                <Button onClick={salvarManual} disabled={salvandoManual} className="flex items-center gap-2">
+                  <CheckCircle size={15} /> {salvandoManual ? 'Salvando…' : 'Salvar carregador'}
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* ── MODO DATASHEET ── */}
+          {modo === 'datasheet' && (<>
+
           {/* Banner aviso IA — mostra o erro real do servidor */}
           {temAvisoIA && (
             <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm text-amber-800">
@@ -222,17 +352,19 @@ export default function ModalNovoCarregadorEV({ arquivosIniciais = [], onClose, 
               {totalErros    > 0 && <p className="text-red-600">✗ {totalErros} com erro — verifique e tente novamente</p>}
             </div>
           )}
+          </>)}
         </div>
 
         {/* Footer */}
         <div className="p-6 border-t shrink-0 flex items-center justify-between gap-4">
           <p className="text-xs text-slate-400">
-            {fila.length === 0 ? 'Nenhum arquivo selecionado'
+            {modo === 'manual' ? 'Cadastro manual — sem PDF'
+              : fila.length === 0 ? 'Nenhum arquivo selecionado'
               : `${fila.length} arquivo${fila.length > 1 ? 's' : ''} na fila`}
           </p>
           <div className="flex gap-3">
             <Button onClick={onClose} variante="secundario">Fechar</Button>
-            {podeProcesar && (
+            {modo === 'datasheet' && podeProcesar && (
               <Button onClick={processarFila} className="flex items-center gap-2">
                 <Zap size={16} />
                 Processar {totalPendente} PDF{totalPendente > 1 ? 's' : ''}
@@ -242,5 +374,16 @@ export default function ModalNovoCarregadorEV({ arquivosIniciais = [], onClose, 
         </div>
       </Card>
     </div>
+  )
+}
+
+// ── Helpers do cadastro manual ──────────────────────────────────────────────
+const inp = 'w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
+function Campo({ label, children }) {
+  return (
+    <label className="block">
+      <span className="text-xs font-medium text-slate-600 block mb-1">{label}</span>
+      {children}
+    </label>
   )
 }

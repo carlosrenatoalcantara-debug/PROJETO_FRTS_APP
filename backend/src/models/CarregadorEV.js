@@ -48,8 +48,11 @@ const carregadorEVSchema = new mongoose.Schema({
   protocolo_carregamento: String,
   tipo_carregamento: String,
   tempo_carga_rapida_min: Number,
-  tipo_conector: String,
+  tipo_conector: String,   // Tipo 1 | Tipo 2 | CCS2 | GB/T | NACS
   comunicacao: String,
+  // P1-EV-CADASTRO-SIMPLIFICADO-01 (ADITIVO) — cadastro mínimo operacional
+  qtd_conectores: { type: Number, default: 1 },
+  ocpp: { type: Boolean, default: null },
 
   // PROTEÇÕES
   disjuntor_recomendado_a: Number,
