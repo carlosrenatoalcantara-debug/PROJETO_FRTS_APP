@@ -55,8 +55,16 @@ export default function E7Equipamentos() {
       .then(projeto => {
         if (projeto?.engenharia_eletrica) setEngenhariaInicial(projeto.engenharia_eletrica)
         // FASE 3: hidrata arranjos + tipo_projeto (ampliação congela o arranjo existente)
+        // P0-E7-UX-CLEANUP-01 (BUG-01): o Arranjo A primário vive em `equipamentos`;
+        // NÃO carregar o bloco 'principal' em state.arranjos (senão o GerenciadorArranjos
+        // renderiza o Arranjo A de novo E a agregação da E8 conta em dobro). Exceção:
+        // 'ampliacao' usa state.arranjos como fonte (sem primário em equipamentos).
         if (Array.isArray(projeto?.arranjos) && projeto.arranjos.length) {
-          dispatch({ type: 'SET_ARRANJOS', payload: projeto.arranjos })
+          const ehAmpliacao = projeto.tipo_projeto === 'ampliacao'
+          const arranjosSecundarios = ehAmpliacao
+            ? projeto.arranjos
+            : projeto.arranjos.filter(a => a.tipo !== 'principal' && a.rotulo !== 'Arranjo A')
+          dispatch({ type: 'SET_ARRANJOS', payload: arranjosSecundarios })
         }
         if (projeto?.tipo_projeto) {
           dispatch({ type: 'SET_TIPO_PROJETO', payload: { tipoProjeto: projeto.tipo_projeto, projetoOrigemId: projeto.projeto_origem_id ?? null } })
@@ -70,6 +78,9 @@ export default function E7Equipamentos() {
   const [painelExp,    setPainelExp]    = useState(true)
   const [inversorExp,  setInversorExp]  = useState(true)
   const [estruturaExp, setEstruturaExp] = useState(true)
+  // P0-E7-UX-CLEANUP-01 (BUG-02): card "Sugestões Técnicas" — recolhido por padrão
+  const [sugestoesAberto, setSugestoesAberto] = useState(false)
+  const ehCosern = String(dadosConsumo?.concessionaria || dadosConsumo?.distribuidora || '').toUpperCase().replace(/\s+/g, '').includes('COSERN')
 
   function selecionarPainel(painel) {
     // S8.1: snapshot do equipamento no momento da seleção (versão congelada)
@@ -234,21 +245,6 @@ export default function E7Equipamentos() {
           </div>
         )}
       </div>
-
-      {/* P1-COSERN-REFERENCE-TOPOLOGIES-01: sugestão de topologia de referência
-          (aparece se a concessionária for COSERN). Botão opcional — não aplica auto. */}
-      <SugestaoTopologiaReferencia
-        concessionaria={dadosConsumo?.concessionaria || dadosConsumo?.distribuidora}
-        onAplicar={(ref) => {
-          const t = ref?.topologia
-          const qtd = t?.num_modulos ?? t?.modulos_atendidos ?? null
-          if (qtd) {
-            dispatch({ type: 'SET_DIMENSIONAMENTO', payload: { numPaineis: qtd } })
-            dispatch({ type: 'SET_EQUIPAMENTO', payload: { tipo: 'quantidadeModulos', item: qtd } })
-          }
-          setErro(`Referência ${ref.classe} · ${ref.arquitetura} aplicada (${qtd} módulos sugeridos${t?.inversor?.modelo ? `, inversor ${t.inversor.modelo}` : ''}). Edite livremente — é apenas um ponto de partida.`)
-        }}
-      />
 
       {/* ── Arranjo A (principal) — P2-FV-MULTIARRANJO-UX-01 ────────────── */}
       <section className="border border-emerald-300 rounded-xl bg-white space-y-4 p-4">
@@ -428,6 +424,41 @@ export default function E7Equipamentos() {
 
       {/* ── Arranjos Secundários (B, C, D…) — GerenciadorArranjos ──────────── */}
       <GerenciadorArranjos />
+
+      {/* P0-E7-UX-CLEANUP-01 (BUG-02): "Sugestões Técnicas" — card recolhido,
+          só quando concessionária = COSERN, e NUNCA acima do Arranjo A. */}
+      {ehCosern && (
+        <div className="border border-slate-200 rounded-xl bg-white overflow-hidden">
+          <button
+            type="button"
+            onClick={() => setSugestoesAberto(v => !v)}
+            className="w-full flex items-center justify-between px-5 py-3 hover:bg-slate-50"
+            aria-expanded={sugestoesAberto}
+          >
+            <span className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+              <Layers size={16} className="text-indigo-500" /> Sugestões Técnicas
+              <span className="text-[10px] text-slate-400 font-normal">(opcional)</span>
+            </span>
+            {sugestoesAberto ? <ChevronUp size={16} className="text-slate-400" /> : <ChevronDown size={16} className="text-slate-400" />}
+          </button>
+          {sugestoesAberto && (
+            <div className="px-5 pb-5 border-t border-slate-100 pt-4">
+              <SugestaoTopologiaReferencia
+                concessionaria={dadosConsumo?.concessionaria || dadosConsumo?.distribuidora}
+                onAplicar={(ref) => {
+                  const t = ref?.topologia
+                  const qtd = t?.num_modulos ?? t?.modulos_atendidos ?? null
+                  if (qtd) {
+                    dispatch({ type: 'SET_DIMENSIONAMENTO', payload: { numPaineis: qtd } })
+                    dispatch({ type: 'SET_EQUIPAMENTO', payload: { tipo: 'quantidadeModulos', item: qtd } })
+                  }
+                  setErro(`Referência ${ref.classe} · ${ref.arquitetura} aplicada (${qtd} módulos sugeridos${t?.inversor?.modelo ? `, inversor ${t.inversor.modelo}` : ''}). Edite livremente — é apenas um ponto de partida.`)
+                }}
+              />
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Aviso sobre preço */}
       <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">

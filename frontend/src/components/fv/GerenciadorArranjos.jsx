@@ -239,7 +239,11 @@ export default function GerenciadorArranjos() {
 
       {arranjos.length === 0 && <p className="text-xs text-slate-400 italic">Nenhum arranjo. Clique em "Novo arranjo".</p>}
 
-      {arranjos.map((a, i) => {
+      {/* P0-E7-UX-CLEANUP-01 (BUG-01): o Arranjo A primário NÃO é renderizado aqui
+          (vive na seção principal do E7). Filtra defensivamente preservando o índice real. */}
+      {arranjos.map((a, i) => ({ a, i }))
+        .filter(({ a }) => a.tipo !== 'principal' && a.rotulo !== 'Arranjo A')
+        .map(({ a, i }) => {
         const ro = !!a.somente_leitura
         return (
           <div key={a.id || i} className={['rounded-lg border p-3 space-y-3', ro ? 'border-slate-300 bg-slate-100' : 'border-emerald-300 bg-white'].join(' ')}>
@@ -285,27 +289,6 @@ export default function GerenciadorArranjos() {
               {linhas(a, 'inversores').map((l, j) => <LinhaEquip key={j} i={i} campo="inversores" j={j} linha={l} ro={ro} />)}
               {!ro && <button type="button" onClick={() => addLinha(i, 'inversores')} className="text-xs text-emerald-700 font-medium flex items-center gap-1"><Plus size={12} /> Adicionar inversor</button>}
             </div>
-
-            {/* Topologia elétrica PRÓPRIA do arranjo (Fase 10 — isolamento) */}
-            {!ro && (a.inversores || []).length > 0 && (
-              <div className="space-y-1.5">
-                <button type="button" onClick={() => toggleDetalhe(i)}
-                  className={`text-xs font-medium px-3 py-1.5 rounded-lg border transition-colors ${
-                    detalhados[i] ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-blue-700 border-blue-300 hover:bg-blue-50'
-                  }`}>
-                  {detalhados[i] ? '▾ Topologia detalhada deste arranjo' : '▸ Topologia detalhada (entradas/strings) deste arranjo'}
-                </button>
-                {detalhados[i] && (
-                  <TopologiaMPPTEditor
-                    value={mpptsParaEditor(a.configuracao_eletrica?.mppts)}
-                    onChange={(v) => setTopologiaArranjo(i, v)}
-                    eletricoMod={specsArranjo(a).eletricoMod}
-                    eletricoInv={specsArranjo(a).eletricoInv}
-                    tmin={10}
-                  />
-                )}
-              </div>
-            )}
 
             {/* Estrutura */}
             <div className="space-y-1.5">
@@ -388,6 +371,28 @@ export default function GerenciadorArranjos() {
 
             {/* Resumo técnico em tempo real (Fase 7/11) */}
             <ResumoTecnicoArranjo arranjo={a} catalogo={catalogo} />
+
+            {/* Configuração elétrica (topologia detalhada) — POR ÚLTIMO (BUG-03 ordem) */}
+            {!ro && (a.inversores || []).length > 0 && (
+              <div className="space-y-1.5 border-t border-slate-100 pt-2">
+                <div className="flex items-center gap-1 text-xs font-semibold text-slate-600"><Zap size={12} className="text-blue-500" /> Configuração Elétrica</div>
+                <button type="button" onClick={() => toggleDetalhe(i)}
+                  className={`text-xs font-medium px-3 py-1.5 rounded-lg border transition-colors ${
+                    detalhados[i] ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-blue-700 border-blue-300 hover:bg-blue-50'
+                  }`}>
+                  {detalhados[i] ? '▾ Topologia detalhada deste arranjo' : '▸ Topologia detalhada (entradas/strings) deste arranjo'}
+                </button>
+                {detalhados[i] && (
+                  <TopologiaMPPTEditor
+                    value={mpptsParaEditor(a.configuracao_eletrica?.mppts)}
+                    onChange={(v) => setTopologiaArranjo(i, v)}
+                    eletricoMod={specsArranjo(a).eletricoMod}
+                    eletricoInv={specsArranjo(a).eletricoInv}
+                    tmin={10}
+                  />
+                )}
+              </div>
+            )}
           </div>
         )
       })}
