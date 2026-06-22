@@ -1,0 +1,27 @@
+{
+  "sprint": "P0-E7-UX-CLEANUP-01",
+  "data": "2026-06-20",
+  "commit": "8b125f8",
+  "revisao_gemini": "PENDENTE",
+
+  "arquivos_alterados": [
+    {
+      "arquivo": "frontend/src/components/fv/etapas/E7Equipamentos.jsx",
+      "mudancas": [
+        "BUG-01: hidratação filtra arranjos 'principal'/'Arranjo A' (exceto ampliacao) antes do SET_ARRANJOS",
+        "BUG-02: painel COSERN removido do topo; recolocado em card recolhido 'Sugestões Técnicas' abaixo do GerenciadorArranjos, gated por ehCosern; estado sugestoesAberto (default false)"
+      ]
+    },
+    {
+      "arquivo": "frontend/src/components/fv/GerenciadorArranjos.jsx",
+      "mudancas": [
+        "BUG-01: render pula bloco 'principal'/'Arranjo A' preservando índice real (map→filter→map)",
+        "BUG-03: bloco 'Configuração Elétrica' (topologia detalhada) movido para o FIM do card, após o Resumo Técnico"
+      ]
+    }
+  ],
+
+  "backend_alterado": false,
+  "persistencia_alterada": false,
+  "nao_alterado": ["Governanca", "Homologacao", "Snapshot", "EV", "BESS", "OCR", "Datasheet", "schema"]
+}

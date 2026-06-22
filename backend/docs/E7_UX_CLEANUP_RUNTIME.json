@@ -1,0 +1,28 @@
+{
+  "sprint": "P0-E7-UX-CLEANUP-01",
+  "data": "2026-06-20",
+  "commit": "8b125f8",
+  "revisao_gemini": "PENDENTE",
+
+  "evidencia": { "validado_em_codigo": true, "validado_em_runtime": "lógica (dedup/agregação)", "ui_navegador_exercida": false, "build": "OK" },
+
+  "bug01_dedup": {
+    "cenario": "projeto reaberto: project.arranjos=[A(principal), B]; equipamentos=A",
+    "sem_fix": { "modulos": 534, "inversores": 3, "kwp": 237.63, "obs": "Arranjo A contado em dobro + renderizado 2x" },
+    "com_fix": { "modulos": 354, "inversores": 2, "kwp": 157.53, "gerenciador_renderiza": ["Arranjo B"] },
+    "double_count_eliminado": true,
+    "avelino_correto": true
+  },
+
+  "bug02_cosern": {
+    "antes": "painel no topo do E7 (acima do Arranjo A), permanente",
+    "depois": "card recolhido 'Sugestões Técnicas', abaixo do GerenciadorArranjos, só quando concessionária=COSERN, nunca acima do Arranjo A",
+    "default": "recolhido"
+  },
+
+  "bug03_ordem": {
+    "gerenciador_secundarios": "Módulo → Arquitetura → Inversor → Estrutura → Fornecedor → Orçamento → (Orientação) → Resumo Técnico → Configuração Elétrica",
+    "config_eletrica_por_ultimo": true,
+    "componente_fora_da_ordem": "Arranjo A primário (E7 usa SeletorPaineis/Inversores + ConfiguradorArranjoFV, sem blocos explícitos de arquitetura/fornecedor/orçamento); Orientação é campo informativo extra"
+  }
+}
