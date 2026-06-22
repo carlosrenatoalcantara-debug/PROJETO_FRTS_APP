@@ -22,6 +22,7 @@ import SeletorEstrutura from '../SeletorEstrutura'
 import ConfiguradorArranjoFV from '../ConfiguradorArranjoFV'
 import GerenciadorArranjos from '../GerenciadorArranjos'
 import ResumoTecnicoArranjo from '../ResumoTecnicoArranjo'
+import SugestaoTopologiaReferencia from '../SugestaoTopologiaReferencia'
 import { salvarArranjos } from '../../../services/projetoFVApi'
 import { consolidarPanos, dimensoesModulo } from '../../../utils/geoEngine'
 import { snapshotEquipamentoSelecao } from '../../../utils/catalogoEngenhariaAdapter'
@@ -233,6 +234,21 @@ export default function E7Equipamentos() {
           </div>
         )}
       </div>
+
+      {/* P1-COSERN-REFERENCE-TOPOLOGIES-01: sugestão de topologia de referência
+          (aparece se a concessionária for COSERN). Botão opcional — não aplica auto. */}
+      <SugestaoTopologiaReferencia
+        concessionaria={dadosConsumo?.concessionaria || dadosConsumo?.distribuidora}
+        onAplicar={(ref) => {
+          const t = ref?.topologia
+          const qtd = t?.num_modulos ?? t?.modulos_atendidos ?? null
+          if (qtd) {
+            dispatch({ type: 'SET_DIMENSIONAMENTO', payload: { numPaineis: qtd } })
+            dispatch({ type: 'SET_EQUIPAMENTO', payload: { tipo: 'quantidadeModulos', item: qtd } })
+          }
+          setErro(`Referência ${ref.classe} · ${ref.arquitetura} aplicada (${qtd} módulos sugeridos${t?.inversor?.modelo ? `, inversor ${t.inversor.modelo}` : ''}). Edite livremente — é apenas um ponto de partida.`)
+        }}
+      />
 
       {/* ── Arranjo A (principal) — P2-FV-MULTIARRANJO-UX-01 ────────────── */}
       <section className="border border-emerald-300 rounded-xl bg-white space-y-4 p-4">

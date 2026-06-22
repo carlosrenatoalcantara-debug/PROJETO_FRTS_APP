@@ -102,6 +102,7 @@ import rotasDecisao      from './routes/decisao.js'
 import rotasAdmin        from './routes/admin.js'
 import rotasUnifilar     from './routes/unifilar.js'
 import rotasIrradiancia  from './routes/irradiancia.js'
+import rotasReferencia   from './routes/referencia.js'   // P1-COSERN-REFERENCE-TOPOLOGIES-01
 import rotasHomologacao  from './routes/homologacao.js'
 import rotasProposta     from './routes/proposta.js'
 // import rotasFatura       from './routes/fatura.js'
@@ -249,6 +250,7 @@ app.use('/api/decisao',      rotasDecisao)
 app.use('/api/admin',        rotasAdmin)
 app.use('/api/unifilar',     rotasUnifilar)
 app.use('/api/irradiancia',  rotasIrradiancia)
+app.use('/api/referencia',   rotasReferencia)   // biblioteca de topologias de referência
 app.use('/api/projetos-fv/:projetoId/homologacao', rotasHomologacao)
 app.use('/api/projetos-fv/:projetoId/proposta', rotasProposta)
 app.use('/api/projetos-fv/:id/beneficiarias', rotasBeneficiarias)
