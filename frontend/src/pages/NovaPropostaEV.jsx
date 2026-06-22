@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { MapPin, Zap, Wrench, FileText, Download, Plus, X, Edit2 } from 'lucide-react'
+import { MapPin, Zap, Wrench, FileText, Download, Plus, X, Edit2, DollarSign } from 'lucide-react'
+import OrcamentoEV from '../components/ev/OrcamentoEV'
 import Card, { CardHeader, CardBody } from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import Input from '../components/ui/Input'
@@ -20,7 +21,8 @@ const ETAPAS = [
   { num: 1, rotulo: 'Localização', icone: MapPin },
   { num: 2, rotulo: 'Carregadores', icone: Zap },
   { num: 3, rotulo: 'Cálculos NBR', icone: Wrench },
-  { num: 4, rotulo: 'Unifilar', icone: FileText },
+  { num: 4, rotulo: 'Orçamento', icone: DollarSign },   // P0-EV-ORCAMENTO-MATERIAIS-01
+  { num: 5, rotulo: 'Unifilar', icone: FileText },
 ]
 
 export default function NovaPropostaEV() {
@@ -40,6 +42,9 @@ export default function NovaPropostaEV() {
   const [rtCarregando, setRtCarregando] = useState(true)  // EV-ALIGN-01
   const [modoEdicao, setModoEdicao] = useState(false)
   const [diagramaEditado, setDiagramaEditado] = useState(null)
+  // P0-EV-ORCAMENTO-MATERIAIS-01: estado do orçamento + gate do unifilar
+  const [orcamentoEV, setOrcamentoEV] = useState(null)
+  const [permitirUnifilarAntesAprovacao, setPermitirUnifilarAntesAprovacao] = useState(false)
   // P0-03: id de rascunho único POR SESSÃO do wizard (o projeto ainda não tem
   // _id). Antes a chave do diagrama era derivada do NOME → projetos de mesmo
   // nome compartilhavam o mesmo unifilar. Agora cada sessão tem chave única.
@@ -363,13 +368,23 @@ export default function NovaPropostaEV() {
       potencia_total_kw: potencia_total,
       comprimento_cabo_m: dados.comprimento_cabo_m,
       calculos_nbr: calculos,
+      // P0-EV-ORCAMENTO-MATERIAIS-01: orçamento + financeiro derivado (ProjetoEV strict:false)
+      orcamento: orcamentoEV || null,
+      financeiro: orcamentoEV?.resumo ? {
+        custo_equipamentos_r: orcamentoEV.resumo.subtotal_equipamentos,
+        custo_materiais_r:    orcamentoEV.resumo.subtotal_materiais,
+        custo_instalacao_r:   orcamentoEV.resumo.subtotal_servicos,
+        margem_pct:           orcamentoEV.resumo.margem_pct,
+        desconto_pct:         orcamentoEV.resumo.desconto_pct,
+        custo_total_r:        orcamentoEV.resumo.preco_final,
+      } : undefined,
       tecnico: {
         nome: dados.tecnico_nome,
         crea: dados.tecnico_crea,
         cft: dados.tecnico_cft,
         tipo_profissional: dados.tecnico_tipo,
       },
-      status: 'dimensionado',
+      status: orcamentoEV?.status === 'aprovado' ? 'aprovado' : 'dimensionado',
     }
 
     try {
@@ -765,8 +780,29 @@ export default function NovaPropostaEV() {
         </Card>
       )}
 
-      {/* ETAPA 4: GERAR UNIFILAR */}
+      {/* ETAPA 4: ORÇAMENTO — P0-EV-ORCAMENTO-MATERIAIS-01 */}
       {etapa === 4 && (
+        <Card>
+          <CardHeader><h2 className="text-lg font-semibold">Orçamento</h2></CardHeader>
+          <CardBody className="space-y-4">
+            <OrcamentoEV
+              bomInicial={calculos?.materiais || []}
+              carregadores={carregadores}
+              permitirUnifilarAntesAprovacao={permitirUnifilarAntesAprovacao}
+              onTogglePermitirUnifilar={setPermitirUnifilarAntesAprovacao}
+              onChange={setOrcamentoEV}
+              onAprovar={() => { /* status aprovado fica no próprio componente; persistência no save */ }}
+              onGerarUnifilar={() => { if (!unifilar) calcularNBR(); setEtapa(5) }}
+            />
+            <div className="flex justify-between gap-2">
+              <Button variante="secundario" onClick={etapaAnterior}>← Anterior</Button>
+            </div>
+          </CardBody>
+        </Card>
+      )}
+
+      {/* ETAPA 5: GERAR UNIFILAR */}
+      {etapa === 5 && (
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
