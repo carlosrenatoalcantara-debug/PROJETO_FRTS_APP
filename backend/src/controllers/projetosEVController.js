@@ -186,6 +186,9 @@ export const criarProjetoEV = async (req, res) => {
       ...(req.body.modo_operacao && { modo_operacao: req.body.modo_operacao }),
       ...(req.body.fases && { fases: req.body.fases }),
       ...(req.body.tensao_sistema && { tensao_sistema: req.body.tensao_sistema }),
+      // P0-EV-ORCAMENTO-MATERIAIS-01: persiste o orçamento comercial + financeiro
+      ...(req.body.orcamento && { orcamento: req.body.orcamento }),
+      ...(req.body.financeiro && { financeiro: req.body.financeiro }),
     }
 
     const novo = new ProjetoEV(novoProjetoData)
