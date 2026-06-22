@@ -1,0 +1,32 @@
+{
+  "sprint": "P0-EV-ORCAMENTO-MATERIAIS-01",
+  "data": "2026-06-20",
+  "resultado": "APROVADO",
+  "revisao_gemini": "PENDENTE",
+
+  "evidencia": { "validado_em_codigo": true, "validado_em_runtime": true, "ui_navegador_exercida": false, "build": "OK", "motor_unit_test": "3/3 cenarios" },
+
+  "fluxo_fechado": "Carregador → Dimensionamento → Materiais (editável) → Orçamento → Aprovação → Unifilar (gated)",
+
+  "respostas": {
+    "1_reutilizado_fv": "padrão E8/CentroFinanceiroFV + workflow; motor único compartilhado",
+    "2_criado_novo": "calcularOrcamento + OrcamentoEV + etapa 4 + whitelist EV",
+    "3_lista_editavel": true,
+    "4_orcamento": true,
+    "5_workflow": true,
+    "6_aprovacao": true,
+    "7_unifilar_integrado": true,
+    "8_runtime": true,
+    "9_regressoes": "nenhuma",
+    "10_pronto_comercial": true
+  },
+
+  "fase7_aprovacao_existente": "Não havia aprovação comercial no EV (FV tem governança/freeze). Implementado o mínimo: workflow de status + botão Aprovar (persistido).",
+  "fase8_unifilar_gate": "default: exige aprovação; checkbox 'permitir gerar antes da aprovação' (default NO)",
+
+  "criterio_aceitacao": {
+    "selecionar_dimensionar_editar_orcar_aprovar_unifilar_sem_planilha": true
+  },
+
+  "ressalvas": ["UI não exercida em navegador (motor + persistência runtime-provados)", "PDF do orçamento não incluído nesta sprint", "FV E8 ainda usa cálculo inline — convergência ao motor único é follow-up"]
+}

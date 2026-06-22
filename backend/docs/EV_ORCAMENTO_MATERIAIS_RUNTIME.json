@@ -1,0 +1,38 @@
+{
+  "sprint": "P0-EV-ORCAMENTO-MATERIAIS-01",
+  "data": "2026-06-20",
+  "ambiente": "Railway + MongoDB Atlas (produção)",
+  "commits": ["509b5f5", "6d5d1ba"],
+  "revisao_gemini": "PENDENTE",
+
+  "evidencia": { "validado_em_codigo": true, "validado_em_runtime": true, "ui_navegador_exercida": false },
+
+  "fase9_motor_orcamento_3_cenarios": [
+    { "cenario": "A — Wallbox 7,4 kW", "equipamentos": 4500, "materiais": 2225, "servicos": 1800, "custo": 8525, "margem_20pct": 1705, "desconto_5pct": 511.5, "preco_final": 9718.5 },
+    { "cenario": "B — Wallbox 22 kW", "equipamentos": 12000, "materiais": 3075, "servicos": 1800, "custo": 16875, "margem_20pct": 3375, "desconto_5pct": 1012.5, "preco_final": 19237.5 },
+    { "cenario": "C — 2×22 kW", "equipamentos": 24000, "materiais": 3075, "servicos": 1800, "custo": 28875, "margem_20pct": 5775, "desconto_5pct": 1732.5, "preco_final": 32917.5 }
+  ],
+
+  "fase9_persistencia_projetoEV": {
+    "metodo": "POST /api/projetos-ev com orcamento+financeiro + GET",
+    "status": "aprovado",
+    "orcamento_status": "aprovado",
+    "preco_final": 16245,
+    "materiais_persistidos": 1,
+    "servicos_persistidos": 1,
+    "financeiro_custo_total_r": 16245,
+    "persistiu_orcamento_aprovado": true
+  },
+
+  "fase10_validacao_comercial": {
+    "1_selecionar_carregador": "OK (etapa 2)",
+    "2_ajustar_materiais": "OK (tabela editável — add/remove/qtd/preço)",
+    "3_ajustar_servicos": "OK (mão de obra/deslocamento/comissionamento/outros)",
+    "4_gerar_preco_final": "OK (margem+desconto → preço final)",
+    "5_aprovar": "OK (botão Aprovar → status aprovado, persiste)",
+    "6_emitir_unifilar": "OK (etapa 5, liberada após aprovação)",
+    "sem_planilha_externa": true
+  },
+
+  "nao_testado": ["fluxo EV completo no navegador (clicar pelas 5 etapas + unifilar visual)", "PDF do orçamento"]
+}

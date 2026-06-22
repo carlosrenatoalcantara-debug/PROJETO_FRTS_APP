@@ -1,0 +1,36 @@
+{
+  "sprint": "P0-EV-ORCAMENTO-MATERIAIS-01",
+  "data": "2026-06-20",
+  "commits": ["509b5f5", "6d5d1ba"],
+  "revisao_gemini": "PENDENTE",
+
+  "auditoria_e8_fv": {
+    "pode_ser_reutilizado": "o PADRÃO (preço unitário editável, subtotais, margem/desconto via CentroFinanceiroFV; conceito de workflow comercial)",
+    "pode_ser_compartilhado": "a matemática de orçamento — extraída num motor único (calcularOrcamento) que o FV deve adotar",
+    "nao_deve_ser_duplicado": "o cálculo de margem/desconto/preço final (agora 1 só motor); a UI do E8 (FV-specific, não reusada)"
+  },
+
+  "arquivos_novos": [
+    { "arquivo": "frontend/src/utils/calcularOrcamento.js", "conteudo": "motor ÚNICO de orçamento (pure) + STATUS_ORCAMENTO (workflow)" },
+    { "arquivo": "frontend/src/components/ev/OrcamentoEV.jsx", "conteudo": "materiais editáveis + serviços + resumo financeiro + workflow + aprovação + gate unifilar" }
+  ],
+  "arquivos_alterados": [
+    { "arquivo": "frontend/src/pages/NovaPropostaEV.jsx", "mudanca": "nova etapa 4 (Orçamento); Unifilar → etapa 5 (gated); persiste orcamento+financeiro no save" },
+    { "arquivo": "backend/src/controllers/projetosEVController.js", "mudanca": "whitelist do POST inclui orcamento + financeiro" }
+  ],
+
+  "respostas_obrigatorias": {
+    "1_reutilizado_do_fv": "padrão de orçamento (preço editável/subtotais/margem/desconto) + conceito de workflow; motor compartilhado criado para convergência futura do FV",
+    "2_criado_novo": "calcularOrcamento (motor único), OrcamentoEV (UI), etapa 4, whitelist EV",
+    "3_lista_editavel": true,
+    "4_orcamento_funcionando": true,
+    "5_workflow_funcionando": true,
+    "6_aprovacao_funcionando": true,
+    "7_unifilar_integrado": "SIM (etapa 5, gated; default exige aprovação)",
+    "8_runtime_executado": true,
+    "9_regressoes": "nenhuma (FV intocado; ProjetoEV strict:false; fluxo EV agora 5 etapas)",
+    "10_ev_pronto_comercial": true
+  },
+
+  "nao_alterado": ["FV (E8/CentroFinanceiroFV)", "Governanca", "Snapshot", "Homologacao", "BESS", "OCR", "Datasheet"]
+}
