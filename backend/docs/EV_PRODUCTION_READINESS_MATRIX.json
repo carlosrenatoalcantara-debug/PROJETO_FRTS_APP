@@ -1,0 +1,36 @@
+{
+  "sprint": "P1-EV-PRODUCTION-READINESS-01",
+  "data": "2026-06-20",
+  "resultado": "PRONTO_PARA_USO_COMERCIAL_COM_RESSALVA",
+  "revisao_gemini": "PENDENTE",
+
+  "matriz": [
+    { "fase": 1, "area": "Cadastro (ciclo de vida)", "status": "PASS", "nota": "salvar/reabrir/editar/duplicar/excluir — runtime" },
+    { "fase": 2, "area": "Catálogo", "status": "PASS", "nota": "60 (49 AC/11 DC), 0 inconsistentes, filtros tipo/potência OK" },
+    { "fase": 3, "area": "Dimensionamento", "status": "PASS", "nota": "7,4/11/22/60DC — corrente/cabo/disjuntor/DR/DPS coerentes" },
+    { "fase": 4, "area": "Materiais editáveis", "status": "PASS", "nota": "persistem em orcamento.materiais (runtime); edição na UI validada por código" },
+    { "fase": 5, "area": "Orçamento", "status": "PASS", "nota": "equip/mat/serv/margem/desconto/preço final persistem e reabrem" },
+    { "fase": 6, "area": "Workflow comercial", "status": "PASS", "nota": "status (aprovado) persiste após reabertura" },
+    { "fase": 7, "area": "Unifilar", "status": "PARCIAL", "nota": "base regenera (acessível); diagrama EDITADO não persiste (EV-RDY-01)" },
+    { "fase": 8, "area": "Integração completa", "status": "PASS_COM_RESSALVA", "nota": "nada perde EXCETO edições do unifilar" },
+    { "fase": 9, "area": "Banco (ProjetoEV)", "status": "PASS_COM_RESSALVA", "nota": "orcamento/financeiro/workflow/materiais persistem; diagrama_editado fica null (whitelist)" }
+  ],
+
+  "respostas_obrigatorias": {
+    "1_testes_executados": 21,
+    "2_passaram": 20,
+    "3_falharam": 1,
+    "4_bugs_p0": false,
+    "5_bugs_p1": "1 (EV-RDY-01: unifilar editado não persiste)",
+    "6_bugs_p2": false,
+    "7_apenas_melhorias": false,
+    "8_runtime_executado": true,
+    "9_deploy_aprovado": "SIM com ressalva (EV-RDY-01 não bloqueia)",
+    "10_ev_pronto_comercial": "SIM com 1 ressalva P1"
+  },
+
+  "criterio_aceitacao": {
+    "fluxo_completo_sem_perda": "ATENDIDO para o fluxo comercial-crítico (orçamento/aprovação/materiais/workflow/dimensionamento); ressalva: edições manuais do unifilar não persistem (base regenera)",
+    "sem_erros": true
+  }
+}

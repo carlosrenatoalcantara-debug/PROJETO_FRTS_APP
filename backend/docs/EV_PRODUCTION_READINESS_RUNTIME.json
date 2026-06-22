@@ -1,0 +1,37 @@
+{
+  "sprint": "P1-EV-PRODUCTION-READINESS-01",
+  "data": "2026-06-20",
+  "ambiente": "Railway + MongoDB Atlas (produção)",
+  "revisao_gemini": "PENDENTE",
+  "tipo": "auditoria read-only",
+
+  "evidencia": { "validado_em_codigo": true, "validado_em_runtime": true, "ui_navegador_exercida": false },
+
+  "fase1_cadastro": { "salvar": "PASS", "reabrir": "PASS", "editar": "PASS", "duplicar": "PASS", "excluir": "PASS" },
+
+  "fase2_catalogo": { "total": 60, "AC": 49, "DC": 11, "com_ocpp": 55, "inconsistentes": 0, "filtro_tipo_DC": 11, "filtro_potencia_22": 8 },
+
+  "fase3_dimensionamento": [
+    { "caso": "7,4 kW 220V mono", "I": 35.4, "Imax": 44.3, "cabo_mm2": 10, "disjuntor_a": 50, "dr_ma": 300, "dps_v": 275 },
+    { "caso": "11 kW 380V tri", "I": 17.6, "Imax": 22.0, "cabo_mm2": 4, "disjuntor_a": 25, "dr_ma": 30, "dps_v": 420 },
+    { "caso": "22 kW 380V tri", "I": 35.2, "Imax": 44.0, "cabo_mm2": 10, "disjuntor_a": 50, "dr_ma": 300, "dps_v": 420 },
+    { "caso": "60 kW DC 380V", "I": 96.0, "Imax": 119.9, "cabo_mm2": 50, "disjuntor_a": 125, "dr_ma": 300, "dps_v": 420 }
+  ],
+
+  "fase5_8_9_projeto_completo_save_reabrir": {
+    "cadastro_carregadores": "PASS",
+    "dimensionamento_calculos_nbr": "PASS (disjuntor 50A, cabo 10mm² persistem)",
+    "materiais_editaveis_persistem": "PASS (2 materiais)",
+    "servicos": "PASS",
+    "orcamento_preco_final": "PASS (16381.8)",
+    "margem_desconto": "PASS (20% / 5% — re-testado; FAIL inicial foi artefato do body de teste)",
+    "workflow_status": "PASS (aprovado)",
+    "financeiro": "PASS (custo_total_r)",
+    "unifilar_base_regenera": "PASS (de calculos_nbr)",
+    "unifilar_editado_diagrama_editado": "FAIL — diagrama_editado dropado pelo whitelist do POST"
+  },
+
+  "resumo_testes": { "executados": 21, "passaram": 20, "falharam": 1 },
+
+  "nao_testado": ["modal/OrcamentoEV no navegador (add/remove materiais, gerar/baixar unifilar visual)", "fluxo fim-a-fim clicado na UI"]
+}

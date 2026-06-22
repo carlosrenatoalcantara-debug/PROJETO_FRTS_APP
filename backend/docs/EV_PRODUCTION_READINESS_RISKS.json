@@ -1,0 +1,29 @@
+{
+  "sprint": "P1-EV-PRODUCTION-READINESS-01",
+  "data": "2026-06-20",
+  "revisao_gemini": "PENDENTE",
+
+  "classificacao": {
+    "P0": [],
+    "P1": [
+      {
+        "id": "EV-RDY-01",
+        "titulo": "Unifilar editado não persiste (diagrama_editado dropado pelo whitelist do POST)",
+        "evidencia": "POST /api/projetos-ev: criarProjetoEV faz whitelist e NÃO inclui diagrama_editado → nodes/edges/timestamp ficam null. Não há rota /diagrama. O unifilar BASE regenera de calculos_nbr (acessível), mas EDIÇÕES manuais do diagrama se perdem ao reabrir/trocar navegador/restart.",
+        "impacto": "Edições manuais do unifilar perdidas. O unifilar automático continua acessível — não bloqueia a operação.",
+        "correcao_recomendada": "Adicionar diagrama_editado ao whitelist do criarProjetoEV (1 linha), espelhando o padrão de orcamento/financeiro. Opcional: rota PUT /diagrama.",
+        "bloqueia_comercial": false
+      }
+    ],
+    "P2": [],
+    "melhorias": [
+      { "id": "EV-IMP-01", "titulo": "PDF do orçamento EV", "desc": "Gerar PDF da proposta EV (reuso de gerarPdfOrcamento do FV)" },
+      { "id": "EV-IMP-02", "titulo": "Convergência do motor de orçamento FV→calcularOrcamento", "desc": "FV (E8) ainda calcula inline; migrar para o motor único" },
+      { "id": "EV-IMP-03", "titulo": "DR configurável", "desc": "DR fixo 300mA para >40A; permitir 30mA conforme caso" }
+    ]
+  },
+
+  "nao_misturar": "EV-RDY-01 é BUG (P1). EV-IMP-* são MELHORIAS (não bugs).",
+
+  "veredito": "PRONTO PARA USO COMERCIAL COM 1 RESSALVA (P1 EV-RDY-01). O fluxo comercial-crítico (cadastro→dimensionamento→materiais→orçamento→aprovação→unifilar→reabrir) NÃO perde dados; apenas edições manuais do unifilar não persistem (unifilar base regenera)."
+}
