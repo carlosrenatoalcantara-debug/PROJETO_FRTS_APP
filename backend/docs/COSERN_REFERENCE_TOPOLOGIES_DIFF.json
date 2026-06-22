@@ -1,0 +1,24 @@
+{
+  "sprint": "P1-COSERN-REFERENCE-TOPOLOGIES-01",
+  "data": "2026-06-20",
+  "commit": "1c4515a",
+  "revisao_gemini": "PENDENTE",
+  "tipo": "aditivo (novos arquivos + 2 linhas de mount)",
+
+  "arquivos_novos": [
+    { "arquivo": "backend/src/data/cosernTopologiasReferencia.js", "conteudo": "6 classes (M2/M3/T5/T6/T7/T8) + 18 topologias (string/micro/otimizador) + limites de classe (referência)" },
+    { "arquivo": "backend/src/services/referenciaTopologiaService.js", "conteudo": "sugerirTopologia() + listarReferencias() — motor puro" },
+    { "arquivo": "backend/src/routes/referencia.js", "conteudo": "GET /api/referencia/topologia + /api/referencia/classes (read-only, sem auth)" },
+    { "arquivo": "frontend/src/components/fv/SugestaoTopologiaReferencia.jsx", "conteudo": "painel de sugestão + botão 'Aplicar configuração técnica de referência' (opcional)" }
+  ],
+  "arquivos_alterados": [
+    { "arquivo": "backend/src/server.js", "mudanca": "import + app.use('/api/referencia', rotasReferencia)" },
+    { "arquivo": "frontend/src/components/fv/etapas/E7Equipamentos.jsx", "mudanca": "render SugestaoTopologiaReferencia (gated COSERN) + handler onAplicar (pré-preenche qtd módulos)" }
+  ],
+
+  "ancoragem_inversores_reais": ["Kehua SPI6000-B2", "Growatt MIN 8000TL-X", "SolaX X3-ULT-25K", "Huawei SUN2000-40KTL-M3", "Huawei SUN2000-50KTL-M0", "Huawei SUN2000-60KTL-M0", "TSUN TSOL-MP2250", "SolarEdge SE/P series"],
+  "criterios_tecnicos": "Voc_estimado < tensao_max_entrada; Isc por MPPT <= corrente_max; oversizing 0.94-1.19x; 1 string/MPPT p/ Huawei (Imppt 22A)",
+
+  "nao_alterado": ["Governanca", "Homologacao", "Snapshot", "EV", "BESS", "OCR", "Datasheet", "Persistencia de projeto"],
+  "honestidade_limites": "Limites de classe COSERN são REFERÊNCIA (padrões BT comuns), não a NT COSERN verbatim — sinalizado no dado e na UI"
+}

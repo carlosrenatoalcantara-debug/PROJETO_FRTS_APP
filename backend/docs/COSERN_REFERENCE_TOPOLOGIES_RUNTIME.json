@@ -1,0 +1,34 @@
+{
+  "sprint": "P1-COSERN-REFERENCE-TOPOLOGIES-01",
+  "data": "2026-06-20",
+  "ambiente": "Railway + MongoDB Atlas (produção)",
+  "revisao_gemini": "PENDENTE",
+  "endpoint": "GET /api/referencia/topologia?concessionaria=COSERN&classe=<C>&arquitetura=<A>",
+
+  "engine_unit": { "topologias_ok": 18, "problemas": 0, "coerencia_voc_oversizing": "OK (Voc<Vmax; over 0.94-1.19)" },
+
+  "runtime_fase12": {
+    "T5": {
+      "string": { "modulos": 50, "ca_kw": 25, "oversizing": 1.10, "inversor": "SolaX X3-ULT-25K", "mppt": 3, "strings": 5, "modulos_por_string": 10, "voc_v": 520 },
+      "micro": { "modulos": 50, "micros": 13, "modelo": "TSUN TSOL-MP2250", "ca_kw": 29.25 },
+      "otimizador": { "modulos": 50, "otim": "SolarEdge P850", "qtd": 25, "inversor_compativel": "SolarEdge SE25K" }
+    },
+    "T7": {
+      "string": { "modulos": 108, "ca_kw": 50, "oversizing": 1.19, "inversor": "Huawei SUN2000-50KTL-M0", "mppt": 6, "strings": 6, "modulos_por_string": 18, "voc_v": 936 },
+      "micro": { "modulos": 108, "micros": 27, "ca_kw": 60.75 },
+      "otimizador": { "modulos": 108, "otim": "SolarEdge P850", "qtd": 54, "inversor_compativel": "SolarEdge SE50K" }
+    },
+    "T8": {
+      "string": { "modulos": 120, "ca_kw": 60, "oversizing": 1.10, "inversor": "Huawei SUN2000-60KTL-M0", "mppt": 6, "strings": 6, "modulos_por_string": 20, "voc_v": 1040 },
+      "micro": { "modulos": 120, "micros": 30, "ca_kw": 67.5 },
+      "otimizador": { "modulos": 120, "otim": "SolarEdge P850", "qtd": 60, "inversor_compativel": "SolarEdge SE66.6K" }
+    }
+  },
+
+  "erro_tratado": { "classe_Z9": "HTTP 404 + classes_validas[M2..T8]" },
+
+  "validado_em_codigo": true,
+  "validado_em_runtime": true,
+  "ui_navegador_exercida": false,
+  "todas_classes_validadas": "M2,M3,T5,T6,T7,T8 (engine 18/18); endpoint runtime T5/T7/T8"
+}
