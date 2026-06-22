@@ -1,0 +1,83 @@
+{
+  "sprint": "P0-EV-WORKFLOW-SIMPLIFICATION-01",
+  "data": "2026-06-20",
+  "tipo": "auditoria (read-only)",
+  "revisao_gemini": "PENDENTE",
+
+  "fase1_campos_carregador": {
+    "fonte": "backend/src/models/CarregadorEV.js + ModalNovoCarregadorEV (datasheet-only)",
+    "total_campos": 30,
+    "obrigatorios": { "n": 4, "campos": ["tipo (AC_Mono/AC_Tri/DC)", "potencia_kw", "marca", "modelo"] },
+    "opcionais_dados_avancados": { "n": 14, "campos": ["frequencia_hz", "eficiencia_pct", "fator_potencia", "grau_protecao_ip", "temperatura_operacao", "peso_kg", "dimensoes_mm", "protocolo_carregamento", "tipo_carregamento", "tempo_carga_rapida_min", "comunicacao", "garantia_anos", "datasheet_url", "tensao_saida_dc_v/corrente_saida_dc_a"] },
+    "inuteis_para_projeto": { "n": 3, "campos": ["disjuntor_recomendado_a", "dr_recomendado_ma", "bitola_cabo_minima_mm2"], "motivo": "calculados pelo motor NBR 5410 — redundantes no cadastro" },
+    "podem_sair_do_fluxo_principal": 17
+  },
+
+  "fase2_cadastro_minimo": {
+    "definido": true,
+    "campos": ["Fabricante", "Modelo", "Potencia_kW", "Tensao (127/220/380)", "Fases (mono/bi/tri)", "Tipo_plug (Tipo1/Tipo2/CCS2/GBT/NACS)", "Qtd_conectores", "OCPP (sim/nao)"],
+    "gaps_no_modelo_atual": ["qtd_conectores AUSENTE", "OCPP boolean AUSENTE", "tipo_conector é String livre (sem enum de plug)", "tensao sem enum 127/220/380", "fases enum [1,3] sem Bifásico", "cadastro é DATASHEET-ONLY (sem form manual)"]
+  },
+
+  "fase3_dimensionamento": {
+    "calcula_corrente": true, "calcula_cabo": true, "calcula_disjuntor": true, "calcula_DR": true, "calcula_DPS": true,
+    "extras": ["queda_tensao 3%", "tempo_seccionamento", "validarNBR5410"],
+    "fonte": "frontend/src/services/calculosNBR5410EV.js",
+    "status": "OPERACIONAL"
+  },
+
+  "fase4_materiais": {
+    "existe_lista_automatica": true,
+    "fonte": "frontend/src/utils/bomMateriaisEV.js (gerarBOM, 11 itens)",
+    "editavel": false,
+    "adicionar_item": false,
+    "remover_item": false,
+    "alterar_quantidade": false,
+    "obs": "NovaPropostaEV exibe materiais como <ul> read-only (span, não input)"
+  },
+
+  "fase5_orcamento": {
+    "equipamentos_no_orcamento": false,
+    "materiais_no_orcamento": false,
+    "servicos_no_orcamento": false,
+    "margem_aplicada": false,
+    "status": "INEXISTENTE — fluxo tem 4 etapas (Localizacao→Carregadores→Calculos→Unifilar), sem etapa de orçamento. Campo ProjetoEV.financeiro existe mas não é preenchido."
+  },
+
+  "fase6_unifilar": {
+    "geracao_automatica": true,
+    "fonte": "frontend/src/utils/gerarUnifilarEV.js (gerarUnifilarEVSVG)",
+    "dados_utilizados": ["calculos NBR", "dados projeto", "carregadores"],
+    "depende_aprovacao_orcamento": false,
+    "operacional": true,
+    "extras": ["modo edição (InteractiveDiagram)", "download SVG", "recalcular"]
+  },
+
+  "fase8_gargalos": [
+    { "id": "EV-GAP-01", "sev": "CRITICO", "desc": "Orçamento inexistente — fluxo pula de Materiais p/ Unifilar; sem preço/custo/margem/serviços" },
+    { "id": "EV-GAP-02", "sev": "ALTO", "desc": "Cadastro de carregador é datasheet-only (sem form manual) — operador travado sem datasheet" },
+    { "id": "EV-GAP-03", "sev": "ALTO", "desc": "Materiais não editáveis (sem add/remove/alterar qtd)" },
+    { "id": "EV-GAP-04", "sev": "MEDIO", "desc": "Cadastro mínimo incompleto: falta qtd_conectores, OCPP, enums de plug/tensão, Bifásico" },
+    { "id": "EV-GAP-05", "sev": "MEDIO", "desc": "~17 campos avançados/inúteis poluem o cadastro (orientado a equipamento, não a projeto)" },
+    { "id": "EV-GAP-06", "sev": "BAIXO", "desc": "DR fixo 300mA p/ >40A (debatível em EV); tipo_conector/protocolo como String livre" }
+  ],
+
+  "respostas_obrigatorias": {
+    "1_campos_removiveis_do_fluxo_principal": 17,
+    "2_cadastro_minimo_definido": true,
+    "3_materiais_automaticos": true,
+    "4_lista_editavel": false,
+    "5_orcamento_operacional": false,
+    "6_unifilar_operacional": true,
+    "7_runtime_executado": true,
+    "8_principais_gargalos": ["Orçamento inexistente (CRÍTICO)", "Cadastro datasheet-only (ALTO)", "Materiais não editáveis (ALTO)"],
+    "9_proxima_sprint": "P0-EV-ORCAMENTO-MATERIAIS-01",
+    "10_ev_pronto_comercial": false
+  },
+
+  "honestidade": {
+    "validado_em_codigo": ["campos do modelo", "cadastro datasheet-only", "motor de dimensionamento", "BOM auto", "materiais display-only", "ausência de etapa de orçamento (4 etapas)", "unifilar auto"],
+    "validado_em_runtime": ["dimensionamento + BOM dos 3 cenários (motor + BOM reais)"],
+    "nao_testado": ["fluxo EV completo no navegador (criar/salvar/gerar unifilar visual)", "extração datasheet via Claude Vision"]
+  }
+}

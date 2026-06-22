@@ -1,0 +1,25 @@
+{
+  "sprint": "P0-EV-WORKFLOW-SIMPLIFICATION-01",
+  "data": "2026-06-20",
+  "revisao_gemini": "PENDENTE",
+  "metodo": "motor de dimensionamento (calculosNBR5410EV) replicado + BOM real (bomMateriaisEV)",
+
+  "evidencia": { "validado_em_codigo": true, "validado_em_runtime": "engine + BOM", "ui_navegador_exercida": false },
+
+  "fase7_cenarios": [
+    { "cenario": "A — 1×7,4 kW · 220V · monofásico · 20m", "corrente_a": 35.4, "corrente_max_a": 44.3, "cabo_mm2": 10, "disjuntor_a": 50, "dr_ma": 300, "dps_v": 275, "queda_pct": 0.58, "bom_itens": 11, "valido": true },
+    { "cenario": "B — 1×22 kW · 380V · trifásico · 30m", "corrente_a": 35.2, "corrente_max_a": 44.0, "cabo_mm2": 10, "disjuntor_a": 50, "dr_ma": 300, "dps_v": 420, "queda_pct": 0.50, "bom_itens": 11, "valido": true },
+    { "cenario": "C — 2×22 kW (44 kW) · 380V · trifásico · 30m", "corrente_a": 70.4, "corrente_max_a": 88.0, "cabo_mm2": 35, "disjuntor_a": 100, "dr_ma": 300, "dps_v": 420, "queda_pct": 0.28, "bom_itens": 11, "valido": true }
+  ],
+
+  "fluxo_executado": {
+    "carregador": "OK (seleção)",
+    "distancia": "OK (comprimento_cabo_m)",
+    "dimensionamento": "OK (corrente/cabo/disjuntor/DR/DPS)",
+    "materiais": "OK auto (BOM 11 itens) — porém NÃO editável",
+    "orcamento": "AUSENTE (etapa não existe)",
+    "unifilar": "OK auto (gerarUnifilarEVSVG)"
+  },
+
+  "conclusao_runtime": "Dimensionamento e materiais corretos nos 3 cenários. O fluxo quebra na etapa de ORÇAMENTO (inexistente) — não há transformação materiais→preço→margem antes do unifilar."
+}
