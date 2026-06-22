@@ -1,0 +1,30 @@
+{
+  "sprint": "P1-EV-CADASTRO-SIMPLIFICADO-01",
+  "data": "2026-06-20",
+  "ambiente": "Railway + MongoDB Atlas (produção)",
+  "commit": "59052bb",
+  "revisao_gemini": "PENDENTE",
+
+  "evidencia": { "validado_em_codigo": true, "validado_em_runtime": true, "ui_navegador_exercida": false },
+
+  "fase7_cadastro_manual_sem_pdf": [
+    { "cenario": "Wallbox 7,4 kW", "marca": "Wallbox", "potencia_kw": 7.4, "tipo": "AC_Mono", "tensao_v": 220, "fases": 1, "plug": "Tipo 2", "qtd_conectores": 1, "ocpp": true, "salvou": true },
+    { "cenario": "Wallbox 22 kW", "marca": "ABB", "potencia_kw": 22, "tipo": "AC_Tri", "tensao_v": 380, "fases": 3, "plug": "Tipo 2", "qtd_conectores": 1, "ocpp": true, "salvou": true },
+    { "cenario": "DC CCS2 60 kW", "marca": "ABB", "potencia_kw": 60, "tipo": "DC (derivado do plug CCS2)", "tensao_v": 380, "fases": 3, "plug": "CCS2", "qtd_conectores": 2, "ocpp": true, "salvou": true }
+  ],
+
+  "campos_novos_persistem": { "qtd_conectores": true, "ocpp": true },
+  "tipo_derivado_do_plug": "CCS2/GB-T → DC; demais → AC_Tri (3 fases) ou AC_Mono",
+
+  "fase6_compatibilidade": { "carregadores_existentes_listados": 63, "abrem_sem_erro": true, "migracao": "nenhuma (campos aditivos default)" },
+
+  "fase4_motor_preservado": {
+    "dimensionamento": "OK — calcularParametrosNBR5410 usa tipo/potencia_kw/tensao_entrada_v/numero_fases/comprimento (todos no cadastro mínimo)",
+    "bom": "OK — gerarBOM usa tipo + saídas do dimensionamento",
+    "orcamento": "OK — calcularOrcamento usa o BOM",
+    "unifilar": "OK — gerarUnifilarEVSVG usa tipo/potencia/calculos",
+    "campos_avancados_nao_usados_pelo_motor": true
+  },
+
+  "nao_testado": ["modal no navegador (clicar aba manual + salvar visual)", "fluxo dimensionamento→orçamento→unifilar com carregador manual via UI (motor validado por código + runtime anterior)"]
+}

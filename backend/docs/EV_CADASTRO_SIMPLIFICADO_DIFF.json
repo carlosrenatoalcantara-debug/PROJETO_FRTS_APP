@@ -1,0 +1,28 @@
+{
+  "sprint": "P1-EV-CADASTRO-SIMPLIFICADO-01",
+  "data": "2026-06-20",
+  "commit": "59052bb",
+  "revisao_gemini": "PENDENTE",
+
+  "arquivos_alterados": [
+    {
+      "arquivo": "backend/src/models/CarregadorEV.js",
+      "mudanca": "aditivo: qtd_conectores (Number), ocpp (Boolean); comentário enum no tipo_conector"
+    },
+    {
+      "arquivo": "frontend/src/components/equipamentos/ModalNovoCarregadorEV.jsx",
+      "mudanca": "nova aba 'Preencher Manualmente' (sem PDF) — cadastro mínimo (9 campos) + 'Dados Avançados' colapsado; tipo derivado do plug; POST /api/carregadores-ev"
+    }
+  ],
+
+  "fase1_classificacao_campos": {
+    "total": 28,
+    "obrigatorio_tela_principal": ["marca", "modelo", "potencia_kw", "tensao_entrada_v", "numero_fases", "tipo_conector(plug)", "qtd_conectores", "ocpp", "grau_protecao_ip(opcional)"],
+    "avancado_colapsado": ["corrente_entrada_a", "peso_kg", "dimensoes_mm", "temperatura_operacao", "garantia_anos"],
+    "obsoleto_nao_exposto_no_manual": ["frequencia_hz", "eficiencia_pct", "fator_potencia", "protocolo_carregamento", "tipo_carregamento", "tempo_carga_rapida_min", "comunicacao(derivado de OCPP)", "tensao_saida_dc_v", "corrente_saida_dc_a", "disjuntor_recomendado_a", "dr_recomendado_ma", "bitola_cabo_minima_mm2", "datasheet_url"]
+  },
+
+  "backend_endpoint_reutilizado": "POST /api/carregadores-ev (já existente — não criado novo)",
+  "migracao_dados": false,
+  "nao_alterado": ["motor de dimensionamento", "BOM", "orçamento", "unifilar", "FV", "Governança", "Snapshot"]
+}

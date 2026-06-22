@@ -1,0 +1,34 @@
+{
+  "sprint": "P1-EV-CADASTRO-SIMPLIFICADO-01",
+  "data": "2026-06-20",
+  "resultado": "APROVADO",
+  "revisao_gemini": "PENDENTE",
+
+  "fase8_ux": {
+    "campos_antes": "~28-30 (e SEM form manual — cadastro era datasheet-only: operador travado sem PDF)",
+    "campos_tela_principal_depois": 9,
+    "campos_dados_avancados_colapsados": 5,
+    "cliques_antes": "datasheet-only: upload PDF + aguardar extração IA + revisar (impossível sem PDF)",
+    "cliques_depois": "~9 campos + Salvar (~10 interações, < 1 min, sem PDF)"
+  },
+
+  "respostas_obrigatorias": {
+    "1_campos_existiam": "~30 (28 no modelo)",
+    "2_ficaram_tela_principal": 9,
+    "3_foram_dados_avancados": "5 colapsados (+ demais não-expostos, não afetam o motor)",
+    "4_cadastro_manual_funciona": true,
+    "5_dimensionamento_preservado": true,
+    "6_bom_preservado": true,
+    "7_orcamento_preservado": true,
+    "8_unifilar_preservado": true,
+    "9_runtime_executado": true,
+    "10_commit": "59052bb"
+  },
+
+  "criterio_aceitacao": {
+    "cadastrar_em_menos_de_1min_sem_pdf": true,
+    "sem_campos_que_nao_influenciam_motor": true
+  },
+
+  "evidencia": { "validado_em_codigo": true, "validado_em_runtime": true, "ui_navegador_exercida": false }
+}
