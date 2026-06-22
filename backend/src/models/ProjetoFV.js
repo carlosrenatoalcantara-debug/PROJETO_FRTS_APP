@@ -877,6 +877,14 @@ const projetoFVSchema = new mongoose.Schema({
       valor: String,
       por: String,
     }],
+    // P1-NEW01-HOMOLOGACAO-PERSISTENCE-FIX-01 (ADITIVO) — elimina o Map() legado.
+    // Checklist de documentos da homologação agora PERSISTE no Mongo (antes ficava
+    // em memória de processo, write-only). Mixed: { documentos:[{nome,concluido,...}],
+    // observacoes, status, atualizado_em }. Legado lê null → GET gera template.
+    checklist: { type: mongoose.Schema.Types.Mixed, default: null },
+    // Campos do status legado (rota /status, sem uso na UI) — migrados p/ Mongo:
+    art_numero:     { type: String, default: null },
+    data_aprovacao: { type: Date,   default: null },
   },
   observacoes: String,
 

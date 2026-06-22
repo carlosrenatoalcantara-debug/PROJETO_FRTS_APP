@@ -9,8 +9,9 @@ import { ProjetoFV } from '../models/ProjetoFV.js'
 import { Equipamento } from '../models/Equipamento.js'
 import { UnidadeBeneficiaria } from '../models/UnidadeBeneficiaria.js'
 
-// Mock database - em produção usar banco real
-const homologacoesDB = new Map()
+// P1-NEW01-HOMOLOGACAO-PERSISTENCE-FIX-01: o Map() legado foi REMOVIDO.
+// Todo o estado de homologação (checklist + status legado) agora persiste no Mongo
+// (ProjetoFV.homologacao). Nenhum estado depende mais de memória de processo.
 
 /**
  * P1-HOMOLOGACAO-SNAPSHOT-01: o projeto está congelado (engenharia travada)?
@@ -225,13 +226,25 @@ export async function obterChecklist(req, res) {
     const { projetoId } = req.params
     const { estado, concessionaria } = req.query
 
-    const checklist = gerarChecklistDocumentos(estado, concessionaria)
+    // Template determinístico (base / fallback quando nunca foi salvo)
+    const template = gerarChecklistDocumentos(estado, concessionaria)
 
-    res.json({
-      sucesso: true,
-      tipo: 'checklist_documentos',
-      checklist,
-    })
+    // P1-NEW01-HOMOLOGACAO-PERSISTENCE-FIX-01: retorna o ESTADO REAL persistido no
+    // Mongo (antes o GET gerava o template e ignorava o que foi salvo no Map).
+    let origem = 'template'
+    let checklist = template
+    if (mongoose.connection.readyState === 1 && mongoose.Types.ObjectId.isValid(projetoId)) {
+      const proj = await ProjetoFV.findById(projetoId).select('homologacao.checklist').lean().catch(() => null)
+      const salvo = proj?.homologacao?.checklist
+      if (salvo && Array.isArray(salvo.documentos) && salvo.documentos.length > 0) {
+        // Estado salvo é o que o usuário editou (gerado do mesmo template). Devolve-o,
+        // preservando 'concluido'/observações e mantendo os metadados do template.
+        checklist = { ...template, ...salvo, documentos: salvo.documentos, status: salvo.status ?? template.status }
+        origem = 'persistido'
+      }
+    }
+
+    res.json({ sucesso: true, tipo: 'checklist_documentos', checklist, origem })
   } catch (err) {
     console.error('Erro ao obter checklist:', err)
     res.status(500).json({ erro: err.message })
@@ -247,15 +260,27 @@ export async function atualizarChecklist(req, res) {
       return res.status(400).json({ erro: 'Lista de documentos obrigatória' })
     }
 
-    // Salvar em "banco" (em produção, seria no MongoDB)
-    const chave = `homologacao:${projetoId}`
-    homologacoesDB.set(chave, {
-      projetoId,
+    // P1-NEW01-HOMOLOGACAO-PERSISTENCE-FIX-01: grava DIRETO no Mongo (era write-only
+    // num Map de processo). Sobrevive a reload / troca de navegador / restart Railway.
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({ erro: 'MongoDB indisponível.', codigo: 'DB_OFFLINE' })
+    }
+    if (!mongoose.Types.ObjectId.isValid(projetoId)) {
+      return res.status(400).json({ erro: 'ID de projeto inválido' })
+    }
+    const projeto = await ProjetoFV.findById(projetoId)
+    if (!projeto) return res.status(404).json({ erro: 'Projeto não encontrado' })
+
+    const atualizado_em = new Date()
+    projeto.homologacao = projeto.homologacao || {}
+    projeto.homologacao.checklist = {
       documentos,
-      observacoes,
+      observacoes: observacoes ?? null,
       status: status || 'rascunho',
-      data_atualizacao: new Date().toISOString(),
-    })
+      atualizado_em,
+    }
+    projeto.markModified('homologacao')
+    await projeto.save()
 
     const totalDocs = documentos.length
     const docsConcluidos = documentos.filter(d => d.concluido).length
@@ -267,9 +292,10 @@ export async function atualizarChecklist(req, res) {
       progresso: {
         concluidos: docsConcluidos,
         total: totalDocs,
-        percentual: ((docsConcluidos / totalDocs) * 100).toFixed(0),
+        percentual: totalDocs ? ((docsConcluidos / totalDocs) * 100).toFixed(0) : '0',
       },
-      data_atualizacao: new Date().toISOString(),
+      data_atualizacao: atualizado_em.toISOString(),
+      persistido: true,
     })
   } catch (err) {
     console.error('Erro ao atualizar checklist:', err)
@@ -291,24 +317,24 @@ export async function atualizarStatusHomologacao(req, res) {
       return res.status(400).json({ erro: `Status inválido. Opções: ${statusValidos.join(', ')}` })
     }
 
-    const chave = `homologacao:${projetoId}`
-    const homologacao = homologacoesDB.get(chave) || {}
+    // P1-NEW01-HOMOLOGACAO-PERSISTENCE-FIX-01: status legado agora no Mongo (era Map).
+    if (mongoose.connection.readyState !== 1) return res.status(503).json({ erro: 'MongoDB indisponível.', codigo: 'DB_OFFLINE' })
+    if (!mongoose.Types.ObjectId.isValid(projetoId)) return res.status(400).json({ erro: 'ID de projeto inválido' })
+    const projeto = await ProjetoFV.findById(projetoId)
+    if (!projeto) return res.status(404).json({ erro: 'Projeto não encontrado' })
 
-    const homologacaoAtualizada = {
-      projetoId,
-      status,
-      data_envio: data_envio || homologacao.data_envio,
-      data_aprovacao: data_aprovacao || homologacao.data_aprovacao,
-      art_numero: art_numero || homologacao.art_numero,
-      observacoes: observacoes || homologacao.observacoes,
-      data_atualizacao: new Date().toISOString(),
-    }
-
-    homologacoesDB.set(chave, homologacaoAtualizada)
+    projeto.homologacao = projeto.homologacao || {}
+    projeto.homologacao.status = status
+    if (data_envio)     projeto.homologacao.data_envio = data_envio
+    if (data_aprovacao) projeto.homologacao.data_aprovacao = data_aprovacao
+    if (art_numero)     projeto.homologacao.art_numero = art_numero
+    if (observacoes)    projeto.observacoes = observacoes
+    projeto.markModified('homologacao')
+    await projeto.save()
 
     res.json({
       sucesso: true,
-      homologacao: homologacaoAtualizada,
+      homologacao: projeto.homologacao,
       mensagem: `Status atualizado para: ${status}`,
     })
   } catch (err) {
@@ -321,18 +347,14 @@ export async function obterStatusHomologacao(req, res) {
   try {
     const { projetoId } = req.params
 
-    const chave = `homologacao:${projetoId}`
-    const homologacao = homologacoesDB.get(chave) || {
-      projetoId,
-      status: 'rascunho',
-      documentos: [],
-      data_criacao: new Date().toISOString(),
+    // P1-NEW01-HOMOLOGACAO-PERSISTENCE-FIX-01: lê do Mongo (era Map).
+    let homologacao = { projetoId, status: 'rascunho' }
+    if (mongoose.connection.readyState === 1 && mongoose.Types.ObjectId.isValid(projetoId)) {
+      const proj = await ProjetoFV.findById(projetoId).select('homologacao').lean().catch(() => null)
+      if (proj?.homologacao) homologacao = { projetoId, ...proj.homologacao }
     }
 
-    res.json({
-      sucesso: true,
-      homologacao,
-    })
+    res.json({ sucesso: true, homologacao })
   } catch (err) {
     console.error('Erro ao obter status:', err)
     res.status(500).json({ erro: err.message })
