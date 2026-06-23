@@ -1,0 +1,49 @@
+{
+  "sprint": "P0-FV-FINAL-RUNTIME-CERTIFICATION-01",
+  "data": "2026-06-23",
+  "riscos": [
+    {
+      "id": "RISK-CAT-ENT01",
+      "severidade": "P1",
+      "titulo": "entradas_por_mppt ausente em ~13 inversores (incl. Huawei 50/60KTL)",
+      "rca": "especificacoes do catálogo não trazem 'entradas_por_mppt'/'strings_por_mppt'; adaptarInversor (catalogoEngenhariaAdapter.js:91) faz default ?? 1 → contagem de entradas DC fica 6 (6 MPPT × 1) em vez de 12 (6 × 2).",
+      "evidencia_runtime": "Huawei SUN2000-50KTL-M0 e 60KTL-M0: nMppts=6, entradasPorMppt=1 → 6 entradas. Esperado 12.",
+      "impacto": "Topologia/validação de strings pode subdimensionar entradas; exibição de '12 entradas' não bate. Não afeta agregação de potência (kWp) nem contagem de inversores.",
+      "afeta_producao": "parcial — engenharia elétrica detalhada por entrada; não afeta Avelino/E8.",
+      "natureza": "dado (enriquecimento), não código"
+    },
+    {
+      "id": "RISK-CAT-ENV01",
+      "severidade": "P1",
+      "titulo": "Subconjunto de inversores sem janela MPPT (tensao_mppt_min/max) + corrente_max_por_mppt",
+      "rca": "Para esses itens, _eletrico fica sem mppt_min/mppt_max/corrente → dadosEletricosInversor (com o RCA fix) retorna null por specs incompletas → aviso 'Dados elétricos do inversor não mapeados' PERSISTE (honesto: o dado realmente falta).",
+      "evidencia_runtime": "Solplanet ASW12K-LT-G2: eletricoInv=NULL (janela e corrente ausentes). Huawei 50/60KTL: COMPLETOS (janela 200-1000, imax 22) → SEM aviso.",
+      "impacto": "Configurador não roda checks de Voc/Vmpp/Isc para esses inversores; aviso aparece.",
+      "afeta_producao": "parcial — apenas itens específicos do catálogo.",
+      "natureza": "dado (enriquecimento), não código"
+    },
+    {
+      "id": "RISK-CAT-MODEL01",
+      "severidade": "P2",
+      "titulo": "Modelo Solplanet ASW6000-S-G2 ausente do catálogo",
+      "rca": "Cobertura: o modelo do teste T05 não está cadastrado (existem ASW7300-S, ASW9100-S, ASW12K-LT-G2).",
+      "evidencia_runtime": "Filtro por ASW6000 não retornou itens.",
+      "impacto": "Usuário não encontra esse modelo específico para seleção.",
+      "afeta_producao": "baixo — cobertura de catálogo.",
+      "natureza": "dado (cobertura)"
+    },
+    {
+      "id": "RISK-CERT-COV01",
+      "severidade": "P2",
+      "titulo": "T07–T10/T15 não re-exercitados nesta certificação",
+      "rca": "Sem ambiente de UI/preview interativo nesta sessão; persistência MPPT/arranjos/wizard/homologação/governança foram validados em runtime em SPRINTS ANTERIORES, não re-executados agora.",
+      "evidencia_runtime": "Evidência prévia em ARRANJO_ELECTRICAL_ISOLATION_RUNTIME.json, MPPT_TOPOLOGY_IMPL_METRICS.json, etc.",
+      "impacto": "Confiança apoiada em evidência anterior; recomenda-se 1 ciclo E2E de UI antes do go-live definitivo.",
+      "afeta_producao": "processo (cobertura de teste), não funcional.",
+      "natureza": "cobertura de teste"
+    }
+  ],
+  "p0_aberto": false,
+  "p1_aberto": ["RISK-CAT-ENT01", "RISK-CAT-ENV01"],
+  "p2_aberto": ["RISK-CAT-MODEL01", "RISK-CERT-COV01"]
+}

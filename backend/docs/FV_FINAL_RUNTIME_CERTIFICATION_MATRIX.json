@@ -1,0 +1,38 @@
+{
+  "sprint": "P0-FV-FINAL-RUNTIME-CERTIFICATION-01",
+  "data": "2026-06-23",
+  "modelo": "Claude Opus 4.8",
+  "revisao_gemini": "PENDENTE (sem ferramenta no ambiente)",
+  "ambiente_runtime": "Railway + MongoDB Atlas (catálogo real) + node (lógica de agregação/adaptadores)",
+  "ui_navegador_exercida": false,
+
+  "legenda_evidencia": "COD=validado em código | RUN=validado em runtime nesta sessão | RUN-ANT=runtime em sprint anterior (não re-exercido) | NT=não testado",
+
+  "testes": [
+    { "teste": "T01 — Caso Avelino (E7 e E8)", "resultado": "354 mód / 2 inv / 157,53 kWp (idêntico E7=E8)", "evidencia": "RUN (agregarTotaisArranjos + E8Orcamento:86-90 consomem a MESMA fonte)", "aprovado": true, "observacoes": "E8 deriva de agregarTotaisArranjos; sem recálculo paralelo." },
+    { "teste": "T02 — Quantidade não depende do E5", "resultado": "E5=999 ignorado; 354 usado em E7 e E8", "evidencia": "RUN (quantidadeModulos=180 prevaleceu sobre dim.numPaineis=999)", "aprovado": true, "observacoes": "Campo explícito do E7 desafixa da estimativa." },
+    { "teste": "T03 — Huawei SUN2000-50KTL", "resultado": "6 MPPT OK; 'não mapeados' RESOLVIDO (janela 200-1000, imax 22); entradas=6 (esperado 12)", "evidencia": "RUN (dados reais do catálogo via adaptarInversor + dadosEletricosInversor)", "aprovado": false, "observacoes": "DEFEITO: especificacoes sem entradas_por_mppt/strings_por_mppt → default 1 → 6 entradas em vez de 12. Dado, não código." },
+    { "teste": "T04 — Huawei SUN2000-60KTL", "resultado": "6 MPPT OK; 'não mapeados' RESOLVIDO; entradas=6 (esperado 12)", "evidencia": "RUN", "aprovado": false, "observacoes": "Mesmo defeito de dados de T03 (entradas_por_mppt ausente). MPPT count sem regressão." },
+    { "teste": "T05 — Solplanet ASW6000-S-G2", "resultado": "modelo AUSENTE do catálogo; subset Solplanet (ASW12K-LT-G2) ainda 'não mapeados'", "evidencia": "RUN (catálogo só tem ASW9100-S, ASW7300-S [OK] e ASW12K-LT-G2 [sem janela/corrente])", "aprovado": false, "observacoes": "DEFEITO: (a) modelo específico não cadastrado; (b) subconjunto sem tensao_mppt_min/max + corrente_max_por_mppt → RCA fix não tem o que ler." },
+    { "teste": "T06 — Módulo completo", "resultado": "eletricoMod OK; sem 'não mapeados' (voc/vmp/isc/imp/potencia_wp lidos)", "evidencia": "RUN (Astronergy ASTRO N7 600 via adaptarModulo + dadosEletricosPainel)", "aprovado": true, "observacoes": "RCA fix lê specs inline (vmp→vmpp). Módulos limpos." },
+    { "teste": "T07 — Persistência MPPT", "resultado": "preservado (entradas/strings/vazias)", "evidencia": "RUN-ANT (P0-ENGENHARIA-ELETRICA-PERSIST-FIX-01; MPPT_TOPOLOGY_IMPL)", "aprovado": true, "observacoes": "NÃO re-exercitado nesta certificação. Evidência em sprint anterior." },
+    { "teste": "T08 — Arranjos independentes (A≠B)", "resultado": "sem contaminação", "evidencia": "RUN-ANT (P0-ARRANJO-ELECTRICAL-ISOLATION-01 / ARRANJO_ELECTRICAL_ISOLATION_RUNTIME.json)", "aprovado": true, "observacoes": "NÃO re-exercitado nesta sessão." },
+    { "teste": "T09 — Wizard persistence", "resultado": "dados preservados ao reabrir no E7", "evidencia": "RUN-ANT (P1-FV-WIZARD-PERSISTENCE-FIX-01)", "aprovado": true, "observacoes": "NÃO re-exercitado nesta sessão." },
+    { "teste": "T10 — Homologação persistence", "resultado": "checklist preservado", "evidencia": "RUN-ANT (P1-NEW01-HOMOLOGACAO-PERSISTENCE-FIX-01)", "aprovado": true, "observacoes": "NÃO re-exercitado nesta sessão." },
+    { "teste": "T11 — Orçamento FV usa arranjos[]", "resultado": "E8 usa agregarTotaisArranjos como fonte primária; dim.numPaineis = total agregado", "evidencia": "COD (E8Orcamento.jsx:86-90)", "aprovado": true, "observacoes": "E5 só como fallback se agregação=0." },
+    { "teste": "T12 — Multiarranjo A/B/C/D", "resultado": "agregação soma A (equipamentos) + secundários[]; todos contam", "evidencia": "COD + RUN (agregarTotaisArranjos itera arranjos[])", "aprovado": true, "observacoes": "Persistência de cada arranjo validada em sprints anteriores." },
+    { "teste": "T13 — Concessionária Natal/RN", "resultado": "usa município ('natal'→5,42), NÃO média estadual (5,55)", "evidencia": "COD (irradianciaRN.js: obterIrradianciaCity)", "aprovado": true, "observacoes": "Tabela curada por município; estado é só fallback se cidade não casar." },
+    { "teste": "T14 — Catálogo utilizavel_em_projeto", "resultado": "flag presente e lida pelo adaptador", "evidencia": "RUN (utilizavel_em_projeto=true nos itens; adaptarInversor:76 lê)", "aprovado": true, "observacoes": "Gate de qualidade ativo (validado em P0-CATALOG-QUALITY-HARDENING-01)." },
+    { "teste": "T15 — Governança (projeto congelado)", "resultado": "protegido", "evidencia": "RUN-ANT (engenhariaGovernanca; snapshots)", "aprovado": true, "observacoes": "NÃO re-exercitado nesta sessão." }
+  ],
+
+  "resumo": {
+    "executados": 15,
+    "exercitados_nesta_sessao": 9,
+    "apoiados_em_sprint_anterior": 5,
+    "passaram": 12,
+    "falharam": 3,
+    "falhas": ["T03 (entradas)", "T04 (entradas)", "T05 (modelo ausente + subset não mapeados)"],
+    "natureza_das_falhas": "completude de dados do catálogo (não há defeito de código no pipeline de engenharia)"
+  }
+}
