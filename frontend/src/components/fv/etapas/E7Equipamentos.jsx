@@ -100,6 +100,15 @@ export default function E7Equipamentos() {
     setEstruturaExp(false)
     setErro('')
   }
+  // P0-E7-FINAL-UX-CONSOLIDATION-01: quantidade EXPLÍCITA do Arranjo A (nasce do
+  // arranjo, não da estimativa E5). Reusa os MESMOS dispatches já usados pela
+  // sugestão COSERN e pelo configurador — NÃO cria persistência nova.
+  function alterarQuantidade(valor) {
+    const n = Math.max(0, parseInt(valor, 10) || 0)
+    dispatch({ type: 'SET_DIMENSIONAMENTO', payload: { numPaineis: n } })
+    dispatch({ type: 'SET_EQUIPAMENTO', payload: { tipo: 'quantidadeModulos', item: n } })
+    setErro('')
+  }
 
   function validar() {
     if (!equipamentos.painel || !equipamentos.inversor || !equipamentos.estrutura) {
@@ -246,6 +255,16 @@ export default function E7Equipamentos() {
         )}
       </div>
 
+      {/* ═══ SISTEMA FV — container único de todos os arranjos (A, B, C, D…) ═══
+          P0-E7-FINAL-UX-CONSOLIDATION-01: o multiarranjo é o container principal.
+          Arranjo A e secundários vivem dentro do MESMO bloco "Sistema FV". */}
+      <section className="border border-emerald-200 rounded-2xl bg-emerald-50/40 p-4 space-y-6">
+        <div className="flex items-center gap-2">
+          <Layers size={18} className="text-emerald-700" />
+          <h3 className="text-base font-bold text-slate-900">Sistema FV</h3>
+          <span className="text-[10px] text-slate-500">Arranjos do sistema (A, B, C, D…)</span>
+        </div>
+
       {/* ── Arranjo A (principal) — P2-FV-MULTIARRANJO-UX-01 ────────────── */}
       <section className="border border-emerald-300 rounded-xl bg-white space-y-4 p-4">
         {/* Header Arranjo A */}
@@ -264,7 +283,7 @@ export default function E7Equipamentos() {
           )}
         </div>
 
-        {/* Módulos Fotovoltaicos */}
+        {/* 1) Módulos Fotovoltaicos */}
         <section className="border border-amber-200 rounded-xl overflow-hidden bg-amber-50">
           <button
             className="w-full flex items-center justify-between px-5 py-4"
@@ -274,14 +293,13 @@ export default function E7Equipamentos() {
             <div className="flex items-center gap-2 flex-wrap">
               <Sun size={18} className="text-amber-600" />
               <h3 className="font-semibold text-slate-900">Módulos Fotovoltaicos</h3>
-              <Badge cor="amarelo">~{dim.numPaineis ?? '?'} un. (estimativa E5)</Badge>
-              {equipamentos.painel && (
-                <span className="text-xs text-amber-700 font-medium bg-amber-100 border border-amber-200 rounded-full px-2 py-0.5">
-                  ✓ {equipamentos.painel.marca} {equipamentos.painel.modelo} · {equipamentos.painel.potenciaW}W
-                  {equipamentos.painel.tecnologia && ` · ${equipamentos.painel.tecnologia}`}
-                  {equipamentos.painel.bifacial   && ' · Bifacial'}
-                </span>
-              )}
+              {equipamentos.painel
+                ? <span className="text-xs text-amber-700 font-medium bg-amber-100 border border-amber-200 rounded-full px-2 py-0.5">
+                    ✓ {equipamentos.painel.marca} {equipamentos.painel.modelo} · {equipamentos.painel.potenciaW}W
+                    {equipamentos.painel.tecnologia && ` · ${equipamentos.painel.tecnologia}`}
+                    {equipamentos.painel.bifacial   && ' · Bifacial'}
+                  </span>
+                : <Badge cor="amarelo">selecione o módulo</Badge>}
             </div>
             {painelExp
               ? <ChevronUp size={16} className="text-slate-400 shrink-0" />
@@ -294,7 +312,32 @@ export default function E7Equipamentos() {
           )}
         </section>
 
-        {/* Inversores */}
+        {/* 2) Quantidade de módulos — campo EXPLÍCITO do arranjo (não da estimativa E5) */}
+        <section className="border border-amber-200 rounded-xl bg-white px-5 py-4">
+          <div className="flex items-center gap-3 flex-wrap">
+            <Sun size={16} className="text-amber-500" />
+            <label htmlFor="qtd-modulos-a" className="font-semibold text-slate-900 text-sm">Quantidade de módulos</label>
+            <input
+              id="qtd-modulos-a"
+              type="number"
+              min={0}
+              value={numPaineisReal || ''}
+              onChange={e => alterarQuantidade(e.target.value)}
+              placeholder={dim.numPaineis ? String(dim.numPaineis) : '0'}
+              className="w-28 px-3 py-1.5 border border-slate-300 rounded-lg text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-400"
+            />
+            <span className="text-[11px] text-slate-400">
+              estimativa E5: ~{dim.numPaineis ?? '?'} un. · você define a quantidade real
+            </span>
+            {equipamentos.painel && numPaineisReal > 0 && (
+              <span className="ml-auto text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2.5 py-0.5">
+                {+(numPaineisReal * (equipamentos.painel.potenciaW || 0) / 1000).toFixed(2)} kWp CC
+              </span>
+            )}
+          </div>
+        </section>
+
+        {/* 3) Inversores */}
         <section className="border border-blue-200 rounded-xl overflow-hidden bg-blue-50">
           <button
             className="w-full flex items-center justify-between px-5 py-4"
@@ -329,57 +372,7 @@ export default function E7Equipamentos() {
           )}
         </section>
 
-        {/* Estrutura de Fixação */}
-        <section className="border border-slate-300 rounded-xl overflow-hidden bg-slate-50">
-          <button
-            className="w-full flex items-center justify-between px-5 py-4"
-            onClick={() => setEstruturaExp(v => !v)}
-            aria-expanded={estruturaExp}
-          >
-            <div className="flex items-center gap-2 flex-wrap">
-              <Layers size={18} className="text-slate-600" />
-              <h3 className="font-semibold text-slate-900">Estrutura de Fixação</h3>
-              {equipamentos.estrutura && (
-                <span className="text-xs text-slate-700 font-medium bg-slate-100 border border-slate-300 rounded-full px-2 py-0.5">
-                  ✓ {equipamentos.estrutura.tipo}
-                </span>
-              )}
-            </div>
-            {estruturaExp
-              ? <ChevronUp size={16} className="text-slate-400 shrink-0" />
-              : <ChevronDown size={16} className="text-slate-400 shrink-0" />}
-          </button>
-          {estruturaExp && (
-            <div className="px-5 pb-5 border-t border-slate-200">
-              <SeletorEstrutura onSelecionar={selecionarEstrutura} selecionado={equipamentos.estrutura} />
-            </div>
-          )}
-        </section>
-
-        {/* Resumo técnico do Arranjo A (paridade com B/C/D) — Fase 7/10/11 */}
-        {ambosSelecionados && (
-          <ResumoTecnicoArranjo
-            arranjo={{
-              paineis: equipamentos.painel ? [{
-                modelo: equipamentos.painel.modelo,
-                potencia_w: equipamentos.painel.potenciaW,
-                quantidade: equipamentos.quantidadeModulos ?? dim.numPaineis ?? 0,
-              }] : [],
-              inversores: equipamentos.inversor ? [{ modelo: equipamentos.inversor.modelo, quantidade: 1 }] : [],
-            }}
-            catalogo={{
-              modulos: equipamentos.painel ? [{ _id: 'A_mod', modelo: equipamentos.painel.modelo, especificacoes: {
-                potencia_wp: equipamentos.painel.potenciaW, voc: equipamentos.painel.voc,
-              } }] : [],
-              inversores: equipamentos.inversor ? [{ _id: 'A_inv', modelo: equipamentos.inversor.modelo, especificacoes: {
-                potencia_kw: equipamentos.inversor.potenciaKW, n_mppts: equipamentos.inversor.nMppts,
-                entradas_por_mppt: equipamentos.inversor.entradasPorMppt, tensao_max_entrada: equipamentos.inversor.tensaoMaxV,
-              } }] : [],
-            }}
-          />
-        )}
-
-        {/* Configurador Elétrico */}
+        {/* 4) Configuração Elétrica — consequência direta do inversor (logo após ele) */}
         <section className="border border-violet-200 rounded-xl bg-violet-50 p-5 space-y-3">
           <div className="flex items-center gap-2 flex-wrap">
             <Zap size={18} className="text-violet-600" />
@@ -408,7 +401,7 @@ export default function E7Equipamentos() {
             <ConfiguradorArranjoFV
               painel={equipamentos.painel}
               inversor={equipamentos.inversor}
-              numPaineis={dim.numPaineis ?? 0}
+              numPaineis={numPaineisReal}
               uf={localizacao?.uf ?? null}
               projetoId={projetoId}
               initialValues={engenhariaInicial}
@@ -420,10 +413,61 @@ export default function E7Equipamentos() {
             />
           )}
         </section>
+
+        {/* 5) Estrutura de Fixação */}
+        <section className="border border-slate-300 rounded-xl overflow-hidden bg-slate-50">
+          <button
+            className="w-full flex items-center justify-between px-5 py-4"
+            onClick={() => setEstruturaExp(v => !v)}
+            aria-expanded={estruturaExp}
+          >
+            <div className="flex items-center gap-2 flex-wrap">
+              <Layers size={18} className="text-slate-600" />
+              <h3 className="font-semibold text-slate-900">Estrutura de Fixação</h3>
+              {equipamentos.estrutura && (
+                <span className="text-xs text-slate-700 font-medium bg-slate-100 border border-slate-300 rounded-full px-2 py-0.5">
+                  ✓ {equipamentos.estrutura.tipo}
+                </span>
+              )}
+            </div>
+            {estruturaExp
+              ? <ChevronUp size={16} className="text-slate-400 shrink-0" />
+              : <ChevronDown size={16} className="text-slate-400 shrink-0" />}
+          </button>
+          {estruturaExp && (
+            <div className="px-5 pb-5 border-t border-slate-200">
+              <SeletorEstrutura onSelecionar={selecionarEstrutura} selecionado={equipamentos.estrutura} />
+            </div>
+          )}
+        </section>
+
+        {/* 6) Resumo técnico do Arranjo A (paridade com B/C/D) — Fase 7/10/11 */}
+        {ambosSelecionados && (
+          <ResumoTecnicoArranjo
+            arranjo={{
+              paineis: equipamentos.painel ? [{
+                modelo: equipamentos.painel.modelo,
+                potencia_w: equipamentos.painel.potenciaW,
+                quantidade: equipamentos.quantidadeModulos ?? dim.numPaineis ?? 0,
+              }] : [],
+              inversores: equipamentos.inversor ? [{ modelo: equipamentos.inversor.modelo, quantidade: 1 }] : [],
+            }}
+            catalogo={{
+              modulos: equipamentos.painel ? [{ _id: 'A_mod', modelo: equipamentos.painel.modelo, especificacoes: {
+                potencia_wp: equipamentos.painel.potenciaW, voc: equipamentos.painel.voc,
+              } }] : [],
+              inversores: equipamentos.inversor ? [{ _id: 'A_inv', modelo: equipamentos.inversor.modelo, especificacoes: {
+                potencia_kw: equipamentos.inversor.potenciaKW, n_mppts: equipamentos.inversor.nMppts,
+                entradas_por_mppt: equipamentos.inversor.entradasPorMppt, tensao_max_entrada: equipamentos.inversor.tensaoMaxV,
+              } }] : [],
+            }}
+          />
+        )}
       </section>
 
       {/* ── Arranjos Secundários (B, C, D…) — GerenciadorArranjos ──────────── */}
       <GerenciadorArranjos />
+      </section>
 
       {/* P0-E7-UX-CLEANUP-01 (BUG-02): "Sugestões Técnicas" — card recolhido,
           só quando concessionária = COSERN, e NUNCA acima do Arranjo A. */}

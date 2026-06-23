@@ -1,0 +1,42 @@
+{
+  "sprint": "P0-E7-FINAL-UX-CONSOLIDATION-01",
+  "data": "2026-06-20",
+  "decisao": "CAMINHO A (persistencia intacta)",
+  "revisao_gemini": "PENDENTE",
+
+  "evidencia": { "validado_em_codigo": true, "validado_em_runtime": true, "ui_navegador_exercida": false },
+
+  "build_frontend": { "ferramenta": "vite build", "modulos": 2338, "erros": 0, "resultado": "OK" },
+
+  "rca_nao_mapeados": {
+    "origem": "frontend/src/data/catalogoEletrico.js:197-204",
+    "causa": "dadosEletricosPainel/Inversor faziam lookup so no mapa estatico por id; equipamento Mongo tem id=ObjectId -> null -> aviso",
+    "fix": "fallback le specs inline do equipamento (voc/vmpp/isc/potenciaW; tensaoMaxV/mpptMinV/mpptMaxV/correnteMaxA)",
+    "aviso_so_persiste_se": "equipamento realmente sem specs (honesto)",
+    "altera_persistencia": false
+  },
+
+  "mudancas_visuais": {
+    "container_sistema_fv": "Arranjo A + GerenciadorArranjos dentro de um unico bloco 'Sistema FV'",
+    "config_eletrica_apos_inversor": true,
+    "quantidade_explicita": "campo numerico apos o modulo; reusa dispatches existentes (sem persistencia nova)",
+    "configurador_numPaineis": "dim.numPaineis -> numPaineisReal (desafixa da estimativa E5)"
+  },
+
+  "caso_avelino": {
+    "entrada": { "arranjo_A": "180x445W +1 inv", "arranjo_B": "174x445W +1 inv", "dim_numPaineis_E5": 999 },
+    "agregarTotaisArranjos": { "modulos": 354, "inversores": 2, "kwp": 157.53 },
+    "esperado": { "modulos": 354, "inversores": 2, "kwp": 157.53 },
+    "ok": true,
+    "prova_nasce_do_arranjo": "quantidadeModulos=180 prevaleceu sobre dim.numPaineis=999 (E5)"
+  },
+
+  "nao_alterado": ["Persistencia Arranjos", "Persistencia MPPT", "Engenharia Eletrica", "E8", "Governanca", "Homologacao", "Snapshot", "EV", "BESS", "OCR", "Datasheet"],
+
+  "ressalva": "Distribuidor/Orcamento por arranjo nao adicionado ao Arranjo A (duplicaria E8; sprint proibe alterar E8/criar features). Paridade plena nos blocos de engenharia.",
+
+  "arquivos_alterados": [
+    "frontend/src/data/catalogoEletrico.js (RCA fix fallback inline)",
+    "frontend/src/components/fv/etapas/E7Equipamentos.jsx (container Sistema FV + reordenacao + quantidade explicita)"
+  ]
+}

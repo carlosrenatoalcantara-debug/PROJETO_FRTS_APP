@@ -194,14 +194,58 @@ export const DADOS_ELETRICOS_INVERSORES = {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+// P0-E7-FINAL-UX-CONSOLIDATION-01 (RCA "Dados elétricos não mapeados"):
+// O mapa estático DADOS_ELETRICOS_* só tem chaves hardcoded do catálogo local.
+// Equipamentos do catálogo Mongo têm id = ObjectId (nunca casa o mapa) PORÉM já
+// carregam as specs elétricas inline (o seletor propaga voc/vmpp/isc no painel e
+// tensaoMaxV/mpptMinV/mpptMaxV/correnteMaxA no inversor). O fallback abaixo lê
+// essas specs inline em vez de retornar null — sem isso o configurador acusava
+// "não mapeados" para equipamento com cadastro completo. NÃO altera persistência.
+function _n(v) { const x = Number(v); return Number.isFinite(x) ? x : null }
+
 export function dadosEletricosPainel(painel) {
   if (!painel?.id) return null
-  return DADOS_ELETRICOS_PAINEIS[painel.id] ?? null
+  const estatico = DADOS_ELETRICOS_PAINEIS[painel.id]
+  if (estatico) return estatico
+  // Fallback: specs inline do equipamento do catálogo
+  const voc  = _n(painel.voc)
+  const vmpp = _n(painel.vmpp ?? painel.vmp)
+  const isc  = _n(painel.isc)
+  if (voc && vmpp && isc) {
+    return {
+      voc, vmpp, isc,
+      impp: _n(painel.impp ?? painel.imp),
+      potencia_w: _n(painel.potencia_w ?? painel.potenciaW ?? painel.pmpp),
+      coef_temp_voc: _n(painel.coef_temp_voc) ?? -0.0028,  // %/°C típico se ausente
+      temp_noct: _n(painel.temp_noct) ?? 43,
+    }
+  }
+  return null
 }
 
 export function dadosEletricosInversor(inversor) {
   if (!inversor?.id) return null
-  return DADOS_ELETRICOS_INVERSORES[inversor.id] ?? null
+  const estatico = DADOS_ELETRICOS_INVERSORES[inversor.id]
+  if (estatico) return estatico
+  // Fallback: specs inline do inversor selecionado (catálogo Mongo)
+  const e    = inversor._eletrico ?? null
+  const vmax = _n(inversor.tensaoMaxV ?? e?.tensao_max_entrada)
+  const imax = _n(inversor.correnteMaxA ?? e?.corrente_max_mppt)
+  const vmin = _n(inversor.mpptMinV ?? e?.mppt_min)
+  const vmppMax = _n(inversor.mpptMaxV ?? e?.mppt_max)
+  // só monta se as specs críticas existem (cadastro completo) — senão mantém o aviso honesto
+  if (vmax && imax && vmin != null && vmppMax) {
+    return {
+      tensao_max_entrada: vmax,
+      mppt_min: vmin,
+      mppt_max: vmppMax,
+      corrente_max_mppt: imax,
+      potencia_ca_kw: _n(inversor.potenciaKW ?? inversor.potencia_ca_kw ?? e?.potencia_ca_kw),
+      entradas_por_mppt: _n(inversor.entradasPorMppt ?? e?.entradas_por_mppt) ?? 1,
+      oversizing_max: _n(inversor.oversizingMax ?? e?.oversizing_max) ?? 1.30,
+    }
+  }
+  return null
 }
 
 // ─── Clima padrão por UF ──────────────────────────────────────────────────────
