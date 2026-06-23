@@ -1,0 +1,25 @@
+{
+  "sprint": "P1-EV-RDY01-UNIFILAR-PERSIST-FIX-01",
+  "data": "2026-06-20",
+  "commit": "60f869c",
+  "ambiente": "Railway + MongoDB Atlas (produção)",
+  "revisao_gemini": "PENDENTE",
+
+  "evidencia": { "validado_em_codigo": true, "validado_em_runtime": true, "ui_navegador_exercida": false },
+
+  "fase4_5_ciclo": {
+    "post_com_diagrama_editado": "HTTP 201",
+    "reabrir_get": {
+      "nodes": 2,
+      "edges": 1,
+      "no_qdc": { "label": "QDC", "x": 120, "y": 80 },
+      "no_carregador": { "label": "Wallbox 22kW", "x": 300, "y": 80 },
+      "edge": { "source": "qdc", "target": "carregador", "label": "cabo 10mm2" }
+    },
+    "igualdade_total_posicoes_textos_conexoes": true
+  },
+
+  "fase3_compatibilidade": { "projeto_legado_sem_diagrama": "HTTP 200 (abre sem erro)", "migracao": "nenhuma", "backfill": "nenhum" },
+
+  "nao_testado": ["edição visual no editor interativo do navegador (mover nó/editar texto/conectar) — validado o transporte+persistência via API com payload equivalente"]
+}

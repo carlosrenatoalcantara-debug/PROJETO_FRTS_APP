@@ -1,0 +1,33 @@
+{
+  "sprint": "P1-EV-RDY01-UNIFILAR-PERSIST-FIX-01",
+  "data": "2026-06-20",
+  "commit": "60f869c",
+  "revisao_gemini": "PENDENTE",
+
+  "fase1_pontos_whitelist": [
+    { "fn": "criarProjetoEV (POST /api/projetos-ev)", "tipo": "whitelist (novoProjetoData)", "diagrama_editado_incluido_antes": false, "corrigido": true },
+    { "fn": "atualizarProjetoEV (PUT/PATCH /api/projetos-ev/:id)", "tipo": "spread { ...req.body }", "diagrama_editado_incluido_antes": true, "corrigido": "não precisava (já persistia)" }
+  ],
+  "pontos_corrigidos": 1,
+
+  "arquivos_alterados": [
+    { "arquivo": "backend/src/controllers/projetosEVController.js", "mudanca": "whitelist do POST: + ...(req.body.diagrama_editado && { diagrama_editado: req.body.diagrama_editado })" }
+  ],
+
+  "schema": "ProjetoEV.diagrama_editado já existia (nodes/edges/timestamp) — sem schema novo",
+  "migracao_dados": false,
+  "nao_alterado": ["Homologacao", "Governanca", "Snapshot", "Orcamento E8", "Persistencia MPPT", "Persistencia Arranjos", "FV", "BESS", "OCR", "Datasheet", "UX", "workflow"],
+
+  "respostas_obrigatorias": {
+    "1_onde_estava_whitelist": "criarProjetoEV (POST) — novoProjetoData",
+    "2_pontos_corrigidos": 1,
+    "3_diagrama_editado_persiste": true,
+    "4_runtime_executado": true,
+    "5_projetos_antigos_abrem": true,
+    "6_necessitou_migracao": false,
+    "7_regressoes": "nenhuma",
+    "8_commit": "60f869c",
+    "9_deploy_aprovado": true,
+    "10_ev_100pct_aprovado": true
+  }
+}
