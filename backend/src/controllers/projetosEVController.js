@@ -189,6 +189,10 @@ export const criarProjetoEV = async (req, res) => {
       // P0-EV-ORCAMENTO-MATERIAIS-01: persiste o orçamento comercial + financeiro
       ...(req.body.orcamento && { orcamento: req.body.orcamento }),
       ...(req.body.financeiro && { financeiro: req.body.financeiro }),
+      // P1-EV-RDY01-UNIFILAR-PERSIST-FIX-01: persiste o unifilar EDITADO (nodes/edges/
+      // posições/textos/conexões). Antes o whitelist do POST descartava → ao reabrir
+      // vinha null. O PUT (atualizarProjetoEV) já espalhava req.body; só o POST faltava.
+      ...(req.body.diagrama_editado && { diagrama_editado: req.body.diagrama_editado }),
     }
 
     const novo = new ProjetoEV(novoProjetoData)
