@@ -1,0 +1,25 @@
+{
+  "sprint": "P0-FV-FINAL-CLOSURE-AUDIT-01",
+  "data": "2026-06-24",
+  "fase6": {
+    "bloqueador_operacional": { "existe": false, "detalhe": "núcleo FV (E1-E8, persistência, MPPT, governança, homologação, E8 fonte única) operacional ponta a ponta." },
+    "risco_perda_de_dados": { "existe": false, "detalhe": "persistência validada (NEW-01/02, MPPT, arranjos); whitelist EV corrigida; enum do histórico corrigido (save() restaurado em 168 registros). Nenhum caminho conhecido de perda." },
+    "funcionalidade_critica_incompleta": { "existe": false, "detalhe": "nenhuma no núcleo; pendência é completude de DADOS de 13 inversores no catálogo." }
+  },
+  "riscos_residuais": [
+    {
+      "id": "BL-CAT-01",
+      "severidade": "P2 / backlog de catálogo",
+      "titulo": "13 inversores sem strings_por_mppt e/ou janela MPPT",
+      "itens": ["9 SolaX (X3-ULT / X1-SPT)", "1 Solis 1P7K-4G", "3 Growatt MID15/20/25KTL3-X (sem janela)"],
+      "impacto": "SolaX/Solis: contagem de entradas usa default 1 (envelope OK, SEM aviso). Growatt: ainda 'não mapeados' (sem janela).",
+      "fora_do_nucleo_fv": true,
+      "motivo_nao_resolvido": "sem fonte interna nem datasheet/OCR armazenado — preencher seria inventar (proibido)."
+    }
+  ],
+  "respostas_fase6": {
+    "bloqueador_operacional": "NÃO",
+    "risco_perda_dados": "NÃO",
+    "critica_incompleta": "NÃO (apenas dados de catálogo)"
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "sprint": "P0-FV-FINAL-CLOSURE-AUDIT-01",
+  "data": "2026-06-24",
+  "titulo": "BACKLOG DE CATÁLOGO (fora do núcleo FV — não bloqueia o encerramento)",
+  "itens": [
+    {
+      "id": "CAT-DATASHEET-SOURCING-01",
+      "prioridade": "P2",
+      "descricao": "Carregar datasheets reais e extrair strings_por_mppt p/ 9 SolaX (X3-ULT-15K/15KP/19.9K/20K/20KP/25K/30K; X1-SPT-10K/12K) e Solis 1P7K-4G. Hoje sem fonte interna.",
+      "efeito_ao_resolver": "contagem de entradas DC real (em vez de default 1)."
+    },
+    {
+      "id": "CAT-GROWATT-JANELA-01",
+      "prioridade": "P2",
+      "descricao": "Popular tensao_mppt_min/max dos 3 Growatt MID15/20/25KTL3-X (têm entradas+corrente, faltam só a janela).",
+      "efeito_ao_resolver": "elimina 'dados não mapeados' nesses 3 inversores."
+    },
+    {
+      "id": "CAT-INV-ENVELOPE-COVERAGE-01",
+      "prioridade": "melhoria",
+      "descricao": "Meta de cobertura: 45/45 inversores utilizáveis com envelope MPPT completo (hoje 32/45). Reusar pipeline OCR/Gemini existente.",
+      "efeito_ao_resolver": "remove a última ressalva de catálogo da certificação."
+    },
+    {
+      "id": "CAT-INV-ASSIMETRICO-SCHEMA-01",
+      "prioridade": "melhoria",
+      "descricao": "Suporte a inversores com MPPT assimétricos (ex.: ASW12K tinha corrente '48 e 30'). Hoje normalizado p/ o mínimo conservador; avaliar campo por-MPPT no schema.",
+      "efeito_ao_resolver": "modelagem fiel de corrente por MPPT em inversores assimétricos."
+    }
+  ],
+  "observacao": "Nenhum item afeta o núcleo FV (E1-E8/persistência/MPPT/governança/homologação/E8). São melhorias de DADOS do catálogo, tratáveis em paralelo a outros módulos."
+}

@@ -1,0 +1,51 @@
+{
+  "sprint": "P0-FV-FINAL-CLOSURE-AUDIT-01",
+  "data": "2026-06-24",
+  "modelo": "Claude Opus 4.8",
+  "revisao_gemini": "PENDENTE (sem ferramenta no ambiente)",
+  "tipo": "auditoria READ-ONLY (nenhum código alterado)",
+
+  "legenda": "RUN=runtime nesta sessão | RUN-ANT=runtime sprint anterior | COD=código",
+
+  "fase2_etapas": [
+    { "etapa": "E1 Upload", "status": "OK", "evidencia": "RUN-ANT (fluxo wizard)", "obs": "entrada de fatura/dados" },
+    { "etapa": "E2 Consumo", "status": "OK", "evidencia": "RUN-ANT", "obs": "consumo + beneficiárias (E2B)" },
+    { "etapa": "E3 Localização", "status": "OK", "evidencia": "RUN-ANT", "obs": "UF/município/coordenada" },
+    { "etapa": "E4 Irradiância", "status": "OK", "evidencia": "RUN (T13: Natal/RN usa município 5,42, não média estadual)", "obs": "obterIrradianciaCity" },
+    { "etapa": "E5 Dimensionamento", "status": "OK", "evidencia": "RUN (E5 deixou de fixar a quantidade — E7 sobrepõe)", "obs": "estimativa inicial; não é fonte final" },
+    { "etapa": "E6 Área", "status": "OK", "evidencia": "RUN-ANT", "obs": "panos/capacidade de layout" },
+    { "etapa": "E7 Equipamentos", "status": "OK", "evidencia": "RUN (consolidação: container Sistema FV, config após inversor, quantidade explícita)", "obs": "fonte única de arranjos" },
+    { "etapa": "E8 Orçamento", "status": "OK", "evidencia": "RUN (Avelino 354/2/157,53; usa agregarTotaisArranjos)", "obs": "fonte única = arranjos[]" }
+  ],
+
+  "fase3_plataforma": [
+    { "item": "Persistência (wizard/draft)", "status": "OK", "evidencia": "RUN-ANT (NEW-02)" },
+    { "item": "Snapshots de equipamento", "status": "OK", "evidencia": "COD (snapshotEquipamentoSelecao S8.1)" },
+    { "item": "Governança (projeto congelado)", "status": "OK", "evidencia": "RUN-ANT (engenhariaGovernanca)" },
+    { "item": "Homologação (checklist)", "status": "OK", "evidencia": "RUN-ANT (NEW-01 — Map→persistência)" },
+    { "item": "Multiarranjo A/B/C/D", "status": "OK", "evidencia": "RUN (agregação soma A+secundários)" },
+    { "item": "MPPT (topologia + persistência)", "status": "OK", "evidencia": "RUN-ANT (MPPT persist + topology) + RUN (entradas reais p/ Huawei)" }
+  ],
+
+  "fase4_catalogo": {
+    "total_equipamentos": 382,
+    "por_tipo": { "inversor": 177, "modulo": 189, "carregador_ev": 16 },
+    "utilizaveis": { "inversor": 45, "modulo": 168, "carregador_ev": 16 },
+    "modulos_eletricos_completos": "168/168 (voc/vmp/isc/potencia)",
+    "inversores_envelope_mppt_completo": "32/45 (13 no backlog de catálogo)",
+    "estruturas": "lista local (SeletorEstrutura) — não vive no catálogo Mongo; seletor OK",
+    "enum_historico_fora": 0,
+    "valores_eletricos_malformados": 0,
+    "asw6000_s_g2_presente": true,
+    "evidencia": "RUN (snapshot fresco)"
+  },
+
+  "fase5_integracao": [
+    { "fluxo": "Projeto → Dimensionamento", "status": "OK", "evidencia": "RUN-ANT" },
+    { "fluxo": "Dimensionamento → Orçamento (E8)", "status": "OK", "evidencia": "RUN (fonte única; sem recálculo paralelo)" },
+    { "fluxo": "Orçamento → Unifilar FV", "status": "OK", "evidencia": "RUN-ANT" },
+    { "fluxo": "Coerência E7 = E8 (Avelino)", "status": "OK", "evidencia": "RUN (354/2/157,53)" }
+  ],
+
+  "fase1_bugs": { "P0": 0, "P1_nucleo": 0, "P2_nucleo": 0, "catalogo_backlog": 13, "resolvidos_sessao": ["BUG-HIST-ENUM-01", "Huawei 50/60/100KTL entradas", "Solplanet ASW12K corrente"] }
+}
