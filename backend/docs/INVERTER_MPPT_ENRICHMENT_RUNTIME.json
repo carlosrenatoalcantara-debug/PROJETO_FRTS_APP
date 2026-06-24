@@ -1,0 +1,31 @@
+{
+  "sprint": "P1-CATALOG-INVERTER-MPPT-ENRICHMENT-01",
+  "data": "2026-06-24",
+  "ambiente": "Railway + MongoDB Atlas (catálogo real) + node (adaptadores reais)",
+  "evidencia": { "validado_em_codigo": true, "validado_em_runtime": true },
+
+  "testes": {
+    "T01_inventario": "OK — 45 inversores utilizáveis inventariados (INVERTER_MPPT_INVENTORY.json)",
+    "T02_incompletos_medidos": "OK — início: 16 com campo ausente + 1 malformado (ASW12K). Fim: 13 incompletos",
+    "T03_huawei_50ktl": { "n_mppts": 6, "entradas_por_mppt": 2, "entradas_total": 12, "janela": "200-1000", "imax": 22, "aviso_nao_mapeados": false, "status": "COMPLETO" },
+    "T04_huawei_60ktl": { "n_mppts": 6, "entradas_por_mppt": 2, "entradas_total": 12, "janela": "200-1000", "imax": 22, "aviso_nao_mapeados": false, "status": "COMPLETO" },
+    "T05_solplanet_asw12k": { "n_mppts": 2, "entradas_por_mppt": 2, "janela": "150-1000", "imax": 30, "aviso_nao_mapeados": false, "status": "COMPLETO (corrente normalizada de \"48 e 30\"->30)" },
+    "T06_resumo_tecnico": "OK — eletricoInv não-nulo p/ itens completos → sem alertas falsos (validado via dadosEletricosInversor)",
+    "T07_topologia_entradas_reais": "OK — entradasPorMppt=2 propagado (Huawei) → topologia oferece 2 entradas/MPPT reais",
+    "T08_regressao_e7": "OK — nenhum código alterado; data aditiva; registros tocados mantêm potencia/janela/corrente; util=true; Avelino independe de entradas_por_mppt"
+  },
+
+  "bonus": { "huawei_100ktl": "10 MPPT × 2 = 20 entradas, sem aviso (enriquecido além do escopo dos 3 alvos)" },
+
+  "regressao": {
+    "registros_tocados": [
+      { "modelo": "SUN2000-50KTL-M0", "pot_kw": 50, "janela": "200-1000", "imax": 22, "util": true },
+      { "modelo": "SUN2000-60KTL-M0", "pot_kw": 60, "janela": "200-1000", "imax": 22, "util": true },
+      { "modelo": "SUN2000-100KTL", "pot_kw": 100, "janela": "200-1000", "imax": 30, "util": true },
+      { "modelo": "ASW12K-LT-G2", "pot_kw": 12, "janela": "150-1000", "imax": 30, "util": true }
+    ],
+    "perda_de_dado": false
+  },
+
+  "residual": { "incompletos": 13, "motivo": "sem fonte interna/datasheet (não inventado)", "aviso_nao_mapeados_restante": ["3 Growatt MID-X (sem janela)"] }
+}

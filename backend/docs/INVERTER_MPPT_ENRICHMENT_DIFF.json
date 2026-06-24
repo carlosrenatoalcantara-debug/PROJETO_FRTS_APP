@@ -1,0 +1,34 @@
+{
+  "sprint": "P1-CATALOG-INVERTER-MPPT-ENRICHMENT-01",
+  "data": "2026-06-24",
+  "tipo": "alteração de DADOS (catálogo Mongo/Atlas via API) — NENHUM código alterado",
+  "revisao_gemini": "PENDENTE (sem ferramenta no ambiente)",
+
+  "metodo": {
+    "merge_lote": "POST /api/equipamentos/lote-inversores — merge idempotente por (tipo,fabricante,modelo); usado p/ 50KTL e 60KTL",
+    "put_full_merge": "PUT /api/equipamentos/:id com especificacoes COMPLETA (existente + campo) — usado p/ 100KTL e ASW12K (cujo save() de lote era bloqueado pelo defeito de enum do histórico)"
+  },
+
+  "enriquecimentos": [
+    { "id": "6a36d1845410371b3a3bfd57", "fabricante": "Huawei", "modelo": "SUN2000-50KTL-M0", "campo": "strings_por_mppt", "de": null, "para": 2, "fonte": "convenção da família Huawei SUN2000-KTL-M já no catálogo (30/36/40/100KTL-M/M2 = 2)", "resultado": "6 MPPT × 2 = 12 entradas", "via": "lote-merge" },
+    { "id": "6a359024f3fada9effa61cf6", "fabricante": "Huawei", "modelo": "SUN2000-60KTL-M0", "campo": "strings_por_mppt", "de": null, "para": 2, "fonte": "idem família KTL-M", "resultado": "6 MPPT × 2 = 12 entradas", "via": "lote-merge" },
+    { "id": "6a221cbcdf17c1aa4c0743b7", "fabricante": "Huawei", "modelo": "SUN2000-100KTL", "campo": "strings_por_mppt", "de": null, "para": 2, "fonte": "idem (irmãos 100KTL-M/M2 = 2)", "resultado": "10 MPPT × 2 = 20 entradas", "via": "put-full-merge" },
+    { "id": "6a1eeaf9b4bafebf063bfe54", "fabricante": "Solplanet", "modelo": "ASW12K-LT-G2", "campo": "corrente_max_por_mppt", "de": "\"48 e 30\" (string malformada)", "para": 30, "fonte": "normalização de DADO REAL existente (inversor assimétrico MPPT1=48A/MPPT2=30A); escolhido o MÍNIMO por ser limite de sobrecorrente (conservador/seguro)", "resultado": "eletricoInv válido — aviso 'não mapeados' eliminado", "via": "put-full-merge" }
+  ],
+
+  "nao_enriquecidos_residual": {
+    "motivo": "sem fonte interna no catálogo nem datasheet/OCR armazenado (datasheet:null, documentos:0) — 'Não inventar valores'",
+    "sem_entradas_por_mppt": ["SolaX X3-ULT-25K/30K/20KP/20K/19.9K/15KP/15K", "SolaX X1-SPT-12K/10K", "Solis 1P7K-4G"],
+    "sem_janela_mppt": ["Growatt MID25KTL3-X", "Growatt MID20KTL3-X", "Growatt MID15KTL3-X"],
+    "total": 13,
+    "impacto": "SolaX/Solis: contagem de entradas usa default 1 (envelope elétrico OK, SEM aviso). Growatt: ainda 'não mapeados' (sem janela)."
+  },
+
+  "defeito_secundario_descoberto": {
+    "id": "BUG-HIST-ENUM-01",
+    "descricao": "ASW12K-LT-G2 e SUN2000-100KTL têm validacao.historico[].tipo='reprocessamento_manual', valor FORA do enum do schema (Equipamento.js:72 = ['validacao_automatica','correcao_manual','reprocessamento_gemini','import']). Qualquer save()/lote falha com 422. Contornado via PUT (findByIdAndUpdate não roda validators).",
+    "fix_proposto": "adicionar 'reprocessamento_manual' ao enum OU sanear os 2 registros. Sprint separada (toca schema, fora do escopo data-only)."
+  },
+
+  "nao_alterado": ["código (frontend/backend)", "UX", "workflow", "persistência", "E7", "E8", "governança", "homologação", "snapshots", "EV", "BESS", "schema"]
+}
