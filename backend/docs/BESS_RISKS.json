@@ -1,0 +1,24 @@
+{
+  "sprint": "P0-BESS-FOUNDATION-RCA-01",
+  "data": "2026-06-24",
+  "tipo": "READ-ONLY — riscos de arquitetura (sem código)",
+  "fase11_top10_erros_a_evitar": [
+    { "id": "R1", "erro": "Acoplar BESS ao FV (aninhar a bateria dentro de ProjetoFV.arranjos[])", "consequencia": "quebra BESS standalone (caso L) e força refatoração", "mitigacao": "ProjetoBESS irmão; ligação a FV só por referência (fv_vinculado_id), somente leitura", "severidade": "critico" },
+    { "id": "R2", "erro": "Criar catálogo duplicado de baterias/PCS", "consequencia": "dois pontos de verdade, drift de dados, regras de qualidade divergentes", "mitigacao": "estender o ÚNICO Equipamento (tipos aditivos) + reusar gate de qualidade", "severidade": "critico" },
+    { "id": "R3", "erro": "Orçamento separado incompatível com o engine FV/EV", "consequencia": "impossível consolidar FV+BESS; lógica financeira divergente", "mitigacao": "reusar calcularOrcamento (modelo híbrido) com itens de linha BESS", "severidade": "alto" },
+    { "id": "R4", "erro": "Unifilar isolado (motor próprio do zero)", "consequencia": "duplicação, divergência visual, manutenção dobrada", "mitigacao": "reusar motor SVG do FV; adicionar só elementos novos", "severidade": "alto" },
+    { "id": "R5", "erro": "Hard-codar um único caso de uso (ex.: só backup)", "consequencia": "refatoração ao adicionar peak shaving/arbitragem", "mitigacao": "separar eixos topologia × objetivo × composição; motores plugáveis sobre núcleo comum", "severidade": "alto" },
+    { "id": "R6", "erro": "Tratar inversor híbrido como duas entidades (inversor + PCS)", "consequencia": "dupla contagem, unifilar/orçamento errados", "mitigacao": "modelar híbrido como entidade única (DC-coupled) desde o início", "severidade": "alto" },
+    { "id": "R7", "erro": "Omitir DoD / round-trip / C-rate / vida em ciclos no modelo de dados", "consequencia": "dimensionamento e simulação errados; migração futura", "mitigacao": "incluir esses campos no spike de dados antes do build", "severidade": "critico" },
+    { "id": "R8", "erro": "Ignorar acoplamento AC vs DC (assumir um só)", "consequencia": "topologias reais não representáveis; retrofit caro", "mitigacao": "campo topologia (ac_coupled|dc_coupled|hibrido) no projeto", "severidade": "alto" },
+    { "id": "R9", "erro": "Persistência por whitelist que descarta campos novos no POST (lição EV-RDY-01)", "consequencia": "perda silenciosa de dados ao salvar/reabrir", "mitigacao": "garantir whitelist/spread cobre os campos BESS; teste de round-trip salvar→reabrir", "severidade": "critico" },
+    { "id": "R10", "erro": "Estado de projeto/homologação volátil (Map em memória — lição NEW-01)", "consequencia": "perda ao reiniciar/reabrir", "mitigacao": "persistir em Mongo desde o início; fonte única por projeto", "severidade": "alto" },
+    { "id": "R11", "erro": "BESS recalcular consumo/energia FV em paralelo (lição E8)", "consequencia": "incoerência FV×BESS", "mitigacao": "ler do fv_vinculado_id por referência; uma fonte única por domínio", "severidade": "medio" },
+    { "id": "R12", "erro": "Forçar um 'Projeto unificado' agora (Opção B) refatorando FV/EV", "consequencia": "refatoração ampla e risco a módulos já encerrados", "mitigacao": "adiar agregador 'Instalação' p/ camada de leitura pós-V1", "severidade": "alto" }
+  ],
+  "respostas_fase6": {
+    "bloqueador_operacional_para_iniciar": false,
+    "risco_perda_dados_arquitetural": "mitigável (R7/R9/R10) se modelado no spike",
+    "funcionalidade_critica_dependente_de_decisao": "modelo de dados da bateria (DoD/round-trip/ciclos) e acoplamento AC/DC"
+  }
+}
