@@ -20,5 +20,25 @@
     "bloqueador_operacional_para_iniciar": false,
     "risco_perda_dados_arquitetural": "mitigável (R7/R9/R10) se modelado no spike",
     "funcionalidade_critica_dependente_de_decisao": "modelo de dados da bateria (DoD/round-trip/ciclos) e acoplamento AC/DC"
+  },
+
+  "atualizado_por": "P1-BESS-DATA-MODEL-SPIKE-01 (2026-06-24)",
+  "fase16_top10_erros_modelagem": [
+    { "id": "R-DM-01", "erro": "Misturar as camadas spec×projeto×simulação (ex.: persistir SOC ou DoD como dado fixo do equipamento)", "consequencia": "cálculo errado e migração ampla", "mitigacao": "spec=catálogo imutável; projeto=escolha; simulação=resultado — sempre separados" },
+    { "id": "R-DM-02", "erro": "Modelar SOC como valor estático armazenado", "consequencia": "perde a natureza temporal; simulação impossível", "mitigacao": "SOC é série da simulação; só os limites (soc_min/max/reserva) ficam no projeto" },
+    { "id": "R-DM-03", "erro": "Guardar kWh úteis como dado fixo em vez de derivar de nominal×DoD×round-trip", "consequencia": "incoerência ao mudar DoD/round-trip", "mitigacao": "kWh úteis sempre calculado" },
+    { "id": "R-DM-04", "erro": "Fixar um único acoplamento (AC ou DC) no nível do projeto sem permitir por-subsistema", "consequencia": "retrofit caro quando coexistirem", "mitigacao": "acoplamento por banco/subsistema + default no projeto" },
+    { "id": "R-DM-05", "erro": "BESS ler campos internos do ProjetoFV diretamente", "consequencia": "acoplamento errado, quebra ao FV evoluir", "mitigacao": "contrato mínimo de leitura (potencia/geração/curva) + snapshot no congelamento" },
+    { "id": "R-DM-06", "erro": "Tratar inversor híbrido como PCS + inversor separados", "consequencia": "dupla contagem em orçamento/unifilar", "mitigacao": "inversor_hibrido = entidade única (DC-coupled)" },
+    { "id": "R-DM-07", "erro": "Omitir vida em ciclos / SOH / degradação do modelo", "consequencia": "dimensionamento e garantia errados", "mitigacao": "spec da bateria (vida_ciclos/garantia/SOH-fim) + cálculo de SOH/vida na simulação" },
+    { "id": "R-DM-08", "erro": "Autonomia só como entrada OU só como resultado", "consequencia": "não cobre backup (entrada) e a verificação (resultado)", "mitigacao": "autonomia_alvo_h (proj) + autonomia_calculada_h (sim)" },
+    { "id": "R-DM-09", "erro": "Banco de baterias sem hierarquia (módulo→rack→banco)", "consequencia": "não escala p/ comercial/industrial; orçamento impreciso", "mitigacao": "agregado banco{n_racks,modulos_por_rack,modulo_id} (espelha arranjo→string→módulo do FV)" },
+    { "id": "R-DM-10", "erro": "Replicar/duplicar dados do FV no BESS", "consequencia": "drift entre FV e BESS", "mitigacao": "referência (fv_vinculado_id) + snapshot imutável só no congelamento; nunca replicar" }
+  ],
+  "respostas_data_model": {
+    "ac_dc_coexistem": true,
+    "vinculo_fv": "referencia + snapshot no congelamento (nunca replicacao)",
+    "maior_risco_modelagem": "R-DM-01 (misturar spec/projeto/simulacao)",
+    "objetivos_v1": ["backup", "autoconsumo"]
   }
 }
