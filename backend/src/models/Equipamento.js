@@ -69,7 +69,11 @@ const StatusOperacionalSchema = new mongoose.Schema({
 
 const EventoHistoricoSchema = new mongoose.Schema({
   em:    { type: Date, default: () => new Date() },
-  tipo:  { type: String, enum: ['validacao_automatica','correcao_manual','reprocessamento_gemini','import'] },
+  // P1-BUG-HIST-ENUM-01: enum sincronizado com os tipoEvento que o código realmente
+  // emite via processarEquipamento (catalogoQualidade.js:415). Os fluxos de admin
+  // (adminCatalogo.js) gravam reprocessamento_manual/edicao_manual/validacao_lote/
+  // reprocessamento_lote — antes ausentes aqui → save() falhava com 422 em 168 registros.
+  tipo:  { type: String, enum: ['validacao_automatica','correcao_manual','reprocessamento_gemini','reprocessamento_manual','edicao_manual','validacao_lote','reprocessamento_lote','import'] },
   por:   { type: String, default: 'sistema' },
   antes: mongoose.Schema.Types.Mixed,
   depois: mongoose.Schema.Types.Mixed,
@@ -176,6 +180,15 @@ const EquipamentoSchema = new mongoose.Schema(
       },
       // normas internacionais identificadas: [{ norma, laboratorio, validade, modelos }]
       normas_iec: { type: mongoose.Schema.Types.Mixed, default: [] },
+    },
+
+    // P5-GARANTIA-SIMPLES-01 — contato de suporte do fabricante (todos opcionais, aditivo)
+    suporte: {
+      telefone:              { type: String, default: null },
+      email:                 { type: String, default: null },
+      site:                  { type: String, default: null },
+      portal_garantia:       { type: String, default: null },
+      garantia_padrao_meses: { type: Number, default: null },
     },
   },
   { timestamps: true }
