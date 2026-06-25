@@ -2,6 +2,57 @@ import { GoogleGenerativeAI } from '@google/generative-ai'
 import { PDFParse } from 'pdf-parse'
 
 /**
+ * P1-EV-OCR-PHASE-DETECTION-FIX-01 — detecção de FASES robusta e GENÉRICA.
+ *
+ * Bug anterior: a detecção varria o TEXTO INTEIRO e escolhia "trifásico" se a palavra
+ * aparecesse EM QUALQUER LUGAR. Em datasheets MULTI-VARIANTE (mono/bi/tri no mesmo PDF),
+ * o modelo monofásico era classificado como trifásico (caso BelEnergy CVBE-MO-220V-7).
+ *
+ * Estratégia (sem hardcode, sem exceção por fabricante/modelo, sem pós-processamento):
+ *  1) DC explícito (e não-wallbox AC) → DC.
+ *  2) Keyword INEQUÍVOCO no doc (só mono OU só tri — single-variant) → vence.
+ *  3) Ambíguo (mono E tri no doc → multi-variante) OU sem keyword → desambigua por sinais
+ *     ESPECÍFICOS DO MODELO: token de fase no nome (1F/1P/MONO vs 3F/3P/TRI) e tensão de
+ *     linha (extraída ou embutida no nome do modelo): ~100-250 V = mono; ~360-480 V = tri.
+ *  4) Default seguro: wallbox AC monofásico.
+ *
+ * @param {string} textoUpper   texto do PDF em CAIXA ALTA
+ * @param {string} modelo       modelo já extraído (ex.: "CVBE-MO-220V-7")
+ * @param {number|null} tensaoEntradaV  tensão de entrada já extraída (ou null)
+ * @returns {{ tipo: 'AC_Mono'|'AC_Tri'|'DC', numero_fases: number }}
+ */
+export function detectarTipoFases(textoUpper, modelo, tensaoEntradaV) {
+  const T = String(textoUpper || '')
+  const M = String(modelo || '').toUpperCase()
+
+  // 1) DC explícito (mas não um wallbox AC que apenas mencione "DC" em passagem)
+  const dcMarker = /DIRECT[\s]*CURRENT|CARREGADOR[\s]*DC|\bDC[\s]*(?:CHARGER|FAST|OUTPUT|OUTLET)/.test(T)
+  const wallboxAC = /WALLBOX|AC[\s]*CHARGER|TYPE[\s]*2|IEC[\s]*61851/.test(T)
+  if (dcMarker && !wallboxAC) return { tipo: 'DC', numero_fases: 3 }
+
+  // 2) keywords de fase no documento
+  const docTri  = /TRIF[ÁA]SICO|THREE[\s]*PHASE|3[\s]*PHASES?|3[\s]*FASES|3F\s*\+\s*N/.test(T)
+  const docMono = /MONOF[ÁA]SICO|SINGLE[\s]*PHASE|1[\s]*PHASE|1[\s]*FASE|1F\s*\+\s*N/.test(T)
+  if (docTri && !docMono) return { tipo: 'AC_Tri', numero_fases: 3 }
+  if (docMono && !docTri) return { tipo: 'AC_Mono', numero_fases: 1 }
+
+  // 3) ambíguo (multi-variante) OU sem keyword → sinais específicos do MODELO
+  const modTri  = /(?:^|[^A-Z0-9])(?:3F|3P|TRIF?|TRI)(?:[^A-Z0-9]|$)/.test(M)
+  const modMono = /(?:^|[^A-Z0-9])(?:1F|1P|MONOF?|MONO)(?:[^A-Z0-9]|$)/.test(M)
+  if (modTri && !modMono) return { tipo: 'AC_Tri', numero_fases: 3 }
+  if (modMono && !modTri) return { tipo: 'AC_Mono', numero_fases: 1 }
+
+  // tensão de linha (sinal físico universal) — da spec extraída ou embutida no nome do modelo
+  const vModelo = (M.match(/(\d{3})\s*V/) || [])[1]
+  const v = Number(tensaoEntradaV) || (vModelo ? Number(vModelo) : null)
+  if (v != null && v >= 360 && v <= 480) return { tipo: 'AC_Tri', numero_fases: 3 }
+  if (v != null && v >= 100 && v <= 250) return { tipo: 'AC_Mono', numero_fases: 1 }
+
+  // 4) default seguro: wallbox AC monofásico
+  return { tipo: 'AC_Mono', numero_fases: 1 }
+}
+
+/**
  * Extrai dados de datasheet EV usando regex patterns (100% GRATUITO - sem IA necessária)
  * Estratégia: Extrai texto do PDF, depois usa padrões regex para encontrar dados técnicos
  */
@@ -144,32 +195,9 @@ export async function extrairDatasheetEV(pdfBuffer) {
     }
 
     // Tipo (Monofásico/Trifásico/DC)
-    let tipo = 'AC_Mono'
-    let numero_fases = 1
-
-    const tipoPatterns = [
-      /TRIFÁSICO|THREE[\s]*PHASE|3[\s]*FASES|3F\+N/i,
-      /MONOFÁSICO|SINGLE[\s]*PHASE|1[\s]*FASES|1F\+N/i,
-      /DC[\s]*CHARGER|DIRECT[\s]*CURRENT|CARREGADOR[\s]*DC/i,
-    ]
-
-    for (const pattern of tipoPatterns) {
-      if (pattern.test(texto)) {
-        if (/TRIFÁSICO|THREE[\s]*PHASE|3[\s]*FASES|3F\+N/i.test(pattern.source) && pattern.test(texto)) {
-          tipo = 'AC_Tri'
-          numero_fases = 3
-          break
-        } else if (/DC[\s]*CHARGER|DIRECT[\s]*CURRENT/i.test(pattern.source) && pattern.test(texto)) {
-          tipo = 'DC'
-          numero_fases = 3
-          break
-        } else if (/MONOFÁSICO|SINGLE[\s]*PHASE|1[\s]*FASES/i.test(pattern.source) && pattern.test(texto)) {
-          tipo = 'AC_Mono'
-          numero_fases = 1
-          break
-        }
-      }
-    }
+    // P1-EV-OCR-PHASE-DETECTION-FIX-01: detecção robusta e GENÉRICA — escopada ao modelo
+    // sendo importado (resolve datasheets MULTI-VARIANTE onde mono e tri coexistem).
+    const { tipo, numero_fases } = detectarTipoFases(texto, modelo, tensao_entrada_v)
 
     // Tensão DC (para DC)
     let tensao_saida_dc_v = null
