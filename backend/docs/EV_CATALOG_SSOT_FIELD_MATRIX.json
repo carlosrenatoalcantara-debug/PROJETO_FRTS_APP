@@ -1,0 +1,44 @@
+{
+  "sprint": "P0-EV-CATALOG-SINGLE-SOURCE-OF-TRUTH-01",
+  "data": "2026-06-24",
+  "tipo": "FASE 0/1 — RCA + matriz (READ-ONLY, nada implementado)",
+  "estado_catalogo": "vazio (0 carregadores em ambas as coleções) — sem dados a migrar nesta data",
+
+  "escrita": {
+    "cadastro_manual_POST /carregadores-ev": "CarregadorEV apenas (carregadoresEV.js:115) — NÃO cria mirror Equipamento",
+    "edicao_PUT /carregadores-ev/:id": "CarregadorEV apenas (carregadoresEV.js:126) — NÃO atualiza mirror",
+    "import_datasheet_POST /upload-datasheet": "CarregadorEV + Equipamento mirror lossy (carregadoresEV.js:400 e 406-431)",
+    "sync/lote (admin)": "Equipamento mirror (carregadoresEV.js:144,218)"
+  },
+  "leitura": {
+    "projeto_EV (vincular)": "CarregadorEV → snapshot subset em projeto.snapshot_carregador (projetosEVController.js:42-62)",
+    "dimensionamento/orcamento/unifilar": "projeto.snapshot_carregador (derivado de CarregadorEV)",
+    "catalogo_EV (pagina)": "CarregadorEV (/api/carregadores-ev)",
+    "catalogo_unificado/score (FV-style)": "Equipamento tipo=carregador_ev (/engenharia, catalogoQualidade)"
+  },
+
+  "campos": [
+    { "campo": "marca/modelo", "carregadorEV": true, "equipamento": "fabricante/modelo (top-level)", "escreve": "ambos os caminhos", "le": "projeto+catalogo", "so_um": "sim", "perdido_no_mirror": false },
+    { "campo": "tipo (AC_Mono/AC_Tri/DC)", "carregadorEV": true, "equipamento": "especificacoes.tipo_carregador", "escreve": "ambos", "le": "score/edição", "so_um": "sim", "perdido_no_mirror": false },
+    { "campo": "potencia_kw", "carregadorEV": true, "equipamento": true, "escreve": "ambos", "le": "dimensionamento+score", "so_um": "sim", "perdido_no_mirror": false },
+    { "campo": "tensao_entrada_v", "carregadorEV": true, "equipamento": true, "escreve": "ambos", "le": "dimensionamento+score", "so_um": "sim", "perdido_no_mirror": false },
+    { "campo": "corrente_entrada_a", "carregadorEV": true, "equipamento": true, "escreve": "ambos", "le": "dimensionamento+score", "so_um": "sim", "perdido_no_mirror": false },
+    { "campo": "numero_fases", "carregadorEV": true, "equipamento": true, "escreve": "ambos", "le": "dimensionamento", "so_um": "sim", "perdido_no_mirror": false },
+    { "campo": "tipo_conector", "carregadorEV": true, "equipamento": true, "escreve": "ambos", "le": "dimensionamento/BOM/unifilar", "so_um": "sim", "perdido_no_mirror": false },
+    { "campo": "qtd_conectores", "carregadorEV": true, "equipamento": false, "escreve": "só CarregadorEV", "le": "dimensionamento", "so_um": "sim", "perdido_no_mirror": true },
+    { "campo": "ocpp", "carregadorEV": true, "equipamento": false, "escreve": "só CarregadorEV", "le": "catálogo/engenharia importante", "so_um": "sim", "perdido_no_mirror": true },
+    { "campo": "peso_kg", "carregadorEV": true, "equipamento": false, "escreve": "só CarregadorEV", "le": "comercial", "so_um": "sim", "perdido_no_mirror": true },
+    { "campo": "dimensoes_mm", "carregadorEV": true, "equipamento": false, "escreve": "só CarregadorEV", "le": "marketing", "so_um": "sim", "perdido_no_mirror": true },
+    { "campo": "frequencia_hz", "carregadorEV": true, "equipamento": false, "escreve": "só CarregadorEV", "le": "—", "so_um": "sim", "perdido_no_mirror": true },
+    { "campo": "fator_potencia", "carregadorEV": true, "equipamento": false, "escreve": "só CarregadorEV", "le": "—", "so_um": "sim", "perdido_no_mirror": true },
+    { "campo": "eficiencia_pct", "carregadorEV": true, "equipamento": false, "escreve": "só CarregadorEV", "le": "DC", "so_um": "sim", "perdido_no_mirror": true },
+    { "campo": "tensao_saida_dc_v / corrente_saida_dc_a", "carregadorEV": true, "equipamento": false, "escreve": "só CarregadorEV", "le": "DC", "so_um": "sim", "perdido_no_mirror": true },
+    { "campo": "tempo_carga_rapida_min", "carregadorEV": true, "equipamento": false, "escreve": "só CarregadorEV", "le": "DC", "so_um": "sim", "perdido_no_mirror": true },
+    { "campo": "protocolo_carregamento / tipo_carregamento / comunicacao", "carregadorEV": true, "equipamento": true, "escreve": "ambos", "le": "catálogo", "so_um": "sim", "perdido_no_mirror": false },
+    { "campo": "grau_protecao_ip / temperatura_operacao", "carregadorEV": true, "equipamento": true, "escreve": "ambos", "le": "catálogo", "so_um": "sim", "perdido_no_mirror": false },
+    { "campo": "garantia_anos", "carregadorEV": true, "equipamento": "garantia_produto", "escreve": "ambos", "le": "catálogo", "so_um": "sim", "perdido_no_mirror": false },
+    { "campo": "disjuntor/dr/bitola recomendados", "carregadorEV": true, "equipamento": false, "escreve": "só CarregadorEV", "le": "(derivado pelo NBR5410)", "so_um": "sim", "perdido_no_mirror": true }
+  ],
+
+  "resumo_perda": "13+ campos do CarregadorEV não existem no mirror Equipamento (qtd_conectores, ocpp, peso, dimensoes, frequencia, fator_potencia, eficiencia, DC, tempo_carga, proteções). Além disso, cadastro manual e PUT NÃO criam/atualizam o mirror → drift adicional."
+}
