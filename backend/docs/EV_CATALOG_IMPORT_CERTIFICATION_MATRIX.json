@@ -1,0 +1,42 @@
+{
+  "sprint": "P0-EV-CATALOG-IMPORT-CERTIFICATION-01",
+  "data": "2026-06-24",
+  "tipo": "certificação READ-ONLY (nada alterado)",
+  "estado_catalogo": { "equipamento_carregador_ev": 0, "collection_CarregadorEV": 0, "api_carregadores_ev": 0, "fantasmas": 0, "mongo_frontend_consistente": true },
+  "amostra_empirica": "os 7 carregadores AC da sprint anterior (Intelbras/Solplanet/EvoWatt/Belenergy), já excluídos — dados reais capturados em runtime antes da limpeza",
+
+  "fase2_campo_a_campo": [
+    { "campo": "fabricante/modelo", "no_pdf": "sim", "ocr_encontrou": "sim (Gemini+regex fallback)", "persistiu": "sim", "na_edicao": "sim", "dimensionamento": "identificação", "score": "sim (identificacao 30)", "necessario": "crítico" },
+    { "campo": "potencia_kw", "no_pdf": "sim", "ocr_encontrou": "sim", "persistiu": "sim", "na_edicao": "sim", "dimensionamento": "SIM (cabo/disjuntor)", "score": "sim (30)", "necessario": "ENG. CRÍTICA" },
+    { "campo": "tensao_entrada_v", "no_pdf": "sim (AC)", "ocr_encontrou": "NÃO (whitelist {110,120,220,380,400} rígido)", "persistiu": "null", "na_edicao": "vazio", "dimensionamento": "SIM", "score": "sim (10) — penalizou", "necessario": "ENG. CRÍTICA" },
+    { "campo": "corrente_entrada_a", "no_pdf": "sim (AC)", "ocr_encontrou": "NÃO (regex não casou)", "persistiu": "null", "na_edicao": "vazio", "dimensionamento": "SIM", "score": "sim (10) — penalizou", "necessario": "ENG. CRÍTICA" },
+    { "campo": "numero_fases", "no_pdf": "sim", "ocr_encontrou": "sim", "persistiu": "sim", "na_edicao": "sim", "dimensionamento": "SIM (mono/tri)", "score": "indireto", "necessario": "ENG. CRÍTICA" },
+    { "campo": "tipo_conector", "no_pdf": "sim", "ocr_encontrou": "sim (default Type 2)", "persistiu": "sim", "na_edicao": "sim", "dimensionamento": "SIM (BOM/unifilar)", "score": "NÃO (fora do normalize)", "necessario": "ENG. CRÍTICA" },
+    { "campo": "qtd_conectores", "no_pdf": "às vezes", "ocr_encontrou": "NÃO (não extraído)", "persistiu": "NÃO no mirror Equipamento (default 1 no CarregadorEV)", "na_edicao": "sim (manual)", "dimensionamento": "SIM", "score": "NÃO", "necessario": "ENG. CRÍTICA" },
+    { "campo": "ocpp", "no_pdf": "às vezes", "ocr_encontrou": "NÃO", "persistiu": "NÃO no mirror (null no CarregadorEV)", "na_edicao": "sim (manual)", "dimensionamento": "não", "score": "NÃO", "necessario": "ENG. IMPORTANTE" },
+    { "campo": "grau_protecao_ip", "no_pdf": "sim", "ocr_encontrou": "sim", "persistiu": "sim", "na_edicao": "sim", "dimensionamento": "não", "score": "NÃO", "necessario": "COMERCIAL" },
+    { "campo": "temperatura_operacao", "no_pdf": "sim", "ocr_encontrou": "sim", "persistiu": "sim", "na_edicao": "sim", "dimensionamento": "não", "score": "NÃO", "necessario": "COMERCIAL" },
+    { "campo": "peso_kg", "no_pdf": "sim", "ocr_encontrou": "NÃO (return peso_kg:null hardcoded)", "persistiu": "NÃO no mirror", "na_edicao": "sim (manual)", "dimensionamento": "não", "score": "NÃO", "necessario": "COMERCIAL" },
+    { "campo": "dimensoes_mm", "no_pdf": "sim", "ocr_encontrou": "parcial", "persistiu": "NÃO no mirror", "na_edicao": "sim", "dimensionamento": "não", "score": "NÃO", "necessario": "MARKETING" },
+    { "campo": "eficiencia_pct", "no_pdf": "DC sim / AC raro", "ocr_encontrou": "tenta", "persistiu": "NÃO no mirror", "na_edicao": "sim", "dimensionamento": "não (AC)", "score": "não", "necessario": "NUNCA DEVERIA EXISTIR (em AC)" },
+    { "campo": "tensao_saida_dc_v / corrente_saida_dc_a", "no_pdf": "só DC", "ocr_encontrou": "regex SEMPRE roda (mesmo em AC)", "persistiu": "NÃO no mirror", "na_edicao": "sim (form único)", "dimensionamento": "não (AC)", "score": "não", "necessario": "NUNCA DEVERIA EXISTIR (em AC)" },
+    { "campo": "tempo_carga_rapida_min", "no_pdf": "só DC", "ocr_encontrou": "—", "persistiu": "NÃO no mirror", "na_edicao": "sim", "dimensionamento": "não (AC)", "score": "não", "necessario": "NUNCA DEVERIA EXISTIR (em AC)" },
+    { "campo": "garantia_anos", "no_pdf": "sim", "ocr_encontrou": "sim (default 2)", "persistiu": "sim (garantia_produto)", "na_edicao": "sim", "dimensionamento": "não", "score": "não (carregador)", "necessario": "COMERCIAL" }
+  ],
+
+  "fase3_classificacao": {
+    "engenharia_critica": ["fabricante","modelo","potencia_kw","tensao_entrada_v","corrente_entrada_a","numero_fases","tipo_conector","qtd_conectores"],
+    "engenharia_importante": ["ocpp"],
+    "comercial": ["grau_protecao_ip","temperatura_operacao","peso_kg","garantia_anos"],
+    "marketing": ["dimensoes_mm"],
+    "nunca_deveria_existir_em_AC": ["tensao_saida_dc_v","corrente_saida_dc_a","faixa_tensao_dc","tempo_carga_rapida_min","eficiencia_pct","conector_saida_dc"]
+  },
+
+  "fase4_aptidao_amostra_7_AC": {
+    "dimensionamento": "PARCIAL — potencia/fases/conector OK; tensao_entrada/corrente_entrada nulos (OCR) e qtd_conectores não no mirror → exige preenchimento/derivação",
+    "projeto": "PARCIAL (mesma razão)",
+    "orcamento": "APTO (potencia + conector suficientes p/ orçar)",
+    "unifilar": "APTO (tipo/potencia/conector/fases presentes)",
+    "catalogo": "APTO para listagem; nível 'incompleto' (56-64) por origem=import_legado + 2 campos AC"
+  }
+}

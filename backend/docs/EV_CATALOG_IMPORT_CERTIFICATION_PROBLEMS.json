@@ -1,0 +1,41 @@
+{
+  "sprint": "P0-EV-CATALOG-IMPORT-CERTIFICATION-01",
+  "data": "2026-06-24",
+  "regra": "listas SEM misturar categorias (FASE 7). Nada corrigido.",
+
+  "problemas_OCR": [
+    { "id": "OCR-1", "desc": "tensao_entrada_v só aceita {110,120,220,380,400} (whitelist rígido, carregadorEVControllerGemini.js:120) → tensões válidas fora da lista viram null", "evidencia": "7/7 carregadores AC com tensao_entrada_v=null" },
+    { "id": "OCR-2", "desc": "corrente_entrada_a: regex não casou nos datasheets reais → null", "evidencia": "7/7 com corrente_entrada_a=null" },
+    { "id": "OCR-3", "desc": "peso_kg retornado como null hardcoded (linha 324) — nunca extraído", "evidencia": "campo sempre ausente via datasheet" },
+    { "id": "OCR-4", "desc": "qtd_conectores e ocpp não são extraídos pela OCR", "evidencia": "ausentes em toda importação por datasheet" },
+    { "id": "OCR-5", "desc": "extratores DC (tensao/corrente saída) rodam SEMPRE, inclusive em AC (sem classificar tipo antes)", "evidencia": "linhas 175-204 incondicionais" }
+  ],
+
+  "problemas_persistencia": [
+    { "id": "PER-1", "desc": "Mirror Equipamento é projeção LOSSY do CarregadorEV: NÃO copia qtd_conectores, ocpp, peso_kg, dimensoes_mm, frequencia_hz, fator_potencia, campos DC, tempo_carga_rapida, eficiencia (carregadoresEV.js:411-423)", "impacto": "catálogo/qualidade nunca enxergam esses campos" },
+    { "id": "PER-2", "desc": "origem hardcoded 'import_legado' p/ todo datasheet de carregador (carregadoresEV.js:408)", "impacto": "confiança capada em 40 → score ≤ ~64 mesmo com engenharia completa" },
+    { "id": "PER-3", "desc": "Dupla escrita CarregadorEV + Equipamento; múltiplos caminhos (datasheet/manual/lote/seed) com mapas de campo divergentes", "impacto": "inconsistência estrutural quando há dados" }
+  ],
+
+  "problemas_arquitetura": [
+    { "id": "ARQ-1", "desc": "AC e DC compartilham um único model/form/OCR; campos DC existem em wallbox AC", "impacto": "form mostra campos inexistentes; OCR procura DC em AC" },
+    { "id": "ARQ-2", "desc": "tipo_carregador (sub-tipo de fase) sobrecarregava o `tipo` do plano de qualidade", "status": "JÁ CORRIGIDO na sprint anterior (commit d2ed5bc) — TIPO_INVALIDO falso eliminado" },
+    { "id": "ARQ-3", "desc": "qtd_conectores/ocpp/tipo_conector (engenharia real) fora do normalizarSpecsCarregador e de PESOS_CARREGADOR → não contam no score", "impacto": "carregador completo p/ engenharia não pontua por esses campos" }
+  ],
+
+  "problemas_qualidade": [
+    { "id": "QUA-1", "desc": "Cap de confiança por origem=import_legado é REGRA CORRETA aplicada a uma origem ERRADA (cadastro manual com datasheet deveria ser datasheet_*)", "status": "depende de PER-2" },
+    { "id": "QUA-2", "desc": "normalizarSpecsCarregador lê só 5 campos (potencia/tipo/tensao_entrada/corrente_entrada/fases) → conector/qtd/ocpp ignorados pelo score", "impacto": "cobertura de score incompleta p/ engenharia AC" },
+    { "id": "QUA-3", "desc": "Penalizar ausência de tensao_entrada/corrente_entrada é CORRETO (relevantes p/ cabo/disjuntor) — a falha está na OCR não extraí-los, não na regra", "status": "regra correta" }
+  ],
+
+  "problemas_UI": [
+    { "id": "UI-1", "desc": "Form único (ModalNovoCarregadorEV) exibe campos DC para carregador AC", "impacto": "ruído visual + percepção de incompletude", "obs": "não exercido em runtime de navegador nesta auditoria" }
+  ],
+
+  "problemas_engenharia": [
+    { "id": "ENG-1", "desc": "Campos críticos de dimensionamento (tensao_entrada/corrente_entrada/qtd_conectores) chegam vazios por OCR/persistência, não por ausência no equipamento", "impacto": "aptidão a dimensionamento fica PARCIAL até preenchimento" }
+  ],
+
+  "contagem": { "OCR": 5, "persistencia": 3, "arquitetura": 3, "qualidade": 3, "UI": 1, "engenharia": 1, "ja_corrigidos": 1 }
+}
