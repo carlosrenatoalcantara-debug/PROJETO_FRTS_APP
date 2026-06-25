@@ -26,8 +26,10 @@ export function carregadorParaEquipamento(cg) {
     tipo: 'carregador_ev',
     fabricante: c.marca,
     modelo: c.modelo,
-    // Proveniência real do CarregadorEV (sem mais o 'import_legado' hardcoded do mirror).
-    origem: c.origem || { tipo: 'manual', fonte: 'catalogo_ev', em: c.createdAt || new Date() },
+    // Proveniência: preserva a do CarregadorEV se houver. Default = 'import_legado' para
+    // manter PARIDADE DE SCORE com o antigo mirror (esta sprint é só persistência — NÃO
+    // altera score). Corrigir a proveniência (→ score maior) é um one-liner p/ sprint futura.
+    origem: c.origem || { tipo: 'import_legado', fonte: 'catalogo_ev', em: c.createdAt || new Date() },
     especificacoes: {
       // identificação de fase / tipo
       tipo_carregador: c.tipo,
