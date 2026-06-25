@@ -107,8 +107,11 @@ export const listarEquipamentos = async (req, res) => {
     //   FASE 2 — usa ehCarregadorEV (normaliza hífen/underscore)
     //   FASE 4 — respeita flag ENABLE_CARREGADOR_EV_FALLBACK (default true)
     //   FASE 1 — inclui `_id` real no objeto mapeado (corrige DELETE undefined)
+    // P0-EV-CATALOG-SINGLE-SOURCE-OF-TRUTH-01: para tipo carregador, SEMPRE derivar de
+    // CarregadorEV (fonte única) — ignora docs mirror armazenados (obsoletos) e evita
+    // retornar a projeção lossy. O bloco abaixo REATRIBUI `equipamentos` por completo.
     let _origem = 'equipamento'
-    if (ehCarregadorEV(tipoNorm) && equipamentos.length === 0) {
+    if (ehCarregadorEV(tipoNorm)) {
       if (!catalogoFlags.ENABLE_CARREGADOR_EV_FALLBACK) {
         console.log('🚫 Fallback CarregadorEV DESABILITADO via flag — retornando vazio.')
         return res.json({ total: 0, equipamentos: [], _debug: { origem: 'equipamento', fallback_desabilitado: true } })

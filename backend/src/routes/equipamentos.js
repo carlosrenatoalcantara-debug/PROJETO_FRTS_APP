@@ -58,12 +58,17 @@ router.get('/engenharia', async (req, res) => {
     if (tipoFiltro) filtro.tipo = tipoFiltro
     if (!incluirBloqueados) filtro.utilizavel_em_projeto = { $ne: false }
 
-    const equipamentos = await Equipamento.find(filtro)
-      .sort({ fabricante: 1, 'especificacoes.potencia': 1 })
-      .lean()
+    // P0-EV-CATALOG-SINGLE-SOURCE-OF-TRUTH-01: carregadores vivem SÓ em CarregadorEV.
+    // IGNORAR docs Equipamento(carregador_ev) armazenados (mirrors obsoletos/legados) —
+    // a visão de carregador é SEMPRE derivada de CarregadorEV (evita duplicação).
+    let equipamentos = []
+    if (tipoFiltro !== 'carregador_ev') {
+      if (!tipoFiltro) filtro.tipo = { $ne: 'carregador_ev' }
+      equipamentos = await Equipamento.find(filtro)
+        .sort({ fabricante: 1, 'especificacoes.potencia': 1 })
+        .lean()
+    }
 
-    // P0-EV-CATALOG-SINGLE-SOURCE-OF-TRUTH-01: carregadores vivem SÓ em CarregadorEV
-    // (fonte única). Derivamos a visão COMPLETA aqui na leitura (nunca armazenada).
     if (!tipoFiltro || tipoFiltro === 'carregador_ev') {
       const { CarregadorEV } = await import('../models/CarregadorEV.js')
       const { carregadorParaEquipamentoComQualidade } = await import('../utils/catalogo/carregadorEquipamentoView.js')
