@@ -6,57 +6,107 @@ import ModalNovoCarregadorEV from '../components/equipamentos/ModalNovoCarregado
 
 const API_URL = '' /* URL relativa forçada — Vercel proxy → Railway. Não usar VITE_API_URL */
 
-// Campos técnicos exibidos no card expandido
-const SPECS_POTENCIA = [
-  { key: 'potencia_kw',      label: 'Potência nominal',     unit: 'kW'  },
-  { key: 'potencia_maxima',  label: 'Potência máxima',      unit: 'kW'  },
+// P0-EV-CATALOG-ENGINEERING-VIEW-01: VIEW DE ENGENHARIA.
+// Blocos de engenharia; chaves alinhadas ao doc derivado (carregadorEquipamentoView,
+// que espelha CarregadorEV sem perda). TODOS os campos são exibidos; vazio → "Não informado".
+// Nunca ocultar, nunca concatenar, nunca inferir.
+
+// Formatadores de exibição (apresentação fiel do valor armazenado — NÃO inferência).
+const ROTULO_TIPO = { AC_Mono: 'AC — Monofásico', AC_Tri: 'AC — Trifásico', DC: 'DC' }
+const ROTULO_FASES = { 1: 'Monofásico', 2: 'Bifásico', 3: 'Trifásico' }
+const NAO_INFO = 'Não informado'
+
+function fmtValor(campo, raw) {
+  if (raw === null || raw === undefined || raw === '') return NAO_INFO
+  if (campo.bool) return raw === true ? 'Sim' : raw === false ? 'Não' : NAO_INFO
+  if (campo.key === 'tipo_carregador') return ROTULO_TIPO[raw] || String(raw)
+  if (campo.key === 'numero_fases') {
+    const lbl = ROTULO_FASES[raw]
+    return lbl ? `${raw} (${lbl})` : String(raw)
+  }
+  return `${raw}${campo.unit ? ` ${campo.unit}` : ''}`
+}
+
+// Resolve o valor de um campo: especificacoes por padrão; `fonte:'raiz'` lê do doc.
+function valorCampo(car, espec, campo) {
+  if (campo.get) return campo.get(car, espec)
+  if (campo.fonte === 'raiz') return car?.[campo.key]
+  return espec?.[campo.key]
+}
+
+const BLOCOS_ENGENHARIA = [
+  { titulo: 'Identificação', campos: [
+    { key: 'fabricante', label: 'Fabricante', fonte: 'raiz' },
+    { key: 'modelo',     label: 'Modelo',     fonte: 'raiz' },
+    { key: 'tipo_carregador', label: 'Tipo' },
+  ]},
+  { titulo: 'Entrada Elétrica', campos: [
+    { key: 'potencia_kw',       label: 'Potência nominal',  unit: 'kW' },
+    { key: 'tensao_entrada_v',  label: 'Tensão de entrada', unit: 'V'  },
+    { key: 'corrente_entrada_a',label: 'Corrente de entrada', unit: 'A' },
+    { key: 'numero_fases',      label: 'Número de fases' },
+    { key: 'frequencia_hz',     label: 'Frequência',        unit: 'Hz' },
+    { key: 'fator_potencia',    label: 'Fator de potência' },
+  ]},
+  { titulo: 'Saída', campos: [
+    { key: 'tensao_saida_dc_v',    label: 'Tensão de saída DC',   unit: 'V'   },
+    { key: 'corrente_saida_dc_a',  label: 'Corrente de saída DC', unit: 'A'   },
+    { key: 'tempo_carga_rapida_min', label: 'Tempo de carga rápida', unit: 'min' },
+    { key: 'eficiencia_pct',       label: 'Eficiência',           unit: '%'   },
+  ]},
+  { titulo: 'Conectores', campos: [
+    { key: 'tipo_conector',  label: 'Tipo de conector' },
+    { key: 'qtd_conectores', label: 'Quantidade de conectores' },
+  ]},
+  { titulo: 'Comunicação', campos: [
+    { key: 'comunicacao', label: 'Comunicação' },
+  ]},
+  { titulo: 'Protocolos', campos: [
+    { key: 'protocolo_carregamento', label: 'Protocolo de carregamento' },
+    { key: 'tipo_carregamento',      label: 'Tipo de carregamento' },
+  ]},
+  { titulo: 'Controle', campos: [
+    { key: 'ocpp', label: 'OCPP', bool: true },
+  ]},
+  { titulo: 'Proteções', campos: [
+    { key: 'disjuntor_recomendado_a', label: 'Disjuntor recomendado', unit: 'A'   },
+    { key: 'dr_recomendado_ma',       label: 'DR recomendado',        unit: 'mA'  },
+    { key: 'bitola_cabo_minima_mm2',  label: 'Bitola mínima do cabo', unit: 'mm²' },
+  ]},
+  { titulo: 'Mecânica', campos: [
+    { key: 'peso_kg',      label: 'Peso',      unit: 'kg' },
+    { key: 'dimensoes_mm', label: 'Dimensões', unit: 'mm' },
+  ]},
+  { titulo: 'Ambiental', campos: [
+    { key: 'grau_protecao_ip',     label: 'Grau de proteção IP' },
+    { key: 'temperatura_operacao', label: 'Temperatura de operação' },
+  ]},
+  { titulo: 'Certificações', campos: [
+    { key: 'certificacoes', label: 'Certificações' },
+  ]},
+  { titulo: 'Garantia', campos: [
+    { key: 'garantia', label: 'Garantia', get: (car) => car?.garantia_produto?.value
+        ? `${car.garantia_produto.value} ${car.garantia_produto.unit || 'anos'}` : null },
+  ]},
 ]
 
-const SPECS_ENTRADA = [
-  { key: 'tensao_entrada',    label: 'Tensão entrada',       unit: 'V'   },
-  { key: 'corrente_entrada',  label: 'Corrente entrada',     unit: 'A'   },
-  { key: 'potencia_entrada',  label: 'Potência entrada',     unit: 'kW'  },
-  { key: 'numero_fases',      label: 'Fases',                unit: ''    },
-  { key: 'frequencia_hz',     label: 'Frequência nominal',   unit: 'Hz'  },
-]
-
-const SPECS_SAIDA = [
-  { key: 'tensao_saida_dc',    label: 'Tensão saída DC',      unit: 'V'   },
-  { key: 'corrente_saida_dc',  label: 'Corrente saída DC',    unit: 'A'   },
-  { key: 'potencia_saida_dc',  label: 'Potência saída DC',    unit: 'kW'  },
-  { key: 'tipo_conector_saida',label: 'Tipo conector saída',  unit: ''    },
-]
-
-const SPECS_PROTOCOLOS = [
-  { key: 'protocolo_carregamento', label: 'Protocolo carregamento', unit: ''    },
-  { key: 'tipo_carregamento',      label: 'Tipo carregamento',      unit: ''    },
-  { key: 'tempo_carga_rapida',     label: 'Tempo carga rápida',     unit: 'min' },
-  { key: 'comunicacao',            label: 'Comunicação',            unit: ''    },
-]
-
-const SPECS_EXTRAS = [
-  { key: 'eficiencia',              label: 'Eficiência',                unit: '%'   },
-  { key: 'fator_potencia',          label: 'Fator de potência',         unit: ''    },
-  { key: 'grau_protecao_ip',        label: 'Grau proteção IP',          unit: ''    },
-  { key: 'temperatura_operacao',    label: 'Temperatura operação',      unit: ''    },
-  { key: 'peso_kg',                 label: 'Peso',                      unit: 'kg'  },
-  { key: 'dimensoes',               label: 'Dimensões',                 unit: 'mm'  },
-  { key: 'garantia_anos',           label: 'Garantia',                  unit: 'anos'},
-]
-
-function SpecGroup({ titulo, specs, espec }) {
-  const visiveis = specs.filter(s => espec?.[s.key] != null)
-  if (!visiveis.length) return null
+function BlocoEngenharia({ titulo, campos, car, espec }) {
   return (
     <div>
       <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">{titulo}</p>
       <div className="grid grid-cols-2 gap-x-6 gap-y-1">
-        {visiveis.map(s => (
-          <div key={s.key} className="flex justify-between text-xs py-0.5 border-b border-slate-100">
-            <span className="text-slate-500">{s.label}</span>
-            <span className="font-semibold text-slate-800">{espec[s.key]}{s.unit && s.unit !== '' ? ` ${s.unit}` : ''}</span>
-          </div>
-        ))}
+        {campos.map(c => {
+          const raw = valorCampo(car, espec, c)
+          const vazio = raw === null || raw === undefined || raw === ''
+          return (
+            <div key={c.key} className="flex justify-between text-xs py-0.5 border-b border-slate-100">
+              <span className="text-slate-500">{c.label}</span>
+              <span className={vazio ? 'italic text-slate-400' : 'font-semibold text-slate-800'}>
+                {fmtValor(c, raw)}
+              </span>
+            </div>
+          )
+        })}
       </div>
     </div>
   )
@@ -264,10 +314,10 @@ export default function CarregadoresEV() {
                     <p className="font-bold text-slate-900 truncate">{car.fabricante} — {car.modelo}</p>
                     <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-slate-500 mt-0.5">
                       {espec.potencia_kw           && <span className="font-semibold text-slate-700">{espec.potencia_kw} kW</span>}
-                      {espec.tensao_entrada        && <span>{espec.tensao_entrada}V entrada</span>}
-                      {espec.numero_fases          && <span>{espec.numero_fases === 1 ? 'Monofásico' : espec.numero_fases === 3 ? 'Trifásico' : `${espec.numero_fases}F`}</span>}
-                      {espec.tipo_conector_saida   && <span>{espec.tipo_conector_saida}</span>}
-                      {espec.eficiencia            && <span>η {espec.eficiencia}%</span>}
+                      {espec.tensao_entrada_v      && <span>{espec.tensao_entrada_v}V entrada</span>}
+                      {espec.numero_fases          && <span>{ROTULO_FASES[espec.numero_fases] || `${espec.numero_fases}F`}</span>}
+                      {espec.tipo_conector         && <span>{espec.tipo_conector}</span>}
+                      {espec.qtd_conectores        && <span>{espec.qtd_conectores} conector(es)</span>}
                     </div>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
@@ -289,14 +339,9 @@ export default function CarregadoresEV() {
 
                 {aberto && (
                   <div className="border-t border-slate-100 px-5 py-4 bg-slate-50 space-y-5">
-                    <SpecGroup titulo="Potência" specs={SPECS_POTENCIA} espec={espec} />
-                    <SpecGroup titulo="Entrada AC" specs={SPECS_ENTRADA} espec={espec} />
-                    <SpecGroup titulo="Saída DC" specs={SPECS_SAIDA} espec={espec} />
-                    <SpecGroup titulo="Protocolos e Carregamento" specs={SPECS_PROTOCOLOS} espec={espec} />
-                    <SpecGroup titulo="Performance e Instalação" specs={SPECS_EXTRAS} espec={espec} />
-                    {Object.keys(espec).length === 0 && (
-                      <p className="text-xs text-slate-400 text-center">Nenhum dado técnico registrado</p>
-                    )}
+                    {BLOCOS_ENGENHARIA.map(b => (
+                      <BlocoEngenharia key={b.titulo} titulo={b.titulo} campos={b.campos} car={car} espec={espec} />
+                    ))}
                   </div>
                 )}
               </Card>
