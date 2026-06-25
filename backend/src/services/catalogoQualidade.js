@@ -154,12 +154,17 @@ function normalizar(equipamento) {
   else if (equipamento.tipo === 'carregador_ev') specs_canonicas = normalizarSpecsCarregador(equipamento)
 
   // Plano de validação — formato esperado pelas regras
+  // P0-EV-CATALOG-MODEL-REFORM-01 (BUG TIPO_INVALIDO): o `tipo` ESTRUTURAL do plano deve ser
+  // SEMPRE o tipo do equipamento (carregador_ev/modulo/...). Antes, o spread de specs_canonicas
+  // (que p/ carregador trazia um sub-tipo `tipo` = String(undefined)) SOBRESCREVIA plano.tipo,
+  // disparando TIPO_INVALIDO (crítico) → confiança=0 → score 32 → nivel=invalido em carregadores
+  // AC válidos. Forçar plano.tipo após o spread elimina o falso positivo.
   const plano = {
-    tipo: equipamento.tipo,
     fabricante: equipamento.fabricante,
     modelo: equipamento.modelo,
     _tem_especificacoes_originais: Boolean(equipamento.especificacoes && Object.keys(equipamento.especificacoes || {}).length > 0),
     ...(specs_canonicas || {}),
+    tipo: equipamento.tipo,
   }
   return { specs_canonicas, plano }
 }
