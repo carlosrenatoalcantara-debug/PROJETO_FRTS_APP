@@ -62,6 +62,16 @@ router.get('/engenharia', async (req, res) => {
       .sort({ fabricante: 1, 'especificacoes.potencia': 1 })
       .lean()
 
+    // P0-EV-CATALOG-SINGLE-SOURCE-OF-TRUTH-01: carregadores vivem SÓ em CarregadorEV
+    // (fonte única). Derivamos a visão COMPLETA aqui na leitura (nunca armazenada).
+    if (!tipoFiltro || tipoFiltro === 'carregador_ev') {
+      const { CarregadorEV } = await import('../models/CarregadorEV.js')
+      const { carregadorParaEquipamentoComQualidade } = await import('../utils/catalogo/carregadorEquipamentoView.js')
+      const { processarEquipamento } = await import('../services/catalogoQualidade.js')
+      const carregadores = await CarregadorEV.find({ ativo: { $ne: false } }).lean()
+      for (const cg of carregadores) equipamentos.push(carregadorParaEquipamentoComQualidade(cg, processarEquipamento))
+    }
+
     res.json({ fonte: 'catalogo_mongo', total: equipamentos.length, incluir_bloqueados: incluirBloqueados, equipamentos })
   } catch (err) {
     console.error('[equipamentos/engenharia]', err)

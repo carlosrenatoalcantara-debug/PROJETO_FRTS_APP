@@ -164,38 +164,8 @@ router.post('/admin/adicionar-lote', async (req, res) => {
           const novo = new CarregadorEV(dados)
           await novo.save()
           adicionados++
-
-          // Também sincronizar com Equipamentos
-          try {
-            const novoEquipamento = new Equipamento({
-              tipo: 'carregador_ev',
-              origem: { tipo: 'import_legado', fonte: 'catalogo_ev', em: new Date() },   // P1-CATALOG-PROVENANCE-01
-              fabricante: dados.marca,
-              modelo: dados.modelo,
-              especificacoes: {
-                tipo_carregador: dados.tipo,
-                potencia_kw: dados.potencia_kw,
-                tensao_entrada_v: dados.tensao_entrada_v,
-                corrente_entrada_a: dados.corrente_entrada_a,
-                numero_fases: dados.numero_fases,
-                grau_protecao_ip: dados.grau_protecao_ip,
-                temperatura_operacao: dados.temperatura_operacao,
-                protocolo_carregamento: dados.protocolo_carregamento,
-                tipo_carregamento: dados.tipo_carregamento,
-                tipo_conector: dados.tipo_conector,
-                comunicacao: dados.comunicacao,
-                carregadorEV_id: novo._id,
-              },
-              garantia_produto: dados.garantia_anos
-                ? { value: dados.garantia_anos, unit: 'anos' }
-                : undefined,
-              datasheet_url: dados.datasheet_url,
-              ativo: true,
-            })
-            await novoEquipamento.save()
-          } catch (e) {
-            console.warn('[Lote] Aviso: Equipamento não sincronizado:', e.message)
-          }
+          // P0-EV-CATALOG-SINGLE-SOURCE-OF-TRUTH-01: mirror Equipamento ELIMINADO
+          // (CarregadorEV é a fonte única; catálogo deriva na leitura).
         }
       } catch (err) {
         erros.push(`${dados.marca} ${dados.modelo}: ${err.message}`)
@@ -215,66 +185,19 @@ router.post('/admin/adicionar-lote', async (req, res) => {
 })
 
 // Sincronizar todos os CarregadoresEV com tabela Equipamentos
+// P0-EV-CATALOG-SINGLE-SOURCE-OF-TRUTH-01: OBSOLETO. Este endpoint existia apenas
+// para criar o mirror Equipamento(carregador_ev) — agora ELIMINADO. CarregadorEV é a
+// fonte única; o catálogo unificado/score DERIVAM a visão na leitura. Mantido como
+// no-op idempotente (não cria duplicação) para não quebrar chamadas existentes (API).
 router.post('/admin/sincronizar-equipamentos', async (req, res) => {
-  try {
-    const carregadores = await CarregadorEV.find({ ativo: true })
-
-    let sincronizados = 0
-    let erros = []
-
-    for (const cg of carregadores) {
-      try {
-        // Verificar se já existe
-        const existe = await Equipamento.findOne({
-          tipo: 'carregador_ev',
-          fabricante: cg.marca,
-          modelo: cg.modelo,
-        })
-
-        if (!existe) {
-          const novoEquipamento = new Equipamento({
-            tipo: 'carregador_ev',
-            origem: { tipo: 'import_legado', fonte: 'catalogo_ev', em: new Date() },   // P1-CATALOG-PROVENANCE-01
-            fabricante: cg.marca,
-            modelo: cg.modelo,
-            especificacoes: {
-              tipo_carregador: cg.tipo,
-              potencia_kw: cg.potencia_kw,
-              tensao_entrada_v: cg.tensao_entrada_v,
-              corrente_entrada_a: cg.corrente_entrada_a,
-              numero_fases: cg.numero_fases,
-              grau_protecao_ip: cg.grau_protecao_ip,
-              temperatura_operacao: cg.temperatura_operacao,
-              protocolo_carregamento: cg.protocolo_carregamento,
-              tipo_carregamento: cg.tipo_carregamento,
-              tipo_conector: cg.tipo_conector,
-              comunicacao: cg.comunicacao,
-              carregadorEV_id: cg._id,
-            },
-            garantia_produto: cg.garantia_anos
-              ? { value: cg.garantia_anos, unit: 'anos' }
-              : undefined,
-            datasheet_url: cg.datasheet_url,
-            ativo: true,
-          })
-          await novoEquipamento.save()
-          sincronizados++
-        }
-      } catch (err) {
-        erros.push(`${cg.marca} ${cg.modelo}: ${err.message}`)
-      }
-    }
-
-    res.json({
-      sucesso: true,
-      sincronizados,
-      total: carregadores.length,
-      erros,
-      msg: `Sincronizados ${sincronizados}/${carregadores.length} carregadores`,
-    })
-  } catch (error) {
-    res.status(500).json({ erro: error.message })
-  }
+  const total = await CarregadorEV.countDocuments({ ativo: true })
+  res.json({
+    sucesso: true,
+    sincronizados: 0,
+    total,
+    deprecado: true,
+    msg: 'Sincronização desativada: CarregadorEV é a fonte única; o catálogo deriva na leitura (SSOT).',
+  })
 })
 
 // Seed - Carregar banco inicial
@@ -401,39 +324,10 @@ router.post('/upload-datasheet', async (req, res) => {
         await novoCarregador.save()
         _auditarEV(req, 'CARREGADOR_EV_IMPORTADO', novoCarregador._id, `${car.marca} ${car.modelo} | origem=${_diag.fabricante_origem}/${_diag.modelo_origem}`)
 
-        // Também salvar na tabela Equipamentos para visibilidade na interface
-        try {
-          const novoEquipamento = new Equipamento({
-            tipo: 'carregador_ev',
-            origem: { tipo: 'import_legado', fonte: 'catalogo_ev', em: new Date() },   // P1-CATALOG-PROVENANCE-01
-            fabricante: resultado.carregador.marca,
-            modelo: resultado.carregador.modelo,
-            especificacoes: {
-              tipo_carregador: resultado.carregador.tipo,
-              potencia_kw: resultado.carregador.potencia_kw,
-              tensao_entrada_v: resultado.carregador.tensao_entrada_v,
-              corrente_entrada_a: resultado.carregador.corrente_entrada_a,
-              numero_fases: resultado.carregador.numero_fases,
-              grau_protecao_ip: resultado.carregador.grau_protecao_ip,
-              temperatura_operacao: resultado.carregador.temperatura_operacao,
-              protocolo_carregamento: resultado.carregador.protocolo_carregamento,
-              tipo_carregamento: resultado.carregador.tipo_carregamento,
-              tipo_conector: resultado.carregador.tipo_conector,
-              comunicacao: resultado.carregador.comunicacao,
-              carregadorEV_id: novoCarregador._id,
-            },
-            garantia_produto: resultado.carregador.garantia_anos
-              ? { value: resultado.carregador.garantia_anos, unit: 'anos' }
-              : undefined,
-            datasheet_url: resultado.carregador.datasheet_url,
-            ativo: true,
-          })
-          await novoEquipamento.save()
-          console.log('[EV Upload] Equipamento salvo na tabela Equipamentos:', novoEquipamento._id)
-        } catch (equipError) {
-          console.warn('[EV Upload] Aviso: Equipamento não foi sincronizado:', equipError.message)
-          resultado.avisos.push('Equipamento não foi sincronizado para a tabela genérica')
-        }
+        // P0-EV-CATALOG-SINGLE-SOURCE-OF-TRUTH-01: mirror Equipamento ELIMINADO.
+        // CarregadorEV é a fonte única; o catálogo unificado/score DERIVAM a visão
+        // completa na leitura (carregadorEquipamentoView). Sem duplicação, sem sync,
+        // sem projeção lossy.
 
         return res.status(201).json({
           sucesso: true,

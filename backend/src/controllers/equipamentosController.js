@@ -113,41 +113,17 @@ export const listarEquipamentos = async (req, res) => {
         console.log('🚫 Fallback CarregadorEV DESABILITADO via flag — retornando vazio.')
         return res.json({ total: 0, equipamentos: [], _debug: { origem: 'equipamento', fallback_desabilitado: true } })
       }
-      console.log('⚠️  Fallback: buscando de CarregadorEV collection...')
+      console.log('⚠️  Fallback: buscando de CarregadorEV collection (fonte única)...')
       const carregadores = await CarregadorEV.find({ ativo: true }).sort({ createdAt: -1 })
       console.log(`✓ Encontrados ${carregadores.length} carregadores EV`)
-      _origem = 'carregador_ev_fallback'
+      _origem = 'carregador_ev_fonte_unica'
 
-      // Converter CarregadorEV para formato Equipamento
-      equipamentos = carregadores.map(cg => ({
-        // FASE 1: _id real do CarregadorEV → permite DELETE/edição funcionar
-        _id: cg._id,
-        tipo: 'carregador_ev',
-        fabricante: cg.marca,
-        modelo: cg.modelo,
-        especificacoes: {
-          tipo_carregador: cg.tipo,
-          potencia_kw: cg.potencia_kw,
-          tensao_entrada_v: cg.tensao_entrada_v,
-          corrente_entrada_a: cg.corrente_entrada_a,
-          numero_fases: cg.numero_fases,
-          grau_protecao_ip: cg.grau_protecao_ip,
-          temperatura_operacao: cg.temperatura_operacao,
-          protocolo_carregamento: cg.protocolo_carregamento,
-          tipo_carregamento: cg.tipo_carregamento,
-          tipo_conector: cg.tipo_conector,
-          comunicacao: cg.comunicacao,
-          carregadorEV_id: cg._id,
-        },
-        garantia_produto: cg.garantia_anos
-          ? { value: cg.garantia_anos, unit: 'anos' }
-          : undefined,
-        ativo: cg.ativo,
-        // FASE 1: marca a origem para o frontend saber qual coleção excluir
-        _origem: 'CarregadorEV',
-        createdAt: cg.createdAt,
-        updatedAt: cg.updatedAt,
-      }))
+      // P0-EV-CATALOG-SINGLE-SOURCE-OF-TRUTH-01: deriva a visão COMPLETA (sem perda)
+      // do CarregadorEV (fonte única). Substitui a antiga projeção lossy. Qualidade
+      // calculada na leitura reusando o motor de score (sem alterá-lo).
+      const { carregadorParaEquipamentoComQualidade } = await import('../utils/catalogo/carregadorEquipamentoView.js')
+      const { processarEquipamento } = await import('../services/catalogoQualidade.js')
+      equipamentos = carregadores.map(cg => carregadorParaEquipamentoComQualidade(cg, processarEquipamento))
     }
 
     res.json({
