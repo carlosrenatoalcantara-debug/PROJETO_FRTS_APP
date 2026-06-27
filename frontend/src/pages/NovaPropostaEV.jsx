@@ -100,11 +100,12 @@ export default function NovaPropostaEV() {
           const escolhido = comEV || aptos[0]
           setTecnicoSelecionado(escolhido._id)
           const ehCrea = (escolhido.tipo_registro || '').toUpperCase() === 'CREA'
+          const registro = escolhido.registro || ''   // backend pode retornar null → '' (evita warning controlled input)
           setDados(prev => ({
             ...prev,
             tecnico_nome: escolhido.nome || '',
-            tecnico_crea: ehCrea ? escolhido.registro : '',
-            tecnico_cft: !ehCrea ? escolhido.registro : '',
+            tecnico_crea: ehCrea ? registro : '',
+            tecnico_cft: !ehCrea ? registro : '',
             tecnico_tipo: ehCrea ? 'crea' : 'cft',
             tecnico_id: escolhido._id,
             tecnico_potencia_max_kw: escolhido.potencia_max_kw || null,
@@ -373,7 +374,8 @@ export default function NovaPropostaEV() {
                     const resp = responsaveisTecnicos.find(r => r._id === e.target.value)
                     if (resp) {
                       const ehCrea = (resp.tipo_registro || '').toUpperCase() === 'CREA'
-                      setDados(p => ({ ...p, tecnico_nome: resp.nome || '', tecnico_crea: ehCrea ? resp.registro : '', tecnico_cft: !ehCrea ? resp.registro : '', tecnico_tipo: ehCrea ? 'crea' : 'cft', tecnico_id: resp._id, tecnico_potencia_max_kw: resp.potencia_max_kw || null, tecnico_validade_carteira: resp.validade_carteira_profissional || null }))
+                      const registro = resp.registro || ''   // backend pode retornar null → '' (evita warning controlled input)
+                      setDados(p => ({ ...p, tecnico_nome: resp.nome || '', tecnico_crea: ehCrea ? registro : '', tecnico_cft: !ehCrea ? registro : '', tecnico_tipo: ehCrea ? 'crea' : 'cft', tecnico_id: resp._id, tecnico_potencia_max_kw: resp.potencia_max_kw || null, tecnico_validade_carteira: resp.validade_carteira_profissional || null }))
                     }
                   }}
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm">
