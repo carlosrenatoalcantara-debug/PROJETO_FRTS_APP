@@ -67,9 +67,16 @@ describe('FORTE SOLAR — Monofásico: L + N + PE (3 condutores)', () => {
     expect(item(bom, 'Cabo de alimentação')).toBeUndefined()
   })
 
-  it('BOM monofásico tem 13 itens (1+3+1+1+1+1+1+1+1+1+1)', () => {
+  it('BOM monofásico tem 21 itens (Equip1+Prot6+Cabos3+Infra7+Conex2+Div2)', () => {
     const bom = gerarBOM({ ...baseArgsMono, comprimento_m: 25 })
-    expect(bom.length).toBe(13)
+    expect(bom.length).toBe(21)
+  })
+
+  it('Mob Box: ausente por padrão, presente quando incluir_mob_box', () => {
+    expect(item(gerarBOM({ ...baseArgsMono, comprimento_m: 25 }), 'Mob Box')).toBeUndefined()
+    const comMob = gerarBOM({ ...baseArgsMono, comprimento_m: 25, incluir_mob_box: true })
+    expect(item(comMob, 'Mob Box')).toBeDefined()
+    expect(comMob.length).toBe(22)
   })
 
   it('REGRAS_BOM.CONDUTORES_MONO === 3', () => {
@@ -113,9 +120,9 @@ describe('FORTE SOLAR — Trifásico: L1+L2+L3+N+PE (5 condutores)', () => {
     expect(total).toBe(175)
   })
 
-  it('BOM trifásico tem 15 itens (1+5+1+1+1+1+1+1+1+1+1)', () => {
+  it('BOM trifásico tem 23 itens (Equip1+Prot6+Cabos5+Infra7+Conex2+Div2)', () => {
     const bom = gerarBOM({ ...baseArgsTri, comprimento_m: 25 })
-    expect(bom.length).toBe(15)
+    expect(bom.length).toBe(23)
   })
 
   it('REGRAS_BOM.CONDUTORES_TRI === 5', () => {
@@ -248,6 +255,57 @@ describe('Itens básicos — regressão', () => {
     expect(nomes).toContain('Cabo Fase L3')
     expect(nomes).toContain('Cabo Neutro (N)')
     expect(nomes).toContain('Cabo Terra (PE)')
+  })
+})
+
+// ─── Conexões: terminal tubular + conector perfurante ───────────────────────
+
+describe('Conexões — terminal tubular (bitola = bitola do cabo)', () => {
+  it('Monofásico: 3 condutores → 6 terminais', () => {
+    const t = item(gerarBOM({ ...baseArgsMono, comprimento_m: 10 }), 'Terminal tubular')
+    expect(t).toBeDefined()
+    expect(t.quantidade).toBe(6)
+  })
+
+  it('Trifásico: 5 condutores → 10 terminais', () => {
+    expect(item(gerarBOM({ ...baseArgsTri, comprimento_m: 10 }), 'Terminal tubular').quantidade).toBe(10)
+  })
+
+  it('bitola do terminal = bitola do cabo (na especificação)', () => {
+    const t = item(gerarBOM({ ...baseArgsMono, bitola_mm2: 16, comprimento_m: 10 }), 'Terminal tubular')
+    expect(t.especificacao).toContain('16mm²')
+  })
+})
+
+describe('Conexões — conector perfurante (condutores + 1 reserva)', () => {
+  it('Monofásico: 3 + 1 = 4 unidades', () => {
+    expect(item(gerarBOM({ ...baseArgsMono, comprimento_m: 10 }), 'Conector perfurante').quantidade).toBe(4)
+  })
+
+  it('Trifásico: 5 + 1 = 6 unidades', () => {
+    expect(item(gerarBOM({ ...baseArgsTri, comprimento_m: 10 }), 'Conector perfurante').quantidade).toBe(6)
+  })
+})
+
+describe('Novos itens centralizados (proteções + infraestrutura)', () => {
+  it('proteções: quadro EV, trilho DIN, barramento', () => {
+    const bom = gerarBOM({ ...baseArgsMono, comprimento_m: 10 })
+    expect(item(bom, 'Quadro de proteção EV')).toBeDefined()
+    expect(item(bom, 'Trilho DIN')).toBeDefined()
+    expect(item(bom, 'Barramento de cobre').quantidade).toBe(2)
+  })
+
+  it('infraestrutura: curva, luva, prensa-cabo, box reto', () => {
+    const bom = gerarBOM({ ...baseArgsMono, comprimento_m: 12 })  // 4 barras → luva 3
+    expect(item(bom, 'Curva').quantidade).toBe(2)
+    expect(item(bom, 'Luva').quantidade).toBe(3)
+    expect(item(bom, 'Prensa-cabo').quantidade).toBe(2)
+    expect(item(bom, 'Box reto').quantidade).toBe(2)
+  })
+
+  it('cada item tem categoria definida', () => {
+    const bom = gerarBOM({ ...baseArgsTri, comprimento_m: 10 })
+    expect(bom.every(i => typeof i.categoria === 'string' && i.categoria.length > 0)).toBe(true)
   })
 })
 

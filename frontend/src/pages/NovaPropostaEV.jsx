@@ -17,7 +17,9 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { MapPin, Zap, FileText, Download, Plus, X, Edit2, DollarSign, AlertTriangle, ChevronRight, Ruler } from 'lucide-react'
-import OrcamentoEV from '../components/ev/OrcamentoEV'
+import OrcamentoEV, { DEFAULT_SERVICOS_EV, bomParaMateriais, carregadoresParaEquipamentos } from '../components/ev/OrcamentoEV'
+import PropostaComercialEV from '../components/ev/PropostaComercialEV'
+import { calcularOrcamento } from '../utils/calcularOrcamento'
 import Card, { CardHeader, CardBody } from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import Input from '../components/ui/Input'
@@ -50,7 +52,16 @@ export default function NovaPropostaEV() {
   const [carregadoresDisponiveis, setCarregadoresDisponiveis] = useState([])
   const [carregadoresErro, setCarregadoresErro] = useState(null)
   const [calculos, setCalculos] = useState(null)
-  const [bomEditavel, setBomEditavel] = useState([])         // BOM editado na etapa 2
+  // ── Fonte única da verdade do orçamento (vive no pai, sobrevive à navegação) ─
+  const [orcamento, setOrcamento] = useState({
+    equipamentos: [],
+    materiais: [],
+    servicos: DEFAULT_SERVICOS_EV,
+    margem_pct: 20,
+    desconto_pct: 0,
+  })
+  const [statusComercial, setStatusComercial] = useState('rascunho')
+  const [incluirMobBox, setIncluirMobBox] = useState(false)
   const [unifilar, setUnifilar] = useState(null)
   const [modalUploadAberto, setModalUploadAberto] = useState(false)
   const [responsaveisTecnicos, setResponsaveisTecnicos] = useState([])
@@ -58,8 +69,6 @@ export default function NovaPropostaEV() {
   const [rtCarregando, setRtCarregando] = useState(true)
   const [modoEdicao, setModoEdicao] = useState(false)
   const [diagramaEditado, setDiagramaEditado] = useState(null)
-  const [orcamentoEV, setOrcamentoEV] = useState(null)
-  const [permitirUnifilarAntesAprovacao, setPermitirUnifilarAntesAprovacao] = useState(false)
   const [draftId] = useState(() => `ev-draft-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`)
 
   const [dados, setDados] = useState({
@@ -143,7 +152,7 @@ export default function NovaPropostaEV() {
   useEffect(() => {
     if (carregadores.length === 0) {
       setCalculos(null)
-      setBomEditavel([])
+      setOrcamento(prev => ({ ...prev, materiais: [], equipamentos: [] }))
       return
     }
 
@@ -158,13 +167,20 @@ export default function NovaPropostaEV() {
         comprimento_cabo_m: dados.comprimento_cabo_m || 0,
         tipo_carregador:   primeiro.tipo,
         corrente_nominal_a: primeiro.corrente_entrada_a, // fabricante — prioridade para disjuntor
+        incluir_mob_box:   incluirMobBox,
+        tipo_conector:     primeiro.tipo_conector,
       })
       setCalculos(resultado)
-      setBomEditavel(resultado.materiais)
+      // Propaga engenharia → orçamento (fonte única). Mantém serviços/margem/desconto.
+      setOrcamento(prev => ({
+        ...prev,
+        materiais: bomParaMateriais(resultado.materiais),
+        equipamentos: carregadoresParaEquipamentos(carregadores),
+      }))
     } catch (err) {
       console.error('[EV] Erro no cálculo automático:', err)
     }
-  }, [carregadores, dados.comprimento_cabo_m])
+  }, [carregadores, dados.comprimento_cabo_m, incluirMobBox])
 
   // ── Gerar unifilar ao entrar na etapa 4 ────────────────────────────────
   const etapaRef = useRef(etapa)
@@ -220,7 +236,7 @@ export default function NovaPropostaEV() {
         carregador_marca:      primeiro?.marca,
         carregador_modelo:     primeiro?.modelo,
         carregador_conector:   primeiro?.tipo_conector,
-        calculos:              { ...calculos, materiais: bomEditavel },
+        calculos:              { ...calculos, materiais: orcamento.materiais.map(m => ({ item: m.descricao, especificacao: '', quantidade: m.quantidade, unidade: m.unidade })) },
         tecnico_nome:          dados.tecnico_nome,
         tecnico_crea:          dados.tecnico_crea,
         tecnico_cft:           dados.tecnico_cft,
@@ -276,18 +292,18 @@ export default function NovaPropostaEV() {
       potencia_total_kw: potenciaTotalKw,
       comprimento_cabo_m: dados.comprimento_cabo_m,
       calculos_nbr: calculos,
-      bom: bomEditavel,
-      orcamento: orcamentoEV || null,
-      financeiro: orcamentoEV?.resumo ? {
-        custo_equipamentos_r: orcamentoEV.resumo.subtotal_equipamentos,
-        custo_materiais_r:    orcamentoEV.resumo.subtotal_materiais,
-        custo_instalacao_r:   orcamentoEV.resumo.subtotal_servicos,
-        margem_pct:           orcamentoEV.resumo.margem_pct,
-        desconto_pct:         orcamentoEV.resumo.desconto_pct,
-        custo_total_r:        orcamentoEV.resumo.preco_final,
-      } : undefined,
+      bom: orcamento.materiais,
+      orcamento: { ...orcamento, status: statusComercial, resumo: resumoOrcamento },
+      financeiro: {
+        custo_equipamentos_r: resumoOrcamento.subtotal_equipamentos,
+        custo_materiais_r:    resumoOrcamento.subtotal_materiais,
+        custo_instalacao_r:   resumoOrcamento.subtotal_servicos,
+        margem_pct:           resumoOrcamento.margem_pct,
+        desconto_pct:         resumoOrcamento.desconto_pct,
+        custo_total_r:        resumoOrcamento.preco_final,
+      },
       tecnico: { nome: dados.tecnico_nome, crea: dados.tecnico_crea, cft: dados.tecnico_cft, tipo_profissional: dados.tecnico_tipo },
-      status: orcamentoEV?.status === 'aprovado' ? 'aprovado' : 'dimensionado',
+      status: ['aprovado', 'em_execucao', 'concluido'].includes(statusComercial) ? 'aprovado' : 'dimensionado',
     }
 
     try {
@@ -309,6 +325,9 @@ export default function NovaPropostaEV() {
 
   // ── Validação NBR para exibição ─────────────────────────────────────────
   const validacaoNBR = calculos ? validarNBR5410(calculos) : null
+
+  // ── Resumo financeiro derivado da fonte única (etapa 2 → etapa 3 → salvar) ─
+  const resumoOrcamento = useMemo(() => calcularOrcamento(orcamento), [orcamento])
 
   // ─────────────────────────────────────────────────────────────────────────
   return (
@@ -491,6 +510,20 @@ export default function NovaPropostaEV() {
             </CardBody>
           </Card>
 
+          {/* ── Mob Box (equipamento opcional) ────────────────────────── */}
+          {carregadores.length > 0 && (
+            <Card>
+              <CardBody>
+                <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+                  <input type="checkbox" checked={incluirMobBox}
+                    onChange={(e) => setIncluirMobBox(e.target.checked)}
+                    className="accent-blue-600" />
+                  Incluir <strong>Mob Box</strong> (caixa de proteção/gerenciamento do carregador)
+                </label>
+              </CardBody>
+            </Card>
+          )}
+
           {/* ── Card destacado: comprimento do percurso ───────────────── */}
           <Card className="border-2 border-blue-300 bg-blue-50">
             <CardBody>
@@ -554,17 +587,17 @@ export default function NovaPropostaEV() {
             </Card>
           )}
 
-          {/* ── Lista de materiais editável ───────────────────────────── */}
-          {bomEditavel.length > 0 && (
+          {/* ── Materiais & Custos (lista editável + preços) ──────────── */}
+          {calculos && (
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-semibold">Lista de Materiais</h2>
-                  <span className="text-xs text-slate-500">Ajuste as quantidades conforme a instalação real</span>
+                  <h2 className="text-lg font-semibold">Materiais &amp; Custos</h2>
+                  <span className="text-xs text-slate-500">Lista gerada automaticamente · ajuste quantidades e preços</span>
                 </div>
               </CardHeader>
               <CardBody>
-                <BOMEditor bom={bomEditavel} onChange={setBomEditavel} />
+                <OrcamentoEV value={orcamento} onChange={setOrcamento} />
               </CardBody>
             </Card>
           )}
@@ -573,7 +606,7 @@ export default function NovaPropostaEV() {
           <div className="flex justify-between gap-2">
             <Button variante="secundario" onClick={etapaAnterior}>← Anterior</Button>
             <Button onClick={proximaEtapa} disabled={!validarEtapa(2) || rtCarteiraVencida}>
-              Próxima → Orçamento
+              Próxima → Proposta comercial
             </Button>
           </div>
         </div>
@@ -584,16 +617,15 @@ export default function NovaPropostaEV() {
       ══════════════════════════════════════════════════════════════════ */}
       {etapa === 3 && (
         <Card>
-          <CardHeader><h2 className="text-lg font-semibold">Orçamento</h2></CardHeader>
+          <CardHeader><h2 className="text-lg font-semibold">Proposta Comercial</h2></CardHeader>
           <CardBody className="space-y-4">
-            <OrcamentoEV
-              bomInicial={bomEditavel}
+            <PropostaComercialEV
+              dados={dados}
               carregadores={carregadores}
-              permitirUnifilarAntesAprovacao={permitirUnifilarAntesAprovacao}
-              onTogglePermitirUnifilar={setPermitirUnifilarAntesAprovacao}
-              onChange={setOrcamentoEV}
-              onAprovar={() => {}}
-              onGerarUnifilar={() => { if (!unifilar) gerarUnifilar(); setEtapa(4) }}
+              orcamento={orcamento}
+              status={statusComercial}
+              onStatusChange={setStatusComercial}
+              onSalvar={salvarProjeto}
             />
             <div className="flex justify-between gap-2">
               <Button variante="secundario" onClick={etapaAnterior}>← Anterior</Button>
@@ -681,83 +713,6 @@ export default function NovaPropostaEV() {
           onSalvar={() => { setModalUploadAberto(false); carregarCarregadores() }}
         />
       )}
-    </div>
-  )
-}
-
-// ─── BOMEditor ────────────────────────────────────────────────────────────────
-// Declarado no topo do módulo para identidade estável (evita foco BUG P6).
-// Recebe a lista via prop e emite onChange ao editar qualquer linha.
-function BOMEditor({ bom, onChange }) {
-  const atualizar = (i, campo, valor) => {
-    onChange(bom.map((item, k) => k === i ? { ...item, [campo]: valor } : item))
-  }
-
-  const remover = (i) => onChange(bom.filter((_, k) => k !== i))
-
-  const adicionar = () => onChange([...bom, { item: '', especificacao: '', quantidade: 1, unidade: 'un' }])
-
-  return (
-    <div>
-      <div className="overflow-x-auto">
-        <table className="w-full text-xs">
-          <thead>
-            <tr className="text-slate-400 text-left border-b border-slate-200">
-              <th className="py-2 pr-2 font-medium">Item</th>
-              <th className="py-2 px-1 font-medium">Especificação</th>
-              <th className="py-2 px-1 w-20 font-medium text-center">Qtd</th>
-              <th className="py-2 px-1 w-14 font-medium">Un.</th>
-              <th className="w-6"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {bom.map((it, i) => (
-              <tr key={i} className="border-b border-slate-100 hover:bg-slate-50">
-                <td className="py-1.5 pr-2">
-                  <input
-                    value={it.item}
-                    onChange={(e) => atualizar(i, 'item', e.target.value)}
-                    className="w-full border border-slate-200 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-400"
-                  />
-                </td>
-                <td className="px-1">
-                  <input
-                    value={it.especificacao || ''}
-                    onChange={(e) => atualizar(i, 'especificacao', e.target.value)}
-                    className="w-full border border-slate-200 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-400"
-                  />
-                </td>
-                <td className="px-1 text-center">
-                  <input
-                    type="number"
-                    min="0"
-                    value={it.quantidade}
-                    onChange={(e) => atualizar(i, 'quantidade', Number(e.target.value) || 0)}
-                    className="w-full border border-slate-200 rounded px-2 py-1 text-xs text-center focus:outline-none focus:ring-1 focus:ring-blue-400"
-                  />
-                </td>
-                <td className="px-1">
-                  <input
-                    value={it.unidade || ''}
-                    onChange={(e) => atualizar(i, 'unidade', e.target.value)}
-                    className="w-14 border border-slate-200 rounded px-1 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-400"
-                  />
-                </td>
-                <td>
-                  <button onClick={() => remover(i)} className="text-slate-300 hover:text-red-400 p-1">
-                    <X size={12} />
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <button
-        onClick={adicionar}
-        className="mt-2 text-xs text-emerald-700 font-medium inline-flex items-center gap-1 hover:text-emerald-800">
-        <Plus size={12} /> Adicionar item
-      </button>
     </div>
   )
 }

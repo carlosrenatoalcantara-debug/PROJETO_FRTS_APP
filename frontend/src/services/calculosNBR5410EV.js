@@ -22,6 +22,8 @@ export function calcularParametrosNBR5410({
   comprimento_cabo_m,
   tipo_carregador,
   corrente_nominal_a,   // corrente do fabricante (catálogo) — prioridade para disjuntor
+  incluir_mob_box = false,
+  tipo_conector,
 }) {
   const potencia_w = potencia_kw * 1000
 
@@ -124,24 +126,15 @@ export function calcularParametrosNBR5410({
     dps_kv,
     queda_tensao_pct:    parseFloat(queda_tensao_pct.toFixed(2)),
     tempo_seccionamento_s,
-    materiais: gerarListaMateriais(potencia_kw, tipo_carregador, numero_fases, bitola_cabo_mm2, disjuntor_a, dr_ma, dps_kv, comprimento_cabo_m),
+    materiais: gerarListaMateriais({ potencia_kw, tipo_carregador, numero_fases, bitola_mm2: bitola_cabo_mm2, disjuntor_a, dr_ma, dps_kv, comprimento_m: comprimento_cabo_m, incluir_mob_box, tipo_conector }),
   }
 }
 
 // EV-BUGFIX-02: delegado para o helper puro em utils/bomMateriaisEV.js
 import { gerarBOM as _gerarBOM } from '../utils/bomMateriaisEV'
 
-function gerarListaMateriais(potencia_kw, tipo_carregador, numero_fases, bitola_mm2, disjuntor_a, dr_ma, dps_kv, comprimento_m) {
-  return _gerarBOM({
-    potencia_kw,
-    tipo_carregador,
-    numero_fases,
-    bitola_mm2,
-    disjuntor_a,
-    dr_ma,
-    dps_kv,
-    comprimento_m,
-  })
+function gerarListaMateriais(args) {
+  return _gerarBOM(args)
 }
 
 // Validar se a instalação atende NBR 5410
