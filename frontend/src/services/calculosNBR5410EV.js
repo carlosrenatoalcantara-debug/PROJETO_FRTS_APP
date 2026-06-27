@@ -1,136 +1,141 @@
 // Cálculos segundo NBR 5410 para instalações de carregadores EV
 
+/**
+ * Calcula todos os parâmetros elétricos de uma instalação EV.
+ *
+ * SELEÇÃO DO DISJUNTOR (NBR 5410 — Ib ≤ In ≤ Iz):
+ *  - Prioridade 1: corrente_nominal_a (informada pelo fabricante no catálogo)
+ *  - Prioridade 2: corrente_projeto_a (calculada pela potência quando catálogo
+ *                  não informa corrente_entrada_a)
+ *  - Critério: menor valor comercial normalizado >= Ib
+ *  - O fator 125% (carga contínua) aplica-se EXCLUSIVAMENTE ao dimensionamento
+ *    dos condutores (Iz), nunca à seleção do disjuntor.
+ *
+ * CONDUTORES:
+ *  A bitola é selecionada para suportar In × 1,25 (carga contínua) corrigida
+ *  por temperatura. A queda de tensão é verificada sobre corrente_projeto_a.
+ */
 export function calcularParametrosNBR5410({
   potencia_kw,
   tensao_entrada_v,
   numero_fases,
   comprimento_cabo_m,
-  tipo_carregador, // 'AC_Mono', 'AC_Tri', 'DC'
+  tipo_carregador,
+  corrente_nominal_a,   // corrente do fabricante (catálogo) — prioridade para disjuntor
 }) {
   const potencia_w = potencia_kw * 1000
 
-  // Cálculo da corrente (I = P / (V × √3 × FP))
+  // Ib_calculado: corrente derivada da potência (usado para o cabo)
   const fator_potencia = 0.95
-  const fator_raiz3 = numero_fases === 3 ? Math.sqrt(3) : 1
+  const fator_raiz3 = Number(numero_fases) === 3 ? Math.sqrt(3) : 1
   const corrente_projeto_a = potencia_w / (tensao_entrada_v * fator_raiz3 * fator_potencia)
 
-  // Aplicar fator de segurança (NBR 5410 - Tabela 32)
-  const fator_seguranca = 1.25
-  const corrente_maxima_a = corrente_projeto_a * fator_seguranca
+  // In_cabo: corrente de dimensionamento dos condutores
+  // NBR 5410 9.5.1.1 — carga contínua (>3h): fator 1,25
+  const fator_carga_continua = 1.25
+  const corrente_maxima_a = corrente_projeto_a * fator_carga_continua
 
-  // Seleção de bitola de cabo (NBR 5410)
-  // Tabela de bitolas padrão (mm²) e capacidades (A) para cobre, 70°C
-  const tabelaCobrecobre = [
-    { bitola: 1.5, capacidade_a: 15.5 },
-    { bitola: 2.5, capacidade_a: 21 },
-    { bitola: 4, capacidade_a: 28 },
-    { bitola: 6, capacidade_a: 36 },
-    { bitola: 10, capacidade_a: 50 },
-    { bitola: 16, capacidade_a: 68 },
-    { bitola: 25, capacidade_a: 89 },
-    { bitola: 35, capacidade_a: 109 },
-    { bitola: 50, capacidade_a: 134 },
-    { bitola: 70, capacidade_a: 170 },
-    { bitola: 95, capacidade_a: 207 },
-    { bitola: 120, capacidade_a: 239 },
-    { bitola: 150, capacidade_a: 272 },
-    { bitola: 185, capacidade_a: 309 },
-    { bitola: 240, capacidade_a: 360 },
+  // Tabela de bitolas — cobre 70°C, instalação em eletroduto (NBR 5410 Tab.36)
+  const tabelaCobre = [
+    { bitola: 1.5,  capacidade_a: 15.5 },
+    { bitola: 2.5,  capacidade_a: 21   },
+    { bitola: 4,    capacidade_a: 28   },
+    { bitola: 6,    capacidade_a: 36   },
+    { bitola: 10,   capacidade_a: 50   },
+    { bitola: 16,   capacidade_a: 68   },
+    { bitola: 25,   capacidade_a: 89   },
+    { bitola: 35,   capacidade_a: 109  },
+    { bitola: 50,   capacidade_a: 134  },
+    { bitola: 70,   capacidade_a: 170  },
+    { bitola: 95,   capacidade_a: 207  },
+    { bitola: 120,  capacidade_a: 239  },
+    { bitola: 150,  capacidade_a: 272  },
+    { bitola: 185,  capacidade_a: 309  },
+    { bitola: 240,  capacidade_a: 360  },
   ]
 
-  // Encontrar bitola mínima que suporte a corrente máxima
-  let bitola_cabo_mm2 = 2.5
-  for (const cabo of tabelaCobrecobre) {
-    if (cabo.capacidade_a >= corrente_maxima_a) {
-      bitola_cabo_mm2 = cabo.bitola
-      break
-    }
-  }
-
-  // Aplicar fator de correção para temperatura ambiente (NBR 5410 - Tabela 36)
-  // Considerando temperatura ambiente de 40°C (fator 0.95)
+  // Fator de correção temperatura 40°C (NBR 5410 Tab.36)
   const fator_temperatura = 0.95
   const corrente_corrigida_a = corrente_maxima_a / fator_temperatura
 
-  // Recalcular bitola se necessário
-  for (const cabo of tabelaCobrecobre) {
+  // Iz >= corrente_corrigida_a: seleciona bitola mínima adequada
+  let bitola_cabo_mm2 = 2.5
+  for (const cabo of tabelaCobre) {
     if (cabo.capacidade_a >= corrente_corrigida_a) {
       bitola_cabo_mm2 = cabo.bitola
       break
     }
   }
 
-  // Cálculo da queda de tensão (NBR 5410 - máximo 3% circuitos terminais)
-  // ΔU = (ρ × L × I) / S
-  // ρ = resistividade do cobre a 70°C = 0.0179 Ω·mm²/m
+  // Verificação da queda de tensão (ΔU = ρ × L × I / S)
+  // ρ cobre 70°C = 0,0179 Ω·mm²/m · limite NBR 5410: 3% circuito terminal
   const resistividade = 0.0179
-  const corrente_para_queda = corrente_projeto_a
-  const queda_tensao_v = (resistividade * comprimento_cabo_m * corrente_para_queda) / bitola_cabo_mm2
-  const queda_tensao_pct = (queda_tensao_v / tensao_entrada_v) * 100
+  let queda_tensao_v = (resistividade * comprimento_cabo_m * corrente_projeto_a) / bitola_cabo_mm2
+  let queda_tensao_pct = (queda_tensao_v / tensao_entrada_v) * 100
 
-  // Se queda > 3%, aumentar bitola
+  // Se queda > 3%, aumentar bitola até atender o limite
   if (queda_tensao_pct > 3) {
-    for (const cabo of tabelaCobrecobre) {
-      const queda_temp = (resistividade * comprimento_cabo_m * corrente_para_queda) / cabo.bitola
-      const queda_temp_pct = (queda_temp / tensao_entrada_v) * 100
-      if (queda_temp_pct <= 3) {
+    for (const cabo of tabelaCobre) {
+      const qt = (resistividade * comprimento_cabo_m * corrente_projeto_a) / cabo.bitola
+      if ((qt / tensao_entrada_v) * 100 <= 3) {
         bitola_cabo_mm2 = cabo.bitola
+        queda_tensao_v = (resistividade * comprimento_cabo_m * corrente_projeto_a) / bitola_cabo_mm2
+        queda_tensao_pct = (queda_tensao_v / tensao_entrada_v) * 100
         break
       }
     }
   }
 
-  // Seleção de disjuntor (dispositivo de proteção contra sobrecarga)
-  // NBR 5410: deve ser ≤ capacidade do cabo, próximo valor normalizado
+  // ── SELEÇÃO DO DISJUNTOR ─────────────────────────────────────────────────
+  // Ib = corrente nominal do equipamento (catálogo) ou corrente_projeto_a
+  // Critério: menor disjuntor comercial >= Ib (NBR 5410: Ib ≤ In ≤ Iz)
+  const Ib = corrente_nominal_a ? Number(corrente_nominal_a) : corrente_projeto_a
   const disjuntores_normalizados = [6, 10, 13, 16, 20, 25, 32, 40, 50, 63, 80, 100, 125, 160, 200]
-  let disjuntor_a = 20
+  let disjuntor_a = disjuntores_normalizados[disjuntores_normalizados.length - 1]
   for (const dj of disjuntores_normalizados) {
-    if (dj >= corrente_maxima_a) {
+    if (dj >= Ib) {
       disjuntor_a = dj
       break
     }
   }
 
-  // Seleção de DR (Dispositivo de Proteção diferencial residual)
-  // NBR 5410: máximo 30 mA para áreas úmidas/externas
-  // Usar 300 mA para circuitos de força
-  const dr_ma = corrente_maxima_a > 40 ? 300 : 30
+  // Capacidade do cabo selecionado (Iz) para verificação Ib ≤ In ≤ Iz
+  const capacidade_cabo_a = tabelaCobre.find(c => c.bitola === bitola_cabo_mm2)?.capacidade_a || 0
 
-  // Seleção de DPS (Dispositivo de Proteção contra Surtos)
-  // NBR 5410: obrigatório para equipamentos eletrônicos sensíveis
-  // Usar DPS tipo 2 (classe II) para proteção de surtos de comutação
-  const dps_kv = tensao_entrada_v >= 380 ? 420 : 275 // Tensão nominal em V
-  const dps_capacidade_a = corrente_maxima_a + 20 // Margem de segurança
+  // DR: 30 mA para todos os circuitos EV (NBR 5410 obrigatório — áreas úmidas/externas)
+  const dr_ma = 30
 
-  // Cálculo de tempo de seccionamento automático
-  // Para eletrocussão (< 50V): até 5s
-  // Para 120V a 230V: até 0.4s
-  // Para > 230V: até 0.2s
+  // DPS Tipo 2 (Classe II): tensão conforme sistema
+  const dps_kv = Number(tensao_entrada_v) >= 380 ? 420 : 275
+
+  // Tempo de seccionamento automático
   let tempo_seccionamento_s = 0.2
   if (tensao_entrada_v <= 120) tempo_seccionamento_s = 0.4
-  if (tensao_entrada_v <= 50) tempo_seccionamento_s = 5
+  if (tensao_entrada_v <= 50)  tempo_seccionamento_s = 5
 
   return {
-    corrente_projeto_a: parseFloat(corrente_projeto_a.toFixed(2)),
-    corrente_maxima_a: parseFloat(corrente_maxima_a.toFixed(2)),
+    corrente_projeto_a:  parseFloat(corrente_projeto_a.toFixed(2)),
+    corrente_maxima_a:   parseFloat(corrente_maxima_a.toFixed(2)),
+    Ib_disjuntor:        parseFloat(Ib.toFixed(2)),
     bitola_cabo_mm2,
+    capacidade_cabo_a,
     disjuntor_a,
     dr_ma,
     dps_kv,
-    dps_capacidade_a,
-    queda_tensao_pct: parseFloat(queda_tensao_pct.toFixed(2)),
+    queda_tensao_pct:    parseFloat(queda_tensao_pct.toFixed(2)),
     tempo_seccionamento_s,
-    materiais: gerarListaMateriais(potencia_kw, tipo_carregador, bitola_cabo_mm2, disjuntor_a, dr_ma, dps_kv, comprimento_cabo_m),
+    materiais: gerarListaMateriais(potencia_kw, tipo_carregador, numero_fases, bitola_cabo_mm2, disjuntor_a, dr_ma, dps_kv, comprimento_cabo_m),
   }
 }
 
 // EV-BUGFIX-02: delegado para o helper puro em utils/bomMateriaisEV.js
 import { gerarBOM as _gerarBOM } from '../utils/bomMateriaisEV'
 
-function gerarListaMateriais(potencia_kw, tipo_carregador, bitola_mm2, disjuntor_a, dr_ma, dps_kv, comprimento_m) {
+function gerarListaMateriais(potencia_kw, tipo_carregador, numero_fases, bitola_mm2, disjuntor_a, dr_ma, dps_kv, comprimento_m) {
   return _gerarBOM({
     potencia_kw,
     tipo_carregador,
+    numero_fases,
     bitola_mm2,
     disjuntor_a,
     dr_ma,
@@ -150,6 +155,11 @@ export function validarNBR5410(calculos) {
 
   if (calculos.tempo_seccionamento_s > 0.5) {
     avisos.push(`Tempo de seccionamento (${calculos.tempo_seccionamento_s}s) próximo ao limite`)
+  }
+
+  // Verificação Ib ≤ In ≤ Iz
+  if (calculos.disjuntor_a > calculos.capacidade_cabo_a) {
+    erros.push(`Disjuntor (${calculos.disjuntor_a}A) excede capacidade do cabo (${calculos.capacidade_cabo_a}A) — violação NBR 5410 In ≤ Iz`)
   }
 
   return { valido: erros.length === 0, erros, avisos }
