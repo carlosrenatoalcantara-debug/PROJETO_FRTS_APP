@@ -28,6 +28,8 @@ import ModalNovoCarregadorEV from '../components/equipamentos/ModalNovoCarregado
 import InteractiveDiagram from '../components/diagram/InteractiveDiagram'
 import { calcularParametrosNBR5410, validarNBR5410 } from '../services/calculosNBR5410EV'
 import { gerarUnifilarEVSVG } from '../utils/gerarUnifilarEV'
+import { construirCanonicalEV, renderarSVGEV, toReactFlow } from '../utils/adapterDiagramaEV'
+import { renderSVG } from '@diagram-engine'
 import { salvarDiagramaLocal } from '../components/diagram/utils/diagramPersistence'
 import { tecnicosApi } from '../services/gestaoApi'
 import { apenasAtivos } from '../utils/gestaoUtils'
@@ -63,6 +65,7 @@ export default function NovaPropostaEV() {
   const [statusComercial, setStatusComercial] = useState('rascunho')
   const [incluirMobBox, setIncluirMobBox] = useState(false)
   const [unifilar, setUnifilar] = useState(null)
+  const [canonical, setCanonical] = useState(null)   // JSON canônico do DiagramEngine (fonte única)
   const [modalUploadAberto, setModalUploadAberto] = useState(false)
   const [responsaveisTecnicos, setResponsaveisTecnicos] = useState([])
   const [tecnicoSelecionado, setTecnicoSelecionado] = useState('')
@@ -224,27 +227,34 @@ export default function NovaPropostaEV() {
   const atualizarQtd        = (idx, qtd) => setCarregadores(prev => prev.map((c, i) => i === idx ? { ...c, quantidade: qtd } : c))
 
   // ── Gerar unifilar ───────────────────────────────────────────────────────
+  // P3-F2: o preview da etapa 4 passa a usar o DiagramEngine (mesma fonte do
+  // React Flow e do PDF). gerarUnifilarEVSVG (motor antigo) será removido na F5.
+  const construirArgsEngine = () => {
+    const primeiro = carregadores[0]
+    return {
+      calculos: { ...calculos, comprimento_cabo_m: dados.comprimento_cabo_m },
+      bom: calculos?.materiais || [],   // BOM de engenharia (item/especificacao/quantidade)
+      numero_fases: Number(primeiro?.numero_fases) || 1,
+      carregador: primeiro || {},
+      projeto: {
+        nome: dados.nome_projeto,
+        cliente_nome: dados.cliente_nome,
+        endereco: dados.endereco,
+        comprimento_cabo_m: dados.comprimento_cabo_m,
+        tecnico_nome: dados.tecnico_nome,
+        tecnico_crea: dados.tecnico_crea,
+        tecnico_cft: dados.tecnico_cft,
+      },
+    }
+  }
+
   const gerarUnifilar = () => {
     if (!calculos) return
-    const primeiro = carregadores[0]
     try {
-      const svg = gerarUnifilarEVSVG({
-        projeto_nome:          dados.nome_projeto,
-        cliente_nome:          dados.cliente_nome,
-        endereco:              dados.endereco,
-        carregador_tipo:       primeiro?.tipo,
-        carregador_potencia_kw: potenciaTotalKw,
-        carregador_marca:      primeiro?.marca,
-        carregador_modelo:     primeiro?.modelo,
-        carregador_conector:   primeiro?.tipo_conector,
-        calculos:              { ...calculos, materiais: orcamento.materiais.map(m => ({ item: m.descricao, especificacao: '', quantidade: m.quantidade, unidade: m.unidade })) },
-        tecnico_nome:          dados.tecnico_nome,
-        tecnico_crea:          dados.tecnico_crea,
-        tecnico_cft:           dados.tecnico_cft,
-        tecnico_tipo:          dados.tecnico_tipo,
-      })
-      setUnifilar(svg)
-      setModoEdicao(true)
+      const canon = construirCanonicalEV(construirArgsEngine())
+      setCanonical(canon)
+      setUnifilar(renderSVG(canon))
+      setModoEdicao(false)   // F2: mostra o SVG do Engine por padrão (editor é F3)
     } catch (err) {
       console.error('[EV] Erro ao gerar unifilar:', err)
       alert('Erro ao gerar unifilar: ' + err.message)
@@ -305,6 +315,20 @@ export default function NovaPropostaEV() {
       },
       tecnico: { nome: dados.tecnico_nome, crea: dados.tecnico_crea, cft: dados.tecnico_cft, tipo_profissional: dados.tecnico_tipo },
       status: ['aprovado', 'em_execucao', 'concluido'].includes(statusComercial) ? 'aprovado' : 'dimensionado',
+      // P3-F2: diagrama canônico do DiagramEngine (fonte única — version/viewport/metadata/overrides)
+      diagrama_editado: (() => {
+        const canon = canonical || construirCanonicalEV(construirArgsEngine())
+        const { nodes, edges, viewport } = toReactFlow(canon)
+        return {
+          version: canon.version,
+          viewport,
+          metadata: canon.metadata,
+          overrides: canon.overrides || {},
+          nodes,
+          edges,
+          timestamp: new Date().toISOString(),
+        }
+      })(),
     }
 
     try {

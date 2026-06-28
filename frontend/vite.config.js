@@ -7,6 +7,8 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      // P3-EV-UNIFILAR-ENGINE-01: motor de diagramas compartilhado (neutro EV/FV/BESS)
+      '@diagram-engine': path.resolve(__dirname, '../packages/diagram-engine/index.js'),
     },
   },
   build: {
@@ -19,6 +21,7 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+    fs: { allow: ['..'] },   // permite servir packages/diagram-engine (fora de frontend/)
     proxy: {
       '/api': {
         target: 'http://localhost:5001',
