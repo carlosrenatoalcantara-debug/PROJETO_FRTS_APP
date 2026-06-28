@@ -116,10 +116,18 @@ const projetoEVSchema = new mongoose.Schema({
 
   observacoes: String,
 
-  // DIAGRAMA UNIFILAR (editado pelo usuário)
+  // DIAGRAMA UNIFILAR — JSON canônico do DiagramEngine (P3-EV-UNIFILAR-ENGINE-01)
+  // Fonte única de verdade: o layout base é SEMPRE recalculado pelo Engine a partir
+  // do projeto elétrico; persistimos apenas version/viewport/metadata/overrides.
+  // nodes/edges permanecem por retrocompatibilidade (projetos antigos) e como cache
+  // resolvido para o renderizador de PDF.
   diagrama_editado: {
-    nodes: { type: mongoose.Schema.Types.Mixed, default: null },
-    edges: { type: mongoose.Schema.Types.Mixed, default: null },
+    version:   { type: String, default: null },                          // ex.: "2.0"
+    viewport:  { type: mongoose.Schema.Types.Mixed, default: null },      // { x, y, zoom }
+    metadata:  { type: mongoose.Schema.Types.Mixed, default: null },      // { modelo, criadoPor, atualizadoEm, ... }
+    overrides: { type: mongoose.Schema.Types.Mixed, default: null },      // edições manuais por id de componente
+    nodes:     { type: mongoose.Schema.Types.Mixed, default: null },      // retrocompat + cache resolvido
+    edges:     { type: mongoose.Schema.Types.Mixed, default: null },      // retrocompat + cache resolvido
     timestamp: { type: Date, default: null },
   },
 
