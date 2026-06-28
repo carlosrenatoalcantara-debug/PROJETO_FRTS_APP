@@ -6,6 +6,7 @@
   "main": "index.js",
   "exports": {
     ".": "./index.js",
+    "./adapters/ev": "./adapters/ev.js",
     "./model": "./src/model.js",
     "./layout": "./src/layout.js",
     "./overrides": "./src/overrides.js",

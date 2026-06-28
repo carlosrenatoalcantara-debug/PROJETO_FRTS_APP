@@ -43,6 +43,7 @@
     "pdf-parse": "^2.4.5",
     "pdfkit": "^0.18.0",
     "qrcode": "^1.5.4",
+    "svg-to-pdfkit": "^0.1.8",
     "tesseract.js": "^5.1.1"
   },
   "devDependencies": {
