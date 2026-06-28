@@ -35,6 +35,41 @@ function bitolaDoBOM(bom = [], fallback) {
 }
 
 /**
+ * Avalia as normas aplicáveis e REGISTRA o motivo de cada aplicação (Requisito 5).
+ *
+ * RT-05 CBM/RN NÃO é aplicada apenas por estar em Natal/RN. Exige Estado = RN E um
+ * fator de risco do Corpo de Bombeiros: subsolo, instalação coletiva/condomínio ou
+ * ambiente fechado/garagem. Sem esses fatores, RT-05 não entra.
+ *
+ * @returns {{ normas: string[], normas_motivo: { norma, motivo }[] }}
+ */
+export function avaliarNormas({ endereco = '', estado = '', tipo_instalacao = '', ambiente = '', subsolo = false } = {}) {
+  const normas_motivo = [
+    { norma: 'NBR 5410',  motivo: 'Instalação elétrica de baixa tensão' },
+    { norma: 'NBR 17019', motivo: 'Recarga de veículos elétricos (estação de recarga)' },
+    { norma: 'IEC 61851', motivo: 'Sistema de carregamento condutivo de VE' },
+    { norma: 'IEC 62196', motivo: 'Plugues/tomadas/conectores de recarga' },
+  ]
+
+  const estadoRN = /\bRN\b/i.test(estado) || /\bRN\b|Rio Grande do Norte/i.test(endereco)
+  const texto = `${tipo_instalacao} ${ambiente}`.toLowerCase()
+  const fatorColetivo = /condom|coletiv|edif|pr[eé]dio|garagem|estacionamento/i.test(texto)
+  const fatorFechado = /fechado|subsolo|t[eé]rreo fechado/i.test(texto)
+  const fatorRisco = subsolo === true || fatorColetivo || fatorFechado
+
+  if (estadoRN && fatorRisco) {
+    const fatores = [
+      subsolo === true ? 'subsolo' : null,
+      fatorColetivo ? 'instalação coletiva/condomínio' : null,
+      fatorFechado ? 'ambiente fechado' : null,
+    ].filter(Boolean)
+    normas_motivo.push({ norma: 'RT-05 CBM/RN', motivo: `Estado RN + ${fatores.join(', ')}` })
+  }
+
+  return { normas: normas_motivo.map(n => n.norma), normas_motivo }
+}
+
+/**
  * @param {object} args
  * @param {object} args.calculos    saída de calcularParametrosNBR5410
  * @param {Array}  args.bom         lista de materiais (item/especificacao/quantidade/unidade)
@@ -81,10 +116,14 @@ export function adaptarProjetoEV({ calculos = {}, bom = [], numero_fases = 1, ca
     connections.push(conexao({ id: `c-dps${i}`, from: 'disj', to: `dps${i}`, papel: PAPEL_CONEXAO.DERIVACAO, condutores: [{ papel: 'terra' }] }))
   }
 
-  // ── Metadata (cabeçalho executivo + BOM + normas) ───────────────────────
-  const ufRN = /\bRN\b|Rio Grande do Norte|Natal/i.test(projeto.endereco || '')
-  const normas = ['NBR 5410', 'NBR 17019', 'IEC 61851', 'IEC 62196']
-  if (ufRN) normas.push('RT-05 CBM/RN')
+  // ── Normas aplicáveis + MOTIVO (Requisito 5 / F3) ───────────────────────
+  const { normas, normas_motivo } = avaliarNormas({
+    endereco: projeto.endereco,
+    estado: projeto.estado,
+    tipo_instalacao: projeto.tipo_instalacao,
+    ambiente: projeto.ambiente,
+    subsolo: projeto.subsolo,
+  })
 
   const metadata = {
     dominio: 'EV',
@@ -99,6 +138,7 @@ export function adaptarProjetoEV({ calculos = {}, bom = [], numero_fases = 1, ca
     cidade: projeto.cidade,
     data: projeto.data || new Date().toLocaleDateString('pt-BR'),
     rt: { nome: projeto.tecnico_nome, registro: projeto.tecnico_crea || projeto.tecnico_cft },
+    normas_motivo,
     equipamento: {
       modelo: carregador.modelo, fabricante: carregador.marca,
       potencia: carregador.potencia_kw ? `${carregador.potencia_kw} kW` : '',

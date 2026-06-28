@@ -5,7 +5,9 @@ import Card, { CardHeader, CardBody } from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import Badge from '../components/ui/Badge'
 import InteractiveDiagram from '../components/diagram/InteractiveDiagram'
-import { carregarDiagramaLocal, salvarDiagramaLocal, deletarDiagramaLocal } from '../components/diagram/utils/diagramPersistence'
+import { deletarDiagramaLocal } from '../components/diagram/utils/diagramPersistence'
+import { adaptarProjetoEV } from '../utils/adapterDiagramaEV'
+import { build, computeLayout, toReactFlow, overridesDeReactFlow } from '@diagram-engine'
 
 const API_URL = '' /* URL relativa forçada — Vercel proxy → Railway. Não usar VITE_API_URL */
 
@@ -29,6 +31,33 @@ const corStatus = {
   'concluido': 'verde',
 }
 
+// P3-F3: monta os argumentos do adapter EV a partir do projeto persistido.
+// Única ponte projeto→Engine; usada ao abrir e ao salvar o editor.
+function montarArgsEV(projeto) {
+  const calculos = projeto?.calculos_nbr || {}
+  const carregador = projeto?.carregadores?.[0] || {}
+  const clienteNome = typeof projeto?.clienteId === 'object' ? projeto?.clienteId?.nome : projeto?.clienteId
+  return {
+    calculos: { ...calculos, comprimento_cabo_m: projeto?.comprimento_cabo_m },
+    bom: calculos?.materiais || projeto?.bom || [],
+    numero_fases: Number(carregador?.numero_fases) || Number(projeto?.fases) || 1,
+    carregador,
+    projeto: {
+      nome: projeto?.nome,
+      cliente_nome: clienteNome,
+      endereco: projeto?.endereco_completo,
+      comprimento_cabo_m: projeto?.comprimento_cabo_m,
+      tecnico_nome: projeto?.tecnico?.nome,
+      tecnico_crea: projeto?.tecnico?.crea,
+      tecnico_cft: projeto?.tecnico?.cft,
+      estado: projeto?.estado,
+      tipo_instalacao: projeto?.tipo_instalacao,
+      ambiente: projeto?.ambiente,
+      subsolo: projeto?.subsolo,
+    },
+  }
+}
+
 export default function ProjetosEVDetalhes() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -38,11 +67,14 @@ export default function ProjetosEVDetalhes() {
   const [modalEditorAberto, setModalEditorAberto] = useState(false)
   const [diagramaEditado, setDiagramaEditado] = useState(null)
   const [salvandoDiagrama, setSalvandoDiagrama] = useState(false)
+  const [editorInitial, setEditorInitial] = useState(null)   // { nodes, edges, viewport } do Engine
+  const [editorViewport, setEditorViewport] = useState(null) // viewport corrente (zoom/pan)
 
   // Callback estável para evitar loop infinito no InteractiveDiagram
   const handleDiagramChange = useCallback((diagramData) => {
     setDiagramaEditado(diagramData)
   }, [])
+  const handleViewportChange = useCallback((vp) => { setEditorViewport(vp) }, [])
 
   useEffect(() => {
     carregarProjeto()
@@ -72,72 +104,80 @@ export default function ProjetosEVDetalhes() {
     }
   }
 
-  // Abrir editor de diagrama
-  const abrirEditorDiagrama = () => {
-    // Carregar diagrama salvo localmente se existir, ou do projeto (backend)
-    const diagramaSalvo = carregarDiagramaLocal(`projeto-ev-${id}`)
-    if (diagramaSalvo) {
-      setDiagramaEditado(diagramaSalvo)
-    } else if (projeto?.diagrama_editado?.nodes) {
-      setDiagramaEditado(projeto.diagrama_editado)
-    } else {
-      // Inicia com estado vazio mas válido para habilitar o botão salvar
-      setDiagramaEditado({ nodes: [], edges: [] })
-    }
+  // Monta o payload canônico do diagrama para persistir (version/viewport/metadata/overrides).
+  const montarPayloadDiagrama = (canonical, rf) => ({
+    diagrama_editado: {
+      version: canonical.version,
+      viewport: canonical.viewport,
+      metadata: canonical.metadata,
+      overrides: canonical.overrides || {},
+      nodes: rf.nodes,
+      edges: rf.edges,
+      timestamp: new Date().toISOString(),
+    },
+  })
+
+  // Abrir editor — HIDRATA do DiagramEngine (REQUISITO 1).
+  // Reconstrói o layout base pelo Engine, aplica overrides salvos e abre exatamente
+  // como foi salvo. Nunca abre em branco. Se não houver diagrama, gera e persiste 1x.
+  const abrirEditorDiagrama = async () => {
+    const { components, connections, metadata } = adaptarProjetoEV(montarArgsEV(projeto))
+    const persistido = projeto?.diagrama_editado
+    const overrides = persistido?.overrides || {}
+    const viewport = persistido?.viewport || null
+    const canonical = build({ components, connections, metadata, viewport, overrides })
+    const rf = toReactFlow(canonical)
+
+    setEditorInitial(rf)
+    setEditorViewport(rf.viewport)
+    setDiagramaEditado({ nodes: rf.nodes, edges: rf.edges })
     setModalEditorAberto(true)
+
+    // persist-once (REQUISITO 1): projeto legado sem canônico → grava uma única vez.
+    // Nunca sobrescreve um diagrama existente (só grava se não houver version).
+    if (!persistido?.version) {
+      try {
+        await fetch(`${API_URL}/api/projetos-ev/${id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(montarPayloadDiagrama(canonical, rf)),
+        })
+      } catch (e) {
+        console.warn('[EV] persist-once do diagrama falhou:', e?.message)
+      }
+    }
   }
 
   // Fechar editor sem salvar
   const fecharEditorDiagrama = () => {
     setModalEditorAberto(false)
     setDiagramaEditado(null)
+    setEditorInitial(null)
   }
 
-  // Salvar diagrama editado
+  // Salvar diagrama editado — persiste APENAS version/viewport/metadata/overrides
+  // (REQUISITO 3). O Engine recalcula a base; overrides são derivados das posições
+  // movidas manualmente e os órfãos são podados pelo build() (REQUISITO 4).
   const salvarDiagramaEditado = async () => {
     if (!diagramaEditado) return
-
     try {
       setSalvandoDiagrama(true)
+      const { components, connections, metadata } = adaptarProjetoEV(montarArgsEV(projeto))
+      const base = computeLayout(components, connections)
+      const overrides = overridesDeReactFlow(diagramaEditado.nodes || [], base)
+      const canonical = build({ components, connections, metadata, viewport: editorViewport, overrides })
+      const rf = toReactFlow(canonical)
 
-      // Salvar localmente
-      const sucesso = salvarDiagramaLocal(
-        `projeto-ev-${id}`,
-        diagramaEditado.nodes,
-        diagramaEditado.edges,
-        {
-          projeto_nome: projeto.nome,
-          cliente_nome: clienteNome,
-          projeto_id: id,
-          timestamp: new Date().toISOString()
-        }
-      )
-
-      if (!sucesso) {
-        alert('❌ Erro ao salvar diagrama localmente')
-        return
-      }
-
-      // Atualizar projeto no backend com referência ao diagrama
       const response = await fetch(`${API_URL}/api/projetos-ev/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          diagrama_editado: {
-            nodes: diagramaEditado.nodes,
-            edges: diagramaEditado.edges,
-            timestamp: new Date().toISOString()
-          }
-        })
+        body: JSON.stringify(montarPayloadDiagrama(canonical, rf)),
       })
-
-      if (!response.ok) {
-        throw new Error('Erro ao salvar diagrama no servidor')
-      }
+      if (!response.ok) throw new Error('Erro ao salvar diagrama no servidor')
 
       alert('✅ Diagrama salvo com sucesso!')
       fecharEditorDiagrama()
-      carregarProjeto() // Recarregar projeto
+      carregarProjeto()
     } catch (erro) {
       console.error('Erro ao salvar diagrama:', erro)
       alert(`❌ Erro ao salvar: ${erro.message}`)
@@ -373,20 +413,9 @@ export default function ProjetosEVDetalhes() {
             {/* Conteúdo do Modal */}
             <div className="flex-1 overflow-hidden bg-slate-50">
               <InteractiveDiagram
-                calculos={projeto?.calculos_nbr}
-                projeto={{
-                  projeto_nome: projeto?.nome,
-                  cliente_nome: clienteNome,
-                  endereco: projeto?.endereco_completo,
-                  carregador_potencia_kw: carregador?.potencia_kw,
-                  carregador_tipo: carregador?.tipo,
-                  carregador_marca: carregador?.marca,
-                  carregador_modelo: carregador?.modelo,
-                  comprimento_cabo: projeto?.comprimento_cabo_m || 10,
-                  tecnico_nome: projeto?.tecnico?.nome,
-                  tecnico_crea: projeto?.tecnico?.crea,
-                }}
+                initial={editorInitial}
                 onDiagramChange={handleDiagramChange}
+                onViewportChange={handleViewportChange}
                 readOnly={false}
               />
             </div>

@@ -694,6 +694,7 @@ export default function NovaPropostaEV() {
                 {modoEdicao ? (
                   <div className="border-2 border-blue-300 rounded-lg overflow-hidden bg-white" style={{ height: '600px' }}>
                     <InteractiveDiagramWrapper
+                      canonical={canonical}
                       calculos={calculos}
                       dados={dados}
                       carregadores={carregadores}
@@ -768,7 +769,9 @@ function Metric({ label, value, cor = 'blue', nota }) {
 }
 
 // ─── InteractiveDiagramWrapper ────────────────────────────────────────────────
-function InteractiveDiagramWrapper({ calculos, dados, carregadores, onChange, draftId }) {
+function InteractiveDiagramWrapper({ canonical, calculos, dados, carregadores, onChange, draftId }) {
+  // P3-F3: o editor hidrata do JSON canônico (Engine). React Flow só renderiza/edita.
+  const initial = useMemo(() => (canonical ? toReactFlow(canonical) : null), [canonical])
   const projeto = useMemo(() => ({
     projeto_nome:        dados.nome_projeto,
     cliente_nome:        dados.cliente_nome,
@@ -795,5 +798,5 @@ function InteractiveDiagramWrapper({ calculos, dados, carregadores, onChange, dr
     }
   }, [onChange, draftId, dados.nome_projeto, dados.cliente_nome])
 
-  return <InteractiveDiagram calculos={calculos} projeto={projeto} onDiagramChange={handleChange} readOnly={false} />
+  return <InteractiveDiagram initial={initial} calculos={calculos} projeto={projeto} onDiagramChange={handleChange} readOnly={false} />
 }

@@ -20,6 +20,8 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      // P3: motor de diagramas compartilhado (mesmo alias do vite.config)
+      '@diagram-engine': path.resolve(__dirname, '../packages/diagram-engine/index.js'),
     }
   }
 });

@@ -31,7 +31,11 @@ export default function InteractiveDiagram({
   calculos,
   projeto,
   onDiagramChange,
-  readOnly = false
+  readOnly = false,
+  // P3-F3: quando fornecido, o React Flow HIDRATA deste JSON (DiagramEngine) e
+  // NÃO calcula layout. { nodes, edges, viewport }. O parent deve memoizar.
+  initial = null,
+  onViewportChange = null,
 }) {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
@@ -86,6 +90,29 @@ export default function InteractiveDiagram({
   // Inicializar diagrama com dados de entrada
   useEffect(() => {
     try {
+      // P3-F3: HIDRATAÇÃO a partir do JSON canônico (DiagramEngine). O React Flow
+      // não calcula layout — apenas renderiza nodes/edges já posicionados pelo Engine.
+      if (initial?.nodes) {
+        const nodesComCallbacks = initial.nodes.map(node => ({
+          ...node,
+          data: {
+            ...node.data,
+            onUpdate: (campo, valor) => {},
+            onDelete: () => {},
+          },
+        }))
+        setNodes(nodesComCallbacks)
+        setEdges(initial.edges || [])
+        setErro(null)
+        // Hidratação a partir do Engine: a validação elétrica é responsabilidade do
+        // DiagramEngine (fonte única), não do validador legado por tipo de nó — este
+        // não reconhece os tipos genéricos (ex.: 'equipamento') e gera falso-positivo.
+        setValidacao({ valido: true, erros: [] })
+        if (onDiagramChangeRef.current) {
+          onDiagramChangeRef.current({ nodes: nodesComCallbacks, edges: initial.edges || [] })
+        }
+        return
+      }
       if (calculos && projeto) {
         console.log('📊 Inicializando diagrama com:', { calculos, projeto });
 
@@ -137,7 +164,7 @@ export default function InteractiveDiagram({
     // EV-CRASH-FIX: deps reduzidas. `onDiagramChange` não dispara mais re-init
     // (consumido via ref). Loop infinito eliminado.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [calculos, projeto]);
+  }, [calculos, projeto, initial]);
 
   // Quando nó é selecionado
   const handleNodeClick = useCallback((event, node) => {
@@ -548,7 +575,7 @@ export default function InteractiveDiagram({
     );
   }
 
-  if (!calculos || !projeto) {
+  if (!initial && (!calculos || !projeto)) {
     return (
       <div className="p-8 bg-yellow-50 border border-yellow-200 rounded-lg text-yellow-800">
         <h3 className="font-semibold mb-2">⚠️ Dados Incompletos</h3>
@@ -686,11 +713,13 @@ export default function InteractiveDiagram({
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
             onNodeClick={handleNodeClick}
+            onMoveEnd={(_e, vp) => { if (onViewportChange) onViewportChange(vp); }}
             nodeTypes={nodeTypes}
             edgeTypes={edgeTypes}
             snapToGrid={true}
             snapGrid={[16, 16]}
-            fitView
+            defaultViewport={initial?.viewport || undefined}
+            fitView={!initial?.viewport}
             attributionPosition="bottom-left"
           >
             <Background color="#aaa" gap={16} />
