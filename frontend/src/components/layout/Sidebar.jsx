@@ -2,7 +2,7 @@ import { NavLink } from 'react-router-dom'
 import {
   LayoutDashboard, Users, Sun, Zap, Settings,
   ChevronLeft, ChevronRight, TrendingUp, Briefcase,
-  Package, ChevronDown, BarChart3, Shield,
+  Package, ChevronDown, BarChart3, Shield, Cable,
 } from 'lucide-react'
 import { useState } from 'react'
 import { useEmpresa } from '../../contexts/EmpresaContext'
@@ -25,6 +25,7 @@ const itensMenu = [
     { rotulo: 'Baterias',    caminho: '/equipamentos/baterias', modulo: 'catalogo' },
     { rotulo: '🧪 Qualidade', caminho: '/admin/catalogo/qualidade', modulo: 'catalogo' },
   ]},
+  { rotulo: 'Materiais',     caminho: '/materiais',     icone: Cable, modulo: 'catalogo' },
   { rotulo: 'Auditoria',     caminho: '/auditoria',     icone: Shield, modulo: 'configuracoes' },
   { rotulo: 'Configurações', caminho: '/configuracoes', icone: Settings, modulo: 'configuracoes' },
 ]

@@ -16,6 +16,7 @@ import CRM                 from './pages/CRM'
 import ProjetosEV          from './pages/ProjetosEV'
 import Homologacao         from './pages/Homologacao'
 import Catalogo            from './pages/Catalogo'
+import Materiais           from './pages/Materiais'
 import Configuracoes       from './pages/Configuracoes'
 import Modulos             from './pages/Modulos'
 import Inversores          from './pages/Inversores'
@@ -71,6 +72,7 @@ export default function App() {
         <Route path="projetos-ev/:id"         element={<ProjetosEVDetalhes />} />
         <Route path="homologacao"             element={<Homologacao />} />
         <Route path="catalogo"                element={<Catalogo />} />
+        <Route path="materiais"               element={<Materiais />} />
         <Route path="configuracoes"           element={<Configuracoes />} />
         <Route path="equipamentos/modulos"         element={<Modulos />} />
         <Route path="equipamentos/inversores"      element={<Inversores />} />

@@ -116,6 +116,8 @@ import rotasIntegrations from './routes/integrations.js'   // 🔐 Gerenciamento
 import rotasDimensionamento from './routes/dimensionamento.js'  // 🌞 Motor de dimensionamento FV (S1)
 import rotasAdminCatalogo from './routes/adminCatalogo.js'      // 🧪 Qualidade do catálogo técnico (S2.6.1)
 import rotasKitsV1       from './routes/kitsV1.js'              // 🔍 Motor de Recomendação de Kits FV (S2.14)
+import rotasMateriais    from './routes/materiais.js'           // 📦 Catálogo Mestre de Materiais (P0-CATALOGO Fase 1)
+import rotasCategoriasMaterial from './routes/categoriasMaterial.js'  // 📦 Templates de Categoria (P0-CATALOGO Fase 2A)
 // import rotasBillIntake   from './routes/billIntakeRoutes.js'   // 📋 Bill intake + parser (S3.1) — BLOCKED by pdfjs-dist
 import rotasAuthV2       from './routes/authv2.js'            // 🔐 Auth v2 - S3.7 (Login simplificado)
 import errorHandler      from './middleware/errorHandler.js'
@@ -220,6 +222,8 @@ app.use('/api/integrations', rotasIntegrations)
 app.use('/api/dimensionamento', rotasDimensionamento)
 // 🧪 Catálogo técnico — qualidade (S2.6.1 — endpoint admin de leitura)
 app.use('/api/admin/catalogo', protegerModulo('catalogo'), rotasAdminCatalogo)
+app.use('/api/materiais',      protegerModulo('catalogo'), rotasMateriais)
+app.use('/api/categorias-material', protegerModulo('catalogo'), rotasCategoriasMaterial)
 // 🔍 Motor de Recomendação de Kits FV (S2.14 — read-only analítico)
 app.use('/api/v1/kits',        rotasKitsV1)
 // app.use('/api/auth-legacy', rotasAuth)  // Rota antiga desabilitada

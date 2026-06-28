@@ -9,6 +9,9 @@
     "start": "node src/server.js",
     "start:backend": "npm run start",
     "seed": "node src/seeds/initial.js",
+    "test:catalogo": "node tests/catalogo/test_material_fase1.mjs",
+    "test:catalogo:e2e": "node tests/catalogo/test_fluxo_completo.mjs",
+    "catalogo:seed-templates": "node scripts/seed-catalogo-templates.mjs",
     "catalogo:enriquecer-datasheets": "node scripts/enriquecer-catalogo-datasheets.mjs",
     "catalogo:cache:stats": "node -e \"import('dotenv/config').then(()=>import('./src/services/datasheetCacheService.js')).then(m=>m.obterEstatisticasCache()).then(s=>console.log(JSON.stringify(s,null,2)))\"",
     "migrar:fv-v3:dry": "node scripts/migrate-projetos-v2-to-v3.mjs",
@@ -41,5 +44,8 @@
     "pdfkit": "^0.18.0",
     "qrcode": "^1.5.4",
     "tesseract.js": "^5.1.1"
+  },
+  "devDependencies": {
+    "mongodb-memory-server": "^11.2.0"
   }
 }
