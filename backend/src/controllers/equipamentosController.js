@@ -338,25 +338,36 @@ export const atualizarEquipamento = async (req, res) => {
     const { id } = req.params
     const { fabricante, modelo, especificacoes, garantia_produto, garantia_performance, preco_sugerido, ativo } = req.body
 
-    const equipamento = await Equipamento.findByIdAndUpdate(
-      id,
-      {
-        fabricante,
-        modelo,
-        especificacoes,
-        garantia_produto,
-        garantia_performance,
-        preco_sugerido,
-        ativo,
-      },
-      { new: true }
-    )
-
+    // P0-MOD-FV-QUALITY-ENGINE-01: findByIdAndUpdate CONTORNA o pre('save') hook,
+    // impedindo que processarEquipamento recalcule qualidade/score após edição manual.
+    // Substituído por findById + atribuição + .save() para disparar o hook corretamente.
+    const equipamento = await Equipamento.findById(id)
     if (!equipamento) {
       return res.status(404).json({ erro: 'Equipamento não encontrado' })
     }
 
-    console.log('✓ Equipamento atualizado:', id)
+    if (fabricante !== undefined) equipamento.fabricante = fabricante
+    if (modelo !== undefined) equipamento.modelo = modelo
+    if (especificacoes !== undefined) {
+      equipamento.especificacoes = especificacoes
+      equipamento.markModified('especificacoes')
+    }
+    if (garantia_produto !== undefined) equipamento.garantia_produto = garantia_produto
+    if (garantia_performance !== undefined) equipamento.garantia_performance = garantia_performance
+    if (preco_sugerido !== undefined) equipamento.preco_sugerido = preco_sugerido
+    if (ativo !== undefined) equipamento.ativo = ativo
+
+    // Se a origem era desconhecida e o usuário está editando manualmente, promove para 'manual'
+    // para que a confiança reflita a revisão humana (manual=100 vs desconhecido=20).
+    if (!equipamento.origem?.tipo || equipamento.origem.tipo === 'desconhecido') {
+      equipamento.origem = { ...(equipamento.origem || {}), tipo: 'manual', em: new Date() }
+      equipamento.markModified('origem')
+    }
+
+    // .save() dispara pre('save') → processarEquipamento → qualidade recalculada
+    await equipamento.save()
+
+    console.log('✓ Equipamento atualizado (com qualidade recalculada):', id)
     res.json(equipamento)
   } catch (err) {
     console.error('❌ Erro ao atualizar equipamento:', err)
