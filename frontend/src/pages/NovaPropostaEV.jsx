@@ -33,6 +33,7 @@ import { renderSVG } from '@diagram-engine'
 import { salvarDiagramaLocal } from '../components/diagram/utils/diagramPersistence'
 import { tecnicosApi } from '../services/gestaoApi'
 import { apenasAtivos } from '../utils/gestaoUtils'
+import { listarAtivos as listarMateriaisAtivos } from '../services/materiaisApi'
 
 const API_URL = '' /* URL relativa — Vercel proxy → Railway */
 
@@ -87,6 +88,13 @@ export default function NovaPropostaEV() {
     tecnico_cft: '',
     tecnico_tipo: 'crea',
   })
+
+  const [catalogoItems, setCatalogoItems] = useState([])
+
+  // ── Catálogo Mestre — carrega materiais ativos para enriquecer preços ────
+  useEffect(() => {
+    listarMateriaisAtivos().then(setCatalogoItems).catch(() => {})
+  }, [])
 
   // ── Técnicos responsáveis ────────────────────────────────────────────────
   useEffect(() => {
@@ -152,6 +160,49 @@ export default function NovaPropostaEV() {
 
   // ── CÁLCULO AUTOMÁTICO ───────────────────────────────────────────────────
   // Dispara sempre que os carregadores selecionados ou o comprimento mudam.
+  // ── Enriquecimento de preços via Catálogo Mestre ─────────────────────────
+  // Mapeamento de categoria BOM → categoria(s) do catálogo
+  const CAT_BOM_PARA_CATALOGO = {
+    Cabos: ['cabos'],
+    Proteções: ['protecao_eletrica', 'quadros_barramentos'],
+    Equipamentos: ['quadros_barramentos'],
+    Infraestrutura: ['conexoes_infraestrutura', 'fixacao'],
+    Conexões: ['conexoes_infraestrutura'],
+    Diversos: ['fixacao'],
+  }
+
+  function encontrarNoCatalogo(bomItem, catalogo) {
+    const cats = CAT_BOM_PARA_CATALOGO[bomItem.categoria] || []
+    const candidatos = cats.length ? catalogo.filter(m => cats.includes(m.categoria)) : catalogo
+
+    // Extrai "Xmm²" do descricao para match por bitola (cabos e terminais)
+    const bitolaMatch = bomItem.descricao.match(/(\d+(?:[.,]\d+)?)mm²/)
+    const bitolaStr = bitolaMatch ? bitolaMatch[1].replace(',', '.') : null
+
+    if (bitolaStr) {
+      // Primeiro tenta match por bitola exata
+      const porBitola = candidatos.find(c => c.descricao.includes(`${bitolaStr}mm²`))
+      if (porBitola) return porBitola
+    }
+
+    // Nome do item: tudo antes do primeiro " (" (remove especificação)
+    const nomeItem = bomItem.descricao.split(' (')[0].toLowerCase().trim()
+    return candidatos.find(c => {
+      const cd = c.descricao.toLowerCase()
+      return cd.includes(nomeItem) || nomeItem.includes(cd)
+    }) || null
+  }
+
+  function enriquecerComCatalogo(materiais, catalogo) {
+    if (!catalogo.length) return materiais
+    return materiais.map(m => {
+      const encontrado = encontrarNoCatalogo(m, catalogo)
+      if (!encontrado) return { ...m, nao_cadastrado: true }
+      const preco = encontrado.precoReferencia?.valor ?? 0
+      return { ...m, preco_unitario: preco, material_id: encontrado._id, nao_cadastrado: !preco }
+    })
+  }
+
   // Reseta o BOM editável para refletir os novos parâmetros elétricos.
   useEffect(() => {
     if (carregadores.length === 0) {
@@ -175,16 +226,16 @@ export default function NovaPropostaEV() {
         tipo_conector:     primeiro.tipo_conector,
       })
       setCalculos(resultado)
-      // Propaga engenharia → orçamento (fonte única). Mantém serviços/margem/desconto.
+      // Propaga engenharia → orçamento. Enriquece com preços do Catálogo Mestre.
       setOrcamento(prev => ({
         ...prev,
-        materiais: bomParaMateriais(resultado.materiais),
+        materiais: enriquecerComCatalogo(bomParaMateriais(resultado.materiais), catalogoItems),
         equipamentos: carregadoresParaEquipamentos(carregadores),
       }))
     } catch (err) {
       console.error('[EV] Erro no cálculo automático:', err)
     }
-  }, [carregadores, dados.comprimento_cabo_m, incluirMobBox])
+  }, [carregadores, dados.comprimento_cabo_m, incluirMobBox, catalogoItems])
 
   // ── Gerar unifilar ao entrar na etapa 4 ────────────────────────────────
   const etapaRef = useRef(etapa)
@@ -623,7 +674,24 @@ export default function NovaPropostaEV() {
                 </div>
               </CardHeader>
               <CardBody>
-                <OrcamentoEV value={orcamento} onChange={setOrcamento} />
+                <OrcamentoEV
+                  value={orcamento}
+                  onChange={setOrcamento}
+                  onCadastrarMaterial={(item) => {
+                    const BOM_PARA_SLUG = {
+                      Cabos: 'cabos', Proteções: 'protecao_eletrica',
+                      Equipamentos: 'quadros_barramentos', Infraestrutura: 'conexoes_infraestrutura',
+                      Conexões: 'conexoes_infraestrutura', Diversos: 'fixacao',
+                    }
+                    const qs = new URLSearchParams({
+                      new: '1',
+                      descricao: item.descricao || '',
+                      categoria: BOM_PARA_SLUG[item.categoria] || '',
+                      unidade: item.unidade || 'un',
+                    }).toString()
+                    window.open(`/materiais?${qs}`, '_blank', 'noopener')
+                  }}
+                />
               </CardBody>
             </Card>
           )}

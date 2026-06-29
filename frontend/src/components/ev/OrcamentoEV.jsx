@@ -15,7 +15,7 @@
  *   (identidade estável entre re-renders do pai). Nunca mover para dentro.
  */
 import { useMemo } from 'react'
-import { Plus, Trash2, Wrench, Package, DollarSign } from 'lucide-react'
+import { Plus, Trash2, Wrench, Package, DollarSign, AlertTriangle } from 'lucide-react'
 import { calcularOrcamento, subtotalItem } from '../../utils/calcularOrcamento'
 
 const brl = (v) => `R$ ${Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
@@ -53,12 +53,18 @@ export function carregadoresParaEquipamentos(carregadores = []) {
 }
 
 // ─── Tabela declarada NO TOPO DO MÓDULO (identidade estável — BUG P6) ─────────
-function Tabela({ titulo, icone: Icone, itens, onSet, onDel, onAdd }) {
+function Tabela({ titulo, icone: Icone, itens, onSet, onDel, onAdd, onCadastrar }) {
+  const naoCadastrados = itens.filter(it => it.nao_cadastrado).length
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <h4 className="flex items-center gap-2 text-sm font-semibold text-slate-700">
           <Icone size={15} className="text-blue-500" /> {titulo}
+          {naoCadastrados > 0 && (
+            <span className="flex items-center gap-1 text-amber-600 font-normal text-[11px]">
+              <AlertTriangle size={11} /> {naoCadastrados} sem preço no catálogo
+            </span>
+          )}
         </h4>
         {onAdd && (
           <button type="button" onClick={onAdd}
@@ -84,14 +90,20 @@ function Tabela({ titulo, icone: Icone, itens, onSet, onDel, onAdd }) {
               <tr><td colSpan={6} className="text-slate-400 italic py-2">Nenhum item.</td></tr>
             )}
             {itens.map((it, i) => (
-              <tr key={i} className="border-t border-slate-100">
+              <tr key={i} className={`border-t ${it.nao_cadastrado ? 'border-amber-100 bg-amber-50/40' : 'border-slate-100'}`}>
                 <td className="py-1 pr-2">
                   <input
                     value={it.descricao}
                     onChange={(e) => onSet(i, { descricao: e.target.value })}
                     className="w-full border border-slate-200 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-400"
                   />
-                  {it.observacao !== undefined && (
+                  {it.nao_cadastrado && onCadastrar && (
+                    <button type="button" onClick={() => onCadastrar(it)}
+                      className="mt-0.5 text-[10px] text-amber-700 hover:text-amber-900 inline-flex items-center gap-1 font-medium">
+                      <AlertTriangle size={10} /> Não cadastrado — Cadastrar no catálogo
+                    </button>
+                  )}
+                  {!it.nao_cadastrado && it.observacao !== undefined && (
                     <input
                       value={it.observacao || ''}
                       onChange={(e) => onSet(i, { observacao: e.target.value })}
@@ -137,7 +149,7 @@ function Tabela({ titulo, icone: Icone, itens, onSet, onDel, onAdd }) {
 
 // ─── Componente principal (controlado pelo pai) ───────────────────────────────
 
-export default function OrcamentoEV({ value, onChange }) {
+export default function OrcamentoEV({ value, onChange, onCadastrarMaterial }) {
   const equipamentos = value?.equipamentos || []
   const materiais    = value?.materiais || []
   const servicos     = value?.servicos || []
@@ -163,7 +175,8 @@ export default function OrcamentoEV({ value, onChange }) {
       <Tabela titulo="Materiais" icone={Wrench} itens={materiais}
         onSet={setLinha('materiais')}
         onDel={delLinha('materiais')}
-        onAdd={addLinha('materiais', { descricao: '', quantidade: 1, unidade: 'un', preco_unitario: 0, observacao: '' })} />
+        onAdd={addLinha('materiais', { descricao: '', quantidade: 1, unidade: 'un', preco_unitario: 0, observacao: '' })}
+        onCadastrar={onCadastrarMaterial} />
       <Tabela titulo="Serviços" icone={Wrench} itens={servicos}
         onSet={setLinha('servicos')}
         onDel={delLinha('servicos')}

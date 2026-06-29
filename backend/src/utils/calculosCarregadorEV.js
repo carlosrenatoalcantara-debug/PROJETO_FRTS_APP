@@ -449,15 +449,8 @@ export function executarCalculosProjetoEV(dados) {
   const dps_kv = tensao_v >= 380 ? 420 : 275
   const dps_capacidade_a = corrente_data.corrente_calculada + 20
 
-  // Geração de lista de materiais
-  const materiais = gerarListaMaterialesNBRProjeto(
-    potencia_kw,
-    carregador.tipo || 'AC_Tri',
-    bitola_data.bitola_mm2,
-    disjuntor_data.disjuntor_a,
-    dr_data.corrente_fuga_max_ma,
-    comprimento_m
-  )
+  // BOM de materiais removido: fonte única é o Catálogo Mestre (projeto.bom).
+  // Ver: P1-CATALOGO-MATERIAIS-ETAPA-2 (Etapa 2.5).
 
   return {
     calculos_nbr: {
@@ -470,7 +463,6 @@ export function executarCalculosProjetoEV(dados) {
       dps_capacidade_a: dps_capacidade_a,
       tempo_seccionamento_s: tempo_seccionamento_s,
       queda_tensao_pct: bitola_data.queda_tensao_real,
-      materiais: materiais,
     },
     conformidade_norms: conformidade,
     detalhes: {

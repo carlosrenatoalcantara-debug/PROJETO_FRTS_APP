@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Cable, Plus, Search, Pencil, Clock, X, ChevronLeft, ChevronRight, ShoppingCart } from 'lucide-react'
 import Button from '../components/ui/Button'
 import Badge from '../components/ui/Badge'
@@ -121,8 +122,16 @@ function FormMaterial({ inicial, templates, onSalvar, onFechar }) {
     } catch (e) { setErro(e.message) } finally { setSalvando(false) }
   }
 
+  const prefillDescricao = inicial?._prefillDescricao || ''
+
   return (
     <Modal titulo={ed ? 'Editar material' : 'Novo material'} onFechar={onFechar} largura="max-w-xl">
+      {prefillDescricao && !ed && (
+        <div className="mb-3 flex items-start gap-2 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-800">
+          <span className="font-semibold shrink-0">Item do orçamento:</span>
+          <span>{prefillDescricao}</span>
+        </div>
+      )}
       {templates.length === 0 ? (
         <div className="text-sm text-slate-600">
           Nenhum <strong>Template de Categoria</strong> cadastrado. Rode o seed
@@ -277,6 +286,7 @@ function ModalHistorico({ material, onFechar, onRegistrar }) {
 
 // ─── Página ───────────────────────────────────────────────────────────────────
 export default function Materiais() {
+  const [searchParams, setSearchParams] = useSearchParams()
   const [dados, setDados] = useState({ itens: [], paginacao: { pagina: 1, totalPaginas: 1, total: 0 } })
   const [templates, setTemplates] = useState([])
   const [carregando, setCarregando] = useState(true)
@@ -285,6 +295,17 @@ export default function Materiais() {
   const [pagina, setPagina] = useState(1)
   const [editando, setEditando] = useState(null)
   const [historico, setHistorico] = useState(null)
+
+  // Abre o form pré-preenchido quando a página é aberta com ?new=1 (vindo do orçamento EV)
+  useEffect(() => {
+    if (searchParams.get('new') !== '1') return
+    setEditando({
+      categoria: searchParams.get('categoria') || '',
+      unidade: searchParams.get('unidade') || 'un',
+      _prefillDescricao: searchParams.get('descricao') || '',
+    })
+    setSearchParams({}, { replace: true })  // limpa params da URL
+  }, []) // eslint-disable-line
 
   const carregar = useCallback(async () => {
     setCarregando(true); setErro('')

@@ -30,6 +30,10 @@ export const alterarStatusMaterial = (id, status) =>
 export const registrarCompra  = (id, compra) =>
   _f(`/api/materiais/${id}/compras`, { method: 'POST', body: JSON.stringify(compra) })
 
+/** Busca todos os materiais ativos (até 200) — usado para enriquecimento de preços no orçamento. */
+export const listarAtivos = () =>
+  _f('/api/materiais?status=ativo&limit=200').then((d) => d.itens || [])
+
 // Templates de Categoria (form dinâmico)
 export const listarTemplates = () => _f('/api/categorias-material').then((d) => d.itens || [])
 export const buscarTemplate  = (chave) => _f(`/api/categorias-material/${chave}`)
