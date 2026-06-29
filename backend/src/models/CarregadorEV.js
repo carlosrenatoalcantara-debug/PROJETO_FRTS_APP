@@ -31,7 +31,7 @@ const carregadorEVSchema = new mongoose.Schema({
   tensao_entrada_v: Number,
   corrente_entrada_a: Number,
   numero_fases: Number,
-  frequencia_hz: { type: Number, default: 60 },
+  frequencia_hz: Number,   // P2-EV-CATALOG-SIMPLIFICATION-01: sem default (não inventar 60Hz)
 
   tensao_saida_dc_v: Number,
   corrente_saida_dc_a: Number,

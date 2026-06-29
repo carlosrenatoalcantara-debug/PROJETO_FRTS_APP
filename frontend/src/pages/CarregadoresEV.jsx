@@ -40,15 +40,16 @@ const BLOCOS_ENGENHARIA = [
     { key: 'modelo',     label: 'Modelo',     fonte: 'raiz' },
     { key: 'tipo_carregador', label: 'Tipo' },
   ]},
+  // P2-EV-CATALOG-SIMPLIFICATION-01: catálogo = só características intrínsecas.
+  // Frequência e fator de potência saíram (são engenharia/cálculo, não do catálogo).
   { titulo: 'Entrada Elétrica', campos: [
     { key: 'potencia_kw',       label: 'Potência nominal',  unit: 'kW' },
     { key: 'tensao_entrada_v',  label: 'Tensão de entrada', unit: 'V'  },
     { key: 'corrente_entrada_a',label: 'Corrente de entrada', unit: 'A' },
     { key: 'numero_fases',      label: 'Número de fases' },
-    { key: 'frequencia_hz',     label: 'Frequência',        unit: 'Hz' },
-    { key: 'fator_potencia',    label: 'Fator de potência' },
   ]},
-  { titulo: 'Saída', campos: [
+  // Bloco "Saída" só faz sentido para carregadores DC — renderizado condicionalmente.
+  { titulo: 'Saída (DC)', dcOnly: true, campos: [
     { key: 'tensao_saida_dc_v',    label: 'Tensão de saída DC',   unit: 'V'   },
     { key: 'corrente_saida_dc_a',  label: 'Corrente de saída DC', unit: 'A'   },
     { key: 'tempo_carga_rapida_min', label: 'Tempo de carga rápida', unit: 'min' },
@@ -68,11 +69,8 @@ const BLOCOS_ENGENHARIA = [
   { titulo: 'Controle', campos: [
     { key: 'ocpp', label: 'OCPP', bool: true },
   ]},
-  { titulo: 'Proteções', campos: [
-    { key: 'disjuntor_recomendado_a', label: 'Disjuntor recomendado', unit: 'A'   },
-    { key: 'dr_recomendado_ma',       label: 'DR recomendado',        unit: 'mA'  },
-    { key: 'bitola_cabo_minima_mm2',  label: 'Bitola mínima do cabo', unit: 'mm²' },
-  ]},
+  // P2-EV-CATALOG-SIMPLIFICATION-01: bloco "Proteções" (disjuntor/DR/bitola) REMOVIDO —
+  // são resultados de cálculo da Engenharia (SSOT), não características do equipamento.
   { titulo: 'Mecânica', campos: [
     { key: 'peso_kg',      label: 'Peso',      unit: 'kg' },
     { key: 'dimensoes_mm', label: 'Dimensões', unit: 'mm' },
@@ -339,9 +337,12 @@ export default function CarregadoresEV() {
 
                 {aberto && (
                   <div className="border-t border-slate-100 px-5 py-4 bg-slate-50 space-y-5">
-                    {BLOCOS_ENGENHARIA.map(b => (
-                      <BlocoEngenharia key={b.titulo} titulo={b.titulo} campos={b.campos} car={car} espec={espec} />
-                    ))}
+                    {BLOCOS_ENGENHARIA
+                      // Bloco DC só aparece para carregadores DC (Req: campos DC ocultos no AC)
+                      .filter(b => !b.dcOnly || (car.tipo_carregador || car.tipo) === 'DC')
+                      .map(b => (
+                        <BlocoEngenharia key={b.titulo} titulo={b.titulo} campos={b.campos} car={car} espec={espec} />
+                      ))}
                   </div>
                 )}
               </Card>
@@ -391,6 +392,8 @@ function EdicaoCarregador({ carregador, onClose, onSalvar }) {
   }
 
   const espec = form.especificacoes || {}
+  // P2-EV-CATALOG-SIMPLIFICATION-01: campos de saída DC só para carregadores DC.
+  const ehDC = (form.tipo_carregador || form.tipo) === 'DC'
   const inp = (placeholder, key, type = 'text', isEspec = false) => (
     <input type={type} placeholder={placeholder}
       value={isEspec ? (espec[key] ?? '') : (form[key] ?? '')}
@@ -414,14 +417,13 @@ function EdicaoCarregador({ carregador, onClose, onSalvar }) {
             {inp('Tensão entrada (V)', 'tensao_entrada', 'number', true)}
             {inp('Corrente entrada máxima (A)', 'corrente_entrada', 'number', true)}
             {inp('Número de fases (1 ou 3)', 'numero_fases', 'number', true)}
-            {inp('Frequência (Hz)', 'frequencia_hz', 'number', true)}
-            {inp('Tensão saída DC (V)', 'tensao_saida_dc', 'number', true)}
-            {inp('Corrente saída DC (A)', 'corrente_saida_dc', 'number', true)}
             {inp('Tipo conector saída', 'tipo_conector_saida', 'text', true)}
             {inp('Protocolo carregamento', 'protocolo_carregamento', 'text', true)}
             {inp('Tipo carregamento', 'tipo_carregamento', 'text', true)}
-            {inp('Tempo carga rápida (min)', 'tempo_carga_rapida', 'number', true)}
-            {inp('Eficiência (%)', 'eficiencia', 'number', true)}
+            {ehDC && inp('Tensão saída DC (V)', 'tensao_saida_dc', 'number', true)}
+            {ehDC && inp('Corrente saída DC (A)', 'corrente_saida_dc', 'number', true)}
+            {ehDC && inp('Tempo carga rápida (min)', 'tempo_carga_rapida', 'number', true)}
+            {ehDC && inp('Eficiência (%)', 'eficiencia', 'number', true)}
             {inp('Grau proteção IP', 'grau_protecao_ip', 'text', true)}
             {inp('Peso (kg)', 'peso_kg', 'number', true)}
           </div>

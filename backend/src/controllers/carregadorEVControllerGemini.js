@@ -234,15 +234,17 @@ export async function extrairDatasheetEV(pdfBuffer) {
       }
     }
 
-    // Protocolo de carregamento
-    let protocolo_carregamento = 'IEC 61851'
+    // Protocolo de carregamento — null se não declarado (não inventar)
+    let protocolo_carregamento = null
     if (texto.includes('GB/T') || texto.includes('GB/T 20234')) {
       protocolo_carregamento = 'GB/T 20234'
+    } else if (/IEC[\s]*61851/i.test(texto)) {
+      protocolo_carregamento = 'IEC 61851'
     }
 
-    // Tipo de conector
-    let tipo_carregamento = 'Type 2'
-    let tipo_conector = 'Type 2'
+    // Tipo de conector — null se não detectado
+    let tipo_carregamento = null
+    let tipo_conector = null
 
     const conectorPatterns = [
       /TYPE[\s]*2|MENNEKES/i,
@@ -267,9 +269,9 @@ export async function extrairDatasheetEV(pdfBuffer) {
       }
     }
 
-    // Temperatura operacional
-    let temperatura_operacao_min = -30
-    let temperatura_operacao_max = 50
+    // Temperatura operacional — null se não declarada (não inventar faixa)
+    let temperatura_operacao_min = null
+    let temperatura_operacao_max = null
 
     const tempPatterns = [
       /OPERATING[\s]*TEMPERATURE[\s:]*([\\-\d]+)[\s]*[°C][\s]*TO[\s]*([\\-\d]+)[\s]*[°C]/i,
@@ -286,8 +288,8 @@ export async function extrairDatasheetEV(pdfBuffer) {
       }
     }
 
-    // IP Rating
-    let ip_rating = 'IP54'
+    // IP Rating — null se não declarado
+    let ip_rating = null
     const ipPatterns = [
       /IP([0-9]{2})/,
     ]
@@ -315,8 +317,8 @@ export async function extrairDatasheetEV(pdfBuffer) {
       }
     }
 
-    // Garantia
-    let garantia_anos = 2
+    // Garantia — null se não declarada
+    let garantia_anos = null
     const garantiaPatterns = [
       /WARRANTY[\s:]*(\d+)\s*YEAR/i,
       /GARANTIA[\s:]*(\d+)\s*ANO/i,
@@ -330,6 +332,30 @@ export async function extrairDatasheetEV(pdfBuffer) {
       }
     }
 
+    // ===== Comunicação (campo MANTIDO) — detecta interfaces reais; null se nenhuma =====
+    // P2-EV-CATALOG-SIMPLIFICATION-01: nunca hardcode 'OCPP'. Só o que está no datasheet.
+    const mapaComunicacao = [
+      [/OCPP/i, 'OCPP'],
+      [/MODBUS/i, 'Modbus'],
+      [/ETHERNET|RJ[\s-]?45/i, 'Ethernet'],
+      [/WI[\s-]?FI|WIRELESS/i, 'Wi-Fi'],
+      [/BLUETOOTH|\bBLE\b/i, 'Bluetooth'],
+      [/RFID/i, 'RFID'],
+      [/\b4G\b|\bLTE\b|\bGSM\b|\bGPRS\b|CELLULAR|CELULAR/i, '4G'],
+    ]
+    const comunicacaoDetectada = mapaComunicacao.filter(([re]) => re.test(texto)).map(([, nome]) => nome)
+
+    // ===== Quantidade de conectores (campo MANTIDO) =====
+    let qtd_conectores = null
+    const qtdConectoresMatch = texto.match(/(\d+)\s*(?:CONNECTORS?|CONECTORES?|GUNS?|OUTLETS?|TOMADAS?)/i)
+    if (qtdConectoresMatch) {
+      const q = parseInt(qtdConectoresMatch[1])
+      if (q > 0 && q <= 10) qtd_conectores = q
+    }
+
+    // P2-EV-CATALOG-SIMPLIFICATION-01: o catálogo guarda só características intrínsecas.
+    // Campos de engenharia (frequência, fator de potência, disjuntor, DR, bitola) NÃO são
+    // extraídos nem inventados — saem NULL. Sem hardcodes (60Hz, 30mA, ['OCPP']).
     return {
       marca,
       modelo,
@@ -338,12 +364,13 @@ export async function extrairDatasheetEV(pdfBuffer) {
       tensao_entrada_v,
       corrente_entrada_a,
       numero_fases,
-      frequencia_hz: 60,
+      frequencia_hz: null,
       tensao_saida_dc_v,
       corrente_saida_dc_a,
       protocolo_carregamento,
       tipo_carregamento,
       conector: tipo_conector,
+      qtd_conectores,
       ip_rating,
       temperatura_operacao_min,
       temperatura_operacao_max,
@@ -351,10 +378,10 @@ export async function extrairDatasheetEV(pdfBuffer) {
       fator_potencia: null,
       peso_kg: null,
       dimensoes_mm: null,
-      comunicacao: ['OCPP'],
+      comunicacao: comunicacaoDetectada.length ? comunicacaoDetectada : null,
       ocpp_version: null,
       disjuntor_recomendado_a: null,
-      dr_recomendado_ma: 30,
+      dr_recomendado_ma: null,
       bitola_cabo_minima_mm2: null,
       garantia_anos,
       certificacao: ['CE'],
@@ -401,25 +428,29 @@ export function normalizarDadosEV(dados) {
     tensao_entrada_v: dados.tensao_entrada_v || null,
     corrente_entrada_a: dados.corrente_entrada_a || null,
     numero_fases: dados.numero_fases || (tipoFinal === 'AC_Tri' ? 3 : 1),
-    frequencia_hz: dados.frequencia_hz || 60,
+    // P2-EV-CATALOG-SIMPLIFICATION-01: campos de engenharia NÃO recebem default — NULL se ausentes.
+    frequencia_hz: dados.frequencia_hz ?? null,
     tensao_saida_dc_v: dados.tensao_saida_dc_v || null,
     corrente_saida_dc_a: dados.corrente_saida_dc_a || null,
-    eficiencia_pct: dados.eficiencia_pct || null,
-    fator_potencia: dados.fator_potencia || null,
-    grau_protecao_ip: dados.ip_rating || 'IP54',
-    temperatura_operacao: `${dados.temperatura_operacao_min || -30}°C até ${dados.temperatura_operacao_max || 50}°C`,
+    eficiencia_pct: dados.eficiencia_pct ?? null,
+    fator_potencia: dados.fator_potencia ?? null,
+    grau_protecao_ip: dados.ip_rating || null,
+    temperatura_operacao: (dados.temperatura_operacao_min != null && dados.temperatura_operacao_max != null)
+      ? `${dados.temperatura_operacao_min}°C até ${dados.temperatura_operacao_max}°C`
+      : null,
     peso_kg: dados.peso_kg || null,
     dimensoes_mm: dados.dimensoes_mm || null,
-    protocolo_carregamento: dados.protocolo_carregamento || 'IEC 61851',
-    tipo_carregamento: dados.tipo_carregamento || 'Type 2',
-    tipo_conector: dados.conector || 'Type 2',
+    protocolo_carregamento: dados.protocolo_carregamento || null,
+    tipo_carregamento: dados.tipo_carregamento || null,
+    tipo_conector: dados.conector || null,
+    qtd_conectores: dados.qtd_conectores || 1,   // mínimo físico (todo carregador tem ≥1)
     comunicacao: Array.isArray(dados.comunicacao)
-      ? dados.comunicacao.join(',')
-      : dados.comunicacao || '',
-    disjuntor_recomendado_a: dados.disjuntor_recomendado_a || null,
-    dr_recomendado_ma: dados.dr_recomendado_ma || 30,
-    bitola_cabo_minima_mm2: dados.bitola_cabo_minima_mm2 || null,
-    garantia_anos: dados.garantia_anos || 2,
+      ? (dados.comunicacao.length ? dados.comunicacao.join(', ') : null)
+      : (dados.comunicacao || null),
+    disjuntor_recomendado_a: dados.disjuntor_recomendado_a ?? null,
+    dr_recomendado_ma: dados.dr_recomendado_ma ?? null,
+    bitola_cabo_minima_mm2: dados.bitola_cabo_minima_mm2 ?? null,
+    garantia_anos: dados.garantia_anos || null,
     ativo: true,
   }
 }
