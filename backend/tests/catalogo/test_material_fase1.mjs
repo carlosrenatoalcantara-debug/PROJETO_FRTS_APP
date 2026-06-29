@@ -1,5 +1,5 @@
 /**
- * test_material_fase1.mjs — P0-CATALOGO-MESTRE-MATERIAIS (Fase 1 + 2A)
+ * test_material_fase1.mjs — P0-CATALOGO-MESTRE-MATERIAIS (Fase 1 + 2B)
  *
  * Testes de LÓGICA PURA — NÃO requerem MongoDB:
  *   1. chaveCanonica: determinismo, ordem, commodity×engenharia, identidade do template
@@ -31,7 +31,7 @@ console.log('chaveCanonica')
   assert.equal(normalizarTexto('Cabo Flexível 10mm²'), 'cabo flexivel 10mm2')
   ok('normalizarTexto: acento/caixa/símbolos/NFKD (10mm²→10mm2)')
 
-  const a = { classe: 'commodity', categoria: 'cabo', especificacoes: [
+  const a = { classe: 'commodity', categoria: 'cabos', especificacoes: [
     { chave: 'bitola_mm2', valor: '10' }, { chave: 'tensao_isolamento_v', valor: '0,6/1kV' },
   ] }
   const b = { ...a, especificacoes: [...a.especificacoes].reverse() }
@@ -39,7 +39,7 @@ console.log('chaveCanonica')
   ok('determinística e independente da ordem')
 
   // Identidade via template: atributo fora da lista de identidade NÃO altera a chave.
-  const semCor = { classe: 'commodity', categoria: 'cabo', especificacoes: [{ chave: 'bitola_mm2', valor: '10' }] }
+  const semCor = { classe: 'commodity', categoria: 'cabos', especificacoes: [{ chave: 'bitola_mm2', valor: '10' }] }
   const comCor = { ...semCor, especificacoes: [...semCor.especificacoes, { chave: 'cor', valor: 'preto' }] }
   const idAttrs = ['bitola_mm2']
   assert.equal(
@@ -52,7 +52,7 @@ console.log('chaveCanonica')
   assert.notEqual(derivarChaveCanonica(semCor), derivarChaveCanonica(comCor))
   ok('back-compat: sem lista de identidade considera todas as especs')
 
-  const eng1 = { classe: 'engenharia', categoria: 'disjuntor', fabricante: 'Schneider', modelo: 'C32', especificacoes: [] }
+  const eng1 = { classe: 'engenharia', categoria: 'protecao_eletrica', fabricante: 'Schneider', modelo: 'C32', especificacoes: [] }
   const eng2 = { ...eng1, fabricante: 'Siemens' }
   assert.notEqual(derivarChaveCanonica(eng1), derivarChaveCanonica(eng2))
   assert.match(derivarChaveCanonica(eng1), /^[a-f0-9]{40}$/)
@@ -62,68 +62,69 @@ console.log('chaveCanonica')
 // ─── 2. Template engine ───────────────────────────────────────────────────────
 console.log('Template engine')
 {
-  const tplCabo = TEMPLATES_CATEGORIA.find(t => t.chave === 'cabo')
-  const tplDisj = TEMPLATES_CATEGORIA.find(t => t.chave === 'disjuntor')
+  const tplCabos = TEMPLATES_CATEGORIA.find(t => t.chave === 'cabos')
+  const tplProt  = TEMPLATES_CATEGORIA.find(t => t.chave === 'protecao_eletrica')
 
   assert.deepEqual(
-    atributosIdentidade(tplCabo).sort(),
-    ['bitola_mm2', 'material_condutor', 'n_condutores', 'tensao_isolamento_v', 'tipo_cabo'].sort(),
+    atributosIdentidade(tplCabos).sort(),
+    ['bitola_mm2', 'material_condutor', 'n_condutores', 'tensao_isolamento_v'].sort(),
   )
-  ok('atributosIdentidade lista as chaves de identidade do template')
+  ok('atributosIdentidade lista as chaves de identidade do template cabos')
 
-  const caboOk = { classe: 'commodity', categoria: 'cabo', especificacoes: [
+  const caboOk = { classe: 'commodity', categoria: 'cabos', especificacoes: [
     { chave: 'bitola_mm2', valor: '10' }, { chave: 'tensao_isolamento_v', valor: '0,6/1kV' },
-    { chave: 'material_condutor', valor: 'cobre' }, { chave: 'tipo_cabo', valor: 'flexivel' },
-    { chave: 'n_condutores', valor: '1' },
+    { chave: 'material_condutor', valor: 'cobre' }, { chave: 'n_condutores', valor: '1' },
   ] }
-  assert.equal(validarMaterialContraTemplate(caboOk, tplCabo).valido, true)
+  assert.equal(validarMaterialContraTemplate(caboOk, tplCabos).valido, true)
   ok('valida cabo completo')
 
-  let r = validarMaterialContraTemplate({ classe: 'commodity', categoria: 'cabo', especificacoes: [
+  let r = validarMaterialContraTemplate({ classe: 'commodity', categoria: 'cabos', especificacoes: [
     { chave: 'bitola_mm2', valor: '10' },
-  ] }, tplCabo)
+  ] }, tplCabos)
   assert.equal(r.valido, false)
   assert.ok(r.erros.some(e => /tensao_isolamento_v/.test(e)))
-  ok('rejeita obrigatório/identidade ausente')
+  ok('rejeita identidade ausente (tensao_isolamento_v)')
 
-  r = validarMaterialContraTemplate({ ...caboOk, especificacoes: [...caboOk.especificacoes, { chave: 'gambiarra', valor: 'x' }] }, tplCabo)
+  r = validarMaterialContraTemplate({ ...caboOk, especificacoes: [...caboOk.especificacoes, { chave: 'gambiarra', valor: 'x' }] }, tplCabos)
   assert.equal(r.valido, false)
   assert.ok(r.erros.some(e => /não pertence/.test(e)))
   ok('rejeita atributo desconhecido (vocabulário fechado)')
 
   r = validarMaterialContraTemplate({ ...caboOk, especificacoes: [
     { chave: 'bitola_mm2', valor: 'dez' }, { chave: 'tensao_isolamento_v', valor: '0,6/1kV' },
-    { chave: 'material_condutor', valor: 'cobre' }, { chave: 'tipo_cabo', valor: 'flexivel' },
-  ] }, tplCabo)
+    { chave: 'material_condutor', valor: 'cobre' }, { chave: 'n_condutores', valor: '1' },
+  ] }, tplCabos)
   assert.ok(r.erros.some(e => /numérico/.test(e)))
   ok('rejeita tipo numérico inválido')
 
   r = validarMaterialContraTemplate({ ...caboOk, especificacoes: [
     { chave: 'bitola_mm2', valor: '10' }, { chave: 'tensao_isolamento_v', valor: 'XPTO' },
-    { chave: 'material_condutor', valor: 'cobre' }, { chave: 'tipo_cabo', valor: 'flexivel' },
-  ] }, tplCabo)
+    { chave: 'material_condutor', valor: 'cobre' }, { chave: 'n_condutores', valor: '1' },
+  ] }, tplCabos)
   assert.ok(r.erros.some(e => /deve ser um de/.test(e)))
   ok('rejeita valor fora do enum')
 
-  // Engenharia exige fabricante/modelo
-  r = validarMaterialContraTemplate({ classe: 'engenharia', categoria: 'disjuntor', especificacoes: [
-    { chave: 'corrente_nominal_a', valor: '32' }, { chave: 'curva', valor: 'C' }, { chave: 'polos', valor: '1' },
-  ] }, tplDisj)
-  assert.ok(r.erros.some(e => /fabricante/.test(e)))
-  ok('engenharia sem fabricante/modelo é rejeitada')
+  // protecao_eletrica: commodity com atributo tipo (identidade)
+  const protOk = { classe: 'commodity', categoria: 'protecao_eletrica', especificacoes: [
+    { chave: 'tipo', valor: 'Disjuntor termomagnético' },
+  ] }
+  assert.equal(validarMaterialContraTemplate(protOk, tplProt).valido, true)
+  ok('valida protecao_eletrica completo')
 
-  // Descrição automática
-  const desc = gerarDescricao(tplDisj, {
-    fabricante: 'Schneider', modelo: 'Acti9', especificacoes: [
-      { chave: 'corrente_nominal_a', valor: '32' }, { chave: 'curva', valor: 'C' }, { chave: 'polos', valor: '1' },
-    ],
-  })
-  assert.equal(desc, 'Disjuntor Schneider Acti9 32A Curva C 1P')
-  ok('gerarDescricao preenche o padrão a partir de specs + fabricante/modelo')
+  r = validarMaterialContraTemplate({ classe: 'commodity', categoria: 'protecao_eletrica', especificacoes: [] }, tplProt)
+  assert.equal(r.valido, false)
+  assert.ok(r.erros.some(e => /tipo/.test(e)))
+  ok('rejeita protecao_eletrica sem atributo tipo')
 
-  const descCabo = gerarDescricao(tplCabo, caboOk)
-  assert.equal(descCabo, 'Cabo flexivel 10 mm² 0,6/1kV cobre')
-  ok('gerarDescricao para commodity')
+  // Descrição automática cabos
+  const descCabo = gerarDescricao(tplCabos, caboOk)
+  assert.equal(descCabo, 'Cabo 10mm² 1C 0,6/1kV cobre')
+  ok('gerarDescricao para cabos')
+
+  // Descrição automática protecao_eletrica
+  const descProt = gerarDescricao(tplProt, protOk)
+  assert.equal(descProt, 'Disjuntor termomagnético')
+  ok('gerarDescricao para protecao_eletrica ({tipo})')
 }
 
 // ─── 3. Material schema (validateSync — sem banco) ────────────────────────────
@@ -131,26 +132,26 @@ console.log('Material schema')
 {
   const comChave = (m) => { m.chaveCanonica = derivarChaveCanonica(m); return m }
 
-  const valido = comChave(new Material({ descricao: 'Cabo X', categoria: 'Cabo', classe: 'commodity', unidade: 'm' }))
+  const valido = comChave(new Material({ descricao: 'Cabo X', categoria: 'Cabos', classe: 'commodity', unidade: 'm' }))
   assert.equal(valido.validateSync(), undefined)
-  assert.equal(valido.categoria, 'cabo')
+  assert.equal(valido.categoria, 'cabos')
   assert.equal(valido.status, 'ativo')
   ok('commodity mínimo válido; categoria minúscula; status default ativo')
 
-  const unidadeRuim = comChave(new Material({ descricao: 'X', categoria: 'cabo', classe: 'commodity', unidade: 'metro' }))
+  const unidadeRuim = comChave(new Material({ descricao: 'X', categoria: 'cabos', classe: 'commodity', unidade: 'metro' }))
   assert.ok(unidadeRuim.validateSync()?.errors?.unidade)
   ok('rejeita unidade fora do enum canônico')
 
-  const engSemFabr = comChave(new Material({ descricao: 'D', categoria: 'disjuntor', classe: 'engenharia', unidade: 'un' }))
+  const engSemFabr = comChave(new Material({ descricao: 'D', categoria: 'protecao_eletrica', classe: 'engenharia', unidade: 'un' }))
   assert.ok(engSemFabr.validateSync()?.errors?.fabricante)
   ok('engenharia exige fabricante/modelo no schema')
 
-  const statusRuim = comChave(new Material({ descricao: 'X', categoria: 'cabo', classe: 'commodity', unidade: 'm', status: 'rascunho' }))
+  const statusRuim = comChave(new Material({ descricao: 'X', categoria: 'cabos', classe: 'commodity', unidade: 'm', status: 'rascunho' }))
   assert.ok(statusRuim.validateSync()?.errors?.status)
   ok('rejeita status "rascunho"')
 
   // Fallback do hook: deriva chave se não vier setada
-  const semChave = new Material({ descricao: 'Cabo 6', categoria: 'cabo', classe: 'commodity', unidade: 'm' })
+  const semChave = new Material({ descricao: 'Cabo 6', categoria: 'cabos', classe: 'commodity', unidade: 'm' })
   await semChave.validate().catch(() => {})
   assert.match(semChave.chaveCanonica || '', /^[a-f0-9]{40}$/)
   ok('hook fallback deriva chaveCanonica quando ausente')
@@ -159,9 +160,9 @@ console.log('Material schema')
 // ─── 4. CategoriaMaterial (Template) ──────────────────────────────────────────
 console.log('CategoriaMaterial (Template)')
 {
-  const t = new CategoriaMaterial({ chave: 'Cabo', classe: 'commodity' })
+  const t = new CategoriaMaterial({ chave: 'Cabos', classe: 'commodity' })
   assert.equal(t.validateSync(), undefined)
-  assert.equal(t.chave, 'cabo')
+  assert.equal(t.chave, 'cabos')
   ok('template mínimo válido; chave minúscula')
 
   assert.ok(new CategoriaMaterial({ chave: 'x' }).validateSync()?.errors?.classe)
@@ -170,9 +171,9 @@ console.log('CategoriaMaterial (Template)')
   assert.ok(new CategoriaMaterial({ classe: 'commodity' }).validateSync()?.errors?.chave)
   ok('exige chave')
 
-  // As 8 definições reais carregam no schema e têm identidade + descrição.
+  // As 5 definições reais carregam no schema e têm identidade + descrição.
   const chaves = TEMPLATES_CATEGORIA.map(t => t.chave)
-  assert.deepEqual(chaves, ['cabo', 'eletroduto', 'curva', 'luva', 'bucha', 'disjuntor', 'dps', 'dr'])
+  assert.deepEqual(chaves, ['cabos', 'protecao_eletrica', 'quadros_barramentos', 'conexoes_infraestrutura', 'fixacao'])
   for (const def of TEMPLATES_CATEGORIA) {
     const doc = new CategoriaMaterial(def)
     assert.equal(doc.validateSync(), undefined, `template ${def.chave} inválido`)
@@ -183,8 +184,8 @@ console.log('CategoriaMaterial (Template)')
       assert.equal(at.obrigatorio, true, `${def.chave}.${at.chave}: identidade deve ser obrigatória`)
     }
   }
-  ok('as 8 definições reais validam no schema (identidade + descrição)')
+  ok('as 5 definições reais validam no schema (identidade + descrição)')
 }
 
-console.log(`\n✅ ${passos} grupos de asserções passaram (Fase 1 + 2A — lógica pura, sem MongoDB).`)
+console.log(`\n✅ ${passos} grupos de asserções passaram (Fase 1 + 2B — lógica pura, sem MongoDB).`)
 process.exit(0)

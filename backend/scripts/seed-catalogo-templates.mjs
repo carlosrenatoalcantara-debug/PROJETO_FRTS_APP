@@ -13,7 +13,7 @@ import 'dotenv/config'
 import mongoose from 'mongoose'
 import { conectarBD } from '../src/config/database.js'
 import { CategoriaMaterial } from '../src/models/CategoriaMaterial.js'
-import { TEMPLATES_CATEGORIA } from '../src/seeds/catalogoTemplates.js'
+import { TEMPLATES_CATEGORIA, CHAVES_OBSOLETAS } from '../src/seeds/catalogoTemplates.js'
 
 const DRY = process.argv.includes('--dry')
 
@@ -25,11 +25,18 @@ async function main() {
       console.log(`• ${t.chave} (${t.classe}) — ${t.atributos.length} atributos · identidade: ${id}`)
     }
     console.log(`\n${TEMPLATES_CATEGORIA.length} templates (dry-run, nada gravado).`)
+    if (CHAVES_OBSOLETAS.length) console.log(`Removerá obsoletas: ${CHAVES_OBSOLETAS.join(', ')}`)
     process.exit(0)
   }
 
   const ok = await conectarBD(3, 2000)
   if (!ok) { console.error('❌ MongoDB indisponível — abortando (templates exigem Atlas).'); process.exit(1) }
+
+  // Remove categorias obsoletas (sem materiais vinculados na DB atual).
+  if (CHAVES_OBSOLETAS.length) {
+    const del = await CategoriaMaterial.deleteMany({ empresa_id: null, chave: { $in: CHAVES_OBSOLETAS } })
+    if (del.deletedCount) console.log(`🗑  ${del.deletedCount} categorias obsoletas removidas (${CHAVES_OBSOLETAS.join(', ')})`)
+  }
 
   let criados = 0, atualizados = 0
   for (const t of TEMPLATES_CATEGORIA) {
