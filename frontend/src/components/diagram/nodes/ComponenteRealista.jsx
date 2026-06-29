@@ -104,32 +104,25 @@ export default function ComponenteRealista({ data, selected, id }) {
 
   return (
     <div className={`componente-realista ${selected ? 'selected' : ''} ${editando ? 'editing' : ''}`}>
+      {/* P3-EV-UNIFILAR-FINALIZATION-01: Handles FORA do <svg> (Handle é <div> e não
+          funciona dentro de SVG → era a causa das edges não renderizarem).
+          Fluxo horizontal: entrada à esquerda ('in'), saída à direita ('out');
+          aterramento embaixo ('gnd') para derivações de terra. */}
+      {data.tipo !== 'specs' && (
+        <>
+          <Handle id="in"  type="target" position={Position.Left}
+            style={{ background: '#10b981', width: 9, height: 9 }} />
+          <Handle id="out" type="source" position={Position.Right}
+            style={{ background: '#10b981', width: 9, height: 9 }} />
+          <Handle id="gnd" type="source" position={Position.Bottom}
+            style={{ background: '#2e9e3f', width: 9, height: 9 }} />
+          <Handle id="gtop" type="target" position={Position.Top}
+            style={{ background: '#2e9e3f', width: 9, height: 9 }} />
+        </>
+      )}
+
       {/* SVG do Componente */}
       <svg width="140" height="140" viewBox="-70 -70 140 140" className="componente-svg">
-        {/* Handles de conexão */}
-        {data.tipo !== 'specs' && (
-          <>
-            <Handle
-              type="target"
-              position={Position.Top}
-              style={{
-                background: '#10b981',
-                width: 8,
-                height: 8
-              }}
-            />
-            <Handle
-              type="source"
-              position={Position.Bottom}
-              style={{
-                background: '#10b981',
-                width: 8,
-                height: 8
-              }}
-            />
-          </>
-        )}
-
         {/* Renderizar SVG do componente */}
         <g dangerouslySetInnerHTML={{ __html: obterSVGComponente() }} />
       </svg>

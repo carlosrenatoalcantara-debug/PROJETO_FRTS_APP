@@ -70,7 +70,7 @@ test('cores normativas de condutor no SVG (neutro azul, terra verde)', () => {
   const svg = renderSVG(build(projetoMono()))
   assert.match(svg, /#1f6fd6/) // neutro azul
   assert.match(svg, /#2e9e3f/) // terra verde
-  assert.match(svg, /#1a1a1a/) // fase preto
+  assert.match(svg, /#d61f1f/) // fase (monofásico) vermelho
 })
 
 test('overrides: posição manual vence; órfãos são podados', () => {

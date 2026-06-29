@@ -96,6 +96,9 @@ export function adaptarProjetoEV({ calculos = {}, bom = [], numero_fases = 1, ca
   for (let i = 0; i < nDPS; i++) {
     connections.push(conexao({ id: `c-dps${i}`, from: 'disj', to: `dps${i}`, papel: PAPEL_CONEXAO.DERIVACAO, condutores: [{ papel: 'terra' }] }))
   }
+  // Aterramento ligado aos pontos de proteção (DR e Carregador), além do(s) DPS.
+  connections.push(conexao({ id: 'c-terra-dr', from: 'disj', to: 'dr', papel: PAPEL_CONEXAO.DERIVACAO, condutores: [{ papel: 'terra' }] }))
+  connections.push(conexao({ id: 'c-terra-carr', from: 'disj', to: 'carr', papel: PAPEL_CONEXAO.DERIVACAO, condutores: [{ papel: 'terra' }] }))
 
   const { normas, normas_motivo } = avaliarNormas({
     endereco: projeto.endereco, estado: projeto.estado,

@@ -34,12 +34,13 @@ export const PAPEL_CONEXAO = Object.freeze({
 
 // Cores normativas Forte Solar — por papel de condutor
 export const CORES_CONDUTOR = Object.freeze({
-  fase:    '#1a1a1a', // preto
-  fase_l1: '#1a1a1a', // preto
-  fase_l2: '#d61f1f', // vermelho
-  fase_l3: '#ffffff', // branco (contornado no SVG)
+  fase:    '#d61f1f', // monofásico: Fase = vermelho (padrão Forte Solar / legenda)
+  fase_l1: '#1a1a1a', // trifásico L1 = preto
+  fase_l2: '#d61f1f', // trifásico L2 = vermelho
+  fase_l3: '#ffffff', // trifásico L3 = branco (contornado no SVG)
   neutro:  '#1f6fd6', // azul
   terra:   '#2e9e3f', // verde
+  carga:   '#1a1a1a', // retorno/carga = preto
 })
 
 /** Fábrica de componente — normaliza campos e aplica defaults. */

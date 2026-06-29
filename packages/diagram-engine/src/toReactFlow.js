@@ -42,13 +42,18 @@ export function toReactFlow(canonical) {
   const edges = connections.map(cx => {
     const primeiro = cx.condutores?.[0]
     const cor = primeiro ? (CORES_CONDUTOR[primeiro.papel] || '#555') : '#555'
+    const derivacao = cx.papel === PAPEL_CONEXAO.DERIVACAO
+    // Fluxo principal: saída direita ('out') → entrada esquerda ('in').
+    // Derivação de terra: por baixo ('gnd') → topo do componente de proteção ('gtop').
     return {
       id: cx.id,
       source: cx.from,
       target: cx.to,
+      sourceHandle: derivacao ? 'gnd' : 'out',
+      targetHandle: derivacao ? 'gtop' : 'in',
       type: 'custom',
-      data: { papel: cx.papel, condutores: cx.condutores, tracejado: cx.papel === PAPEL_CONEXAO.DERIVACAO },
-      style: { stroke: cor },
+      data: { papel: cx.papel, condutores: cx.condutores, tracejado: derivacao },
+      style: { stroke: cor, strokeWidth: 2, strokeDasharray: derivacao ? '6 4' : undefined },
     }
   })
 

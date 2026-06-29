@@ -410,8 +410,9 @@ export default function ProjetosEVDetalhes() {
               </button>
             </div>
 
-            {/* Conteúdo do Modal */}
-            <div className="flex-1 overflow-hidden bg-slate-50">
+            {/* Conteúdo do Modal — altura concreta para o React Flow medir o canvas
+                (sem altura, RF não posiciona handles e as edges não renderizam). */}
+            <div className="flex-1 overflow-hidden bg-slate-50" style={{ minHeight: 0, height: '70vh' }}>
               <InteractiveDiagram
                 initial={editorInitial}
                 onDiagramChange={handleDiagramChange}
