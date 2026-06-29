@@ -423,8 +423,16 @@ export const exportarPDFProjetoEV = async (req, res) => {
     // Dados do técnico
     const tecnico = projeto.tecnico || {}
 
-    // Gerar PDF
-    const doc = gerarPDFUnifilarStream(projeto, projeto.clienteId, tecnico)
+    // Gerar PDF (gerarPDFUnifilarStream agora é async — aguarda carregamento do engine)
+    let doc
+    try {
+      doc = await gerarPDFUnifilarStream(projeto, projeto.clienteId, tecnico)
+    } catch (engErr) {
+      if (engErr.code === 'ENGINE_UNAVAILABLE') {
+        return res.status(501).json({ mensagem: 'Geração de PDF indisponível neste ambiente (DiagramEngine ausente).' })
+      }
+      throw engErr
+    }
 
     // Configurar resposta
     res.setHeader('Content-Type', 'application/pdf')

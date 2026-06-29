@@ -2,15 +2,29 @@
  * gerarPDFUnifilar.js — P3-F4: PDF a partir do JSON canônico do DiagramEngine.
  *
  * Fluxo único: Projeto → DiagramEngine → JSON canônico → SVG executivo → PDFKit.
- * O PDFKit NÃO desenha mais componentes, não calcula posições nem layout: apenas
- * embute o SVG produzido pelo Engine (mesma fonte do React Flow e do preview).
  *
- * A4 paisagem. Toda a geometria vem do Engine.
+ * O diagram-engine é um pacote local (monorepo). Em produção (Railway) o pacote
+ * pode não estar disponível no path relativo. Import dinâmico com fallback garante
+ * que o servidor inicia mesmo sem o Engine — o endpoint retorna 501 nesse caso.
  */
 import PDFDocument from 'pdfkit'
 import SVGtoPDF from 'svg-to-pdfkit'
-import { renderSVG } from '../../../packages/diagram-engine/index.js'
-import { construirCanonicalDeProjetoEV } from '../../../packages/diagram-engine/adapters/ev.js'
+
+// Import dinâmico — não bloqueia o startup do servidor se o pacote estiver ausente.
+let _renderSVG = null
+let _construirCanonical = null
+async function carregarEngine() {
+  if (_renderSVG) return true
+  try {
+    const eng = await import('../../../packages/diagram-engine/index.js')
+    const adp = await import('../../../packages/diagram-engine/adapters/ev.js')
+    _renderSVG = eng.renderSVG
+    _construirCanonical = adp.construirCanonicalDeProjetoEV
+    return true
+  } catch {
+    return false
+  }
+}
 
 /** Normaliza o documento (mongoose ou plain) e garante cliente populado. */
 function prepararProjeto(projeto, cliente) {
@@ -21,29 +35,20 @@ function prepararProjeto(projeto, cliente) {
   return plain
 }
 
-/**
- * Monta o PDFDocument (A4 paisagem) com o SVG do Engine embutido.
- * Não chama doc.end() — o chamador decide (stream vs buffer).
- */
-function montarDoc(projeto, cliente) {
-  const plain = prepararProjeto(projeto, cliente)
-  const canonical = construirCanonicalDeProjetoEV(plain)   // mesmo canônico do editor (overrides/viewport aplicados)
-  const svg = renderSVG(canonical)
-
-  const doc = new PDFDocument({ size: 'A4', layout: 'landscape', margin: 0 })
-  SVGtoPDF(doc, svg, 0, 0, {
-    width: doc.page.width,
-    height: doc.page.height,
-    preserveAspectRatio: 'xMidYMid meet',
-  })
-  return doc
-}
-
-/** Gera PDF e retorna como Buffer (mesma fonte canônica). */
+/** Gera PDF e retorna como Buffer. */
 export async function gerarPDFUnifilar(projeto, cliente, _tecnico) {
+  const disponivel = await carregarEngine()
+  if (!disponivel) {
+    throw Object.assign(new Error('Diagrama Engine indisponível neste ambiente'), { code: 'ENGINE_UNAVAILABLE' })
+  }
+  const plain = prepararProjeto(projeto, cliente)
+  const canonical = _construirCanonical(plain)
+  const svg = _renderSVG(canonical)
+
   return new Promise((resolve, reject) => {
     try {
-      const doc = montarDoc(projeto, cliente)
+      const doc = new PDFDocument({ size: 'A4', layout: 'landscape', margin: 0 })
+      SVGtoPDF(doc, svg, 0, 0, { width: doc.page.width, height: doc.page.height, preserveAspectRatio: 'xMidYMid meet' })
       const chunks = []
       doc.on('data', (c) => chunks.push(c))
       doc.on('end', () => resolve(Buffer.concat(chunks)))
@@ -56,6 +61,16 @@ export async function gerarPDFUnifilar(projeto, cliente, _tecnico) {
 }
 
 /** Gera PDF e retorna o stream (PDFDocument) — o chamador faz pipe + end. */
-export function gerarPDFUnifilarStream(projeto, cliente, _tecnico) {
-  return montarDoc(projeto, cliente)
+export async function gerarPDFUnifilarStream(projeto, cliente, _tecnico) {
+  const disponivel = await carregarEngine()
+  if (!disponivel) {
+    throw Object.assign(new Error('Diagrama Engine indisponível neste ambiente'), { code: 'ENGINE_UNAVAILABLE' })
+  }
+  const plain = prepararProjeto(projeto, cliente)
+  const canonical = _construirCanonical(plain)
+  const svg = _renderSVG(canonical)
+
+  const doc = new PDFDocument({ size: 'A4', layout: 'landscape', margin: 0 })
+  SVGtoPDF(doc, svg, 0, 0, { width: doc.page.width, height: doc.page.height, preserveAspectRatio: 'xMidYMid meet' })
+  return doc
 }
