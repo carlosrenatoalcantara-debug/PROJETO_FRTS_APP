@@ -185,10 +185,10 @@ export default function NovaPropostaEV() {
       if (porBitola) return porBitola
     }
 
-    // Nome do item: tudo antes do primeiro " (" (remove especificação)
-    const nomeItem = bomItem.descricao.split(' (')[0].toLowerCase().trim()
+    // Nome do item: tudo antes do primeiro " (" (remove especificação); normaliza espaços em volta de "+"
+    const nomeItem = bomItem.descricao.split(' (')[0].toLowerCase().trim().replace(/\s*\+\s*/g, '+')
     return candidatos.find(c => {
-      const cd = c.descricao.toLowerCase()
+      const cd = c.descricao.toLowerCase().replace(/\s*\+\s*/g, '+')
       return cd.includes(nomeItem) || nomeItem.includes(cd)
     }) || null
   }
