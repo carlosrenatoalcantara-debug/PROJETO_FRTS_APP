@@ -27,6 +27,14 @@ import { extrairFabricanteModelo, ehDefaultLixo, FABRICANTES_RECONHECIDOS } from
 import { auditarPipeline, FALHAS } from '../utils/catalogo/pipelineAuditor.js'
 import { relatorioSaudeInversores, detectarDuplicatas, CAMPOS_CRITICOS_INVERSOR } from '../utils/catalogo/catalogoQAUtils.js'
 import { PDFParse } from 'pdf-parse'
+import {
+  bulkDelete,
+  bulkValidate,
+  bulkRecalculateScore,
+  bulkAlterarStatus,
+  bulkExport,
+} from '../services/bulkOperationsService.js'
+import { BulkOperationLog } from '../models/BulkOperationLog.js'
 
 // S8.2: status documental do equipamento (COMPLETO/PENDENTE/INCOMPLETO)
 export function statusDocumental(eq) {
@@ -1104,5 +1112,247 @@ router.get('/qa/auditoria', async (req, res) => {
     res.status(500).json({ sucesso: false, erro: err.message })
   }
 })
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// P0-MOD-FV-BULK-OPERATIONS-01 — Operações em Lote (genérico para todos os tipos)
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// Todos os endpoints recebem { tipo, ids } no body.
+// Todas as operações destrutivas rodam em transação MongoDB.
+// Toda execução grava BulkOperationLog (usuário, data, operação, IDs, duração, resultado).
+//
+// Montado em /api/admin/catalogo/bulk/*
+
+// ── helper de extração ────────────────────────────────────────────────────────
+function extrairBulkParams(req) {
+  const { ids, tipo } = req.body || {}
+  const usuario = req.auth?.email || req.auth?.id || 'anonymous'
+  if (!tipo) throw Object.assign(new Error('Campo "tipo" obrigatório no body'), { status: 400 })
+  if (!Array.isArray(ids) || ids.length === 0) throw Object.assign(new Error('Campo "ids" deve ser array não vazio'), { status: 400 })
+  return { ids, tipo, usuario }
+}
+
+// ── POST /bulk/delete ─────────────────────────────────────────────────────────
+router.post('/bulk/delete', async (req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) return res.status(503).json({ sucesso: false, erro: 'DB_OFFLINE' })
+    const { ids, tipo, usuario } = extrairBulkParams(req)
+    const resultado = await bulkDelete({ ids, tipo, usuario })
+    res.json(resultado)
+  } catch (err) {
+    const status = err.status || 500
+    console.error('[adminCatalogo] bulk/delete:', err.message)
+    res.status(status).json({ sucesso: false, erro: err.message })
+  }
+})
+
+// ── POST /bulk/validate ───────────────────────────────────────────────────────
+router.post('/bulk/validate', async (req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) return res.status(503).json({ sucesso: false, erro: 'DB_OFFLINE' })
+    const { ids, tipo, usuario } = extrairBulkParams(req)
+    const resultado = await bulkValidate({ ids, tipo, usuario })
+    res.json(resultado)
+  } catch (err) {
+    const status = err.status || 500
+    console.error('[adminCatalogo] bulk/validate:', err.message)
+    res.status(status).json({ sucesso: false, erro: err.message })
+  }
+})
+
+// ── POST /bulk/recalculate-score ──────────────────────────────────────────────
+router.post('/bulk/recalculate-score', async (req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) return res.status(503).json({ sucesso: false, erro: 'DB_OFFLINE' })
+    const { ids, tipo, usuario } = extrairBulkParams(req)
+    const resultado = await bulkRecalculateScore({ ids, tipo, usuario })
+    res.json(resultado)
+  } catch (err) {
+    const status = err.status || 500
+    console.error('[adminCatalogo] bulk/recalculate-score:', err.message)
+    res.status(status).json({ sucesso: false, erro: err.message })
+  }
+})
+
+// ── POST /bulk/status ─────────────────────────────────────────────────────────
+router.post('/bulk/status', async (req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) return res.status(503).json({ sucesso: false, erro: 'DB_OFFLINE' })
+    const { ids, tipo, usuario } = extrairBulkParams(req)
+    const novoStatus = req.body?.novo_status
+    if (!novoStatus) return res.status(400).json({ sucesso: false, erro: 'Campo "novo_status" obrigatório' })
+    const resultado = await bulkAlterarStatus({ ids, tipo, usuario, novoStatus })
+    res.json(resultado)
+  } catch (err) {
+    const status = err.status || 500
+    console.error('[adminCatalogo] bulk/status:', err.message)
+    res.status(status).json({ sucesso: false, erro: err.message })
+  }
+})
+
+// ── POST /bulk/export ─────────────────────────────────────────────────────────
+router.post('/bulk/export', async (req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) return res.status(503).json({ sucesso: false, erro: 'DB_OFFLINE' })
+    const { ids, tipo } = extrairBulkParams(req)
+    const resultado = await bulkExport({ ids, tipo })
+    res.setHeader('Content-Disposition', `attachment; filename="catalogo_${tipo}_${Date.now()}.json"`)
+    res.json(resultado)
+  } catch (err) {
+    const status = err.status || 500
+    console.error('[adminCatalogo] bulk/export:', err.message)
+    res.status(status).json({ sucesso: false, erro: err.message })
+  }
+})
+
+// ── GET /bulk/logs ────────────────────────────────────────────────────────────
+router.get('/bulk/logs', async (req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) return res.status(503).json({ sucesso: false, erro: 'DB_OFFLINE' })
+    const tipo = req.query.tipo || null
+    const limite = Math.min(parseInt(req.query.limite) || 50, 200)
+    const filtro = tipo ? { tipo_catalogo: tipo } : {}
+    const logs = await BulkOperationLog.find(filtro).sort({ timestamp: -1 }).limit(limite).lean()
+    res.json({ sucesso: true, total: logs.length, logs })
+  } catch (err) {
+    console.error('[adminCatalogo] bulk/logs:', err.message)
+    res.status(500).json({ sucesso: false, erro: err.message })
+  }
+})
+
+// ── GET /stats ────────────────────────────────────────────────────────────────
+// Métricas específicas por tipo de catálogo (default: modulo).
+// Usado pelo dashboard de Módulos FV.
+router.get('/stats', async (req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) return res.status(503).json({ sucesso: false, erro: 'DB_OFFLINE' })
+    const tipo = req.query.tipo || 'modulo'
+    const filtroBase = { tipo, ativo: { $ne: false } }
+    const filtroTodos = { tipo }
+
+    // Total
+    const total = await Equipamento.countDocuments(filtroBase)
+    const totalIncluindoInativos = await Equipamento.countDocuments(filtroTodos)
+    const totalInativos = totalIncluindoInativos - total
+
+    // Por fabricante (top 15)
+    const porFabricante = await Equipamento.aggregate([
+      { $match: filtroBase },
+      { $group: { _id: '$fabricante', total: { $sum: 1 } } },
+      { $sort: { total: -1 } },
+      { $limit: 15 },
+    ])
+
+    // Por tecnologia (tipo_celula)
+    const porTecnologia = await Equipamento.aggregate([
+      { $match: filtroBase },
+      { $group: { _id: { $ifNull: ['$especificacoes.tipo_celula', '(não informado)'] }, total: { $sum: 1 } } },
+      { $sort: { total: -1 } },
+    ])
+
+    // Por potência (buckets)
+    const porPotencia = await Equipamento.aggregate([
+      { $match: { ...filtroBase, 'especificacoes.potencia_wp': { $gt: 0 } } },
+      {
+        $bucket: {
+          groupBy: '$especificacoes.potencia_wp',
+          boundaries: [0, 300, 400, 450, 500, 550, 600, 700, 1000],
+          default: '700+',
+          output: { total: { $sum: 1 } },
+        },
+      },
+    ])
+
+    // Por nível de qualidade
+    const porNivel = await Equipamento.aggregate([
+      { $match: filtroBase },
+      { $group: { _id: { $ifNull: ['$qualidade.nivel', '(sem qualidade)'] }, total: { $sum: 1 } } },
+      { $sort: { total: -1 } },
+    ])
+
+    // Por score (buckets 0-100)
+    const porScore = await Equipamento.aggregate([
+      { $match: { ...filtroBase, 'qualidade.score_global': { $ne: null } } },
+      {
+        $bucket: {
+          groupBy: '$qualidade.score_global',
+          boundaries: [0, 20, 40, 60, 80, 100],
+          default: 'sem score',
+          output: { total: { $sum: 1 } },
+        },
+      },
+    ])
+
+    // Coberturas
+    const comDatasheet = await Equipamento.countDocuments({
+      ...filtroBase,
+      $or: [
+        { 'datasheet_original.hash': { $ne: null } },
+        { 'documentos_tecnicos.tipo': 'datasheet' },
+      ],
+    })
+
+    const comOCR = await Equipamento.countDocuments({
+      ...filtroBase,
+      'origem.tipo': { $in: ['datasheet_gemini', 'datasheet_pdfparse'] },
+    })
+
+    const comCertificacao = await Equipamento.countDocuments({
+      ...filtroBase,
+      $or: [
+        { 'certificacao.inmetro.numero': { $ne: null } },
+        { 'certificacao.normas_iec.0': { $exists: true } },
+      ],
+    })
+
+    // Status rápidos
+    const validados   = await Equipamento.countDocuments({ ...filtroBase, 'qualidade.nivel': 'validado' })
+    const pendentes   = await Equipamento.countDocuments({ ...filtroBase, 'qualidade.nivel': { $in: ['aguardando_revisao', null] } })
+    const suspeitos   = await Equipamento.countDocuments({ ...filtroBase, 'qualidade.nivel': 'suspeito' })
+    const duplicados  = await Equipamento.countDocuments({ ...filtroBase, 'identificacao.hash_unico': { $in: await _hashsDuplicados(tipo) } })
+    const descontinuados = totalInativos
+
+    const pct = (n) => total > 0 ? Math.round(n / total * 100) : 0
+
+    res.json({
+      sucesso: true,
+      tipo,
+      gerado_em: new Date(),
+      resumo: {
+        total,
+        total_inativos: descontinuados,
+        validados,
+        pendentes,
+        suspeitos,
+        duplicados,
+        descontinuados,
+      },
+      coberturas: {
+        datasheet:    { quantidade: comDatasheet,    pct: pct(comDatasheet) },
+        ocr:          { quantidade: comOCR,          pct: pct(comOCR) },
+        certificacao: { quantidade: comCertificacao, pct: pct(comCertificacao) },
+      },
+      distribuicao: {
+        por_fabricante: porFabricante.map(x => ({ fabricante: x._id, total: x.total })),
+        por_tecnologia: porTecnologia.map(x => ({ tecnologia: x._id, total: x.total })),
+        por_potencia:   porPotencia.map(x => ({ faixa: x._id, total: x.total })),
+        por_nivel:      porNivel.map(x => ({ nivel: x._id, total: x.total })),
+        por_score:      porScore.map(x => ({ faixa: x._id, total: x.total })),
+      },
+    })
+  } catch (err) {
+    console.error('[adminCatalogo] stats:', err.message)
+    res.status(500).json({ sucesso: false, erro: err.message })
+  }
+})
+
+async function _hashsDuplicados(tipo) {
+  const agg = await Equipamento.aggregate([
+    { $match: { tipo, 'identificacao.hash_unico': { $nin: [null, ''] } } },
+    { $group: { _id: '$identificacao.hash_unico', total: { $sum: 1 } } },
+    { $match: { total: { $gt: 1 } } },
+  ])
+  return agg.map(x => x._id)
+}
 
 export default router

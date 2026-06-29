@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
-import { Plus, Edit2, Trash2, ChevronDown, ChevronUp, Sun, Upload } from 'lucide-react'
+import { Plus, Edit2, Trash2, ChevronDown, ChevronUp, Sun, Upload, BarChart2, Zap, FileText, Award, CheckCircle2 } from 'lucide-react'
 import Card, { CardBody } from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import ModalNovoModulo from '../components/equipamentos/ModalNovoModulo'
+import { useBulkSelection } from '../hooks/useBulkSelection'
+import BulkActionBar from '../components/catalogo/BulkActionBar'
 
 const API_URL = '' /* URL relativa forçada — Vercel proxy → Railway. Não usar VITE_API_URL */
 
@@ -35,7 +37,6 @@ function Secao({ titulo, children }) {
   )
 }
 
-// P0-CATALOG-QUALITY-HARDENING-01: badge de status de engenharia do catálogo.
 function StatusEngenharia({ equipamento }) {
   const utilizavel = equipamento?.utilizavel_em_projeto !== false
   const nivel = equipamento?.qualidade?.nivel
@@ -63,9 +64,137 @@ function StatusEngenharia({ equipamento }) {
   )
 }
 
+// ── Dashboard de métricas ─────────────────────────────────────────────────────
+
+function MetricaTile({ label, valor, sub, cor = 'slate' }) {
+  const cores = {
+    blue:    'bg-blue-50 border-blue-200 text-blue-900',
+    emerald: 'bg-emerald-50 border-emerald-200 text-emerald-900',
+    amber:   'bg-amber-50 border-amber-200 text-amber-900',
+    red:     'bg-red-50 border-red-200 text-red-900',
+    violet:  'bg-violet-50 border-violet-200 text-violet-900',
+    slate:   'bg-slate-50 border-slate-200 text-slate-900',
+  }
+  return (
+    <div className={`p-4 rounded-xl border ${cores[cor]}`}>
+      <p className="text-xs font-semibold uppercase tracking-wide opacity-70 mb-1">{label}</p>
+      <p className="text-2xl font-bold">{valor ?? '—'}</p>
+      {sub && <p className="text-xs opacity-60 mt-0.5">{sub}</p>}
+    </div>
+  )
+}
+
+function DashboardModulos({ stats, carregandoStats }) {
+  if (carregandoStats) {
+    return (
+      <Card>
+        <CardBody>
+          <p className="text-sm text-slate-400 text-center py-2">Carregando métricas…</p>
+        </CardBody>
+      </Card>
+    )
+  }
+  if (!stats) return null
+
+  const { resumo, coberturas, distribuicao } = stats
+  const pct = (n) => resumo?.total > 0 ? `${Math.round(n / resumo.total * 100)}%` : '—'
+
+  return (
+    <Card>
+      <CardBody className="space-y-5">
+        <div className="flex items-center gap-2">
+          <BarChart2 size={16} className="text-slate-400" />
+          <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wide">Painel de Qualidade — Módulos FV</h2>
+        </div>
+
+        {/* Totais de status */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          <MetricaTile label="Total" valor={resumo?.total} cor="blue" />
+          <MetricaTile label="Validados" valor={resumo?.validados} sub={pct(resumo?.validados)} cor="emerald" />
+          <MetricaTile label="Pendentes" valor={resumo?.pendentes} sub={pct(resumo?.pendentes)} cor="amber" />
+          <MetricaTile label="Suspeitos" valor={resumo?.suspeitos} sub={pct(resumo?.suspeitos)} cor="amber" />
+          <MetricaTile label="Duplicados" valor={resumo?.duplicados} sub={pct(resumo?.duplicados)} cor="red" />
+          <MetricaTile label="Descontinuados" valor={resumo?.descontinuados} cor="slate" />
+        </div>
+
+        {/* Coberturas */}
+        <div>
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Cobertura Documental</p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <CoberturaBar label="Datasheets" icone={FileText} qtd={coberturas?.datasheet?.quantidade} pct={coberturas?.datasheet?.pct} total={resumo?.total} cor="blue" />
+            <CoberturaBar label="OCR processado" icone={Zap} qtd={coberturas?.ocr?.quantidade} pct={coberturas?.ocr?.pct} total={resumo?.total} cor="violet" />
+            <CoberturaBar label="Certificação" icone={Award} qtd={coberturas?.certificacao?.quantidade} pct={coberturas?.certificacao?.pct} total={resumo?.total} cor="emerald" />
+          </div>
+        </div>
+
+        {/* Distribuições lado a lado */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <DistribuicaoLista titulo="Por Tecnologia" dados={distribuicao?.por_tecnologia?.slice(0, 6).map(x => ({ label: x.tecnologia, val: x.total }))} total={resumo?.total} />
+          <DistribuicaoLista titulo="Por Potência (Wp)" dados={distribuicao?.por_potencia?.map(x => ({ label: faixaPotencia(x.faixa), val: x.total }))} total={resumo?.total} />
+          <DistribuicaoLista titulo="Por Score" dados={distribuicao?.por_score?.map(x => ({ label: faixaScore(x.faixa), val: x.total }))} total={resumo?.total} />
+          <DistribuicaoLista titulo="Top Fabricantes" dados={distribuicao?.por_fabricante?.slice(0, 6).map(x => ({ label: x.fabricante, val: x.total }))} total={resumo?.total} />
+        </div>
+      </CardBody>
+    </Card>
+  )
+}
+
+function CoberturaBar({ label, icone: Icone, qtd, pct, total, cor }) {
+  const cores = { blue: 'bg-blue-500', violet: 'bg-violet-500', emerald: 'bg-emerald-500' }
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center justify-between text-xs">
+        <span className="flex items-center gap-1 font-medium text-slate-600"><Icone size={12} />{label}</span>
+        <span className="font-bold text-slate-900">{qtd ?? 0} <span className="text-slate-400 font-normal">({pct ?? 0}%)</span></span>
+      </div>
+      <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+        <div className={`h-full rounded-full ${cores[cor]}`} style={{ width: `${pct ?? 0}%` }} />
+      </div>
+    </div>
+  )
+}
+
+function DistribuicaoLista({ titulo, dados, total }) {
+  if (!dados?.length) return null
+  return (
+    <div>
+      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">{titulo}</p>
+      <div className="space-y-1.5">
+        {dados.map((d, i) => {
+          const p = total > 0 ? Math.round(d.val / total * 100) : 0
+          return (
+            <div key={i} className="flex items-center gap-2">
+              <span className="text-xs text-slate-600 truncate flex-1">{d.label}</span>
+              <span className="text-xs font-bold text-slate-900 shrink-0">{d.val}</span>
+              <div className="w-16 h-1.5 bg-slate-100 rounded-full shrink-0">
+                <div className="h-full bg-blue-400 rounded-full" style={{ width: `${p}%` }} />
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+function faixaPotencia(faixa) {
+  if (faixa === '700+') return '700+ Wp'
+  if (typeof faixa === 'number') return `${faixa}–${faixa + 50} Wp`
+  return faixa
+}
+
+function faixaScore(faixa) {
+  if (faixa === 'sem score') return 'Sem score'
+  if (typeof faixa === 'number') {
+    const map = { 0: '0–20', 20: '20–40', 40: '40–60', 60: '60–80', 80: '80–100' }
+    return map[faixa] || `${faixa}+`
+  }
+  return faixa
+}
+
 // ── Card de módulo ────────────────────────────────────────────────────────────
 
-function CardModulo({ modulo, onEditar, onExcluir }) {
+function CardModulo({ modulo, selecionado, onToggle, onEditar, onExcluir }) {
   const [aberto, setAberto] = useState(false)
   const e = modulo.especificacoes || {}
 
@@ -73,10 +202,20 @@ function CardModulo({ modulo, onEditar, onExcluir }) {
   const gpeAnos = modulo.garantia_performance?.value || e.garantia_performance_anos
 
   return (
-    <Card className="overflow-hidden transition-shadow hover:shadow-md">
+    <Card className={`overflow-hidden transition-shadow hover:shadow-md ${selecionado ? 'ring-2 ring-blue-500 bg-blue-50/30' : ''}`}>
 
       {/* ── Linha principal ── */}
       <div className="flex items-center gap-3 px-5 py-4">
+
+        {/* Checkbox de seleção */}
+        <input
+          type="checkbox"
+          checked={selecionado}
+          onChange={() => onToggle(modulo._id)}
+          onClick={e => e.stopPropagation()}
+          className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 shrink-0 cursor-pointer"
+        />
+
         <div className="p-2.5 bg-amber-50 rounded-xl shrink-0">
           <Sun size={18} className="text-amber-500" />
         </div>
@@ -165,15 +304,21 @@ function CardModulo({ modulo, onEditar, onExcluir }) {
 export default function Modulos() {
   const inputRef = useRef(null)
 
-  const [modulos, setModulos]       = useState([])
-  const [carregando, setCarregando] = useState(true)
-  const [busca, setBusca]           = useState('')
-  const [ordenar, setOrdenar]       = useState('data')
-  const [arrastando, setArrastando] = useState(false)
-  const [modalAberto, setModalAberto]   = useState(false)
+  const [modulos, setModulos]         = useState([])
+  const [carregando, setCarregando]   = useState(true)
+  const [busca, setBusca]             = useState('')
+  const [ordenar, setOrdenar]         = useState('data')
+  const [arrastando, setArrastando]   = useState(false)
+  const [modalAberto, setModalAberto] = useState(false)
   const [moduloEditar, setModuloEditar] = useState(null)
+  const [stats, setStats]             = useState(null)
+  const [carregandoStats, setCarregandoStats] = useState(true)
+  const [mostrarDashboard, setMostrarDashboard] = useState(false)
+
+  const bulk = useBulkSelection(modulos)
 
   useEffect(() => { carregarModulos() }, [busca, ordenar])
+  useEffect(() => { carregarStats() }, [])
 
   async function carregarModulos() {
     try {
@@ -190,17 +335,27 @@ export default function Modulos() {
     finally { setCarregando(false) }
   }
 
+  async function carregarStats() {
+    try {
+      setCarregandoStats(true)
+      const res = await fetch(`${API_URL}/api/admin/catalogo/stats?tipo=modulo`)
+      if (res.ok) setStats(await res.json())
+    } catch { /* não crítico */ }
+    finally { setCarregandoStats(false) }
+  }
+
   async function handleExcluir(id) {
     if (!confirm('Tem certeza que deseja excluir este módulo?')) return
     try {
       await fetch(`${API_URL}/api/equipamentos/${id}`, { method: 'DELETE' })
       carregarModulos()
+      carregarStats()
     } catch (err) { console.error('Erro ao excluir:', err) }
   }
 
   function handleNovo() { setModuloEditar(null); setModalAberto(true) }
   function handleEditar(m) { setModuloEditar(m); setModalAberto(true) }
-  function handleSalvar() { setModalAberto(false); carregarModulos() }
+  function handleSalvar() { setModalAberto(false); carregarModulos(); carregarStats() }
 
   function onDragOver(e)  { e.preventDefault(); setArrastando(true)  }
   function onDragLeave(e) { e.preventDefault(); setArrastando(false) }
@@ -210,8 +365,22 @@ export default function Modulos() {
     if (pdfs.length) { setModuloEditar(null); setModalAberto(true) }
   }
 
+  function handleBulkSuccess(acao) {
+    bulk.clearAll()
+    carregarModulos()
+    carregarStats()
+  }
+
+  // ── Select-all checkbox state ─────────────────────────────────────────────
+  const refSelectAll = useRef(null)
+  useEffect(() => {
+    if (refSelectAll.current) {
+      refSelectAll.current.indeterminate = bulk.isIndeterminate
+    }
+  }, [bulk.isIndeterminate])
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-24">
 
       {/* Cabeçalho */}
       <div className="flex items-start justify-between gap-4">
@@ -221,15 +390,30 @@ export default function Modulos() {
             Arraste datasheets ou clique em <strong>Novo Módulo</strong> para importar
           </p>
         </div>
-        <Button
-          onClick={handleNovo}
-          onDragOver={onDragOver} onDragLeave={onDragLeave} onDrop={onDrop}
-          className={`flex items-center gap-2 transition-all ${arrastando ? 'ring-4 ring-blue-300 scale-105' : ''}`}
-        >
-          {arrastando ? <Upload size={20} /> : <Plus size={20} />}
-          {arrastando ? 'Soltar aqui' : 'Novo Módulo'}
-        </Button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setMostrarDashboard(v => !v)}
+            className={`px-3 py-2 rounded-lg text-sm font-medium border transition-colors flex items-center gap-1.5
+              ${mostrarDashboard ? 'bg-blue-50 border-blue-300 text-blue-700' : 'bg-white border-slate-300 text-slate-600 hover:bg-slate-50'}`}
+          >
+            <BarChart2 size={15} />
+            Painel
+          </button>
+          <Button
+            onClick={handleNovo}
+            onDragOver={onDragOver} onDragLeave={onDragLeave} onDrop={onDrop}
+            className={`flex items-center gap-2 transition-all ${arrastando ? 'ring-4 ring-blue-300 scale-105' : ''}`}
+          >
+            {arrastando ? <Upload size={20} /> : <Plus size={20} />}
+            {arrastando ? 'Soltar aqui' : 'Novo Módulo'}
+          </Button>
+        </div>
       </div>
+
+      {/* Dashboard de métricas (toggle) */}
+      {mostrarDashboard && (
+        <DashboardModulos stats={stats} carregandoStats={carregandoStats} />
+      )}
 
       {/* Filtros */}
       <Card>
@@ -267,20 +451,52 @@ export default function Modulos() {
         </CardBody></Card>
       ) : (
         <div className="space-y-3">
-          <p className="text-sm text-slate-500 font-medium">
-            {modulos.length} módulo{modulos.length > 1 ? 's' : ''} cadastrado{modulos.length > 1 ? 's' : ''}
-            <span className="ml-2 text-slate-400 text-xs">— clique em ▼ para ver todos os dados técnicos</span>
-          </p>
+
+          {/* Controles de seleção em massa */}
+          <div className="flex items-center gap-3 px-1">
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <input
+                ref={refSelectAll}
+                type="checkbox"
+                checked={bulk.isAllSelected}
+                onChange={bulk.toggleAll}
+                className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+              />
+              <span className="text-sm text-slate-500 font-medium">
+                {bulk.count > 0 ? `${bulk.count} selecionado${bulk.count > 1 ? 's' : ''}` : `Selecionar todos (${modulos.length})`}
+              </span>
+            </label>
+            {bulk.count > 0 && (
+              <button onClick={bulk.clearAll} className="text-xs text-slate-400 hover:text-slate-600">
+                Limpar seleção
+              </button>
+            )}
+            <span className="ml-auto text-sm text-slate-400 text-xs">
+              {modulos.length} módulo{modulos.length > 1 ? 's' : ''} — clique em ▼ para dados técnicos
+            </span>
+          </div>
+
           {modulos.map(m => (
             <CardModulo
               key={m._id}
               modulo={m}
+              selecionado={bulk.isSelected(m._id)}
+              onToggle={bulk.toggleItem}
               onEditar={handleEditar}
               onExcluir={handleExcluir}
             />
           ))}
         </div>
       )}
+
+      {/* Barra de ações em lote */}
+      <BulkActionBar
+        tipo="modulo"
+        count={bulk.count}
+        ids={bulk.selectedArray}
+        onClear={bulk.clearAll}
+        onSuccess={handleBulkSuccess}
+      />
 
       {modalAberto && (
         <ModalNovoModulo
