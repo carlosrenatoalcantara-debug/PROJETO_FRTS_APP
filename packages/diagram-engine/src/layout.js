@@ -14,14 +14,7 @@
  */
 
 import { PAPEL_CONEXAO } from './model.js'
-
-export const LAYOUT_CONST = Object.freeze({
-  MARGEM_X: 80,
-  RAIL_Y: 200,
-  DX: 190,        // distância entre colunas
-  DY: 150,        // deslocamento da faixa inferior
-  STACK_DY: 90,   // empilhamento na mesma célula
-})
+import { DIAGRAM_BOX, COMPONENTE } from './geometry.js'
 
 /** Ordena ids de forma determinística por (ordem, id). */
 function ordenarDeterministico(ids, byId) {
@@ -84,46 +77,71 @@ function calcularColunas(components, connections) {
   return coluna
 }
 
-/** Determina a faixa de cada componente: explícita > derivação(inferior) > principal. */
+/**
+ * Determina a faixa de cada componente.
+ * Um componente só vai para a faixa INFERIOR se for alvo APENAS de derivação e NÃO
+ * participar da cadeia série (nem como alvo nem como fonte). Assim, DR/Carregador —
+ * que também recebem o condutor de terra (derivação) — permanecem na faixa principal.
+ */
 function calcularFaixas(components, connections) {
   const faixa = new Map()
-  const alvosDerivacao = new Set(
-    connections.filter(c => c.papel === PAPEL_CONEXAO.DERIVACAO).map(c => c.to),
-  )
+  const alvosDerivacao = new Set(connections.filter(c => c.papel === PAPEL_CONEXAO.DERIVACAO).map(c => c.to))
+  const naSerie = new Set([
+    ...connections.filter(c => c.papel === PAPEL_CONEXAO.SERIE).map(c => c.to),
+    ...connections.filter(c => c.papel === PAPEL_CONEXAO.SERIE).map(c => c.from),
+  ])
   for (const c of components) {
-    if (c.faixa === 'principal' || c.faixa === 'inferior') faixa.set(c.id, c.faixa)
-    else faixa.set(c.id, alvosDerivacao.has(c.id) ? 'inferior' : 'principal')
+    if (c.faixa === 'principal' || c.faixa === 'inferior') { faixa.set(c.id, c.faixa); continue }
+    faixa.set(c.id, (alvosDerivacao.has(c.id) && !naSerie.has(c.id)) ? 'inferior' : 'principal')
   }
   return faixa
 }
 
 /**
- * computeLayout — posições determinísticas em pixels.
+ * computeLayout — distribui os componentes AUTOMATICAMENTE dentro do DIAGRAM_BOX.
+ *
+ * Não há coordenadas fixas por equipamento: a cadeia principal é distribuída
+ * uniformemente na largura da caixa; as derivações (ex.: DPS) ficam numa faixa
+ * inferior centralizada. Tudo é clampado para NUNCA ultrapassar o DIAGRAM_BOX.
+ * Funciona para qualquer projeto (1/2 carregadores, mono/tri, com/sem DPS).
+ *
  * @returns {Object<string,{x:number,y:number}>}
  */
 export function computeLayout(components = [], connections = []) {
-  const byId = new Map(components.map(c => [c.id, c]))
+  const box = DIAGRAM_BOX
+  const { W, H } = COMPONENTE
   const coluna = calcularColunas(components, connections)
   const faixa = calcularFaixas(components, connections)
-  const { MARGEM_X, RAIL_Y, DX, DY, STACK_DY } = LAYOUT_CONST
 
-  // Agrupa por célula (coluna|faixa) para empilhar deterministicamente.
-  const celulas = new Map()
-  for (const c of components) {
-    const chave = `${coluna.get(c.id)}|${faixa.get(c.id)}`
-    if (!celulas.has(chave)) celulas.set(chave, [])
-    celulas.get(chave).push(c.id)
-  }
+  const ordenar = (lista) => [...lista].sort((a, b) =>
+    ((coluna.get(a.id) ?? 0) - (coluna.get(b.id) ?? 0)) || String(a.id).localeCompare(String(b.id)))
+  const principal = ordenar(components.filter(c => faixa.get(c.id) !== 'inferior'))
+  const inferior = ordenar(components.filter(c => faixa.get(c.id) === 'inferior'))
+
+  const PAD = 8
+  const yMain = box.y + 16
+  const yInf = box.y + box.h - H - 16
+  const minX = box.x + PAD
+  const maxX = box.x + box.w - W - PAD
 
   const layout = {}
-  for (const [chave, ids] of celulas) {
-    const [colStr, fx] = chave.split('|')
-    const col = Number(colStr)
-    const ordenados = ordenarDeterministico(ids, byId)
-    const baseY = fx === 'inferior' ? RAIL_Y + DY : RAIL_Y
-    ordenados.forEach((id, i) => {
-      layout[id] = { x: MARGEM_X + col * DX, y: baseY + i * STACK_DY }
+  // Distribui `lista` uniformemente numa `largura` a partir de `x0`, na altura `y`.
+  const distribuir = (lista, largura, x0, y) => {
+    const n = lista.length || 1
+    lista.forEach((c, i) => {
+      const cx = x0 + (i + 0.5) * (largura / n)
+      const x = Math.max(minX, Math.min(Math.round(cx - W / 2), maxX))
+      layout[c.id] = { x, y }
     })
+  }
+
+  // Cadeia principal: largura inteira da caixa (uniforme, centralizada por célula).
+  distribuir(principal, box.w, box.x, yMain)
+
+  // Derivações: grupo centralizado horizontalmente, na faixa inferior da caixa.
+  if (inferior.length) {
+    const larguraGrupo = Math.min(box.w, inferior.length * (W + 50))
+    distribuir(inferior, larguraGrupo, box.x + (box.w - larguraGrupo) / 2, yInf)
   }
   return layout
 }

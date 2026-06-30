@@ -6,12 +6,21 @@ import ReactFlow, {
   Background,
   Controls,
   MiniMap,
-  ReactFlowProvider
+  ReactFlowProvider,
+  useUpdateNodeInternals
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import CustomEdge from './edges/CustomEdge';
 import ComponentNode from './nodes/ComponentNode';
 import ComponenteRealista from './nodes/ComponenteRealista';
+import { ComponenteExecutivo, A4Chrome } from './nodes/ComponenteExecutivo';
+import { renderSVG } from '@diagram-engine';
+import { A4 } from '@diagram-engine/geometry';
+
+// Limites da folha A4 (com folga) — o Editor é uma FOLHA, não um canvas infinito.
+const FOLGA_A4 = 60;
+const EXTENT_A4 = [[-FOLGA_A4, -FOLGA_A4], [A4.W + FOLGA_A4, A4.H + FOLGA_A4]];
+const EXTENT_NOS = [[0, 0], [A4.W, A4.H]];
 import { converterCalculosParaNodesEdges, validarDiagrama, resetarPosicoes } from './utils/reactFlowHelpers';
 import { recalcularDiagrama, validarParametrosNBR5410, gerarListaMateriais, validarValorCampo, validarFluxoEletricoCompleto } from './utils/electricalCalculations';
 import { validarConexao, obterTipoConexaoEsperado, obterHandlesCompativeis } from './utils/connectionValidator';
@@ -27,6 +36,44 @@ import './InteractiveDiagram.css';
  * @param {Function} props.onDiagramChange - Callback quando diagrama é modificado
  * @param {Boolean} props.readOnly - Modo somente leitura
  */
+// P3.1-EV-REACTFLOW-RENDER-FIX-01: identidade ESTÁVEL de módulo (RF #002 / medição).
+// P3-PARITY: TODOS os tipos de nó usam o MESMO símbolo do Engine (ComponenteExecutivo).
+// Não há mais um conjunto "realista" separado. a4Chrome = documento de fundo.
+const NODE_TYPES = {
+  gridNodeRealista: ComponenteExecutivo,
+  breakerNodeRealista: ComponenteExecutivo,
+  dpsNodeRealista: ComponenteExecutivo,
+  drNodeRealista: ComponenteExecutivo,
+  cableNodeRealista: ComponenteExecutivo,
+  chargerNodeRealista: ComponenteExecutivo,
+  customNodeRealista: ComponenteExecutivo,
+  gridNode: ComponenteExecutivo,
+  breakerNode: ComponenteExecutivo,
+  dpsNode: ComponenteExecutivo,
+  drNode: ComponenteExecutivo,
+  cableNode: ComponenteExecutivo,
+  chargerNode: ComponenteExecutivo,
+  customNode: ComponenteExecutivo,
+  specsNode: ComponenteExecutivo,
+  a4Chrome: A4Chrome,
+}
+const EDGE_TYPES = { custom: CustomEdge }
+
+// P3.1: força a (re)medição dos handles após a hidratação. Os handles são
+// adicionados dinamicamente (vêm do JSON do Engine); sem isso, em ambientes onde
+// o ResizeObserver não dispara, handleBounds fica undefined e o RF descarta todas
+// as edges. useUpdateNodeInternals é a API oficial do RF para este caso.
+function RFInternalsFixer({ nodeIds }) {
+  const updateNodeInternals = useUpdateNodeInternals()
+  const chave = nodeIds.join(',')
+  useEffect(() => {
+    if (!nodeIds.length) return
+    const t = setTimeout(() => { nodeIds.forEach(id => updateNodeInternals(id)) }, 60)
+    return () => clearTimeout(t)
+  }, [chave, updateNodeInternals]) // eslint-disable-line react-hooks/exhaustive-deps
+  return null
+}
+
 export default function InteractiveDiagram({
   calculos,
   projeto,
@@ -36,6 +83,8 @@ export default function InteractiveDiagram({
   // NÃO calcula layout. { nodes, edges, viewport }. O parent deve memoizar.
   initial = null,
   onViewportChange = null,
+  // P3-PARITY: JSON canônico → fundo executivo (chrome) desenhado pelo Engine.
+  canonical = null,
 }) {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
@@ -54,32 +103,11 @@ export default function InteractiveDiagram({
   // Hook para Undo/Redo
   const historioDiagrama = useHistorioDiagrama(projeto?.projeto_id || projeto?.projeto_nome || 'diagrama-sem-id');
 
-  // Definir tipos de nós e edges com useMemo para evitar re-criação
-  // CRÍTICO: Envolvido em useMemo para garantir que ComponentNode esteja completamente inicializado
-  const nodeTypes = useMemo(() => ({
-    // Componentes realistas (visual melhorado)
-    gridNodeRealista: ComponenteRealista,
-    breakerNodeRealista: ComponenteRealista,
-    dpsNodeRealista: ComponenteRealista,
-    drNodeRealista: ComponenteRealista,
-    cableNodeRealista: ComponenteRealista,
-    chargerNodeRealista: ComponenteRealista,
-    customNodeRealista: ComponenteRealista,
-
-    // Componentes genéricos (fallback)
-    gridNode: ComponentNode,
-    breakerNode: ComponentNode,
-    dpsNode: ComponentNode,
-    drNode: ComponentNode,
-    cableNode: ComponentNode,
-    chargerNode: ComponentNode,
-    customNode: ComponentNode,
-    specsNode: ComponentNode
-  }), []);
-
-  const edgeTypes = useMemo(() => ({
-    custom: CustomEdge
-  }), []);
+  // P3.1: nodeTypes/edgeTypes agora são constantes de MÓDULO (NODE_TYPES/EDGE_TYPES).
+  // Antes eram useMemo internos — com remount/StrictMode o RF disparava o erro #002
+  // ("new nodeTypes/edgeTypes object") e RECRIAVA os componentes de nó a cada render,
+  // resetando a medição (handleBounds/width ficavam undefined) → todas as edges
+  // descartadas. Identidade estável de módulo elimina isso.
 
   // EV-CRASH-FIX: ref estável para onDiagramChange — evita reentrar no useEffect
   // quando o pai reseta a referência da função. O efeito legítimo de re-init
@@ -101,7 +129,17 @@ export default function InteractiveDiagram({
             onDelete: () => {},
           },
         }))
-        setNodes(nodesComCallbacks)
+        // P3-PARITY: nó de FUNDO com o documento executivo (chrome) do Engine.
+        // Mesmo renderSVG do PDF, sem o diagrama — o RF sobrepõe os componentes.
+        const fundo = canonical ? [{
+          id: '__a4chrome',
+          type: 'a4Chrome',
+          position: { x: 0, y: 0 },
+          data: { svg: renderSVG(canonical, { incluirDiagrama: false }) },
+          draggable: false, selectable: false, deletable: false, focusable: false,
+          zIndex: -1,
+        }] : []
+        setNodes([...fundo, ...nodesComCallbacks])
         setEdges(initial.edges || [])
         setErro(null)
         // Hidratação a partir do Engine: a validação elétrica é responsabilidade do
@@ -114,14 +152,10 @@ export default function InteractiveDiagram({
         return
       }
       if (calculos && projeto) {
-        console.log('📊 Inicializando diagrama com:', { calculos, projeto });
-
         const { nodes: novoNodes, edges: novoEdges } = converterCalculosParaNodesEdges(
           calculos,
           projeto
         );
-
-        console.log('✓ Nodes criados:', novoNodes.length, 'Edges:', novoEdges.length);
 
         // Adicionar callbacks aos nós
         const nodesComCallbacks = novoNodes.map(node => ({
@@ -164,7 +198,7 @@ export default function InteractiveDiagram({
     // EV-CRASH-FIX: deps reduzidas. `onDiagramChange` não dispara mais re-init
     // (consumido via ref). Loop infinito eliminado.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [calculos, projeto, initial]);
+  }, [calculos, projeto, initial, canonical]);
 
   // Quando nó é selecionado
   const handleNodeClick = useCallback((event, node) => {
@@ -714,17 +748,23 @@ export default function InteractiveDiagram({
             onConnect={onConnect}
             onNodeClick={handleNodeClick}
             onMoveEnd={(_e, vp) => { if (onViewportChange) onViewportChange(vp); }}
-            nodeTypes={nodeTypes}
-            edgeTypes={edgeTypes}
+            nodeTypes={NODE_TYPES}
+            edgeTypes={EDGE_TYPES}
             snapToGrid={true}
             snapGrid={[16, 16]}
-            defaultViewport={initial?.viewport || undefined}
-            fitView={!initial?.viewport}
-            attributionPosition="bottom-left"
+            fitView
+            fitViewOptions={{ padding: 0.06 }}
+            translateExtent={EXTENT_A4}
+            nodeExtent={EXTENT_NOS}
+            minZoom={0.3}
+            maxZoom={2.5}
+            proOptions={{ hideAttribution: true }}
           >
-            <Background color="#aaa" gap={16} />
-            <Controls />
-            <MiniMap />
+            <RFInternalsFixer nodeIds={nodes.map(n => n.id)} />
+            {/* P3.2: grid discreta (pontos suaves) — aparência de documento técnico */}
+            <Background variant="dots" gap={18} size={1} color="#e2e8f0" />
+            <Controls showInteractive={false} />
+            <MiniMap pannable zoomable nodeStrokeWidth={2} maskColor="rgba(241,245,249,0.6)" />
           </ReactFlow>
         </div>
 

@@ -866,5 +866,5 @@ function InteractiveDiagramWrapper({ canonical, calculos, dados, carregadores, o
     }
   }, [onChange, draftId, dados.nome_projeto, dados.cliente_nome])
 
-  return <InteractiveDiagram initial={initial} calculos={calculos} projeto={projeto} onDiagramChange={handleChange} readOnly={false} />
+  return <InteractiveDiagram initial={initial} canonical={canonical} calculos={calculos} projeto={projeto} onDiagramChange={handleChange} readOnly={false} />
 }

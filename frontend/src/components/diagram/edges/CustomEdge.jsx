@@ -1,152 +1,76 @@
 import React, { useState, useCallback } from 'react';
-import {
-  EdgeLabelRenderer,
-  BaseEdge,
-  getSmoothStepPath,
-  useReactFlow
-} from 'reactflow';
+import { BaseEdge, useStore } from 'reactflow';
+import { CORES_CONDUTOR } from '@diagram-engine';
+import { COND_GAP } from '@diagram-engine/geometry';
 import EdgeContextMenu from './EdgeContextMenu';
 import './CustomEdge.css';
 
 /**
- * Edge (conexão) customizado com suporte a:
- * - Diferentes tipos (CA, CC, Terra)
- * - Context menu para edição
- * - Cores e estilos diferentes por tipo
- * - Animação de fluxo
+ * CustomEdge — P3-PARITY: cabos IDÊNTICOS ao SVG executivo.
+ *
+ * Desenha retas CENTRO→CENTRO dos componentes (mesma origem do svgRenderer:
+ * desenharConexoes usa centro do componente), um caminho por CONDUTOR, com o mesmo
+ * COND_GAP e a mesma paleta CORES_CONDUTOR. Terra (derivação) = tracejado.
+ *
+ * Não usa as posições de handle do React Flow (que dariam traçado borda-a-borda):
+ * lê o centro de cada nó do store, garantindo paridade exata com o Executivo.
  */
-export default function CustomEdge({
-  id,
-  source,
-  target,
-  sourceX,
-  sourceY,
-  targetX,
-  targetY,
-  data,
-  markerEnd,
-  selected
-}) {
-  const [mostraContextMenu, setMostraContextMenu] = useState(false);
-  const [contextMenuPos, setContextMenuPos] = useState({ x: 0, y: 0 });
-  const { getNode, setEdges } = useReactFlow();
+function centroDoNo(n) {
+  if (!n) return null;
+  const p = n.positionAbsolute || n.position || { x: 0, y: 0 };
+  return { x: p.x + (n.width || 0) / 2, y: p.y + (n.height || 0) / 2 };
+}
 
-  // Tipo de conexão (CA, CC, Terra)
-  const tipo = data?.tipo || 'CA';
-  const cores = {
-    'CA': '#3b82f6',      // Azul
-    'CC': '#ef4444',      // Vermelho
-    'TERRA': '#059669'    // Verde
-  };
-  const cor = cores[tipo] || cores['CA'];
+export default function CustomEdge({ id, source, target, data, selected }) {
+  const [menu, setMenu] = useState(null);
+  const sourceNode = useStore((s) => s.nodeInternals.get(source));
+  const targetNode = useStore((s) => s.nodeInternals.get(target));
 
-  // Gerar path da edge
-  const [edgePath, labelX, labelY] = getSmoothStepPath({
-    sourceX,
-    sourceY,
-    targetX,
-    targetY
-  });
+  const a = centroDoNo(sourceNode);
+  const b = centroDoNo(targetNode);
+  if (!a || !b) return null;
 
-  // Context menu
-  const handleContextMenu = useCallback((e) => {
-    e.preventDefault();
-    e.stopPropagation();
+  const condutores = (data?.condutores && data.condutores.length) ? data.condutores : [{ papel: 'fase' }];
+  const tracejado = !!data?.tracejado;
+  const n = condutores.length;
 
-    setContextMenuPos({
-      x: e.clientX,
-      y: e.clientY
-    });
-    setMostraContextMenu(true);
+  const onCtx = useCallback((e) => {
+    e.preventDefault(); e.stopPropagation();
+    setMenu({ x: e.clientX, y: e.clientY });
   }, []);
-
-  const handleTypeChange = useCallback((edgeId, novoTipo) => {
-    // Recuperar handlers da data
-    if (data?.onTypeChange) {
-      data.onTypeChange(edgeId, novoTipo);
-    }
-    setMostraContextMenu(false);
-  }, [data]);
-
-  const handleDelete = useCallback((edgeId) => {
-    // Recuperar handlers da data
-    if (data?.onDelete) {
-      data.onDelete(edgeId);
-    }
-    setMostraContextMenu(false);
-  }, [data]);
 
   return (
     <>
-      {/* Edge principal */}
-      <BaseEdge
-        path={edgePath}
-        markerEnd={markerEnd}
-        style={{
-          stroke: cor,
-          strokeWidth: selected ? 3 : 2,
-          filter: selected ? `drop-shadow(0 0 4px ${cor}80)` : 'none',
-          transition: 'all 0.2s ease'
-        }}
-        className={`custom-edge ${selected ? 'selected' : ''}`}
-        onContextMenu={handleContextMenu}
-      />
-
-      {/* Label com tipo de conexão */}
-      <EdgeLabelRenderer>
-        <div
-          style={{
-            position: 'absolute',
-            transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
-            pointerEvents: 'all',
-            zIndex: selected ? 100 : 10
-          }}
-          className="edge-label-container"
-        >
-          <div
-            className="edge-label"
+      {condutores.map((c, i) => {
+        const off = (i - (n - 1) / 2) * COND_GAP;
+        const path = `M ${a.x},${a.y + off} L ${b.x},${b.y + off}`;
+        const corBase = CORES_CONDUTOR[c.papel] || '#555';
+        const stroke = corBase.toLowerCase() === '#ffffff' ? '#94a3b8' : corBase;
+        return (
+          <BaseEdge
+            key={i}
+            path={path}
+            interactionWidth={i === 0 ? 14 : 0}
+            onContextMenu={i === 0 ? onCtx : undefined}
             style={{
-              backgroundColor: cor,
-              borderColor: cor
+              stroke,
+              strokeWidth: selected ? 2.6 : 2,
+              strokeDasharray: tracejado ? '6 4' : undefined,
             }}
-            onContextMenu={handleContextMenu}
-            title={`Clique direito para editar\nTipo: ${tipo}`}
-          >
-            {tipo}
-          </div>
-        </div>
-      </EdgeLabelRenderer>
+          />
+        );
+      })}
 
-      {/* Context Menu */}
-      {mostraContextMenu && (
+      {menu && (
         <EdgeContextMenu
-          edge={{
-            id,
-            source,
-            target,
-            data
-          }}
-          position={contextMenuPos}
-          onTypeChange={handleTypeChange}
-          onDelete={handleDelete}
-          onClose={() => setMostraContextMenu(false)}
+          edge={{ id, source, target, data }}
+          position={menu}
+          onTypeChange={() => setMenu(null)}
+          onDelete={() => { if (data?.onDelete) data.onDelete(id); setMenu(null); }}
+          onClose={() => setMenu(null)}
         />
       )}
-
-      {/* Fechar menu ao clicar em outro lugar */}
-      {mostraContextMenu && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            zIndex: 999
-          }}
-          onClick={() => setMostraContextMenu(false)}
-        />
-      )}
+      {menu && <div style={{ position: 'fixed', inset: 0, zIndex: 999 }} onClick={() => setMenu(null)} />}
     </>
   );
 }

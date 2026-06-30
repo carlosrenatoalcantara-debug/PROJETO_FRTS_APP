@@ -179,8 +179,20 @@
 }
 
 /* React Flow overrides */
+/* P3-PARITY: fundo do painel cinza (mesa); a folha A4 (chrome branco) fica por cima. */
 .diagram-canvas .react-flow {
-  background: #fafbfc;
+  background: #e2e8f0;
+}
+
+/* P3.2: handles ocultos na visualização; aparecem só ao passar/selecionar o nó.
+   Faz o canvas parecer um documento técnico, não um editor de fluxograma. */
+.diagram-canvas .react-flow__handle {
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.diagram-canvas .react-flow__node:hover .react-flow__handle,
+.diagram-canvas .react-flow__node.selected .react-flow__handle {
+  opacity: 1;
 }
 
 .diagram-canvas .react-flow__controls {

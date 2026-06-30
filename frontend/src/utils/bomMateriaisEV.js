@@ -272,7 +272,7 @@ export function gerarBOM({
       especificacao: '2,4m cobre 16mm Ø',
       quantidade: 1,
       unidade: 'un',
-      categoria: 'Diversos',
+      categoria: 'Infraestrutura',
     },
   )
 

@@ -7,6 +7,8 @@
   "exports": {
     ".": "./index.js",
     "./adapters/ev": "./adapters/ev.js",
+    "./symbols": "./src/symbols.js",
+    "./geometry": "./src/geometry.js",
     "./model": "./src/model.js",
     "./layout": "./src/layout.js",
     "./overrides": "./src/overrides.js",

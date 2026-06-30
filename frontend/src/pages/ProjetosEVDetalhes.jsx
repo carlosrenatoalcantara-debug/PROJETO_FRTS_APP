@@ -68,6 +68,7 @@ export default function ProjetosEVDetalhes() {
   const [diagramaEditado, setDiagramaEditado] = useState(null)
   const [salvandoDiagrama, setSalvandoDiagrama] = useState(false)
   const [editorInitial, setEditorInitial] = useState(null)   // { nodes, edges, viewport } do Engine
+  const [editorCanonical, setEditorCanonical] = useState(null) // JSON canônico (fundo executivo)
   const [editorViewport, setEditorViewport] = useState(null) // viewport corrente (zoom/pan)
 
   // Callback estável para evitar loop infinito no InteractiveDiagram
@@ -83,16 +84,13 @@ export default function ProjetosEVDetalhes() {
   const carregarProjeto = async () => {
     try {
       setCarregando(true)
-      console.log('Carregando projeto EV:', id)
       const response = await fetch(`${API_URL}/api/projetos-ev/${id}`)
-      console.log('Response status:', response.status)
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: Projeto não encontrado`)
       }
 
       const dados = await response.json()
-      console.log('Projeto EV carregado:', dados)
       setProjeto(dados)
       setErro(null)
     } catch (err) {
@@ -129,6 +127,7 @@ export default function ProjetosEVDetalhes() {
     const rf = toReactFlow(canonical)
 
     setEditorInitial(rf)
+    setEditorCanonical(canonical)
     setEditorViewport(rf.viewport)
     setDiagramaEditado({ nodes: rf.nodes, edges: rf.edges })
     setModalEditorAberto(true)
@@ -153,6 +152,7 @@ export default function ProjetosEVDetalhes() {
     setModalEditorAberto(false)
     setDiagramaEditado(null)
     setEditorInitial(null)
+    setEditorCanonical(null)
   }
 
   // Salvar diagrama editado — persiste APENAS version/viewport/metadata/overrides
@@ -415,6 +415,7 @@ export default function ProjetosEVDetalhes() {
             <div className="flex-1 overflow-hidden bg-slate-50" style={{ minHeight: 0, height: '70vh' }}>
               <InteractiveDiagram
                 initial={editorInitial}
+                canonical={editorCanonical}
                 onDiagramChange={handleDiagramChange}
                 onViewportChange={handleViewportChange}
                 readOnly={false}

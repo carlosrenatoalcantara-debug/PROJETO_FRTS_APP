@@ -7,9 +7,10 @@
  */
 
 import { TIPOS } from './model.js'
+import { COMPONENTE } from './geometry.js'
 
 const esc = (s) => String(s ?? '').replace(/[<>&]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]))
-const W = 120, H = 90 // caixa nominal de um componente
+const { W, H } = COMPONENTE // caixa nominal de um componente (fonte única: geometry.js)
 
 function caixa(x, y, titulo, linhas, cor = '#1f6fd6') {
   const txt = linhas.map((l, i) => `<text x="${x + W / 2}" y="${y + 52 + i * 14}" font-size="11" text-anchor="middle" fill="#334155">${esc(l)}</text>`).join('')

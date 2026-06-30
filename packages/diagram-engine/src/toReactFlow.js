@@ -36,6 +36,8 @@ export function toReactFlow(canonical) {
       label: c.label,
       polos: c.polos,
       ...c.specs,
+      // P3-PARITY: componente original — o nó do Editor desenha o MESMO símbolo do SVG.
+      componente: c,
     },
   }))
 
