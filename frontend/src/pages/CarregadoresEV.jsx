@@ -382,18 +382,34 @@ function EdicaoCarregador({ carregador, onClose, onSalvar }) {
     if (!form.fabricante || !form.modelo) return alert('Preencha fabricante e modelo')
     setSalvando(true)
     try {
-      const res = await fetch(`${API_URL}/api/equipamentos/${carregador._id}`, {
-        method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form),
+      // BUG-009: catálogo EV é fonte única em CarregadorEV. Grava no endpoint certo
+      // com o SHAPE PLANO do modelo CarregadorEV (marca + campos das especificações).
+      const ehEV = carregador._origem === 'CarregadorEV'
+      const espec = form.especificacoes || {}
+      // Descarta chaves derivadas da view que NÃO são campos do modelo CarregadorEV.
+      const { tipo_carregador, carregadorEV_id, potencia_maxima, ...camposModelo } = espec
+      const url = ehEV
+        ? `${API_URL}/api/carregadores-ev/${carregador._id}`
+        : `${API_URL}/api/equipamentos/${carregador._id}`
+      const body = ehEV
+        ? { marca: form.fabricante, modelo: form.modelo, ...camposModelo }
+        : form
+      const res = await fetch(url, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
       })
-      if (res.ok) onSalvar()
-      else alert('Erro ao salvar')
-    } catch { alert('Erro ao salvar') }
-    finally { setSalvando(false) }
+      if (res.ok) { onSalvar(); return }
+      // Mostra o ERRO REAL retornado pela API (nunca só "Erro ao salvar").
+      const data = await res.json().catch(() => ({}))
+      alert(data?.erro || `Erro ao salvar (HTTP ${res.status})`)
+    } catch (e) {
+      alert(`Falha de conexão ao salvar: ${e.message}`)
+    } finally { setSalvando(false) }
   }
 
   const espec = form.especificacoes || {}
-  // P2-EV-CATALOG-SIMPLIFICATION-01: campos de saída DC só para carregadores DC.
-  const ehDC = (form.tipo_carregador || form.tipo) === 'DC'
+  // Campos de saída DC só para carregadores DC. O tipo (AC_Mono/AC_Tri/DC) vem da
+  // view em especificacoes.tipo_carregador (= CarregadorEV.tipo).
+  const ehDC = (espec.tipo_carregador || form.tipo) === 'DC'
   const inp = (placeholder, key, type = 'text', isEspec = false) => (
     <input type={type} placeholder={placeholder}
       value={isEspec ? (espec[key] ?? '') : (form[key] ?? '')}
@@ -413,21 +429,20 @@ function EdicaoCarregador({ carregador, onClose, onSalvar }) {
             {inp('Fabricante', 'fabricante')}
             {inp('Modelo', 'modelo')}
             {inp('Potência nominal (kW)', 'potencia_kw', 'number', true)}
-            {inp('Potência máxima (kW)', 'potencia_maxima', 'number', true)}
-            {inp('Tensão entrada (V)', 'tensao_entrada', 'number', true)}
-            {inp('Corrente entrada máxima (A)', 'corrente_entrada', 'number', true)}
+            {inp('Tensão entrada (V)', 'tensao_entrada_v', 'number', true)}
+            {inp('Corrente entrada máxima (A)', 'corrente_entrada_a', 'number', true)}
             {inp('Número de fases (1 ou 3)', 'numero_fases', 'number', true)}
-            {inp('Tipo conector saída', 'tipo_conector_saida', 'text', true)}
+            {inp('Tipo conector', 'tipo_conector', 'text', true)}
             {inp('Protocolo carregamento', 'protocolo_carregamento', 'text', true)}
             {inp('Tipo carregamento', 'tipo_carregamento', 'text', true)}
-            {ehDC && inp('Tensão saída DC (V)', 'tensao_saida_dc', 'number', true)}
-            {ehDC && inp('Corrente saída DC (A)', 'corrente_saida_dc', 'number', true)}
-            {ehDC && inp('Tempo carga rápida (min)', 'tempo_carga_rapida', 'number', true)}
-            {ehDC && inp('Eficiência (%)', 'eficiencia', 'number', true)}
+            {ehDC && inp('Tensão saída DC (V)', 'tensao_saida_dc_v', 'number', true)}
+            {ehDC && inp('Corrente saída DC (A)', 'corrente_saida_dc_a', 'number', true)}
+            {ehDC && inp('Tempo carga rápida (min)', 'tempo_carga_rapida_min', 'number', true)}
+            {ehDC && inp('Eficiência (%)', 'eficiencia_pct', 'number', true)}
             {inp('Grau proteção IP', 'grau_protecao_ip', 'text', true)}
             {inp('Peso (kg)', 'peso_kg', 'number', true)}
           </div>
-          {inp('Dimensões (H×L×P mm)', 'dimensoes', 'text', true)}
+          {inp('Dimensões (H×L×P mm)', 'dimensoes_mm', 'text', true)}
           {inp('Temperatura de operação', 'temperatura_operacao', 'text', true)}
         </div>
         <div className="p-5 border-t flex justify-end gap-3 shrink-0">
