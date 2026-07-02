@@ -131,7 +131,31 @@ export const buscarProjetoEV = async (req, res) => {
       }
     }
 
-    res.json(p)
+    // BUG-007: a caixa CARREGADOR deve refletir o CATÁLOGO (CarregadorEV = SSOT).
+    // O snapshot salvo no projeto é parcial (sem tensão/corrente/etc.). Enriquecemos
+    // a LEITURA com os dados do catálogo por marca+modelo — sem tocar em calculos_nbr
+    // (a caixa CÁLCULOS NBR continua exclusivamente da engenharia).
+    const out = p.toObject ? p.toObject() : p
+    try {
+      if (Array.isArray(out.carregadores) && out.carregadores.length) {
+        const CAMPOS_CATALOGO = [
+          'tensao_entrada_v', 'corrente_entrada_a', 'numero_fases', 'tipo_conector',
+          'frequencia_hz', 'grau_protecao_ip', 'tensao_saida_dc_v', 'corrente_saida_dc_a',
+        ]
+        for (const cg of out.carregadores) {
+          if (!cg?.marca || !cg?.modelo) continue
+          const cat = await CarregadorEV.findOne({ marca: cg.marca, modelo: cg.modelo }).lean()
+          if (!cat) continue
+          for (const campo of CAMPOS_CATALOGO) {
+            if (cg[campo] === undefined || cg[campo] === null) cg[campo] = cat[campo] ?? null
+          }
+        }
+      }
+    } catch (enrichErr) {
+      console.warn('⚠️  Enriquecimento do carregador (catálogo) falhou:', enrichErr.message)
+    }
+
+    res.json(out)
   } catch (err) {
     console.error('❌ Erro ao buscar projeto EV:', err)
     // Tenta memória como fallback

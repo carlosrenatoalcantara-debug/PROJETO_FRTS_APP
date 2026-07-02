@@ -306,7 +306,11 @@ export default function ProjetosEVDetalhes() {
           <CardBody className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <p className="text-sm text-slate-500">Tipo</p>
-              <p className="text-lg font-medium text-slate-900">{carregador.tipo || 'N/A'}</p>
+              <p className="text-lg font-medium text-slate-900">
+                {carregador.tipo === 'AC_Mono' ? 'AC Monofásico'
+                  : carregador.tipo === 'AC_Tri' ? 'AC Trifásico'
+                  : (carregador.tipo || 'N/A')}
+              </p>
             </div>
             <div>
               <p className="text-sm text-slate-500">Potência</p>
@@ -325,12 +329,16 @@ export default function ProjetosEVDetalhes() {
               <p className="text-lg font-medium text-slate-900">{carregador.quantidade || 0}</p>
             </div>
             <div>
-              <p className="text-sm text-slate-500">Tensão Entrada</p>
-              <p className="text-lg font-medium text-slate-900">{carregador.tensao_entrada_v || 0}V</p>
+              <p className="text-sm text-slate-500">Tensão</p>
+              <p className="text-lg font-medium text-slate-900">
+                {carregador.tensao_entrada_v != null ? `${carregador.tensao_entrada_v} V` : 'N/A'}
+              </p>
             </div>
             <div>
-              <p className="text-sm text-slate-500">Corrente Entrada</p>
-              <p className="text-lg font-medium text-slate-900">{carregador.corrente_entrada_a || 0}A</p>
+              <p className="text-sm text-slate-500">Corrente nominal</p>
+              <p className="text-lg font-medium text-slate-900">
+                {carregador.corrente_entrada_a != null ? `${carregador.corrente_entrada_a} A` : 'N/A'}
+              </p>
             </div>
           </CardBody>
         </Card>
