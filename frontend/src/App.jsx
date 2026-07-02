@@ -69,6 +69,7 @@ export default function App() {
         <Route path="comparacao-bess"         element={<ComparacaoBESS />} />
         <Route path="crm"                     element={<CRM />} />
         <Route path="projetos-ev"             element={<ProjetosEV />} />
+        <Route path="projetos-ev/:id/editar"  element={<NovaPropostaEV />} />
         <Route path="projetos-ev/:id"         element={<ProjetosEVDetalhes />} />
         <Route path="homologacao"             element={<Homologacao />} />
         <Route path="catalogo"                element={<Catalogo />} />

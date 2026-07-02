@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Plus, Zap, Filter } from 'lucide-react'
+import { Plus, Zap, Filter, Trash2 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import Card, { CardHeader, CardBody } from '../components/ui/Card'
 import Button from '../components/ui/Button'
@@ -51,6 +51,27 @@ export default function ProjetosEV() {
       setProjetos([])
     } finally {
       setCarregando(false)
+    }
+  }
+
+  // BUG-010: excluir projeto definitivamente + atualizar a lista imediatamente
+  const [excluindoId, setExcluindoId] = useState(null)
+  const excluirProjeto = async (p) => {
+    if (!window.confirm(`Excluir definitivamente o projeto "${p.nome}"?\n\nEsta ação remove o projeto do banco e não pode ser desfeita.`)) return
+    try {
+      setExcluindoId(p._id)
+      const res = await fetch(`${API_URL}/api/projetos-ev/${p._id}`, { method: 'DELETE' })
+      if (!res.ok && res.status !== 204) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data?.erro || data?.mensagem || `HTTP ${res.status}`)
+      }
+      // Remove da lista imediatamente (sem esperar novo GET)
+      setProjetos(prev => prev.filter(x => x._id !== p._id))
+    } catch (err) {
+      console.error('Erro ao excluir projeto EV:', err)
+      alert(`Erro ao excluir projeto: ${err.message}`)
+    } finally {
+      setExcluindoId(null)
     }
   }
 
@@ -157,13 +178,23 @@ export default function ProjetosEV() {
                           </Badge>
                         </td>
                         <td className="px-6 py-4 text-right">
-                          <Button
-                            variante="fantasma"
-                            tamanho="sm"
-                            onClick={() => navigate(`/projetos-ev/${p._id}`)}
-                          >
-                            Ver
-                          </Button>
+                          <div className="flex items-center justify-end gap-1">
+                            <Button
+                              variante="fantasma"
+                              tamanho="sm"
+                              onClick={() => navigate(`/projetos-ev/${p._id}`)}
+                            >
+                              Ver
+                            </Button>
+                            <button
+                              onClick={() => excluirProjeto(p)}
+                              disabled={excluindoId === p._id}
+                              title="Excluir projeto"
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     )

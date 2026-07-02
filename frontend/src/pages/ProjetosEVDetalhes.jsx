@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ChevronLeft, Zap, Edit2, X } from 'lucide-react'
+import { ChevronLeft, Zap, Edit2, X, Trash2, Pencil } from 'lucide-react'
 import Card, { CardHeader, CardBody } from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import Badge from '../components/ui/Badge'
@@ -186,6 +186,25 @@ export default function ProjetosEVDetalhes() {
     }
   }
 
+  // BUG-010: excluir o PROJETO definitivamente (confirma → DELETE → volta à lista)
+  const [excluindo, setExcluindo] = useState(false)
+  const excluirProjeto = async () => {
+    if (!window.confirm(`Excluir definitivamente o projeto "${projeto?.nome || ''}"?\n\nEsta ação remove o projeto do banco de dados e não pode ser desfeita.`)) return
+    try {
+      setExcluindo(true)
+      const res = await fetch(`${API_URL}/api/projetos-ev/${id}`, { method: 'DELETE' })
+      if (!res.ok && res.status !== 204) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data?.erro || data?.mensagem || `HTTP ${res.status}`)
+      }
+      navigate('/projetos-ev')
+    } catch (err) {
+      console.error('❌ Erro ao excluir projeto EV:', err)
+      alert(`Erro ao excluir projeto: ${err.message}`)
+      setExcluindo(false)
+    }
+  }
+
   // Deletar diagrama salvo
   const deletarDiagramaSalvo = () => {
     if (window.confirm('Tem certeza que deseja deletar o diagrama editado? Isso não pode ser desfeito.')) {
@@ -260,11 +279,29 @@ export default function ProjetosEVDetalhes() {
         </div>
         <div className="flex items-center gap-2">
           <Button
+            variante="secundario"
+            icone={Pencil}
+            onClick={() => navigate(`/projetos-ev/${id}/editar`)}
+            title="Editar dados do projeto (carregador, percurso, cabos, quantidade…)"
+          >
+            Editar Projeto
+          </Button>
+          <Button
             icone={Edit2}
             onClick={abrirEditorDiagrama}
             title="Editar diagrama técnico"
           >
             Editar Diagrama
+          </Button>
+          <Button
+            variante="secundario"
+            icone={Trash2}
+            onClick={excluirProjeto}
+            disabled={excluindo}
+            title="Excluir projeto definitivamente"
+            className="text-red-600 hover:bg-red-50 border-red-200"
+          >
+            {excluindo ? 'Excluindo…' : 'Excluir Projeto'}
           </Button>
           <Badge cor={corStatus[status] || 'cinza'}>
             {statusLabel[status] || status}

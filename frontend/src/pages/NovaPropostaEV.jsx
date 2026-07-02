@@ -15,7 +15,7 @@
  * estável, sem unmount/mount a cada keystroke.
  */
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams, useParams } from 'react-router-dom'
 import { MapPin, Zap, FileText, Download, Plus, X, Edit2, DollarSign, AlertTriangle, ChevronRight, Ruler } from 'lucide-react'
 import OrcamentoEV, { DEFAULT_SERVICOS_EV, bomParaMateriais, carregadoresParaEquipamentos } from '../components/ev/OrcamentoEV'
 import PropostaComercialEV from '../components/ev/PropostaComercialEV'
@@ -47,7 +47,10 @@ const ETAPAS = [
 export default function NovaPropostaEV() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const clienteId = searchParams.get('clienteId')
+  const { id: projetoIdParam } = useParams()          // BUG-010: modo edição (mesma tela, mesmo ID)
+  const modoEdicaoProjeto = !!projetoIdParam
+  const [clienteIdEdit, setClienteIdEdit] = useState(null)
+  const clienteId = searchParams.get('clienteId') || clienteIdEdit
 
   // ── Estados principais ──────────────────────────────────────────────────
   const [etapa, setEtapa] = useState(1)
@@ -139,13 +142,67 @@ export default function NovaPropostaEV() {
   }, [])
 
   // ── Carregar cliente ────────────────────────────────────────────────────
+  // Em modo edição NÃO buscamos o cliente aqui: os dados vêm do próprio projeto
+  // (endereço pode ter sido ajustado no projeto e não deve ser sobrescrito).
   useEffect(() => {
-    if (!clienteId) return
+    if (!clienteId || modoEdicaoProjeto) return
     fetch(`${API_URL}/api/clientes/${clienteId}`)
       .then(r => r.json())
       .then(c => setDados(prev => ({ ...prev, cliente_nome: c.nome || '', endereco: c.endereco_completo || '' })))
       .catch(console.error)
-  }, [clienteId])
+  }, [clienteId, modoEdicaoProjeto])
+
+  // ── BUG-010: Carregar projeto existente (modo edição) ────────────────────
+  // Reaproveita o MESMO wizard para editar. Pré-preenche todos os campos de
+  // dimensionamento; ao salvar faz PUT no MESMO ID (recálculo no backend +
+  // recálculo ao vivo aqui). Nunca cria projeto novo.
+  useEffect(() => {
+    if (!projetoIdParam) return
+    let vivo = true
+    ;(async () => {
+      try {
+        const r = await fetch(`${API_URL}/api/projetos-ev/${projetoIdParam}`)
+        if (!r.ok) throw new Error(`HTTP ${r.status}`)
+        const p = await r.json()
+        if (!vivo) return
+        const cli = typeof p.clienteId === 'object' ? p.clienteId?._id : p.clienteId
+        setClienteIdEdit(cli || null)
+        setDados(prev => ({
+          ...prev,
+          nome_projeto: p.nome || '',
+          cliente_nome: typeof p.clienteId === 'object' ? (p.clienteId?.nome || prev.cliente_nome) : prev.cliente_nome,
+          endereco: p.endereco_completo || '',
+          latitude: p.latitude ?? null,
+          longitude: p.longitude ?? null,
+          comprimento_cabo_m: p.comprimento_cabo_m ?? 25,
+          tecnico_nome: p.tecnico?.nome || prev.tecnico_nome,
+          tecnico_crea: p.tecnico?.crea || '',
+          tecnico_cft: p.tecnico?.cft || '',
+          tecnico_tipo: p.tecnico?.tipo_profissional || 'crea',
+        }))
+        // Carregadores: a leitura do backend já enriquece com specs do catálogo
+        // (tensão/corrente/fases/conector — BUG-007), suficiente para redimensionar.
+        if (Array.isArray(p.carregadores) && p.carregadores.length) {
+          setCarregadores(p.carregadores.map(c => ({ ...c, quantidade: c.quantidade || 1 })))
+        }
+        // Preserva margem/desconto/serviços/status salvos. A lista de materiais
+        // (BOM) é recalculada ao vivo a partir dos carregadores/percurso.
+        if (p.orcamento) {
+          setOrcamento(prev => ({
+            ...prev,
+            servicos: Array.isArray(p.orcamento.servicos) && p.orcamento.servicos.length ? p.orcamento.servicos : prev.servicos,
+            margem_pct: p.orcamento.margem_pct ?? prev.margem_pct,
+            desconto_pct: p.orcamento.desconto_pct ?? prev.desconto_pct,
+          }))
+          if (p.orcamento.status) setStatusComercial(p.orcamento.status)
+        }
+      } catch (e) {
+        console.error('[EV] Erro ao carregar projeto para edição:', e)
+        alert('Erro ao carregar projeto para edição: ' + e.message)
+      }
+    })()
+    return () => { vivo = false }
+  }, [projetoIdParam])
 
   // ── Carregar catálogo ───────────────────────────────────────────────────
   const carregarCarregadores = () => {
@@ -383,16 +440,19 @@ export default function NovaPropostaEV() {
     }
 
     try {
-      const r = await fetch(`${API_URL}/api/projetos-ev`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(projetoData) })
+      // BUG-010: modo edição → PUT no MESMO ID (backend recalcula engenharia/NBR).
+      const url = modoEdicaoProjeto ? `${API_URL}/api/projetos-ev/${projetoIdParam}` : `${API_URL}/api/projetos-ev`
+      const method = modoEdicaoProjeto ? 'PUT' : 'POST'
+      const r = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(projetoData) })
       if (!r.ok) { const e = await r.json(); throw new Error(e.erro || 'Erro ao salvar') }
-      const novoProjeto = await r.json()
+      const projetoSalvo = await r.json()
       localStorage.setItem('tecnico_dados', JSON.stringify({ nome: dados.tecnico_nome, crea: dados.tecnico_crea, cft: dados.tecnico_cft, tipo: dados.tecnico_tipo }))
-      alert('✅ Projeto salvo com sucesso!')
+      alert(modoEdicaoProjeto ? '✅ Projeto atualizado com sucesso!' : '✅ Projeto salvo com sucesso!')
       if (window.confirm('Deseja baixar o diagrama em PDF?')) {
         await new Promise(r => setTimeout(r, 500))
-        baixarPDFProjeto(novoProjeto._id)
+        baixarPDFProjeto(projetoSalvo._id || projetoIdParam)
       }
-      navigate('/projetos-ev')
+      navigate(modoEdicaoProjeto ? `/projetos-ev/${projetoIdParam}` : '/projetos-ev')
     } catch (err) {
       console.error('Erro ao salvar:', err)
       alert(`❌ Erro ao salvar: ${err.message}`)
@@ -409,8 +469,8 @@ export default function NovaPropostaEV() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-slate-900">Nova Proposta EV</h1>
-        <Button variante="secundario" onClick={() => navigate('/projetos-ev')}>Cancelar</Button>
+        <h1 className="text-2xl font-bold text-slate-900">{modoEdicaoProjeto ? 'Editar Projeto EV' : 'Nova Proposta EV'}</h1>
+        <Button variante="secundario" onClick={() => navigate(modoEdicaoProjeto ? `/projetos-ev/${projetoIdParam}` : '/projetos-ev')}>Cancelar</Button>
       </div>
 
       <Stepper etapas={ETAPAS} etapaAtual={etapa} />
@@ -796,7 +856,7 @@ export default function NovaPropostaEV() {
 
             <div className="flex justify-between gap-2">
               <Button variante="secundario" onClick={etapaAnterior}>← Anterior</Button>
-              <Button onClick={salvarProjeto}>Salvar Projeto</Button>
+              <Button onClick={salvarProjeto}>{modoEdicaoProjeto ? 'Atualizar Projeto' : 'Salvar Projeto'}</Button>
             </div>
           </CardBody>
         </Card>
