@@ -2,7 +2,7 @@ import { ProjetoEV } from '../models/ProjetoEV.js'
 import { CarregadorEV } from '../models/CarregadorEV.js'
 import { AuditLog } from '../models/AuditLog.js'
 import mongoose from 'mongoose'
-import { gerarPDFUnifilarStream, _diagEngineDiag } from '../utils/gerarPDFUnifilar.js'
+import { gerarPDFUnifilarStream } from '../utils/gerarPDFUnifilar.js'
 import { memoryStore } from '../config/memoryStorage.js'
 import { executarCalculosProjetoEV, obterModoOperacao, obterEspecificacaoConector } from '../utils/calculosCarregadorEV.js'
 
@@ -453,7 +453,7 @@ export const exportarPDFProjetoEV = async (req, res) => {
       doc = await gerarPDFUnifilarStream(projeto, projeto.clienteId, tecnico)
     } catch (engErr) {
       if (engErr.code === 'ENGINE_UNAVAILABLE') {
-        return res.status(501).json({ mensagem: 'Geração de PDF indisponível neste ambiente (DiagramEngine ausente).', diagnostico: _diagEngineDiag })
+        return res.status(501).json({ mensagem: 'Geração de PDF indisponível neste ambiente (DiagramEngine ausente).' })
       }
       throw engErr
     }

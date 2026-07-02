@@ -23,6 +23,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.95.0",
+    "@fortesolar/diagram-engine": "file:vendor/fortesolar-diagram-engine.tgz",
     "@google/generative-ai": "^0.24.1",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",

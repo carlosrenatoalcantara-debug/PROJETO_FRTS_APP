@@ -10,34 +10,24 @@
 import PDFDocument from 'pdfkit'
 import SVGtoPDF from 'svg-to-pdfkit'
 
-// Import dinâmico — não bloqueia o startup do servidor se o pacote estiver ausente.
-import { existsSync } from 'node:fs'
-import { fileURLToPath } from 'node:url'
-import path from 'node:path'
-
+// BUG-013: o DiagramEngine é instalado como DEPENDÊNCIA do backend
+// (@fortesolar/diagram-engine, vendorizado em backend/vendor). Assim ele viaja
+// DENTRO do artefato de deploy (raiz = backend/ no Railway) e o import resolve em
+// produção. Antes usava-se caminho relativo (../../../packages/...) que escapava
+// da raiz de deploy → ERR_MODULE_NOT_FOUND → 501.
 let _renderSVG = null
 let _construirCanonical = null
-export let _diagEngineDiag = null   // RCA BUG-013: diagnóstico do porquê o engine falha
 async function carregarEngine() {
   if (_renderSVG) return true
   try {
-    const eng = await import('../../../packages/diagram-engine/index.js')
-    const adp = await import('../../../packages/diagram-engine/adapters/ev.js')
+    const eng = await import('@fortesolar/diagram-engine')
+    const adp = await import('@fortesolar/diagram-engine/adapters/ev')
     _renderSVG = eng.renderSVG
     _construirCanonical = adp.construirCanonicalDeProjetoEV
     return true
   } catch (err) {
-    // RCA BUG-013: NÃO mascarar — captura erro real + estado do filesystem em produção.
-    const here = path.dirname(fileURLToPath(import.meta.url))
-    const alvo = path.resolve(here, '../../../packages/diagram-engine/index.js')
-    _diagEngineDiag = {
-      erro_code: err?.code, erro_msg: String(err?.message || err).split('\n')[0],
-      cwd: process.cwd(), aqui: here, alvo_resolvido: alvo,
-      alvo_existe: existsSync(alvo),
-      dir_app_packages_existe: existsSync('/app/packages'),
-      dir_packages_rel_existe: existsSync(path.resolve(here, '../../../packages')),
-    }
-    console.error('❌ RCA BUG-013 engine load:', JSON.stringify(_diagEngineDiag))
+    // Não mascarar: registra o erro real no log do servidor (sem vazar no HTTP).
+    console.error('❌ DiagramEngine indisponível:', err?.code, String(err?.message || err).split('\n')[0])
     return false
   }
 }
