@@ -11,8 +11,13 @@ import PDFDocument from 'pdfkit'
 import SVGtoPDF from 'svg-to-pdfkit'
 
 // Import dinâmico — não bloqueia o startup do servidor se o pacote estiver ausente.
+import { existsSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+import path from 'node:path'
+
 let _renderSVG = null
 let _construirCanonical = null
+export let _diagEngineDiag = null   // RCA BUG-013: diagnóstico do porquê o engine falha
 async function carregarEngine() {
   if (_renderSVG) return true
   try {
@@ -21,7 +26,18 @@ async function carregarEngine() {
     _renderSVG = eng.renderSVG
     _construirCanonical = adp.construirCanonicalDeProjetoEV
     return true
-  } catch {
+  } catch (err) {
+    // RCA BUG-013: NÃO mascarar — captura erro real + estado do filesystem em produção.
+    const here = path.dirname(fileURLToPath(import.meta.url))
+    const alvo = path.resolve(here, '../../../packages/diagram-engine/index.js')
+    _diagEngineDiag = {
+      erro_code: err?.code, erro_msg: String(err?.message || err).split('\n')[0],
+      cwd: process.cwd(), aqui: here, alvo_resolvido: alvo,
+      alvo_existe: existsSync(alvo),
+      dir_app_packages_existe: existsSync('/app/packages'),
+      dir_packages_rel_existe: existsSync(path.resolve(here, '../../../packages')),
+    }
+    console.error('❌ RCA BUG-013 engine load:', JSON.stringify(_diagEngineDiag))
     return false
   }
 }
