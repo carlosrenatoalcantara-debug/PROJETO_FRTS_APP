@@ -75,6 +75,55 @@ describe('adapter: polos/condutores/DPS conforme projeto', () => {
   })
 })
 
+// ─── BUG-011 — lógica do unifilar ────────────────────────────────────────────
+describe('BUG-011 — cabo é edge, condutores reais, fases do carregador', () => {
+  it('NÃO existe componente CABO; ligação DR→Carregador carrega bitola/comprimento/observações', () => {
+    const { components, connections } = adaptarProjetoEV(args())
+    expect(components.find(c => c.tipo === 'cabo')).toBeUndefined()
+    expect(connections.find(c => c.id === 'c-dr-cabo')).toBeUndefined()
+    expect(connections.find(c => c.id === 'c-cabo-carr')).toBeUndefined()
+    const drCarr = connections.find(c => c.id === 'c-dr-carr')
+    expect(drCarr).toBeTruthy()
+    expect(drCarr.from).toBe('dr')
+    expect(drCarr.to).toBe('carr')
+    expect(drCarr.specs.bitola_mm2).toBe(10)
+    expect(drCarr.specs).toHaveProperty('comprimento_m')
+    expect(drCarr.specs).toHaveProperty('observacoes')
+  })
+
+  it('carregador AC_Mono NUNCA desenha 5 condutores, mesmo com hint tri (projeto.fases=3)', () => {
+    const { connections } = adaptarProjetoEV(args({
+      numero_fases: 3, // poluição vinda de projeto.fases
+      carregador: { marca: 'GWM', modelo: 'ZHIDA', tipo: 'AC_Mono', potencia_kw: 7, tensao_entrada_v: 220 },
+    }))
+    expect(connections.find(c => c.id === 'c-rede-disj').condutores.length).toBe(3)
+    expect(connections.find(c => c.id === 'c-dr-carr').condutores.length).toBe(3)
+  })
+
+  it('bifásico (2 fases) → 4 condutores (F1+F2+N+PE)', () => {
+    const { connections } = adaptarProjetoEV(args({ numero_fases: 2 }))
+    expect(connections.find(c => c.id === 'c-rede-disj').condutores.length).toBe(4)
+  })
+
+  it('carregador AC_Tri → 5 condutores mesmo com hint mono', () => {
+    const { connections } = adaptarProjetoEV(args({
+      numero_fases: 1, // hint mono, mas o tipo do carregador manda
+      carregador: { marca: 'X', modelo: 'Y', tipo: 'AC_Tri', potencia_kw: 22, tensao_entrada_v: 380 },
+      bom: bomTri,
+    }))
+    expect(connections.find(c => c.id === 'c-rede-disj').condutores.length).toBe(5)
+  })
+
+  it('toReactFlow: edge da ligação expõe bitola/comprimento na data', () => {
+    const canonical = construirCanonicalEV(args())
+    const { edges } = toReactFlow(canonical)
+    const e = edges.find(x => x.id === 'c-dr-carr')
+    expect(e).toBeTruthy()
+    expect(e.data.bitola_mm2).toBe(10)
+    expect(e.data).toHaveProperty('comprimento_m')
+  })
+})
+
 // ─── Hidratação + overrides + poda (Requisitos 1, 3, 4) ──────────────────────
 describe('hidratação e overrides', () => {
   it('override de posição sobrevive ao toReactFlow', () => {

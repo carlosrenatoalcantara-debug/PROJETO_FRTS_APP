@@ -50,12 +50,13 @@ export function componente({ id, tipo, subtipo = null, label = '', specs = {}, p
   return { id, tipo, subtipo, label, specs: { ...specs }, polos, faixa, ordem }
 }
 
-/** Fábrica de conexão. */
-export function conexao({ id, from, to, papel = PAPEL_CONEXAO.SERIE, condutores = [] }) {
+/** Fábrica de conexão. `specs` guarda propriedades ELÉTRICAS da própria ligação
+ *  (bitola_mm2, comprimento_m, observacoes) — o cabo é a edge, não um componente. */
+export function conexao({ id, from, to, papel = PAPEL_CONEXAO.SERIE, condutores = [], specs = {} }) {
   if (!id) throw new Error('conexao.id é obrigatório')
   if (!from || !to) throw new Error('conexao requer from e to')
   if (!Object.values(PAPEL_CONEXAO).includes(papel)) throw new Error(`papel inválido: ${papel}`)
-  return { id, from, to, papel, condutores: condutores.map(c => ({ ...c })) }
+  return { id, from, to, papel, condutores: condutores.map(c => ({ ...c })), specs: { ...specs } }
 }
 
 export const VERSION = '2.0'

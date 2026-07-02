@@ -54,7 +54,8 @@ export function toReactFlow(canonical) {
       sourceHandle: derivacao ? 'gnd' : 'out',
       targetHandle: derivacao ? 'gtop' : 'in',
       type: 'custom',
-      data: { papel: cx.papel, condutores: cx.condutores, tracejado: derivacao },
+      // specs da ligação (bitola_mm2/comprimento_m/observacoes) ficam na edge — o cabo é a edge.
+      data: { papel: cx.papel, condutores: cx.condutores, tracejado: derivacao, ...(cx.specs || {}) },
       style: { stroke: cor, strokeWidth: 2, strokeDasharray: derivacao ? '6 4' : undefined },
     }
   })

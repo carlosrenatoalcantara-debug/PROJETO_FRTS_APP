@@ -14,12 +14,30 @@
 
 import { build, renderSVG, toReactFlow, componente, conexao, TIPOS, PAPEL_CONEXAO } from '../index.js'
 
-const CONDUTORES_MONO = [
-  { papel: 'fase' }, { papel: 'neutro' }, { papel: 'terra' },
-]
-const CONDUTORES_TRI = [
-  { papel: 'fase_l1' }, { papel: 'fase_l2' }, { papel: 'fase_l3' }, { papel: 'neutro' }, { papel: 'terra' },
-]
+// BUG-011: condutores desenhados = os que REALMENTE existem no circuito do carregador.
+//  mono (1): Fase + Neutro + Terra                 → 3
+//  bi   (2): Fase L1 + Fase L2 + Neutro + Terra     → 4
+//  tri  (3): L1 + L2 + L3 + Neutro + Terra          → 5
+// NUNCA desenhar 5 num circuito monofásico.
+function condutoresPorFases(nf) {
+  if (nf >= 3) return [{ papel: 'fase_l1' }, { papel: 'fase_l2' }, { papel: 'fase_l3' }, { papel: 'neutro' }, { papel: 'terra' }]
+  if (nf === 2) return [{ papel: 'fase_l1' }, { papel: 'fase_l2' }, { papel: 'neutro' }, { papel: 'terra' }]
+  return [{ papel: 'fase' }, { papel: 'neutro' }, { papel: 'terra' }]
+}
+
+// BUG-011: o nº de fases do CIRCUITO vem do CARREGADOR — NUNCA de projeto.fases
+// (que é a alimentação do imóvel). Prioridade: numero_fases explícito → tipo
+// (AC_Mono/AC_Tri) → hint recebido → 1. Isto impede um projeto mono virar 5 condutores.
+function fasesDoCarregador(carregador = {}, hint = 1) {
+  const n = Number(carregador.numero_fases)
+  if (Number.isFinite(n) && n >= 1) return Math.min(Math.trunc(n), 3)
+  const t = String(carregador.tipo || '').toLowerCase()
+  if (/tri|trif/.test(t)) return 3
+  if (/\bbi|bif/.test(t)) return 2
+  if (/mono|monof/.test(t)) return 1
+  const h = Number(hint)
+  return Number.isFinite(h) && h >= 1 ? Math.min(Math.trunc(h), 3) : 1
+}
 
 function contarDPS(bom = []) {
   const linha = bom.find(b => /DPS/i.test(b.item || b.descricao || ''))
@@ -63,19 +81,21 @@ export function avaliarNormas({ endereco = '', estado = '', tipo_instalacao = ''
 
 /** (calculos + bom + carregador + projeto) → { components, connections, metadata } */
 export function adaptarProjetoEV({ calculos = {}, bom = [], numero_fases = 1, carregador = {}, projeto = {} }) {
-  const ehTri = Number(numero_fases) >= 3
+  const nf = fasesDoCarregador(carregador, numero_fases)
+  const ehTri = nf >= 3
   const polosLinha = ehTri ? 4 : 2
   const disjA = calculos.disjuntor_a ?? carregador.corrente_entrada_a ?? 0
   const bitola = bitolaDoBOM(bom, calculos.bitola_cabo_mm2)
-  const condutores = ehTri ? CONDUTORES_TRI : CONDUTORES_MONO
+  const comprimento = calculos.comprimento_cabo_m ?? projeto.comprimento_cabo_m
+  const condutores = condutoresPorFases(nf)
   const condutoresBitola = condutores.map(c => ({ ...c, bitola_mm2: bitola }))
   const tensao = carregador.tensao_entrada_v ?? (ehTri ? 380 : 220)
 
+  // BUG-011: o CABO não é componente — é a própria ligação (edge). Sem o box 'cabo'.
   const components = [
     componente({ id: 'rede', tipo: TIPOS.REDE, label: 'QD Existente', specs: { tensao_v: tensao }, ordem: 0 }),
     componente({ id: 'disj', tipo: TIPOS.DISJUNTOR, polos: polosLinha, specs: { corrente_a: disjA, curva: 'C' }, ordem: 1 }),
     componente({ id: 'dr', tipo: TIPOS.DR, polos: polosLinha, specs: { ma: calculos.dr_ma ?? 30, classe: 'A' }, ordem: 2 }),
-    componente({ id: 'cabo', tipo: TIPOS.CABO, specs: { bitola_mm2: bitola, comprimento_m: calculos.comprimento_cabo_m ?? projeto.comprimento_cabo_m }, ordem: 3 }),
     componente({ id: 'carr', tipo: TIPOS.EQUIPAMENTO, subtipo: 'carregador_ev', label: `${carregador.marca || ''} ${carregador.modelo || ''}`.trim() || 'Carregador EV', specs: { potencia_kw: carregador.potencia_kw, corrente_a: disjA, conector: carregador.tipo_conector }, ordem: 4 }),
     componente({ id: 'veic', tipo: TIPOS.CARGA, label: 'Veículo Elétrico', specs: { conector: carregador.tipo_conector }, ordem: 5 }),
   ]
@@ -89,8 +109,9 @@ export function adaptarProjetoEV({ calculos = {}, bom = [], numero_fases = 1, ca
   const connections = [
     conexao({ id: 'c-rede-disj', from: 'rede', to: 'disj', condutores: condutoresBitola }),
     conexao({ id: 'c-disj-dr', from: 'disj', to: 'dr', condutores: condutoresBitola }),
-    conexao({ id: 'c-dr-cabo', from: 'dr', to: 'cabo', condutores: condutoresBitola }),
-    conexao({ id: 'c-cabo-carr', from: 'cabo', to: 'carr', condutores: condutoresBitola }),
+    // BUG-011: ligação única DR→Carregador = o cabo. Bitola/comprimento/observações
+    // pertencem a ESTA edge (não a um componente CABO).
+    conexao({ id: 'c-dr-carr', from: 'dr', to: 'carr', condutores: condutoresBitola, specs: { bitola_mm2: bitola, comprimento_m: comprimento, observacoes: '' } }),
     conexao({ id: 'c-carr-veic', from: 'carr', to: 'veic', condutores: [{ papel: 'fase' }] }),
   ]
   for (let i = 0; i < nDPS; i++) {
@@ -148,7 +169,9 @@ export function argsDeProjetoEV(projeto = {}) {
   return {
     calculos: { ...calculos, comprimento_cabo_m: projeto.comprimento_cabo_m },
     bom: calculos.materiais || projeto.bom || [],
-    numero_fases: Number(carregador.numero_fases) || Number(projeto.fases) || 1,
+    // BUG-011: fases do CIRCUITO vêm do carregador (o adapter também deriva de carregador.tipo).
+    // NÃO usar projeto.fases (alimentação do imóvel) — fazia projeto mono virar 5 condutores.
+    numero_fases: Number(carregador.numero_fases) || 1,
     carregador,
     projeto: {
       nome: projeto.nome,
