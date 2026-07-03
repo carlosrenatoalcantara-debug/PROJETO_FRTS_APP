@@ -73,12 +73,16 @@ test('cores normativas de condutor no SVG (neutro azul, terra verde)', () => {
   assert.match(svg, /#d61f1f/) // fase (monofásico) vermelho
 })
 
-test('overrides: posição manual vence; órfãos são podados', () => {
+test('overrides: posição manual (dentro do box) vence; órfãos são podados', () => {
   const { components, connections } = projetoMono()
   const base = computeLayout(components, connections)
-  const ov = { disj: { position: { x: 999, y: 111 } }, fantasma: { position: { x: 1, y: 1 } } }
+  // BUG-014: posição manual dentro do DIAGRAM_BOX é preservada; fora do box é clampada.
+  const ov = { disj: { position: { x: 500, y: 300 } }, fantasma: { position: { x: 1, y: 1 } } }
   const aplicado = aplicarOverrides(base, ov)
-  assert.deepEqual(aplicado.disj, { x: 999, y: 111 })
+  assert.deepEqual(aplicado.disj, { x: 500, y: 300 })
+  // override fora do box é clampado para dentro (não fica em coordenada inválida)
+  const clamp = aplicarOverrides(base, { disj: { position: { x: 99999, y: -99999 } } })
+  assert.ok(clamp.disj.x <= 1083 && clamp.disj.y >= 236)
   const { overrides, removidos } = podarOverridesOrfaos(ov, components)
   assert.ok(!('fantasma' in overrides))
   assert.deepEqual(removidos, ['fantasma'])

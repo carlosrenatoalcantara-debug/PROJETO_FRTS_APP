@@ -10,12 +10,18 @@
  * override por id: { position?: {x,y}, ... }
  */
 
-/** Aplica overrides sobre o layout base (posição manual vence a calculada). */
+import { clampNoDiagramBox } from './geometry.js'
+
+/**
+ * Aplica overrides sobre o layout base (posição manual vence a calculada).
+ * BUG-014: a posição manual é CLAMPADA ao DIAGRAM_BOX — arrastar no editor nunca
+ * coloca um componente fora do box; SVG, PDF e Editor usam a mesma geometria contida.
+ */
 export function aplicarOverrides(layoutBase = {}, overrides = {}) {
   const out = {}
   for (const [id, pos] of Object.entries(layoutBase)) {
     const ov = overrides?.[id]
-    out[id] = ov?.position ? { x: ov.position.x, y: ov.position.y } : { ...pos }
+    out[id] = ov?.position ? clampNoDiagramBox(ov.position.x, ov.position.y) : { ...pos }
   }
   return out
 }

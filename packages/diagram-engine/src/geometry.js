@@ -39,3 +39,22 @@ export const COMPONENTE = Object.freeze({ W: 120, H: 90 })
 
 // Espaçamento entre condutores paralelos desenhados num mesmo cabo.
 export const COND_GAP = 4
+
+// Padding interno do DIAGRAM_BOX para os símbolos (mesmo valor usado no layout).
+export const DIAGRAM_PAD = 8
+
+/**
+ * Clampa a posição (canto superior-esquerdo de um componente COMPONENTE.W×H) para
+ * NUNCA ultrapassar o DIAGRAM_BOX. Fonte única usada por layout e overrides — garante
+ * que nenhum componente (calculado OU movido manualmente) saia do box.
+ */
+export function clampNoDiagramBox(x, y) {
+  const minX = DIAGRAM_BOX.x + DIAGRAM_PAD
+  const maxX = DIAGRAM_BOX.x + DIAGRAM_BOX.w - COMPONENTE.W - DIAGRAM_PAD
+  const minY = DIAGRAM_BOX.y + DIAGRAM_PAD
+  const maxY = DIAGRAM_BOX.y + DIAGRAM_BOX.h - COMPONENTE.H - DIAGRAM_PAD
+  return {
+    x: Math.max(minX, Math.min(Math.round(x ?? minX), maxX)),
+    y: Math.max(minY, Math.min(Math.round(y ?? minY), maxY)),
+  }
+}

@@ -126,11 +126,12 @@ describe('BUG-011 — cabo é edge, condutores reais, fases do carregador', () =
 
 // ─── Hidratação + overrides + poda (Requisitos 1, 3, 4) ──────────────────────
 describe('hidratação e overrides', () => {
-  it('override de posição sobrevive ao toReactFlow', () => {
-    const canonical = construirCanonicalEV(args(), { overrides: { disj: { position: { x: 999, y: 111 } } } })
+  it('override de posição (válido, dentro do box) sobrevive ao toReactFlow', () => {
+    // BUG-014: posição dentro do DIAGRAM_BOX e sem sobreposição é preservada.
+    const canonical = construirCanonicalEV(args(), { overrides: { disj: { position: { x: 800, y: 356 } } } })
     const { nodes } = toReactFlow(canonical)
     const disj = nodes.find(n => n.id === 'disj')
-    expect(disj.position).toEqual({ x: 999, y: 111 })
+    expect(disj.position).toEqual({ x: 800, y: 356 })
   })
 
   it('override órfão é podado pelo build; válido permanece', () => {

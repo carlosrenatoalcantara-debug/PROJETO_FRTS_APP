@@ -10,8 +10,22 @@
 import { VERSION } from './model.js'
 import { computeLayout } from './layout.js'
 import { aplicarOverrides, podarOverridesOrfaos } from './overrides.js'
+import { COMPONENTE } from './geometry.js'
 
 export const DEFAULT_VIEWPORT = Object.freeze({ x: 0, y: 0, zoom: 1 })
+
+/** BUG-014: detecta sobreposição entre componentes (caixas COMPONENTE.W×H). */
+function haSobreposicao(layout = {}) {
+  const ids = Object.keys(layout)
+  for (let i = 0; i < ids.length; i++) {
+    for (let j = i + 1; j < ids.length; j++) {
+      const a = layout[ids[i]]; const b = layout[ids[j]]
+      if (a && b && a.x < b.x + COMPONENTE.W && b.x < a.x + COMPONENTE.W &&
+          a.y < b.y + COMPONENTE.H && b.y < a.y + COMPONENTE.H) return true
+    }
+  }
+  return false
+}
 
 /**
  * @param {object} input
@@ -28,7 +42,11 @@ export function build({ components = [], connections = [], metadata = {}, viewpo
 
   // Layout base é SEMPRE recalculado pelo Engine; overrides apenas sobrepõem.
   const layoutBase = computeLayout(components, connections)
-  const layout = aplicarOverrides(layoutBase, overridesLimpos)
+  const comOverrides = aplicarOverrides(layoutBase, overridesLimpos)
+  // BUG-014: geometria congelada — overrides manuais são aplicados apenas se mantiverem
+  // o layout SEM sobreposição; caso contrário, volta à distribuição determinística
+  // (sempre contida no DIAGRAM_BOX e sem overlap). SVG, PDF e Editor usam este layout.
+  const layout = haSobreposicao(comOverrides) ? layoutBase : comOverrides
 
   return {
     version: VERSION,
