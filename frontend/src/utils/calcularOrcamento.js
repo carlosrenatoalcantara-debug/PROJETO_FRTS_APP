@@ -31,32 +31,43 @@ function somaLinhas(itens = []) {
  * @param {Array}  args.equipamentos
  * @param {Array}  args.materiais
  * @param {Array}  args.servicos
- * @param {number} args.margem_pct    margem (%) — SOMENTE sobre materiais
- * @param {number} args.impostos_pct  impostos (%) — sobre (materiais c/ margem + serviços)
+ * @param {number} args.margem_pct    margem (%) — SOMENTE materiais (compat FEATURE-002)
+ * @param {object} [args.margem]      FEATURE-004: margem por categoria (Política Comercial):
+ *   { aplicar_materiais, materiais_pct, aplicar_equipamentos, equipamentos_pct, aplicar_servicos, servicos_pct }
+ * @param {number} args.impostos_pct  impostos (%) — sobre (materiais c/ margem + serviços c/ margem)
  * @param {number} args.desconto_pct  desconto (%) — sobre o total (compat)
  * @returns resumo financeiro profissional
  */
 export function calcularOrcamento({
   equipamentos = [], materiais = [], servicos = [],
-  margem_pct = 0, impostos_pct = 0, desconto_pct = 0,
+  margem_pct = 0, margem = null, impostos_pct = 0, desconto_pct = 0,
 } = {}) {
   const subtotal_equipamentos = somaLinhas(equipamentos)
   const subtotal_materiais     = somaLinhas(materiais)
   const subtotal_servicos      = somaLinhas(servicos)
 
-  // ITEM 1 — margem apenas sobre materiais
-  const margem_valor = r2(subtotal_materiais * num(margem_pct) / 100)
-  const materiais_com_margem = r2(subtotal_materiais + margem_valor)   // "Subtotal Materiais"
+  // FEATURE-004 — margem por categoria (Política Comercial). Sem `margem` → comportamento
+  // FEATURE-002: margem SOMENTE sobre materiais com `margem_pct`. 100% retrocompatível.
+  const pol = margem || { aplicar_materiais: true, materiais_pct: num(margem_pct), aplicar_equipamentos: false, equipamentos_pct: 0, aplicar_servicos: false, servicos_pct: 0 }
+  const margem_valor            = pol.aplicar_materiais    ? r2(subtotal_materiais    * num(pol.materiais_pct)    / 100) : 0  // margem de MATERIAIS (compat)
+  const margem_equipamentos_valor = pol.aplicar_equipamentos ? r2(subtotal_equipamentos * num(pol.equipamentos_pct) / 100) : 0
+  const margem_servicos_valor   = pol.aplicar_servicos    ? r2(subtotal_servicos     * num(pol.servicos_pct)     / 100) : 0
 
-  // ITEM 2 — impostos sobre (materiais com margem + serviços)
-  const base_impostos = r2(materiais_com_margem + subtotal_servicos)
+  const materiais_com_margem     = r2(subtotal_materiais + margem_valor)              // "Subtotal Materiais"
+  const equipamentos_com_margem  = r2(subtotal_equipamentos + margem_equipamentos_valor)
+  const servicos_com_margem      = r2(subtotal_servicos + margem_servicos_valor)
+  const margem_total             = r2(margem_valor + margem_equipamentos_valor + margem_servicos_valor)
+
+  // Impostos sobre (materiais com margem + serviços com margem). Sem margem de serviços
+  // (default), serviços_com_margem = serviços → idêntico à FEATURE-002.
+  const base_impostos = r2(materiais_com_margem + servicos_com_margem)
   const impostos_valor = r2(base_impostos * num(impostos_pct) / 100)
 
   // Custo direto (informativo — soma pura, sem margem/impostos)
   const custo = r2(subtotal_equipamentos + subtotal_materiais + subtotal_servicos)
 
-  // Valor final = Equipamentos + Subtotal Materiais + Serviços + Impostos  (ITEM 6)
-  const total = r2(subtotal_equipamentos + materiais_com_margem + subtotal_servicos + impostos_valor)
+  // Valor final = Equip(c/ margem) + Subtotal Materiais + Serviços(c/ margem) + Impostos
+  const total = r2(equipamentos_com_margem + materiais_com_margem + servicos_com_margem + impostos_valor)
 
   // Desconto (compat) — aplicado ao final
   const desconto_valor = r2(total * num(desconto_pct) / 100)
@@ -66,15 +77,20 @@ export function calcularOrcamento({
     subtotal_equipamentos,
     subtotal_materiais,
     subtotal_servicos,
-    margem_pct: num(margem_pct),
-    margem_valor,
+    margem_pct: num(pol.materiais_pct ?? margem_pct),
+    margem_valor,                  // margem de MATERIAIS (compat FEATURE-002)
     materiais_com_margem,          // Subtotal Materiais (materiais + margem)
+    margem_equipamentos_valor,
+    equipamentos_com_margem,
+    margem_servicos_valor,
+    servicos_com_margem,
+    margem_total,
     impostos_pct: num(impostos_pct),
     impostos_valor,
-    base_impostos,                 // materiais com margem + serviços
+    base_impostos,                 // materiais com margem + serviços com margem
     custo,
     // "Valor sugerido" antes de impostos/desconto — mantido p/ compat de telas
-    base_com_margem: r2(subtotal_equipamentos + materiais_com_margem + subtotal_servicos),
+    base_com_margem: r2(equipamentos_com_margem + materiais_com_margem + servicos_com_margem),
     total,
     desconto_pct: num(desconto_pct),
     desconto_valor,

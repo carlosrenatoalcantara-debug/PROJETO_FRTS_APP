@@ -15,6 +15,7 @@
 import { useMemo } from 'react'
 import { User, Zap, Package, Wrench, DollarSign, Save, FileText, MessageCircle, Mail, CheckCircle2, Eye, EyeOff } from 'lucide-react'
 import { calcularOrcamento, subtotalItem } from '../../utils/calcularOrcamento'
+import { normalizarPolitica, margemDaPolitica, flagsApresentacao, MODO_LABEL, MODOS_APRESENTACAO } from '../../utils/politicaComercial'
 
 const brl = (v) => `R$ ${Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 
@@ -52,16 +53,24 @@ export default function PropostaComercialEV({
   const equipamentos = orcamento?.equipamentos || []
   const materiais    = orcamento?.materiais || []
   const servicos     = orcamento?.servicos || []
-  const margem_pct   = orcamento?.margem_pct ?? 0
-  const impostos_pct = orcamento?.impostos_pct ?? 0
   const desconto_pct = orcamento?.desconto_pct ?? 0
-  // ITEM 3 — detalhamento dos materiais (default: detalhado)
-  const mostrarDetalhes = orcamento?.mostrar_materiais_detalhados !== false
-  const setMostrarDetalhes = (v) => onOrcamentoChange?.({ mostrar_materiais_detalhados: v })
+  // FEATURE-004 — Política Comercial é a fonte da margem/impostos e do modo de apresentação.
+  const politica = orcamento?.politica ? normalizarPolitica(orcamento.politica) : null
+  const margem_pct   = politica ? politica.margem.materiais_pct : (orcamento?.margem_pct ?? 0)
+  const impostos_pct = politica ? politica.impostos_pct : (orcamento?.impostos_pct ?? 0)
+  // Modo de apresentação (4 modos). Compat: mostrar_materiais_detalhados=false → resumo.
+  const modo = politica?.modo_apresentacao || (orcamento?.mostrar_materiais_detalhados === false ? 'resumo' : 'detalhada_com_precos')
+  const ap = flagsApresentacao(modo)
+  const setModo = (m) => onOrcamentoChange?.(politica
+    ? { politica: { ...politica, modo_apresentacao: m }, politica_herdada: false }
+    : { mostrar_materiais_detalhados: m !== 'resumo' && m !== 'valor_final', modo_apresentacao: m })
 
   const resumo = useMemo(
-    () => calcularOrcamento({ equipamentos, materiais, servicos, margem_pct, impostos_pct, desconto_pct }),
-    [equipamentos, materiais, servicos, margem_pct, impostos_pct, desconto_pct]
+    () => calcularOrcamento({
+      equipamentos, materiais, servicos, desconto_pct,
+      ...(politica ? { margem: margemDaPolitica(politica), impostos_pct: politica.impostos_pct } : { margem_pct, impostos_pct }),
+    }),
+    [equipamentos, materiais, servicos, margem_pct, impostos_pct, desconto_pct, politica]
   )
 
   // Agrupa materiais por categoria para o resumo (read-only)
@@ -85,22 +94,27 @@ export default function PropostaComercialEV({
       `Local: ${dados.endereco || '—'}`,
       '',
       `Carregador: ${carregadorPrincipal ? `${carregadorPrincipal.marca || ''} ${carregadorPrincipal.modelo || ''}`.trim() : '—'} (${potenciaTotal}kW)`,
-      `Equipamentos: ${brl(resumo.subtotal_equipamentos)}`,
     ]
-    // ITEM 3 — materiais detalhados OU apenas total
-    if (mostrarDetalhes && materiais.length) {
-      linhas.push('Materiais:')
-      materiais.forEach((it) => linhas.push(`  • ${it.descricao} — ${it.quantidade} ${it.unidade || ''}`))
-      linhas.push(`  Subtotal materiais: ${brl(resumo.materiais_com_margem)}`)
-    } else {
+    // FEATURE-004 — respeita o MODO de apresentação (4 modos)
+    if (ap.itens) {
+      linhas.push(`Equipamentos: ${brl(resumo.subtotal_equipamentos)}`)
+      if (materiais.length) {
+        linhas.push('Materiais:')
+        materiais.forEach((it) => linhas.push(`  • ${it.descricao} — ${it.quantidade} ${it.unidade || ''}${ap.precos ? ` — ${brl(subtotalItem(it))}` : ''}`))
+        if (ap.precos) linhas.push(`  Subtotal materiais: ${brl(resumo.materiais_com_margem)}`)
+      }
+      linhas.push(`Serviços: ${brl(resumo.subtotal_servicos)}`)
+      if (ap.precos && resumo.impostos_valor > 0) linhas.push(`Impostos: ${brl(resumo.impostos_valor)}`)
+    } else if (ap.resumo) {
+      linhas.push(`Equipamentos: ${brl(resumo.subtotal_equipamentos)}`)
       linhas.push(`Materiais: ${brl(resumo.materiais_com_margem)}`)
+      linhas.push(`Serviços: ${brl(resumo.subtotal_servicos)}`)
+      if (resumo.impostos_valor > 0) linhas.push(`Impostos: ${brl(resumo.impostos_valor)}`)
     }
-    linhas.push(`Serviços: ${brl(resumo.subtotal_servicos)}`)
-    if (resumo.impostos_valor > 0) linhas.push(`Impostos: ${brl(resumo.impostos_valor)}`)
-    linhas.push('', `*Valor final: ${brl(resumo.preco_final)}*`, '',
-      `Resp. técnico: ${dados.tecnico_nome || '—'} (${dados.tecnico_tipo === 'cft' ? `CFT ${dados.tecnico_cft || ''}` : `CREA ${dados.tecnico_crea || ''}`})`)
+    if (ap.final) linhas.push('', `*Valor final: ${brl(resumo.preco_final)}*`)
+    linhas.push('', `Resp. técnico: ${dados.tecnico_nome || '—'} (${dados.tecnico_tipo === 'cft' ? `CFT ${dados.tecnico_cft || ''}` : `CREA ${dados.tecnico_crea || ''}`})`)
     return linhas.join('\n')
-  }, [dados, carregadorPrincipal, potenciaTotal, resumo, mostrarDetalhes, materiais])
+  }, [dados, carregadorPrincipal, potenciaTotal, resumo, modo, materiais])
 
   const enviarWhatsApp = () => {
     window.open(`https://wa.me/?text=${encodeURIComponent(textoProposta)}`, '_blank', 'noopener')
@@ -116,7 +130,7 @@ export default function PropostaComercialEV({
     const win = window.open('', '_blank')
     if (!win) { alert('Permita pop-ups para gerar o PDF.'); return }
     const linhaItens = (arr) => arr.map((it) =>
-      `<tr><td>${it.descricao}</td><td style="text-align:center">${it.quantidade} ${it.unidade || ''}</td><td style="text-align:right">${brl(subtotalItem(it))}</td></tr>`
+      `<tr><td>${it.descricao}</td><td style="text-align:center">${it.quantidade} ${it.unidade || ''}</td>${ap.precos ? `<td style="text-align:right">${brl(subtotalItem(it))}</td>` : ''}</tr>`
     ).join('')
     win.document.write(`
       <html><head><title>Proposta — ${dados.nome_projeto || 'EV'}</title>
@@ -132,12 +146,11 @@ export default function PropostaComercialEV({
       <h1>Proposta Comercial — ${dados.nome_projeto || 'Carregador EV'}</h1>
       <p class="meta"><b>Cliente:</b> ${dados.cliente_nome || '—'}<br/><b>Local:</b> ${dados.endereco || '—'}<br/>
       <b>Carregador:</b> ${carregadorPrincipal ? `${carregadorPrincipal.marca || ''} ${carregadorPrincipal.modelo || ''}`.trim() : '—'} — ${potenciaTotal}kW</p>
+      ${ap.itens ? `
       <h2>Equipamentos</h2><table>${linhaItens(equipamentos)}</table>
-      <h2>Materiais</h2>
-      ${mostrarDetalhes
-        ? `<table>${linhaItens(materiais)}</table>`
-        : `<table><tr><td>Materiais</td><td style="text-align:right">${brl(resumo.materiais_com_margem)}</td></tr></table>`}
-      <h2>Serviços</h2><table>${linhaItens(servicos)}</table>
+      <h2>Materiais</h2><table>${linhaItens(materiais)}</table>
+      <h2>Serviços</h2><table>${linhaItens(servicos)}</table>` : ''}
+      ${ap.resumo ? `
       <h2>Composição</h2>
       <table>
         <tr><td>Equipamentos</td><td style="text-align:right">${brl(resumo.subtotal_equipamentos)}</td></tr>
@@ -147,8 +160,8 @@ export default function PropostaComercialEV({
         <tr><td>Serviços</td><td style="text-align:right">${brl(resumo.subtotal_servicos)}</td></tr>
         <tr><td>Impostos (${impostos_pct}%)</td><td style="text-align:right">+ ${brl(resumo.impostos_valor)}</td></tr>
         ${desconto_pct > 0 ? `<tr><td>Desconto (${desconto_pct}%)</td><td style="text-align:right">- ${brl(resumo.desconto_valor)}</td></tr>` : ''}
-      </table>
-      <p class="total">Valor Final: ${brl(resumo.preco_final)}</p>
+      </table>` : ''}
+      ${ap.final ? `<p class="total">Valor Final: ${brl(resumo.preco_final)}</p>` : ''}
       <p class="meta">Resp. técnico: ${dados.tecnico_nome || '—'} —
         ${dados.tecnico_tipo === 'cft' ? `CFT ${dados.tecnico_cft || ''}` : `CREA ${dados.tecnico_crea || ''}`}</p>
       </body></html>`)
@@ -188,21 +201,19 @@ export default function PropostaComercialEV({
         ) : <p className="text-slate-400 text-sm">Nenhum carregador.</p>}
       </Bloco>
 
-      <Bloco titulo={`Materiais (${brl(resumo.materiais_com_margem)})`} icone={Package}>
-        {/* ITEM 3 — controle de detalhamento (reflete em tela, PDF, WhatsApp e e-mail) */}
-        <div className="flex items-center gap-3 mb-3 text-xs">
-          <label className="flex items-center gap-1.5 cursor-pointer">
-            <input type="radio" name="detalhe-mat" checked={mostrarDetalhes}
-              onChange={() => setMostrarDetalhes(true)} className="accent-blue-600" />
-            <Eye size={13} className="text-slate-500" /> Mostrar materiais detalhados
+      {/* FEATURE-004 — MODO de apresentação (View/PDF/WhatsApp/E-mail; nunca PDF Executivo) */}
+      <div className="flex items-center gap-3 flex-wrap text-xs bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
+        <span className="font-semibold text-slate-600 inline-flex items-center gap-1"><Eye size={13} /> Apresentação:</span>
+        {Object.keys(MODOS_APRESENTACAO).map((m) => (
+          <label key={m} className="flex items-center gap-1 cursor-pointer">
+            <input type="radio" name="modo-apres" checked={modo === m} onChange={() => setModo(m)} className="accent-blue-600" />
+            {MODO_LABEL[m]}
           </label>
-          <label className="flex items-center gap-1.5 cursor-pointer">
-            <input type="radio" name="detalhe-mat" checked={!mostrarDetalhes}
-              onChange={() => setMostrarDetalhes(false)} className="accent-blue-600" />
-            <EyeOff size={13} className="text-slate-500" /> Mostrar apenas total
-          </label>
-        </div>
-        {mostrarDetalhes ? (
+        ))}
+      </div>
+
+      {ap.itens && (
+        <Bloco titulo={`Materiais (${brl(resumo.materiais_com_margem)})`} icone={Package}>
           <div className="space-y-2">
             {Object.entries(materiaisPorCategoria).map(([cat, itens]) => (
               <div key={cat}>
@@ -211,44 +222,55 @@ export default function PropostaComercialEV({
                   {itens.map((it, i) => (
                     <li key={i} className="flex justify-between border-b border-slate-50 py-0.5">
                       <span>{it.descricao}</span>
-                      <span className="text-slate-400 font-mono">{it.quantidade} {it.unidade}</span>
+                      <span className="text-slate-400 font-mono">{it.quantidade} {it.unidade}{ap.precos ? ` · ${brl(subtotalItem(it))}` : ''}</span>
                     </li>
                   ))}
                 </ul>
               </div>
             ))}
           </div>
-        ) : (
-          <div className="flex justify-between text-sm text-slate-700 border-t border-slate-100 pt-2">
-            <span>Materiais</span>
-            <span className="font-mono font-semibold">{brl(resumo.materiais_com_margem)}</span>
+        </Bloco>
+      )}
+      {!ap.itens && ap.resumo && (
+        <Bloco titulo="Materiais" icone={Package}>
+          <div className="flex justify-between text-sm text-slate-700"><span>Materiais</span><span className="font-mono font-semibold">{brl(resumo.materiais_com_margem)}</span></div>
+        </Bloco>
+      )}
+
+      {ap.itens && (
+        <Bloco titulo={`Serviços (${brl(resumo.subtotal_servicos)})`} icone={Wrench}>
+          <ul className="text-sm text-slate-600">
+            {servicos.map((it, i) => (
+              <li key={i} className="flex justify-between border-b border-slate-50 py-0.5">
+                <span>{it.descricao}</span>
+                {ap.precos && <span className="font-mono">{brl(subtotalItem(it))}</span>}
+              </li>
+            ))}
+          </ul>
+        </Bloco>
+      )}
+
+      {ap.resumo && (
+        <Bloco titulo="Resumo financeiro" icone={DollarSign}>
+          <div className="space-y-1">
+            {linhaResumo('Equipamentos', brl(resumo.subtotal_equipamentos))}
+            {linhaResumo('Materiais', brl(resumo.subtotal_materiais))}
+            {resumo.margem_valor > 0 && linhaResumo(`Margem Materiais (${margem_pct}%)`, `+ ${brl(resumo.margem_valor)}`)}
+            {resumo.margem_equipamentos_valor > 0 && linhaResumo('Margem Equipamentos', `+ ${brl(resumo.margem_equipamentos_valor)}`)}
+            {resumo.margem_servicos_valor > 0 && linhaResumo('Margem Serviços', `+ ${brl(resumo.margem_servicos_valor)}`)}
+            {linhaResumo('Subtotal Materiais', brl(resumo.materiais_com_margem), true)}
+            {linhaResumo('Serviços', brl(resumo.subtotal_servicos))}
+            {resumo.impostos_valor > 0 && linhaResumo(`Impostos (${impostos_pct}%)`, `+ ${brl(resumo.impostos_valor)}`)}
+            {desconto_pct > 0 && linhaResumo(`Desconto (${desconto_pct}%)`, `− ${brl(resumo.desconto_valor)}`)}
+            {ap.final && linhaResumo('Valor Final', brl(resumo.preco_final), true)}
           </div>
-        )}
-      </Bloco>
-
-      <Bloco titulo={`Serviços (${brl(resumo.subtotal_servicos)})`} icone={Wrench}>
-        <ul className="text-sm text-slate-600">
-          {servicos.map((it, i) => (
-            <li key={i} className="flex justify-between border-b border-slate-50 py-0.5">
-              <span>{it.descricao}</span>
-              <span className="font-mono">{brl(subtotalItem(it))}</span>
-            </li>
-          ))}
-        </ul>
-      </Bloco>
-
-      <Bloco titulo="Resumo financeiro" icone={DollarSign}>
-        <div className="space-y-1">
-          {linhaResumo('Equipamentos', brl(resumo.subtotal_equipamentos))}
-          {linhaResumo('Materiais', brl(resumo.subtotal_materiais))}
-          {linhaResumo(`Margem Materiais (${margem_pct}%)`, `+ ${brl(resumo.margem_valor)}`)}
-          {linhaResumo('Subtotal Materiais', brl(resumo.materiais_com_margem), true)}
-          {linhaResumo('Serviços', brl(resumo.subtotal_servicos))}
-          {linhaResumo(`Impostos (${impostos_pct}%)`, `+ ${brl(resumo.impostos_valor)}`)}
-          {desconto_pct > 0 && linhaResumo(`Desconto (${desconto_pct}%)`, `− ${brl(resumo.desconto_valor)}`)}
-          {linhaResumo('Valor Final', brl(resumo.preco_final), true)}
-        </div>
-      </Bloco>
+        </Bloco>
+      )}
+      {!ap.resumo && ap.final && (
+        <Bloco titulo="Valor Final" icone={DollarSign}>
+          <div className="text-2xl font-bold text-emerald-700 text-right font-mono">{brl(resumo.preco_final)}</div>
+        </Bloco>
+      )}
 
       {/* Fluxo comercial */}
       <div className="border border-slate-200 rounded-xl p-4 flex items-center justify-between flex-wrap gap-2">

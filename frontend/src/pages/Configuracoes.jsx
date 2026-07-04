@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { ArrowLeft, Save, Check, ExternalLink, ToggleLeft, ToggleRight, Lock, AlertCircle, Loader, Eye, EyeOff, Trash2, Plus, DollarSign } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+import PoliticaComercialConfig from '../components/configuracoes/PoliticaComercialConfig'
 import Card, { CardHeader, CardBody } from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import Input from '../components/ui/Input'
@@ -732,6 +733,9 @@ export default function Configuracoes() {
           <p className="text-sm text-slate-600">Gerenciar chaves de API com segurança</p>
         </div>
       </div>
+
+      {/* FEATURE-004 — Política Comercial EV */}
+      <PoliticaComercialConfig />
 
       {/* Alertas */}
       {erro && (

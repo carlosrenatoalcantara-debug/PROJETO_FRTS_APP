@@ -19,6 +19,7 @@ import { Plus, Trash2, Wrench, Package, DollarSign, AlertTriangle } from 'lucide
 import { calcularOrcamento, subtotalItem } from '../../utils/calcularOrcamento'
 import MaterialAutocomplete, { materialParaLinha } from './MaterialAutocomplete'
 import ModalNovoMaterial from './ModalNovoMaterial'
+import { normalizarPolitica, margemDaPolitica } from '../../utils/politicaComercial'
 
 const brl = (v) => `R$ ${Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 const numInput = 'w-20 text-right border border-slate-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
@@ -228,18 +229,30 @@ export default function OrcamentoEV({ value, onChange, catalogo = [], onCatalogo
   const equipamentos = value?.equipamentos || []
   const materiais    = value?.materiais || []
   const servicos     = value?.servicos || []
-  const margem_pct   = value?.margem_pct ?? 20
-  const impostos_pct = value?.impostos_pct ?? 0
   const desconto_pct = value?.desconto_pct ?? 0
+  // FEATURE-004: a Política Comercial é a fonte da margem/impostos. Sem política → compat FEATURE-002.
+  const politica = value?.politica ? normalizarPolitica(value.politica) : null
+  const margem_pct   = politica ? politica.margem.materiais_pct : (value?.margem_pct ?? 20)
+  const impostos_pct = politica ? politica.impostos_pct : (value?.impostos_pct ?? 0)
 
   const [modalMaterial, setModalMaterial] = useState(null) // { rowIndex, descricao } | null
 
   const resumo = useMemo(
-    () => calcularOrcamento({ equipamentos, materiais, servicos, margem_pct, impostos_pct, desconto_pct }),
-    [equipamentos, materiais, servicos, margem_pct, impostos_pct, desconto_pct]
+    () => calcularOrcamento({
+      equipamentos, materiais, servicos, desconto_pct,
+      ...(politica ? { margem: margemDaPolitica(politica), impostos_pct: politica.impostos_pct } : { margem_pct, impostos_pct }),
+    }),
+    [equipamentos, materiais, servicos, margem_pct, impostos_pct, desconto_pct, politica]
   )
 
   const patch = (p) => onChange?.({ ...value, ...p })
+  // Edita a política DO PROJETO (personaliza) — nunca a empresa.
+  const patchMargemMateriais = (pct) => politica
+    ? patch({ politica: { ...politica, margem: { ...politica.margem, materiais_pct: pct } }, politica_herdada: false })
+    : patch({ margem_pct: pct })
+  const patchImpostos = (pct) => politica
+    ? patch({ politica: { ...politica, impostos_pct: pct }, politica_herdada: false })
+    : patch({ impostos_pct: pct })
   const setLinha = (chave) => (i, p) => patch({ [chave]: value[chave].map((it, k) => (k === i ? { ...it, ...p } : it)) })
   const delLinha = (chave) => (i) => patch({ [chave]: value[chave].filter((_, k) => k !== i) })
   const addLinha = (chave, base) => () => patch({ [chave]: [...(value[chave] || []), { ...base }] })
@@ -285,7 +298,7 @@ export default function OrcamentoEV({ value, onChange, catalogo = [], onCatalogo
           <span className="text-slate-500 flex items-center gap-1">
             Margem Materiais
             <input type="number" value={margem_pct}
-              onChange={(e) => patch({ margem_pct: Number(e.target.value) || 0 })}
+              onChange={(e) => patchMargemMateriais(Number(e.target.value) || 0)}
               className="w-14 border border-slate-300 rounded px-1 py-0.5 text-xs text-right" />%
           </span>
           <span className="text-right font-mono text-emerald-700">+ {brl(resumo.margem_valor)}</span>
@@ -297,7 +310,7 @@ export default function OrcamentoEV({ value, onChange, catalogo = [], onCatalogo
           <span className="text-slate-500 flex items-center gap-1">
             Impostos
             <input type="number" value={impostos_pct}
-              onChange={(e) => patch({ impostos_pct: Number(e.target.value) || 0 })}
+              onChange={(e) => patchImpostos(Number(e.target.value) || 0)}
               className="w-14 border border-slate-300 rounded px-1 py-0.5 text-xs text-right" />%
           </span>
           <span className="text-right font-mono text-slate-600">+ {brl(resumo.impostos_valor)}</span>

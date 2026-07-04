@@ -20,7 +20,7 @@ function _dbOk(res) {
   return true
 }
 
-const GRUPOS = ['empresa_config', 'responsavel_tecnico', 'branding', 'uploads', 'armazenamento']
+const GRUPOS = ['empresa_config', 'responsavel_tecnico', 'branding', 'uploads', 'armazenamento', 'politica_comercial_ev']
 
 async function obterSingleton() {
   let doc = await EmpresaConfig.findOne({ chave: 'default' })

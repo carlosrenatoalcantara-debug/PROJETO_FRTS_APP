@@ -19,6 +19,7 @@ import { useNavigate, useSearchParams, useParams } from 'react-router-dom'
 import { MapPin, Zap, FileText, Download, Plus, X, Edit2, DollarSign, AlertTriangle, ChevronRight, Ruler } from 'lucide-react'
 import OrcamentoEV, { DEFAULT_SERVICOS_EV, bomParaMateriais, carregadoresParaEquipamentos } from '../components/ev/OrcamentoEV'
 import PropostaComercialEV from '../components/ev/PropostaComercialEV'
+import PerfilComercialSelector from '../components/ev/PerfilComercialSelector'
 import { calcularOrcamento } from '../utils/calcularOrcamento'
 import Card, { CardHeader, CardBody } from '../components/ui/Card'
 import Button from '../components/ui/Button'
@@ -210,6 +211,10 @@ export default function NovaPropostaEV() {
             impostos_pct: p.orcamento.impostos_pct ?? prev.impostos_pct,                                   // FEATURE-002
             desconto_pct: p.orcamento.desconto_pct ?? prev.desconto_pct,
             mostrar_materiais_detalhados: p.orcamento.mostrar_materiais_detalhados ?? prev.mostrar_materiais_detalhados, // FEATURE-002
+            // FEATURE-004: restaura EXATAMENTE a política comercial salva (perfil/herdada/personalizada)
+            politica: p.orcamento.politica ?? p.politica_comercial ?? prev.politica,
+            politica_perfil: p.orcamento.politica_perfil ?? p.politica_perfil ?? prev.politica_perfil,
+            politica_herdada: (p.orcamento.politica_herdada ?? p.politica_herdada) ?? prev.politica_herdada,
           }))
           if (p.orcamento.status) setStatusComercial(p.orcamento.status)
         } else if (Array.isArray(p.bom) && p.bom.length) {
@@ -450,6 +455,10 @@ export default function NovaPropostaEV() {
       status: ['aprovado', 'em_execucao', 'concluido'].includes(statusComercial) ? 'aprovado' : 'dimensionado',
       // BUG-015: registra a etapa atual do wizard (reabertura da edição inicia aqui)
       ultimaEtapa: etapa,
+      // FEATURE-004: política comercial (perfil, herdada da empresa ou personalizada)
+      politica_comercial: orcamento.politica || null,
+      politica_perfil: orcamento.politica_perfil || null,
+      politica_herdada: orcamento.politica_herdada !== false,
       // P3-F2: diagrama canônico do DiagramEngine (fonte única — version/viewport/metadata/overrides)
       diagrama_editado: (() => {
         const canon = canonical || construirCanonicalEV(construirArgsEngine())
@@ -761,6 +770,13 @@ export default function NovaPropostaEV() {
                 </div>
               </CardHeader>
               <CardBody>
+                {/* FEATURE-004 — Perfil Comercial (herdar da empresa ou personalizar) */}
+                <div className="mb-4">
+                  <PerfilComercialSelector
+                    value={{ politica: orcamento.politica, politica_perfil: orcamento.politica_perfil, politica_herdada: orcamento.politica_herdada }}
+                    onChange={(p) => setOrcamento((o) => ({ ...o, ...p }))}
+                  />
+                </div>
                 <OrcamentoEV
                   value={orcamento}
                   onChange={setOrcamento}

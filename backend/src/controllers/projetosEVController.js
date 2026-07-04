@@ -219,6 +219,10 @@ export const criarProjetoEV = async (req, res) => {
       ...(req.body.diagrama_editado && { diagrama_editado: req.body.diagrama_editado }),
       // BUG-015: etapa em que o wizard foi salvo (reabertura da edição inicia aqui)
       ...(req.body.ultimaEtapa && { ultimaEtapa: req.body.ultimaEtapa }),
+      // FEATURE-004: política comercial (perfil, herdada da empresa ou personalizada)
+      ...(req.body.politica_comercial && { politica_comercial: req.body.politica_comercial }),
+      ...(req.body.politica_perfil && { politica_perfil: req.body.politica_perfil }),
+      ...(req.body.politica_herdada != null && { politica_herdada: req.body.politica_herdada }),
     }
 
     const novo = new ProjetoEV(novoProjetoData)

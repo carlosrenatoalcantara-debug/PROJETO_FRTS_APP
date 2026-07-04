@@ -9,6 +9,7 @@ import { deletarDiagramaLocal } from '../components/diagram/utils/diagramPersist
 import { adaptarProjetoEV, construirCanonicalEV, construirCanonicalDeProjetoEV } from '../utils/adapterDiagramaEV'
 import { build, computeLayout, toReactFlow, overridesDeReactFlow, renderSVG } from '@diagram-engine'
 import { calcularOrcamento, subtotalItem } from '../utils/calcularOrcamento'
+import { normalizarPolitica, margemDaPolitica, flagsApresentacao } from '../utils/politicaComercial'
 
 const API_URL = '' /* URL relativa forçada — Vercel proxy → Railway. Não usar VITE_API_URL */
 const brl = (v) => `R$ ${Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
@@ -86,9 +87,11 @@ export default function ProjetosEVDetalhes() {
   // FEATURE-003 — hooks ANTES de qualquer early-return (Regra dos Hooks). Null-safe.
   const resumo = useMemo(() => {
     const o = projeto?.orcamento || {}
+    // FEATURE-004: usa a Política Comercial salva (margem por categoria + impostos). Sem política → FEATURE-002.
+    const pol = (o.politica || projeto?.politica_comercial) ? normalizarPolitica(o.politica || projeto.politica_comercial) : null
     return calcularOrcamento({
-      equipamentos: o.equipamentos || [], materiais: o.materiais || [], servicos: o.servicos || [],
-      margem_pct: o.margem_pct ?? 0, impostos_pct: o.impostos_pct ?? 0, desconto_pct: o.desconto_pct ?? 0,
+      equipamentos: o.equipamentos || [], materiais: o.materiais || [], servicos: o.servicos || [], desconto_pct: o.desconto_pct ?? 0,
+      ...(pol ? { margem: margemDaPolitica(pol), impostos_pct: pol.impostos_pct } : { margem_pct: o.margem_pct ?? 0, impostos_pct: o.impostos_pct ?? 0 }),
     })
   }, [projeto])
   const unifilarSVG = useMemo(() => {
@@ -285,7 +288,11 @@ export default function ProjetosEVDetalhes() {
   const equipamentos = orcamento.equipamentos || []
   const materiais = orcamento.materiais || []
   const servicos = orcamento.servicos || []
-  const mostrarDetalhes = orcamento.mostrar_materiais_detalhados !== false
+  // FEATURE-004: modo de apresentação vem da política (ou compat mostrar_materiais_detalhados)
+  const politicaView = (orcamento.politica || projeto?.politica_comercial) ? normalizarPolitica(orcamento.politica || projeto.politica_comercial) : null
+  const modoView = politicaView?.modo_apresentacao || (orcamento.mostrar_materiais_detalhados === false ? 'resumo' : 'detalhada_com_precos')
+  const ap = flagsApresentacao(modoView)
+  const mostrarDetalhes = ap.itens
 
   const potenciaTotal = (projeto?.carregadores || []).reduce((s, c) => s + (Number(c.potencia_kw) || 0) * (Number(c.quantidade) || 1), 0)
   const tecnicoLinha = `${projeto?.tecnico?.nome || '—'} — ${projeto?.tecnico?.tipo_profissional === 'cft' ? `CFT ${projeto?.tecnico?.cft || ''}` : `CREA ${projeto?.tecnico?.crea || ''}`}`
