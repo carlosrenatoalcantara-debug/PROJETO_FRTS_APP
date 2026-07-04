@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { adaptarProjetoEV, avaliarNormas, construirCanonicalEV } from '../adapterDiagramaEV'
+import { adaptarProjetoEV, avaliarNormas, construirCanonicalEV, escolherTemplateEV } from '../adapterDiagramaEV'
 import { build, computeLayout, toReactFlow, overridesDeReactFlow } from '@diagram-engine'
 
 const bomMono = [
@@ -57,31 +57,40 @@ describe('RT-05 CBM/RN — não aplicar só por estar em Natal/RN', () => {
   })
 })
 
-// ─── Fidelidade do adapter ───────────────────────────────────────────────────
-describe('adapter: polos/condutores/DPS conforme projeto', () => {
-  it('monofásico → disjuntor 2P, 3 condutores, 2 DPS monopolares', () => {
-    const { components, connections } = adaptarProjetoEV(args())
+// ─── Fidelidade do adapter: templates fixos (BUG-016) ─────────────────────────
+describe('adapter: template determinístico + polos + DPS', () => {
+  it('monofásico → EV_MONO_MONO, disjuntor 2P, IDR 2P, 2 DPS monopolares', () => {
+    const { components, metadata } = adaptarProjetoEV(args({ projeto: { fases: 1 } }))
+    expect(metadata.template).toBe('EV_MONO_MONO')
     expect(components.find(c => c.id === 'disj').polos).toBe(2)
+    expect(components.find(c => c.id === 'dr').polos).toBe(2)
     expect(components.filter(c => c.tipo === 'dps').length).toBe(2)
     expect(components.find(c => c.id === 'dps0').polos).toBe(1)
-    const cabo = connections.find(c => c.id === 'c-rede-disj')
-    expect(cabo.condutores.length).toBe(3)
   })
 
-  it('trifásico → disjuntor 4P, 5 condutores', () => {
-    const { components, connections } = adaptarProjetoEV(args({ numero_fases: 3, bom: bomTri }))
+  it('trifásico → EV_TRI_TRI, disjuntor 4P, IDR 4P', () => {
+    const { components, metadata } = adaptarProjetoEV(args({
+      numero_fases: 3, bom: bomTri,
+      carregador: { tipo: 'AC_Tri', potencia_kw: 22, tensao_entrada_v: 380 }, projeto: { fases: 3 },
+    }))
+    expect(metadata.template).toBe('EV_TRI_TRI')
     expect(components.find(c => c.id === 'disj').polos).toBe(4)
-    expect(connections.find(c => c.id === 'c-rede-disj').condutores.length).toBe(5)
+    expect(components.find(c => c.id === 'dr').polos).toBe(4)
+  })
+
+  it('alimentação tri + carregador mono → EV_TRI_MONO', () => {
+    const { metadata } = adaptarProjetoEV(args({
+      carregador: { tipo: 'AC_Mono', potencia_kw: 7, tensao_entrada_v: 220 }, projeto: { fases: 3 },
+    }))
+    expect(metadata.template).toBe('EV_TRI_MONO')
   })
 })
 
-// ─── BUG-011 — lógica do unifilar ────────────────────────────────────────────
-describe('BUG-011 — cabo é edge, condutores reais, fases do carregador', () => {
+// ─── BUG-011 (preservado sob os templates fixos) — cabo é edge ────────────────
+describe('BUG-011 — cabo é a ligação (edge), não componente', () => {
   it('NÃO existe componente CABO; ligação DR→Carregador carrega bitola/comprimento/observações', () => {
     const { components, connections } = adaptarProjetoEV(args())
     expect(components.find(c => c.tipo === 'cabo')).toBeUndefined()
-    expect(connections.find(c => c.id === 'c-dr-cabo')).toBeUndefined()
-    expect(connections.find(c => c.id === 'c-cabo-carr')).toBeUndefined()
     const drCarr = connections.find(c => c.id === 'c-dr-carr')
     expect(drCarr).toBeTruthy()
     expect(drCarr.from).toBe('dr')
@@ -91,36 +100,57 @@ describe('BUG-011 — cabo é edge, condutores reais, fases do carregador', () =
     expect(drCarr.specs).toHaveProperty('observacoes')
   })
 
-  it('carregador AC_Mono NUNCA desenha 5 condutores, mesmo com hint tri (projeto.fases=3)', () => {
-    const { connections } = adaptarProjetoEV(args({
-      numero_fases: 3, // poluição vinda de projeto.fases
-      carregador: { marca: 'GWM', modelo: 'ZHIDA', tipo: 'AC_Mono', potencia_kw: 7, tensao_entrada_v: 220 },
-    }))
-    expect(connections.find(c => c.id === 'c-rede-disj').condutores.length).toBe(3)
-    expect(connections.find(c => c.id === 'c-dr-carr').condutores.length).toBe(3)
-  })
-
-  it('bifásico (2 fases) → 4 condutores (F1+F2+N+PE)', () => {
-    const { connections } = adaptarProjetoEV(args({ numero_fases: 2 }))
-    expect(connections.find(c => c.id === 'c-rede-disj').condutores.length).toBe(4)
-  })
-
-  it('carregador AC_Tri → 5 condutores mesmo com hint mono', () => {
-    const { connections } = adaptarProjetoEV(args({
-      numero_fases: 1, // hint mono, mas o tipo do carregador manda
-      carregador: { marca: 'X', modelo: 'Y', tipo: 'AC_Tri', potencia_kw: 22, tensao_entrada_v: 380 },
-      bom: bomTri,
-    }))
-    expect(connections.find(c => c.id === 'c-rede-disj').condutores.length).toBe(5)
-  })
-
   it('toReactFlow: edge da ligação expõe bitola/comprimento na data', () => {
     const canonical = construirCanonicalEV(args())
-    const { edges } = toReactFlow(canonical)
-    const e = edges.find(x => x.id === 'c-dr-carr')
+    const e = toReactFlow(canonical).edges.find(x => x.id === 'c-dr-carr')
     expect(e).toBeTruthy()
     expect(e.data.bitola_mm2).toBe(10)
     expect(e.data).toHaveProperty('comprimento_m')
+  })
+})
+
+// ─── BUG-016 — templates elétricos fixos + regras de roteamento ───────────────
+describe('BUG-016 — templates fixos e regras obrigatórias', () => {
+  const tp = (components, id) => components.find(c => c.id === id)?.tipo
+  const casos = [
+    { nome: 'EV_MONO_MONO', a: args({ carregador: { tipo: 'AC_Mono', potencia_kw: 7, tensao_entrada_v: 220 }, projeto: { fases: 1 } }) },
+    { nome: 'EV_TRI_MONO', a: args({ carregador: { tipo: 'AC_Mono', potencia_kw: 7, tensao_entrada_v: 220 }, projeto: { fases: 3 } }) },
+    { nome: 'EV_TRI_TRI', a: args({ numero_fases: 3, bom: bomTri, carregador: { tipo: 'AC_Tri', potencia_kw: 22, tensao_entrada_v: 380 }, projeto: { fases: 3 } }) },
+  ]
+  for (const { nome, a } of casos) {
+    it(`${nome}: terra nunca pelo disjuntor/IDR; DPS do IDR→Barr.Terra; tem Medidor+Barr.Terra`, () => {
+      const { components, connections } = adaptarProjetoEV(a)
+      for (const cx of connections) {
+        const terra = (cx.condutores || []).some(c => /terra/.test(c.papel))
+        if (terra) {
+          expect(tp(components, cx.from)).not.toBe('disjuntor')
+          expect(tp(components, cx.to)).not.toBe('disjuntor')
+          expect(tp(components, cx.from)).not.toBe('dr')
+          expect(tp(components, cx.to)).not.toBe('dr')
+        }
+      }
+      for (const d of components.filter(c => c.tipo === 'dps')) {
+        const viz = connections.filter(x => x.from === d.id || x.to === d.id)
+          .map(x => (x.from === d.id ? x.to : x.from)).map(id => tp(components, id))
+        expect(viz).toContain('dr')          // origina do IDR
+        expect(viz).toContain('barramento')  // descarrega no Barramento Terra
+      }
+      expect(components.some(c => c.id === 'medidor')).toBe(true)
+      expect(components.some(c => c.id === 'barr_terra')).toBe(true)
+    })
+  }
+
+  it('escolha do template é determinística por (alimentação, carregador)', () => {
+    expect(escolherTemplateEV(1, 1)).toBe('EV_MONO_MONO')
+    expect(escolherTemplateEV(3, 1)).toBe('EV_TRI_MONO')
+    expect(escolherTemplateEV(3, 3)).toBe('EV_TRI_TRI')
+    expect(escolherTemplateEV(1, 3)).toBe('EV_TRI_TRI') // carregador tri exige alim. tri
+  })
+
+  it('posições FIXAS: mesmos args → mesmo layout (roteamento não é calculado)', () => {
+    const a = args({ projeto: { fases: 1 } })
+    expect(construirCanonicalEV(a).layout).toEqual(construirCanonicalEV(a).layout)
+    expect(construirCanonicalEV(a).layout.medidor).toEqual({ x: 48, y: 248 })
   })
 })
 

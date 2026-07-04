@@ -6,7 +6,7 @@ import Button from '../components/ui/Button'
 import Badge from '../components/ui/Badge'
 import InteractiveDiagram from '../components/diagram/InteractiveDiagram'
 import { deletarDiagramaLocal } from '../components/diagram/utils/diagramPersistence'
-import { adaptarProjetoEV } from '../utils/adapterDiagramaEV'
+import { adaptarProjetoEV, construirCanonicalEV } from '../utils/adapterDiagramaEV'
 import { build, computeLayout, toReactFlow, overridesDeReactFlow } from '@diagram-engine'
 
 const API_URL = '' /* URL relativa forçada — Vercel proxy → Railway. Não usar VITE_API_URL */
@@ -119,11 +119,12 @@ export default function ProjetosEVDetalhes() {
   // Reconstrói o layout base pelo Engine, aplica overrides salvos e abre exatamente
   // como foi salvo. Nunca abre em branco. Se não houver diagrama, gera e persiste 1x.
   const abrirEditorDiagrama = async () => {
-    const { components, connections, metadata } = adaptarProjetoEV(montarArgsEV(projeto))
     const persistido = projeto?.diagrama_editado
     const overrides = persistido?.overrides || {}
     const viewport = persistido?.viewport || null
-    const canonical = build({ components, connections, metadata, viewport, overrides })
+    // BUG-016: usa o template fixo (construirCanonicalEV aplica as posições do template
+    // como base). Editor abre com a MESMA geometria do SVG/PDF.
+    const canonical = construirCanonicalEV(montarArgsEV(projeto), { viewport, overrides })
     const rf = toReactFlow(canonical)
 
     setEditorInitial(rf)
@@ -162,10 +163,11 @@ export default function ProjetosEVDetalhes() {
     if (!diagramaEditado) return
     try {
       setSalvandoDiagrama(true)
-      const { components, connections, metadata } = adaptarProjetoEV(montarArgsEV(projeto))
-      const base = computeLayout(components, connections)
+      // BUG-016: a base do override é o layout do TEMPLATE (não computeLayout), para o
+      // editor persistir apenas os deslocamentos manuais em relação ao template fixo.
+      const base = construirCanonicalEV(montarArgsEV(projeto)).layout
       const overrides = overridesDeReactFlow(diagramaEditado.nodes || [], base)
-      const canonical = build({ components, connections, metadata, viewport: editorViewport, overrides })
+      const canonical = construirCanonicalEV(montarArgsEV(projeto), { viewport: editorViewport, overrides })
       const rf = toReactFlow(canonical)
 
       const response = await fetch(`${API_URL}/api/projetos-ev/${id}`, {

@@ -39,6 +39,125 @@ function fasesDoCarregador(carregador = {}, hint = 1) {
   return Number.isFinite(h) && h >= 1 ? Math.min(Math.trunc(h), 3) : 1
 }
 
+// ── BUG-016: TEMPLATES ELÉTRICOS FIXOS DO EV ─────────────────────────────────
+// Três topologias determinísticas. A escolha depende SOMENTE de (alimentação do
+// imóvel + tipo do carregador). Depois de escolhido, o roteamento NÃO é calculado —
+// o template é apenas INSTANCIADO: percursos e posições FIXOS. Só variam specs
+// (bitola, corrente, potência, polos, comprimento) e a quantidade de DPS.
+export const TEMPLATES_EV = Object.freeze({ MONO_MONO: 'EV_MONO_MONO', TRI_MONO: 'EV_TRI_MONO', TRI_TRI: 'EV_TRI_TRI' })
+
+/** Escolha determinística: (alimentação, carregador) → template. Sem heurística. */
+export function escolherTemplateEV(fasesAlimentacao, fasesCarregador) {
+  const alimTri = Number(fasesAlimentacao) >= 3
+  const cargTri = Number(fasesCarregador) >= 3
+  if (cargTri) return TEMPLATES_EV.TRI_TRI            // carregador trifásico exige alimentação trifásica
+  return alimTri ? TEMPLATES_EV.TRI_MONO : TEMPLATES_EV.MONO_MONO
+}
+
+// Posições FIXAS (canto superior-esquerdo, coords A4/DIAGRAM_BOX). NUNCA calculadas.
+// Lane superior (y=248): fluxo F/N. Lane inferior (y=360): barramentos + DPS.
+const POS_MONO = Object.freeze({
+  medidor: { x: 48, y: 248 }, disj_geral: { x: 196, y: 248 }, disj: { x: 344, y: 248 },
+  dr: { x: 492, y: 248 }, carr: { x: 820, y: 248 },
+  barr_neutro: { x: 48, y: 360 }, barr_terra: { x: 288, y: 360 },
+})
+const POS_DPS_MONO = [{ x: 168, y: 360 }, { x: 408, y: 360 }]
+const POS_TRI = Object.freeze({
+  medidor: { x: 48, y: 248 }, disj: { x: 300, y: 248 }, dr: { x: 540, y: 248 }, carr: { x: 820, y: 248 },
+  barr_terra: { x: 416, y: 360 },
+})
+const POS_DPS_TRI = [{ x: 48, y: 360 }, { x: 232, y: 360 }, { x: 600, y: 360 }, { x: 784, y: 360 }]
+
+const bit = (papel, bitola) => ({ papel, bitola_mm2: bitola })
+
+/**
+ * Instancia (não calcula) o template elétrico fixo. Retorna components/connections
+ * com PERCURSOS FIXOS + posicoes FIXAS. Regras BUG-016 garantidas por construção:
+ *  - Terra nunca passa pelo disjuntor/IDR (percurso próprio Medidor→Barr.Terra→Wallbox).
+ *  - DPS deriva da entrada superior do IDR e descarrega no Barramento Terra (nunca em série).
+ *  - Neutro passa por Barramento Neutro (nunca direto ao carregador).
+ */
+function construirTemplateEV(template, { disjA, bitola, comprimento, tensao, dpsV, drMa, carregador, nDPS }) {
+  const rotuloCarr = `${carregador.marca || ''} ${carregador.modelo || ''}`.trim() || 'Carregador EV'
+  const especCarr = { potencia_kw: carregador.potencia_kw, corrente_a: disjA, conector: carregador.tipo_conector }
+  const edgeCabo = { bitola_mm2: bitola, comprimento_m: comprimento, observacoes: '' }
+
+  if (template === TEMPLATES_EV.TRI_TRI) {
+    const cond4 = [bit('fase_l1', bitola), bit('fase_l2', bitola), bit('fase_l3', bitola), bit('neutro', bitola)]
+    const components = [
+      componente({ id: 'medidor', tipo: TIPOS.REDE, label: 'Medidor', specs: { tensao_v: tensao }, ordem: 0 }),
+      componente({ id: 'disj', tipo: TIPOS.DISJUNTOR, polos: 4, specs: { corrente_a: disjA, curva: 'C' }, ordem: 1 }),
+      componente({ id: 'dr', tipo: TIPOS.DR, polos: 4, specs: { ma: drMa, classe: 'A' }, ordem: 2 }),
+      componente({ id: 'carr', tipo: TIPOS.EQUIPAMENTO, subtipo: 'carregador_ev', label: rotuloCarr, specs: especCarr, ordem: 3 }),
+      componente({ id: 'barr_terra', tipo: TIPOS.BARRAMENTO, label: 'Barramento Terra', ordem: 4 }),
+    ]
+    const connections = [
+      conexao({ id: 'c-med-disj', from: 'medidor', to: 'disj', condutores: cond4 }),
+      conexao({ id: 'c-disj-dr', from: 'disj', to: 'dr', condutores: cond4 }),
+      conexao({ id: 'c-dr-carr', from: 'dr', to: 'carr', condutores: cond4, specs: edgeCabo }),
+      conexao({ id: 'c-terra-med-barr', from: 'medidor', to: 'barr_terra', condutores: [bit('terra', bitola)] }),
+      conexao({ id: 'c-terra-barr-carr', from: 'barr_terra', to: 'carr', condutores: [bit('terra', bitola)] }),
+    ]
+    const posicoes = { medidor: POS_TRI.medidor, disj: POS_TRI.disj, dr: POS_TRI.dr, carr: POS_TRI.carr, barr_terra: POS_TRI.barr_terra }
+    const papeisDPS = ['fase_l1', 'fase_l2', 'fase_l3', 'neutro']
+    const nd = Math.min(Math.max(nDPS, 1), 4)
+    for (let i = 0; i < nd; i++) {
+      components.push(componente({ id: `dps${i}`, tipo: TIPOS.DPS, polos: 1, specs: { tensao_v: dpsV } }))
+      connections.push(conexao({ id: `c-idr-dps${i}`, from: 'dr', to: `dps${i}`, papel: PAPEL_CONEXAO.DERIVACAO, condutores: [{ papel: papeisDPS[i] }] }))
+      connections.push(conexao({ id: `c-dps${i}-terra`, from: `dps${i}`, to: 'barr_terra', papel: PAPEL_CONEXAO.DERIVACAO, condutores: [{ papel: 'terra' }] }))
+      posicoes[`dps${i}`] = POS_DPS_TRI[i]
+    }
+    return { components, connections, posicoes }
+  }
+
+  // EV_MONO_MONO e EV_TRI_MONO — MESMO desenho (spec: "Todo o restante permanece igual").
+  const condFN = [bit('fase', bitola), bit('neutro', bitola)]
+  const components = [
+    componente({ id: 'medidor', tipo: TIPOS.REDE, label: 'Medidor', specs: { tensao_v: tensao }, ordem: 0 }),
+    componente({ id: 'disj_geral', tipo: TIPOS.DISJUNTOR, polos: 1, specs: { corrente_a: disjA, curva: 'C' }, ordem: 1 }),
+    componente({ id: 'disj', tipo: TIPOS.DISJUNTOR, polos: 2, specs: { corrente_a: disjA, curva: 'C' }, ordem: 2 }),
+    componente({ id: 'dr', tipo: TIPOS.DR, polos: 2, specs: { ma: drMa, classe: 'A' }, ordem: 3 }),
+    componente({ id: 'carr', tipo: TIPOS.EQUIPAMENTO, subtipo: 'carregador_ev', label: rotuloCarr, specs: especCarr, ordem: 4 }),
+    componente({ id: 'barr_neutro', tipo: TIPOS.BARRAMENTO, label: 'Barramento Neutro', ordem: 5 }),
+    componente({ id: 'barr_terra', tipo: TIPOS.BARRAMENTO, label: 'Barramento Terra', ordem: 6 }),
+  ]
+  const connections = [
+    // FASE: Medidor → Disjuntor Geral → Disjuntor Bipolar
+    conexao({ id: 'c-fase-med-geral', from: 'medidor', to: 'disj_geral', condutores: [bit('fase', bitola)] }),
+    conexao({ id: 'c-fase-geral-disj', from: 'disj_geral', to: 'disj', condutores: [bit('fase', bitola)] }),
+    // NEUTRO: Medidor → Barramento Neutro → Disjuntor Bipolar
+    conexao({ id: 'c-neutro-med-barr', from: 'medidor', to: 'barr_neutro', condutores: [bit('neutro', bitola)] }),
+    conexao({ id: 'c-neutro-barr-disj', from: 'barr_neutro', to: 'disj', condutores: [bit('neutro', bitola)] }),
+    // F+N pelos dispositivos bipolares: Disjuntor → IDR → Wallbox
+    conexao({ id: 'c-disj-dr', from: 'disj', to: 'dr', condutores: condFN }),
+    conexao({ id: 'c-dr-carr', from: 'dr', to: 'carr', condutores: condFN, specs: edgeCabo }),
+    // TERRA: Medidor → Barramento Terra → Wallbox (NUNCA pelo disjuntor/IDR)
+    conexao({ id: 'c-terra-med-barr', from: 'medidor', to: 'barr_terra', condutores: [bit('terra', bitola)] }),
+    conexao({ id: 'c-terra-barr-carr', from: 'barr_terra', to: 'carr', condutores: [bit('terra', bitola)] }),
+  ]
+  const posicoes = {
+    medidor: POS_MONO.medidor, disj_geral: POS_MONO.disj_geral, disj: POS_MONO.disj,
+    dr: POS_MONO.dr, carr: POS_MONO.carr, barr_neutro: POS_MONO.barr_neutro, barr_terra: POS_MONO.barr_terra,
+  }
+  const papeisDPS = ['fase', 'neutro']
+  const nd = Math.min(Math.max(nDPS, 1), 2)
+  for (let i = 0; i < nd; i++) {
+    components.push(componente({ id: `dps${i}`, tipo: TIPOS.DPS, polos: 1, specs: { tensao_v: dpsV } }))
+    // DPS deriva da ENTRADA SUPERIOR do IDR → DPS → Barramento Terra (nunca em série)
+    connections.push(conexao({ id: `c-idr-dps${i}`, from: 'dr', to: `dps${i}`, papel: PAPEL_CONEXAO.DERIVACAO, condutores: [{ papel: papeisDPS[i] }] }))
+    connections.push(conexao({ id: `c-dps${i}-terra`, from: `dps${i}`, to: 'barr_terra', papel: PAPEL_CONEXAO.DERIVACAO, condutores: [{ papel: 'terra' }] }))
+    posicoes[`dps${i}`] = POS_DPS_MONO[i]
+  }
+  return { components, connections, posicoes }
+}
+
+/** {id:{x,y}} → overrides {id:{position:{x,y}}} (posições fixas do template). */
+function posicoesParaOverrides(posicoes = {}) {
+  const ov = {}
+  for (const [id, p] of Object.entries(posicoes)) ov[id] = { position: { x: p.x, y: p.y } }
+  return ov
+}
+
 function contarDPS(bom = []) {
   const linha = bom.find(b => /DPS/i.test(b.item || b.descricao || ''))
   const q = Number(linha?.quantidade)
@@ -83,43 +202,19 @@ export function avaliarNormas({ endereco = '', estado = '', tipo_instalacao = ''
 export function adaptarProjetoEV({ calculos = {}, bom = [], numero_fases = 1, carregador = {}, projeto = {} }) {
   const nf = fasesDoCarregador(carregador, numero_fases)
   const ehTri = nf >= 3
-  const polosLinha = ehTri ? 4 : 2
   const disjA = calculos.disjuntor_a ?? carregador.corrente_entrada_a ?? 0
   const bitola = bitolaDoBOM(bom, calculos.bitola_cabo_mm2)
   const comprimento = calculos.comprimento_cabo_m ?? projeto.comprimento_cabo_m
-  const condutores = condutoresPorFases(nf)
-  const condutoresBitola = condutores.map(c => ({ ...c, bitola_mm2: bitola }))
   const tensao = carregador.tensao_entrada_v ?? (ehTri ? 380 : 220)
 
-  // BUG-011: o CABO não é componente — é a própria ligação (edge). Sem o box 'cabo'.
-  const components = [
-    componente({ id: 'rede', tipo: TIPOS.REDE, label: 'QD Existente', specs: { tensao_v: tensao }, ordem: 0 }),
-    componente({ id: 'disj', tipo: TIPOS.DISJUNTOR, polos: polosLinha, specs: { corrente_a: disjA, curva: 'C' }, ordem: 1 }),
-    componente({ id: 'dr', tipo: TIPOS.DR, polos: polosLinha, specs: { ma: calculos.dr_ma ?? 30, classe: 'A' }, ordem: 2 }),
-    componente({ id: 'carr', tipo: TIPOS.EQUIPAMENTO, subtipo: 'carregador_ev', label: `${carregador.marca || ''} ${carregador.modelo || ''}`.trim() || 'Carregador EV', specs: { potencia_kw: carregador.potencia_kw, corrente_a: disjA, conector: carregador.tipo_conector }, ordem: 4 }),
-    componente({ id: 'veic', tipo: TIPOS.CARGA, label: 'Veículo Elétrico', specs: { conector: carregador.tipo_conector }, ordem: 5 }),
-  ]
-
-  const nDPS = contarDPS(bom)
-  const polosDPS = nDPS >= 2 ? 1 : 2
-  for (let i = 0; i < nDPS; i++) {
-    components.push(componente({ id: `dps${i}`, tipo: TIPOS.DPS, polos: polosDPS, specs: { tensao_v: calculos.dps_kv ?? 275 } }))
-  }
-
-  const connections = [
-    conexao({ id: 'c-rede-disj', from: 'rede', to: 'disj', condutores: condutoresBitola }),
-    conexao({ id: 'c-disj-dr', from: 'disj', to: 'dr', condutores: condutoresBitola }),
-    // BUG-011: ligação única DR→Carregador = o cabo. Bitola/comprimento/observações
-    // pertencem a ESTA edge (não a um componente CABO).
-    conexao({ id: 'c-dr-carr', from: 'dr', to: 'carr', condutores: condutoresBitola, specs: { bitola_mm2: bitola, comprimento_m: comprimento, observacoes: '' } }),
-    conexao({ id: 'c-carr-veic', from: 'carr', to: 'veic', condutores: [{ papel: 'fase' }] }),
-  ]
-  for (let i = 0; i < nDPS; i++) {
-    connections.push(conexao({ id: `c-dps${i}`, from: 'disj', to: `dps${i}`, papel: PAPEL_CONEXAO.DERIVACAO, condutores: [{ papel: 'terra' }] }))
-  }
-  // Aterramento ligado aos pontos de proteção (DR e Carregador), além do(s) DPS.
-  connections.push(conexao({ id: 'c-terra-dr', from: 'disj', to: 'dr', papel: PAPEL_CONEXAO.DERIVACAO, condutores: [{ papel: 'terra' }] }))
-  connections.push(conexao({ id: 'c-terra-carr', from: 'disj', to: 'carr', papel: PAPEL_CONEXAO.DERIVACAO, condutores: [{ papel: 'terra' }] }))
+  // BUG-016: escolha DETERMINÍSTICA do template (alimentação do imóvel + carregador)
+  // e INSTANCIAÇÃO do roteamento fixo. Nada de roteamento é calculado depois disto.
+  const template = escolherTemplateEV(projeto.fases, nf)
+  const { components, connections, posicoes } = construirTemplateEV(template, {
+    disjA, bitola, comprimento, tensao,
+    dpsV: calculos.dps_kv ?? 275, drMa: calculos.dr_ma ?? 30,
+    carregador, nDPS: contarDPS(bom),
+  })
 
   const { normas, normas_motivo } = avaliarNormas({
     endereco: projeto.endereco, estado: projeto.estado,
@@ -127,7 +222,7 @@ export function adaptarProjetoEV({ calculos = {}, bom = [], numero_fases = 1, ca
   })
 
   const metadata = {
-    dominio: 'EV', modelo: 'EV_EXECUTIVO_V2',
+    dominio: 'EV', modelo: 'EV_EXECUTIVO_V2', template,   // BUG-016: template fixo instanciado
     projeto: projeto.nome, cliente: projeto.cliente_nome, cpf: projeto.cpf,
     endereco: projeto.endereco, uc: projeto.uc, concessionaria: projeto.concessionaria,
     carga_instalada: projeto.carga_instalada, cidade: projeto.cidade,
@@ -143,12 +238,14 @@ export function adaptarProjetoEV({ calculos = {}, bom = [], numero_fases = 1, ca
     bom, normas,
   }
 
-  return { components, connections, metadata }
+  return { components, connections, metadata, posicoes }
 }
 
 export function construirCanonicalEV(args, { viewport = null, overrides = {} } = {}) {
-  const { components, connections, metadata } = adaptarProjetoEV(args)
-  return build({ components, connections, metadata, viewport, overrides })
+  const { components, connections, metadata, posicoes } = adaptarProjetoEV(args)
+  // BUG-016: posições FIXAS do template são a base; overrides manuais (editor) vencem por id.
+  const base = posicoesParaOverrides(posicoes)
+  return build({ components, connections, metadata, viewport, overrides: { ...base, ...overrides } })
 }
 
 export function renderarSVGEV(args, opts) {
@@ -176,6 +273,8 @@ export function argsDeProjetoEV(projeto = {}) {
     projeto: {
       nome: projeto.nome,
       cliente_nome: clienteNome,
+      // BUG-016: alimentação do imóvel (mono/tri) — decide EV_MONO_MONO vs EV_TRI_MONO.
+      fases: projeto.fases,
       endereco: projeto.endereco_completo || projeto.endereco,
       cpf: clienteObj?.cpf,
       uc: clienteObj?.unidade_consumidora,
@@ -199,14 +298,16 @@ export function argsDeProjetoEV(projeto = {}) {
  * Usado pelo backend (PDF) para renderizar EXATAMENTE o mesmo diagrama do editor.
  */
 export function construirCanonicalDeProjetoEV(projeto = {}) {
-  const { components, connections, metadata } = adaptarProjetoEV(argsDeProjetoEV(projeto))
+  const { components, connections, metadata, posicoes } = adaptarProjetoEV(argsDeProjetoEV(projeto))
   const persistido = projeto.diagrama_editado || {}
+  // BUG-016: base = posições fixas do template; overrides salvos (edição manual) vencem por id.
+  const base = posicoesParaOverrides(posicoes)
   return build({
     components,
     connections,
     metadata,
     viewport: persistido.viewport || null,
-    overrides: persistido.overrides || {},
+    overrides: { ...base, ...(persistido.overrides || {}) },
   })
 }
 

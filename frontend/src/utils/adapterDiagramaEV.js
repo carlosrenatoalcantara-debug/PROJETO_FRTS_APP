@@ -14,4 +14,6 @@ export {
   argsDeProjetoEV,
   construirCanonicalDeProjetoEV,
   toReactFlow,
+  escolherTemplateEV,   // BUG-016
+  TEMPLATES_EV,         // BUG-016
 } from '../../../packages/diagram-engine/adapters/ev.js'
