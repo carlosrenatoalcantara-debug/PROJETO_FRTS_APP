@@ -217,6 +217,8 @@ export const criarProjetoEV = async (req, res) => {
       // posições/textos/conexões). Antes o whitelist do POST descartava → ao reabrir
       // vinha null. O PUT (atualizarProjetoEV) já espalhava req.body; só o POST faltava.
       ...(req.body.diagrama_editado && { diagrama_editado: req.body.diagrama_editado }),
+      // BUG-015: etapa em que o wizard foi salvo (reabertura da edição inicia aqui)
+      ...(req.body.ultimaEtapa && { ultimaEtapa: req.body.ultimaEtapa }),
     }
 
     const novo = new ProjetoEV(novoProjetoData)

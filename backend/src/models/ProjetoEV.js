@@ -17,6 +17,10 @@ const projetoEVSchema = new mongoose.Schema({
     default: 'rascunho',
   },
 
+  // BUG-015: última etapa do wizard em que o usuário salvou (1..4). "Editar Projeto"
+  // reabre exatamente nesta etapa, restaurando o estado salvo (não reinicia o wizard).
+  ultimaEtapa: { type: Number, min: 1, max: 4, default: 1 },
+
   // LOCALIZAÇÃO
   endereco_completo: String,
   latitude: Number,

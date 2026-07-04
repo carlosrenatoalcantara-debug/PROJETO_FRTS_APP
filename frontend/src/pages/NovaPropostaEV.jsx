@@ -77,6 +77,10 @@ export default function NovaPropostaEV() {
   const [modoEdicao, setModoEdicao] = useState(false)
   const [diagramaEditado, setDiagramaEditado] = useState(null)
   const [draftId] = useState(() => `ev-draft-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`)
+  // BUG-015: enquanto hidrata a edição (restaura estado salvo), o auto-cálculo NÃO roda —
+  // assim os cálculos/BOM/orçamento salvos são preservados. Volta a rodar quando o
+  // usuário edita algo (handlers limpam a flag).
+  const hidratandoEdicao = useRef(false)
 
   const [dados, setDados] = useState({
     nome_projeto: '',
@@ -165,6 +169,8 @@ export default function NovaPropostaEV() {
         if (!r.ok) throw new Error(`HTTP ${r.status}`)
         const p = await r.json()
         if (!vivo) return
+        // BUG-015: abre no ÚLTIMO estado salvo, sem recalcular (guarda o auto-cálculo).
+        hidratandoEdicao.current = true
         const cli = typeof p.clienteId === 'object' ? p.clienteId?._id : p.clienteId
         setClienteIdEdit(cli || null)
         setDados(prev => ({
@@ -185,17 +191,29 @@ export default function NovaPropostaEV() {
         if (Array.isArray(p.carregadores) && p.carregadores.length) {
           setCarregadores(p.carregadores.map(c => ({ ...c, quantidade: c.quantidade || 1 })))
         }
-        // Preserva margem/desconto/serviços/status salvos. A lista de materiais
-        // (BOM) é recalculada ao vivo a partir dos carregadores/percurso.
+        // BUG-015: restaura EXATAMENTE a engenharia salva (não recalcula ao abrir).
+        if (p.calculos_nbr && Object.keys(p.calculos_nbr).length) {
+          setCalculos(p.calculos_nbr)
+        }
+        // BUG-015: restaura orçamento salvo por inteiro — materiais (BOM), equipamentos,
+        // serviços, margem, desconto e status comercial.
         if (p.orcamento) {
           setOrcamento(prev => ({
             ...prev,
+            materiais: Array.isArray(p.orcamento.materiais) ? p.orcamento.materiais
+              : (Array.isArray(p.bom) ? p.bom : prev.materiais),
+            equipamentos: Array.isArray(p.orcamento.equipamentos) ? p.orcamento.equipamentos : prev.equipamentos,
             servicos: Array.isArray(p.orcamento.servicos) && p.orcamento.servicos.length ? p.orcamento.servicos : prev.servicos,
             margem_pct: p.orcamento.margem_pct ?? prev.margem_pct,
             desconto_pct: p.orcamento.desconto_pct ?? prev.desconto_pct,
           }))
           if (p.orcamento.status) setStatusComercial(p.orcamento.status)
+        } else if (Array.isArray(p.bom) && p.bom.length) {
+          setOrcamento(prev => ({ ...prev, materiais: p.bom }))
         }
+        // BUG-015: abre EXATAMENTE na última etapa salva (nunca reinicia na etapa 1).
+        const etapaSalva = Math.min(Math.max(Number(p.ultimaEtapa) || 1, 1), 4)
+        setEtapa(etapaSalva)
       } catch (e) {
         console.error('[EV] Erro ao carregar projeto para edição:', e)
         alert('Erro ao carregar projeto para edição: ' + e.message)
@@ -262,6 +280,8 @@ export default function NovaPropostaEV() {
 
   // Reseta o BOM editável para refletir os novos parâmetros elétricos.
   useEffect(() => {
+    // BUG-015: durante a hidratação da edição, NÃO recalcula (preserva o estado salvo).
+    if (hidratandoEdicao.current) return
     if (carregadores.length === 0) {
       setCalculos(null)
       setOrcamento(prev => ({ ...prev, materiais: [], equipamentos: [] }))
@@ -330,9 +350,10 @@ export default function NovaPropostaEV() {
   const etapaAnterior = () => { if (etapa > 1) setEtapa(e => e - 1) }
 
   // ── Carregadores ─────────────────────────────────────────────────────────
-  const adicionarCarregador = (c) => setCarregadores(prev => [...prev, { ...c, quantidade: 1 }])
-  const removerCarregador   = (idx) => setCarregadores(prev => prev.filter((_, i) => i !== idx))
-  const atualizarQtd        = (idx, qtd) => setCarregadores(prev => prev.map((c, i) => i === idx ? { ...c, quantidade: qtd } : c))
+  // BUG-015: qualquer edição do usuário encerra a hidratação → o auto-cálculo volta a rodar.
+  const adicionarCarregador = (c) => { hidratandoEdicao.current = false; setCarregadores(prev => [...prev, { ...c, quantidade: 1 }]) }
+  const removerCarregador   = (idx) => { hidratandoEdicao.current = false; setCarregadores(prev => prev.filter((_, i) => i !== idx)) }
+  const atualizarQtd        = (idx, qtd) => { hidratandoEdicao.current = false; setCarregadores(prev => prev.map((c, i) => i === idx ? { ...c, quantidade: qtd } : c)) }
 
   // ── Gerar unifilar ───────────────────────────────────────────────────────
   // P3-F2: o preview da etapa 4 passa a usar o DiagramEngine (mesma fonte do
@@ -423,6 +444,8 @@ export default function NovaPropostaEV() {
       },
       tecnico: { nome: dados.tecnico_nome, crea: dados.tecnico_crea, cft: dados.tecnico_cft, tipo_profissional: dados.tecnico_tipo },
       status: ['aprovado', 'em_execucao', 'concluido'].includes(statusComercial) ? 'aprovado' : 'dimensionado',
+      // BUG-015: registra a etapa atual do wizard (reabertura da edição inicia aqui)
+      ultimaEtapa: etapa,
       // P3-F2: diagrama canônico do DiagramEngine (fonte única — version/viewport/metadata/overrides)
       diagrama_editado: (() => {
         const canon = canonical || construirCanonicalEV(construirArgsEngine())
@@ -653,7 +676,7 @@ export default function NovaPropostaEV() {
               <CardBody>
                 <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
                   <input type="checkbox" checked={incluirMobBox}
-                    onChange={(e) => setIncluirMobBox(e.target.checked)}
+                    onChange={(e) => { hidratandoEdicao.current = false; setIncluirMobBox(e.target.checked) }}
                     className="accent-blue-600" />
                   Incluir <strong>Mob Box</strong> (caixa de proteção/gerenciamento do carregador)
                 </label>
@@ -678,7 +701,7 @@ export default function NovaPropostaEV() {
                       type="number"
                       min="1"
                       value={dados.comprimento_cabo_m}
-                      onChange={(e) => setDados(p => ({ ...p, comprimento_cabo_m: parseFloat(e.target.value) || 0 }))}
+                      onChange={(e) => { hidratandoEdicao.current = false; setDados(p => ({ ...p, comprimento_cabo_m: parseFloat(e.target.value) || 0 })) }}
                       className="w-28 px-3 py-2 border-2 border-blue-400 rounded-lg text-center text-lg font-bold text-blue-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                     <span className="text-blue-700 font-semibold">metros de percurso</span>
