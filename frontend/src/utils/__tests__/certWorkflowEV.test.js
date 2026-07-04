@@ -53,7 +53,11 @@ describe('CERT — Fonte única: engenharia → orçamento (etapa 2 → etapa 3)
     const resumo = calcularOrcamento(orcamento)
     expect(resumo.subtotal_equipamentos).toBe(8000)         // preço do catálogo propagado
     expect(resumo.subtotal_servicos).toBe(2500)             // 5 serviços × 500
-    expect(resumo.preco_final).toBe(+((resumo.custo * 1.2) * 0.95).toFixed(2))  // margem 20% − desc 5%
+    // FEATURE-002: margem 20% SOMENTE sobre materiais; desconto 5% sobre o total.
+    const matComMargem = +(resumo.subtotal_materiais * 1.2).toFixed(2)
+    expect(resumo.materiais_com_margem).toBe(matComMargem)
+    const total = +(resumo.subtotal_equipamentos + matComMargem + resumo.subtotal_servicos).toFixed(2)
+    expect(resumo.preco_final).toBe(+(total * 0.95).toFixed(2))
   })
   it('serviços incluem os custos exigidos: Projeto elétrico, ART/CFT, Deslocamento', () => {
     const d = DEFAULT_SERVICOS_EV.map(s => s.descricao)

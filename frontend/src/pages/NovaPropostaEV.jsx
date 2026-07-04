@@ -64,7 +64,9 @@ export default function NovaPropostaEV() {
     materiais: [],
     servicos: DEFAULT_SERVICOS_EV,
     margem_pct: 20,
+    impostos_pct: 0,                    // FEATURE-002 ITEM 2
     desconto_pct: 0,
+    mostrar_materiais_detalhados: true, // FEATURE-002 ITEM 3
   })
   const [statusComercial, setStatusComercial] = useState('rascunho')
   const [incluirMobBox, setIncluirMobBox] = useState(false)
@@ -205,7 +207,9 @@ export default function NovaPropostaEV() {
             equipamentos: Array.isArray(p.orcamento.equipamentos) ? p.orcamento.equipamentos : prev.equipamentos,
             servicos: Array.isArray(p.orcamento.servicos) && p.orcamento.servicos.length ? p.orcamento.servicos : prev.servicos,
             margem_pct: p.orcamento.margem_pct ?? prev.margem_pct,
+            impostos_pct: p.orcamento.impostos_pct ?? prev.impostos_pct,                                   // FEATURE-002
             desconto_pct: p.orcamento.desconto_pct ?? prev.desconto_pct,
+            mostrar_materiais_detalhados: p.orcamento.mostrar_materiais_detalhados ?? prev.mostrar_materiais_detalhados, // FEATURE-002
           }))
           if (p.orcamento.status) setStatusComercial(p.orcamento.status)
         } else if (Array.isArray(p.bom) && p.bom.length) {
@@ -760,20 +764,8 @@ export default function NovaPropostaEV() {
                 <OrcamentoEV
                   value={orcamento}
                   onChange={setOrcamento}
-                  onCadastrarMaterial={(item) => {
-                    const BOM_PARA_SLUG = {
-                      Cabos: 'cabos', Proteções: 'protecao_eletrica',
-                      Equipamentos: 'quadros_barramentos', Infraestrutura: 'conexoes_infraestrutura',
-                      Conexões: 'conexoes_infraestrutura', Diversos: 'fixacao',
-                    }
-                    const qs = new URLSearchParams({
-                      new: '1',
-                      descricao: item.descricao || '',
-                      categoria: BOM_PARA_SLUG[item.categoria] || '',
-                      unidade: item.unidade || 'un',
-                    }).toString()
-                    window.open(`/materiais?${qs}`, '_blank', 'noopener')
-                  }}
+                  catalogo={catalogoItems}
+                  onCatalogoAdd={(m) => { if (m) setCatalogoItems((prev) => [m, ...prev]) }}
                 />
               </CardBody>
             </Card>
@@ -803,6 +795,7 @@ export default function NovaPropostaEV() {
               status={statusComercial}
               onStatusChange={setStatusComercial}
               onSalvar={salvarProjeto}
+              onOrcamentoChange={(p) => setOrcamento((o) => ({ ...o, ...p }))}
             />
             <div className="flex justify-between gap-2">
               <Button variante="secundario" onClick={etapaAnterior}>← Anterior</Button>
