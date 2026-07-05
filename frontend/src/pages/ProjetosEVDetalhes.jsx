@@ -217,7 +217,11 @@ export default function ProjetosEVDetalhes() {
         const data = await res.json().catch(() => ({}))
         throw new Error(data?.erro || data?.mensagem || `HTTP ${res.status}`)
       }
-      navigate('/projetos-ev')
+      // BUG-019: sem registros órfãos — remove também o diagrama local deste projeto.
+      try { deletarDiagramaLocal(`projeto-ev-${id}`) } catch { /* best-effort */ }
+      // BUG-019: retornar ao CLIENTE (de onde o projeto é aberto); a lista é recarregada lá.
+      const cid = typeof projeto?.clienteId === 'object' ? projeto?.clienteId?._id : projeto?.clienteId
+      navigate(cid ? `/clientes/${cid}` : '/projetos-ev')
     } catch (err) {
       console.error('❌ Erro ao excluir projeto EV:', err)
       alert(`Erro ao excluir projeto: ${err.message}`)
