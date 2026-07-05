@@ -436,7 +436,13 @@ export default function NovaPropostaEV() {
       endereco_completo: dados.endereco,
       latitude: dados.latitude,
       longitude: dados.longitude,
-      carregadores: carregadores.map(c => ({ tipo: c.tipo, potencia_kw: c.potencia_kw, marca: c.marca, modelo: c.modelo, quantidade: c.quantidade })),
+      // BUG-017: persiste o carregador COMPLETO (tensão/fases/corrente/conector) — o
+      // recálculo do backend usa a MESMA corrente do catálogo → valores idênticos ao wizard.
+      carregadores: carregadores.map(c => ({
+        tipo: c.tipo, potencia_kw: c.potencia_kw, marca: c.marca, modelo: c.modelo, quantidade: c.quantidade,
+        tensao_entrada_v: c.tensao_entrada_v, numero_fases: c.numero_fases,
+        corrente_entrada_a: c.corrente_entrada_a, tipo_conector: c.tipo_conector,
+      })),
       quantidade_pontos: carregadores.length,
       potencia_total_kw: potenciaTotalKw,
       comprimento_cabo_m: dados.comprimento_cabo_m,
