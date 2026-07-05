@@ -310,6 +310,57 @@ function ModalNovoClienteComPDF({ onClose, onSalvo }) {
   )
 }
 
+// BUG-018 — form ÚNICO de cliente: mesmo componente usado no Cadastro e na Edição.
+// Elimina a divergência "cadastro completo → edição simplificada" (todos os campos do
+// modelo Cliente são editáveis nos dois fluxos, sem duplicar a lista de campos).
+function CamposCliente({ formData, handleChange }) {
+  const f = formData
+  return (
+    <>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="sm:col-span-2">
+          <Input rotulo="Nome *" name="nome" value={f.nome || ''} onChange={handleChange} placeholder="Ex: João Silva" />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <label className="text-sm font-medium text-slate-700">Tipo</label>
+          <select
+            name="tipo"
+            value={f.tipo || 'Pessoa Física'}
+            onChange={handleChange}
+            className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary-400"
+          >
+            <option>Pessoa Física</option>
+            <option>Pessoa Jurídica</option>
+          </select>
+        </div>
+        <Input rotulo="CPF/CNPJ" name="cpf_cnpj" value={f.cpf_cnpj || ''} onChange={handleChange} placeholder="Ex: 000.000.000-00" />
+        <Input rotulo="Email *" type="email" name="email" value={f.email || ''} onChange={handleChange} placeholder="Ex: joao@email.com" />
+        <Input rotulo="Telefone" name="telefone" value={f.telefone || ''} onChange={handleChange} placeholder="Ex: (11) 99999-0000" />
+      </div>
+
+      <p className="text-xs font-bold uppercase tracking-wide text-slate-400 pt-1">Endereço</p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="sm:col-span-2">
+          <Input rotulo="Endereço completo" name="endereco_completo" value={f.endereco_completo || ''} onChange={handleChange} placeholder="Rua, número, bairro" />
+        </div>
+        <Input rotulo="Cidade" name="cidade" value={f.cidade || ''} onChange={handleChange} placeholder="Ex: Natal" />
+        <Input rotulo="Estado (UF)" name="estado" value={f.estado || ''} onChange={handleChange} placeholder="Ex: RN" />
+        <Input rotulo="CEP" name="cep" value={f.cep || ''} onChange={handleChange} placeholder="Ex: 59000-000" />
+      </div>
+
+      <p className="text-xs font-bold uppercase tracking-wide text-slate-400 pt-1">Concessionária</p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <Input rotulo="Distribuidora" name="distribuidora" value={f.distribuidora || ''} onChange={handleChange} placeholder="Ex: Cosern" />
+        <Input rotulo="Nº do cliente (UC)" name="numero_cliente" value={f.numero_cliente || ''} onChange={handleChange} />
+        <Input rotulo="Código de instalação" name="codigo_instalacao" value={f.codigo_instalacao || ''} onChange={handleChange} />
+        <Input rotulo="Classificação (Classe)" name="classificacao" value={f.classificacao || ''} onChange={handleChange} placeholder="Ex: B1" />
+        <Input rotulo="Subgrupo (Grupo)" name="subgrupo" value={f.subgrupo || ''} onChange={handleChange} placeholder="Ex: Residencial" />
+        <Input rotulo="Tipo de ligação" name="tipo_ligacao" value={f.tipo_ligacao || ''} onChange={handleChange} placeholder="Ex: Trifásica" />
+      </div>
+    </>
+  )
+}
+
 function ModalEditarCliente({ cliente, onClose, onSalvo }) {
   const [formData, setFormData] = useState(cliente || {
     nome: '',
@@ -357,43 +408,16 @@ function ModalEditarCliente({ cliente, onClose, onSalvo }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-2xl max-h-[90vh] flex flex-col">
         <CardHeader className="flex items-center justify-between">
           <h3 className="font-semibold text-slate-900">Editar Cliente</h3>
           <button onClick={onClose} className="text-slate-500 hover:text-slate-700">
             <X size={18} />
           </button>
         </CardHeader>
-        <CardBody>
+        <CardBody className="overflow-y-auto">
           <form onSubmit={handleSubmit} className="space-y-4">
-            <Input
-              rotulo="Nome *"
-              value={formData.nome}
-              onChange={handleChange}
-              name="nome"
-              placeholder="Ex: João Silva"
-            />
-            <Input
-              rotulo="Email *"
-              type="email"
-              value={formData.email}
-              onChange={handleChange}
-              name="email"
-              placeholder="Ex: joao@email.com"
-            />
-            <Input
-              rotulo="Telefone"
-              value={formData.telefone}
-              onChange={handleChange}
-              name="telefone"
-              placeholder="Ex: (11) 99999-0000"
-            />
-            <Input
-              rotulo="CPF/CNPJ"
-              value={formData.cpf_cnpj}
-              onChange={handleChange}
-              name="cpf_cnpj"
-            />
+            <CamposCliente formData={formData} handleChange={handleChange} />
 
             {erro && (
               <div className="p-3 bg-red-50 border border-red-200 rounded text-sm text-red-800">
@@ -467,87 +491,16 @@ function ModalNovoClienteAntigo({ onClose, onSalvo }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-2xl max-h-[90vh] flex flex-col">
         <CardHeader className="flex items-center justify-between">
           <h3 className="font-semibold text-slate-900">Novo Cliente</h3>
           <button onClick={onClose} className="text-slate-500 hover:text-slate-700">
             <X size={18} />
           </button>
         </CardHeader>
-        <CardBody>
+        <CardBody className="overflow-y-auto">
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="text-xs font-semibold text-slate-700 block mb-1">Nome *</label>
-              <input
-                type="text"
-                name="nome"
-                value={formData.nome}
-                onChange={handleChange}
-                placeholder="Ex: João Silva"
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-
-            <div>
-              <label className="text-xs font-semibold text-slate-700 block mb-1">Email *</label>
-              <input
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                placeholder="Ex: joao@email.com"
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-
-            <div>
-              <label className="text-xs font-semibold text-slate-700 block mb-1">Telefone</label>
-              <input
-                type="tel"
-                name="telefone"
-                value={formData.telefone}
-                onChange={handleChange}
-                placeholder="Ex: (11) 99999-0000"
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-
-            <div>
-              <label className="text-xs font-semibold text-slate-700 block mb-1">Tipo</label>
-              <select
-                name="tipo"
-                value={formData.tipo}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option>Pessoa Física</option>
-                <option>Pessoa Jurídica</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="text-xs font-semibold text-slate-700 block mb-1">CPF/CNPJ</label>
-              <input
-                type="text"
-                name="cpf_cnpj"
-                value={formData.cpf_cnpj}
-                onChange={handleChange}
-                placeholder="Ex: 000.000.000-00"
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-
-            <div>
-              <label className="text-xs font-semibold text-slate-700 block mb-1">Cidade</label>
-              <input
-                type="text"
-                name="cidade"
-                value={formData.cidade}
-                onChange={handleChange}
-                placeholder="Ex: São Paulo - SP"
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
+            <CamposCliente formData={formData} handleChange={handleChange} />
 
             {erro && (
               <div className="p-3 bg-red-50 border border-red-200 rounded text-sm text-red-800">
