@@ -84,6 +84,12 @@ export default function ProjetosEVDetalhes() {
     carregarProjeto()
   }, [id])
 
+  // BUG-020: dados institucionais (Responsável Técnico / Empresa) para o dossiê.
+  const [empresaCfg, setEmpresaCfg] = useState(null)
+  useEffect(() => {
+    fetch(`${API_URL}/api/empresa`).then(r => r.ok ? r.json() : null).then(d => setEmpresaCfg(d?.config || null)).catch(() => {})
+  }, [])
+
   // FEATURE-003 — hooks ANTES de qualquer early-return (Regra dos Hooks). Null-safe.
   const resumo = useMemo(() => {
     const o = projeto?.orcamento || {}
@@ -408,24 +414,41 @@ export default function ProjetosEVDetalhes() {
         </CardBody>
       </Card>
 
-      {/* 1 · CLIENTE */}
+      {/* 1 · CLIENTE (dossiê — BUG-020) */}
       <Card>
         <CardHeader><h2 className="flex items-center gap-2 font-semibold text-slate-900"><User size={16} className="text-blue-500" /> Cliente</h2></CardHeader>
         <CardBody className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <Campo rotulo="Nome" valor={clienteNome} />
-          <Campo rotulo="CPF/CNPJ" valor={clienteObj?.cpf || clienteObj?.cnpj || 'N/A'} />
-          <Campo rotulo="Responsável técnico" valor={tecnicoLinha} />
-          <Campo rotulo="Criado em" valor={dataCriacao} />
+          <Campo rotulo="CPF/CNPJ" valor={clienteObj?.cpf_cnpj || clienteObj?.cpf || clienteObj?.cnpj || 'N/A'} />
+          <Campo rotulo="Telefone" valor={clienteObj?.telefone || clienteObj?.celular || 'N/A'} />
+          <Campo rotulo="E-mail" valor={clienteObj?.email || 'N/A'} />
+          <div className="md:col-span-2"><Campo rotulo="Endereço" valor={clienteObj?.endereco_completo || clienteObj?.endereco || projeto?.endereco_completo || 'N/A'} /></div>
         </CardBody>
       </Card>
 
-      {/* 2 · LOCAL DA INSTALAÇÃO */}
+      {/* 2 · CONCESSIONÁRIA (dossiê — BUG-020) */}
       <Card>
-        <CardHeader><h2 className="flex items-center gap-2 font-semibold text-slate-900"><MapPin size={16} className="text-blue-500" /> Local da instalação</h2></CardHeader>
+        <CardHeader><h2 className="flex items-center gap-2 font-semibold text-slate-900"><Zap size={16} className="text-blue-500" /> Concessionária</h2></CardHeader>
+        <CardBody className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Campo rotulo="Nome" valor={clienteObj?.distribuidora || projeto?.concessionaria || 'N/A'} />
+          <Campo rotulo="Unidade Consumidora (UC)" valor={clienteObj?.numero_cliente || clienteObj?.codigo_instalacao || 'N/A'} />
+          <Campo rotulo="Classe" valor={clienteObj?.classificacao || 'N/A'} />
+          <Campo rotulo="Grupo" valor={clienteObj?.subgrupo || 'N/A'} />
+          <Campo rotulo="Ligação" valor={clienteObj?.tipo_ligacao || 'N/A'} />
+          <Campo rotulo="Tensão" valor={projeto?.tensao_sistema ? `${projeto.tensao_sistema} V` : (carregador?.tensao_entrada_v ? `${carregador.tensao_entrada_v} V` : 'N/A')} />
+          <Campo rotulo="Município" valor={clienteObj?.cidade ? `${clienteObj.cidade}${clienteObj.estado ? '/' + clienteObj.estado : ''}` : 'N/A'} />
+        </CardBody>
+      </Card>
+
+      {/* 2b · IMÓVEL / LOCAL DA INSTALAÇÃO (dossiê — BUG-020) */}
+      <Card>
+        <CardHeader><h2 className="flex items-center gap-2 font-semibold text-slate-900"><MapPin size={16} className="text-blue-500" /> Imóvel / Local da instalação</h2></CardHeader>
         <CardBody className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="md:col-span-2"><Campo rotulo="Endereço" valor={projeto?.endereco_completo || 'N/A'} /></div>
-          {projeto?.latitude != null && <Campo rotulo="Latitude" valor={projeto.latitude} />}
-          {projeto?.longitude != null && <Campo rotulo="Longitude" valor={projeto.longitude} />}
+          <Campo rotulo="Tipo" valor={projeto?.tipo_instalacao || projeto?.ambiente || 'N/A'} />
+          <Campo rotulo="Endereço" valor={projeto?.endereco_completo || clienteObj?.endereco_completo || 'N/A'} />
+          {(projeto?.latitude ?? clienteObj?.latitude) != null && (projeto?.longitude ?? clienteObj?.longitude) != null && (
+            <div className="md:col-span-2"><Campo rotulo="Coordenadas" valor={`${projeto?.latitude ?? clienteObj?.latitude}, ${projeto?.longitude ?? clienteObj?.longitude}`} /></div>
+          )}
         </CardBody>
       </Card>
 
@@ -528,6 +551,17 @@ export default function ProjetosEVDetalhes() {
           {linhaResumo(`Impostos (${resumo.impostos_pct}%)`, `+ ${brl(resumo.impostos_valor)}`)}
           {resumo.desconto_pct > 0 && linhaResumo(`Desconto (${resumo.desconto_pct}%)`, `− ${brl(resumo.desconto_valor)}`)}
           {linhaResumo('Valor Final', brl(resumo.preco_final), true)}
+        </CardBody>
+      </Card>
+
+      {/* RESPONSÁVEL TÉCNICO (dossiê — BUG-020) */}
+      <Card>
+        <CardHeader><h2 className="flex items-center gap-2 font-semibold text-slate-900"><User size={16} className="text-blue-500" /> Responsável Técnico</h2></CardHeader>
+        <CardBody className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Campo rotulo="Empresa" valor={empresaCfg?.empresa_config?.nomeFantasia || empresaCfg?.empresa_config?.razaoSocial || 'N/A'} />
+          <Campo rotulo="Responsável" valor={projeto?.tecnico?.nome || empresaCfg?.responsavel_tecnico?.nome || 'N/A'} />
+          <Campo rotulo="CREA / CFT" valor={projeto?.tecnico?.crea || projeto?.tecnico?.cft || empresaCfg?.responsavel_tecnico?.registro || empresaCfg?.responsavel_tecnico?.crea || 'N/A'} />
+          <Campo rotulo="ART" valor={projeto?.art || empresaCfg?.uploads?.art_padrao ? 'Disponível' : 'N/A'} />
         </CardBody>
       </Card>
 
