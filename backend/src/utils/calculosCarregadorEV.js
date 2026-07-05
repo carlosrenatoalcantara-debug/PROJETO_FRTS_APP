@@ -55,129 +55,6 @@ const MODOS_OPERACAO = {
 }
 
 /**
- * Calcula a corrente de projeto conforme NBR 5410
- * I_projeto = (P / V) × 1.25 (fator de segurança)
- *
- * @param {number} potencia_kw - Potência do carregador em kW
- * @param {number} tensao_v - Tensão de alimentação em Volts
- * @returns {object} { corrente_calculada, corrente_comercial, fator_seguranca }
- */
-function calcularCorrenteProjetoNBR5410(potencia_kw, tensao_v = 230) {
-  const potencia_w = potencia_kw * 1000
-  const fator_seguranca = 1.25
-  const corrente_calculada = (potencia_w / tensao_v) * fator_seguranca
-
-  // Encontrar valor comercial mais próximo (arredondar para cima)
-  const valores_comerciais = [10, 16, 20, 25, 32, 40, 50, 63, 80, 100]
-  const corrente_comercial = valores_comerciais.find(
-    (val) => val >= corrente_calculada
-  ) || valores_comerciais[valores_comerciais.length - 1]
-
-  return {
-    corrente_calculada: parseFloat(corrente_calculada.toFixed(2)),
-    corrente_comercial,
-    fator_seguranca,
-    unidade: 'A',
-    norma: 'NBR 5410:2004',
-  }
-}
-
-/**
- * Calcula a bitola do condutor conforme NBR 5410
- * Considera capacidade de corrente e queda de tensão máxima de 3%
- *
- * @param {number} corrente_a - Corrente de projeto em Amperes
- * @param {number} comprimento_m - Comprimento da instalação em metros
- * @param {number} queda_tensao_max - Queda de tensão máxima permitida (%)
- * @returns {object} { bitola_mm2, queda_tensao_real, recomendacao }
- */
-function calcularBitolaNBR5410(
-  corrente_a,
-  comprimento_m,
-  queda_tensao_max = 3,
-  tensao_v = 230
-) {
-  // Encontrar bitola pela corrente
-  const fila_bitolas = Object.values(TABELA_BITOLAS)
-  let bitola_recomendada = fila_bitolas[0].bitola
-
-  for (const [, dados] of Object.entries(TABELA_BITOLAS)) {
-    if (dados.capacidade >= corrente_a) {
-      bitola_recomendada = dados.bitola
-      break
-    }
-  }
-
-  // Verificar queda de tensão (fórmula: ΔU = (2 × ρ × L × I) / S)
-  const resistividade_cobre = 0.0175 // Ω·mm²/m
-  const queda_tensao_calculada =
-    (2 * resistividade_cobre * comprimento_m * corrente_a) / bitola_recomendada
-
-  const queda_tensao_percentual = (queda_tensao_calculada / tensao_v) * 100
-
-  // Se queda de tensão exceder o máximo, aumentar a bitola
-  let bitola_final = bitola_recomendada
-  if (queda_tensao_percentual > queda_tensao_max) {
-    const opcoes_bitolas = [1.5, 2.5, 4, 6, 10, 16, 25, 35, 50, 70, 95, 120]
-    for (const bitola of opcoes_bitolas) {
-      const queda = (2 * resistividade_cobre * comprimento_m * corrente_a) / bitola
-      const queda_pct = (queda / tensao_v) * 100
-      if (queda_pct <= queda_tensao_max) {
-        bitola_final = bitola
-        break
-      }
-    }
-  }
-
-  const queda_final =
-    (2 * resistividade_cobre * comprimento_m * corrente_a) / bitola_final
-  const queda_final_pct = (queda_final / tensao_v) * 100
-
-  return {
-    bitola_mm2: bitola_final,
-    bitola_calculada: bitola_recomendada,
-    queda_tensao_real: parseFloat(queda_final_pct.toFixed(2)),
-    queda_tensao_max: queda_tensao_max,
-    queda_tensao_ok: queda_final_pct <= queda_tensao_max,
-    unidade_bitola: 'mm²',
-    unidade_queda: '%',
-    norma: 'NBR 5410:2004',
-  }
-}
-
-/**
- * Calcula os parâmetros do disjuntor conforme NBR 5410
- * I_disjuntor = 1.3 × I_projeto (máximo permitido)
- *
- * @param {number} corrente_a - Corrente de projeto em Amperes
- * @returns {object} { disjuntor_A, curva_recomendada, norma }
- */
-function calcularDisjuntorNBR5410(corrente_a) {
-  // Disjuntor máximo permitido = 1.3 × I_projeto
-  const disjuntor_max = corrente_a * 1.3
-
-  // Valores comerciais de disjuntores
-  const valores_comerciais = [10, 16, 20, 25, 32, 40, 50, 63, 80, 100]
-  const disjuntor_recomendado = valores_comerciais.find(
-    (val) => val >= disjuntor_max
-  ) || valores_comerciais[valores_comerciais.length - 1]
-
-  // Definir curva baseado na aplicação
-  let curva = 'C' // Padrão para cargas normais
-  if (corrente_a <= 16) {
-    curva = 'B' // Para cargas com inrush suave
-  }
-
-  return {
-    disjuntor_a: disjuntor_recomendado,
-    disjuntor_max_permitido: parseFloat(disjuntor_max.toFixed(2)),
-    curva_recomendada: curva,
-    tipo: `Disjuntor ${disjuntor_recomendado}A Curva ${curva}`,
-    norma: 'NBR 5410:2004',
-  }
-}
-
-/**
  * Valida e retorna informações do DR (Dispositivo de Proteção Diferencial)
  * Conforme NBR IEC 61851-1:2021
  * Obrigatório: 30mA máximo
@@ -391,6 +268,16 @@ function gerarListaMaterialesNBRProjeto(potencia_kw, tipo_carregador, bitola_mm2
   ]
 }
 
+// BUG-017: tabela de condutores (Cu 70°C, eletroduto — NBR 5410 Tab.36) IDÊNTICA ao
+// motor do frontend (services/calculosNBR5410EV.js). Fonte de valores única entre os motores.
+const TABELA_COBRE_NBR = [
+  { bitola: 1.5, capacidade_a: 15.5 }, { bitola: 2.5, capacidade_a: 21 }, { bitola: 4, capacidade_a: 28 },
+  { bitola: 6, capacidade_a: 36 }, { bitola: 10, capacidade_a: 50 }, { bitola: 16, capacidade_a: 68 },
+  { bitola: 25, capacidade_a: 89 }, { bitola: 35, capacidade_a: 109 }, { bitola: 50, capacidade_a: 134 },
+  { bitola: 70, capacidade_a: 170 }, { bitola: 95, capacidade_a: 207 }, { bitola: 120, capacidade_a: 239 },
+]
+const DISJUNTORES_NBR = [6, 10, 13, 16, 20, 25, 32, 40, 50, 63, 80, 100, 125, 160, 200]
+
 export function executarCalculosProjetoEV(dados) {
   if (!dados.carregadores || dados.carregadores.length === 0) {
     return { erro: 'Nenhum carregador definido' }
@@ -398,77 +285,76 @@ export function executarCalculosProjetoEV(dados) {
 
   const carregador = dados.carregadores[0]
   const potencia_kw = carregador.potencia_kw || 7
-  const tensao_v = dados.tensao_sistema || 230
+  // BUG-017: MESMOS inputs e MESMA metodologia do motor do frontend (elimina divergência).
+  const tensao_v = carregador.tensao_entrada_v || dados.tensao_sistema || 220
+  const numero_fases = Number(carregador.numero_fases) || (String(carregador.tipo || '').includes('Tri') ? 3 : 1)
   const comprimento_m = dados.comprimento_cabo_m || 30
   const resistencia_ohms = dados.resistencia_aterramento_ohms
 
-  // Cálculo de corrente de projeto
-  const corrente_data = calcularCorrenteProjetoNBR5410(potencia_kw, tensao_v)
-  const corrente_projeto = corrente_data.corrente_comercial
+  // Ib (corrente de projeto) = nominal do CATÁLOGO, ou P/(V·√3(tri)·fp). Nunca inflada por
+  // arredondamento comercial nem por fator de segurança (o 1,25 é SÓ para o condutor).
+  const fator_potencia = 0.95
+  const fator_raiz3 = numero_fases === 3 ? Math.sqrt(3) : 1
+  const corrente_calculada = (potencia_kw * 1000) / (tensao_v * fator_raiz3 * fator_potencia)
+  const Ib = carregador.corrente_entrada_a ? Number(carregador.corrente_entrada_a) : corrente_calculada
+  const corrente_projeto_a = parseFloat(Ib.toFixed(2))
 
-  // Cálculo de bitola
-  const bitola_data = calcularBitolaNBR5410(
-    corrente_projeto,
-    comprimento_m,
-    3, // máximo 3% de queda
-    tensao_v
-  )
+  // Condutor: Iz ≥ Ib·1,25 (carga contínua NBR 5410 9.5.1.1) corrigido por temperatura (0,95).
+  const corrente_maxima_a = Ib * 1.25
+  const corrente_corrigida = corrente_maxima_a / 0.95
+  let bitola_cabo_mm2 = 2.5
+  for (const c of TABELA_COBRE_NBR) { if (c.capacidade_a >= corrente_corrigida) { bitola_cabo_mm2 = c.bitola; break } }
 
-  // Cálculo de disjuntor
-  const disjuntor_data = calcularDisjuntorNBR5410(corrente_projeto)
-
-  // Especificação de DR
-  const dr_data = obterEspecificacaoDRNBREIEC618511()
-
-  // Validação de aterramento
-  const aterramento_data = resistencia_ohms
-    ? validarAteramentoNBR5410(resistencia_ohms)
-    : null
-
-  // Conformidade
-  const conformidade = {
-    corrente_ok: true,
-    bitola_ok: bitola_data.queda_tensao_ok,
-    queda_tensao_ok: bitola_data.queda_tensao_ok,
-    disjuntor_ok: true,
-    dr_ok: dr_data.corrente_fuga_max_ma <= 30,
-    aterramento_ok: aterramento_data ? aterramento_data.conforme : null,
-    spda_necessario: false, // Será determinado por localização
-    conforme: bitola_data.queda_tensao_ok && (!aterramento_data || aterramento_data.conforme),
+  // Queda de tensão (ρ Cu 70°C = 0,0179; limite 3%) — MESMA fórmula do frontend.
+  const resistividade = 0.0179
+  const quedaPct = (S) => ((resistividade * comprimento_m * Ib) / S / tensao_v) * 100
+  let queda_tensao_pct = quedaPct(bitola_cabo_mm2)
+  if (queda_tensao_pct > 3) {
+    for (const c of TABELA_COBRE_NBR) { if (quedaPct(c.bitola) <= 3) { bitola_cabo_mm2 = c.bitola; queda_tensao_pct = quedaPct(c.bitola); break } }
   }
 
-  // Cálculo de tempo de seccionamento automático
-  // Para eletrocussão (< 50V): até 5s
-  // Para 120V a 230V: até 0.4s
-  // Para > 230V: até 0.2s
+  // Disjuntor: menor comercial ≥ Ib (Ib ≤ In ≤ Iz).
+  let disjuntor_a = DISJUNTORES_NBR[DISJUNTORES_NBR.length - 1]
+  for (const d of DISJUNTORES_NBR) { if (d >= Ib) { disjuntor_a = d; break } }
+  const capacidade_cabo_a = TABELA_COBRE_NBR.find(c => c.bitola === bitola_cabo_mm2)?.capacidade_a || 0
+
+  const dr_data = obterEspecificacaoDRNBREIEC618511()
+  const dr_ma = dr_data.corrente_fuga_max_ma
+  const dps_kv = tensao_v >= 380 ? 420 : 275
+  const dps_capacidade_a = Math.round(Ib + 20)
   let tempo_seccionamento_s = 0.2
   if (tensao_v <= 120) tempo_seccionamento_s = 0.4
   if (tensao_v <= 50) tempo_seccionamento_s = 5
 
-  // Cálculo de DPS (Proteção contra Surtos)
-  const dps_kv = tensao_v >= 380 ? 420 : 275
-  const dps_capacidade_a = corrente_data.corrente_calculada + 20
-
-  // BOM de materiais removido: fonte única é o Catálogo Mestre (projeto.bom).
-  // Ver: P1-CATALOGO-MATERIAIS-ETAPA-2 (Etapa 2.5).
+  const aterramento_data = resistencia_ohms ? validarAteramentoNBR5410(resistencia_ohms) : null
+  const conformidade = {
+    corrente_ok: true,
+    bitola_ok: queda_tensao_pct <= 3,
+    queda_tensao_ok: queda_tensao_pct <= 3,
+    disjuntor_ok: disjuntor_a <= capacidade_cabo_a,   // In ≤ Iz
+    dr_ok: dr_ma <= 30,
+    aterramento_ok: aterramento_data ? aterramento_data.conforme : null,
+    spda_necessario: false,
+    conforme: queda_tensao_pct <= 3 && disjuntor_a <= capacidade_cabo_a && (!aterramento_data || aterramento_data.conforme),
+  }
 
   return {
     calculos_nbr: {
-      corrente_projeto_a: corrente_projeto,
-      corrente_maxima_a: corrente_data.corrente_calculada,
-      bitola_cabo_mm2: bitola_data.bitola_mm2,
-      disjuntor_a: disjuntor_data.disjuntor_a,
-      dr_ma: dr_data.corrente_fuga_max_ma,
-      dps_kv: dps_kv,
-      dps_capacidade_a: dps_capacidade_a,
-      tempo_seccionamento_s: tempo_seccionamento_s,
-      queda_tensao_pct: bitola_data.queda_tensao_real,
+      corrente_projeto_a,
+      corrente_maxima_a: parseFloat(corrente_maxima_a.toFixed(2)),
+      bitola_cabo_mm2,
+      disjuntor_a,
+      dr_ma,
+      dps_kv,
+      dps_capacidade_a,
+      tempo_seccionamento_s,
+      queda_tensao_pct: parseFloat(queda_tensao_pct.toFixed(2)),
     },
     conformidade_norms: conformidade,
     detalhes: {
-      corrente: corrente_data,
-      bitola: bitola_data,
-      disjuntor: disjuntor_data,
+      corrente: { corrente_calculada: parseFloat(corrente_calculada.toFixed(2)), Ib: corrente_projeto_a, norma: 'NBR 5410:2004' },
+      bitola: { bitola_mm2: bitola_cabo_mm2, capacidade_cabo_a, queda_tensao_real: parseFloat(queda_tensao_pct.toFixed(2)) },
+      disjuntor: { disjuntor_a, norma: 'NBR 5410:2004' },
       dr: dr_data,
       aterramento: aterramento_data,
     },
@@ -476,9 +362,6 @@ export function executarCalculosProjetoEV(dados) {
 }
 
 export {
-  calcularCorrenteProjetoNBR5410,
-  calcularBitolaNBR5410,
-  calcularDisjuntorNBR5410,
   obterEspecificacaoDRNBREIEC618511,
   obterModoOperacao,
   obterEspecificacaoConector,

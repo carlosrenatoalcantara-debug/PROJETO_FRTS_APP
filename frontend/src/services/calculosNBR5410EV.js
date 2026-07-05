@@ -27,10 +27,14 @@ export function calcularParametrosNBR5410({
 }) {
   const potencia_w = potencia_kw * 1000
 
-  // Ib_calculado: corrente derivada da potência (usado para o cabo)
+  // BUG-017: corrente de PROJETO (Ib) = corrente nominal do CATÁLOGO quando informada
+  // (é a corrente real de entrada AC do carregador). Só quando ausente derivamos da
+  // potência: Ib = P / (V · √3(tri) · fp). Antes usava-se sempre P/(V·fp0,95), o que
+  // inflava a corrente ACIMA da nominal do catálogo → corrente_projeto > disjuntor.
   const fator_potencia = 0.95
   const fator_raiz3 = Number(numero_fases) === 3 ? Math.sqrt(3) : 1
-  const corrente_projeto_a = potencia_w / (tensao_entrada_v * fator_raiz3 * fator_potencia)
+  const corrente_calculada_a = potencia_w / (tensao_entrada_v * fator_raiz3 * fator_potencia)
+  const corrente_projeto_a = corrente_nominal_a ? Number(corrente_nominal_a) : corrente_calculada_a
 
   // In_cabo: corrente de dimensionamento dos condutores
   // NBR 5410 9.5.1.1 — carga contínua (>3h): fator 1,25
@@ -89,9 +93,9 @@ export function calcularParametrosNBR5410({
   }
 
   // ── SELEÇÃO DO DISJUNTOR ─────────────────────────────────────────────────
-  // Ib = corrente nominal do equipamento (catálogo) ou corrente_projeto_a
+  // Ib = corrente de projeto (= nominal do catálogo, ou calculada).
   // Critério: menor disjuntor comercial >= Ib (NBR 5410: Ib ≤ In ≤ Iz)
-  const Ib = corrente_nominal_a ? Number(corrente_nominal_a) : corrente_projeto_a
+  const Ib = corrente_projeto_a
   const disjuntores_normalizados = [6, 10, 13, 16, 20, 25, 32, 40, 50, 63, 80, 100, 125, 160, 200]
   let disjuntor_a = disjuntores_normalizados[disjuntores_normalizados.length - 1]
   for (const dj of disjuntores_normalizados) {
@@ -124,6 +128,7 @@ export function calcularParametrosNBR5410({
     disjuntor_a,
     dr_ma,
     dps_kv,
+    dps_capacidade_a:    Math.round(Ib + 20),   // BUG-017: completa o calc (evita recálculo no GET)
     queda_tensao_pct:    parseFloat(queda_tensao_pct.toFixed(2)),
     tempo_seccionamento_s,
     materiais: gerarListaMateriais({ potencia_kw, tipo_carregador, numero_fases, bitola_mm2: bitola_cabo_mm2, disjuntor_a, dr_ma, dps_kv, comprimento_m: comprimento_cabo_m, incluir_mob_box, tipo_conector }),
