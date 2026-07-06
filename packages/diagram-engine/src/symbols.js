@@ -200,8 +200,12 @@ export function desenharComponente(c, pos) {
     case TIPOS.DPS: {
       const corpo = ilustradoDPS(x, y, s.tensao_v ? `${s.tensao_v}V` : '', c.polos || 1)
       const cor = CORES_SETA[s.condutor] || '#334155'
-      const seta = setaBaixo(x + 21, y - 16, cor)
-      return `<g>${corpo}${seta}</g>`
+      // Topo: seta de entrada (cor do condutor que o DPS deriva). Base: seta de saída
+      // verde (descarga para o aterramento) — mesmo padrão do Disjuntor/IDR (setas no
+      // topo e na base), substituindo a antiga linha tracejada DPS→Aterramento.
+      const setaTopo = setaBaixo(x + 21, y - 16, cor)
+      const setaBase = setaBaixo(x + 21, y + 100 + 3, '#2e9e3f')
+      return `<g>${corpo}${setaTopo}${setaBase}</g>`
     }
     case TIPOS.BARRAMENTO: {
       const sub = String(c.subtipo || '').toLowerCase()

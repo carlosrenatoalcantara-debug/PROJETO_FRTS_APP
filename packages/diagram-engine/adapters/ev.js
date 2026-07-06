@@ -111,7 +111,7 @@ function construirTemplateEV(template, { disjA, bitola, comprimento, tensao, dps
       // ocultarLinha: o DPS já traz sua própria seta de origem (symbols.js); a linha reta
       // centro-a-centro coincidiria com o tronco (DPS está na mesma fileira do IDR/Carregador).
       connections.push(conexao({ id: `c-idr-dps${i}`, from: 'dr', to: `dps${i}`, papel: PAPEL_CONEXAO.DERIVACAO, condutores: [{ papel: papeisDPS[i] }], specs: { ocultarLinha: true } }))
-      connections.push(conexao({ id: `c-dps${i}-terra`, from: `dps${i}`, to: 'barr_terra', papel: PAPEL_CONEXAO.DERIVACAO, condutores: [{ papel: 'terra' }] }))
+      connections.push(conexao({ id: `c-dps${i}-terra`, from: `dps${i}`, to: 'barr_terra', papel: PAPEL_CONEXAO.DERIVACAO, condutores: [{ papel: 'terra' }], specs: { ocultarLinha: true } }))
       posicoes[`dps${i}`] = POS_DPS_TRI[i]
     }
     return { components, connections, posicoes }
@@ -144,9 +144,11 @@ function construirTemplateEV(template, { disjA, bitola, comprimento, tensao, dps
   const nd = Math.min(Math.max(nDPS, 1), 2)
   for (let i = 0; i < nd; i++) {
     components.push(componente({ id: `dps${i}`, tipo: TIPOS.DPS, polos: 1, specs: { tensao_v: dpsV, condutor: papeisDPS[i] } }))
-    // DPS deriva do IDR → DPS → Aterramento (nunca em série)
-    connections.push(conexao({ id: `c-idr-dps${i}`, from: 'dr', to: `dps${i}`, papel: PAPEL_CONEXAO.DERIVACAO, condutores: [{ papel: papeisDPS[i] }] }))
-    connections.push(conexao({ id: `c-dps${i}-terra`, from: `dps${i}`, to: 'barr_terra', papel: PAPEL_CONEXAO.DERIVACAO, condutores: [{ papel: 'terra' }] }))
+    // DPS deriva do IDR → DPS → Aterramento (nunca em série). ocultarLinha: o DPS já
+    // traz sua própria seta de origem/descarga (symbols.js) — a linha reta centro-a-
+    // centro ficava redundante (sobrepondo o tronco) e poluída (cruzando o desenho).
+    connections.push(conexao({ id: `c-idr-dps${i}`, from: 'dr', to: `dps${i}`, papel: PAPEL_CONEXAO.DERIVACAO, condutores: [{ papel: papeisDPS[i] }], specs: { ocultarLinha: true } }))
+    connections.push(conexao({ id: `c-dps${i}-terra`, from: `dps${i}`, to: 'barr_terra', papel: PAPEL_CONEXAO.DERIVACAO, condutores: [{ papel: 'terra' }], specs: { ocultarLinha: true } }))
     posicoes[`dps${i}`] = POS_DPS_MONO[i]
   }
   return { components, connections, posicoes }
