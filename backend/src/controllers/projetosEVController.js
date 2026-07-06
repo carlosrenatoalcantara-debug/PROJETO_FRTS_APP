@@ -304,7 +304,21 @@ export const atualizarProjetoEV = async (req, res) => {
       try {
         const resultados = executarCalculosProjetoEV(dadosParaCalculo)
         if (!resultados.erro) {
-          dadosAtualizacao.calculos_nbr = resultados.calculos_nbr
+          // BUG: executarCalculosProjetoEV() recalcula só os parâmetros ELÉTRICOS
+          // (corrente/bitola/disjuntor/etc) e NÃO devolve materiais — sobrescrever
+          // calculos_nbr inteiro com esse resultado apagava a lista de materiais
+          // (calculos_nbr.materiais) em TODO salvamento do wizard que muda
+          // carregadores/comprimento (ou seja, praticamente qualquer "atualizar
+          // orçamento"), mesmo quando o frontend mandou a lista completa e correta.
+          // Preserva os materiais já existentes (do próprio payload ou do projeto
+          // salvo) em vez de deixar o recálculo elétrico apagá-los.
+          const materiaisPreservados =
+            (dadosAtualizacao.calculos_nbr?.materiais?.length && dadosAtualizacao.calculos_nbr.materiais)
+            || (dadosAtualizacao.bom?.length && dadosAtualizacao.bom)
+            || (projetoAtual.calculos_nbr?.materiais?.length && projetoAtual.calculos_nbr.materiais)
+            || projetoAtual.bom
+            || []
+          dadosAtualizacao.calculos_nbr = { ...resultados.calculos_nbr, materiais: materiaisPreservados }
           dadosAtualizacao.conformidade_norms = resultados.conformidade_norms
 
           // Atualizar informações de aterramento
