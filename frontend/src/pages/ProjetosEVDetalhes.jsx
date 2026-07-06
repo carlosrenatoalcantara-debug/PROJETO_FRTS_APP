@@ -349,6 +349,7 @@ export default function ProjetosEVDetalhes() {
       h1{font-size:20px;border-bottom:2px solid #2563eb;padding-bottom:8px}h2{font-size:14px;color:#475569;margin-top:20px}
       table{width:100%;border-collapse:collapse;font-size:12px;margin-top:6px}td,th{border-bottom:1px solid #e2e8f0;padding:6px 4px;text-align:left}
       .total{font-size:18px;font-weight:bold;color:#059669;text-align:right;margin-top:16px}.meta{font-size:12px;color:#64748b}</style></head><body>
+      ${empresaCfg?.branding?.logo ? `<img src="${empresaCfg.branding.logo}" style="max-height:64px;max-width:220px;display:block;margin-bottom:12px"/>` : ''}
       <h1>Proposta Comercial — ${nome}</h1>
       <p class="meta"><b>Cliente:</b> ${clienteNome}<br/><b>Local:</b> ${projeto?.endereco_completo || '—'}<br/>
       <b>Carregador:</b> ${carregador ? `${carregador.marca || ''} ${carregador.modelo || ''}`.trim() : '—'} — ${potenciaTotal}kW</p>
