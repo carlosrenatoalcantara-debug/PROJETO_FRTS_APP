@@ -9,6 +9,7 @@
  */
 import PDFDocument from 'pdfkit'
 import SVGtoPDF from 'svg-to-pdfkit'
+import { desenharMemorialDescritivo } from './gerarMemorialDescritivo.js'
 
 // BUG-013: o DiagramEngine é instalado como DEPENDÊNCIA do backend
 // (@fortesolar/diagram-engine, vendorizado em backend/vendor). Assim ele viaja
@@ -54,6 +55,9 @@ export async function gerarPDFUnifilar(projeto, cliente, _tecnico) {
   return new Promise((resolve, reject) => {
     try {
       const doc = new PDFDocument({ size: 'A4', layout: 'landscape', margin: 0 })
+      // Página 1: memorial descritivo (laudo técnico) — página 2: unifilar (SVG do Engine).
+      desenharMemorialDescritivo(doc, plain, plain.clienteId)
+      doc.addPage({ size: 'A4', layout: 'landscape', margin: 0 })
       SVGtoPDF(doc, svg, 0, 0, { width: doc.page.width, height: doc.page.height, preserveAspectRatio: 'xMidYMid meet' })
       const chunks = []
       doc.on('data', (c) => chunks.push(c))
@@ -77,6 +81,9 @@ export async function gerarPDFUnifilarStream(projeto, cliente, _tecnico) {
   const svg = _renderSVG(canonical)
 
   const doc = new PDFDocument({ size: 'A4', layout: 'landscape', margin: 0 })
+  // Página 1: memorial descritivo (laudo técnico) — página 2: unifilar (SVG do Engine).
+  desenharMemorialDescritivo(doc, plain, plain.clienteId)
+  doc.addPage({ size: 'A4', layout: 'landscape', margin: 0 })
   SVGtoPDF(doc, svg, 0, 0, { width: doc.page.width, height: doc.page.height, preserveAspectRatio: 'xMidYMid meet' })
   return doc
 }
