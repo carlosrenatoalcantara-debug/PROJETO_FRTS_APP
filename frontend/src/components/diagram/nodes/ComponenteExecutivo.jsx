@@ -11,7 +11,7 @@
  */
 import { memo } from 'react'
 import { Handle, Position } from 'reactflow'
-import { desenharComponente } from '@diagram-engine/symbols'
+import { desenharComponente, larguraComponente } from '@diagram-engine/symbols'
 import { COMPONENTE } from '@diagram-engine/geometry'
 
 const handleLR = { background: '#10b981', width: 9, height: 9 }
@@ -23,7 +23,10 @@ function ComponenteExecutivoBase({ data, selected }) {
     tipo: data?.tipo, subtipo: data?.subtipo, label: data?.label,
     polos: data?.polos, specs: data?.specs || data,
   }
-  const svg = desenharComponente(c, { x: 0, y: 0 })
+  // Ajuste homologado: os novos desenhos são mais estreitos que a caixa nominal do
+  // editor (COMPONENTE.W) — centraliza horizontalmente para não sobrar vão vazio.
+  const offsetX = Math.max(0, (COMPONENTE.W - larguraComponente(c)) / 2)
+  const svg = desenharComponente(c, { x: offsetX, y: 0 })
 
   return (
     <div style={{ width: COMPONENTE.W, height: COMPONENTE.H, position: 'relative' }}>

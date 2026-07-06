@@ -63,6 +63,11 @@ function setaSentido(ax, ay, bx, by, cor) {
 function desenharConexoes(connections, layout) {
   let s = ''
   for (const cx of connections) {
+    // Ajuste homologado: quando o componente derivado (ex.: DPS) já tem sua própria
+    // seta indicando o condutor de origem, a linha reta centro-a-centro sobreporia o
+    // tronco principal (ambos passam pela mesma fileira). `ocultarLinha` suprime só o
+    // traço/seta desta ligação — a ligação em si continua no modelo (topologia/BOM).
+    if (cx.specs?.ocultarLinha) continue
     const a = centro(layout[cx.from]); const b = centro(layout[cx.to])
     const condutores = cx.condutores?.length ? cx.condutores : [{ papel: 'fase' }]
     const tracejado = cx.papel === PAPEL_CONEXAO.DERIVACAO

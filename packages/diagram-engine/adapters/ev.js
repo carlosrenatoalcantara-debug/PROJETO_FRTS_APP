@@ -108,7 +108,9 @@ function construirTemplateEV(template, { disjA, bitola, comprimento, tensao, dps
     const nd = Math.min(Math.max(nDPS, 1), 4)
     for (let i = 0; i < nd; i++) {
       components.push(componente({ id: `dps${i}`, tipo: TIPOS.DPS, polos: 1, specs: { tensao_v: dpsV, condutor: papeisDPS[i] } }))
-      connections.push(conexao({ id: `c-idr-dps${i}`, from: 'dr', to: `dps${i}`, papel: PAPEL_CONEXAO.DERIVACAO, condutores: [{ papel: papeisDPS[i] }] }))
+      // ocultarLinha: o DPS já traz sua própria seta de origem (symbols.js); a linha reta
+      // centro-a-centro coincidiria com o tronco (DPS está na mesma fileira do IDR/Carregador).
+      connections.push(conexao({ id: `c-idr-dps${i}`, from: 'dr', to: `dps${i}`, papel: PAPEL_CONEXAO.DERIVACAO, condutores: [{ papel: papeisDPS[i] }], specs: { ocultarLinha: true } }))
       connections.push(conexao({ id: `c-dps${i}-terra`, from: `dps${i}`, to: 'barr_terra', papel: PAPEL_CONEXAO.DERIVACAO, condutores: [{ papel: 'terra' }] }))
       posicoes[`dps${i}`] = POS_DPS_TRI[i]
     }

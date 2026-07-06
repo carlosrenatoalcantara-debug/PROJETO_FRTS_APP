@@ -250,5 +250,20 @@ function glifoNeutroJuncao(x, y, label) {
   </g>`
 }
 
+// Largura REAL do desenho de um componente (todas menores que a caixa nominal W=120
+// do editor). Usada só para CENTRALIZAR o desenho dentro da caixa fixa do editor —
+// não afeta as posições fixas do SVG executivo (adapters/ev.js), que já usam a
+// largura real diretamente.
+export function larguraComponente(c) {
+  switch (c?.tipo) {
+    case TIPOS.REDE: return /medidor/i.test(c.label || '') ? 80 : W
+    case TIPOS.DISJUNTOR:
+    case TIPOS.DR: return (c.polos || 2) >= 4 ? 96 : 54
+    case TIPOS.DPS: return 42
+    case TIPOS.EQUIPAMENTO: return c.subtipo === 'carregador_ev' ? 90 : W
+    default: return W
+  }
+}
+
 export const DIM_COMPONENTE = Object.freeze({ W, H })
 export { esc }
