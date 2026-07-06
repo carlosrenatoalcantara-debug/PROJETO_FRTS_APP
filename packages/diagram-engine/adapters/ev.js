@@ -89,7 +89,8 @@ function construirTemplateEV(template, { disjA, bitola, comprimento, tensao, dps
       componente({ id: 'disj', tipo: TIPOS.DISJUNTOR, polos: 4, specs: { corrente_a: disjA, curva: 'C' }, ordem: 1 }),
       componente({ id: 'dr', tipo: TIPOS.DR, polos: 4, specs: { ma: drMa, classe: 'A' }, ordem: 2 }),
       componente({ id: 'carr', tipo: TIPOS.EQUIPAMENTO, subtipo: 'carregador_ev', label: rotuloCarr, specs: especCarr, ordem: 3 }),
-      componente({ id: 'barr_terra', tipo: TIPOS.BARRAMENTO, label: 'Barramento Terra', ordem: 4 }),
+      // FEATURE-005: ponto de terra desenhado como ATERRAMENTO (não como barra de barramento).
+      componente({ id: 'barr_terra', tipo: TIPOS.BARRAMENTO, subtipo: 'aterramento', label: 'Aterramento', ordem: 4 }),
     ]
     const connections = [
       conexao({ id: 'c-med-disj', from: 'medidor', to: 'disj', condutores: cond4 }),
@@ -118,8 +119,9 @@ function construirTemplateEV(template, { disjA, bitola, comprimento, tensao, dps
     componente({ id: 'disj', tipo: TIPOS.DISJUNTOR, polos: 2, specs: { corrente_a: disjA, curva: 'C' }, ordem: 2 }),
     componente({ id: 'dr', tipo: TIPOS.DR, polos: 2, specs: { ma: drMa, classe: 'A' }, ordem: 3 }),
     componente({ id: 'carr', tipo: TIPOS.EQUIPAMENTO, subtipo: 'carregador_ev', label: rotuloCarr, specs: especCarr, ordem: 4 }),
-    componente({ id: 'barr_neutro', tipo: TIPOS.BARRAMENTO, label: 'Barramento Neutro', ordem: 5 }),
-    componente({ id: 'barr_terra', tipo: TIPOS.BARRAMENTO, label: 'Barramento Terra', ordem: 6 }),
+    // FEATURE-005: sem barra de barramento. Neutro = nó de junção; Terra = aterramento normativo.
+    componente({ id: 'barr_neutro', tipo: TIPOS.BARRAMENTO, subtipo: 'neutro', label: 'Neutro', ordem: 5 }),
+    componente({ id: 'barr_terra', tipo: TIPOS.BARRAMENTO, subtipo: 'aterramento', label: 'Aterramento', ordem: 6 }),
   ]
   const connections = [
     // FASE: Medidor → Disjuntor Geral → Disjuntor Bipolar
