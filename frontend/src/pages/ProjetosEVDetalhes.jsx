@@ -341,15 +341,26 @@ export default function ProjetosEVDetalhes() {
     } catch (e) { alert(`Erro ao gerar PDF executivo: ${e.message}`) }
   }
 
-  const gerarPDFComercial = () => {
+  const gerarPDFComercial = async () => {
     const win = window.open('', '_blank'); if (!win) { alert('Permita pop-ups para gerar o PDF.'); return }
+    // empresaCfg é carregado num useEffect assíncrono no mount deste componente — se o
+    // usuário clicar antes desse fetch terminar, o estado ainda está null e a logo ficaria
+    // de fora. Busca na hora se ainda não chegou, para nunca depender de timing.
+    let logo = empresaCfg?.branding?.logo
+    if (!logo) {
+      try {
+        const r = await fetch(`${API_URL}/api/empresa`)
+        const d = await r.json()
+        logo = d?.config?.branding?.logo
+      } catch { /* segue sem logo */ }
+    }
     const linhas = (arr) => arr.map((it) => `<tr><td>${it.descricao}</td><td style="text-align:center">${it.quantidade} ${it.unidade || ''}</td><td style="text-align:right">${brl(subtotalItem(it))}</td></tr>`).join('')
     win.document.write(`<html><head><title>Proposta — ${nome}</title><style>
       body{font-family:Arial,sans-serif;color:#1e293b;padding:32px;max-width:900px;margin:auto}
       h1{font-size:20px;border-bottom:2px solid #2563eb;padding-bottom:8px}h2{font-size:14px;color:#475569;margin-top:20px}
       table{width:100%;border-collapse:collapse;font-size:12px;margin-top:6px}td,th{border-bottom:1px solid #e2e8f0;padding:6px 4px;text-align:left}
       .total{font-size:18px;font-weight:bold;color:#059669;text-align:right;margin-top:16px}.meta{font-size:12px;color:#64748b}</style></head><body>
-      ${empresaCfg?.branding?.logo ? `<img src="${empresaCfg.branding.logo}" style="max-height:64px;max-width:220px;display:block;margin-bottom:12px"/>` : ''}
+      ${logo ? `<img src="${logo}" style="max-height:64px;max-width:220px;display:block;margin-bottom:12px"/>` : ''}
       <h1>Proposta Comercial — ${nome}</h1>
       <p class="meta"><b>Cliente:</b> ${clienteNome}<br/><b>Local:</b> ${projeto?.endereco_completo || '—'}<br/>
       <b>Carregador:</b> ${carregador ? `${carregador.marca || ''} ${carregador.modelo || ''}`.trim() : '—'} — ${potenciaTotal}kW</p>
