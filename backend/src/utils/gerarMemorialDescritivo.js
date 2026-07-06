@@ -30,16 +30,23 @@ const esc = (s) => String(s ?? '')
 
 function cabecalho(doc, largura, margem, projeto) {
   const y0 = margem
-  doc.rect(margem, y0, largura, 38).fill('#0f766e')
-  doc.fillColor('#ffffff').font('Helvetica-Bold').fontSize(14)
-    .text('MEMORIAL DESCRITIVO — CIRCUITO PARA CARREGADOR VEICULAR (WALLBOX)', margem + 12, y0 + 6, { width: largura - 24 })
+  const larguraTexto = largura - 24
+  const titulo = 'MEMORIAL DESCRITIVO — CIRCUITO PARA CARREGADOR VEICULAR (WALLBOX)'
+  // Altura do título calculada de verdade (heightOfString) — em páginas mais estreitas
+  // (retrato) o título quebra em 2 linhas; sem isso o subtítulo ficava sobreposto.
+  doc.font('Helvetica-Bold').fontSize(13)
+  const alturaTitulo = doc.heightOfString(titulo, { width: larguraTexto, lineGap: 1 })
+  const alturaFaixa = alturaTitulo + 28
+  doc.rect(margem, y0, largura, alturaFaixa).fill('#0f766e')
+  doc.fillColor('#ffffff').text(titulo, margem + 12, y0 + 7, { width: larguraTexto, lineGap: 1 })
   const carregador = (projeto.carregadores && projeto.carregadores[0]) || {}
   const potenciaTxt = carregador.potencia_kw ? `${carregador.potencia_kw}kW` : '—'
   const tensaoTxt = carregador.tensao_entrada_v ? `${carregador.tensao_entrada_v}V` : '—'
   const faseTxt = Number(carregador.numero_fases) >= 3 ? 'Trifásico' : 'Monofásico'
   doc.font('Helvetica').fontSize(9)
-    .text(`Potência nominal: ${potenciaTxt}  |  Tensão: ${tensaoTxt} — ${faseTxt}  |  Projeto: ${esc(projeto.nome)}`, margem + 12, y0 + 24, { width: largura - 24 })
-  return y0 + 38 + 8
+    .text(`Potência nominal: ${potenciaTxt}  |  Tensão: ${tensaoTxt} — ${faseTxt}  |  Projeto: ${esc(projeto.nome)}`,
+      margem + 12, y0 + 9 + alturaTitulo, { width: larguraTexto })
+  return y0 + alturaFaixa + 8
 }
 
 function tituloSecao(doc, x, y, largura, texto) {

@@ -54,8 +54,8 @@ export async function gerarPDFUnifilar(projeto, cliente, _tecnico) {
 
   return new Promise((resolve, reject) => {
     try {
-      const doc = new PDFDocument({ size: 'A4', layout: 'landscape', margin: 0 })
-      // Página 1: memorial descritivo (laudo técnico) — página 2: unifilar (SVG do Engine).
+      const doc = new PDFDocument({ size: 'A4', layout: 'portrait', margin: 0 })
+      // Página 1: memorial descritivo (laudo técnico, A4 RETRATO) — página 2: unifilar (A4 PAISAGEM, SVG do Engine).
       desenharMemorialDescritivo(doc, plain, plain.clienteId)
       doc.addPage({ size: 'A4', layout: 'landscape', margin: 0 })
       SVGtoPDF(doc, svg, 0, 0, { width: doc.page.width, height: doc.page.height, preserveAspectRatio: 'xMidYMid meet' })
@@ -80,8 +80,8 @@ export async function gerarPDFUnifilarStream(projeto, cliente, _tecnico) {
   const canonical = _construirCanonical(plain)
   const svg = _renderSVG(canonical)
 
-  const doc = new PDFDocument({ size: 'A4', layout: 'landscape', margin: 0 })
-  // Página 1: memorial descritivo (laudo técnico) — página 2: unifilar (SVG do Engine).
+  const doc = new PDFDocument({ size: 'A4', layout: 'portrait', margin: 0 })
+  // Página 1: memorial descritivo (laudo técnico, A4 RETRATO) — página 2: unifilar (A4 PAISAGEM, SVG do Engine).
   desenharMemorialDescritivo(doc, plain, plain.clienteId)
   doc.addPage({ size: 'A4', layout: 'landscape', margin: 0 })
   SVGtoPDF(doc, svg, 0, 0, { width: doc.page.width, height: doc.page.height, preserveAspectRatio: 'xMidYMid meet' })
