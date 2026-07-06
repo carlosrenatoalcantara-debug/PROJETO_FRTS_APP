@@ -55,18 +55,20 @@ export function escolherTemplateEV(fasesAlimentacao, fasesCarregador) {
 }
 
 // Posições FIXAS (canto superior-esquerdo, coords A4/DIAGRAM_BOX). NUNCA calculadas.
-// Lane superior (y=248): fluxo F/N. Lane inferior (y=360): barramentos + DPS.
+// Ajuste homologado: sem Disjuntor Geral nem Barramento Neutro — Medidor, Disjuntor,
+// IDR, DPS(s) e Carregador ficam todos na MESMA fileira (y=244). O Aterramento fica
+// numa fileira abaixo (y=352), só embaixo dos DPS, e o Terra passa a correr em
+// paralelo com Fase/Neutro somente a partir dali até o Carregador.
 const POS_MONO = Object.freeze({
-  medidor: { x: 48, y: 248 }, disj_geral: { x: 196, y: 248 }, disj: { x: 344, y: 248 },
-  dr: { x: 492, y: 248 }, carr: { x: 820, y: 248 },
-  barr_neutro: { x: 48, y: 360 }, barr_terra: { x: 288, y: 360 },
+  medidor: { x: 48, y: 244 }, disj: { x: 229, y: 244 }, dr: { x: 411, y: 244 }, carr: { x: 955, y: 244 },
+  barr_terra: { x: 623, y: 352 },
 })
-const POS_DPS_MONO = [{ x: 168, y: 360 }, { x: 408, y: 360 }]
+const POS_DPS_MONO = [{ x: 592, y: 244 }, { x: 774, y: 244 }]
 const POS_TRI = Object.freeze({
-  medidor: { x: 48, y: 248 }, disj: { x: 300, y: 248 }, dr: { x: 540, y: 248 }, carr: { x: 820, y: 248 },
-  barr_terra: { x: 416, y: 360 },
+  medidor: { x: 48, y: 244 }, disj: { x: 178, y: 244 }, dr: { x: 307, y: 244 }, carr: { x: 955, y: 244 },
+  barr_terra: { x: 572, y: 352 },
 })
-const POS_DPS_TRI = [{ x: 48, y: 360 }, { x: 232, y: 360 }, { x: 600, y: 360 }, { x: 784, y: 360 }]
+const POS_DPS_TRI = [{ x: 437, y: 244 }, { x: 567, y: 244 }, { x: 696, y: 244 }, { x: 826, y: 244 }]
 
 const bit = (papel, bitola) => ({ papel, bitola_mm2: bitola })
 
@@ -89,21 +91,23 @@ function construirTemplateEV(template, { disjA, bitola, comprimento, tensao, dps
       componente({ id: 'disj', tipo: TIPOS.DISJUNTOR, polos: 4, specs: { corrente_a: disjA, curva: 'C' }, ordem: 1 }),
       componente({ id: 'dr', tipo: TIPOS.DR, polos: 4, specs: { ma: drMa, classe: 'A' }, ordem: 2 }),
       componente({ id: 'carr', tipo: TIPOS.EQUIPAMENTO, subtipo: 'carregador_ev', label: rotuloCarr, specs: especCarr, ordem: 3 }),
-      // FEATURE-005: ponto de terra desenhado como ATERRAMENTO (não como barra de barramento).
+      // Ponto de terra desenhado como ATERRAMENTO (não como barra de barramento).
       componente({ id: 'barr_terra', tipo: TIPOS.BARRAMENTO, subtipo: 'aterramento', label: 'Aterramento', ordem: 4 }),
     ]
     const connections = [
       conexao({ id: 'c-med-disj', from: 'medidor', to: 'disj', condutores: cond4 }),
       conexao({ id: 'c-disj-dr', from: 'disj', to: 'dr', condutores: cond4 }),
       conexao({ id: 'c-dr-carr', from: 'dr', to: 'carr', condutores: cond4, specs: edgeCabo }),
-      conexao({ id: 'c-terra-med-barr', from: 'medidor', to: 'barr_terra', condutores: [bit('terra', bitola)] }),
+      // Ajuste homologado: Terra NÃO parte do Medidor — só existe a partir do
+      // símbolo de Aterramento (que recebe a descarga dos DPS), seguindo em
+      // paralelo com os demais condutores até o Carregador.
       conexao({ id: 'c-terra-barr-carr', from: 'barr_terra', to: 'carr', condutores: [bit('terra', bitola)] }),
     ]
     const posicoes = { medidor: POS_TRI.medidor, disj: POS_TRI.disj, dr: POS_TRI.dr, carr: POS_TRI.carr, barr_terra: POS_TRI.barr_terra }
     const papeisDPS = ['fase_l1', 'fase_l2', 'fase_l3', 'neutro']
     const nd = Math.min(Math.max(nDPS, 1), 4)
     for (let i = 0; i < nd; i++) {
-      components.push(componente({ id: `dps${i}`, tipo: TIPOS.DPS, polos: 1, specs: { tensao_v: dpsV } }))
+      components.push(componente({ id: `dps${i}`, tipo: TIPOS.DPS, polos: 1, specs: { tensao_v: dpsV, condutor: papeisDPS[i] } }))
       connections.push(conexao({ id: `c-idr-dps${i}`, from: 'dr', to: `dps${i}`, papel: PAPEL_CONEXAO.DERIVACAO, condutores: [{ papel: papeisDPS[i] }] }))
       connections.push(conexao({ id: `c-dps${i}-terra`, from: `dps${i}`, to: 'barr_terra', papel: PAPEL_CONEXAO.DERIVACAO, condutores: [{ papel: 'terra' }] }))
       posicoes[`dps${i}`] = POS_DPS_TRI[i]
@@ -112,40 +116,33 @@ function construirTemplateEV(template, { disjA, bitola, comprimento, tensao, dps
   }
 
   // EV_MONO_MONO e EV_TRI_MONO — MESMO desenho (spec: "Todo o restante permanece igual").
+  // Ajuste homologado: sem Disjuntor Geral, sem Barramento Neutro — Fase e Neutro
+  // entram juntos direto no Disjuntor Bipolar (nascem paralelos desde o Medidor).
   const condFN = [bit('fase', bitola), bit('neutro', bitola)]
   const components = [
     componente({ id: 'medidor', tipo: TIPOS.REDE, label: 'Medidor', specs: { tensao_v: tensao }, ordem: 0 }),
-    componente({ id: 'disj_geral', tipo: TIPOS.DISJUNTOR, polos: 1, specs: { corrente_a: disjA, curva: 'C' }, ordem: 1 }),
-    componente({ id: 'disj', tipo: TIPOS.DISJUNTOR, polos: 2, specs: { corrente_a: disjA, curva: 'C' }, ordem: 2 }),
-    componente({ id: 'dr', tipo: TIPOS.DR, polos: 2, specs: { ma: drMa, classe: 'A' }, ordem: 3 }),
-    componente({ id: 'carr', tipo: TIPOS.EQUIPAMENTO, subtipo: 'carregador_ev', label: rotuloCarr, specs: especCarr, ordem: 4 }),
-    // FEATURE-005: sem barra de barramento. Neutro = nó de junção; Terra = aterramento normativo.
-    componente({ id: 'barr_neutro', tipo: TIPOS.BARRAMENTO, subtipo: 'neutro', label: 'Neutro', ordem: 5 }),
-    componente({ id: 'barr_terra', tipo: TIPOS.BARRAMENTO, subtipo: 'aterramento', label: 'Aterramento', ordem: 6 }),
+    componente({ id: 'disj', tipo: TIPOS.DISJUNTOR, polos: 2, specs: { corrente_a: disjA, curva: 'C' }, ordem: 1 }),
+    componente({ id: 'dr', tipo: TIPOS.DR, polos: 2, specs: { ma: drMa, classe: 'A' }, ordem: 2 }),
+    componente({ id: 'carr', tipo: TIPOS.EQUIPAMENTO, subtipo: 'carregador_ev', label: rotuloCarr, specs: especCarr, ordem: 3 }),
+    // Sem barra de barramento. Terra = aterramento normativo.
+    componente({ id: 'barr_terra', tipo: TIPOS.BARRAMENTO, subtipo: 'aterramento', label: 'Aterramento', ordem: 4 }),
   ]
   const connections = [
-    // FASE: Medidor → Disjuntor Geral → Disjuntor Bipolar
-    conexao({ id: 'c-fase-med-geral', from: 'medidor', to: 'disj_geral', condutores: [bit('fase', bitola)] }),
-    conexao({ id: 'c-fase-geral-disj', from: 'disj_geral', to: 'disj', condutores: [bit('fase', bitola)] }),
-    // NEUTRO: Medidor → Barramento Neutro → Disjuntor Bipolar
-    conexao({ id: 'c-neutro-med-barr', from: 'medidor', to: 'barr_neutro', condutores: [bit('neutro', bitola)] }),
-    conexao({ id: 'c-neutro-barr-disj', from: 'barr_neutro', to: 'disj', condutores: [bit('neutro', bitola)] }),
-    // F+N pelos dispositivos bipolares: Disjuntor → IDR → Wallbox
+    // FASE+NEUTRO juntos: Medidor → Disjuntor Bipolar → IDR → Wallbox
+    conexao({ id: 'c-med-disj', from: 'medidor', to: 'disj', condutores: condFN }),
     conexao({ id: 'c-disj-dr', from: 'disj', to: 'dr', condutores: condFN }),
     conexao({ id: 'c-dr-carr', from: 'dr', to: 'carr', condutores: condFN, specs: edgeCabo }),
-    // TERRA: Medidor → Barramento Terra → Wallbox (NUNCA pelo disjuntor/IDR)
-    conexao({ id: 'c-terra-med-barr', from: 'medidor', to: 'barr_terra', condutores: [bit('terra', bitola)] }),
+    // TERRA: só existe a partir do Aterramento (recebe a descarga dos DPS) → Wallbox
     conexao({ id: 'c-terra-barr-carr', from: 'barr_terra', to: 'carr', condutores: [bit('terra', bitola)] }),
   ]
   const posicoes = {
-    medidor: POS_MONO.medidor, disj_geral: POS_MONO.disj_geral, disj: POS_MONO.disj,
-    dr: POS_MONO.dr, carr: POS_MONO.carr, barr_neutro: POS_MONO.barr_neutro, barr_terra: POS_MONO.barr_terra,
+    medidor: POS_MONO.medidor, disj: POS_MONO.disj, dr: POS_MONO.dr, carr: POS_MONO.carr, barr_terra: POS_MONO.barr_terra,
   }
   const papeisDPS = ['fase', 'neutro']
   const nd = Math.min(Math.max(nDPS, 1), 2)
   for (let i = 0; i < nd; i++) {
-    components.push(componente({ id: `dps${i}`, tipo: TIPOS.DPS, polos: 1, specs: { tensao_v: dpsV } }))
-    // DPS deriva da ENTRADA SUPERIOR do IDR → DPS → Barramento Terra (nunca em série)
+    components.push(componente({ id: `dps${i}`, tipo: TIPOS.DPS, polos: 1, specs: { tensao_v: dpsV, condutor: papeisDPS[i] } }))
+    // DPS deriva do IDR → DPS → Aterramento (nunca em série)
     connections.push(conexao({ id: `c-idr-dps${i}`, from: 'dr', to: `dps${i}`, papel: PAPEL_CONEXAO.DERIVACAO, condutores: [{ papel: papeisDPS[i] }] }))
     connections.push(conexao({ id: `c-dps${i}-terra`, from: `dps${i}`, to: 'barr_terra', papel: PAPEL_CONEXAO.DERIVACAO, condutores: [{ papel: 'terra' }] }))
     posicoes[`dps${i}`] = POS_DPS_MONO[i]

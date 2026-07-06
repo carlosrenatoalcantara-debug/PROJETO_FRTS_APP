@@ -150,7 +150,7 @@ describe('BUG-016 — templates fixos e regras obrigatórias', () => {
   it('posições FIXAS: mesmos args → mesmo layout (roteamento não é calculado)', () => {
     const a = args({ projeto: { fases: 1 } })
     expect(construirCanonicalEV(a).layout).toEqual(construirCanonicalEV(a).layout)
-    expect(construirCanonicalEV(a).layout.medidor).toEqual({ x: 48, y: 248 })
+    expect(construirCanonicalEV(a).layout.medidor).toEqual({ x: 48, y: 244 })
   })
 })
 
