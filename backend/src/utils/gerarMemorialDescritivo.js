@@ -28,8 +28,27 @@ const CAPACIDADE_CABO_A = {
 const fmt = (n, casas = 2) => (Number.isFinite(Number(n)) ? Number(n).toFixed(casas).replace('.', ',') : '—')
 const esc = (s) => String(s ?? '')
 
-function cabecalho(doc, largura, margem, projeto) {
-  const y0 = margem
+// "data:image/png;base64,...." → Buffer (formato aceito por doc.image()). Retorna
+// null se não for uma data URI válida — nunca derruba a geração do PDF por causa disso.
+function base64ParaBuffer(dataUri) {
+  const m = /^data:image\/\w+;base64,(.+)$/.exec(String(dataUri || ''))
+  if (!m) return null
+  try { return Buffer.from(m[1], 'base64') } catch { return null }
+}
+
+function cabecalho(doc, largura, margem, projeto, logoBase64) {
+  let y0 = margem
+
+  // Logomarca da empresa (Configurações) — acima da faixa colorida, alinhada à
+  // esquerda, altura fixa preservando a proporção original da imagem.
+  const logoBuf = base64ParaBuffer(logoBase64)
+  if (logoBuf) {
+    try {
+      doc.image(logoBuf, margem, y0, { fit: [150, 34], align: 'left' })
+      y0 += 34 + 8
+    } catch { /* logo corrompida/ilegível — segue sem ela */ }
+  }
+
   const larguraTexto = largura - 24
   const titulo = 'MEMORIAL DESCRITIVO — CIRCUITO PARA CARREGADOR VEICULAR (WALLBOX)'
   // Altura do título calculada de verdade (heightOfString) — em páginas mais estreitas
@@ -92,7 +111,7 @@ function tabelaComponentes(doc, x, y, largura, linhas) {
  * Desenha o memorial descritivo na página ATUAL do doc (assume página em branco,
  * cursor no topo). Quem chama decide se faz doc.addPage() antes/depois.
  */
-export function desenharMemorialDescritivo(doc, projetoOriginal, clienteOriginal) {
+export function desenharMemorialDescritivo(doc, projetoOriginal, clienteOriginal, logoBase64) {
   const projeto = projetoOriginal || {}
   const cliente = (typeof projeto.clienteId === 'object' && projeto.clienteId) || clienteOriginal || {}
   const carregador = (projeto.carregadores && projeto.carregadores[0]) || {}
@@ -102,7 +121,7 @@ export function desenharMemorialDescritivo(doc, projetoOriginal, clienteOriginal
   const margem = 26
   const largura = doc.page.width - margem * 2
 
-  let y = cabecalho(doc, largura, margem, projeto)
+  let y = cabecalho(doc, largura, margem, projeto, logoBase64)
 
   // ── 1. Objetivo ──────────────────────────────────────────────────────────
   const ehTri = Number(carregador.numero_fases) >= 3

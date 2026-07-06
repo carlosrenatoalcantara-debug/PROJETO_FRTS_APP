@@ -9,7 +9,20 @@
  */
 import PDFDocument from 'pdfkit'
 import SVGtoPDF from 'svg-to-pdfkit'
+import mongoose from 'mongoose'
 import { desenharMemorialDescritivo } from './gerarMemorialDescritivo.js'
+import { EmpresaConfig } from '../models/EmpresaConfig.js'
+
+/** Busca a logomarca da empresa (Configurações) — best-effort, nunca derruba o PDF. */
+async function obterLogoEmpresa() {
+  try {
+    if (mongoose.connection.readyState !== 1) return null
+    const cfg = await EmpresaConfig.findOne({ chave: 'default' })
+    return cfg?.branding?.logo || null
+  } catch {
+    return null
+  }
+}
 
 // BUG-013: o DiagramEngine é instalado como DEPENDÊNCIA do backend
 // (@fortesolar/diagram-engine, vendorizado em backend/vendor). Assim ele viaja
@@ -51,12 +64,13 @@ export async function gerarPDFUnifilar(projeto, cliente, _tecnico) {
   const plain = prepararProjeto(projeto, cliente)
   const canonical = _construirCanonical(plain)
   const svg = _renderSVG(canonical)
+  const logo = await obterLogoEmpresa()
 
   return new Promise((resolve, reject) => {
     try {
       const doc = new PDFDocument({ size: 'A4', layout: 'portrait', margin: 0 })
       // Página 1: memorial descritivo (laudo técnico, A4 RETRATO) — página 2: unifilar (A4 PAISAGEM, SVG do Engine).
-      desenharMemorialDescritivo(doc, plain, plain.clienteId)
+      desenharMemorialDescritivo(doc, plain, plain.clienteId, logo)
       doc.addPage({ size: 'A4', layout: 'landscape', margin: 0 })
       SVGtoPDF(doc, svg, 0, 0, { width: doc.page.width, height: doc.page.height, preserveAspectRatio: 'xMidYMid meet' })
       const chunks = []
@@ -79,10 +93,11 @@ export async function gerarPDFUnifilarStream(projeto, cliente, _tecnico) {
   const plain = prepararProjeto(projeto, cliente)
   const canonical = _construirCanonical(plain)
   const svg = _renderSVG(canonical)
+  const logo = await obterLogoEmpresa()
 
   const doc = new PDFDocument({ size: 'A4', layout: 'portrait', margin: 0 })
   // Página 1: memorial descritivo (laudo técnico, A4 RETRATO) — página 2: unifilar (A4 PAISAGEM, SVG do Engine).
-  desenharMemorialDescritivo(doc, plain, plain.clienteId)
+  desenharMemorialDescritivo(doc, plain, plain.clienteId, logo)
   doc.addPage({ size: 'A4', layout: 'landscape', margin: 0 })
   SVGtoPDF(doc, svg, 0, 0, { width: doc.page.width, height: doc.page.height, preserveAspectRatio: 'xMidYMid meet' })
   return doc
