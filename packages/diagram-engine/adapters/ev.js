@@ -160,7 +160,12 @@ function posicoesParaOverrides(posicoes = {}) {
 }
 
 function contarDPS(bom = []) {
-  const linha = bom.find(b => /DPS/i.test(b.item || b.descricao || ''))
+  // Âncora no INÍCIO da descrição ("DPS ...") — não basta /DPS/i solto, porque o item
+  // "Trilho DIN (Fixação de disjuntor/DR/DPS no quadro)" também contém a substring
+  // "DPS" (cita os dispositivos que o trilho acomoda) e aparece ANTES do item real de
+  // DPS na lista de materiais — o find() pegava a quantidade errada (a do trilho, não
+  // a do próprio DPS), fazendo o unifilar desenhar 1 DPS em vez de 2.
+  const linha = bom.find(b => /^DPS\b/i.test((b.item || b.descricao || '').trim()))
   const q = Number(linha?.quantidade)
   return Number.isFinite(q) && q > 0 ? q : 2 // NBR 5410 6.3.5.2: mínimo 2
 }

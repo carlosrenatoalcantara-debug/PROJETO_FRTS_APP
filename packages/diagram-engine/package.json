@@ -1,6 +1,6 @@
 {
   "name": "@fortesolar/diagram-engine",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Motor determinístico de diagramas elétricos (neutro: EV/FV/BESS). Layout + SVG a partir de um JSON canônico de componentes elétricos genéricos.",
   "type": "module",
   "main": "index.js",
