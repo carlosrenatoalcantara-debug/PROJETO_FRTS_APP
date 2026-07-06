@@ -7,7 +7,10 @@
  *  - Prioridade 1: corrente_nominal_a (informada pelo fabricante no catálogo)
  *  - Prioridade 2: corrente_projeto_a (calculada pela potência quando catálogo
  *                  não informa corrente_entrada_a)
- *  - Critério: menor valor comercial normalizado >= Ib
+ *  - Critério: menor valor comercial normalizado >= Ib, com folga MÍNIMA de 5%
+ *    (se o disjuntor imediatamente acima de Ib tiver menos de 5% de margem —
+ *    ex.: carregador de 32A caindo num disjuntor de exatos 32A —, usa-se o
+ *    próximo valor comercial, para evitar desarme por uso contínuo).
  *  - O fator 125% (carga contínua) aplica-se EXCLUSIVAMENTE ao dimensionamento
  *    dos condutores (Iz), nunca à seleção do disjuntor.
  *
@@ -94,16 +97,24 @@ export function calcularParametrosNBR5410({
 
   // ── SELEÇÃO DO DISJUNTOR ─────────────────────────────────────────────────
   // Ib = corrente de projeto (= nominal do catálogo, ou calculada).
-  // Critério: menor disjuntor comercial >= Ib (NBR 5410: Ib ≤ In ≤ Iz)
+  // Critério: menor disjuntor comercial >= Ib (NBR 5410: Ib ≤ In ≤ Iz), com
+  // folga mínima de 5% — um disjuntor igual (ou quase igual) a Ib pode desarmar
+  // em uso contínuo (ex.: carregador de 32A caindo exatamente num disjuntor de
+  // 32A = 0% de folga); nesse caso usa-se o próximo valor comercial da série.
   const Ib = corrente_projeto_a
   const disjuntores_normalizados = [6, 10, 13, 16, 20, 25, 32, 40, 50, 63, 80, 100, 125, 160, 200]
-  let disjuntor_a = disjuntores_normalizados[disjuntores_normalizados.length - 1]
-  for (const dj of disjuntores_normalizados) {
-    if (dj >= Ib) {
-      disjuntor_a = dj
-      break
-    }
+  const MARGEM_MINIMA_DISJUNTOR = 0.05
+  let idx_disjuntor = disjuntores_normalizados.length - 1
+  for (let i = 0; i < disjuntores_normalizados.length; i++) {
+    if (disjuntores_normalizados[i] >= Ib) { idx_disjuntor = i; break }
   }
+  if (
+    (disjuntores_normalizados[idx_disjuntor] - Ib) / Ib < MARGEM_MINIMA_DISJUNTOR &&
+    idx_disjuntor < disjuntores_normalizados.length - 1
+  ) {
+    idx_disjuntor += 1
+  }
+  const disjuntor_a = disjuntores_normalizados[idx_disjuntor]
 
   // Capacidade do cabo selecionado (Iz) para verificação Ib ≤ In ≤ Iz
   const capacidade_cabo_a = tabelaCobre.find(c => c.bitola === bitola_cabo_mm2)?.capacidade_a || 0

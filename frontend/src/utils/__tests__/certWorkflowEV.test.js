@@ -9,9 +9,9 @@ import { bomParaMateriais, carregadoresParaEquipamentos, DEFAULT_SERVICOS_EV } f
 const find = (bom, nome) => bom.find(i => i.item === nome)
 
 describe('CERT — Engenharia NBR (etapa 2)', () => {
-  it('mono 7.4kW/220V/35m: disjuntor=catálogo Ib (32A), NBR válido', () => {
+  it('mono 7.4kW/220V/35m: disjuntor=catálogo Ib com margem mínima 5% (32A→40A), NBR válido', () => {
     const r = calcularParametrosNBR5410({ potencia_kw: 7.4, tensao_entrada_v: 220, numero_fases: 1, comprimento_cabo_m: 35, tipo_carregador: 'AC Monofásico', corrente_nominal_a: 32, tipo_conector: 'Tipo 2' })
-    expect(r.disjuntor_a).toBe(32)
+    expect(r.disjuntor_a).toBe(40)
     expect(validarNBR5410(r).valido).toBe(true)
   })
   it('tri 22kW/380V/35m: NBR válido (Ib≤In≤Iz)', () => {

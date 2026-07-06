@@ -5,10 +5,13 @@ import { executarCalculosProjetoEV } from '../../../../backend/src/utils/calculo
 // Capacidade (Iz) por bitola — NBR 5410 Tab.36 (Cu 70°C), igual nos dois motores.
 const IZ = { 1.5: 15.5, 2.5: 21, 4: 28, 6: 36, 10: 50, 16: 68, 25: 89, 35: 109, 50: 134 }
 
+// disj: com a margem mínima de 5% (ajuste pós-BUG-017), Ib exatamente igual a um
+// disjuntor comercial (folga 0%) pula para o próximo da série — evita desarme em
+// uso contínuo (ex.: carregador de 32A não fica num disjuntor de exatos 32A).
 const CASOS = [
-  { nome: '7,4kW mono 220V cat32A 20m', pkw: 7.4, v: 220, fases: 1, corr: 32, L: 20, tipo: 'AC_Mono', disj: 32, bitola: 10 },
-  { nome: '11kW tri 380V cat16A 20m',  pkw: 11,  v: 380, fases: 3, corr: 16, L: 20, tipo: 'AC_Tri', disj: 16, bitola: 4 },
-  { nome: '22kW tri 380V cat32A 60m',  pkw: 22,  v: 380, fases: 3, corr: 32, L: 60, tipo: 'AC_Tri', disj: 32, bitola: 10 },
+  { nome: '7,4kW mono 220V cat32A 20m', pkw: 7.4, v: 220, fases: 1, corr: 32, L: 20, tipo: 'AC_Mono', disj: 40, bitola: 10 },
+  { nome: '11kW tri 380V cat16A 20m',  pkw: 11,  v: 380, fases: 3, corr: 16, L: 20, tipo: 'AC_Tri', disj: 20, bitola: 4 },
+  { nome: '22kW tri 380V cat32A 60m',  pkw: 22,  v: 380, fases: 3, corr: 32, L: 60, tipo: 'AC_Tri', disj: 40, bitola: 10 },
 ]
 
 const front = (c) => calcularParametrosNBR5410({
@@ -27,7 +30,7 @@ describe('BUG-017 — motor de dimensionamento EV (auditoria)', () => {
     }
   })
 
-  it('disjuntor coerente (Ib ≤ In ≤ Iz) e SEM superdimensionamento (7,4kW ⇒ 32A, não 80A)', () => {
+  it('disjuntor coerente (Ib ≤ In ≤ Iz), SEM superdimensionamento absurdo (7,4kW ⇒ 40A, não 80A) e COM margem mínima de 5%', () => {
     for (const c of CASOS) {
       const f = front(c)
       expect(f.disjuntor_a).toBe(c.disj)

@@ -313,9 +313,18 @@ export function executarCalculosProjetoEV(dados) {
     for (const c of TABELA_COBRE_NBR) { if (quedaPct(c.bitola) <= 3) { bitola_cabo_mm2 = c.bitola; queda_tensao_pct = quedaPct(c.bitola); break } }
   }
 
-  // Disjuntor: menor comercial ≥ Ib (Ib ≤ In ≤ Iz).
-  let disjuntor_a = DISJUNTORES_NBR[DISJUNTORES_NBR.length - 1]
-  for (const d of DISJUNTORES_NBR) { if (d >= Ib) { disjuntor_a = d; break } }
+  // Disjuntor: menor comercial ≥ Ib (Ib ≤ In ≤ Iz), com folga mínima de 5% —
+  // um disjuntor igual (ou quase igual) a Ib pode desarmar em uso contínuo
+  // (ex.: carregador de 32A caindo exatamente num disjuntor de 32A = 0% de
+  // folga); nesse caso usa-se o próximo valor comercial da série. MESMA
+  // metodologia do frontend (calculosNBR5410EV.js).
+  const MARGEM_MINIMA_DISJUNTOR = 0.05
+  let idx_disjuntor = DISJUNTORES_NBR.length - 1
+  for (let i = 0; i < DISJUNTORES_NBR.length; i++) { if (DISJUNTORES_NBR[i] >= Ib) { idx_disjuntor = i; break } }
+  if ((DISJUNTORES_NBR[idx_disjuntor] - Ib) / Ib < MARGEM_MINIMA_DISJUNTOR && idx_disjuntor < DISJUNTORES_NBR.length - 1) {
+    idx_disjuntor += 1
+  }
+  const disjuntor_a = DISJUNTORES_NBR[idx_disjuntor]
   const capacidade_cabo_a = TABELA_COBRE_NBR.find(c => c.bitola === bitola_cabo_mm2)?.capacidade_a || 0
 
   const dr_data = obterEspecificacaoDRNBREIEC618511()
