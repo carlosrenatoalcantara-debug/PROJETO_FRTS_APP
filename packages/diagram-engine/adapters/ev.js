@@ -264,9 +264,19 @@ export function argsDeProjetoEV(projeto = {}) {
   const clienteNome = clienteObj?.nome
     || (typeof projeto.clienteId === 'string' ? projeto.clienteId : '')
     || projeto.cliente_nome || ''
+  // Materiais: fonte primária é calculos_nbr.materiais (BOM da engenharia). Quando o
+  // projeto foi salvo sem esse campo populado, cai para projeto.bom e, por último,
+  // para projeto.orcamento.materiais (mesma lista usada na Proposta Comercial, só
+  // que ali já vem com preço — aqui os preços são ignorados pelo desenho, que só
+  // lê descrição/quantidade/unidade).
+  const bom = (calculos.materiais?.length && calculos.materiais)
+    || (projeto.bom?.length && projeto.bom)
+    || projeto.orcamento?.materiais
+    || []
+
   return {
     calculos: { ...calculos, comprimento_cabo_m: projeto.comprimento_cabo_m },
-    bom: calculos.materiais || projeto.bom || [],
+    bom,
     // BUG-011: fases do CIRCUITO vêm do carregador (o adapter também deriva de carregador.tipo).
     // NÃO usar projeto.fases (alimentação do imóvel) — fazia projeto mono virar 5 condutores.
     numero_fases: Number(carregador.numero_fases) || 1,
@@ -277,9 +287,11 @@ export function argsDeProjetoEV(projeto = {}) {
       // BUG-016: alimentação do imóvel (mono/tri) — decide EV_MONO_MONO vs EV_TRI_MONO.
       fases: projeto.fases,
       endereco: projeto.endereco_completo || projeto.endereco,
-      cpf: clienteObj?.cpf,
-      uc: clienteObj?.unidade_consumidora,
-      concessionaria: clienteObj?.concessionaria,
+      // Nomes REAIS do modelo Cliente (backend/src/models/Cliente.js) — cpf/uc/
+      // concessionaria usavam campos que não existem no schema (ficavam sempre em branco).
+      cpf: clienteObj?.cpf_cnpj,
+      uc: clienteObj?.numero_cliente,
+      concessionaria: clienteObj?.distribuidora,
       carga_instalada: clienteObj?.carga_instalada_w,
       cidade: projeto.cidade,
       comprimento_cabo_m: projeto.comprimento_cabo_m,
