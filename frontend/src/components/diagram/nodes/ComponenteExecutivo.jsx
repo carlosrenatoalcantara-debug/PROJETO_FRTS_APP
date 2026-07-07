@@ -23,20 +23,23 @@ function ComponenteExecutivoBase({ data, selected }) {
     tipo: data?.tipo, subtipo: data?.subtipo, label: data?.label,
     polos: data?.polos, specs: data?.specs || data,
   }
-  // Ajuste homologado: os novos desenhos são mais estreitos que a caixa nominal do
-  // editor (COMPONENTE.W) — centraliza horizontalmente para não sobrar vão vazio.
-  const offsetX = Math.max(0, (COMPONENTE.W - larguraComponente(c)) / 2)
-  const svg = desenharComponente(c, { x: offsetX, y: 0 })
+  // BUG-019: a CAIXA do nó tem a LARGURA REAL do símbolo (larguraComponente) — não mais
+  // a caixa nominal de 120px com o desenho centralizado (que deixava a caixa estourando
+  // muito para os lados do DPS/Disjuntor/IDR e afastava os handles/arestas do símbolo).
+  // O símbolo é desenhado em x=0 (alinhado à esquerda) — a MESMA convenção do SVG/PDF
+  // (desenharComponente desenha na origem da posição), garantindo paridade editor↔PDF.
+  const w = larguraComponente(c)
+  const svg = desenharComponente(c, { x: 0, y: 0 })
 
   return (
-    <div style={{ width: COMPONENTE.W, height: COMPONENTE.H, position: 'relative' }}>
+    <div style={{ width: w, height: COMPONENTE.H, position: 'relative' }}>
       <Handle id="in" type="target" position={Position.Left} style={handleLR} />
       <Handle id="out" type="source" position={Position.Right} style={handleLR} />
       <Handle id="gnd" type="source" position={Position.Bottom} style={handleTB} />
       <Handle id="gtop" type="target" position={Position.Top} style={handleTB} />
       <svg
-        width={COMPONENTE.W} height={COMPONENTE.H}
-        viewBox={`0 0 ${COMPONENTE.W} ${COMPONENTE.H}`}
+        width={w} height={COMPONENTE.H}
+        viewBox={`0 0 ${w} ${COMPONENTE.H}`}
         style={{ overflow: 'visible', borderRadius: 8, outline: selected ? '2px solid #2563eb' : 'none' }}
         dangerouslySetInnerHTML={{ __html: svg }}
       />
