@@ -108,6 +108,34 @@ test('toReactFlow: nodes/edges espelham o canônico e overridesDeReactFlow detec
   assert.ok(!('rede' in ov))
 })
 
+test('BUG-018: overlap real degrada para o baseLayout (template) — não para o layout genérico', () => {
+  const { components, connections } = projetoMono()
+  // baseLayout = posições fixas tipo-template (cadeia espalhada, sem sobreposição).
+  const baseLayout = {
+    rede: { x: 48, y: 244 }, disj: { x: 229, y: 244 }, dr: { x: 411, y: 244 },
+    cabo: { x: 560, y: 244 }, carr: { x: 760, y: 244 }, dps0: { x: 300, y: 352 },
+  }
+  // Override RUIM: joga o disjuntor EXATAMENTE em cima do DR → sobreposição real.
+  const overrides = { disj: { position: { x: 411, y: 244 } } }
+  const canonical = build({ components, connections, baseLayout, overrides })
+  // Fallback deve ser o baseLayout (disj volta para 229), NÃO o computeLayout genérico.
+  assert.deepEqual(canonical.layout.disj, { x: 229, y: 244 })
+  assert.deepEqual(canonical.layout.dps0, { x: 300, y: 352 })
+})
+
+test('BUG-018: overlap usa largura REAL — override estreito válido é preservado', () => {
+  const { components, connections } = projetoMono()
+  const baseLayout = {
+    rede: { x: 48, y: 244 }, disj: { x: 229, y: 244 }, dr: { x: 411, y: 244 },
+    cabo: { x: 560, y: 244 }, carr: { x: 760, y: 244 }, dps0: { x: 300, y: 352 },
+  }
+  // DPS (largura real 42) colocado a 17px da borda do disjuntor (largura real 54): NÃO
+  // se tocam. Com a largura nominal antiga (120) isto era falso-positivo → fallback.
+  const overrides = { dps0: { position: { x: 300, y: 244 } } }
+  const canonical = build({ components, connections, baseLayout, overrides })
+  assert.deepEqual(canonical.layout.dps0, { x: 300, y: 244 }) // preservado, sem fallback
+})
+
 test('API pública exporta o DiagramEngine completo', () => {
   for (const fn of ['build', 'computeLayout', 'aplicarOverrides', 'podarOverridesOrfaos', 'toReactFlow', 'overridesDeReactFlow', 'renderSVG']) {
     assert.equal(typeof DiagramEngine[fn], 'function', `falta ${fn}`)

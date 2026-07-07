@@ -154,13 +154,6 @@ function construirTemplateEV(template, { disjA, bitola, comprimento, tensao, dps
   return { components, connections, posicoes }
 }
 
-/** {id:{x,y}} → overrides {id:{position:{x,y}}} (posições fixas do template). */
-function posicoesParaOverrides(posicoes = {}) {
-  const ov = {}
-  for (const [id, p] of Object.entries(posicoes)) ov[id] = { position: { x: p.x, y: p.y } }
-  return ov
-}
-
 function contarDPS(bom = []) {
   // Âncora no INÍCIO da descrição ("DPS ...") — não basta /DPS/i solto, porque o item
   // "Trilho DIN (Fixação de disjuntor/DR/DPS no quadro)" também contém a substring
@@ -251,9 +244,10 @@ export function adaptarProjetoEV({ calculos = {}, bom = [], numero_fases = 1, ca
 
 export function construirCanonicalEV(args, { viewport = null, overrides = {} } = {}) {
   const { components, connections, metadata, posicoes } = adaptarProjetoEV(args)
-  // BUG-016: posições FIXAS do template são a base; overrides manuais (editor) vencem por id.
-  const base = posicoesParaOverrides(posicoes)
-  return build({ components, connections, metadata, viewport, overrides: { ...base, ...overrides } })
+  // BUG-016/BUG-018: posições FIXAS do template são o baseLayout (não mais mescladas nos
+  // overrides). Assim, se um override manual causar sobreposição, o build cai de volta
+  // para o TEMPLATE LIMPO — nunca para o layout genérico. Overrides = só deltas do editor.
+  return build({ components, connections, metadata, viewport, baseLayout: posicoes, overrides })
 }
 
 export function renderarSVGEV(args, opts) {
@@ -320,14 +314,16 @@ export function argsDeProjetoEV(projeto = {}) {
 export function construirCanonicalDeProjetoEV(projeto = {}) {
   const { components, connections, metadata, posicoes } = adaptarProjetoEV(argsDeProjetoEV(projeto))
   const persistido = projeto.diagrama_editado || {}
-  // BUG-016: base = posições fixas do template; overrides salvos (edição manual) vencem por id.
-  const base = posicoesParaOverrides(posicoes)
+  // BUG-016/BUG-018: base = posições fixas do template (baseLayout); overrides salvos
+  // (edição manual) apenas sobrepõem. Se um override salvo causar sobreposição/estourar
+  // a caixa, o build degrada para o TEMPLATE LIMPO — não para o layout genérico.
   return build({
     components,
     connections,
     metadata,
     viewport: persistido.viewport || null,
-    overrides: { ...base, ...(persistido.overrides || {}) },
+    baseLayout: posicoes,
+    overrides: persistido.overrides || {},
   })
 }
 
