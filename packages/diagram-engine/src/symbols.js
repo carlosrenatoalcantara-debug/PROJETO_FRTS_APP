@@ -231,16 +231,26 @@ export function desenharComponente(c, pos) {
   }
 }
 
-// Aterramento normativo — haste vertical + três traços decrescentes.
+// BUG-021: dimensões REAIS (menores) do símbolo de aterramento — a caixa do editor e
+// o clamp usam estes valores (símbolo compacto, não a caixa nominal 120x90).
+const LARG_ATERRAMENTO = 72
+const ALT_ATERRAMENTO = 52
+function ehAterramento(c) {
+  const sub = String(c?.subtipo || '').toLowerCase()
+  return c?.tipo === TIPOS.BARRAMENTO && (sub === 'aterramento' || /terra|aterr/i.test(c?.label || ''))
+}
+
+// Aterramento normativo — haste vertical + três traços decrescentes. Compacto,
+// centralizado na sua largura REAL (LARG_ATERRAMENTO) para caber na caixa menor.
 function glifoAterramento(x, y, label) {
-  const cx = x + W / 2, top = y + 8
+  const cx = x + LARG_ATERRAMENTO / 2, top = y + 8
   return `<g>
-    <line x1="${cx}" y1="${top}" x2="${cx}" y2="${top + 20}" stroke="#2e9e3f" stroke-width="2.4"/>
-    <line x1="${cx - 16}" y1="${top + 20}" x2="${cx + 16}" y2="${top + 20}" stroke="#2e9e3f" stroke-width="2.4"/>
-    <line x1="${cx - 10}" y1="${top + 27}" x2="${cx + 10}" y2="${top + 27}" stroke="#2e9e3f" stroke-width="2.4"/>
-    <line x1="${cx - 5}"  y1="${top + 34}" x2="${cx + 5}"  y2="${top + 34}" stroke="#2e9e3f" stroke-width="2.4"/>
-    <text x="${cx}" y="${top + 52}" font-size="10" font-weight="bold" text-anchor="middle" fill="#2e9e3f">${esc(label || 'Aterramento')}</text>
-    <circle cx="${cx}" cy="${top}" r="3.2" fill="#ffffff" stroke="#2e9e3f" stroke-width="1.5"/>
+    <line x1="${cx}" y1="${top}" x2="${cx}" y2="${top + 14}" stroke="#2e9e3f" stroke-width="2.2"/>
+    <line x1="${cx - 11}" y1="${top + 14}" x2="${cx + 11}" y2="${top + 14}" stroke="#2e9e3f" stroke-width="2.2"/>
+    <line x1="${cx - 7}"  y1="${top + 19}" x2="${cx + 7}"  y2="${top + 19}" stroke="#2e9e3f" stroke-width="2.2"/>
+    <line x1="${cx - 3}"  y1="${top + 24}" x2="${cx + 3}"  y2="${top + 24}" stroke="#2e9e3f" stroke-width="2.2"/>
+    <text x="${cx}" y="${top + 38}" font-size="8.5" font-weight="bold" text-anchor="middle" fill="#2e9e3f">${esc(label || 'Aterramento')}</text>
+    <circle cx="${cx}" cy="${top}" r="2.8" fill="#ffffff" stroke="#2e9e3f" stroke-width="1.4"/>
   </g>`
 }
 
@@ -259,6 +269,7 @@ function glifoNeutroJuncao(x, y, label) {
 // não afeta as posições fixas do SVG executivo (adapters/ev.js), que já usam a
 // largura real diretamente.
 export function larguraComponente(c) {
+  if (ehAterramento(c)) return LARG_ATERRAMENTO
   switch (c?.tipo) {
     case TIPOS.REDE: return /medidor/i.test(c.label || '') ? 80 : W
     case TIPOS.DISJUNTOR:
@@ -267,6 +278,12 @@ export function larguraComponente(c) {
     case TIPOS.EQUIPAMENTO: return c.subtipo === 'carregador_ev' ? 90 : W
     default: return W
   }
+}
+
+// Altura REAL do desenho — só o aterramento é bem mais baixo que a caixa nominal (H);
+// usada pelo clamp (BUG-021) para o aterramento poder descer mais dentro do DIAGRAM_BOX.
+export function alturaComponente(c) {
+  return ehAterramento(c) ? ALT_ATERRAMENTO : H
 }
 
 export const DIM_COMPONENTE = Object.freeze({ W, H })

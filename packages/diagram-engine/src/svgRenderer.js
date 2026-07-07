@@ -14,7 +14,7 @@
  */
 
 import { CORES_CONDUTOR, PAPEL_CONEXAO } from './model.js'
-import { desenharComponente } from './symbols.js'
+import { desenharComponente, larguraComponente } from './symbols.js'
 import { A4, BLOCOS, COMPONENTE, COND_GAP, DIAGRAM_BOX } from './geometry.js'
 
 const esc = (s) => String(s ?? '').replace(/[<>&]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]))
@@ -43,7 +43,13 @@ function blocoDados(rect, titulo, pares) {
   </g>`
 }
 
-function centro(pos) { return { cx: (pos?.x ?? 0) + COMPONENTE.W / 2, cy: (pos?.y ?? 0) + COMPONENTE.H / 2 } }
+// BUG-021: o ponto de conexão fica no centro da LARGURA REAL do símbolo (não da caixa
+// nominal 120). Assim o fio do Terra sai do centro do símbolo de aterramento compacto —
+// e não de um ponto 24px à direita (onde ficava o centro da caixa 120 antiga).
+function centro(pos, comp) {
+  const w = comp ? larguraComponente(comp) : COMPONENTE.W
+  return { cx: (pos?.x ?? 0) + w / 2, cy: (pos?.y ?? 0) + COMPONENTE.H / 2 }
+}
 
 // FEATURE-005: seta colorida no meio do condutor indicando o SENTIDO da energia
 // (from → to). A cor acompanha o papel do condutor (fase/neutro/terra).
@@ -60,7 +66,7 @@ function setaSentido(ax, ay, bx, by, cor) {
   return `<path d="M${tipx.toFixed(1)},${tipy.toFixed(1)} L${b1x.toFixed(1)},${b1y.toFixed(1)} L${b2x.toFixed(1)},${b2y.toFixed(1)} Z" fill="${cor}"${stroke}/>`
 }
 
-function desenharConexoes(connections, layout) {
+function desenharConexoes(connections, layout, byId = new Map()) {
   let s = ''
   for (const cx of connections) {
     // Ajuste homologado: quando o componente derivado (ex.: DPS) já tem sua própria
@@ -68,7 +74,7 @@ function desenharConexoes(connections, layout) {
     // tronco principal (ambos passam pela mesma fileira). `ocultarLinha` suprime só o
     // traço/seta desta ligação — a ligação em si continua no modelo (topologia/BOM).
     if (cx.specs?.ocultarLinha) continue
-    const a = centro(layout[cx.from]); const b = centro(layout[cx.to])
+    const a = centro(layout[cx.from], byId.get(cx.from)); const b = centro(layout[cx.to], byId.get(cx.to))
     const condutores = cx.condutores?.length ? cx.condutores : [{ papel: 'fase' }]
     const tracejado = cx.papel === PAPEL_CONEXAO.DERIVACAO
     condutores.forEach((cond, i) => {
@@ -127,8 +133,9 @@ function blocoNotas(rect, normas = []) {
 /** Grupo do diagrama (componentes + conexões). Mesmas coords do Editor. */
 export function grupoDiagrama(canonical) {
   const { components = [], connections = [], layout = {} } = canonical || {}
+  const byId = new Map(components.map(c => [c.id, c]))
   return `<g class="diagrama">
-    ${desenharConexoes(connections, layout)}
+    ${desenharConexoes(connections, layout, byId)}
     ${components.map(c => desenharComponente(c, layout[c.id])).join('')}
     ${legendaCondutores()}
   </g>`

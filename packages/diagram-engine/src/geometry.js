@@ -44,15 +44,19 @@ export const COND_GAP = 4
 export const DIAGRAM_PAD = 8
 
 /**
- * Clampa a posição (canto superior-esquerdo de um componente COMPONENTE.W×H) para
- * NUNCA ultrapassar o DIAGRAM_BOX. Fonte única usada por layout e overrides — garante
- * que nenhum componente (calculado OU movido manualmente) saia do box.
+ * Clampa a posição (canto superior-esquerdo de um componente w×h) para NUNCA ultrapassar
+ * o DIAGRAM_BOX. Fonte única usada por layout e overrides — garante que nenhum componente
+ * (calculado OU movido manualmente) saia do box.
+ *
+ * BUG-021: aceita a largura/altura REAIS do componente (default = caixa nominal W×H).
+ * Componentes baixos (ex.: aterramento, h~52) podem descer MAIS — antes o H=90 fixo
+ * travava o aterramento em y=364, fazendo-o "voltar para cima" ao salvar arrastado.
  */
-export function clampNoDiagramBox(x, y) {
+export function clampNoDiagramBox(x, y, w = COMPONENTE.W, h = COMPONENTE.H) {
   const minX = DIAGRAM_BOX.x + DIAGRAM_PAD
-  const maxX = DIAGRAM_BOX.x + DIAGRAM_BOX.w - COMPONENTE.W - DIAGRAM_PAD
+  const maxX = DIAGRAM_BOX.x + DIAGRAM_BOX.w - w - DIAGRAM_PAD
   const minY = DIAGRAM_BOX.y + DIAGRAM_PAD
-  const maxY = DIAGRAM_BOX.y + DIAGRAM_BOX.h - COMPONENTE.H - DIAGRAM_PAD
+  const maxY = DIAGRAM_BOX.y + DIAGRAM_BOX.h - h - DIAGRAM_PAD
   return {
     x: Math.max(minX, Math.min(Math.round(x ?? minX), maxX)),
     y: Math.max(minY, Math.min(Math.round(y ?? minY), maxY)),

@@ -136,6 +136,15 @@ test('BUG-018: overlap usa largura REAL — override estreito válido é preserv
   assert.deepEqual(canonical.layout.dps0, { x: 300, y: 244 }) // preservado, sem fallback
 })
 
+test('BUG-021: aterramento (símbolo baixo) desce mais que a caixa nominal ao ser arrastado', () => {
+  const components = [componente({ id: 'barr_terra', tipo: TIPOS.BARRAMENTO, subtipo: 'aterramento', label: 'Aterramento', ordem: 0 })]
+  const baseLayout = { barr_terra: { x: 623, y: 352 } }
+  // Arrastado para baixo (y=430). Com a altura NOMINAL (90) travava em 364; com a altura
+  // REAL do aterramento (~52) o clamp permite descer bem mais (~402) — some o "volta pra cima".
+  const canon = build({ components, connections: [], baseLayout, overrides: { barr_terra: { position: { x: 623, y: 430 } } } })
+  assert.ok(canon.layout.barr_terra.y > 364, `aterramento devia descer abaixo de 364, veio ${canon.layout.barr_terra.y}`)
+})
+
 test('API pública exporta o DiagramEngine completo', () => {
   for (const fn of ['build', 'computeLayout', 'aplicarOverrides', 'podarOverridesOrfaos', 'toReactFlow', 'overridesDeReactFlow', 'renderSVG']) {
     assert.equal(typeof DiagramEngine[fn], 'function', `falta ${fn}`)

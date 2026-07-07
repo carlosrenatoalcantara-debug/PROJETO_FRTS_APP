@@ -16,12 +16,16 @@ import { clampNoDiagramBox } from './geometry.js'
  * Aplica overrides sobre o layout base (posição manual vence a calculada).
  * BUG-014: a posição manual é CLAMPADA ao DIAGRAM_BOX — arrastar no editor nunca
  * coloca um componente fora do box; SVG, PDF e Editor usam a mesma geometria contida.
+ * BUG-021: `dimsById` (id → {w,h} reais) permite clampar pelo tamanho REAL do símbolo —
+ * componentes baixos (aterramento) podem descer mais sem serem travados pela altura
+ * nominal (H=90).
  */
-export function aplicarOverrides(layoutBase = {}, overrides = {}) {
+export function aplicarOverrides(layoutBase = {}, overrides = {}, dimsById = {}) {
   const out = {}
   for (const [id, pos] of Object.entries(layoutBase)) {
     const ov = overrides?.[id]
-    out[id] = ov?.position ? clampNoDiagramBox(ov.position.x, ov.position.y) : { ...pos }
+    const d = dimsById[id]
+    out[id] = ov?.position ? clampNoDiagramBox(ov.position.x, ov.position.y, d?.w, d?.h) : { ...pos }
   }
   return out
 }

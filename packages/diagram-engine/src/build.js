@@ -11,7 +11,7 @@ import { VERSION } from './model.js'
 import { computeLayout } from './layout.js'
 import { aplicarOverrides, podarOverridesOrfaos } from './overrides.js'
 import { COMPONENTE } from './geometry.js'
-import { larguraComponente } from './symbols.js'
+import { larguraComponente, alturaComponente } from './symbols.js'
 
 export const DEFAULT_VIEWPORT = Object.freeze({ x: 0, y: 0, zoom: 1 })
 
@@ -68,11 +68,15 @@ export function build({ components = [], connections = [], metadata = {}, viewpo
   // à esquerda e DPS numa fileira abaixo).
   const layoutAuto = computeLayout(components, connections)
   const layoutBase = baseLayout ? { ...layoutAuto, ...baseLayout } : layoutAuto
-  const comOverrides = aplicarOverrides(layoutBase, overridesLimpos)
+  // BUG-021: dimensões REAIS por id — o clamp dos overrides usa o tamanho do símbolo
+  // (o aterramento, baixo, pode descer mais no DIAGRAM_BOX).
+  const byId = new Map(components.map(c => [c.id, c]))
+  const dimsById = {}
+  for (const c of components) dimsById[c.id] = { w: larguraComponente(c), h: alturaComponente(c) }
+  const comOverrides = aplicarOverrides(layoutBase, overridesLimpos, dimsById)
   // BUG-014: geometria congelada — overrides manuais são aplicados apenas se mantiverem
   // o layout SEM sobreposição; caso contrário, volta à base (template ou determinística).
   // BUG-018: a checagem usa a largura REAL de cada símbolo (byId → larguraComponente).
-  const byId = new Map(components.map(c => [c.id, c]))
   const layout = haSobreposicao(comOverrides, byId) ? layoutBase : comOverrides
 
   return {
