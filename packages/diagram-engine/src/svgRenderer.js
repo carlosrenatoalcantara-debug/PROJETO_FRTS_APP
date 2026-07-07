@@ -89,6 +89,40 @@ function desenharConexoes(connections, layout, byId = new Map()) {
   return s
 }
 
+// FEATURE-006 (MOB BOX): desenha os invólucros/quadros declarados em metadata.enclosures.
+// Cada enclosure é um retângulo tracejado ao redor da caixa envolvente (bounding box) dos
+// componentes listados, usando as posições REAIS do layout + a largura real de cada símbolo
+// — largura dinâmica (2 DPS no mono, 4 no tri). Desenhado ATRÁS dos componentes.
+function desenharEnclosures(canonical) {
+  const { metadata = {}, layout = {}, components = [] } = canonical || {}
+  const enclosures = metadata.enclosures || []
+  if (!enclosures.length) return ''
+  const byId = new Map(components.map(c => [c.id, c]))
+  const PADX = 24, PADT = 13, PADB = 7
+  let s = ''
+  for (const enc of enclosures) {
+    const ids = (enc.ids || []).filter(id => layout[id])
+    if (!ids.length) continue
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity
+    for (const id of ids) {
+      const p = layout[id]
+      const w = larguraComponente(byId.get(id))
+      minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x + w)
+      minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y + COMPONENTE.H)
+    }
+    const x = minX - PADX, y = minY - PADT
+    const w = (maxX + PADX) - x, h = (maxY + PADB) - y
+    const label = String(enc.label || 'QUADRO')
+    const tabW = 20 + label.length * 6.4
+    s += `<g>
+      <rect x="${x}" y="${y}" width="${w}" height="${h}" rx="6" fill="none" stroke="#0f172a" stroke-width="1.6" stroke-dasharray="7 4"/>
+      <rect x="${x + 8}" y="${y - 9}" width="${tabW}" height="17" rx="3" fill="#0f172a"/>
+      <text x="${x + 8 + tabW / 2}" y="${y + 3}" font-size="10" font-weight="bold" text-anchor="middle" fill="#ffffff">${esc(label)}</text>
+    </g>`
+  }
+  return s
+}
+
 // FEATURE-005: legenda didática das cores de condutor (Fase / Neutro / Terra).
 function legendaCondutores() {
   const itens = [['Fase', CORES_CONDUTOR.fase], ['Neutro', CORES_CONDUTOR.neutro], ['Terra', CORES_CONDUTOR.terra]]
@@ -166,6 +200,7 @@ export function renderSVG(canonical, opts = {}) {
     ['Modelo', eq.modelo], ['Fabricante', eq.fabricante], ['Potência', eq.potencia],
     ['Corrente', eq.corrente], ['Tensão', eq.tensao], ['Conector', eq.conector],
   ])}
+  ${desenharEnclosures(canonical)}
   ${incluirDiagrama ? grupoDiagrama(canonical) : ''}
   ${tabelaBOM(BLOCOS.BOM, m.bom)}
   ${blocoNotas(BLOCOS.NOTAS, normas)}

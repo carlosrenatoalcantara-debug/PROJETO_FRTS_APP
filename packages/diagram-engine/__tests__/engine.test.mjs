@@ -145,6 +145,16 @@ test('BUG-021: aterramento (símbolo baixo) desce mais que a caixa nominal ao se
   assert.ok(canon.layout.barr_terra.y > 364, `aterramento devia descer abaixo de 364, veio ${canon.layout.barr_terra.y}`)
 })
 
+test('FEATURE-006: enclosure (MOB BOX) desenha retângulo tracejado + label; ausente sem enclosures', () => {
+  const { components, connections } = projetoMono({ dpsCount: 2 })
+  const semQuadro = renderSVG(build({ components, connections }))
+  assert.doesNotMatch(semQuadro, /MOB BOX/)
+
+  const comQuadro = renderSVG(build({ components, connections, metadata: { enclosures: [{ label: 'MOB BOX', ids: ['disj', 'dr', 'dps0', 'dps1'] }] } }))
+  assert.match(comQuadro, /MOB BOX/)
+  assert.match(comQuadro, /stroke-dasharray/) // borda tracejada do quadro
+})
+
 test('API pública exporta o DiagramEngine completo', () => {
   for (const fn of ['build', 'computeLayout', 'aplicarOverrides', 'podarOverridesOrfaos', 'toReactFlow', 'overridesDeReactFlow', 'renderSVG']) {
     assert.equal(typeof DiagramEngine[fn], 'function', `falta ${fn}`)

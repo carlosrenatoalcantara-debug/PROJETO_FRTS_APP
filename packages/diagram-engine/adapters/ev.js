@@ -222,6 +222,15 @@ export function adaptarProjetoEV({ calculos = {}, bom = [], numero_fases = 1, ca
     tipo_instalacao: projeto.tipo_instalacao, ambiente: projeto.ambiente, subsolo: projeto.subsolo,
   })
 
+  // FEATURE-006 (MOB BOX): o Quadro de Proteção EV (MOB BOX) é o invólucro físico que
+  // abriga Disjuntor + IDR + DPS(s). Declarado como "enclosure" (agrupamento visual
+  // neutro) — o renderer desenha o retângulo a partir das posições REAIS desses
+  // componentes (largura dinâmica: 2 DPS no mono, até 4 no tri). Medidor, Carregador e
+  // Aterramento ficam FORA (equipamentos externos ao quadro).
+  const idsQuadro = components
+    .filter(c => c.tipo === TIPOS.DISJUNTOR || c.tipo === TIPOS.DR || c.tipo === TIPOS.DPS)
+    .map(c => c.id)
+
   const metadata = {
     dominio: 'EV', modelo: 'EV_EXECUTIVO_V2', template,   // BUG-016: template fixo instanciado
     projeto: projeto.nome, cliente: projeto.cliente_nome, cpf: projeto.cpf,
@@ -236,6 +245,7 @@ export function adaptarProjetoEV({ calculos = {}, bom = [], numero_fases = 1, ca
       corrente: disjA ? `${disjA} A` : '', tensao: tensao ? `${tensao} V` : '',
       conector: carregador.tipo_conector ? `Tipo ${carregador.tipo_conector}` : '',
     },
+    enclosures: idsQuadro.length ? [{ label: 'MOB BOX', ids: idsQuadro }] : [],
     bom, normas,
   }
 
