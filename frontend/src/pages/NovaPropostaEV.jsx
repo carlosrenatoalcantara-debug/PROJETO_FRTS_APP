@@ -93,6 +93,7 @@ export default function NovaPropostaEV() {
     longitude: null,
     carregadores: [],
     comprimento_cabo_m: 25,
+    corrente_aferida_a: null, // FEATURE-006: aferição da vistoria (opcional)
     tecnico_nome: '',
     tecnico_crea: '',
     tecnico_cft: '',
@@ -184,6 +185,7 @@ export default function NovaPropostaEV() {
           latitude: p.latitude ?? null,
           longitude: p.longitude ?? null,
           comprimento_cabo_m: p.comprimento_cabo_m ?? 25,
+          corrente_aferida_a: p.corrente_aferida_a ?? null, // FEATURE-006
           tecnico_nome: p.tecnico?.nome || prev.tecnico_nome,
           tecnico_crea: p.tecnico?.crea || '',
           tecnico_cft: p.tecnico?.cft || '',
@@ -446,6 +448,7 @@ export default function NovaPropostaEV() {
       quantidade_pontos: carregadores.length,
       potencia_total_kw: potenciaTotalKw,
       comprimento_cabo_m: dados.comprimento_cabo_m,
+      corrente_aferida_a: dados.corrente_aferida_a, // FEATURE-006: aferição da vistoria
       calculos_nbr: calculos,
       bom: orcamento.materiais,
       orcamento: { ...orcamento, status: statusComercial, resumo: resumoOrcamento },
@@ -732,6 +735,25 @@ export default function NovaPropostaEV() {
                         : `→ ${dados.comprimento_cabo_m}m × 3 condutores = ${dados.comprimento_cabo_m * 3}m de cabo total (L+N+PE)`}
                     </p>
                   )}
+
+                  {/* FEATURE-006: corrente aferida na fase do carregador (vistoria técnica).
+                      Não afeta o dimensionamento — só documenta a disponibilidade no Memorial. */}
+                  <div className="mt-4 pt-3 border-t border-blue-200">
+                    <p className="font-semibold text-blue-900 text-sm">Corrente aferida na fase do carregador</p>
+                    <p className="text-xs text-blue-700 mt-0.5">
+                      Medida na vistoria técnica, na fase destinada ao carregador (UC em uso normal). Usada no Memorial Descritivo. <strong>Opcional</strong>.
+                    </p>
+                    <div className="mt-2 flex items-center gap-3">
+                      <input
+                        type="number"
+                        min="0"
+                        value={dados.corrente_aferida_a ?? ''}
+                        onChange={(e) => { hidratandoEdicao.current = false; setDados(p => ({ ...p, corrente_aferida_a: e.target.value === '' ? null : parseFloat(e.target.value) })) }}
+                        className="w-28 px-3 py-2 border-2 border-blue-400 rounded-lg text-center text-lg font-bold text-blue-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                      <span className="text-blue-700 font-semibold">A (opcional)</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </CardBody>

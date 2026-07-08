@@ -54,7 +54,8 @@ export const criarCliente = async (req, res) => {
       nome, email, telefone, cidade, estado, tipo, cpf_cnpj,
       endereco_completo, cep,
       numero_cliente, codigo_instalacao, distribuidora, classificacao,
-      subgrupo, tipo_ligacao, valor_kwh, consumo_kwh
+      subgrupo, tipo_ligacao, valor_kwh, consumo_kwh,
+      carga_instalada_kw, disjuntor_geral_a   // FEATURE-006: disponibilidade elétrica da UC
     } = req.body
 
     if (!nome || !email) {
@@ -80,6 +81,9 @@ export const criarCliente = async (req, res) => {
       tipo_ligacao: tipo_ligacao || '',
       valor_kwh: parseFloat(valor_kwh) || 0,
       consumo_kwh: parseFloat(consumo_kwh) || 0,
+      // FEATURE-006: null quando não informado (memorial imprime espaço em branco).
+      carga_instalada_kw: carga_instalada_kw != null && carga_instalada_kw !== '' ? parseFloat(carga_instalada_kw) : null,
+      disjuntor_geral_a: disjuntor_geral_a != null && disjuntor_geral_a !== '' ? parseFloat(disjuntor_geral_a) : null,
       status: 'ativo',
     }
 

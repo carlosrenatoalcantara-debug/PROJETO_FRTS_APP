@@ -51,6 +51,12 @@ const projetoEVSchema = new mongoose.Schema({
   comprimento_cabo_m: Number,
   localizacao_instacao: String,
 
+  // FEATURE-006: corrente aferida na fase destinada ao carregador durante a vistoria
+  // técnica. Pertence ao Projeto EV (medição específica desta instalação, não do
+  // cadastro do cliente). Usada APENAS pelo Memorial (seção Disponibilidade Elétrica).
+  // null = não aferida → o memorial imprime espaço em branco para preenchimento manual.
+  corrente_aferida_a: { type: Number, default: null },
+
   // CÁLCULOS NBR 5410
   calculos_nbr: {
     corrente_projeto_a: Number,

@@ -34,6 +34,9 @@ function ModalNovoClienteComPDF({ onClose, onSalvo }) {
     subgrupo: '',
     tipo_ligacao: '',
     valor_kwh: '',
+    // FEATURE-006: disponibilidade elétrica da UC (usada no Memorial Descritivo EV)
+    carga_instalada_kw: '',
+    disjuntor_geral_a: '',
   })
 
   function handleChange(e) {
@@ -286,6 +289,23 @@ function ModalNovoClienteComPDF({ onClose, onSalvo }) {
                   onChange={handleChange}
                   name="consumo_kwh"
                 />
+                {/* FEATURE-006: disponibilidade elétrica da UC (Memorial Descritivo EV) */}
+                <Input
+                  rotulo="Carga instalada (kW)"
+                  type="number"
+                  value={formData.carga_instalada_kw}
+                  onChange={handleChange}
+                  name="carga_instalada_kw"
+                  placeholder="Fornecida pela concessionária"
+                />
+                <Input
+                  rotulo="Disjuntor geral do imóvel (A)"
+                  type="number"
+                  value={formData.disjuntor_geral_a}
+                  onChange={handleChange}
+                  name="disjuntor_geral_a"
+                  placeholder="Ex: 63"
+                />
               </div>
 
               {erro && (
@@ -356,6 +376,9 @@ function CamposCliente({ formData, handleChange }) {
         <Input rotulo="Classificação (Classe)" name="classificacao" value={f.classificacao || ''} onChange={handleChange} placeholder="Ex: B1" />
         <Input rotulo="Subgrupo (Grupo)" name="subgrupo" value={f.subgrupo || ''} onChange={handleChange} placeholder="Ex: Residencial" />
         <Input rotulo="Tipo de ligação" name="tipo_ligacao" value={f.tipo_ligacao || ''} onChange={handleChange} placeholder="Ex: Trifásica" />
+        {/* FEATURE-006: disponibilidade elétrica da UC (Memorial Descritivo EV) */}
+        <Input rotulo="Carga instalada (kW)" type="number" name="carga_instalada_kw" value={f.carga_instalada_kw ?? ''} onChange={handleChange} placeholder="Fornecida pela concessionária" />
+        <Input rotulo="Disjuntor geral do imóvel (A)" type="number" name="disjuntor_geral_a" value={f.disjuntor_geral_a ?? ''} onChange={handleChange} placeholder="Ex: 63" />
       </div>
     </>
   )

@@ -205,6 +205,8 @@ export const criarProjetoEV = async (req, res) => {
       ...(req.body.quantidade_pontos && { quantidade_pontos: req.body.quantidade_pontos }),
       ...(req.body.potencia_total_kw && { potencia_total_kw: req.body.potencia_total_kw }),
       ...(req.body.comprimento_cabo_m && { comprimento_cabo_m: req.body.comprimento_cabo_m }),
+      // FEATURE-006: corrente aferida na fase do carregador (vistoria técnica).
+      ...(req.body.corrente_aferida_a != null && { corrente_aferida_a: req.body.corrente_aferida_a }),
       ...(req.body.calculos_nbr && { calculos_nbr: req.body.calculos_nbr }),
       ...(req.body.tecnico && { tecnico: req.body.tecnico }),
       ...(req.body.modo_operacao && { modo_operacao: req.body.modo_operacao }),

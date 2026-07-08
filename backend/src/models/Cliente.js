@@ -89,6 +89,18 @@ const clienteSchema = new mongoose.Schema({
     type: Number,
     default: 0,
   },
+  // FEATURE-006: dados de disponibilidade elétrica da UC (fornecidos pela concessionária,
+  // informados pelo cliente e digitados pelo operador). Usados APENAS pelo Memorial
+  // Descritivo (seção "Verificação da Disponibilidade Elétrica"). null = ainda não
+  // informado → o memorial imprime um espaço em branco para preenchimento manual.
+  carga_instalada_kw: {
+    type: Number,
+    default: null,
+  },
+  disjuntor_geral_a: {
+    type: Number,
+    default: null,
+  },
   tags: [String],
   status: {
     type: String,
