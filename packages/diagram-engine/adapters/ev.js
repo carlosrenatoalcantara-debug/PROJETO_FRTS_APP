@@ -62,13 +62,13 @@ export function escolherTemplateEV(fasesAlimentacao, fasesCarregador) {
 // Carregador (roteamento ortogonal). Larguras reais: Disjuntor/IDR 2P=54, DPS=42.
 const POS_MONO = Object.freeze({
   medidor: { x: 48, y: 256 }, disj: { x: 248, y: 256 }, dr: { x: 310, y: 256 }, carr: { x: 955, y: 256 },
-  barr_terra: { x: 319, y: 386 },
+  barr_terra: { x: 379, y: 386 },
 })
 const POS_DPS_MONO = [{ x: 372, y: 256 }, { x: 420, y: 256 }]
 // Trifásico: Disjuntor/IDR 4P=96; 4 DPS de 42.
 const POS_TRI = Object.freeze({
   medidor: { x: 48, y: 256 }, disj: { x: 248, y: 256 }, dr: { x: 352, y: 256 }, carr: { x: 955, y: 256 },
-  barr_terra: { x: 409, y: 386 },
+  barr_terra: { x: 509, y: 386 },
 })
 const POS_DPS_TRI = [{ x: 456, y: 256 }, { x: 504, y: 256 }, { x: 552, y: 256 }, { x: 600, y: 256 }]
 

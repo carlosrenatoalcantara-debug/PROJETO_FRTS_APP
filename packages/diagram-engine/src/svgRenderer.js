@@ -75,19 +75,9 @@ function desenharConexoes(connections, layout, byId = new Map()) {
     // traço/seta desta ligação — a ligação em si continua no modelo (topologia/BOM).
     if (cx.specs?.ocultarLinha) continue
 
-    // FEATURE-007: barra de terra ORTOGONAL — sai do topo do símbolo de aterramento
-    // (o ponto de terra), corre na horizontal abaixo do quadro e sobe até o carregador.
-    if (cx.specs?.rotaTerraBus) {
-      const pa = layout[cx.from]; const pb = layout[cx.to]
-      if (pa && pb) {
-        const aX = pa.x + larguraComponente(byId.get(cx.from)) / 2, aY = pa.y + 8
-        const bX = pb.x + larguraComponente(byId.get(cx.to)) / 2, bY = pb.y + COMPONENTE.H / 2
-        const cor = CORES_CONDUTOR.terra
-        s += `<polyline points="${aX},${aY} ${bX},${aY} ${bX},${bY}" fill="none" stroke="${cor}" stroke-width="2"/>`
-        s += setaSentido(aX, aY, bX, aY, cor)
-      }
-      continue
-    }
+    // FEATURE-007: a barra de terra é desenhada por desenharTerraBus() (sempre, também no
+    // fundo do editor) — aqui a ligação é apenas pulada para não desenhar duas vezes.
+    if (cx.specs?.rotaTerraBus) continue
 
     const a = centro(layout[cx.from], byId.get(cx.from)); const b = centro(layout[cx.to], byId.get(cx.to))
     const condutores = cx.condutores?.length ? cx.condutores : [{ papel: 'fase' }]
@@ -104,6 +94,39 @@ function desenharConexoes(connections, layout, byId = new Map()) {
   return s
 }
 
+// FEATURE-007: símbolo de aterramento pequeno (haste + traços) centrado em (cx, yTopo).
+function miniTerra(cx, yTopo, cor = '#2e9e3f') {
+  return `<line x1="${cx}" y1="${yTopo}" x2="${cx}" y2="${yTopo + 8}" stroke="${cor}" stroke-width="2"/>
+    <line x1="${cx - 9}" y1="${yTopo + 8}" x2="${cx + 9}" y2="${yTopo + 8}" stroke="${cor}" stroke-width="2"/>
+    <line x1="${cx - 6}" y1="${yTopo + 12}" x2="${cx + 6}" y2="${yTopo + 12}" stroke="${cor}" stroke-width="2"/>
+    <line x1="${cx - 3}" y1="${yTopo + 16}" x2="${cx + 3}" y2="${yTopo + 16}" stroke="${cor}" stroke-width="2"/>`
+}
+
+// FEATURE-007: barra de TERRA horizontal (paralela aos condutores), abaixo do quadro.
+// Sai do símbolo de aterramento (à esquerda, abaixo dos DPS), corre à direita até embaixo
+// do carregador, que DESCE para ela; um 2º símbolo de aterramento fica sob o carregador.
+// Desenhada SEMPRE (também no fundo do editor) para paridade com o PDF.
+function desenharTerraBus(canonical) {
+  const { connections = [], layout = {}, components = [] } = canonical || {}
+  const conn = connections.find(c => c.specs?.rotaTerraBus)
+  if (!conn) return ''
+  const byId = new Map(components.map(c => [c.id, c]))
+  const pa = layout[conn.from]; const pb = layout[conn.to]
+  if (!pa || !pb) return ''
+  const cor = CORES_CONDUTOR.terra
+  const aX = pa.x + larguraComponente(byId.get(conn.from)) / 2 // centro do aterramento #1
+  const busY = pa.y + 8                                        // ponto de terra (haste)
+  // Desce/aterra à ESQUERDA do texto de specs do carregador (centralizado) para não cobri-lo.
+  const cX = pb.x + 16
+  const cBottom = pb.y + 105                                   // base do carregador
+  const leftX = aX - 46                                        // estende à esquerda (sob os DPS)
+  return `<g>
+    <polyline points="${leftX},${busY} ${cX},${busY}" fill="none" stroke="${cor}" stroke-width="2"/>
+    <line x1="${cX}" y1="${cBottom}" x2="${cX}" y2="${busY}" stroke="${cor}" stroke-width="2"/>
+    ${miniTerra(cX, busY, cor)}
+  </g>`
+}
+
 // FEATURE-006 (MOB BOX): desenha os invólucros/quadros declarados em metadata.enclosures.
 // Cada enclosure é um retângulo tracejado ao redor da caixa envolvente (bounding box) dos
 // componentes listados, usando as posições REAIS do layout + a largura real de cada símbolo
@@ -114,8 +137,9 @@ function desenharEnclosures(canonical) {
   if (!enclosures.length) return ''
   const byId = new Map(components.map(c => [c.id, c]))
   // FEATURE-007: caixa compacta (módulos adjacentes) e ALTA o bastante para conter as
-  // setas vermelhas/azuis (topo e base). Rótulo CENTRALIZADO na borda superior.
-  const PADX = 20, PADT = 16, PADB = 30
+  // setas vermelhas/azuis (topo e base). Rótulo no TOPO-ESQUERDO, no vão antes do 1º
+  // módulo (não cobre as setas nem os blocos de dados acima).
+  const PADX = 22, PADT = 18, PADB = 32
   let s = ''
   for (const enc of enclosures) {
     const ids = (enc.ids || []).filter(id => layout[id])
@@ -131,11 +155,13 @@ function desenharEnclosures(canonical) {
     const w = (maxX + PADX) - x, h = (maxY + PADB) - y
     const label = String(enc.label || 'QUADRO')
     const tabW = 20 + label.length * 6.4
-    const cxLabel = x + w / 2
+    // Rótulo com a borda direita junto ao 1º módulo (minX), estendendo à esquerda —
+    // fica no vão medidor↔quadro, abaixo dos blocos de dados e à esquerda das setas.
+    const tabX = minX - tabW
     s += `<g>
       <rect x="${x}" y="${y}" width="${w}" height="${h}" rx="6" fill="none" stroke="#0f172a" stroke-width="1.6" stroke-dasharray="7 4"/>
-      <rect x="${cxLabel - tabW / 2}" y="${y - 9}" width="${tabW}" height="17" rx="3" fill="#0f172a"/>
-      <text x="${cxLabel}" y="${y + 3}" font-size="10" font-weight="bold" text-anchor="middle" fill="#ffffff">${esc(label)}</text>
+      <rect x="${tabX}" y="${y - 9}" width="${tabW}" height="17" rx="3" fill="#0f172a"/>
+      <text x="${tabX + tabW / 2}" y="${y + 3}" font-size="10" font-weight="bold" text-anchor="middle" fill="#ffffff">${esc(label)}</text>
     </g>`
   }
   return s
@@ -219,6 +245,7 @@ export function renderSVG(canonical, opts = {}) {
     ['Corrente', eq.corrente], ['Tensão', eq.tensao], ['Conector', eq.conector],
   ])}
   ${desenharEnclosures(canonical)}
+  ${desenharTerraBus(canonical)}
   ${incluirDiagrama ? grupoDiagrama(canonical) : ''}
   ${tabelaBOM(BLOCOS.BOM, m.bom)}
   ${blocoNotas(BLOCOS.NOTAS, normas)}

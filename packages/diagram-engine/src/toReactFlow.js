@@ -41,7 +41,12 @@ export function toReactFlow(canonical) {
     },
   }))
 
-  const edges = connections.map(cx => {
+  const edges = connections
+    // FEATURE-007: no editor NÃO desenha as ligações ocultas (DPS→terra / IDR→DPS, já
+    // representadas pelas setas próprias) nem a barra de terra (desenhada no fundo do
+    // editor por desenharTerraBus) — mesma limpeza visual do PDF.
+    .filter(cx => !cx.specs?.ocultarLinha && !cx.specs?.rotaTerraBus)
+    .map(cx => {
     const primeiro = cx.condutores?.[0]
     const cor = primeiro ? (CORES_CONDUTOR[primeiro.papel] || '#555') : '#555'
     const derivacao = cx.papel === PAPEL_CONEXAO.DERIVACAO
