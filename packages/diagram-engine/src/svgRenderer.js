@@ -74,6 +74,21 @@ function desenharConexoes(connections, layout, byId = new Map()) {
     // tronco principal (ambos passam pela mesma fileira). `ocultarLinha` suprime só o
     // traço/seta desta ligação — a ligação em si continua no modelo (topologia/BOM).
     if (cx.specs?.ocultarLinha) continue
+
+    // FEATURE-007: barra de terra ORTOGONAL — sai do topo do símbolo de aterramento
+    // (o ponto de terra), corre na horizontal abaixo do quadro e sobe até o carregador.
+    if (cx.specs?.rotaTerraBus) {
+      const pa = layout[cx.from]; const pb = layout[cx.to]
+      if (pa && pb) {
+        const aX = pa.x + larguraComponente(byId.get(cx.from)) / 2, aY = pa.y + 8
+        const bX = pb.x + larguraComponente(byId.get(cx.to)) / 2, bY = pb.y + COMPONENTE.H / 2
+        const cor = CORES_CONDUTOR.terra
+        s += `<polyline points="${aX},${aY} ${bX},${aY} ${bX},${bY}" fill="none" stroke="${cor}" stroke-width="2"/>`
+        s += setaSentido(aX, aY, bX, aY, cor)
+      }
+      continue
+    }
+
     const a = centro(layout[cx.from], byId.get(cx.from)); const b = centro(layout[cx.to], byId.get(cx.to))
     const condutores = cx.condutores?.length ? cx.condutores : [{ papel: 'fase' }]
     const tracejado = cx.papel === PAPEL_CONEXAO.DERIVACAO
@@ -98,7 +113,9 @@ function desenharEnclosures(canonical) {
   const enclosures = metadata.enclosures || []
   if (!enclosures.length) return ''
   const byId = new Map(components.map(c => [c.id, c]))
-  const PADX = 24, PADT = 13, PADB = 7
+  // FEATURE-007: caixa compacta (módulos adjacentes) e ALTA o bastante para conter as
+  // setas vermelhas/azuis (topo e base). Rótulo CENTRALIZADO na borda superior.
+  const PADX = 20, PADT = 16, PADB = 30
   let s = ''
   for (const enc of enclosures) {
     const ids = (enc.ids || []).filter(id => layout[id])
@@ -114,10 +131,11 @@ function desenharEnclosures(canonical) {
     const w = (maxX + PADX) - x, h = (maxY + PADB) - y
     const label = String(enc.label || 'QUADRO')
     const tabW = 20 + label.length * 6.4
+    const cxLabel = x + w / 2
     s += `<g>
       <rect x="${x}" y="${y}" width="${w}" height="${h}" rx="6" fill="none" stroke="#0f172a" stroke-width="1.6" stroke-dasharray="7 4"/>
-      <rect x="${x + 8}" y="${y - 9}" width="${tabW}" height="17" rx="3" fill="#0f172a"/>
-      <text x="${x + 8 + tabW / 2}" y="${y + 3}" font-size="10" font-weight="bold" text-anchor="middle" fill="#ffffff">${esc(label)}</text>
+      <rect x="${cxLabel - tabW / 2}" y="${y - 9}" width="${tabW}" height="17" rx="3" fill="#0f172a"/>
+      <text x="${cxLabel}" y="${y + 3}" font-size="10" font-weight="bold" text-anchor="middle" fill="#ffffff">${esc(label)}</text>
     </g>`
   }
   return s

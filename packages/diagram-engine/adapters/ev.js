@@ -55,20 +55,22 @@ export function escolherTemplateEV(fasesAlimentacao, fasesCarregador) {
 }
 
 // Posições FIXAS (canto superior-esquerdo, coords A4/DIAGRAM_BOX). NUNCA calculadas.
-// Ajuste homologado: sem Disjuntor Geral nem Barramento Neutro — Medidor, Disjuntor,
-// IDR, DPS(s) e Carregador ficam todos na MESMA fileira (y=244). O Aterramento fica
-// numa fileira abaixo (y=352), só embaixo dos DPS, e o Terra passa a correr em
-// paralelo com Fase/Neutro somente a partir dali até o Carregador.
+// FEATURE-007: Disjuntor, IDR e DPS(s) ficam ADJACENTES (como no trilho DIN real) dentro
+// do quadro MOB BOX compacto — não mais espalhados pela página. O Medidor fica à esquerda
+// (fora do quadro) e o Carregador à direita (afastado, como na instalação real). O
+// Aterramento fica numa barra de terra horizontal ABAIXO do quadro, que segue até o
+// Carregador (roteamento ortogonal). Larguras reais: Disjuntor/IDR 2P=54, DPS=42.
 const POS_MONO = Object.freeze({
-  medidor: { x: 48, y: 244 }, disj: { x: 229, y: 244 }, dr: { x: 411, y: 244 }, carr: { x: 955, y: 244 },
-  barr_terra: { x: 623, y: 352 },
+  medidor: { x: 48, y: 256 }, disj: { x: 248, y: 256 }, dr: { x: 310, y: 256 }, carr: { x: 955, y: 256 },
+  barr_terra: { x: 319, y: 386 },
 })
-const POS_DPS_MONO = [{ x: 592, y: 244 }, { x: 774, y: 244 }]
+const POS_DPS_MONO = [{ x: 372, y: 256 }, { x: 420, y: 256 }]
+// Trifásico: Disjuntor/IDR 4P=96; 4 DPS de 42.
 const POS_TRI = Object.freeze({
-  medidor: { x: 48, y: 244 }, disj: { x: 178, y: 244 }, dr: { x: 307, y: 244 }, carr: { x: 955, y: 244 },
-  barr_terra: { x: 572, y: 352 },
+  medidor: { x: 48, y: 256 }, disj: { x: 248, y: 256 }, dr: { x: 352, y: 256 }, carr: { x: 955, y: 256 },
+  barr_terra: { x: 409, y: 386 },
 })
-const POS_DPS_TRI = [{ x: 437, y: 244 }, { x: 567, y: 244 }, { x: 696, y: 244 }, { x: 826, y: 244 }]
+const POS_DPS_TRI = [{ x: 456, y: 256 }, { x: 504, y: 256 }, { x: 552, y: 256 }, { x: 600, y: 256 }]
 
 const bit = (papel, bitola) => ({ papel, bitola_mm2: bitola })
 
@@ -98,10 +100,9 @@ function construirTemplateEV(template, { disjA, bitola, comprimento, tensao, dps
       conexao({ id: 'c-med-disj', from: 'medidor', to: 'disj', condutores: cond4 }),
       conexao({ id: 'c-disj-dr', from: 'disj', to: 'dr', condutores: cond4 }),
       conexao({ id: 'c-dr-carr', from: 'dr', to: 'carr', condutores: cond4, specs: edgeCabo }),
-      // Ajuste homologado: Terra NÃO parte do Medidor — só existe a partir do
-      // símbolo de Aterramento (que recebe a descarga dos DPS), seguindo em
-      // paralelo com os demais condutores até o Carregador.
-      conexao({ id: 'c-terra-barr-carr', from: 'barr_terra', to: 'carr', condutores: [bit('terra', bitola)] }),
+      // FEATURE-007: barra de terra HORIZONTAL abaixo do quadro → sobe até o Carregador
+      // (roteamento ortogonal). O Terra não passa pelo Disjuntor/IDR.
+      conexao({ id: 'c-terra-barr-carr', from: 'barr_terra', to: 'carr', condutores: [bit('terra', bitola)], specs: { rotaTerraBus: true } }),
     ]
     const posicoes = { medidor: POS_TRI.medidor, disj: POS_TRI.disj, dr: POS_TRI.dr, carr: POS_TRI.carr, barr_terra: POS_TRI.barr_terra }
     const papeisDPS = ['fase_l1', 'fase_l2', 'fase_l3', 'neutro']
@@ -134,8 +135,9 @@ function construirTemplateEV(template, { disjA, bitola, comprimento, tensao, dps
     conexao({ id: 'c-med-disj', from: 'medidor', to: 'disj', condutores: condFN }),
     conexao({ id: 'c-disj-dr', from: 'disj', to: 'dr', condutores: condFN }),
     conexao({ id: 'c-dr-carr', from: 'dr', to: 'carr', condutores: condFN, specs: edgeCabo }),
-    // TERRA: só existe a partir do Aterramento (recebe a descarga dos DPS) → Wallbox
-    conexao({ id: 'c-terra-barr-carr', from: 'barr_terra', to: 'carr', condutores: [bit('terra', bitola)] }),
+    // FEATURE-007: barra de terra HORIZONTAL abaixo do quadro → sobe até o Carregador
+    // (roteamento ortogonal). O Terra não passa pelo Disjuntor/IDR.
+    conexao({ id: 'c-terra-barr-carr', from: 'barr_terra', to: 'carr', condutores: [bit('terra', bitola)], specs: { rotaTerraBus: true } }),
   ]
   const posicoes = {
     medidor: POS_MONO.medidor, disj: POS_MONO.disj, dr: POS_MONO.dr, carr: POS_MONO.carr, barr_terra: POS_MONO.barr_terra,

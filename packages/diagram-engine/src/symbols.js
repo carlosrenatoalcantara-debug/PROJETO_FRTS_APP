@@ -59,9 +59,21 @@ function setaTBaixo(cx, yTopo, cor) {
     <path d="M${cx - 6},${yTopo + 9} L${cx + 6},${yTopo + 9} L${cx},${yTopo + 15} Z" fill="${cor}"/>`
 }
 
+// FEATURE-007: seta com cotovelo 90° para a DIREITA (topo do Disjuntor) — sobe do polo e
+// curva no sentido do DPS. `sw`/`v`/`h` controlam grossura/altura/comprimento (a fase
+// desenha maior que o neutro). yBase = topo do corpo do disjuntor.
+function setaCotovelo(cx, yBase, cor, { v = 14, h = 22, sw = 2.4 } = {}) {
+  const yTop = yBase - v, xEnd = cx + h, r = 6
+  return `<path d="M${cx},${yBase} L${cx},${yTop + r} Q${cx},${yTop} ${cx + r},${yTop} L${xEnd - 7},${yTop}" fill="none" stroke="${cor}" stroke-width="${sw}" stroke-linecap="round"/>
+    <path d="M${xEnd - 7},${yTop - 4.5} L${xEnd},${yTop} L${xEnd - 7},${yTop + 4.5} Z" fill="${cor}"/>`
+}
+
 // Medidor de energia — corpo com tela digital (kWh) e terminais L/N/PE.
+// FEATURE-007: mini-aterramento sob o born PE (linha vertical tracejada verde + símbolo
+// de terra pequeno) — o aterramento do padrão de entrada da concessionária.
 function ilustradoMedidor(x, y) {
   const w = 80, h = 100
+  const pe = x + w - 22, yb = y + h
   return `<g>
     <rect x="${x}" y="${y}" width="${w}" height="${h}" rx="7" fill="#f8fafc" stroke="#475569" stroke-width="2"/>
     <rect x="${x + 8}" y="${y + 8}" width="${w - 16}" height="26" rx="3" fill="#eef2f7" stroke="#94a3b8"/>
@@ -70,7 +82,11 @@ function ilustradoMedidor(x, y) {
     <rect x="${x + 8}" y="${y + h - 26}" width="${w - 16}" height="18" rx="3" fill="#334155"/>
     <circle cx="${x + 22}" cy="${y + h - 17}" r="3.5" fill="#fff"/><text x="${x + 22}" y="${y + h - 5}" font-size="5.5" text-anchor="middle" fill="#334155">L</text>
     <circle cx="${x + w / 2}" cy="${y + h - 17}" r="3.5" fill="#fff"/><text x="${x + w / 2}" y="${y + h - 5}" font-size="5.5" text-anchor="middle" fill="#334155">N</text>
-    <circle cx="${x + w - 22}" cy="${y + h - 17}" r="3.5" fill="#fff"/><text x="${x + w - 22}" y="${y + h - 5}" font-size="5.5" text-anchor="middle" fill="#334155">PE</text>
+    <circle cx="${pe}" cy="${y + h - 17}" r="3.5" fill="#fff"/><text x="${pe}" y="${y + h - 5}" font-size="5.5" text-anchor="middle" fill="#334155">PE</text>
+    <line x1="${pe}" y1="${yb}" x2="${pe}" y2="${yb + 16}" stroke="#2e9e3f" stroke-width="1.8" stroke-dasharray="4 3"/>
+    <line x1="${pe - 8}" y1="${yb + 16}" x2="${pe + 8}" y2="${yb + 16}" stroke="#2e9e3f" stroke-width="2"/>
+    <line x1="${pe - 5}" y1="${yb + 20}" x2="${pe + 5}" y2="${yb + 20}" stroke="#2e9e3f" stroke-width="2"/>
+    <line x1="${pe - 2.5}" y1="${yb + 24}" x2="${pe + 2.5}" y2="${yb + 24}" stroke="#2e9e3f" stroke-width="2"/>
   </g>`
 }
 
@@ -96,7 +112,9 @@ function ilustradoDisjuntor(x, y, n, corrente) {
 }
 
 // IDR ilustrado — igual ao disjuntor + botão de teste "T".
-function ilustradoIDR(x, y, n, rotulo) {
+// FEATURE-007: sinalização "DR {ma}mA" na faixa vermelha + "TIPO {classe}" logo abaixo
+// dos parafusos superiores dos borns.
+function ilustradoIDR(x, y, n, ma, classe) {
   const w = n >= 4 ? 96 : 54, h = 100
   const passo = n >= 4 ? 18 : 20
   const inicio = x + (w - (n - 1) * passo) / 2
@@ -111,8 +129,9 @@ function ilustradoIDR(x, y, n, rotulo) {
   return `<g>
     <rect x="${x}" y="${y}" width="${w}" height="${h}" rx="5" fill="#f8fafc" stroke="#94a3b8" stroke-width="1.5"/>
     <rect x="${x}" y="${y}" width="${w}" height="13" rx="5" fill="#dc2626"/>
-    <text x="${x + w / 2}" y="${y + 9.5}" font-size="6.3" font-weight="bold" text-anchor="middle" fill="#fff">${esc(rotulo)}</text>
+    <text x="${x + w / 2}" y="${y + 9.5}" font-size="7" font-weight="bold" text-anchor="middle" fill="#fff">DR ${esc(ma)}mA</text>
     ${polos}
+    <text x="${x + w / 2}" y="${y + 29}" font-size="5.2" font-weight="bold" text-anchor="middle" fill="#334155">TIPO ${esc(classe)}</text>
     <rect x="${x + w / 2 - 9}" y="${y + h - 32}" width="18" height="12" rx="2" fill="#1e293b"/>
     <text x="${x + w / 2}" y="${y + h - 23}" font-size="7" font-weight="bold" text-anchor="middle" fill="#fff">T</text>
   </g>`
@@ -176,15 +195,23 @@ export function desenharComponente(c, pos) {
       let setas = ''
       for (let i = 0; i < n; i++) {
         const cx = centroInicio + i * passo
-        const cor = CORES_SETA[ordem[i]] || '#334155'
-        setas += setaCima(cx, y - 3, cor) + setaCima(cx, y + 100 + 16, cor)
+        const papel = ordem[i]
+        const cor = CORES_SETA[papel] || '#334155'
+        // FEATURE-007: no bipolar, as setas do TOPO curvam 90° à direita (sentido do DPS);
+        // a Fase (vermelha) é maior que o Neutro (azul). Tetrapolar mantém setas retas.
+        if (n === 2) {
+          const grande = papel === 'fase'
+          setas += setaCotovelo(cx, y - 2, cor, grande ? { v: 16, h: 24, sw: 2.9 } : { v: 11, h: 18, sw: 2.2 })
+        } else {
+          setas += setaCima(cx, y - 3, cor)
+        }
+        setas += setaCima(cx, y + 100 + 16, cor)
       }
       return `<g>${corpo}${setas}</g>`
     }
     case TIPOS.DR: {
       const n = c.polos || 2
-      const rotuloDR = [s.ma ? `${s.ma}mA` : '', s.classe ? `Tipo ${s.classe}` : 'Tipo A'].filter(Boolean).join(' · ')
-      const corpo = ilustradoIDR(x, y, n, rotuloDR)
+      const corpo = ilustradoIDR(x, y, n, s.ma ?? 30, s.classe || 'A')
       const ordem = ORDEM_POLOS[n] || ORDEM_POLOS[2]
       const passo = n >= 4 ? 18 : 20
       const w = n >= 4 ? 96 : 54
