@@ -107,6 +107,55 @@ function tabelaComponentes(doc, x, y, largura, linhas) {
   return y
 }
 
+// FEATURE-006: valor para preenchimento manual. Quando o dado ainda não foi informado
+// no sistema, o memorial imprime um espaço em branco (linha de sublinhados) para ser
+// preenchido à mão na impressão — o operador digita depois no sistema, se necessário.
+const BRANCO = '__________'
+function ouBranco(valor, { sufixo = '', casas = null } = {}) {
+  if (valor == null || valor === '' || (typeof valor === 'number' && !Number.isFinite(valor))) return BRANCO
+  const base = casas != null ? fmt(valor, casas) : esc(valor)
+  return `${base}${sufixo}`
+}
+
+// FEATURE-006 (item 1): cabeçalho técnico de identificação do documento — caixa com os
+// dados do projeto/cliente/UC/RT, no mesmo padrão visual do restante (faixa teal + campos).
+function blocoIdentificacao(doc, x, y, largura, projeto, cliente, tecnico) {
+  const rtNome = esc(tecnico?.nome) || '—'
+  const rtReg = tecnico?.crea ? `CREA ${esc(tecnico.crea)}` : (tecnico?.cft ? `CFT ${esc(tecnico.cft)}` : '')
+  const data = esc(projeto.data) || new Date().toLocaleDateString('pt-BR')
+  const pares = [
+    ['Projeto', esc(projeto.nome) || '—'],
+    ['Data', data],
+    ['Cliente', esc(cliente?.nome) || '—'],
+    ['CPF/CNPJ', esc(cliente?.cpf_cnpj) || '—'],
+    ['Concessionária', esc(cliente?.distribuidora) || '—'],
+    ['Unidade Consumidora (UC)', esc(cliente?.numero_cliente) || '—'],
+  ]
+  const endereco = esc(cliente?.endereco_completo || projeto.endereco_completo) || '—'
+  const rt = `${rtNome}${rtReg ? ` — ${rtReg}` : ''}`
+
+  const padY = 22, linhaH = 13, colW = largura / 2
+  const nLinhasGrid = Math.ceil(pares.length / 2)
+  const alturaCaixa = padY + nLinhasGrid * linhaH + linhaH * 2 + 6 // grid + endereço + RT
+  doc.rect(x, y, largura, alturaCaixa).fillAndStroke('#ffffff', '#cbd5e1')
+  doc.rect(x, y, largura, 16).fill('#0f766e')
+  doc.fillColor('#ffffff').font('Helvetica-Bold').fontSize(9).text('IDENTIFICAÇÃO DO DOCUMENTO', x + 8, y + 4)
+  let yy = y + padY
+  pares.forEach(([k, v], i) => {
+    const cx = x + 8 + (i % 2) * colW
+    if (i % 2 === 0 && i > 0) yy += linhaH
+    doc.font('Helvetica-Bold').fontSize(7.6).fillColor('#334155').text(`${k}:`, cx, yy, { width: colW - 14, continued: true })
+    doc.font('Helvetica').fillColor('#1e293b').text(` ${v}`)
+  })
+  yy += linhaH
+  doc.font('Helvetica-Bold').fontSize(7.6).fillColor('#334155').text('Endereço:', x + 8, yy, { width: largura - 16, continued: true })
+  doc.font('Helvetica').fillColor('#1e293b').text(` ${endereco}`)
+  yy += linhaH
+  doc.font('Helvetica-Bold').fontSize(7.6).fillColor('#334155').text('Responsável Técnico:', x + 8, yy, { width: largura - 16, continued: true })
+  doc.font('Helvetica').fillColor('#1e293b').text(` ${rt}`)
+  return y + alturaCaixa + 8
+}
+
 /**
  * Desenha o memorial descritivo na página ATUAL do doc (assume página em branco,
  * cursor no topo). Quem chama decide se faz doc.addPage() antes/depois.
@@ -122,6 +171,9 @@ export function desenharMemorialDescritivo(doc, projetoOriginal, clienteOriginal
   const largura = doc.page.width - margem * 2
 
   let y = cabecalho(doc, largura, margem, projeto, logoBase64)
+
+  // ── Identificação do documento (FEATURE-006 item 1) ───────────────────────
+  y = blocoIdentificacao(doc, margem, y, largura, projeto, cliente, tecnico)
 
   // ── 1. Objetivo ──────────────────────────────────────────────────────────
   const ehTri = Number(carregador.numero_fases) >= 3
@@ -153,6 +205,29 @@ export function desenharMemorialDescritivo(doc, projetoOriginal, clienteOriginal
     alturaMax2 = Math.max(alturaMax2, doc.y - yAntes2)
   })
   y = yAntes2 + alturaMax2 + 6
+
+  // ── Verificação da Disponibilidade Elétrica (FEATURE-006 item 2) ──────────
+  // TEXTO FIXO (nunca gerar por IA). Apenas as variáveis são substituídas. Dados não
+  // informados no sistema saem como espaço em branco (BRANCO) para preenchimento manual.
+  const nA = (v) => (v == null || v === '' || !Number.isFinite(Number(v)) ? BRANCO : fmt(v, 2).replace(/,00$/, '').replace(/(,\d)0$/, '$1'))
+  const cargaTxt = cliente?.carga_instalada_kw != null ? `${nA(cliente.carga_instalada_kw)} kW` : BRANCO
+  const concessTxt = esc(cliente?.distribuidora) || BRANCO
+  const iAferida = projeto.corrente_aferida_a
+  const iCarregador = carregador.corrente_entrada_a
+  const iFinal = (Number.isFinite(Number(iAferida)) && Number.isFinite(Number(iCarregador))) ? Number(iAferida) + Number(iCarregador) : null
+  y = tituloSecao(doc, margem, y, largura, 'Verificação da Disponibilidade Elétrica')
+  y = escreverBloco(doc, margem, y, largura,
+    `A unidade consumidora possui Carga Instalada de ${cargaTxt}, conforme cadastro da concessionária ${concessTxt}.`)
+  y = escreverBloco(doc, margem, y, largura,
+    `Durante a vistoria técnica foi realizada a aferição da corrente na fase destinada à alimentação do carregador de veículo `
+    + `elétrico, obtendo-se o valor de ${nA(iAferida)} A.`)
+  y = escreverBloco(doc, margem, y, largura,
+    `Considerando a corrente nominal do carregador (${nA(iCarregador)} A), a corrente prevista na fase após a utilização do `
+    + `carregador será de ${nA(iFinal)} A, permanecendo inferior à capacidade do circuito de entrada protegido por disjuntor de `
+    + `${nA(cliente?.disjuntor_geral_a)} A.`)
+  y = escreverBloco(doc, margem, y, largura,
+    `Conclui-se que existe disponibilidade elétrica na fase destinada à alimentação do carregador de veículo elétrico, não `
+    + `sendo necessária, nas condições aferidas, solicitação de aumento da carga instalada junto à concessionária.`)
 
   // ── 3. Memória de cálculo ───────────────────────────────────────────────
   y = tituloSecao(doc, margem, y, largura, '3. Memória de Cálculo')
@@ -200,6 +275,14 @@ export function desenharMemorialDescritivo(doc, projetoOriginal, clienteOriginal
     'Eletroduto instalado de forma alinhada, com curvas de raio longo nas mudanças de direção. Fixação com espaçamento máximo de 1 metro '
     + 'entre abraçadeiras. Extremidades com buchas/arruelas de acabamento para não danificar a isolação dos condutores. Identificação de '
     + 'cores dos condutores conforme NBR 5410.')
+
+  // ── Conclusão Técnica (FEATURE-006 item 3) — TEXTO FIXO ───────────────────
+  y = tituloSecao(doc, margem, y, largura, 'Conclusão Técnica')
+  y = escreverBloco(doc, margem, y, largura,
+    `Com base nos dados da unidade consumidora, nas informações fornecidas pelo fabricante do equipamento, na vistoria `
+    + `técnica realizada e nos dimensionamentos apresentados neste memorial, conclui-se que o circuito destinado à alimentação `
+    + `do carregador de veículo elétrico atende aos requisitos das ABNT NBR 5410 e ABNT NBR 17019, estando tecnicamente apto `
+    + `para execução conforme as especificações deste documento.`)
 
   // ── Assinaturas ──────────────────────────────────────────────────────────
   const xDir = margem + largura / 2 + 10
