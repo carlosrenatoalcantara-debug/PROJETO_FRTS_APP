@@ -46,6 +46,49 @@ async function carregarEngine() {
   }
 }
 
+/** "data:image/...;base64,..." → Buffer (aceito por doc.image()). null se inválida. */
+function base64ParaBuffer(dataUri) {
+  const m = /^data:image\/\w+;base64,(.+)$/.exec(String(dataUri || ''))
+  if (!m) return null
+  try { return Buffer.from(m[1], 'base64') } catch { return null }
+}
+const esc2 = (s) => String(s ?? '')
+
+/**
+ * FEATURE-006 itens 4 e 5: sobrepõe (via PDFKit, SEM tocar no DiagramEngine/SVG) a MESMA
+ * logomarca da página 1 no topo-esquerdo do unifilar e os blocos de assinatura no rodapé.
+ * Desenhado DEPOIS do SVG, em área livre — não altera o diagrama nem o layout aprovado.
+ */
+export function desenharLogoEAssinaturasP2(doc, logoBase64, cliente = {}, tecnico = {}) {
+  // Item 4 — logo: cobre o texto "Forte Solar" do cabeçalho do SVG (mesma origem da pág. 1).
+  const logoBuf = base64ParaBuffer(logoBase64)
+  if (logoBuf) {
+    try {
+      doc.save()
+      doc.rect(22, 16, 160, 32).fill('#ffffff')
+      doc.image(logoBuf, 26, 20, { fit: [132, 26], align: 'left' })
+      doc.restore()
+    } catch { /* logo ilegível — mantém o texto padrão do SVG */ }
+  }
+  // Item 5 — assinaturas: CLIENTE e RESPONSÁVEL TÉCNICO no rodapé (faixa livre entre a
+  // caixa de NOTAS/BOM e o QR). Alinhadas e proporcionais ao restante do documento.
+  const W = doc.page.width, H = doc.page.height
+  const yTop = H - 90
+  const colW = 210
+  const rtReg = tecnico?.crea ? `CREA ${esc2(tecnico.crea)}` : (tecnico?.cft ? `CFT ${esc2(tecnico.cft)}` : '')
+  const colunas = [
+    [270, 'CLIENTE', esc2(cliente?.nome), cliente?.cpf_cnpj ? `CPF/CNPJ ${esc2(cliente.cpf_cnpj)}` : ''],
+    [490, 'RESPONSÁVEL TÉCNICO', esc2(tecnico?.nome), rtReg],
+  ]
+  for (const [x, titulo, nome, linha2] of colunas) {
+    doc.font('Helvetica-Bold').fontSize(8).fillColor('#0f172a').text(titulo, x, yTop, { width: colW })
+    doc.font('Helvetica').fontSize(8).fillColor('#334155').text(nome || ' ', x, yTop + 12, { width: colW })
+    doc.fontSize(7.5).fillColor('#64748b').text(linha2 || ' ', x, yTop + 22, { width: colW })
+    doc.moveTo(x, yTop + 50).lineTo(x + colW, yTop + 50).stroke('#94a3b8')
+    doc.font('Helvetica').fontSize(7).fillColor('#64748b').text('Assinatura', x, yTop + 53, { width: colW })
+  }
+}
+
 /** Normaliza o documento (mongoose ou plain) e garante cliente populado. */
 function prepararProjeto(projeto, cliente) {
   const plain = projeto?.toObject ? projeto.toObject() : { ...projeto }
@@ -73,6 +116,7 @@ export async function gerarPDFUnifilar(projeto, cliente, _tecnico) {
       desenharMemorialDescritivo(doc, plain, plain.clienteId, logo)
       doc.addPage({ size: 'A4', layout: 'landscape', margin: 0 })
       SVGtoPDF(doc, svg, 0, 0, { width: doc.page.width, height: doc.page.height, preserveAspectRatio: 'xMidYMid meet' })
+      desenharLogoEAssinaturasP2(doc, logo, plain.clienteId, plain.tecnico)
       const chunks = []
       doc.on('data', (c) => chunks.push(c))
       doc.on('end', () => resolve(Buffer.concat(chunks)))
@@ -100,5 +144,6 @@ export async function gerarPDFUnifilarStream(projeto, cliente, _tecnico) {
   desenharMemorialDescritivo(doc, plain, plain.clienteId, logo)
   doc.addPage({ size: 'A4', layout: 'landscape', margin: 0 })
   SVGtoPDF(doc, svg, 0, 0, { width: doc.page.width, height: doc.page.height, preserveAspectRatio: 'xMidYMid meet' })
+  desenharLogoEAssinaturasP2(doc, logo, plain.clienteId, plain.tecnico)
   return doc
 }
