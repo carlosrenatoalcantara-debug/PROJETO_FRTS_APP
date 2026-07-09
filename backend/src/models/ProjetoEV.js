@@ -11,10 +11,16 @@ const projetoEVSchema = new mongoose.Schema({
     required: true,
     trim: true,
   },
+  // FEATURE-008: pipeline comercial ÚNICO (fonte única de verdade — sem status
+  // paralelo em orcamento.status). Mesmo enum usado pelo wizard, pela página de
+  // visualização e (futuro) pelo board do CRM. "Dimensionado" é o ponto de entrada
+  // (o sistema já dimensiona automático ao cadastrar cliente + dados de energia —
+  // não há mais "rascunho"). "Homologação" é a aprovação técnica na concessionária
+  // (etapa própria, distinta de "Aprovado" = fechamento comercial).
   status: {
     type: String,
-    enum: ['rascunho', 'em_simulacao', 'dimensionado', 'proposta', 'aprovado', 'em_execucao', 'concluido'],
-    default: 'rascunho',
+    enum: ['dimensionado', 'aguardando_cliente', 'aprovado', 'homologacao', 'concluido'],
+    default: 'dimensionado',
   },
 
   // BUG-015: última etapa do wizard em que o usuário salvou (1..4). "Editar Projeto"

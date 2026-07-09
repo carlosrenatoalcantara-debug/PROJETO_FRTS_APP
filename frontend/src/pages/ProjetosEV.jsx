@@ -7,23 +7,20 @@ import Badge from '../components/ui/Badge'
 
 const API_URL = '' /* URL relativa forçada — Vercel proxy → Railway. Não usar VITE_API_URL */
 
+// FEATURE-008: pipeline único (ver ProjetoEV.status / PropostaComercialEV.STATUS_COMERCIAL).
 const corStatus = {
-  'rascunho': 'cinza',
-  'em_simulacao': 'amarelo',
   'dimensionado': 'azul',
-  'proposta': 'cinza',
+  'aguardando_cliente': 'amarelo',
   'aprovado': 'verde',
-  'em_execucao': 'azul',
+  'homologacao': 'laranja',
   'concluido': 'verde',
 }
 
 const statusLabel = {
-  'rascunho': 'Rascunho',
-  'em_simulacao': 'Em Simulação',
   'dimensionado': 'Dimensionado',
-  'proposta': 'Proposta',
+  'aguardando_cliente': 'Aguardando Cliente',
   'aprovado': 'Aprovado',
-  'em_execucao': 'Em Execução',
+  'homologacao': 'Homologação',
   'concluido': 'Concluído',
 }
 

@@ -180,7 +180,7 @@ export const criarProjetoEV = async (req, res) => {
         clienteId,
         nome,
         tipo_carregamento: tipo_carregamento || 'AC',
-        status: req.body.status || 'rascunho',
+        status: req.body.status || 'dimensionado', // FEATURE-008
       })
       console.log('✓ Projeto EV criado em memória:', novo._id)
       res.status(201).json(novo)
@@ -196,7 +196,7 @@ export const criarProjetoEV = async (req, res) => {
       clienteId,
       nome,
       tipo_carregamento: tipo_carregamento || 'AC',
-      status: req.body.status || 'rascunho',
+      status: req.body.status || 'dimensionado', // FEATURE-008
       // Incluir todos os dados adicionais enviados pelo frontend
       ...(req.body.endereco_completo && { endereco_completo: req.body.endereco_completo }),
       ...(req.body.latitude && { latitude: req.body.latitude }),
@@ -250,7 +250,7 @@ export const criarProjetoEV = async (req, res) => {
         clienteId: req.body.clienteId,
         nome: req.body.nome,
         tipo_carregamento: req.body.tipo_carregamento || 'AC',
-        status: req.body.status || 'rascunho',
+        status: req.body.status || 'dimensionado', // FEATURE-008
       })
       res.status(201).json(novo)
     } catch (memErr) {

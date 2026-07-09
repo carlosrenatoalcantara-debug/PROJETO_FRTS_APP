@@ -19,14 +19,15 @@ import { normalizarPolitica, margemDaPolitica, flagsApresentacao, MODO_LABEL, MO
 
 const brl = (v) => `R$ ${Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 
-// Fluxo comercial da proposta EV (sprint)
-export const STATUS_COMERCIAL = ['rascunho', 'enviado', 'aguardando_cliente', 'aprovado', 'em_execucao', 'concluido']
+// FEATURE-008: pipeline comercial ÚNICO — mesmo enum de ProjetoEV.status (fonte única
+// de verdade, também usada na página de visualização e no futuro board do CRM). Não
+// existe mais orcamento.status paralelo.
+export const STATUS_COMERCIAL = ['dimensionado', 'aguardando_cliente', 'aprovado', 'homologacao', 'concluido']
 export const STATUS_COMERCIAL_LABEL = {
-  rascunho: 'Rascunho',
-  enviado: 'Enviado',
+  dimensionado: 'Dimensionado',
   aguardando_cliente: 'Aguardando cliente',
   aprovado: 'Aprovado',
-  em_execucao: 'Em execução',
+  homologacao: 'Homologação',
   concluido: 'Concluído',
 }
 
@@ -45,7 +46,7 @@ export default function PropostaComercialEV({
   dados = {},
   carregadores = [],
   orcamento,
-  status = 'rascunho',
+  status = 'dimensionado',
   onStatusChange,
   onSalvar,
   onOrcamentoChange,
@@ -280,7 +281,7 @@ export default function PropostaComercialEV({
             className="text-xs border border-slate-300 rounded px-2 py-1 bg-white">
             {STATUS_COMERCIAL.map((s) => <option key={s} value={s}>{STATUS_COMERCIAL_LABEL[s]}</option>)}
           </select>
-          {(status === 'aprovado' || status === 'em_execucao' || status === 'concluido') && (
+          {(status === 'aprovado' || status === 'homologacao' || status === 'concluido') && (
             <span className="text-[11px] text-emerald-700 inline-flex items-center gap-1"><CheckCircle2 size={12} /> aprovado</span>
           )}
         </div>

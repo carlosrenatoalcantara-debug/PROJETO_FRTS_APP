@@ -3,7 +3,6 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { ChevronLeft, Zap, Edit2, X, Trash2, Pencil, User, MapPin, Ruler, Package, Wrench, DollarSign, FileText, FileDown, MessageCircle, Mail, Printer } from 'lucide-react'
 import Card, { CardHeader, CardBody } from '../components/ui/Card'
 import Button from '../components/ui/Button'
-import Badge from '../components/ui/Badge'
 import InteractiveDiagram from '../components/diagram/InteractiveDiagram'
 import { deletarDiagramaLocal } from '../components/diagram/utils/diagramPersistence'
 import { adaptarProjetoEV, construirCanonicalEV, construirCanonicalDeProjetoEV } from '../utils/adapterDiagramaEV'
@@ -14,24 +13,33 @@ import { normalizarPolitica, margemDaPolitica, flagsApresentacao } from '../util
 const API_URL = '' /* URL relativa forçada — Vercel proxy → Railway. Não usar VITE_API_URL */
 const brl = (v) => `R$ ${Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 
+// FEATURE-008: pipeline único (ver ProjetoEV.status / PropostaComercialEV.STATUS_COMERCIAL).
 const statusLabel = {
-  'rascunho': 'Rascunho',
-  'em_simulacao': 'Em Simulação',
   'dimensionado': 'Dimensionado',
-  'proposta': 'Proposta',
+  'aguardando_cliente': 'Aguardando Cliente',
   'aprovado': 'Aprovado',
-  'em_execucao': 'Em Execução',
+  'homologacao': 'Homologação',
   'concluido': 'Concluído',
 }
 
 const corStatus = {
-  'rascunho': 'cinza',
-  'em_simulacao': 'amarelo',
   'dimensionado': 'azul',
-  'proposta': 'cinza',
+  'aguardando_cliente': 'amarelo',
   'aprovado': 'verde',
-  'em_execucao': 'azul',
+  'homologacao': 'laranja',
   'concluido': 'verde',
+}
+
+const OPCOES_STATUS = ['dimensionado', 'aguardando_cliente', 'aprovado', 'homologacao', 'concluido']
+
+// Mesmas cores do Badge (components/ui/Badge.jsx), aplicadas a um <select> editável.
+const CORES_SELECT_STATUS = {
+  verde:    'bg-emerald-100 text-emerald-700',
+  amarelo:  'bg-amber-100 text-amber-700',
+  vermelho: 'bg-red-100 text-red-700',
+  azul:     'bg-blue-100 text-blue-700',
+  cinza:    'bg-slate-100 text-slate-600',
+  laranja:  'bg-orange-100 text-orange-700',
 }
 
 // P3-F3: monta os argumentos do adapter EV a partir do projeto persistido.
@@ -209,6 +217,30 @@ export default function ProjetosEVDetalhes() {
       alert(`❌ Erro ao salvar: ${erro.message}`)
     } finally {
       setSalvandoDiagrama(false)
+    }
+  }
+
+  // FEATURE-008: muda o status comercial DIRETO na página de visualização (fonte única
+  // — mesmo campo/enum do wizard). Otimista: atualiza a UI na hora, reverte se falhar.
+  const [salvandoStatus, setSalvandoStatus] = useState(false)
+  const mudarStatus = async (novoStatus) => {
+    const anterior = projeto?.status
+    if (novoStatus === anterior) return
+    setProjeto(p => ({ ...p, status: novoStatus }))
+    setSalvandoStatus(true)
+    try {
+      const res = await fetch(`${API_URL}/api/projetos-ev/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: novoStatus }),
+      })
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    } catch (erro) {
+      console.error('Erro ao mudar status:', erro)
+      alert(`❌ Erro ao mudar status: ${erro.message}`)
+      setProjeto(p => ({ ...p, status: anterior }))
+    } finally {
+      setSalvandoStatus(false)
     }
   }
 
@@ -406,7 +438,17 @@ export default function ProjetosEVDetalhes() {
           <h1 className="text-3xl font-bold text-slate-900">{nome}</h1>
           <p className="text-slate-500 mt-1">ID: {id_projeto} · {tipoCarregamento} · Atualizado {dataAtualizacao}</p>
         </div>
-        <Badge cor={corStatus[status] || 'cinza'}>{statusLabel[status] || status}</Badge>
+        {/* FEATURE-008: status editável DIRETO aqui — sem precisar voltar pro wizard.
+            Mesmo campo/enum do seletor da etapa 3 (fonte única). */}
+        <select
+          value={status}
+          onChange={(e) => mudarStatus(e.target.value)}
+          disabled={salvandoStatus}
+          title="Mudar status comercial"
+          className={`text-xs font-medium rounded-full px-2.5 py-1 border-0 cursor-pointer ${CORES_SELECT_STATUS[corStatus[status]] || CORES_SELECT_STATUS.cinza} ${salvandoStatus ? 'opacity-60' : ''}`}
+        >
+          {OPCOES_STATUS.map((s) => <option key={s} value={s}>{statusLabel[s]}</option>)}
+        </select>
       </div>
 
       {/* AÇÕES — apresentação/conferência (FEATURE-003) */}

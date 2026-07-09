@@ -69,7 +69,7 @@ export default function NovaPropostaEV() {
     desconto_pct: 0,
     mostrar_materiais_detalhados: true, // FEATURE-002 ITEM 3
   })
-  const [statusComercial, setStatusComercial] = useState('rascunho')
+  const [statusComercial, setStatusComercial] = useState('dimensionado') // FEATURE-008
   const [incluirMobBox, setIncluirMobBox] = useState(false)
   const [unifilar, setUnifilar] = useState(null)
   const [canonical, setCanonical] = useState(null)   // JSON canônico do DiagramEngine (fonte única)
@@ -218,10 +218,12 @@ export default function NovaPropostaEV() {
             politica_perfil: p.orcamento.politica_perfil ?? p.politica_perfil ?? prev.politica_perfil,
             politica_herdada: (p.orcamento.politica_herdada ?? p.politica_herdada) ?? prev.politica_herdada,
           }))
-          if (p.orcamento.status) setStatusComercial(p.orcamento.status)
         } else if (Array.isArray(p.bom) && p.bom.length) {
           setOrcamento(prev => ({ ...prev, materiais: p.bom }))
         }
+        // FEATURE-008: status é lido de p.status (fonte única) — não mais de
+        // p.orcamento.status. Independe de o projeto ter orçamento salvo.
+        if (p.status) setStatusComercial(p.status)
         // BUG-015: abre EXATAMENTE na última etapa salva (nunca reinicia na etapa 1).
         const etapaSalva = Math.min(Math.max(Number(p.ultimaEtapa) || 1, 1), 4)
         setEtapa(etapaSalva)
@@ -451,7 +453,9 @@ export default function NovaPropostaEV() {
       corrente_aferida_a: dados.corrente_aferida_a, // FEATURE-006: aferição da vistoria
       calculos_nbr: calculos,
       bom: orcamento.materiais,
-      orcamento: { ...orcamento, status: statusComercial, resumo: resumoOrcamento },
+      // FEATURE-008: status NÃO fica mais duplicado dentro de orcamento — vive só no
+      // campo raiz `status` (fonte única).
+      orcamento: { ...orcamento, resumo: resumoOrcamento },
       financeiro: {
         custo_equipamentos_r: resumoOrcamento.subtotal_equipamentos,
         custo_materiais_r:    resumoOrcamento.subtotal_materiais,
@@ -461,7 +465,10 @@ export default function NovaPropostaEV() {
         custo_total_r:        resumoOrcamento.preco_final,
       },
       tecnico: { nome: dados.tecnico_nome, crea: dados.tecnico_crea, cft: dados.tecnico_cft, tipo_profissional: dados.tecnico_tipo },
-      status: ['aprovado', 'em_execucao', 'concluido'].includes(statusComercial) ? 'aprovado' : 'dimensionado',
+      // FEATURE-008: grava o status comercial DIRETO — sem derivação com perda. Antes,
+      // 'enviado'/'aguardando_cliente'/'homologacao' viravam 'dimensionado' e o Badge da
+      // listagem/visualização dessincronizava do que o usuário via no seletor.
+      status: statusComercial,
       // BUG-015: registra a etapa atual do wizard (reabertura da edição inicia aqui)
       ultimaEtapa: etapa,
       // FEATURE-004: política comercial (perfil, herdada da empresa ou personalizada)
