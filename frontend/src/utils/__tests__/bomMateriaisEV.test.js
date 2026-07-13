@@ -132,15 +132,15 @@ describe('FORTE SOLAR — Trifásico: L1+L2+L3+N+PE (5 condutores)', () => {
 
 // ─── DPS mínimo 2 ────────────────────────────────────────────────────────────
 
-describe('DPS — mínimo 2 unidades (NBR 5410 6.3.5.2)', () => {
-  it('DPS sempre = 2 (cabo curto)', () => {
-    const bom = gerarBOM({ ...baseArgsMono, comprimento_m: 5 })
-    expect(item(bom, 'DPS (Proteção contra Surtos)').quantidade).toBe(2)
+describe('DPS — 1 por condutor vivo (BUG-021.1 · NBR 5410 6.3.5)', () => {
+  it('Monofásico = 2 DPS (L1+N), independe do comprimento', () => {
+    expect(item(gerarBOM({ ...baseArgsMono, comprimento_m: 5 }), 'DPS (Proteção contra Surtos)').quantidade).toBe(2)
+    expect(item(gerarBOM({ ...baseArgsMono, comprimento_m: 100 }), 'DPS (Proteção contra Surtos)').quantidade).toBe(2)
   })
 
-  it('DPS = 2 (cabo longo, sem multiplicação)', () => {
-    const bom = gerarBOM({ ...baseArgsMono, comprimento_m: 100 })
-    expect(item(bom, 'DPS (Proteção contra Surtos)').quantidade).toBe(2)
+  it('Trifásico = 4 DPS (L1+L2+L3+N)', () => {
+    expect(item(gerarBOM({ ...baseArgsTri, comprimento_m: 5 }), 'DPS (Proteção contra Surtos)').quantidade).toBe(4)
+    expect(item(gerarBOM({ ...baseArgsTri, comprimento_m: 100 }), 'DPS (Proteção contra Surtos)').quantidade).toBe(4)
   })
 
   it('REGRAS_BOM.DPS_MINIMO === 2', () => {

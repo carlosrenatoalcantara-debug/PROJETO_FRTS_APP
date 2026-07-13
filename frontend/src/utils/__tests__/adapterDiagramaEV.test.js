@@ -189,11 +189,13 @@ describe('hidratação e overrides', () => {
   })
 
   it('mudança que remove componente → override correspondente é podado', () => {
-    // de 2 DPS (mono) para 1 DPS bipolar: dps1 deixa de existir
-    const overrides = { dps1: { position: { x: 5, y: 5 } }, disj: { position: { x: 9, y: 9 } } }
-    const a = adaptarProjetoEV(args({ bom: [...bomMono.slice(0, 1), { item: 'DPS (Proteção contra Surtos)', especificacao: '275V', quantidade: 1, unidade: 'un' }, bomMono[2]] }))
+    // BUG-021.1: nº de DPS é por fases (mono=2, tri=4). Num projeto MONO só existem
+    // dps0/dps1 — o override de dps3 (que só existiria no tri) é órfão e deve ser podado.
+    const overrides = { dps3: { position: { x: 5, y: 5 } }, disj: { position: { x: 9, y: 9 } } }
+    const a = adaptarProjetoEV(args({ projeto: { fases: 1 }, numero_fases: 1, carregador: { numero_fases: 1, tensao_entrada_v: 220, corrente_entrada_a: 32 } }))
+    expect(a.components.filter(c => c.tipo === 'dps').length).toBe(2)
     const canonical = build({ components: a.components, connections: a.connections, overrides })
-    expect(canonical.overrides).not.toHaveProperty('dps1')
+    expect(canonical.overrides).not.toHaveProperty('dps3')
     expect(canonical.overrides).toHaveProperty('disj')
   })
 })

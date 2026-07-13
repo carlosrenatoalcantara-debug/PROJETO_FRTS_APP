@@ -174,10 +174,12 @@ export function gerarBOM({
       categoria: 'Proteções',
     },
     {
-      // NBR 5410 6.3.5.2: mínimo 2 unidades (fase + neutro)
+      // BUG-021.1: 1 DPS por condutor VIVO (fase(s) + neutro) — NBR 5410 6.3.5.
+      // Monofásico = 2 (L1+N); Trifásico (3F+N) = 4 (L1+L2+L3+N). Determinístico
+      // por fases: BOM, Memorial e Unifilar seguem a MESMA regra e nunca divergem.
       item: 'DPS (Proteção contra Surtos)',
       especificacao: `${dps_kv || 0}V Classe II`,
-      quantidade: 2,
+      quantidade: ehTrifasico ? 4 : 2,
       unidade: 'un',
       categoria: 'Proteções',
     },

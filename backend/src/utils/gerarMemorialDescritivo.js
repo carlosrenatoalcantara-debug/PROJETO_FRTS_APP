@@ -264,7 +264,8 @@ export function desenharMemorialDescritivo(doc, projetoOriginal, clienteOriginal
   y = tabelaComponentes(doc, margem, y, largura, [
     ['Disjuntor Termomagnético', `${calc.disjuntor_a ?? '—'} A, Curva C, ${ehTri ? 'Tetrapolar (4P)' : 'Bipolar (2P)'} — proteção contra sobrecarga e curto-circuito.`],
     ['IDR (Interruptor Diferencial Residual)', `${calc.disjuntor_a ?? '—'} A, ${calc.dr_ma ?? 30} mA, Tipo A — obrigatório pela NBR 17019, detecta fuga com componente contínua pulsante do carregador.`],
-    ['DPS (Proteção contra Surtos)', `Classe II, ${calc.dps_kv ?? '—'} V — protege a eletrônica do carregador contra surtos atmosféricos e de manobra.`],
+    // BUG-021.1: quantidade de DPS = 1 por condutor vivo (mono 2: L1+N; tri 4: L1+L2+L3+N).
+    ['DPS (Proteção contra Surtos)', `${ehTri ? 4 : 2} unidades, Classe II, ${calc.dps_kv ?? '—'} V — um por condutor vivo (${ehTri ? 'L1, L2, L3 e N' : 'L1 e N'}); protege a eletrônica do carregador contra surtos atmosféricos e de manobra.`],
     ['Condutores', `${fmt(calc.bitola_cabo_mm2, 1)} mm², cobre, isolação PVC 70°C — Fase (preto/vermelho), Neutro (azul), Terra (verde/amarelo).`],
   ])
   y += 4

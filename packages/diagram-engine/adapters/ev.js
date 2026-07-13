@@ -156,16 +156,8 @@ function construirTemplateEV(template, { disjA, bitola, comprimento, tensao, dps
   return { components, connections, posicoes }
 }
 
-function contarDPS(bom = []) {
-  // Âncora no INÍCIO da descrição ("DPS ...") — não basta /DPS/i solto, porque o item
-  // "Trilho DIN (Fixação de disjuntor/DR/DPS no quadro)" também contém a substring
-  // "DPS" (cita os dispositivos que o trilho acomoda) e aparece ANTES do item real de
-  // DPS na lista de materiais — o find() pegava a quantidade errada (a do trilho, não
-  // a do próprio DPS), fazendo o unifilar desenhar 1 DPS em vez de 2.
-  const linha = bom.find(b => /^DPS\b/i.test((b.item || b.descricao || '').trim()))
-  const q = Number(linha?.quantidade)
-  return Number.isFinite(q) && q > 0 ? q : 2 // NBR 5410 6.3.5.2: mínimo 2
-}
+// BUG-021.1: contarDPS(bom) foi removido — o nº de DPS agora é determinístico por
+// fases (mono=2, tri=4), não mais lido da contagem do BOM (que podia divergir).
 
 function bitolaDoBOM(bom = [], fallback) {
   const cabo = bom.find(b => /^Cabo /i.test(b.item || b.descricao || ''))
@@ -216,7 +208,10 @@ export function adaptarProjetoEV({ calculos = {}, bom = [], numero_fases = 1, ca
   const { components, connections, posicoes } = construirTemplateEV(template, {
     disjA, bitola, comprimento, tensao,
     dpsV: calculos.dps_kv ?? 275, drMa: calculos.dr_ma ?? 30,
-    carregador, nDPS: contarDPS(bom),
+    // BUG-021.1: nº de DPS é DETERMINÍSTICO por fases (1 por condutor vivo) — mono=2
+    // (L1+N), tri=4 (L1+L2+L3+N). Não vem mais da contagem do BOM (que podia estar
+    // desatualizada) — assim BOM e Unifilar nunca divergem.
+    carregador, nDPS: ehTri ? 4 : 2,
   })
 
   const { normas, normas_motivo } = avaliarNormas({
