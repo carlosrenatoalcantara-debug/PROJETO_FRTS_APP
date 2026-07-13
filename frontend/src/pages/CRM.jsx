@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom'
 import Card, { CardHeader, CardBody } from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import Input from '../components/ui/Input'
+import CrmProjetos from '../components/crm/CrmProjetos'
 
 const API_URL = '' /* URL relativa forçada — Vercel proxy → Railway. Não usar VITE_API_URL */
 
@@ -23,6 +24,8 @@ export default function CRM() {
   const [mostraFormFunil, setMostraFormFunil] = useState(false)
   const [mostraFormColuna, setMostraFormColuna] = useState(false)
   const [mostraFormLead, setMostraFormLead] = useState(false)
+  // FEATURE-009: aba do board de PROJETOS (EV+FV) vs. board de LEADS (funis).
+  const [aba, setAba] = useState('projetos')
 
   const corBg = empresa.corSecundaria || '#0f172a'
   const corPrimaria = empresa.corPrimaria || '#f97316'
@@ -195,7 +198,9 @@ export default function CRM() {
     cor: cores[i % cores.length]
   }))
 
-  if (carregando) {
+  // FEATURE-009: só bloqueia a tela toda no board de LEADS (funis). O board de
+  // PROJETOS tem carregamento próprio e é a aba padrão.
+  if (carregando && aba === 'funis') {
     return <div style={{ backgroundColor: corBg }} className="flex-1 flex items-center justify-center text-white"><p>Carregando...</p></div>
   }
 
@@ -204,10 +209,26 @@ export default function CRM() {
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold text-white">CRM</h1>
-          <Button icone={Plus} variante="primario" onClick={() => setMostraFormFunil(!mostraFormFunil)}>
-            Novo Funil
-          </Button>
+          {aba === 'funis' && (
+            <Button icone={Plus} variante="primario" onClick={() => setMostraFormFunil(!mostraFormFunil)}>
+              Novo Funil
+            </Button>
+          )}
         </div>
+
+        {/* FEATURE-009: abas — Projetos (EV+FV) e Funis (leads) */}
+        <div className="flex gap-2 border-b border-white/10">
+          {[['projetos', 'Projetos'], ['funis', 'Funis (Leads)']].map(([k, lbl]) => (
+            <button key={k} onClick={() => setAba(k)}
+              className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${aba === k ? 'text-white border-white' : 'text-white/50 border-transparent hover:text-white/80'}`}>
+              {lbl}
+            </button>
+          ))}
+        </div>
+
+        {aba === 'projetos' && <CrmProjetos />}
+
+        {aba === 'funis' && (<>
 
         {mostraFormFunil && (
           <div className="bg-white/10 rounded-lg p-4 flex gap-2">
@@ -416,6 +437,8 @@ export default function CRM() {
             <p>Nenhum funil criado. Crie um para começar!</p>
           </div>
         )}
+
+        </>)}
       </div>
     </div>
   )
