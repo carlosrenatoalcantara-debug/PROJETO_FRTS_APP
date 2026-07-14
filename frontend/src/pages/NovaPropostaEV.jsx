@@ -45,6 +45,25 @@ const ETAPAS = [
   { num: 4, rotulo: 'Unifilar',               icone: FileText   },
 ]
 
+// BUG-021.5: potência/corrente EFETIVAS de dimensionamento. Sem limitação → nominal.
+// Com limitação, converte o valor configurado (potência OU corrente) no par (kW, A)
+// coerente (P = √3·V·I·fp no tri; V·I·fp no mono) e nunca ultrapassa o nominal.
+export function limitesEfetivosCarregador(lim, potenciaNominalKw, correnteNominalA, tensaoV, numeroFases) {
+  const V = Number(tensaoV) || 220
+  const raiz3 = Number(numeroFases) === 3 ? Math.sqrt(3) : 1
+  const fp = 0.95
+  if (!lim?.habilitado) return { potencia_kw: potenciaNominalKw, corrente_a: correnteNominalA, limitado: false }
+  if (lim.modo === 'potencia' && Number(lim.potencia_max_kw) > 0) {
+    const p = Math.min(Number(potenciaNominalKw) || Infinity, Number(lim.potencia_max_kw))
+    return { potencia_kw: p, corrente_a: (p * 1000) / (V * raiz3 * fp), limitado: true }
+  }
+  if (lim.modo === 'corrente' && Number(lim.corrente_max_a) > 0) {
+    const i = Math.min(Number(correnteNominalA) || Infinity, Number(lim.corrente_max_a))
+    return { potencia_kw: (i * V * raiz3 * fp) / 1000, corrente_a: i, limitado: true }
+  }
+  return { potencia_kw: potenciaNominalKw, corrente_a: correnteNominalA, limitado: false }
+}
+
 export default function NovaPropostaEV() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
@@ -94,6 +113,9 @@ export default function NovaPropostaEV() {
     carregadores: [],
     comprimento_cabo_m: 25,
     corrente_aferida_a: null, // FEATURE-006: aferição da vistoria (opcional)
+    // BUG-021.5: limitação de operação do carregador (opcional). Quando habilitado, o
+    // dimensionamento usa a corrente/potência MÁXIMA configurada, não a nominal.
+    limitacao_operacao: { habilitado: false, modo: 'corrente', corrente_max_a: null, potencia_max_kw: null },
     tecnico_nome: '',
     tecnico_crea: '',
     tecnico_cft: '',
@@ -186,6 +208,12 @@ export default function NovaPropostaEV() {
           longitude: p.longitude ?? null,
           comprimento_cabo_m: p.comprimento_cabo_m ?? 25,
           corrente_aferida_a: p.corrente_aferida_a ?? null, // FEATURE-006
+          limitacao_operacao: { // BUG-021.5
+            habilitado: !!p.limitacao_operacao?.habilitado,
+            modo: p.limitacao_operacao?.modo || 'corrente',
+            corrente_max_a: p.limitacao_operacao?.corrente_max_a ?? null,
+            potencia_max_kw: p.limitacao_operacao?.potencia_max_kw ?? null,
+          },
           tecnico_nome: p.tecnico?.nome || prev.tecnico_nome,
           tecnico_crea: p.tecnico?.crea || '',
           tecnico_cft: p.tecnico?.cft || '',
@@ -304,14 +332,21 @@ export default function NovaPropostaEV() {
     const potencia_total = carregadores.reduce((s, c) => s + (Number(c.potencia_kw) || 0) * (Number(c.quantidade) || 1), 0)
     const primeiro = carregadores[0]
 
+    // BUG-021.5: quando há limitação de operação, TODO o dimensionamento usa a
+    // potência/corrente MÁXIMA configurada (não a nominal do catálogo).
+    const lim = limitesEfetivosCarregador(
+      dados.limitacao_operacao, potencia_total, primeiro.corrente_entrada_a,
+      primeiro.tensao_entrada_v || 220, primeiro.numero_fases || 1,
+    )
+
     try {
       const resultado = calcularParametrosNBR5410({
-        potencia_kw:       potencia_total,
+        potencia_kw:       lim.potencia_kw,
         tensao_entrada_v:  primeiro.tensao_entrada_v || 220,
         numero_fases:      primeiro.numero_fases || 1,
         comprimento_cabo_m: dados.comprimento_cabo_m || 0,
         tipo_carregador:   primeiro.tipo,
-        corrente_nominal_a: primeiro.corrente_entrada_a, // fabricante — prioridade para disjuntor
+        corrente_nominal_a: lim.corrente_a, // limitada quando habilitado; senão a nominal
         incluir_mob_box:   incluirMobBox,
         tipo_conector:     primeiro.tipo_conector,
       })
@@ -325,7 +360,7 @@ export default function NovaPropostaEV() {
     } catch (err) {
       console.error('[EV] Erro no cálculo automático:', err)
     }
-  }, [carregadores, dados.comprimento_cabo_m, incluirMobBox, catalogoItems])
+  }, [carregadores, dados.comprimento_cabo_m, dados.limitacao_operacao, incluirMobBox, catalogoItems])
 
   // ── Gerar unifilar ao entrar na etapa 4 ────────────────────────────────
   const etapaRef = useRef(etapa)
@@ -451,6 +486,7 @@ export default function NovaPropostaEV() {
       potencia_total_kw: potenciaTotalKw,
       comprimento_cabo_m: dados.comprimento_cabo_m,
       corrente_aferida_a: dados.corrente_aferida_a, // FEATURE-006: aferição da vistoria
+      limitacao_operacao: dados.limitacao_operacao, // BUG-021.5: limitação de operação
       calculos_nbr: calculos,
       bom: orcamento.materiais,
       // FEATURE-008: status NÃO fica mais duplicado dentro de orcamento — vive só no
@@ -760,6 +796,50 @@ export default function NovaPropostaEV() {
                       />
                       <span className="text-blue-700 font-semibold">A (opcional)</span>
                     </div>
+                  </div>
+
+                  {/* BUG-021.5: limitação de operação do carregador. Nominal = catálogo
+                      (somente leitura); quando habilitado, o dimensionamento usa o valor
+                      configurado. */}
+                  <div className="mt-4 pt-3 border-t border-blue-200">
+                    <label className="flex items-center gap-2 cursor-pointer select-none">
+                      <input type="checkbox"
+                        checked={!!dados.limitacao_operacao?.habilitado}
+                        onChange={(e) => { hidratandoEdicao.current = false; setDados(p => ({ ...p, limitacao_operacao: { ...p.limitacao_operacao, habilitado: e.target.checked } })) }} />
+                      <span className="font-semibold text-blue-900 text-sm">Limitar operação do carregador</span>
+                    </label>
+                    <p className="text-xs text-blue-700 mt-0.5">
+                      Nominal (catálogo): <strong>{carregadores[0]?.potencia_kw ?? '—'} kW</strong> · <strong>{carregadores[0]?.corrente_entrada_a ?? '—'} A</strong>.
+                      Quando habilitado, <strong>todo o dimensionamento</strong> (disjuntor, IDR, DPS, cabo) usa o valor configurado.
+                    </p>
+                    {dados.limitacao_operacao?.habilitado && (
+                      <div className="mt-2 flex items-center gap-2 flex-wrap">
+                        <select
+                          value={dados.limitacao_operacao?.modo || 'corrente'}
+                          onChange={(e) => { hidratandoEdicao.current = false; setDados(p => ({ ...p, limitacao_operacao: { ...p.limitacao_operacao, modo: e.target.value } })) }}
+                          className="px-2 py-2 border-2 border-blue-400 rounded-lg text-sm text-blue-900 bg-white">
+                          <option value="corrente">Corrente máx.</option>
+                          <option value="potencia">Potência máx.</option>
+                        </select>
+                        {dados.limitacao_operacao?.modo === 'potencia' ? (
+                          <>
+                            <input type="number" min="0" step="0.1"
+                              value={dados.limitacao_operacao?.potencia_max_kw ?? ''}
+                              onChange={(e) => { hidratandoEdicao.current = false; setDados(p => ({ ...p, limitacao_operacao: { ...p.limitacao_operacao, potencia_max_kw: e.target.value === '' ? null : parseFloat(e.target.value) } })) }}
+                              className="w-28 px-3 py-2 border-2 border-blue-400 rounded-lg text-center text-lg font-bold text-blue-900 bg-white" />
+                            <span className="text-blue-700 font-semibold">kW</span>
+                          </>
+                        ) : (
+                          <>
+                            <input type="number" min="0" step="1"
+                              value={dados.limitacao_operacao?.corrente_max_a ?? ''}
+                              onChange={(e) => { hidratandoEdicao.current = false; setDados(p => ({ ...p, limitacao_operacao: { ...p.limitacao_operacao, corrente_max_a: e.target.value === '' ? null : parseFloat(e.target.value) } })) }}
+                              className="w-28 px-3 py-2 border-2 border-blue-400 rounded-lg text-center text-lg font-bold text-blue-900 bg-white" />
+                            <span className="text-blue-700 font-semibold">A</span>
+                          </>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

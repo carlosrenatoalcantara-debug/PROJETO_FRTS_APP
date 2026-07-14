@@ -27,6 +27,24 @@ const CAPACIDADE_CABO_A = {
 
 const fmt = (n, casas = 2) => (Number.isFinite(Number(n)) ? Number(n).toFixed(casas).replace('.', ',') : '—')
 const esc = (s) => String(s ?? '')
+const n1 = (n) => (Number.isFinite(Number(n)) ? fmt(n, 2).replace(/,00$/, '').replace(/(,\d)0$/, '$1') : '—')
+
+// BUG-021.6: par (potência kW, corrente A) CONFIGURADO a partir da limitação salva
+// (espelha limitesEfetivosCarregador do wizard). Deriva o valor que não foi digitado.
+function limitesConfigurados(lim, tensaoV, numeroFases) {
+  const V = Number(tensaoV) || 220
+  const raiz3 = Number(numeroFases) === 3 ? Math.sqrt(3) : 1
+  const fp = 0.95
+  if (lim?.modo === 'potencia' && Number(lim.potencia_max_kw) > 0) {
+    const p = Number(lim.potencia_max_kw)
+    return { potencia_kw: p, corrente_a: (p * 1000) / (V * raiz3 * fp) }
+  }
+  if (lim?.modo === 'corrente' && Number(lim.corrente_max_a) > 0) {
+    const i = Number(lim.corrente_max_a)
+    return { potencia_kw: (i * V * raiz3 * fp) / 1000, corrente_a: i }
+  }
+  return { potencia_kw: null, corrente_a: null }
+}
 
 // "data:image/png;base64,...." → Buffer (formato aceito por doc.image()). Retorna
 // null se não for uma data URI válida — nunca derruba a geração do PDF por causa disso.
@@ -206,6 +224,25 @@ export function desenharMemorialDescritivo(doc, projetoOriginal, clienteOriginal
   })
   y = yAntes2 + alturaMax2 + 6
 
+  // ── Limitação de Operação do Carregador (BUG-021.6) ───────────────────────
+  // Só imprime quando houver limitação habilitada. TEXTO FIXO + variáveis.
+  const lim = projeto.limitacao_operacao
+  if (lim?.habilitado) {
+    const cfg = limitesConfigurados(lim, carregador.tensao_entrada_v ?? 220, carregador.numero_fases ?? 1)
+    y = tituloSecao(doc, margem, y, largura, 'Limitação de Operação do Carregador')
+    y = escreverBloco(doc, margem, y, largura,
+      `Potência nominal do carregador (catálogo do fabricante): ${n1(carregador.potencia_kw)} kW. `
+      + `Corrente nominal: ${n1(carregador.corrente_entrada_a)} A.`)
+    y = escreverBloco(doc, margem, y, largura,
+      `Este circuito foi dimensionado para uma OPERAÇÃO LIMITADA do carregador: potência configurada de `
+      + `${n1(cfg.potencia_kw)} kW e corrente configurada de ${n1(cfg.corrente_a)} A — valores efetivamente `
+      + `adotados em todo o dimensionamento (disjuntor, IDR, DPS e condutores) apresentado neste memorial.`)
+    y = escreverBloco(doc, margem, y, largura,
+      `A parametrização do carregador de veículo elétrico deverá respeitar OBRIGATORIAMENTE esta configuração `
+      + `(máximo de ${n1(cfg.potencia_kw)} kW / ${n1(cfg.corrente_a)} A) antes da sua entrada em operação. O circuito `
+      + `NÃO está dimensionado para a potência nominal integral do equipamento.`, { negrito: true })
+  }
+
   // ── Verificação da Disponibilidade Elétrica (FEATURE-006 item 2) ──────────
   // TEXTO FIXO (nunca gerar por IA). Apenas as variáveis são substituídas. Dados não
   // informados no sistema saem como espaço em branco (BRANCO) para preenchimento manual.
@@ -233,7 +270,16 @@ export function desenharMemorialDescritivo(doc, projetoOriginal, clienteOriginal
   y = tituloSecao(doc, margem, y, largura, '3. Memória de Cálculo')
 
   y = escreverBloco(doc, margem, y, largura, '3.1. Corrente de Projeto (Ib)', { negrito: true, tamanho: 8.8, cor: '#0f172a', espacoDepois: 1 })
-  if (carregador.corrente_entrada_a) {
+  if (lim?.habilitado) {
+    // BUG-021.5/6: com limitação, o Ib do dimensionamento é o da OPERAÇÃO CONFIGURADA
+    // (calc.corrente_projeto_a já vem calculado com o valor limitado) — nunca o nominal,
+    // senão a 3.1 divergiria da 3.2/3.3 e do disjuntor especificado.
+    const cfg = limitesConfigurados(lim, carregador.tensao_entrada_v ?? 220, carregador.numero_fases ?? 1)
+    y = escreverBloco(doc, margem, y, largura,
+      `Corrente de projeto adotada = corrente da OPERAÇÃO LIMITADA configurada (${n1(cfg.potencia_kw)} kW), `
+      + `inferior à nominal do fabricante (${n1(carregador.corrente_entrada_a)} A): Ib = ${fmt(calc.corrente_projeto_a, 2)} A. `
+      + `Todo o dimensionamento a seguir usa este valor.`)
+  } else if (carregador.corrente_entrada_a) {
     y = escreverBloco(doc, margem, y, largura,
       `Corrente nominal informada pelo fabricante (catálogo/datasheet do equipamento) — prioridade normativa sobre o `
       + `cálculo teórico: Ib = ${fmt(carregador.corrente_entrada_a, 2)} A.`)

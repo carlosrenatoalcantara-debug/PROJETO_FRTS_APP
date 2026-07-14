@@ -63,6 +63,17 @@ const projetoEVSchema = new mongoose.Schema({
   // null = não aferida → o memorial imprime espaço em branco para preenchimento manual.
   corrente_aferida_a: { type: Number, default: null },
 
+  // BUG-021.5: limitação de operação do carregador. A potência/corrente NOMINAL vem do
+  // catálogo (somente leitura). Quando 'habilitado', o operador informa a potência OU a
+  // corrente MÁXIMA de operação, e TODO o dimensionamento (Ib → disjuntor/IDR/DPS/bitola)
+  // passa a usar esse valor limitado, não o nominal. null/false = sem limitação.
+  limitacao_operacao: {
+    habilitado:      { type: Boolean, default: false },
+    modo:            { type: String, enum: ['corrente', 'potencia', null], default: null },
+    corrente_max_a:  { type: Number, default: null },
+    potencia_max_kw: { type: Number, default: null },
+  },
+
   // CÁLCULOS NBR 5410
   calculos_nbr: {
     corrente_projeto_a: Number,
