@@ -61,31 +61,38 @@ const esc2 = (s) => String(s ?? '')
  */
 export function desenharLogoEAssinaturasP2(doc, logoBase64, cliente = {}, tecnico = {}) {
   // Item 4 — logo: cobre o texto "Forte Solar" do cabeçalho do SVG (mesma origem da pág. 1).
+  // BUG-022 (item 11): logomarca MAIOR, dentro da mesma área do cabeçalho do SVG.
   const logoBuf = base64ParaBuffer(logoBase64)
   if (logoBuf) {
     try {
       doc.save()
-      doc.rect(22, 16, 160, 32).fill('#ffffff')
-      doc.image(logoBuf, 26, 20, { fit: [132, 26], align: 'left' })
+      doc.rect(20, 13, 196, 40).fill('#ffffff')
+      doc.image(logoBuf, 25, 17, { fit: [166, 32], align: 'left' })
       doc.restore()
     } catch { /* logo ilegível — mantém o texto padrão do SVG */ }
   }
   // Item 5 — assinaturas: CLIENTE e RESPONSÁVEL TÉCNICO no rodapé (faixa livre entre a
   // caixa de NOTAS/BOM e o QR). Alinhadas e proporcionais ao restante do documento.
-  const W = doc.page.width, H = doc.page.height
-  const yTop = H - 90
-  const colW = 210
+  //
+  // BUG-022 (item 11): campos de assinatura MAIORES. O limite à direita é a caixa do QR,
+  // que no SVG começa em x=943/1123 — ou seja, ~707pt nesta página (escala 842/1123).
+  // As duas colunas terminam antes disso; a da esquerda começa depois da LISTA DE
+  // MATERIAIS (que ocupa a faixa esquerda). Nada aqui invade o desenho.
+  const H = doc.page.height
+  const yTop = H - 100
+  const colW = 212
   const rtReg = tecnico?.crea ? `CREA ${esc2(tecnico.crea)}` : (tecnico?.cft ? `CFT ${esc2(tecnico.cft)}` : '')
   const colunas = [
-    [270, 'CLIENTE', esc2(cliente?.nome), cliente?.cpf_cnpj ? `CPF/CNPJ ${esc2(cliente.cpf_cnpj)}` : ''],
-    [490, 'RESPONSÁVEL TÉCNICO', esc2(tecnico?.nome), rtReg],
+    [268, 'CLIENTE', esc2(cliente?.nome), cliente?.cpf_cnpj ? `CPF/CNPJ ${esc2(cliente.cpf_cnpj)}` : ''],
+    [488, 'RESPONSÁVEL TÉCNICO', esc2(tecnico?.nome), rtReg],
   ]
   for (const [x, titulo, nome, linha2] of colunas) {
-    doc.font('Helvetica-Bold').fontSize(8).fillColor('#0f172a').text(titulo, x, yTop, { width: colW })
-    doc.font('Helvetica').fontSize(8).fillColor('#334155').text(nome || ' ', x, yTop + 12, { width: colW })
-    doc.fontSize(7.5).fillColor('#64748b').text(linha2 || ' ', x, yTop + 22, { width: colW })
-    doc.moveTo(x, yTop + 50).lineTo(x + colW, yTop + 50).stroke('#94a3b8')
-    doc.font('Helvetica').fontSize(7).fillColor('#64748b').text('Assinatura', x, yTop + 53, { width: colW })
+    doc.font('Helvetica-Bold').fontSize(9).fillColor('#0f172a').text(titulo, x, yTop, { width: colW })
+    doc.font('Helvetica').fontSize(8.5).fillColor('#334155').text(nome || ' ', x, yTop + 13, { width: colW })
+    doc.fontSize(8).fillColor('#64748b').text(linha2 || ' ', x, yTop + 24, { width: colW })
+    // linha de assinatura mais baixa e mais grossa → campo de firma maior para assinar
+    doc.lineWidth(1).moveTo(x, yTop + 68).lineTo(x + colW, yTop + 68).stroke('#64748b')
+    doc.font('Helvetica').fontSize(7.5).fillColor('#64748b').text('Assinatura', x, yTop + 71, { width: colW })
   }
 }
 

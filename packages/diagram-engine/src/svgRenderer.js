@@ -181,19 +181,25 @@ function legendaCondutores() {
     <text x="${x + 8}" y="${y + 11}" font-size="8" font-weight="bold" fill="#94a3b8" opacity="0"> </text>${linhas}</g>`
 }
 
+// BUG-022 (item 11): lista LEVEMENTE mais compacta — entrelinha 15→13,5 e corpo 9→8,6.
+// Só diagramação: nenhum item, quantidade ou especificação muda. Como cada linha ocupa
+// menos, cabem 16 itens (era 14) dentro da MESMA caixa (BOM_BOX, altura 290).
+const BOM_LINHA_H = 13.5
+const BOM_MAX_ITENS = 16
 function tabelaBOM(rect, bom = []) {
   const { x, y, w } = rect
-  const linhas = bom.slice(0, 14).map((m, i) => {
+  const linhas = bom.slice(0, BOM_MAX_ITENS).map((m, i) => {
     const desc = m.item || m.descricao || ''
     const espec = m.especificacao ? ` (${m.especificacao})` : ''
-    return `<text x="${x + 8}" y="${y + 40 + i * 15}" font-size="9" fill="#334155">${esc(`${String(i + 1).padStart(2, '0')}. ${desc}${espec}`).slice(0, 70)}</text>
-            <text x="${x + w - 20}" y="${y + 40 + i * 15}" font-size="9" text-anchor="end" fill="#334155">${esc(`${m.quantidade ?? ''} ${m.unidade ?? ''}`)}</text>`
+    const ly = y + 36 + i * BOM_LINHA_H
+    return `<text x="${x + 8}" y="${ly}" font-size="8.6" fill="#334155">${esc(`${String(i + 1).padStart(2, '0')}. ${desc}${espec}`).slice(0, 72)}</text>
+            <text x="${x + w - 20}" y="${ly}" font-size="8.6" text-anchor="end" fill="#334155">${esc(`${m.quantidade ?? ''} ${m.unidade ?? ''}`)}</text>`
   }).join('')
-  const h = 32 + Math.min(bom.length, 14) * 15
+  const h = 28 + Math.min(bom.length, BOM_MAX_ITENS) * BOM_LINHA_H
   return `<g>
     <rect x="${x}" y="${y}" width="${w}" height="${h}" rx="6" fill="#ffffff" stroke="#cbd5e1"/>
-    <rect x="${x}" y="${y}" width="${w}" height="22" rx="6" fill="#0f766e"/>
-    <text x="${x + w / 2}" y="${y + 15}" font-size="11" font-weight="bold" text-anchor="middle" fill="#fff">LISTA DE MATERIAIS</text>
+    <rect x="${x}" y="${y}" width="${w}" height="20" rx="6" fill="#0f766e"/>
+    <text x="${x + w / 2}" y="${y + 14}" font-size="10.5" font-weight="bold" text-anchor="middle" fill="#fff">LISTA DE MATERIAIS</text>
     ${linhas}
   </g>`
 }

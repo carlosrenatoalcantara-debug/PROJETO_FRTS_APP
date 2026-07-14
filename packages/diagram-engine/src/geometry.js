@@ -21,7 +21,10 @@ export const EQUIPMENT_BOX = Object.freeze({ x: 360, y: 100, w: 320, h: 128 })
 export const DIAGRAM_BOX   = Object.freeze({ x: 40,  y: 236, w: A4.W - 80, h: 226 })
 export const BOM_BOX       = Object.freeze({ x: 20,  y: 470, w: 320, h: 290 })
 export const NOTES_BOX     = Object.freeze({ x: 360, y: 470, w: A4.W - 40 - 360 - 150, h: 160 })
-export const QR_BOX        = Object.freeze({ x: A4.W - 180, y: A4.H - 130, w: 120, h: 120 })
+// BUG-022 (item 11): QR MAIOR. Cresce para a esquerda? Não — cresce para cima e para a
+// direita, mantendo x=943: NOTES_BOX termina em x=933, então a borda esquerda do QR não
+// pode recuar sem invadi-la. Direita fica em 1093 (< margem 1103).
+export const QR_BOX        = Object.freeze({ x: A4.W - 180, y: A4.H - 170, w: 150, h: 150 })
 
 // Conjunto nomeado (para checagem de containment e iteração).
 export const BOXES = Object.freeze({

@@ -67,42 +67,53 @@ function cabecalho(doc, largura, margem, projeto, logoBase64) {
 
   // Logomarca da empresa (Configurações) — acima da faixa colorida, alinhada à
   // esquerda, altura fixa preservando a proporção original da imagem.
+  // BUG-022: a logo passa a ficar DENTRO da faixa (à esquerda), em vez de acima dela —
+  // a identidade visual é a mesma e a altura do cabeçalho não aumenta; ao contrário,
+  // deixa de gastar os ~42pt que a logo consumia sozinha numa faixa própria.
   const logoBuf = base64ParaBuffer(logoBase64)
-  if (logoBuf) {
-    try {
-      doc.image(logoBuf, margem, y0, { fit: [150, 34], align: 'left' })
-      y0 += 34 + 8
-    } catch { /* logo corrompida/ilegível — segue sem ela */ }
-  }
+  const larguraLogo = logoBuf ? 118 : 0
 
-  const larguraTexto = largura - 24
+  const xTexto = margem + 12 + larguraLogo
+  const larguraTexto = largura - 24 - larguraLogo
   const titulo = 'MEMORIAL DESCRITIVO — CIRCUITO PARA CARREGADOR VEICULAR (WALLBOX)'
   // Altura do título calculada de verdade (heightOfString) — em páginas mais estreitas
   // (retrato) o título quebra em 2 linhas; sem isso o subtítulo ficava sobreposto.
-  doc.font('Helvetica-Bold').fontSize(13)
-  const alturaTitulo = doc.heightOfString(titulo, { width: larguraTexto, lineGap: 1 })
-  const alturaFaixa = alturaTitulo + 28
+  doc.font('Helvetica-Bold').fontSize(11.5)
+  const alturaTitulo = doc.heightOfString(titulo, { width: larguraTexto, lineGap: 0.5 })
+  const alturaFaixa = Math.max(alturaTitulo + 20, logoBuf ? 40 : 0)
   doc.rect(margem, y0, largura, alturaFaixa).fill('#0f766e')
-  doc.fillColor('#ffffff').text(titulo, margem + 12, y0 + 7, { width: larguraTexto, lineGap: 1 })
+
+  if (logoBuf) {
+    try {
+      // fundo branco atrás da logo: preserva as cores da marca sobre a faixa teal
+      doc.rect(margem + 6, y0 + 5, larguraLogo, alturaFaixa - 10).fill('#ffffff')
+      doc.image(logoBuf, margem + 10, y0 + 8, { fit: [larguraLogo - 8, alturaFaixa - 16], align: 'left' })
+    } catch { /* logo corrompida/ilegível — segue sem ela */ }
+  }
+
+  doc.fillColor('#ffffff').font('Helvetica-Bold').fontSize(11.5)
+    .text(titulo, xTexto, y0 + 5, { width: larguraTexto, lineGap: 0.5 })
   const carregador = (projeto.carregadores && projeto.carregadores[0]) || {}
   const potenciaTxt = carregador.potencia_kw ? `${carregador.potencia_kw}kW` : '—'
   const tensaoTxt = carregador.tensao_entrada_v ? `${carregador.tensao_entrada_v}V` : '—'
   const faseTxt = Number(carregador.numero_fases) >= 3 ? 'Trifásico' : 'Monofásico'
-  doc.font('Helvetica').fontSize(9)
+  doc.font('Helvetica').fontSize(8)
     .text(`Potência nominal: ${potenciaTxt}  |  Tensão: ${tensaoTxt} — ${faseTxt}  |  Projeto: ${esc(projeto.nome)}`,
-      margem + 12, y0 + 9 + alturaTitulo, { width: larguraTexto })
-  return y0 + alturaFaixa + 8
+      xTexto, y0 + 6 + alturaTitulo, { width: larguraTexto })
+  return y0 + alturaFaixa + 6
 }
 
+// BUG-022: alturas/fontes reduzidas — o conteúdo cresceu (limitação de operação,
+// condutores por identidade) e a diagramação não acompanhou. Nada de conteúdo mudou aqui.
 function tituloSecao(doc, x, y, largura, texto) {
-  doc.rect(x, y, 3, 12).fill('#0f766e')
+  doc.rect(x, y, 3, 11).fill('#0f766e')
   doc.fillColor('#0f172a').font('Helvetica-Bold').fontSize(10).text(esc(texto), x + 7, y - 1, { width: largura - 7 })
-  return y + 15
+  return y + 13
 }
 
 // Escreve texto e devolve o Y seguinte, calculando a altura real do bloco com
 // heightOfString (doc.y não é confiável quando x/y são passados explicitamente).
-function escreverBloco(doc, x, y, largura, texto, { negrito = false, tamanho = 8.5, cor = '#1e293b', lineGap = 1, espacoDepois = 4 } = {}) {
+function escreverBloco(doc, x, y, largura, texto, { negrito = false, tamanho = 8.4, cor = '#1e293b', lineGap = 0.6, espacoDepois = 3 } = {}) {
   doc.font(negrito ? 'Helvetica-Bold' : 'Helvetica').fontSize(tamanho).fillColor(cor)
   doc.text(esc(texto), x, y, { width: largura, lineGap })
   const altura = doc.heightOfString(esc(texto), { width: largura, lineGap })
@@ -120,15 +131,16 @@ function linhaChaveValor(doc, x, y, largura, chave, valor) {
 // Tabela compacta (linha = dispositivo | especificação/função) — economiza altura
 // vertical em relação a blocos de texto separados por item.
 function tabelaComponentes(doc, x, y, largura, linhas) {
-  const colNome = 150
+  const colNome = 132
   const colDesc = largura - colNome
   for (const [nome, desc] of linhas) {
-    const alturaDesc = doc.heightOfString(esc(desc), { width: colDesc, lineGap: 0.5 })
-    const alturaLinha = Math.max(alturaDesc, 11) + 5
+    doc.font('Helvetica').fontSize(8)
+    const alturaDesc = doc.heightOfString(esc(desc), { width: colDesc - 4, lineGap: 0.5 })
+    const alturaLinha = Math.max(alturaDesc, 10) + 4
     doc.rect(x, y, largura, alturaLinha).fill('#f8fafc')
     doc.font('Helvetica-Bold').fontSize(8).fillColor('#0f766e').text(esc(nome), x + 4, y + 2, { width: colNome - 8 })
     doc.font('Helvetica').fontSize(8).fillColor('#1e293b').text(esc(desc), x + colNome, y + 2, { width: colDesc - 4, lineGap: 0.5 })
-    y += alturaLinha + 2
+    y += alturaLinha + 1.5
   }
   return y
 }
@@ -160,26 +172,33 @@ function blocoIdentificacao(doc, x, y, largura, projeto, cliente, tecnico) {
   const endereco = esc(cliente?.endereco_completo || projeto.endereco_completo) || '—'
   const rt = `${rtNome}${rtReg ? ` — ${rtReg}` : ''}`
 
-  const padY = 22, linhaH = 13, colW = largura / 2
-  const nLinhasGrid = Math.ceil(pares.length / 2)
-  const alturaCaixa = padY + nLinhasGrid * linhaH + linhaH * 2 + 6 // grid + endereço + RT
+  // BUG-022: grid em 3 COLUNAS (era 2) — os 6 campos passam de 3 linhas para 2, sem
+  // perder nenhum dado. A altura da caixa é MEDIDA (heightOfString), não estimada: um
+  // endereço longo quebra em duas linhas e antes vazava a borda por baixo, sobrepondo
+  // a linha do Responsável Técnico.
+  const padY = 19, linhaH = 11.5, nCols = 3, colW = largura / nCols
+  const nLinhasGrid = Math.ceil(pares.length / nCols)
+  doc.font('Helvetica').fontSize(7.4)
+  const hEndereco = Math.max(doc.heightOfString(`Endereço: ${endereco}`, { width: largura - 16 }), linhaH)
+  const hRT = Math.max(doc.heightOfString(`Responsável Técnico: ${rt}`, { width: largura - 16 }), linhaH)
+  const alturaCaixa = padY + nLinhasGrid * linhaH + hEndereco + hRT + 5
   doc.rect(x, y, largura, alturaCaixa).fillAndStroke('#ffffff', '#cbd5e1')
-  doc.rect(x, y, largura, 16).fill('#0f766e')
-  doc.fillColor('#ffffff').font('Helvetica-Bold').fontSize(9).text('IDENTIFICAÇÃO DO DOCUMENTO', x + 8, y + 4)
+  doc.rect(x, y, largura, 14).fill('#0f766e')
+  doc.fillColor('#ffffff').font('Helvetica-Bold').fontSize(8).text('IDENTIFICAÇÃO DO DOCUMENTO', x + 8, y + 3.5)
   let yy = y + padY
   pares.forEach(([k, v], i) => {
-    const cx = x + 8 + (i % 2) * colW
-    if (i % 2 === 0 && i > 0) yy += linhaH
-    doc.font('Helvetica-Bold').fontSize(7.6).fillColor('#334155').text(`${k}:`, cx, yy, { width: colW - 14, continued: true })
+    const cx = x + 8 + (i % nCols) * colW
+    if (i % nCols === 0 && i > 0) yy += linhaH
+    doc.font('Helvetica-Bold').fontSize(7.4).fillColor('#334155').text(`${k}:`, cx, yy, { width: colW - 12, continued: true })
     doc.font('Helvetica').fillColor('#1e293b').text(` ${v}`)
   })
   yy += linhaH
-  doc.font('Helvetica-Bold').fontSize(7.6).fillColor('#334155').text('Endereço:', x + 8, yy, { width: largura - 16, continued: true })
+  doc.font('Helvetica-Bold').fontSize(7.4).fillColor('#334155').text('Endereço:', x + 8, yy, { width: largura - 16, continued: true })
   doc.font('Helvetica').fillColor('#1e293b').text(` ${endereco}`)
-  yy += linhaH
-  doc.font('Helvetica-Bold').fontSize(7.6).fillColor('#334155').text('Responsável Técnico:', x + 8, yy, { width: largura - 16, continued: true })
+  yy += hEndereco
+  doc.font('Helvetica-Bold').fontSize(7.4).fillColor('#334155').text('Responsável Técnico:', x + 8, yy, { width: largura - 16, continued: true })
   doc.font('Helvetica').fillColor('#1e293b').text(` ${rt}`)
-  return y + alturaCaixa + 8
+  return y + alturaCaixa + 6
 }
 
 /**
@@ -208,51 +227,59 @@ export function desenharMemorialDescritivo(doc, projetoOriginal, clienteOriginal
   // ── 1. Objetivo ──────────────────────────────────────────────────────────
   const ehTri = Number(carregador.numero_fases) >= 3
   const distancia = projeto.comprimento_cabo_m ?? '—'
+  // BUG-022 (item 9): texto mais direto, mesmo significado — sem a enumeração redundante
+  // ("critérios técnicos, dimensionamentos, componentes e infraestrutura de suporte"),
+  // que já é o que o próprio documento apresenta nas seções seguintes.
   y = tituloSecao(doc, margem, y, largura, '1. Objetivo')
   y = escreverBloco(doc, margem, y, largura,
-    `Este documento especifica os critérios técnicos, dimensionamentos, componentes e infraestrutura de suporte para a `
-    + `instalação do circuito alimentador de um carregador de veículo elétrico (Wallbox) ${esc(carregador.marca || '')} ${esc(carregador.modelo || '')}, `
-    + `potência nominal de ${carregador.potencia_kw ?? '—'} kW, tensão ${carregador.tensao_entrada_v ?? '—'} V (${ehTri ? 'trifásico' : 'monofásico'}), com percurso de `
-    + `${distancia} m entre a origem (padrão de entrada/quadro geral) e o quadro de proteção dedicado ao carregador, conforme a ABNT NBR 5410 e a ABNT NBR 17019.`)
+    `Especificar o circuito alimentador do carregador de veículo elétrico (Wallbox) ${esc(carregador.marca || '')} ${esc(carregador.modelo || '')}, `
+    + `de ${carregador.potencia_kw ?? '—'} kW / ${carregador.tensao_entrada_v ?? '—'} V (${ehTri ? 'trifásico' : 'monofásico'}), com percurso de `
+    + `${distancia} m entre a origem (padrão de entrada/quadro geral) e o quadro de proteção dedicado ao carregador, conforme ABNT NBR 5410 e ABNT NBR 17019.`)
 
-  // ── 2. Características gerais (linha única, itens lado a lado) ──────────
+  // ── 2. Características gerais — BUG-022 (item 3): TABELA compacta de UMA linha ────
+  // Antes cada item empilhava rótulo sobre valor (2 linhas) e ainda sobrava respiro.
+  // Agora é uma faixa única "rótulo valor", com todos os campos lado a lado.
   y = tituloSecao(doc, margem, y, largura, '2. Características Gerais e Infraestrutura')
   const itensCaract = [
-    ['Potência:', `${carregador.potencia_kw ?? '—'} kW`],
-    ['Tensão:', `${carregador.tensao_entrada_v ?? '—'} V (${ehTri ? 'Trifásico' : 'Fase-Neutro'})`],
-    ['Comprimento (L):', `${distancia} m`],
-    ['Condutor:', 'Cobre / PVC (70°C)'],
-    ['Conector:', carregador.tipo_conector ? `Tipo ${carregador.tipo_conector}` : '—'],
+    ['Potência', `${carregador.potencia_kw ?? '—'} kW`],
+    ['Tensão', `${carregador.tensao_entrada_v ?? '—'} V (${ehTri ? 'Trifásico' : 'Fase-Neutro'})`],
+    ['Comprimento', `${distancia} m`],
+    ['Condutor', 'Cu / PVC 70°C'],
+    ['Conector', carregador.tipo_conector ? `Tipo ${carregador.tipo_conector}` : '—'],
   ]
   const colCaract = largura / itensCaract.length
-  const yAntes2 = y
-  let alturaMax2 = 0
+  const hCaract = 15
+  doc.rect(margem, y, largura, hCaract).fill('#f8fafc')
   itensCaract.forEach(([chave, valor], i) => {
-    const x = margem + i * colCaract
-    doc.font('Helvetica-Bold').fontSize(7.6).fillColor('#334155').text(esc(chave), x, yAntes2, { width: colCaract - 6 })
-    const y2 = doc.y + 1
-    doc.font('Helvetica').fontSize(8.3).fillColor('#0f172a').text(esc(valor), x, y2, { width: colCaract - 6 })
-    alturaMax2 = Math.max(alturaMax2, doc.y - yAntes2)
+    const x = margem + i * colCaract + 5
+    // lineBreak:false é ESSENCIAL: numa faixa de altura fixa, uma quebra de linha faria o
+    // texto vazar para fora do fundo e colidir com o título da seção seguinte. Rótulo e
+    // valor são posicionados por medição (widthOfString), nunca por fluxo.
+    doc.font('Helvetica-Bold').fontSize(7.6).fillColor('#0f766e')
+    const wChave = doc.widthOfString(`${esc(chave)} `)
+    doc.text(esc(chave), x, y + 4.5, { width: colCaract - 8, lineBreak: false })
+    doc.font('Helvetica').fontSize(8).fillColor('#0f172a')
+      .text(esc(valor), x + wChave, y + 4, { width: colCaract - 8 - wChave, lineBreak: false })
   })
-  y = yAntes2 + alturaMax2 + 6
+  y += hCaract + 4
 
   // ── Limitação de Operação do Carregador (BUG-021.6) ───────────────────────
   // Só imprime quando houver limitação habilitada. TEXTO FIXO + variáveis.
   const lim = projeto.limitacao_operacao
   if (lim?.habilitado) {
     const cfg = limitesConfigurados(lim, carregador.tensao_entrada_v ?? 220, carregador.numero_fases ?? 1)
+    // BUG-022: os três parágrafos viraram dois — o primeiro (nominais) foi absorvido pelo
+    // segundo, que já precisava contrastar nominal x configurado. O aviso obrigatório
+    // continua destacado e literal: é ele que condiciona a entrada em operação.
     y = tituloSecao(doc, margem, y, largura, 'Limitação de Operação do Carregador')
     y = escreverBloco(doc, margem, y, largura,
-      `Potência nominal do carregador (catálogo do fabricante): ${n1(carregador.potencia_kw)} kW. `
-      + `Corrente nominal: ${n1(carregador.corrente_entrada_a)} A.`)
+      `Nominal de fábrica: ${n1(carregador.potencia_kw)} kW / ${n1(carregador.corrente_entrada_a)} A. Este circuito foi dimensionado para `
+      + `OPERAÇÃO LIMITADA: potência configurada de ${n1(cfg.potencia_kw)} kW e corrente configurada de ${n1(cfg.corrente_a)} A — `
+      + `valores efetivamente adotados no dimensionamento do disjuntor, IDR, DPS e condutores deste memorial.`)
     y = escreverBloco(doc, margem, y, largura,
-      `Este circuito foi dimensionado para uma OPERAÇÃO LIMITADA do carregador: potência configurada de `
-      + `${n1(cfg.potencia_kw)} kW e corrente configurada de ${n1(cfg.corrente_a)} A — valores efetivamente `
-      + `adotados em todo o dimensionamento (disjuntor, IDR, DPS e condutores) apresentado neste memorial.`)
-    y = escreverBloco(doc, margem, y, largura,
-      `A parametrização do carregador de veículo elétrico deverá respeitar OBRIGATORIAMENTE esta configuração `
-      + `(máximo de ${n1(cfg.potencia_kw)} kW / ${n1(cfg.corrente_a)} A) antes da sua entrada em operação. O circuito `
-      + `NÃO está dimensionado para a potência nominal integral do equipamento.`, { negrito: true })
+      `A parametrização do carregador deverá respeitar OBRIGATORIAMENTE esta configuração (máximo de `
+      + `${n1(cfg.potencia_kw)} kW / ${n1(cfg.corrente_a)} A) antes da sua entrada em operação. O circuito NÃO está `
+      + `dimensionado para a potência nominal integral do equipamento.`, { negrito: true })
   }
 
   // ── Verificação da Disponibilidade Elétrica (FEATURE-006 item 2) ──────────
@@ -376,12 +403,16 @@ export function desenharMemorialDescritivo(doc, projetoOriginal, clienteOriginal
     + `para execução conforme as especificações deste documento.`)
 
   // ── Assinaturas ──────────────────────────────────────────────────────────
-  const xDir = margem + largura / 2 + 10
-  const linhaY = Math.min(y + 10, doc.page.height - 30)
-  doc.moveTo(margem, linhaY).lineTo(margem + 220, linhaY).stroke('#94a3b8')
-  doc.moveTo(xDir, linhaY).lineTo(xDir + 220, linhaY).stroke('#94a3b8')
-  doc.font('Helvetica').fontSize(8).fillColor('#334155')
+  // BUG-022: ANCORADAS NO RODAPÉ da página (não mais logo abaixo do último parágrafo).
+  // Assim o espaço que sobra vira respiro entre a Conclusão e as assinaturas, em vez de
+  // empurrar as assinaturas para uma segunda página quando o conteúdo cresce.
+  const larguraAssin = (largura - 20) / 2
+  const xDir = margem + larguraAssin + 20
+  const linhaY = Math.max(y + 14, doc.page.height - margem - 24)
+  doc.moveTo(margem, linhaY).lineTo(margem + larguraAssin, linhaY).stroke('#94a3b8')
+  doc.moveTo(xDir, linhaY).lineTo(xDir + larguraAssin, linhaY).stroke('#94a3b8')
+  doc.font('Helvetica').fontSize(7.6).fillColor('#334155')
     .text(`Responsável Técnico: ${esc(tecnico.nome) || '—'}${tecnico.crea ? ` — CREA ${esc(tecnico.crea)}` : ''}${tecnico.cft ? ` — CFT ${esc(tecnico.cft)}` : ''}`,
-      margem, linhaY + 3, { width: 300 })
-  doc.text(`Cliente: ${esc(cliente.nome) || '—'}${cliente.cpf_cnpj ? ` — CPF/CNPJ ${esc(cliente.cpf_cnpj)}` : ''}`, xDir, linhaY + 3, { width: 300 })
+      margem, linhaY + 3, { width: larguraAssin })
+  doc.text(`Cliente: ${esc(cliente.nome) || '—'}${cliente.cpf_cnpj ? ` — CPF/CNPJ ${esc(cliente.cpf_cnpj)}` : ''}`, xDir, linhaY + 3, { width: larguraAssin })
 }
