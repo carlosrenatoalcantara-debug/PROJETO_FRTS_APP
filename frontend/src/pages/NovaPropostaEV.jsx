@@ -29,7 +29,7 @@ import ModalNovoCarregadorEV from '../components/equipamentos/ModalNovoCarregado
 import InteractiveDiagram from '../components/diagram/InteractiveDiagram'
 import { calcularParametrosNBR5410, validarNBR5410 } from '../services/calculosNBR5410EV'
 import { gerarUnifilarEVSVG } from '../utils/gerarUnifilarEV'
-import { construirCanonicalEV, renderarSVGEV, toReactFlow, derivarEspecificacaoEV } from '../utils/adapterDiagramaEV'
+import { construirCanonicalEV, renderarSVGEV, toReactFlow, derivarEspecificacaoEV, especificacaoValida } from '../utils/adapterDiagramaEV'
 import { gerarBOM } from '../utils/bomMateriaisEV'
 import { renderSVG } from '@diagram-engine'
 import { salvarDiagramaLocal } from '../components/diagram/utils/diagramPersistence'
@@ -248,7 +248,11 @@ export default function NovaPropostaEV() {
           // dimensionamento não mudar, as edições do operador não são sobrescritas; quando
           // ele mudar (novo carregador/comprimento), o Motor re-semeia — como deve.
           seedRef.current = JSON.stringify(seedMotor)
-          setEspecificacao(p.especificacao?.componentes ? p.especificacao : seedMotor)
+          // especificacaoValida (regra única): o Mongoose devolve a estrutura com os
+          // DEFAULTS do schema em projeto antigo (componentes vazios, condutores: []).
+          // Testar só "existe?" adotaria essa casca oca — daria 2 DPS num trifásico e
+          // tabela de condutores vazia. Só uma estrutura ÍNTEGRA vence o seed do Motor.
+          setEspecificacao(especificacaoValida(p.especificacao) ? p.especificacao : seedMotor)
         }
         // BUG-015: restaura orçamento salvo por inteiro — materiais (BOM), equipamentos,
         // serviços, margem, desconto e status comercial.
@@ -477,7 +481,10 @@ export default function NovaPropostaEV() {
     const primeiro = carregadores[0]
     return {
       calculos: { ...calculos, comprimento_cabo_m: dados.comprimento_cabo_m },
-      bom: calculos?.materiais || [],   // BOM de engenharia (item/especificacao/quantidade)
+      // BUG-021.2: a lista de materiais IMPRESSA no unifilar é a derivada da especificação
+      // (orcamento.materiais), não a lista-semente do Motor (calculos.materiais) — senão o
+      // desenho mostrava o símbolo novo (63 A) e, ao lado, a lista antiga (40 A).
+      bom: orcamento.materiais?.length ? orcamento.materiais : (calculos?.materiais || []),
       // BUG-021.2: o unifilar desenha a ESPECIFICAÇÃO (o que será instalado) — nunca o Motor.
       especificacao,
       numero_fases: Number(primeiro?.numero_fases) || 1,

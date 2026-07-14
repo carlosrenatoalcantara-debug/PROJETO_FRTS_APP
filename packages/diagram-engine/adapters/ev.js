@@ -290,14 +290,14 @@ export function argsDeProjetoEV(projeto = {}) {
   const clienteNome = clienteObj?.nome
     || (typeof projeto.clienteId === 'string' ? projeto.clienteId : '')
     || projeto.cliente_nome || ''
-  // Materiais: fonte primária é calculos_nbr.materiais (BOM da engenharia). Quando o
-  // projeto foi salvo sem esse campo populado, cai para projeto.bom e, por último,
-  // para projeto.orcamento.materiais (mesma lista usada na Proposta Comercial, só
-  // que ali já vem com preço — aqui os preços são ignorados pelo desenho, que só
-  // lê descrição/quantidade/unidade).
-  const bom = (calculos.materiais?.length && calculos.materiais)
-    || (projeto.bom?.length && projeto.bom)
-    || projeto.orcamento?.materiais
+  // BUG-021.2: a fonte primária passa a ser projeto.bom — a lista DERIVADA da especificação
+  // executiva (o que será instalado). Antes vinha de calculos_nbr.materiais, que é a
+  // lista-SEMENTE do Motor: assim que o operador trocava um componente, o desenho mostrava
+  // o símbolo novo e a lista de materiais impressa ao lado continuava com o valor antigo.
+  // calculos.materiais fica só como último recurso (projeto legado sem bom salvo).
+  const bom = (projeto.bom?.length && projeto.bom)
+    || (projeto.orcamento?.materiais?.length && projeto.orcamento.materiais)
+    || calculos.materiais
     || []
 
   return {

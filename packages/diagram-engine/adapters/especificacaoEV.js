@@ -55,9 +55,19 @@ export function derivarEspecificacaoEV({ calculos = {}, carregador = {}, comprim
   }
 }
 
-// Valida se uma estrutura salva é utilizável (tem componentes e condutores íntegros).
-function especificacaoValida(e) {
-  return !!(e && e.componentes && e.componentes.disjuntor && Array.isArray(e.condutores) && e.condutores.length
+/**
+ * Valida se uma estrutura salva é REALMENTE utilizável. Regra ÚNICA — usada pelo
+ * fallback (aqui), pela hidratação do wizard e pela migração no backend.
+ *
+ * Cuidado que motivou isto: o Mongoose materializa `especificacao` com os DEFAULTS do
+ * schema em todo projeto antigo (componentes existem, mas vazios; `condutores: []`).
+ * Testar só "existe componentes?" dá falso-positivo e adota uma estrutura oca. Uma
+ * especificação só vale se tiver condutores com identidade E o disjuntor especificado.
+ */
+export function especificacaoValida(e) {
+  return !!(e && e.componentes && e.componentes.disjuntor
+    && Number(e.componentes.disjuntor.polos) > 0
+    && Array.isArray(e.condutores) && e.condutores.length
     && e.condutores.every(c => c && c.id))
 }
 

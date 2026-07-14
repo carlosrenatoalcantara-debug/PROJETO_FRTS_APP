@@ -22,6 +22,7 @@ export {
 export {
   derivarEspecificacaoEV,
   especificacaoDoProjeto,
+  especificacaoValida,
   quantidadeDPS,
   bitolaPrincipal,
 } from '../../../packages/diagram-engine/adapters/especificacaoEV.js'

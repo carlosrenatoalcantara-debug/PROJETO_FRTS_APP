@@ -284,16 +284,22 @@ export const atualizarProjetoEV = async (req, res) => {
     // executiva e o cliente também não a mandou (ex.: salvamento vindo de outra tela),
     // ela é MATERIALIZADA aqui a partir do Motor. Depois desta gravação o projeto passa a
     // ter a estrutura definitiva e todos os consumidores param de usar fallback.
-    if (!dadosAtualizacao.especificacao && !projetoAtual.especificacao?.componentes?.disjuntor?.polos) {
+    if (!dadosAtualizacao.especificacao) {
       try {
-        const { derivarEspecificacaoEV } = await import('@fortesolar/diagram-engine/adapters/especificacao-ev')
+        const { derivarEspecificacaoEV, especificacaoValida } =
+          await import('@fortesolar/diagram-engine/adapters/especificacao-ev')
         const base = { ...projetoAtual.toObject(), ...dadosAtualizacao }
-        dadosAtualizacao.especificacao = derivarEspecificacaoEV({
-          calculos: base.calculos_nbr || {},
-          carregador: (base.carregadores && base.carregadores[0]) || {},
-          comprimento_cabo_m: base.comprimento_cabo_m,
-        })
-        console.log('✓ BUG-021: especificação executiva materializada (migração)')
+        // Mesma regra única de validade: a casca vazia que o Mongoose materializa num
+        // projeto antigo (componentes sem valores, condutores: []) NÃO conta como
+        // especificação — é justamente ela que a migração precisa substituir.
+        if (!especificacaoValida(base.especificacao)) {
+          dadosAtualizacao.especificacao = derivarEspecificacaoEV({
+            calculos: base.calculos_nbr || {},
+            carregador: (base.carregadores && base.carregadores[0]) || {},
+            comprimento_cabo_m: base.comprimento_cabo_m,
+          })
+          console.log('✓ BUG-021: especificação executiva materializada (migração)')
+        }
       } catch (e) {
         console.warn('⚠️  Falha ao materializar especificação executiva:', e.message)
       }

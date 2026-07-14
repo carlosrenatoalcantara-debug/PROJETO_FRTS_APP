@@ -11,7 +11,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
-  derivarEspecificacaoEV, especificacaoDoProjeto, quantidadeDPS, bitolaPrincipal,
+  derivarEspecificacaoEV, especificacaoDoProjeto, especificacaoValida, quantidadeDPS, bitolaPrincipal,
 } from '../adapters/especificacaoEV.js'
 import { adaptarProjetoEV } from '../adapters/ev.js'
 
@@ -50,6 +50,29 @@ test('retrocompat: projeto SEM especificação cai no fallback derivado do Motor
   assert.equal(esp.componentes.disjuntor.corrente_a, 40)
   assert.equal(bitolaPrincipal(esp), 10)
   assert.equal(esp.condutores[0].comprimento_m, 30)
+})
+
+test('casca vazia do Mongoose NÃO é especificação válida — cai no fallback do Motor', () => {
+  // Ao adicionar `especificacao` ao schema, o Mongoose passa a materializar os DEFAULTS
+  // em TODO projeto antigo: componentes existem mas sem valores, e condutores: []. Se
+  // isso passasse por "especificação salva", um projeto TRIFÁSICO abriria com 2 DPS e
+  // zero condutores. A regra de validade tem que rejeitar essa casca.
+  const casca = {
+    versao: 1, fases: null,
+    componentes: {
+      disjuntor: { corrente_a: null, curva: 'C', polos: null },
+      idr: { corrente_a: null, sensibilidade_ma: 30, tipo: 'A', polos: null },
+      dps: { classe: 'II', tensao_v: null, imax_ka: 45, polos: 1 },
+    },
+    condutores: [],
+  }
+  assert.equal(especificacaoValida(casca), false)
+
+  const esp = especificacaoDoProjeto({ especificacao: casca, calculos_nbr: calcMotor, carregadores: [carrTri], comprimento_cabo_m: 25 })
+  assert.equal(esp.fases, 3)                                   // e não null
+  assert.equal(quantidadeDPS(esp), 4)                          // e não 2
+  assert.deepEqual(esp.condutores.map(c => c.id), ['L1', 'L2', 'L3', 'N', 'PE'])
+  assert.equal(esp.componentes.disjuntor.corrente_a, 40)
 })
 
 test('projeto COM especificação salva: ela vence o Motor (não se volta ao fallback)', () => {
