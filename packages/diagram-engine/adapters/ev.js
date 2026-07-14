@@ -14,7 +14,8 @@
 
 import { build, renderSVG, toReactFlow, componente, conexao, TIPOS, PAPEL_CONEXAO } from '../index.js'
 // BUG-021 FASE 2: especificação executiva é a FONTE ÚNICA dos componentes/condutores.
-import { especificacaoDoProjeto, bitolaPrincipal, quantidadeDPS } from './especificacaoEV.js'
+import { especificacaoDoProjeto, especificacaoValida, bitolaPrincipal, quantidadeDPS } from './especificacaoEV.js'
+import { gerarBOM } from './bomEV.js'
 
 // BUG-011: condutores desenhados = os que REALMENTE existem no circuito do carregador.
 //  mono (1): Fase + Neutro + Terra                 → 3
@@ -290,21 +291,33 @@ export function argsDeProjetoEV(projeto = {}) {
   const clienteNome = clienteObj?.nome
     || (typeof projeto.clienteId === 'string' ? projeto.clienteId : '')
     || projeto.cliente_nome || ''
-  // BUG-021.2: a fonte primária passa a ser projeto.bom — a lista DERIVADA da especificação
-  // executiva (o que será instalado). Antes vinha de calculos_nbr.materiais, que é a
-  // lista-SEMENTE do Motor: assim que o operador trocava um componente, o desenho mostrava
-  // o símbolo novo e a lista de materiais impressa ao lado continuava com o valor antigo.
-  // calculos.materiais fica só como último recurso (projeto legado sem bom salvo).
-  const bom = (projeto.bom?.length && projeto.bom)
+  // BUG-021.2: a lista de materiais IMPRESSA vem da especificação executiva.
+  //  - Projeto JÁ MIGRADO: usa a lista salva — ela foi derivada da especificação pelo
+  //    wizard e pode ter preços/quantidades ajustados pelo operador no orçamento.
+  //  - Projeto LEGADO (sem especificação íntegra): a lista salva é anterior à correção e
+  //    diverge (ex.: 2 DPS num trifásico). REGENERA a partir da especificação derivada,
+  //    para o PDF nunca imprimir um desenho novo ao lado de uma lista velha. Na primeira
+  //    gravação o projeto migra e passa a usar a lista salva.
+  const espProjeto = especificacaoDoProjeto(projeto)
+  const bomSalvo = (projeto.bom?.length && projeto.bom)
     || (projeto.orcamento?.materiais?.length && projeto.orcamento.materiais)
-    || calculos.materiais
-    || []
+    || null
+  const bom = (especificacaoValida(projeto.especificacao) && bomSalvo)
+    ? bomSalvo
+    : gerarBOM({
+      potencia_kw: carregador.potencia_kw,
+      tipo_carregador: carregador.tipo,
+      tipo_conector: carregador.tipo_conector,
+      // preserva o Mob Box quando ele já constava da lista salva do projeto
+      incluir_mob_box: !!bomSalvo?.some(b => /mob box/i.test(b.item || b.descricao || '')),
+      especificacao: espProjeto,
+    })
 
   return {
     calculos: { ...calculos, comprimento_cabo_m: projeto.comprimento_cabo_m },
     bom,
     // BUG-021 FASE 2: fonte única — estrutura salva no projeto ou fallback derivado.
-    especificacao: especificacaoDoProjeto(projeto),
+    especificacao: espProjeto,
     // BUG-011: fases do CIRCUITO vêm do carregador (o adapter também deriva de carregador.tipo).
     // NÃO usar projeto.fases (alimentação do imóvel) — fazia projeto mono virar 5 condutores.
     numero_fases: Number(carregador.numero_fases) || 1,

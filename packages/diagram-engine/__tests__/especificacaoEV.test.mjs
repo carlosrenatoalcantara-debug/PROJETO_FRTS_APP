@@ -13,7 +13,7 @@ import assert from 'node:assert/strict'
 import {
   derivarEspecificacaoEV, especificacaoDoProjeto, especificacaoValida, quantidadeDPS, bitolaPrincipal,
 } from '../adapters/especificacaoEV.js'
-import { adaptarProjetoEV } from '../adapters/ev.js'
+import { adaptarProjetoEV, argsDeProjetoEV } from '../adapters/ev.js'
 
 const calcMotor = { disjuntor_a: 40, bitola_cabo_mm2: 10, dr_ma: 30, dps_kv: 420 }
 const carrTri = { numero_fases: 3, tensao_entrada_v: 380, potencia_kw: 22 }
@@ -114,4 +114,35 @@ test('BUG-021.2: o UNIFILAR desenha a especificação — não o valor antigo do
   const terra = connections.find(c => c.id === 'c-terra-barr-carr')
   assert.equal(tronco.specs.bitola_mm2, 16)
   assert.equal(terra.condutores[0].bitola_mm2, 10)
+})
+
+test('projeto LEGADO: a lista impressa é REGENERADA (não imprime 2 DPS num trifásico)', () => {
+  // Projeto salvo ANTES da correção: bom com 2 DPS e strings antigas, e sem especificação.
+  // O PDF não pode desenhar 4 DPS e imprimir "2 un" ao lado.
+  const bomAntigo = [
+    { item: 'Disjuntor termomagnético', especificacao: '40A Curva C', quantidade: 1, unidade: 'un', categoria: 'Proteções' },
+    { item: 'DPS (Proteção contra Surtos)', especificacao: '420V Classe II', quantidade: 2, unidade: 'un', categoria: 'Proteções' },
+  ]
+  const projeto = {
+    calculos_nbr: calcMotor, carregadores: [carrTri], comprimento_cabo_m: 25,
+    bom: bomAntigo, fases: 3,
+  }
+  const args = argsDeProjetoEV(projeto)
+  const dps = args.bom.find(b => /^DPS/.test(b.item))
+  const disj = args.bom.find(b => /^Disjuntor/.test(b.item))
+  assert.equal(dps.quantidade, 4)                                   // e não os 2 salvos
+  assert.equal(disj.especificacao, '40A Curva C · 4P')              // string nova, com polos
+  assert.equal(args.bom.filter(b => /^Cabo /.test(b.item)).length, 5) // 5 condutores (tri)
+})
+
+test('projeto MIGRADO: a lista SALVA é respeitada (preços/quantidades do operador)', () => {
+  const esp = derivarEspecificacaoEV({ calculos: calcMotor, carregador: carrTri, comprimento_cabo_m: 25 })
+  const bomOperador = [
+    { item: 'Disjuntor termomagnético', especificacao: '40A Curva C · 4P', quantidade: 1, unidade: 'un', preco_unitario: 120 },
+  ]
+  const args = argsDeProjetoEV({
+    especificacao: esp, calculos_nbr: calcMotor, carregadores: [carrTri], comprimento_cabo_m: 25, bom: bomOperador, fases: 3,
+  })
+  assert.equal(args.bom.length, 1)                       // não regenerou por cima
+  assert.equal(args.bom[0].preco_unitario, 120)          // preservou o preço do operador
 })
