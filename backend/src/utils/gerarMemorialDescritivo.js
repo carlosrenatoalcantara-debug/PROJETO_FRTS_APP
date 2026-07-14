@@ -16,7 +16,15 @@
  * Layout: coluna única (largura total), como os modelos de referência — mais
  * seguro para não estourar a altura da página A4 paisagem (595pt) com texto
  * cheio de fórmulas. Seção 4 (componentes) é uma tabela compacta.
+ *
+ * BUG-021 FASE 2 — fronteira das fontes:
+ *  - Seção 3 (Memorial de CÁLCULO) continua espelhando o MOTOR (calculos_nbr): é o
+ *    registro auditável do dimensionamento normativo e não muda.
+ *  - Seção 4 (ESPECIFICAÇÃO dos componentes) passa a ler a ESPECIFICAÇÃO EXECUTIVA
+ *    (projeto.especificacao) — o que SERÁ instalado. É a mesma estrutura que alimenta
+ *    o Unifilar e a Lista de Materiais, então os três não podem divergir.
  */
+import { especificacaoDoProjeto } from '@fortesolar/diagram-engine/adapters/especificacao-ev'
 
 // Capacidade de condução (Iz) por bitola — NBR 5410 Tab.36 (Cu 70°C, método B1),
 // a MESMA tabela usada pelos dois motores de cálculo. Só para exibição.
@@ -184,6 +192,10 @@ export function desenharMemorialDescritivo(doc, projetoOriginal, clienteOriginal
   const carregador = (projeto.carregadores && projeto.carregadores[0]) || {}
   const calc = projeto.calculos_nbr || {}
   const tecnico = projeto.tecnico || {}
+  // BUG-021.2: a ESPECIFICAÇÃO EXECUTIVA (o que será instalado). O Motor (calc) diz o
+  // MÍNIMO exigido; a especificação diz o ADOTADO. As duas coisas aparecem no documento
+  // com esses nomes — nunca uma se passando pela outra.
+  const esp = especificacaoDoProjeto(projeto)
 
   const margem = 26
   const largura = doc.page.width - margem * 2
@@ -291,12 +303,29 @@ export function desenharMemorialDescritivo(doc, projetoOriginal, clienteOriginal
       + `Ib = ${(carregador.potencia_kw || 0) * 1000} / (${v}${ehTri ? ' x 1,732' : ''} x 0,95) = ${fmt(calc.corrente_projeto_a, 2)} A.`)
   }
 
+  // BUG-021.2: o Motor dimensiona o MÍNIMO; a Seção 4 traz o ADOTADO. Antes, este
+  // parágrafo dizia "a proteção adotada é o disjuntor de {Motor} A" — e passava a
+  // contradizer a Seção 4 assim que o operador especificava outro disjuntor. Agora o
+  // texto distingue os dois papéis e confere o adotado contra o mínimo.
   const iz = CAPACIDADE_CABO_A[calc.bitola_cabo_mm2] ?? null
+  const disjAdotado = esp.componentes.disjuntor.corrente_a
+  const bitolaAdotada = (esp.condutores.find(c => c.id !== 'PE') || {}).bitola_mm2
+  const izAdotado = CAPACIDADE_CABO_A[bitolaAdotada] ?? null
+  const abaixoDoMinimo =
+    (Number(disjAdotado) < Number(calc.disjuntor_a)) || (Number(bitolaAdotada) < Number(calc.bitola_cabo_mm2))
+
   y = escreverBloco(doc, margem, y, largura, '3.2. Capacidade de Condução de Corrente e Proteção', { negrito: true, tamanho: 8.8, cor: '#0f172a', espacoDepois: 1 })
   y = escreverBloco(doc, margem, y, largura,
-    `De acordo com a NBR 5410 (Tabela 36, método de referência B1), o cabo de ${fmt(calc.bitola_cabo_mm2, 1)} mm² de PVC suporta até `
-    + `${iz != null ? fmt(iz, 1) : '—'} A. A proteção adotada é o disjuntor termomagnético de ${calc.disjuntor_a ?? '—'} A, curva C, satisfazendo o critério `
-    + `Ib <= In <= Iz (${fmt(calc.corrente_projeto_a, 2)} A <= ${calc.disjuntor_a ?? '—'} A <= ${iz != null ? fmt(iz, 1) : '—'} A).`)
+    `De acordo com a NBR 5410 (Tabela 36, método de referência B1), o dimensionamento exige, no mínimo, condutor de `
+    + `${fmt(calc.bitola_cabo_mm2, 1)} mm² (Iz = ${iz != null ? fmt(iz, 1) : '—'} A) e disjuntor de ${calc.disjuntor_a ?? '—'} A, `
+    + `atendendo ao critério Ib <= In <= Iz (${fmt(calc.corrente_projeto_a, 2)} A <= ${calc.disjuntor_a ?? '—'} A <= ${iz != null ? fmt(iz, 1) : '—'} A). `
+    + `A especificação executiva adotada (Seção 4) é de ${fmt(bitolaAdotada, 1)} mm² `
+    + `(Iz = ${izAdotado != null ? fmt(izAdotado, 1) : '—'} A) e disjuntor de ${disjAdotado ?? '—'} A, curva ${esp.componentes.disjuntor.curva || 'C'}.`)
+  if (abaixoDoMinimo) {
+    y = escreverBloco(doc, margem, y, largura,
+      `ATENÇÃO: a especificação adotada está ABAIXO do mínimo dimensionado — revisar antes da execução.`,
+      { negrito: true, cor: '#b91c1c' })
+  }
 
   y = escreverBloco(doc, margem, y, largura, '3.3. Verificação da Queda de Tensão (dV)', { negrito: true, tamanho: 8.8, cor: '#0f172a', espacoDepois: 1 })
   y = escreverBloco(doc, margem, y, largura,
@@ -306,13 +335,28 @@ export function desenharMemorialDescritivo(doc, projetoOriginal, clienteOriginal
     + `para circuitos terminais, ${Number(calc.queda_tensao_pct) <= 3 ? 'validando' : 'exigindo revisão de'} a bitola adotada para os ${distancia} metros do percurso.`)
 
   // ── 4. Especificação dos componentes (tabela compacta) ──────────────────
+  // BUG-021.2/3/4: TUDO nesta seção vem da ESPECIFICAÇÃO EXECUTIVA — os mesmos valores
+  // que o Unifilar desenha e a Lista de Materiais compra. Nunca mais do Motor.
+  const eDisj = esp.componentes.disjuntor
+  const eIdr = esp.componentes.idr
+  const eDps = esp.componentes.dps
+  const nDps = Number(esp.fases) >= 3 ? 4 : 2
+  const vivos = esp.condutores.filter(c => c.id !== 'PE').map(c => c.id).join(', ')
+  const pe = esp.condutores.find(c => c.id === 'PE')
+  const CORES_COND = { L1: 'preto', L2: 'vermelho', L3: 'cinza', N: 'azul', PE: 'verde/amarelo' }
+
   y = tituloSecao(doc, margem, y, largura, '4. Especificação dos Componentes e Proteções')
   y = tabelaComponentes(doc, margem, y, largura, [
-    ['Disjuntor Termomagnético', `${calc.disjuntor_a ?? '—'} A, Curva C, ${ehTri ? 'Tetrapolar (4P)' : 'Bipolar (2P)'} — proteção contra sobrecarga e curto-circuito.`],
-    ['IDR (Interruptor Diferencial Residual)', `${calc.disjuntor_a ?? '—'} A, ${calc.dr_ma ?? 30} mA, Tipo A — obrigatório pela NBR 17019, detecta fuga com componente contínua pulsante do carregador.`],
+    ['Disjuntor Termomagnético', `${eDisj.corrente_a ?? '—'} A, Curva ${eDisj.curva || 'C'}, ${eDisj.polos ?? (ehTri ? 4 : 2)}P — proteção contra sobrecarga e curto-circuito.`],
+    ['IDR (Interruptor Diferencial Residual)', `${eIdr.corrente_a ?? '—'} A, ${eIdr.sensibilidade_ma ?? 30} mA, Tipo ${eIdr.tipo || 'A'}, ${eIdr.polos ?? (ehTri ? 4 : 2)}P — obrigatório pela NBR 17019, detecta fuga com componente contínua pulsante do carregador.`],
     // BUG-021.1: quantidade de DPS = 1 por condutor vivo (mono 2: L1+N; tri 4: L1+L2+L3+N).
-    ['DPS (Proteção contra Surtos)', `${ehTri ? 4 : 2} unidades, Classe II, ${calc.dps_kv ?? '—'} V — um por condutor vivo (${ehTri ? 'L1, L2, L3 e N' : 'L1 e N'}); protege a eletrônica do carregador contra surtos atmosféricos e de manobra.`],
-    ['Condutores', `${fmt(calc.bitola_cabo_mm2, 1)} mm², cobre, isolação PVC 70°C — Fase (preto/vermelho), Neutro (azul), Terra (verde/amarelo).`],
+    ['DPS (Proteção contra Surtos)', `${nDps} unidades, Classe ${eDps.classe || 'II'}, ${eDps.tensao_v ?? '—'} V, Imax ${eDps.imax_ka ?? 45} kA, ${eDps.polos ?? 1}P — um por condutor vivo (${vivos}); protege a eletrônica do carregador contra surtos atmosféricos e de manobra.`],
+    // BUG-021.3: condutores com identidade permanente — cada um com sua bitola/comprimento.
+    ['Condutores', esp.condutores.map(c =>
+      `${c.id} (${CORES_COND[c.id]}): ${fmt(c.bitola_mm2, 1)} mm², ${fmt(c.comprimento_m, 1)} m`,
+    ).join(' · ') + ' — cobre, isolação PVC 70°C.'],
+    ['Condutor de Proteção (PE)', `${fmt(pe?.bitola_mm2, 1)} mm² — aterramento do carregador e das massas metálicas (NBR 5410 6.4).`],
+    ['Quadro de Proteção EV', 'Quadro dedicado ao circuito do carregador, abrigando disjuntor, IDR e DPS em trilho DIN.'],
   ])
   y += 4
 

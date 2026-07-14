@@ -91,30 +91,60 @@ export function gerarBOM({
   comprimento_m,
   incluir_mob_box = false,
   tipo_conector,
+  // BUG-021 FASE 2: quando presente, os COMPONENTES e CONDUTORES vêm daqui (fonte única).
+  // Ausente → usa os args escalares do Motor (retrocompat com chamadas antigas/testes).
+  especificacao = null,
 }) {
-  const distancia = Math.max(0, Number(comprimento_m) || 0)
+  const esp = especificacao && especificacao.componentes ? especificacao : null
+  const cDisj = esp?.componentes?.disjuntor
+  const cIdr = esp?.componentes?.idr
+  const cDps = esp?.componentes?.dps
+
+  // REGRA FORTE SOLAR: monofásico = 3 condutores; trifásico = 5 condutores
+  const ehTrifasico = esp ? Number(esp.fases) >= 3 : Number(numero_fases || 1) >= 3
+  const condutoresDef = ehTrifasico ? CONDUTORES_TRI : CONDUTORES_MONO
+  const nCondutores = condutoresDef.length          // 3 (mono) ou 5 (tri)
+
+  // Condutores da especificação (identidade fixa, bitola/comprimento editáveis) alinham
+  // 1-a-1 com os condutoresDef (L1..PE). Sem especificação, usa bitola/comprimento únicos.
+  const condEsp = esp?.condutores || []
+  const bitolaVivo = esp ? (condEsp.find(c => c.id !== 'PE')?.bitola_mm2 ?? 0) : (Number(bitola_mm2) || 0)
+  const distancia = Math.max(0, Number(
+    esp ? (condEsp.find(c => c.id !== 'PE')?.comprimento_m ?? comprimento_m) : comprimento_m,
+  ) || 0)
   const barrasEletroduto = Math.max(1, Math.ceil(distancia / BARRA_ELETRODUTO_M))
   const abracadeiras = barrasEletroduto * ABRACADEIRAS_POR_BARRA
   const fixacoes = barrasEletroduto * FIXACAO_POR_BARRA
   const luvas = Math.max(1, barrasEletroduto - 1)
-  const bitola = Number(bitola_mm2) || 0
-
-  // REGRA FORTE SOLAR: monofásico = 3 condutores; trifásico = 5 condutores
-  const ehTrifasico = Number(numero_fases || 1) >= 3
-  const condutores = ehTrifasico ? CONDUTORES_TRI : CONDUTORES_MONO
-  const nCondutores = condutores.length            // 3 (mono) ou 5 (tri)
+  const bitola = bitolaVivo
 
   // REGRA DE CONEXÕES (centralizada)
   const terminaisTubular = nCondutores * 2          // 6 (mono) ou 10 (tri)
   const conectoresPerfurantes = nCondutores + 1     // 4 (mono) ou 6 (tri)
 
-  const itensCabos = condutores.map(({ item, cor }) => ({
-    item,
-    especificacao: `${bitola}mm² Cu 0,6/1kV — ${cor}`,
-    quantidade: distancia,
-    unidade: 'm',
-    categoria: 'Cabos',
-  }))
+  const itensCabos = condutoresDef.map(({ item, cor }, i) => {
+    const ce = condEsp[i]
+    const bit = ce?.bitola_mm2 ?? bitolaVivo
+    const comp = ce?.comprimento_m ?? distancia
+    return {
+      item,
+      especificacao: `${bit}mm² Cu 0,6/1kV — ${cor}`,
+      quantidade: comp,
+      unidade: 'm',
+      categoria: 'Cabos',
+    }
+  })
+
+  // Strings técnicas dos componentes: da especificação (com polos) ou dos args escalares.
+  const espDisj = cDisj
+    ? `${cDisj.corrente_a ?? 0}A Curva ${cDisj.curva || 'C'} · ${cDisj.polos || 2}P`
+    : `${disjuntor_a || 0}A Curva C`
+  const espIdr = cIdr
+    ? `${cIdr.corrente_a ?? 0}A ${cIdr.sensibilidade_ma ?? 30}mA Tipo ${cIdr.tipo || 'A'} · ${cIdr.polos || 2}P`
+    : `${dr_ma || 0}mA Tipo A`
+  const espDps = cDps
+    ? `${cDps.tensao_v ?? 0}V Classe ${cDps.classe || 'II'} · Imax ${cDps.imax_ka ?? 45}kA · ${cDps.polos || 1}P`
+    : `${dps_kv || 0}V Classe II`
 
   const bom = []
 
@@ -161,14 +191,14 @@ export function gerarBOM({
     },
     {
       item: 'Disjuntor termomagnético',
-      especificacao: `${disjuntor_a || 0}A Curva C`,
+      especificacao: espDisj,
       quantidade: 1,
       unidade: 'un',
       categoria: 'Proteções',
     },
     {
       item: 'Dispositivo DR',
-      especificacao: `${dr_ma || 0}mA Tipo A`,
+      especificacao: espIdr,
       quantidade: 1,
       unidade: 'un',
       categoria: 'Proteções',
@@ -178,7 +208,7 @@ export function gerarBOM({
       // Monofásico = 2 (L1+N); Trifásico (3F+N) = 4 (L1+L2+L3+N). Determinístico
       // por fases: BOM, Memorial e Unifilar seguem a MESMA regra e nunca divergem.
       item: 'DPS (Proteção contra Surtos)',
-      especificacao: `${dps_kv || 0}V Classe II`,
+      especificacao: espDps,
       quantidade: ehTrifasico ? 4 : 2,
       unidade: 'un',
       categoria: 'Proteções',

@@ -74,6 +74,46 @@ const projetoEVSchema = new mongoose.Schema({
     potencia_max_kw: { type: Number, default: null },
   },
 
+  // BUG-021 FASE 2 — ESPECIFICAÇÃO EXECUTIVA (fonte única da verdade).
+  // O que SERÁ instalado. Memorial, Unifilar, Lista de Materiais e PDFs leem daqui —
+  // o Motor (calculos_nbr) só faz o dimensionamento inicial e SEMEIA esta estrutura.
+  // Projetos antigos não têm o campo: o fallback deriva do Motor e a primeira gravação
+  // materializa a estrutura (migração transparente — ver especificacaoEV.js).
+  especificacao: {
+    versao: { type: Number, default: 1 },
+    fases:  { type: Number, default: null },     // 1 (mono) ou 3 (tri) — circuito do carregador
+    // BUG-021.4: componentes OBRIGATÓRIOS, especificados só por atributos técnicos
+    // (sem fabricante, sem modelo). Não existe caminho de remoção — só edição.
+    componentes: {
+      disjuntor: {
+        corrente_a: { type: Number, default: null },
+        curva:      { type: String, default: 'C' },
+        polos:      { type: Number, default: null },
+      },
+      idr: {
+        corrente_a:       { type: Number, default: null },
+        sensibilidade_ma: { type: Number, default: 30 },
+        tipo:             { type: String, default: 'A' },
+        polos:            { type: Number, default: null },
+      },
+      dps: {
+        classe:   { type: String, default: 'II' },
+        tensao_v: { type: Number, default: null },
+        imax_ka:  { type: Number, default: 45 },
+        polos:    { type: Number, default: 1 },
+      },
+    },
+    // BUG-021.3: identidade PERMANENTE (L1/L2/L3/N/PE) — nunca texto livre. O operador
+    // altera apenas bitola e comprimento; a identidade do condutor não se perde.
+    condutores: [{
+      _id: false,
+      id:            { type: String, enum: ['L1', 'L2', 'L3', 'N', 'PE'], required: true },
+      papel:         { type: String },
+      bitola_mm2:    { type: Number, default: null },
+      comprimento_m: { type: Number, default: null },
+    }],
+  },
+
   // CÁLCULOS NBR 5410
   calculos_nbr: {
     corrente_projeto_a: Number,

@@ -17,3 +17,11 @@ export {
   escolherTemplateEV,   // BUG-016
   TEMPLATES_EV,         // BUG-016
 } from '../../../packages/diagram-engine/adapters/ev.js'
+
+// BUG-021 FASE 2: especificação executiva (fonte única de componentes/condutores).
+export {
+  derivarEspecificacaoEV,
+  especificacaoDoProjeto,
+  quantidadeDPS,
+  bitolaPrincipal,
+} from '../../../packages/diagram-engine/adapters/especificacaoEV.js'

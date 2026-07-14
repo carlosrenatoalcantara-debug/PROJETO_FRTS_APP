@@ -13,6 +13,8 @@
  */
 
 import { build, renderSVG, toReactFlow, componente, conexao, TIPOS, PAPEL_CONEXAO } from '../index.js'
+// BUG-021 FASE 2: especificação executiva é a FONTE ÚNICA dos componentes/condutores.
+import { especificacaoDoProjeto, bitolaPrincipal, quantidadeDPS } from './especificacaoEV.js'
 
 // BUG-011: condutores desenhados = os que REALMENTE existem no circuito do carregador.
 //  mono (1): Fase + Neutro + Terra                 → 3
@@ -81,17 +83,18 @@ const bit = (papel, bitola) => ({ papel, bitola_mm2: bitola })
  *  - DPS deriva da entrada superior do IDR e descarrega no Barramento Terra (nunca em série).
  *  - Neutro passa por Barramento Neutro (nunca direto ao carregador).
  */
-function construirTemplateEV(template, { disjA, bitola, comprimento, tensao, dpsV, drMa, carregador, nDPS }) {
+function construirTemplateEV(template, { disjA, bitola, bitolaTerra, comprimento, tensao, dpsV, dpsImax, drMa, drTipo, curva, carregador, nDPS }) {
   const rotuloCarr = `${carregador.marca || ''} ${carregador.modelo || ''}`.trim() || 'Carregador EV'
   const especCarr = { potencia_kw: carregador.potencia_kw, corrente_a: disjA, conector: carregador.tipo_conector }
   const edgeCabo = { bitola_mm2: bitola, comprimento_m: comprimento, observacoes: '' }
+  const bitTerra = bitolaTerra ?? bitola   // PE pode ter bitola própria (BUG-021.3)
 
   if (template === TEMPLATES_EV.TRI_TRI) {
     const cond4 = [bit('fase_l1', bitola), bit('fase_l2', bitola), bit('fase_l3', bitola), bit('neutro', bitola)]
     const components = [
       componente({ id: 'medidor', tipo: TIPOS.REDE, label: 'Medidor', specs: { tensao_v: tensao }, ordem: 0 }),
-      componente({ id: 'disj', tipo: TIPOS.DISJUNTOR, polos: 4, specs: { corrente_a: disjA, curva: 'C' }, ordem: 1 }),
-      componente({ id: 'dr', tipo: TIPOS.DR, polos: 4, specs: { ma: drMa, classe: 'A' }, ordem: 2 }),
+      componente({ id: 'disj', tipo: TIPOS.DISJUNTOR, polos: 4, specs: { corrente_a: disjA, curva }, ordem: 1 }),
+      componente({ id: 'dr', tipo: TIPOS.DR, polos: 4, specs: { ma: drMa, classe: drTipo }, ordem: 2 }),
       componente({ id: 'carr', tipo: TIPOS.EQUIPAMENTO, subtipo: 'carregador_ev', label: rotuloCarr, specs: especCarr, ordem: 3 }),
       // Ponto de terra desenhado como ATERRAMENTO (não como barra de barramento).
       componente({ id: 'barr_terra', tipo: TIPOS.BARRAMENTO, subtipo: 'aterramento', label: 'Aterramento', ordem: 4 }),
@@ -102,13 +105,13 @@ function construirTemplateEV(template, { disjA, bitola, comprimento, tensao, dps
       conexao({ id: 'c-dr-carr', from: 'dr', to: 'carr', condutores: cond4, specs: edgeCabo }),
       // FEATURE-007: barra de terra HORIZONTAL abaixo do quadro → sobe até o Carregador
       // (roteamento ortogonal). O Terra não passa pelo Disjuntor/IDR.
-      conexao({ id: 'c-terra-barr-carr', from: 'barr_terra', to: 'carr', condutores: [bit('terra', bitola)], specs: { rotaTerraBus: true } }),
+      conexao({ id: 'c-terra-barr-carr', from: 'barr_terra', to: 'carr', condutores: [bit('terra', bitTerra)], specs: { rotaTerraBus: true } }),
     ]
     const posicoes = { medidor: POS_TRI.medidor, disj: POS_TRI.disj, dr: POS_TRI.dr, carr: POS_TRI.carr, barr_terra: POS_TRI.barr_terra }
     const papeisDPS = ['fase_l1', 'fase_l2', 'fase_l3', 'neutro']
     const nd = Math.min(Math.max(nDPS, 1), 4)
     for (let i = 0; i < nd; i++) {
-      components.push(componente({ id: `dps${i}`, tipo: TIPOS.DPS, polos: 1, specs: { tensao_v: dpsV, condutor: papeisDPS[i] } }))
+      components.push(componente({ id: `dps${i}`, tipo: TIPOS.DPS, polos: 1, specs: { tensao_v: dpsV, imax_ka: dpsImax, condutor: papeisDPS[i] } }))
       // ocultarLinha: o DPS já traz sua própria seta de origem (symbols.js); a linha reta
       // centro-a-centro coincidiria com o tronco (DPS está na mesma fileira do IDR/Carregador).
       connections.push(conexao({ id: `c-idr-dps${i}`, from: 'dr', to: `dps${i}`, papel: PAPEL_CONEXAO.DERIVACAO, condutores: [{ papel: papeisDPS[i] }], specs: { ocultarLinha: true } }))
@@ -124,8 +127,8 @@ function construirTemplateEV(template, { disjA, bitola, comprimento, tensao, dps
   const condFN = [bit('fase', bitola), bit('neutro', bitola)]
   const components = [
     componente({ id: 'medidor', tipo: TIPOS.REDE, label: 'Medidor', specs: { tensao_v: tensao }, ordem: 0 }),
-    componente({ id: 'disj', tipo: TIPOS.DISJUNTOR, polos: 2, specs: { corrente_a: disjA, curva: 'C' }, ordem: 1 }),
-    componente({ id: 'dr', tipo: TIPOS.DR, polos: 2, specs: { ma: drMa, classe: 'A' }, ordem: 2 }),
+    componente({ id: 'disj', tipo: TIPOS.DISJUNTOR, polos: 2, specs: { corrente_a: disjA, curva }, ordem: 1 }),
+    componente({ id: 'dr', tipo: TIPOS.DR, polos: 2, specs: { ma: drMa, classe: drTipo }, ordem: 2 }),
     componente({ id: 'carr', tipo: TIPOS.EQUIPAMENTO, subtipo: 'carregador_ev', label: rotuloCarr, specs: especCarr, ordem: 3 }),
     // Sem barra de barramento. Terra = aterramento normativo.
     componente({ id: 'barr_terra', tipo: TIPOS.BARRAMENTO, subtipo: 'aterramento', label: 'Aterramento', ordem: 4 }),
@@ -137,7 +140,7 @@ function construirTemplateEV(template, { disjA, bitola, comprimento, tensao, dps
     conexao({ id: 'c-dr-carr', from: 'dr', to: 'carr', condutores: condFN, specs: edgeCabo }),
     // FEATURE-007: barra de terra HORIZONTAL abaixo do quadro → sobe até o Carregador
     // (roteamento ortogonal). O Terra não passa pelo Disjuntor/IDR.
-    conexao({ id: 'c-terra-barr-carr', from: 'barr_terra', to: 'carr', condutores: [bit('terra', bitola)], specs: { rotaTerraBus: true } }),
+    conexao({ id: 'c-terra-barr-carr', from: 'barr_terra', to: 'carr', condutores: [bit('terra', bitTerra)], specs: { rotaTerraBus: true } }),
   ]
   const posicoes = {
     medidor: POS_MONO.medidor, disj: POS_MONO.disj, dr: POS_MONO.dr, carr: POS_MONO.carr, barr_terra: POS_MONO.barr_terra,
@@ -145,7 +148,7 @@ function construirTemplateEV(template, { disjA, bitola, comprimento, tensao, dps
   const papeisDPS = ['fase', 'neutro']
   const nd = Math.min(Math.max(nDPS, 1), 2)
   for (let i = 0; i < nd; i++) {
-    components.push(componente({ id: `dps${i}`, tipo: TIPOS.DPS, polos: 1, specs: { tensao_v: dpsV, condutor: papeisDPS[i] } }))
+    components.push(componente({ id: `dps${i}`, tipo: TIPOS.DPS, polos: 1, specs: { tensao_v: dpsV, imax_ka: dpsImax, condutor: papeisDPS[i] } }))
     // DPS deriva do IDR → DPS → Aterramento (nunca em série). ocultarLinha: o DPS já
     // traz sua própria seta de origem/descarga (symbols.js) — a linha reta centro-a-
     // centro ficava redundante (sobrepondo o tronco) e poluída (cruzando o desenho).
@@ -194,24 +197,39 @@ export function avaliarNormas({ endereco = '', estado = '', tipo_instalacao = ''
 }
 
 /** (calculos + bom + carregador + projeto) → { components, connections, metadata } */
-export function adaptarProjetoEV({ calculos = {}, bom = [], numero_fases = 1, carregador = {}, projeto = {} }) {
+export function adaptarProjetoEV({ calculos = {}, bom = [], numero_fases = 1, carregador = {}, projeto = {}, especificacao = null }) {
   const nf = fasesDoCarregador(carregador, numero_fases)
   const ehTri = nf >= 3
-  const disjA = calculos.disjuntor_a ?? carregador.corrente_entrada_a ?? 0
-  const bitola = bitolaDoBOM(bom, calculos.bitola_cabo_mm2)
-  const comprimento = calculos.comprimento_cabo_m ?? projeto.comprimento_cabo_m
   const tensao = carregador.tensao_entrada_v ?? (ehTri ? 380 : 220)
+
+  // BUG-021 FASE 2: componentes e condutores vêm da ESPECIFICAÇÃO EXECUTIVA (fonte única).
+  // Recebida pronta via args (edição do wizard) ou derivada do Motor (fallback). O Motor
+  // NUNCA é lido diretamente aqui para specs — só através da especificação.
+  const esp = especificacao || especificacaoDoProjeto({
+    especificacao: null, calculos_nbr: calculos, carregadores: [carregador], comprimento_cabo_m: projeto.comprimento_cabo_m,
+  })
+  const comp = esp.componentes || {}
+  const disjA = comp.disjuntor?.corrente_a ?? calculos.disjuntor_a ?? carregador.corrente_entrada_a ?? 0
+  const condPE = esp.condutores?.find(c => c.id === 'PE')
+  const condVivo = esp.condutores?.find(c => c.id !== 'PE')
+  const bitola = bitolaPrincipal(esp) ?? bitolaDoBOM(bom, calculos.bitola_cabo_mm2)
+  const bitolaTerra = condPE?.bitola_mm2 ?? bitola
+  const comprimento = condVivo?.comprimento_m ?? calculos.comprimento_cabo_m ?? projeto.comprimento_cabo_m
 
   // BUG-016: escolha DETERMINÍSTICA do template (alimentação do imóvel + carregador)
   // e INSTANCIAÇÃO do roteamento fixo. Nada de roteamento é calculado depois disto.
   const template = escolherTemplateEV(projeto.fases, nf)
   const { components, connections, posicoes } = construirTemplateEV(template, {
-    disjA, bitola, comprimento, tensao,
-    dpsV: calculos.dps_kv ?? 275, drMa: calculos.dr_ma ?? 30,
+    disjA, bitola, bitolaTerra, comprimento, tensao,
+    dpsV: comp.dps?.tensao_v ?? calculos.dps_kv ?? 275,
+    dpsImax: comp.dps?.imax_ka ?? 45,
+    drMa: comp.idr?.sensibilidade_ma ?? calculos.dr_ma ?? 30,
+    drTipo: comp.idr?.tipo ?? 'A',
+    curva: comp.disjuntor?.curva ?? 'C',
     // BUG-021.1: nº de DPS é DETERMINÍSTICO por fases (1 por condutor vivo) — mono=2
     // (L1+N), tri=4 (L1+L2+L3+N). Não vem mais da contagem do BOM (que podia estar
     // desatualizada) — assim BOM e Unifilar nunca divergem.
-    carregador, nDPS: ehTri ? 4 : 2,
+    carregador, nDPS: quantidadeDPS(esp),
   })
 
   const { normas, normas_motivo } = avaliarNormas({
@@ -285,6 +303,8 @@ export function argsDeProjetoEV(projeto = {}) {
   return {
     calculos: { ...calculos, comprimento_cabo_m: projeto.comprimento_cabo_m },
     bom,
+    // BUG-021 FASE 2: fonte única — estrutura salva no projeto ou fallback derivado.
+    especificacao: especificacaoDoProjeto(projeto),
     // BUG-011: fases do CIRCUITO vêm do carregador (o adapter também deriva de carregador.tipo).
     // NÃO usar projeto.fases (alimentação do imóvel) — fazia projeto mono virar 5 condutores.
     numero_fases: Number(carregador.numero_fases) || 1,

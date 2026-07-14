@@ -138,7 +138,7 @@ function ilustradoIDR(x, y, n, ma, classe) {
 }
 
 // DPS ilustrado — módulo vermelho com rótulo branco (tensão/corrente) e status.
-function ilustradoDPS(x, y, tensao, polos) {
+function ilustradoDPS(x, y, tensao, polos, imax) {
   const w = 42, h = 100
   return `<g>
     <rect x="${x}" y="${y}" width="${w}" height="${h}" rx="4" fill="#ef4444" stroke="#7f1d1d" stroke-width="1.2"/>
@@ -146,7 +146,7 @@ function ilustradoDPS(x, y, tensao, polos) {
     <rect x="${x + 4}" y="${y + 16}" width="${w - 8}" height="54" fill="#f1f5f9"/>
     <text x="${x + w / 2}" y="${y + 26}" font-size="5.4" text-anchor="middle" fill="#334155">DPS ${polos || 1}P</text>
     <text x="${x + w / 2}" y="${y + 34}" font-size="5.4" text-anchor="middle" fill="#334155">${esc(tensao)}</text>
-    <text x="${x + w / 2}" y="${y + 42}" font-size="5" text-anchor="middle" fill="#334155">Imax:45kA</text>
+    <text x="${x + w / 2}" y="${y + 42}" font-size="5" text-anchor="middle" fill="#334155">Imax:${esc(imax || 45)}kA</text>
     <rect x="${x + 7}" y="${y + 46}" width="${w - 14}" height="8" rx="2" fill="#fff" stroke="#ef4444"/>
     <text x="${x + w / 2}" y="${y + 52.5}" font-size="5" text-anchor="middle" fill="#334155">STATUS</text>
     <rect x="${x + 5}" y="${y + 58}" width="${w - 10}" height="6" fill="#22c55e"/>
@@ -225,7 +225,7 @@ export function desenharComponente(c, pos) {
       return `<g>${corpo}${setas}</g>`
     }
     case TIPOS.DPS: {
-      const corpo = ilustradoDPS(x, y, s.tensao_v ? `${s.tensao_v}V` : '', c.polos || 1)
+      const corpo = ilustradoDPS(x, y, s.tensao_v ? `${s.tensao_v}V` : '', c.polos || 1, s.imax_ka)
       const cor = CORES_SETA[s.condutor] || '#334155'
       // Topo: seta de entrada (cor do condutor que o DPS deriva). Base: seta de saída
       // verde (descarga para o aterramento) — mesmo padrão do Disjuntor/IDR (setas no

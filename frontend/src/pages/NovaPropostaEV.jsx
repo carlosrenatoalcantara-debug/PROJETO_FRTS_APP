@@ -29,7 +29,8 @@ import ModalNovoCarregadorEV from '../components/equipamentos/ModalNovoCarregado
 import InteractiveDiagram from '../components/diagram/InteractiveDiagram'
 import { calcularParametrosNBR5410, validarNBR5410 } from '../services/calculosNBR5410EV'
 import { gerarUnifilarEVSVG } from '../utils/gerarUnifilarEV'
-import { construirCanonicalEV, renderarSVGEV, toReactFlow } from '../utils/adapterDiagramaEV'
+import { construirCanonicalEV, renderarSVGEV, toReactFlow, derivarEspecificacaoEV } from '../utils/adapterDiagramaEV'
+import { gerarBOM } from '../utils/bomMateriaisEV'
 import { renderSVG } from '@diagram-engine'
 import { salvarDiagramaLocal } from '../components/diagram/utils/diagramPersistence'
 import { tecnicosApi } from '../services/gestaoApi'
@@ -78,6 +79,12 @@ export default function NovaPropostaEV() {
   const [carregadoresDisponiveis, setCarregadoresDisponiveis] = useState([])
   const [carregadoresErro, setCarregadoresErro] = useState(null)
   const [calculos, setCalculos] = useState(null)
+  // BUG-021 FASE 2: ESPECIFICAÇÃO EXECUTIVA — fonte única de componentes/condutores.
+  // O Motor SEMEIA (dimensionamento inicial); depois o operador é o dono. Memorial,
+  // Unifilar, BOM e PDFs leem SÓ daqui. `seedRef` guarda a assinatura do último seed
+  // do Motor: enquanto o dimensionamento não mudar, as edições do operador sobrevivem.
+  const [especificacao, setEspecificacao] = useState(null)
+  const seedRef = useRef('')
   // ── Fonte única da verdade do orçamento (vive no pai, sobrevive à navegação) ─
   const [orcamento, setOrcamento] = useState({
     equipamentos: [],
@@ -228,6 +235,21 @@ export default function NovaPropostaEV() {
         if (p.calculos_nbr && Object.keys(p.calculos_nbr).length) {
           setCalculos(p.calculos_nbr)
         }
+        // BUG-021 FASE 2 (retrocompat): projeto novo abre com a especificação SALVA;
+        // projeto antigo (sem a estrutura) abre com o FALLBACK derivado do Motor — e é
+        // materializado na primeira gravação. Nenhum projeto existente deixa de abrir.
+        {
+          const seedMotor = derivarEspecificacaoEV({
+            calculos: p.calculos_nbr || {},
+            carregador: (p.carregadores && p.carregadores[0]) || {},
+            comprimento_cabo_m: p.comprimento_cabo_m,
+          })
+          // seedRef = assinatura do SEED DO MOTOR (não da spec salva). Assim, enquanto o
+          // dimensionamento não mudar, as edições do operador não são sobrescritas; quando
+          // ele mudar (novo carregador/comprimento), o Motor re-semeia — como deve.
+          seedRef.current = JSON.stringify(seedMotor)
+          setEspecificacao(p.especificacao?.componentes ? p.especificacao : seedMotor)
+        }
         // BUG-015: restaura orçamento salvo por inteiro — materiais (BOM), equipamentos,
         // serviços, margem, desconto e status comercial.
         if (p.orcamento) {
@@ -351,16 +373,41 @@ export default function NovaPropostaEV() {
         tipo_conector:     primeiro.tipo_conector,
       })
       setCalculos(resultado)
-      // Propaga engenharia → orçamento. Enriquece com preços do Catálogo Mestre.
-      setOrcamento(prev => ({
-        ...prev,
-        materiais: enriquecerComCatalogo(bomParaMateriais(resultado.materiais), catalogoItems),
-        equipamentos: carregadoresParaEquipamentos(carregadores),
-      }))
+
+      // BUG-021.2: o Motor SEMEIA a especificação executiva. Só re-semeia quando o
+      // DIMENSIONAMENTO realmente muda (assinatura) — assim uma re-renderização (ex.:
+      // catálogo de preços carregando) não apaga o que o operador especificou.
+      const espSeed = derivarEspecificacaoEV({
+        calculos: resultado, carregador: primeiro, comprimento_cabo_m: dados.comprimento_cabo_m,
+      })
+      const assinatura = JSON.stringify(espSeed)
+      if (assinatura !== seedRef.current) {
+        seedRef.current = assinatura
+        setEspecificacao(espSeed)
+      }
+
+      setOrcamento(prev => ({ ...prev, equipamentos: carregadoresParaEquipamentos(carregadores) }))
     } catch (err) {
       console.error('[EV] Erro no cálculo automático:', err)
     }
   }, [carregadores, dados.comprimento_cabo_m, dados.limitacao_operacao, incluirMobBox, catalogoItems])
+
+  // BUG-021.2: o BOM é DERIVADO da especificação executiva (nunca mais do Motor direto).
+  // Qualquer edição de componente/condutor regenera a lista de materiais na hora — é o
+  // que garante que Materiais, Memorial e Unifilar mostrem SEMPRE o que será instalado.
+  useEffect(() => {
+    if (hidratandoEdicao.current) return          // BUG-015: preserva o BOM salvo na hidratação
+    if (!especificacao || carregadores.length === 0) return
+    const primeiro = carregadores[0]
+    const bom = gerarBOM({
+      potencia_kw: calculos?.potencia_kw ?? carregadores.reduce((s, c) => s + (Number(c.potencia_kw) || 0) * (Number(c.quantidade) || 1), 0),
+      tipo_carregador: primeiro.tipo,
+      tipo_conector: primeiro.tipo_conector,
+      incluir_mob_box: incluirMobBox,
+      especificacao,
+    })
+    setOrcamento(prev => ({ ...prev, materiais: enriquecerComCatalogo(bomParaMateriais(bom), catalogoItems) }))
+  }, [especificacao, incluirMobBox, carregadores, catalogoItems]) // eslint-disable-line
 
   // ── Gerar unifilar ao entrar na etapa 4 ────────────────────────────────
   const etapaRef = useRef(etapa)
@@ -403,6 +450,26 @@ export default function NovaPropostaEV() {
   const removerCarregador   = (idx) => { hidratandoEdicao.current = false; setCarregadores(prev => prev.filter((_, i) => i !== idx)) }
   const atualizarQtd        = (idx, qtd) => { hidratandoEdicao.current = false; setCarregadores(prev => prev.map((c, i) => i === idx ? { ...c, quantidade: qtd } : c)) }
 
+  // ── BUG-021.4 / 021.3: edição da ESPECIFICAÇÃO EXECUTIVA ─────────────────
+  // Só ATRIBUTOS TÉCNICOS mudam. Componentes obrigatórios não têm remoção (não existe
+  // handler de exclusão) e condutores mantêm identidade fixa (L1/L2/L3/N/PE) — o
+  // operador altera apenas bitola e comprimento. Sem fabricante, sem modelo.
+  const editarComponente = (chave, campo, valor) => {
+    hidratandoEdicao.current = false
+    setEspecificacao(prev => prev && ({
+      ...prev,
+      componentes: { ...prev.componentes, [chave]: { ...prev.componentes[chave], [campo]: valor } },
+    }))
+  }
+  const editarCondutor = (id, campo, valor) => {
+    hidratandoEdicao.current = false
+    setEspecificacao(prev => prev && ({
+      ...prev,
+      condutores: prev.condutores.map(c => (c.id === id ? { ...c, [campo]: valor } : c)),
+    }))
+  }
+  const num = (v) => (v === '' ? null : parseFloat(v))
+
   // ── Gerar unifilar ───────────────────────────────────────────────────────
   // P3-F2: o preview da etapa 4 passa a usar o DiagramEngine (mesma fonte do
   // React Flow e do PDF). gerarUnifilarEVSVG (motor antigo) será removido na F5.
@@ -411,6 +478,8 @@ export default function NovaPropostaEV() {
     return {
       calculos: { ...calculos, comprimento_cabo_m: dados.comprimento_cabo_m },
       bom: calculos?.materiais || [],   // BOM de engenharia (item/especificacao/quantidade)
+      // BUG-021.2: o unifilar desenha a ESPECIFICAÇÃO (o que será instalado) — nunca o Motor.
+      especificacao,
       numero_fases: Number(primeiro?.numero_fases) || 1,
       carregador: primeiro || {},
       projeto: {
@@ -487,6 +556,9 @@ export default function NovaPropostaEV() {
       comprimento_cabo_m: dados.comprimento_cabo_m,
       corrente_aferida_a: dados.corrente_aferida_a, // FEATURE-006: aferição da vistoria
       limitacao_operacao: dados.limitacao_operacao, // BUG-021.5: limitação de operação
+      // BUG-021.2: especificação executiva — o que SERÁ instalado. Na primeira gravação de
+      // um projeto antigo, o fallback derivado é materializado aqui (migração transparente).
+      especificacao,
       calculos_nbr: calculos,
       bom: orcamento.materiais,
       // FEATURE-008: status NÃO fica mais duplicado dentro de orcamento — vive só no
@@ -870,6 +942,153 @@ export default function NovaPropostaEV() {
                   <Metric label="Queda de tensão" value={`${calculos.queda_tensao_pct?.toFixed(2)} %`} cor={calculos.queda_tensao_pct > 3 ? 'red' : 'green'} nota="limite NBR: 3%" />
                   {carregadores[0]?.ocpp && <Metric label="OCPP" value={typeof carregadores[0].ocpp === 'string' ? carregadores[0].ocpp : 'Sim'} cor="blue" />}
                   {carregadores[0]?.tipo_conector && <Metric label="Conector" value={carregadores[0].tipo_conector} cor="slate" />}
+                </div>
+              </CardBody>
+            </Card>
+          )}
+
+          {/* ── BUG-021.2/3/4 — ESPECIFICAÇÃO EXECUTIVA (fonte única) ──── */}
+          {especificacao && (
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-semibold">Especificação Executiva</h2>
+                  <span className="text-xs text-slate-500">
+                    Memorial, Unifilar, Materiais e PDFs usam <strong>exatamente</strong> o que está aqui
+                  </span>
+                </div>
+              </CardHeader>
+              <CardBody>
+                <p className="text-xs text-slate-500 mb-4">
+                  O Motor dimensionou os valores abaixo. Ajuste o que será <strong>efetivamente instalado</strong> —
+                  os componentes são obrigatórios (não podem ser removidos) e são definidos apenas por características
+                  técnicas, sem fabricante ou modelo.
+                </p>
+
+                {/* Componentes obrigatórios */}
+                <div className="grid md:grid-cols-3 gap-4 mb-6">
+                  {/* Disjuntor */}
+                  <div className="border border-slate-200 rounded-lg p-3">
+                    <div className="text-sm font-semibold mb-2">Disjuntor</div>
+                    <label className="block text-xs text-slate-500 mb-1">Corrente (A)</label>
+                    <input type="number" min="0" className="w-full px-2 py-1.5 border border-slate-300 rounded text-sm mb-2"
+                      value={especificacao.componentes.disjuntor.corrente_a ?? ''}
+                      onChange={(e) => editarComponente('disjuntor', 'corrente_a', num(e.target.value))} />
+                    <label className="block text-xs text-slate-500 mb-1">Curva</label>
+                    <select className="w-full px-2 py-1.5 border border-slate-300 rounded text-sm mb-2"
+                      value={especificacao.componentes.disjuntor.curva || 'C'}
+                      onChange={(e) => editarComponente('disjuntor', 'curva', e.target.value)}>
+                      <option value="B">B</option><option value="C">C</option><option value="D">D</option>
+                    </select>
+                    <label className="block text-xs text-slate-500 mb-1">Polos</label>
+                    <input readOnly className="w-full px-2 py-1.5 border border-slate-200 bg-slate-50 rounded text-sm text-slate-600"
+                      value={`${especificacao.componentes.disjuntor.polos}P`} />
+                  </div>
+
+                  {/* IDR */}
+                  <div className="border border-slate-200 rounded-lg p-3">
+                    <div className="text-sm font-semibold mb-2">IDR (Dispositivo DR)</div>
+                    <label className="block text-xs text-slate-500 mb-1">Corrente (A)</label>
+                    <input type="number" min="0" className="w-full px-2 py-1.5 border border-slate-300 rounded text-sm mb-2"
+                      value={especificacao.componentes.idr.corrente_a ?? ''}
+                      onChange={(e) => editarComponente('idr', 'corrente_a', num(e.target.value))} />
+                    <label className="block text-xs text-slate-500 mb-1">Sensibilidade (mA)</label>
+                    <input type="number" min="0" className="w-full px-2 py-1.5 border border-slate-300 rounded text-sm mb-2"
+                      value={especificacao.componentes.idr.sensibilidade_ma ?? ''}
+                      onChange={(e) => editarComponente('idr', 'sensibilidade_ma', num(e.target.value))} />
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-xs text-slate-500 mb-1">Tipo</label>
+                        <select className="w-full px-2 py-1.5 border border-slate-300 rounded text-sm"
+                          value={especificacao.componentes.idr.tipo || 'A'}
+                          onChange={(e) => editarComponente('idr', 'tipo', e.target.value)}>
+                          <option value="AC">AC</option><option value="A">A</option><option value="B">B</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs text-slate-500 mb-1">Polos</label>
+                        <input readOnly className="w-full px-2 py-1.5 border border-slate-200 bg-slate-50 rounded text-sm text-slate-600"
+                          value={`${especificacao.componentes.idr.polos}P`} />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* DPS */}
+                  <div className="border border-slate-200 rounded-lg p-3">
+                    <div className="text-sm font-semibold mb-2">
+                      DPS <span className="text-xs font-normal text-slate-500">
+                        ({especificacao.fases >= 3 ? 4 : 2} un — 1 por condutor vivo)
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 mb-2">
+                      <div>
+                        <label className="block text-xs text-slate-500 mb-1">Classe</label>
+                        <select className="w-full px-2 py-1.5 border border-slate-300 rounded text-sm"
+                          value={especificacao.componentes.dps.classe || 'II'}
+                          onChange={(e) => editarComponente('dps', 'classe', e.target.value)}>
+                          <option value="I">I</option><option value="II">II</option><option value="III">III</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs text-slate-500 mb-1">Tensão (V)</label>
+                        <input type="number" min="0" className="w-full px-2 py-1.5 border border-slate-300 rounded text-sm"
+                          value={especificacao.componentes.dps.tensao_v ?? ''}
+                          onChange={(e) => editarComponente('dps', 'tensao_v', num(e.target.value))} />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-xs text-slate-500 mb-1">Imax (kA)</label>
+                        <input type="number" min="0" className="w-full px-2 py-1.5 border border-slate-300 rounded text-sm"
+                          value={especificacao.componentes.dps.imax_ka ?? ''}
+                          onChange={(e) => editarComponente('dps', 'imax_ka', num(e.target.value))} />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-slate-500 mb-1">Polos</label>
+                        <input readOnly className="w-full px-2 py-1.5 border border-slate-200 bg-slate-50 rounded text-sm text-slate-600"
+                          value={`${especificacao.componentes.dps.polos}P`} />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Condutores — identidade permanente */}
+                <div className="text-sm font-semibold mb-2">
+                  Condutores <span className="text-xs font-normal text-slate-500">
+                    (identidade fixa — altere apenas bitola e comprimento)
+                  </span>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-left text-xs text-slate-500 border-b border-slate-200">
+                        <th className="py-2 pr-3">Condutor</th>
+                        <th className="py-2 pr-3">Função</th>
+                        <th className="py-2 pr-3">Bitola (mm²)</th>
+                        <th className="py-2">Comprimento (m)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {especificacao.condutores.map((c) => (
+                        <tr key={c.id} className="border-b border-slate-100">
+                          <td className="py-2 pr-3 font-semibold text-slate-700">{c.id}</td>
+                          <td className="py-2 pr-3 text-slate-500 text-xs">
+                            {c.id === 'PE' ? 'Proteção (terra)' : c.id === 'N' ? 'Neutro' : 'Fase'}
+                          </td>
+                          <td className="py-2 pr-3">
+                            <input type="number" min="0" step="0.5" className="w-28 px-2 py-1 border border-slate-300 rounded text-sm"
+                              value={c.bitola_mm2 ?? ''}
+                              onChange={(e) => editarCondutor(c.id, 'bitola_mm2', num(e.target.value))} />
+                          </td>
+                          <td className="py-2">
+                            <input type="number" min="0" step="0.5" className="w-28 px-2 py-1 border border-slate-300 rounded text-sm"
+                              value={c.comprimento_m ?? ''}
+                              onChange={(e) => editarCondutor(c.id, 'comprimento_m', num(e.target.value))} />
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </CardBody>
             </Card>

@@ -209,6 +209,8 @@ export const criarProjetoEV = async (req, res) => {
       ...(req.body.corrente_aferida_a != null && { corrente_aferida_a: req.body.corrente_aferida_a }),
       // BUG-021.5: limitação de operação do carregador.
       ...(req.body.limitacao_operacao && { limitacao_operacao: req.body.limitacao_operacao }),
+      // BUG-021 FASE 2: especificação executiva (fonte única de componentes/condutores).
+      ...(req.body.especificacao && { especificacao: req.body.especificacao }),
       ...(req.body.calculos_nbr && { calculos_nbr: req.body.calculos_nbr }),
       ...(req.body.tecnico && { tecnico: req.body.tecnico }),
       ...(req.body.modo_operacao && { modo_operacao: req.body.modo_operacao }),
@@ -277,6 +279,25 @@ export const atualizarProjetoEV = async (req, res) => {
 
     // Merge dos dados
     const dadosAtualizacao = { ...req.body }
+
+    // BUG-021 FASE 2 — MIGRAÇÃO TRANSPARENTE. Se o projeto ainda não tem a especificação
+    // executiva e o cliente também não a mandou (ex.: salvamento vindo de outra tela),
+    // ela é MATERIALIZADA aqui a partir do Motor. Depois desta gravação o projeto passa a
+    // ter a estrutura definitiva e todos os consumidores param de usar fallback.
+    if (!dadosAtualizacao.especificacao && !projetoAtual.especificacao?.componentes?.disjuntor?.polos) {
+      try {
+        const { derivarEspecificacaoEV } = await import('@fortesolar/diagram-engine/adapters/especificacao-ev')
+        const base = { ...projetoAtual.toObject(), ...dadosAtualizacao }
+        dadosAtualizacao.especificacao = derivarEspecificacaoEV({
+          calculos: base.calculos_nbr || {},
+          carregador: (base.carregadores && base.carregadores[0]) || {},
+          comprimento_cabo_m: base.comprimento_cabo_m,
+        })
+        console.log('✓ BUG-021: especificação executiva materializada (migração)')
+      } catch (e) {
+        console.warn('⚠️  Falha ao materializar especificação executiva:', e.message)
+      }
+    }
 
     // Se carregadores são atualizados, recalcular quantidade_pontos e potencia_total_kw
     if (dadosAtualizacao.carregadores && Array.isArray(dadosAtualizacao.carregadores)) {
