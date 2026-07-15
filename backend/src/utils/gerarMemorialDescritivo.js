@@ -289,7 +289,16 @@ export function desenharMemorialDescritivo(doc, projetoOriginal, clienteOriginal
   const cargaTxt = cliente?.carga_instalada_kw != null ? `${nA(cliente.carga_instalada_kw)} kW` : BRANCO
   const concessTxt = esc(cliente?.distribuidora) || BRANCO
   const iAferida = projeto.corrente_aferida_a
-  const iCarregador = carregador.corrente_entrada_a
+  // BUGFIX disponibilidade x limitação: a corrente que o carregador REALMENTE puxa na
+  // fase é a da operação CONFIGURADA quando há limitação — não a nominal. Antes somava-se
+  // sempre a nominal (ex.: 6 A aferidos + 32 A nominais = 38 A), o que além de superestimar
+  // a demanda gerava uma contradição no próprio parágrafo ("38 A ... inferior a 32 A"). Com
+  // o carregador limitado a 11 kW (16,71 A), o previsto é 6 + 16,71 = 22,71 A — coerente com
+  // o disjuntor limitado e com o resto do memorial, que já adota o valor configurado.
+  const cfgLim = lim?.habilitado ? limitesConfigurados(lim, carregador.tensao_entrada_v ?? 220, carregador.numero_fases ?? 1) : null
+  const usarLim = Number.isFinite(Number(cfgLim?.corrente_a))
+  const iCarregador = usarLim ? cfgLim.corrente_a : carregador.corrente_entrada_a
+  const rotuloCorrente = usarLim ? 'corrente configurada do carregador (operação limitada)' : 'corrente nominal do carregador'
   const iFinal = (Number.isFinite(Number(iAferida)) && Number.isFinite(Number(iCarregador))) ? Number(iAferida) + Number(iCarregador) : null
   y = tituloSecao(doc, margem, y, largura, 'Verificação da Disponibilidade Elétrica')
   y = escreverBloco(doc, margem, y, largura,
@@ -298,7 +307,7 @@ export function desenharMemorialDescritivo(doc, projetoOriginal, clienteOriginal
     `Durante a vistoria técnica foi realizada a aferição da corrente na fase destinada à alimentação do carregador de veículo `
     + `elétrico, obtendo-se o valor de ${nA(iAferida)} A.`)
   y = escreverBloco(doc, margem, y, largura,
-    `Considerando a corrente nominal do carregador (${nA(iCarregador)} A), a corrente prevista na fase após a utilização do `
+    `Considerando a ${rotuloCorrente} (${nA(iCarregador)} A), a corrente prevista na fase após a utilização do `
     + `carregador será de ${nA(iFinal)} A, permanecendo inferior à capacidade do circuito de entrada protegido por disjuntor de `
     + `${nA(cliente?.disjuntor_geral_a)} A.`)
   y = escreverBloco(doc, margem, y, largura,
