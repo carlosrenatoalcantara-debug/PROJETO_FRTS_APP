@@ -119,7 +119,9 @@ export async function gerarPDFUnifilar(projeto, cliente, _tecnico) {
   return new Promise((resolve, reject) => {
     try {
       const doc = new PDFDocument({ size: 'A4', layout: 'portrait', margin: 0 })
-      // Página 1: memorial descritivo (laudo técnico, A4 RETRATO) — página 2: unifilar (A4 PAISAGEM, SVG do Engine).
+      // Memorial descritivo (A4 RETRATO) e, na sequência, o unifilar (A4 PAISAGEM, SVG do
+      // Engine). BUG-023: o memorial pode ocupar até DUAS páginas — o unifilar entra sempre
+      // na página seguinte à última do memorial (doc.addPage), então a ordem é preservada.
       desenharMemorialDescritivo(doc, plain, plain.clienteId, logo)
       doc.addPage({ size: 'A4', layout: 'landscape', margin: 0 })
       SVGtoPDF(doc, svg, 0, 0, { width: doc.page.width, height: doc.page.height, preserveAspectRatio: 'xMidYMid meet' })
@@ -147,7 +149,9 @@ export async function gerarPDFUnifilarStream(projeto, cliente, _tecnico) {
   const logo = await obterLogoEmpresa()
 
   const doc = new PDFDocument({ size: 'A4', layout: 'portrait', margin: 0 })
-  // Página 1: memorial descritivo (laudo técnico, A4 RETRATO) — página 2: unifilar (A4 PAISAGEM, SVG do Engine).
+  // Memorial descritivo (A4 RETRATO) e, na sequência, o unifilar (A4 PAISAGEM, SVG do
+  // Engine). BUG-023: o memorial pode ocupar até DUAS páginas — o unifilar entra sempre
+  // na página seguinte à última do memorial (doc.addPage), então a ordem é preservada.
   desenharMemorialDescritivo(doc, plain, plain.clienteId, logo)
   doc.addPage({ size: 'A4', layout: 'landscape', margin: 0 })
   SVGtoPDF(doc, svg, 0, 0, { width: doc.page.width, height: doc.page.height, preserveAspectRatio: 'xMidYMid meet' })
