@@ -150,6 +150,99 @@ test('BUG-023: textos longos saem ÍNTEGROS (nada é cortado para caber)', async
   }
 })
 
+const achar = (itens, txt) => itens.find(i => i.str.includes(txt))
+
+/**
+ * Vão vertical acima de uma seção: distância da base da última linha do bloco anterior
+ * até a base do título. Medido SEMPRE dentro da mesma página — as coordenadas y são por
+ * página, então misturar páginas faria um item do topo da p2 parecer "acima" de um
+ * título da p1.
+ */
+// Faixa do topo ocupada pela tarja de continuação da página 2 (y do PDF cresce p/ cima).
+const TOPO_DA_PAGINA = 780
+
+function vaoAcimaDaSecao(paginas, titulo) {
+  for (const itens of paginas) {
+    const t = achar(itens, titulo)
+    if (!t) continue
+    const acima = itens.filter(i => i.y > t.y + 1)
+    if (!acima.length) return null
+    const anterior = acima.reduce((m, i) => (i.y < m.y ? i : m))
+    // Seção que ABRE uma página: o que está acima é a tarja de continuação, não um bloco
+    // de texto. O espaço entre seções é descartado de propósito no topo da página, então
+    // medir aqui compararia coisas diferentes.
+    if (anterior.y > TOPO_DA_PAGINA) return null
+    return +(anterior.y - t.y).toFixed(1)
+  }
+  return null
+}
+
+test('BUG-024 (itens 1/2/3): toda seção é separada do bloco anterior pelo mesmo padrão', async () => {
+  // O espaço ADICIONADO é uma constante única (ESPACO_ANTES_SECAO), aplicada por `secao()`
+  // a todas elas. O vão MEDIDO entre linhas de base varia alguns pontos porque o elemento
+  // anterior nem sempre é o mesmo (o descendente da última linha de um parágrafo não é o
+  // mesmo que o padding inferior da faixa de Características) — por isso o teste exige
+  // separação MÍNIMA garantida e dispersão pequena, não igualdade exata ao ponto.
+  const alvos = ['Verificação da Disponibilidade Elétrica', '3. Memória de Cálculo', 'Conclusão Técnica']
+  const todos = []
+  for (const args of [{ fases: 3, limitado: true }, { fases: 1, limitado: false }]) {
+    const paginas = await caixasPorPagina(await render(projetoDe(args)))
+    for (const t of alvos) {
+      const vao = vaoAcimaDaSecao(paginas, t)
+      if (vao !== null) todos.push({ cenario: `fases=${args.fases}`, t, vao })
+    }
+  }
+  assert.ok(todos.length >= 4, `poucas seções medidas (${todos.length})`)
+  const medidos = todos.map(v => v.vao)
+  const [min, max] = [Math.min(...medidos), Math.max(...medidos)]
+  // Antes do BUG-024 o vão era o de dois parágrafos comuns (~17pt) e as seções colavam.
+  assert.ok(min >= 20, `seção sem separação suficiente (${min}pt): ${JSON.stringify(todos)}`)
+  assert.ok(max - min <= 6, `vãos dispersos demais entre seções: ${JSON.stringify(todos)}`)
+})
+
+test('BUG-024 (item 4): a última página não abre buraco antes das assinaturas', async () => {
+  for (const args of [{ fases: 1, limitado: false }, { fases: 3, limitado: true }]) {
+    const paginas = await caixasPorPagina(await render(projetoDe(args)))
+    const ultima = paginas[paginas.length - 1]
+    const assinatura = achar(ultima, 'Responsável Técnico:')
+    const corpo = ultima.filter(i => i.y > assinatura.y + 20)
+    const base = corpo.reduce((m, i) => (i.y < m.y ? i : m))
+    const vao = base.y - assinatura.y
+    // Era ~270pt: a âncora no rodapé deixava um vão branco enorme sob a Conclusão.
+    assert.ok(vao <= 100, `vão de ${vao.toFixed(0)}pt entre o texto e a assinatura (fases=${args.fases})`)
+  }
+})
+
+test('BUG-024 (item 5): campos curtos não empilham o valor sob o rótulo', async () => {
+  const itens = (await caixasPorPagina(await render(projetoDe({ fases: 3, limitado: true })))).flat()
+  // "Carga Instalada (Concessionária):" é o rótulo mais longo do documento; o valor
+  // ("17 kW") cabe folgado ao lado e NÃO pode descer para a linha de baixo.
+  for (const [rotulo, valor] of [
+    ['Carga Instalada (Concessionária):', '17 kW'],
+    ['Disjuntor Geral:', '32 A'],
+    ['Unidade Consumidora:', '0012345678'],
+    ['Cidade / UF:', 'Natal / RN'],
+  ]) {
+    const r = achar(itens, rotulo)
+    assert.ok(r, `rótulo "${rotulo}" não encontrado`)
+    const naLinha = itens.find(i => Math.abs(i.y - r.y) < 2 && i.x > r.x && i.str.includes(valor))
+    assert.ok(naLinha, `"${rotulo}" empilhou o valor "${valor}" em vez de mantê-lo na mesma linha`)
+  }
+})
+
+test('BUG-024 (item 6): valores curtos das Características ficam em uma linha', async () => {
+  for (const fases of [1, 3]) {
+    const itens = (await caixasPorPagina(await render(projetoDe({ fases, limitado: false })))).flat()
+    const esperado = fases === 3 ? '380 V (Trifásico)' : '220 V (Fase-Neutro)'
+    for (const [rotulo, valor] of [['Tensão:', esperado], ['Condutor:', 'Cobre / PVC 70°C']]) {
+      const cands = itens.filter(i => i.str === rotulo)
+      // pega o rótulo da faixa de Características (o de menor y não é o do cabeçalho)
+      const ok = cands.some(r => itens.some(i => Math.abs(i.y - r.y) < 2 && i.x > r.x && i.str === valor))
+      assert.ok(ok, `"${rotulo} ${valor}" quebrou em mais de uma linha (fases=${fases})`)
+    }
+  }
+})
+
 test('BUG-023 (item 2): Características Gerais usa a corrente CONFIGURADA quando limitado', async () => {
   const paginas = await caixasPorPagina(await render(projetoDe({ fases: 3, limitado: true })))
   const texto = paginas.flat().map(i => i.str).join(' ').replace(/\s+/g, ' ')

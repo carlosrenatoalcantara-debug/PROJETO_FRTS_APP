@@ -48,27 +48,53 @@ const n1 = (n) => (Number.isFinite(Number(n)) ? fmt(n, 2).replace(/,00$/, '').re
 // Corpos de texto confortáveis para leitura em papel. Estes valores NÃO são reduzidos
 // para fazer conteúdo caber — quando não cabe, o fluxo passa para a página seguinte.
 const F = Object.freeze({ corpo: 9, rotulo: 8.5, valor: 8.5, subitem: 9.2, tabela: 8.6 })
-// A página 1 é fechada a ~75% da área útil (resposta do lote: "a quebra poderia ser com 75%").
-const LIMITE_P1_PCT = 0.75
+// BUG-024 (item 4): a página 1 é fechada a ~80% da área útil (era 75% no BUG-023).
+// A ocupação real NÃO é o teto — ela é quantizada pelo tamanho dos blocos, e a página
+// para onde o último bloco couber inteiro. Medido: 0,75 → 71%/80%; 0,80 → 75%/75%;
+// 0,85 → 79%/61%. Ou seja, 0,80 é o ponto em que mais um bloco ainda cabe na p1 e as
+// duas páginas ficam equilibradas; 0,85 já empurra demais e esvazia a p2.
+const LIMITE_P1_PCT = 0.80
 // Faixa reservada no rodapé da ÚLTIMA página para os blocos de assinatura.
 const RESERVA_ASSINATURA = 58
 const GAP_COL = 14          // canal entre colunas — impede que uma encoste na outra
 const LINHA_MIN = 12        // altura mínima de uma linha de campo
+
+// BUG-024 (itens 1/2/3): ESPAÇO ANTES DE CADA SEÇÃO — constante ÚNICA.
+// Antes não existia: o intervalo entre seções era o que sobrava do `espacoDepois` do
+// último parágrafo (6pt), idêntico ao espaço entre dois parágrafos comuns. Por isso
+// "Características Gerais" e "Limitação de Operação" pareciam uma seção só. Aplicado por
+// `secao()`, este valor separa TODAS as seções pelo mesmo padrão — inclusive o vão entre
+// o quadro de identificação e o "1. Objetivo" (item 1).
+const ESPACO_ANTES_SECAO = 14
+// BUG-024 (item 4): respiro entre o fim do texto e a linha de assinatura quando ela não
+// vai para o rodapé. Ver a regra em `posicaoAssinaturas`.
+const GAP_ASSINATURA = 44
 
 /**
  * BUG-023 — REGRA DE QUEBRA (medição). O rótulo fica SEMPRE na primeira linha; o valor
  * começa ao lado dele e, ao quebrar, as linhas seguintes alinham-se ao INÍCIO DO VALOR
  * (recuo pendente) — nunca voltam ao início da coluna nem invadem a coluna vizinha.
  *
- * Quando o rótulo consome mais da metade da coluna, sobra pouco para o valor e a quebra
- * ficaria picotada: nesse caso o valor desce inteiro para a linha de baixo, ocupando a
- * coluna toda (a segunda forma prevista na especificação do lote).
+ * BUG-024 (item 5): a decisão de empilhar o valor abaixo do rótulo passa a olhar o VALOR,
+ * não o tamanho do rótulo. A regra anterior ("rótulo > 50% da coluna") empilhava por
+ * motivo errado: "Carga Instalada (Concessionária):" ocupa 51% de uma coluna de 255pt, e
+ * o "17 kW" — de 25pt — descia para a linha de baixo com 125pt vagos ao lado. Agora só
+ * empilha quando o valor REALMENTE não tem como ser desenhado ao lado do rótulo:
+ *   • cabe inteiro numa linha no espaço restante  → nunca empilha;
+ *   • não cabe inteiro, mas dá para quebrar bem    → não empilha (usa o recuo pendente);
+ *   • o espaço restante é estreito demais até para a maior palavra → empilha.
  */
 function medirCampo(doc, larguraCol, rotulo, valor) {
   doc.font('Helvetica-Bold').fontSize(F.rotulo)
   const wRotulo = doc.widthOfString(`${esc(rotulo)}: `)
-  const empilhado = wRotulo > larguraCol * 0.5
-  const wValor = Math.max(empilhado ? larguraCol : larguraCol - wRotulo, 24)
+  const restante = larguraCol - wRotulo
+  doc.font('Helvetica').fontSize(F.valor)
+  const txt = esc(valor)
+  const cabeInline = restante >= doc.widthOfString(txt)
+  const maiorPalavra = txt.split(/\s+/).reduce((m, p) => Math.max(m, doc.widthOfString(p)), 0)
+  const quebraOk = restante >= Math.max(maiorPalavra, larguraCol * 0.25)
+  const empilhado = !cabeInline && !quebraOk
+  const wValor = Math.max(empilhado ? larguraCol : restante, 24)
   doc.font('Helvetica').fontSize(F.valor)
   const hValor = doc.heightOfString(esc(valor), { width: wValor, lineGap: 0.5 })
   const altura = empilhado ? LINHA_MIN + hValor : Math.max(hValor, LINHA_MIN)
@@ -388,7 +414,13 @@ export function desenharMemorialDescritivo(doc, projetoOriginal, clienteOriginal
     fluxo.limite = fluxo.limiteFinal
     fluxo.y = cabecalhoContinuacao(doc, margem, margem, largura, projeto)
   }
-  const secao = (titulo) => { ga(ALTURA_TITULO_COM_ORFAO); fluxo.y = tituloSecao(doc, margem, fluxo.y, largura, titulo) }
+  // BUG-024 (1/2/3): TODA seção é precedida do MESMO espaço. Somado antes do `ga` — se a
+  // seção cair para a página seguinte, o espaço é descartado junto (nada de vão no topo).
+  const secao = (titulo) => {
+    fluxo.y += ESPACO_ANTES_SECAO
+    ga(ALTURA_TITULO_COM_ORFAO)
+    fluxo.y = tituloSecao(doc, margem, fluxo.y, largura, titulo)
+  }
   const par = (texto, opts) => {
     ga(alturaBloco(doc, largura, texto, opts))
     fluxo.y = escreverBloco(doc, margem, fluxo.y, largura, texto, opts)
@@ -593,12 +625,21 @@ export function desenharMemorialDescritivo(doc, projetoOriginal, clienteOriginal
     + `para execução conforme as especificações deste documento.`)
 
   // ── Assinaturas ──────────────────────────────────────────────────────────
-  // Ancoradas no rodapé da ÚLTIMA página (BUG-022). RESERVA_ASSINATURA já garante que o
-  // conteúdo nunca avance sobre esta faixa, então elas jamais sobrepõem texto.
+  // BUG-024 (item 4): as assinaturas eram SEMPRE fixadas no rodapé (BUG-022). Numa página
+  // cheia isso é o certo e formal. Mas na última página do memorial o texto termina por
+  // volta de 63% da folha, e a âncora no rodapé abria um VÃO BRANCO de ~270pt entre a
+  // Conclusão Técnica e a linha de assinatura — era esse buraco, e não a distribuição dos
+  // blocos, o "espaço desperdiçado" percebido no documento.
+  //
+  // Agora: se o vão for grande, a assinatura acompanha o texto com um respiro generoso e a
+  // página simplesmente termina; se o texto já chega perto do rodapé, ela vai para o pé da
+  // página como antes. RESERVA_ASSINATURA garante, nos dois casos, que o conteúdo nunca
+  // avance sobre esta faixa — as assinaturas jamais sobrepõem texto.
   const y = fluxo.y
   const larguraAssin = (largura - 20) / 2
   const xDir = margem + larguraAssin + 20
-  const linhaY = Math.max(y + 14, doc.page.height - margem - 24)
+  const ancoraRodape = doc.page.height - margem - 24
+  const linhaY = (ancoraRodape - y > GAP_ASSINATURA * 2) ? y + GAP_ASSINATURA : ancoraRodape
   doc.moveTo(margem, linhaY).lineTo(margem + larguraAssin, linhaY).stroke('#94a3b8')
   doc.moveTo(xDir, linhaY).lineTo(xDir + larguraAssin, linhaY).stroke('#94a3b8')
   doc.font('Helvetica').fontSize(7.6).fillColor('#334155')
