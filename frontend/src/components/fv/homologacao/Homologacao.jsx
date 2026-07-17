@@ -7,6 +7,7 @@ import CentralHistorico from './CentralHistorico'
 import ChecklistDocumentos from './ChecklistDocumentos'
 import BeneficiariasPainel from '../BeneficiariasPainel'
 import { obterEquipamentosEngenharia } from '../../../utils/engenhariaGovernanca'
+import { obterLocalProjeto } from '../../../../../backend/src/dominio/local/index.js'
 
 /**
  * P1-CENTRAL-HOMOLOGACAO-MVP — Central Operacional de Homologação.
@@ -24,7 +25,7 @@ export default function Homologacao({ projetoId, projeto, cliente }) {
   const usaSnapshot = eng.origem === 'snapshot'
 
   const idProjeto = projetoId || proj?._id
-  const estado = proj?.estado || proj?.localizacao?.estado
+  const estado = proj?.estado || obterLocalProjeto(proj).estado
   const concessionaria = proj?.homologacao?.concessionaria || proj?.concessionaria
 
   const abas = [

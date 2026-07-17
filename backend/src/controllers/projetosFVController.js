@@ -5,6 +5,7 @@ import mongoose from 'mongoose'
 import { memoryStore } from '../config/memoryStorage.js'
 import { montarSnapshotRT } from '../utils/snapshotRT.js'
 import { montarArranjosAmpliacao, normalizarArranjos, calcularTotaisProjeto } from '../services/arranjosService.js'
+import { obterLocalProjeto } from '../dominio/local/index.js'
 import {
   derivarStatusSeguro, paraModel, podeExcluirDefinitivo, avaliarLegacy, MOTIVOS_ARQUIVAMENTO,
 } from '../utils/statusLifecycle.js'
@@ -73,7 +74,9 @@ export const buscarProjetoFV = async (req, res) => {
   try {
     let p
     if (mongoose.connection.readyState === 1) {
-      p = await ProjetoFV.findById(req.params.id).populate('clienteId')
+      // S1.5: popula local_ref para que o agregado Local acompanhe a resposta.
+      // Enquanto local_ref = null (pré-backfill), populate é no-op → resposta idêntica.
+      p = await ProjetoFV.findById(req.params.id).populate('clienteId').populate('local_ref')
     } else {
       // Memory storage fallback
       p = memoryStore.findProjetoFV(req.params.id)
@@ -531,22 +534,25 @@ export const obterTelhado = async (req, res) => {
 
     let projeto
     if (mongoose.connection.readyState === 1) {
-      projeto = await ProjetoFV.findById(id)
+      projeto = await ProjetoFV.findById(id).populate('local_ref')
     } else {
       projeto = memoryStore.findProjetoFV(id)
     }
     if (!projeto) return res.status(404).json({ erro: 'Projeto não encontrado' })
 
+    // S1.5: leitura de localização/telhado via adapter oficial (Local-first,
+    // fallback por campo). geocoding_* não pertencem ao Local → do projeto.
+    const local = obterLocalProjeto(projeto)
     res.json({
       id: projeto._id,
       nome: projeto.nome,
-      endereco_completo: projeto.endereco_completo,
-      latitude: projeto.latitude,
-      longitude: projeto.longitude,
+      endereco_completo: local.endereco_completo,
+      latitude: local.latitude,
+      longitude: local.longitude,
       geocoding_origem: projeto.geocoding_origem,
       geocoding_confianca: projeto.geocoding_confianca,
       geocodificado_em: projeto.geocodificado_em,
-      telhado: projeto.telhado,
+      telhado: local.telhado,
     })
   } catch (err) {
     console.error('❌ Erro ao obter telhado:', err)

@@ -3,6 +3,7 @@ import { FileText, Mail, Award } from 'lucide-react'
 import MemorialDescritivo from './MemorialDescritivo'
 import CartaConcessionaria from './CartaConcessionaria'
 import DadosART from './DadosART'
+import { obterLocalProjeto } from '../../../../../backend/src/dominio/local/index.js'
 
 /**
  * P1-CENTRAL-HOMOLOGACAO-MVP — Aba Documentos.
@@ -57,7 +58,7 @@ export default function CentralDocumentos({ projetoId, projeto, cliente }) {
           <CartaConcessionaria projetoId={projetoId} projeto={projeto} cliente={cliente} />
         )}
         {docAtivo === 'art' && (
-          <DadosART projetoId={projetoId} projeto={projeto} estado={projeto?.estado || projeto?.localizacao?.estado} />
+          <DadosART projetoId={projetoId} projeto={projeto} estado={projeto?.estado || obterLocalProjeto(projeto).estado} />
         )}
       </div>
     </div>

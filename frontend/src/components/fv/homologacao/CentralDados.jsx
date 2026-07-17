@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { User, MapPin, Zap, Plug, Building2, Copy, Check } from 'lucide-react'
 import { SecaoDados } from './CampoCopiavel'
 import { obterEquipamentosEngenharia } from '../../../utils/engenhariaGovernanca'
+import { obterLocalProjeto } from '../../../../../backend/src/dominio/local/index.js'
 
 const API_URL = '' /* URL relativa forçada — Vercel proxy → Railway */
 
@@ -56,7 +57,8 @@ export default function CentralDados({ projeto, cliente }) {
 
   useEffect(() => { carregarBeneficiarias() }, [carregarBeneficiarias])
 
-  const loc = projeto?.localizacao || {}
+  // S1.5: leitura de localização via adapter oficial (Local-first, fallback por campo).
+  const loc = obterLocalProjeto(projeto)
   const dim = projeto?.dimensionamento || {}
   const homol = projeto?.homologacao || {}
 
