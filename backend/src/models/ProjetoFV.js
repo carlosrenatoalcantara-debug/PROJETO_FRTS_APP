@@ -909,6 +909,21 @@ const projetoFVSchema = new mongoose.Schema({
     default: 2,
   },
 
+  /**
+   * S1-FV-DOMAIN-MIGRATION-01 — referência ao agregado Local [AR-2].
+   * ADITIVO: default null. Os subdocs `localizacao`/`telhado`/`area` permanecem
+   * intocados como ESPELHO durante a migração (regra 4 — compatibilidade total).
+   * Preenchido pelo backfill (projetos em edição) ou na criação (projetos novos).
+   * Projetos congelados/homologados/com ART permanecem com local_ref = null
+   * (permanecem no modelo legado — política de legado S1).
+   */
+  local_ref: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Local',
+    default: null,
+    index: true,
+  },
+
   /** Localização estruturada. Espelha/substitui latitude/longitude/geocoding_* flat de v2. */
   localizacao: {
     type: localizacaoV3Schema,

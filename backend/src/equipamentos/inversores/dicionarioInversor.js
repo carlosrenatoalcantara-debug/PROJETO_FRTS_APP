@@ -43,6 +43,17 @@ export const CAMPOS_INVERSOR = {
   corrente_isc_max:      { grupo: 'CC', peso: 10, aliases: ['corrente_isc_max', 'corrente_isc_max_a', 'isc_max_mppt', 'isc_max_por_mppt_a', 'corrente_curto_mppt'] },
   tensao_partida:        { grupo: 'CC',           aliases: ['tensao_partida', 'tensao_partida_v', 'start_voltage_v', 'tensao_inicializacao_dc'] },
   potencia_max_entrada_cc:{ grupo: 'CC',          aliases: ['potencia_max_entrada_cc', 'potencia_kw_cc_max', 'potencia_dc_max', 'pdc_max', 'potencia_max_entrada_dc_w'] },
+  // S1-FV-DOMAIN-MIGRATION-01 — envelope de dimensionamento do domínio.
+  // Limite de fábrica CC/CA para contar inversores (D-13/INV-39). Sem `peso`:
+  // reconhecido em leitura, não altera a semântica de score existente.
+  oversizing_max:        { grupo: 'CC',           aliases: ['oversizing_max', 'fator_sobrecarga_max', 'dc_ac_ratio_max', 'sobredimensionamento_max', 'overload_max'] },
+  // ── Bateria (SOMENTE inversor híbrido) — envelope CC de acoplamento ─────────
+  // Fonte da validação bateria↔inversor (INV-44/INV-45). Aplicável quando
+  // tipo_topologia = 'hibrido'; ausente/null nos demais.
+  tensao_bateria_min:          { grupo: 'BAT', aliases: ['tensao_bateria_min', 'vbat_min', 'tensao_bat_min_v', 'battery_voltage_min'] },
+  tensao_bateria_max:          { grupo: 'BAT', aliases: ['tensao_bateria_max', 'vbat_max', 'tensao_bat_max_v', 'battery_voltage_max'] },
+  corrente_bateria_carga_max:  { grupo: 'BAT', aliases: ['corrente_bateria_carga_max', 'ibat_carga_max', 'corrente_carga_max_a', 'max_charge_current'] },
+  corrente_bateria_descarga_max:{ grupo: 'BAT', aliases: ['corrente_bateria_descarga_max', 'ibat_descarga_max', 'corrente_descarga_max_a', 'max_discharge_current'] },
   // ── Eficiência ────────────────────────────────────────────────────────────
   eficiencia_maxima:     { grupo: 'EFIC', peso: 5, aliases: ['eficiencia_maxima', 'eficiencia_maxima_pct', 'eficiencia_max', 'eficiencia_max_pct', 'eficiencia'] },
   eficiencia_europeia:   { grupo: 'EFIC',          aliases: ['eficiencia_europeia', 'eficiencia_europeia_pct', 'eficiencia_european', 'euro_efficiency'] },
