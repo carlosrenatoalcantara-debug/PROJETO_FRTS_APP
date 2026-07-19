@@ -924,6 +924,19 @@ const projetoFVSchema = new mongoose.Schema({
     index: true,
   },
 
+  /**
+   * S4A-FV-INSTALACAO-WRITE-PATH-01 — referência OPCIONAL ao Aggregate Root
+   * Instalacao (nova topologia). ADITIVO: default null. Instalacao NÃO referencia
+   * ProjetoFV (sem ciclo). Projetos existentes leem null e seguem 100% em Arranjo.
+   * Preenchido apenas quando o frontend passar a criar Instalação (sprint futura).
+   */
+  instalacao_ref: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Instalacao',
+    default: null,
+    index: true,
+  },
+
   /** Localização estruturada. Espelha/substitui latitude/longitude/geocoding_* flat de v2. */
   localizacao: {
     type: localizacaoV3Schema,

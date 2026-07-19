@@ -75,6 +75,7 @@ import { inicializarCRM } from './seeds/crmInitialData.js'
 import { agendarTarefasManutencao } from './utils/arquivamentoPolicy.js'
 import rotasClientes   from './routes/clientes.js'
 import rotasProjetosFV from './routes/projetosFV.js'
+import rotasInstalacoes from './routes/instalacoes.js'   // S4A — write path do Aggregate Root Instalacao
 import rotasPublico from './routes/publico.js'
 import rotasEmpresa from './routes/empresa.js'
 import rotasGestao from './routes/gestao.js'
@@ -232,6 +233,7 @@ app.use('/api/calculadora',  rotasCalculadora)
 app.use('/api/dashboard',    rotasDashboard)
 app.use('/api/clientes',     rotasClientes)
 app.use('/api/projetos-fv',  protegerModulo('fv'), rotasProjetosFV)
+app.use('/api/instalacoes',  protegerModulo('fv'), rotasInstalacoes)   // S4A — Instalacao (isolado)
 app.use('/api/publico',      rotasPublico)   // S5 — leitura pública (sem RBAC, é público)
 app.use('/api/empresa',      protegerModulo('configuracoes'), rotasEmpresa)   // S7.1
 app.use('/api/gestao',       protegerModulo('configuracoes'), rotasGestao)    // S7.2
