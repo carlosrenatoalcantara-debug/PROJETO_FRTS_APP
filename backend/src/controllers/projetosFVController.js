@@ -4,8 +4,11 @@ import { Tecnico } from '../models/Tecnico.js'
 import mongoose from 'mongoose'
 import { memoryStore } from '../config/memoryStorage.js'
 import { montarSnapshotRT } from '../utils/snapshotRT.js'
-import { montarArranjosAmpliacao, normalizarArranjos, calcularTotaisProjeto } from '../services/arranjosService.js'
+import { montarArranjosAmpliacao } from '../services/arranjosService.js'
 import { obterLocalProjeto } from '../dominio/local/index.js'
+// S3: camada de acesso ÚNICA à topologia (Instalação → nova; senão → Arranjo).
+// Proibido ler projeto.arranjos direto fora deste adapter.
+import { obterTopologiaProjeto } from '../dominio/topologia/index.js'
 import {
   derivarStatusSeguro, paraModel, podeExcluirDefinitivo, avaliarLegacy, MOTIVOS_ARQUIVAMENTO,
 } from '../utils/statusLifecycle.js'
@@ -93,8 +96,10 @@ export const buscarProjetoFV = async (req, res) => {
     // inclusive em projetos legados (derivação do equipamentos.inversor único).
     const base = enriquecer(p)
     const plano = typeof p.toObject === 'function' ? p.toObject() : p
-    base.arranjos_normalizados = normalizarArranjos(plano)
-    base.totais = calcularTotaisProjeto(plano)
+    // S3: Instalação dormente → adapter delega a Arranjo (saída idêntica à atual).
+    const topo = obterTopologiaProjeto(plano)
+    base.arranjos_normalizados = topo.arranjos_normalizados
+    base.totais = topo.totais
     res.json(base)
   } catch (err) {
     console.error('❌ Erro ao buscar projeto FV:', err)
@@ -108,11 +113,12 @@ export const totaisProjetoFV = async (req, res) => {
     if (!_exigirMongo(res)) return
     const p = await ProjetoFV.findById(req.params.id).lean()
     if (!p) return res.status(404).json({ mensagem: 'Projeto não encontrado' })
+    const topo = obterTopologiaProjeto(p)
     res.json({
       sucesso: true,
       projeto_id: p._id,
-      arranjos: normalizarArranjos(p),
-      totais: calcularTotaisProjeto(p),
+      arranjos: topo.arranjos_normalizados,
+      totais: topo.totais,
     })
   } catch (err) {
     res.status(500).json({ erro: err.message })

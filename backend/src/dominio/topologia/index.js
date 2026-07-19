@@ -6,6 +6,16 @@
  */
 
 import { contarMpptsInversor, montarGerador, montarString, stringHomogenea } from './montarGerador.js'
+import { obterTopologiaProjeto, instalacaoValida } from './obterTopologiaProjeto.js'
+import { mapearGerador, mapearGeradoresInstalacao, totaisTopologia, entradaCompatibilidadeString } from './derivadosTopologia.js'
 
-export { contarMpptsInversor, montarGerador, montarString, stringHomogenea }
-export default { contarMpptsInversor, montarGerador, montarString, stringHomogenea }
+export {
+  contarMpptsInversor, montarGerador, montarString, stringHomogenea,
+  obterTopologiaProjeto, instalacaoValida,
+  mapearGerador, mapearGeradoresInstalacao, totaisTopologia, entradaCompatibilidadeString,
+}
+export default {
+  contarMpptsInversor, montarGerador, montarString, stringHomogenea,
+  obterTopologiaProjeto, instalacaoValida,
+  mapearGerador, mapearGeradoresInstalacao, totaisTopologia, entradaCompatibilidadeString,
+}
