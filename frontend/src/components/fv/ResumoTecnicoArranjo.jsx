@@ -6,7 +6,7 @@
  * alocação (módulos atendidos vs sem inversor), com selos ✓ / ⚠ (sem bloquear).
  */
 import { Activity, AlertTriangle, CheckCircle2 } from 'lucide-react'
-import { resumoTecnicoArranjo } from '../../utils/agregarArranjosFV'
+import { resumoTopologiaArranjo } from '../../utils/obterTopologiaState'
 
 function Metric({ label, valor, unidade, alerta }) {
   return (
@@ -20,7 +20,7 @@ function Metric({ label, valor, unidade, alerta }) {
 }
 
 export default function ResumoTecnicoArranjo({ arranjo, catalogo }) {
-  const r = resumoTecnicoArranjo(arranjo || {}, catalogo || {})
+  const r = resumoTopologiaArranjo(arranjo || {}, catalogo || {})
   const overAlerta = r.oversizing != null && r.oversizing > 1.3
   const semInv = r.semInversor > 0
 

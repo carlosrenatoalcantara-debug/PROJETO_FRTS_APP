@@ -22,7 +22,7 @@ import PropostaEnterprise from '../PropostaEnterprise'
 import CrmPainel from '../CrmPainel'
 import { construirTodosSnapshots, construirSnapshotTecnico, construirSnapshotGeoespacial } from '../../../utils/engenhariaGovernanca'
 // P0-FV-ENGINEERING-WORKFLOW-CONSOLIDATION-01: fonte única = arranjos[]
-import { agregarTotaisArranjos } from '../../../utils/agregarArranjosFV'
+import { obterTopologiaState } from '../../../utils/obterTopologiaState'
 
 function LinhaResumo({ rotulo, valor }) {
   return (
@@ -83,7 +83,7 @@ export default function E8Orcamento() {
   // BUG-E8-01 (E8 mostrava a estimativa do E5 em vez da config real do E7).
   // `dim` passa a ser o dimensionamento agregado — todas as referências dim.* abaixo
   // refletem a fonte única sem alterações pontuais.
-  const totaisArranjos = useMemo(() => agregarTotaisArranjos(state), [state.equipamentos, state.arranjos, state.dimensionamento])
+  const totaisArranjos = useMemo(() => obterTopologiaState(state), [state.equipamentos, state.arranjos, state.dimensionamento])
   const dim = useMemo(() => ({
     ...dimBase,
     numPaineis:      totaisArranjos.modulos     > 0 ? totaisArranjos.modulos     : dimBase.numPaineis,
