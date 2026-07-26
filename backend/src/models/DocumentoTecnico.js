@@ -8,6 +8,8 @@ import mongoose from 'mongoose'
  * adapter local temporário. Dedup global por hash_sha256.
  */
 const documentoTecnicoSchema = new mongoose.Schema({
+  // IMPL-000 (Fase 0.5) — M-4: isolamento organizacional. Aditivo, default null.
+  empresa_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Empresa', default: null, index: true },
   tipo:        { type: String, default: 'datasheet' }, // datasheet|manual|certificado|garantia|declaracao
   fabricante:  { type: String, default: null },
   modelo:      { type: String, default: null },

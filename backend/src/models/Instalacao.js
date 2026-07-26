@@ -68,6 +68,8 @@ const GeradorSchema = new mongoose.Schema({
 
 // ── Instalação [AR-4] — mínima (só topologia) ────────────────────────────────
 const InstalacaoSchema = new mongoose.Schema({
+  // IMPL-000 (Fase 0.5) — M-4: isolamento organizacional. Aditivo, default null.
+  empresa_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Empresa', default: null, index: true },
   // Âncora opcional ao Local [AR-2] (referência, não subdomínio materializado).
   // Permite resolver os superficie_id das Strings; default null nesta sprint.
   local_ref:  { type: mongoose.Schema.Types.ObjectId, ref: 'Local', default: null, index: true },

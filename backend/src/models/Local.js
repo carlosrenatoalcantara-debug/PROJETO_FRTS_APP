@@ -63,6 +63,8 @@ const SuperficieSchema = new mongoose.Schema({
 
 // ── Agregado raiz: Local ─────────────────────────────────────────────────────
 const LocalSchema = new mongoose.Schema({
+  // IMPL-000 (Fase 0.5) — M-4: isolamento organizacional. Aditivo, default null.
+  empresa_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Empresa', default: null, index: true },
   // Identidade natural = coordenadas (imutáveis). Identidade técnica = _id.
   coordenadas: { type: CoordenadasSchema, default: () => ({}) },
   endereco:    { type: EnderecoSchema,    default: () => ({}) },

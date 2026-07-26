@@ -17,6 +17,8 @@ const historicoSchema = new mongoose.Schema({
 }, { _id: false })
 
 const alertaStatusSchema = new mongoose.Schema({
+  // IMPL-000 (Fase 0.5) — M-4: isolamento organizacional. Aditivo, default null.
+  empresa_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Empresa', default: null, index: true },
   alert_id:    { type: String, required: true, unique: true, index: true }, // ex.: 'rt_vencido:6543abc'
   origem:      { type: String, default: null, index: true },                // rt|catalogo|documento|projeto|fatura
   status:      { type: String, enum: ['aberto', 'resolvido', 'arquivado'], default: 'resolvido', index: true },
