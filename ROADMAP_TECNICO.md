@@ -82,3 +82,37 @@ FUNIL_REDIRECT_V3=false
 SCHEMA_V3_STRICT=false
 WIZARD_LOAD_PROJETO=false
 ```
+
+---
+
+## Integração AE ⇄ Forte Solar — pendências pós-entrega
+> Registrado em: 2026-07-27 (homologação da Auditoria Rápida, fases F1–F8)
+> Não bloqueantes: a funcionalidade está entregue e homologada.
+
+### 1. Política organizacional persistida no backend
+Hoje a preferência "Atualizações AE" (sempre perguntar / automático / apenas
+relatório) vive em `localStorage` (`frontend/src/services/aeConfig.js`), seguindo
+o padrão da tela de Configurações. Consequência: é por navegador, não por
+organização. Migrar para persistência no backend quando houver infraestrutura de
+settings — o contrato de `aeConfig.js` (`obterPolitica`/`definirPolitica`) já
+isola os consumidores, então a troca não deve tocar componentes.
+
+### 2. Histórico/versionamento múltiplo por equipamento
+`auditoriaAplicacaoService.reverter()` restaura o **último** evento de origem
+`auditoria_rapida_ae` a partir de `validacao.historico`. Evoluir para permitir
+restaurar qualquer versão anterior (o histórico já guarda `antes` completo de
+cada aplicação; falta expor seleção de ponto de restauração e limitar o
+`$slice: -50` de forma consciente).
+
+### 3. Campo `bifacial`
+`normalizarModulo()` em `catalogoDatasheetEnriquecimento.js` deriva `bifacial`
+por regex sobre `tipo_celula`/`notas`. Um `"bifacial": true` explícito no
+`product.json` do AE é ignorado. Rever quando o modelo canônico do AE estiver
+consolidado — evitar alterar o normalizador antes disso para não impactar o
+fluxo Gemini existente.
+
+### Estado da integração
+- Fases F1–F8 implementadas e homologadas; 197 testes (`npm run test:ae`).
+- Provider real ainda não conectado: `AE_LIBRARY_DIR` (disco) ou `AE_URL` (HTTP).
+- Endpoints `/library/index` e `/library/datasheet` do AE ainda não existem;
+  o adaptador HTTP está pronto e testado contra `fetch` injetado.

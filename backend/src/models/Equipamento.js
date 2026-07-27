@@ -4,12 +4,30 @@ import { processarEquipamento, aplicarResultadoNoDoc } from '../services/catalog
 const OrigemSchema = new mongoose.Schema({
   tipo: {
     type: String,
-    enum: ['manual', 'datasheet_gemini', 'datasheet_pdfparse', 'import_planilha', 'import_solarmarket', 'import_legado', 'desconhecido', null],
+    enum: ['manual', 'datasheet_gemini', 'datasheet_pdfparse', 'import_planilha', 'import_solarmarket', 'import_ae', 'import_legado', 'desconhecido', null],
     default: null,
   },
   fonte: { type: String, default: null },
   arquivo_original_url: { type: String, default: null },
   em: { type: Date, default: null },
+  // KnowledgeVersion do Datasheet Técnico AE aplicado a este equipamento.
+  // É a única autoridade para autorizar sobrescrita de campos técnicos.
+  knowledge_version: { type: String, default: null },
+}, { _id: false })
+
+/**
+ * Proteção manual explícita por campo técnico.
+ *
+ * Distinta de `status_operacional.bloqueado_em`, que bloqueia a SELEÇÃO do
+ * equipamento em projetos. Aqui o equipamento segue utilizável; apenas os
+ * campos listados não podem ser sobrescritos por nenhuma fonte automática,
+ * inclusive o AE.
+ */
+const ProtecaoSchema = new mongoose.Schema({
+  campos_protegidos: { type: [String], default: [] },
+  protegido_por: { type: String, default: null },
+  protegido_em: { type: Date, default: null },
+  motivo: { type: String, default: null },
 }, { _id: false })
 
 const IdentificacaoSchema = new mongoose.Schema({
@@ -101,6 +119,7 @@ const EquipamentoSchema = new mongoose.Schema(
     qualidade: { type: QualidadeSchema, default: () => ({}) },
     status_operacional: { type: StatusOperacionalSchema, default: () => ({ pode_ser_selecionado: true }) },
     validacao: { type: ValidacaoSchema, default: () => ({ historico: [] }) },
+    protecao: { type: ProtecaoSchema, default: () => ({ campos_protegidos: [] }) },
     specs_canonicas: { type: mongoose.Schema.Types.Mixed, default: null },
   },
   { timestamps: true }

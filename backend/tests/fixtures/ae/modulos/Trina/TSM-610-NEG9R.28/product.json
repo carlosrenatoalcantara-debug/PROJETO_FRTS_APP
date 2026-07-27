@@ -1,0 +1,20 @@
+{
+  "origin": "AE",
+  "documentType": "Technical Datasheet",
+  "familia": "modulo",
+  "fabricante": "Trina",
+  "modelo": "TSM-610-NEG9R.28",
+  "knowledgeVersion": "1.2.0",
+  "lastAudit": "2026-07-20",
+  "confidence": 0.96,
+  "dados": {
+    "potencia_w": 610,
+    "voc_v": 41.5,
+    "vmpp_v": 34.7,
+    "isc_a": 18.6,
+    "impp_a": 17.6,
+    "eficiencia_pct": 22.5,
+    "numero_celulas": 132,
+    "bifacial": true
+  }
+}
