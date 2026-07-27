@@ -27,6 +27,8 @@ const HistoricoSchema = new mongoose.Schema({
 }, { _id: false })
 
 const AtivoEquipamentoSchema = new mongoose.Schema({
+  // IMPL-000 (Fase 0.5) — M-4: isolamento organizacional. Aditivo, default null.
+  empresa_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Empresa', default: null, index: true },
   // ── Vínculos ────────────────────────────────────────────────────────────────
   projeto_id:     { type: mongoose.Schema.Types.ObjectId, ref: 'ProjetoFV',   required: true, index: true },
   arranjo_id:     { type: String, default: null, index: true },                 // = ProjetoFV.arranjos[].id
