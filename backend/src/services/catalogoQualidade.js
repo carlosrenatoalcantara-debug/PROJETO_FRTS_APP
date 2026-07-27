@@ -274,6 +274,8 @@ function calcularCompletude(equipamento, specs_canonicas) {
 // que datasheet, maior que desconhecido).
 const BASE_POR_ORIGEM = {
   manual: 100,
+  // Datasheet Técnico AE: conhecimento consolidado e auditado na fonte oficial.
+  import_ae: 95,
   datasheet_gemini: 90,
   datasheet_pdfparse: 75,
   import_solarmarket: 65,   // P0-FV-CATALOG-QUALITY-RECAL-01 (era omisso → 20)

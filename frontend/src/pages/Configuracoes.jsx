@@ -3,6 +3,7 @@ import { ArrowLeft, Save, Check, ExternalLink, ToggleLeft, ToggleRight, Lock, Al
 import { useNavigate } from 'react-router-dom'
 import PoliticaComercialConfig from '../components/configuracoes/PoliticaComercialConfig'
 import Card, { CardHeader, CardBody } from '../components/ui/Card'
+import { obterPolitica, definirPolitica, OPCOES_POLITICA } from '../services/aeConfig'
 import Button from '../components/ui/Button'
 import Input from '../components/ui/Input'
 import { useAuth } from '../context/AuthContext'
@@ -399,6 +400,9 @@ export default function Configuracoes() {
   const navigate = useNavigate()
   const { token } = useAuth()
   const { pode: podePerm } = usePermissao()
+
+  // Política de aplicação das atualizações do AE
+  const [politicaAE, setPoliticaAE] = useState(() => obterPolitica())
 
   // Estado de chaves seguras do backend
   const [chavesSeguras, setChavesSeguras] = useState([])
@@ -989,6 +993,47 @@ export default function Configuracoes() {
       {podePerm('configuracoes', 'administrar') && <ConfiguracaoGestao />}
 
       <ConfiguracaoFinanceira />
+
+      {/* Atualizações AE */}
+      <Card>
+        <CardHeader>
+          <h3 className="font-semibold text-slate-900">Atualizações AE</h3>
+        </CardHeader>
+        <CardBody>
+          <p className="text-sm text-slate-600 mb-4">
+            Define o que acontece quando a Auditoria Rápida encontra atualizações
+            no Datasheet Técnico AE.
+          </p>
+          <div className="space-y-3">
+            {OPCOES_POLITICA.map(opcao => (
+              <label
+                key={opcao.valor}
+                className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                  politicaAE === opcao.valor
+                    ? 'border-primary-400 bg-primary-50'
+                    : 'border-slate-200 hover:bg-slate-50'
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="politica-ae"
+                  className="mt-1"
+                  value={opcao.valor}
+                  checked={politicaAE === opcao.valor}
+                  onChange={() => setPoliticaAE(definirPolitica(opcao.valor))}
+                />
+                <span>
+                  <span className="block font-medium text-slate-800">{opcao.rotulo}</span>
+                  <span className="block text-xs text-slate-500">{opcao.descricao}</span>
+                </span>
+              </label>
+            ))}
+          </div>
+          <p className="text-xs text-slate-400 mt-3">
+            Preferência salva neste navegador.
+          </p>
+        </CardBody>
+      </Card>
 
       {/* Guia de Integração */}
       <Card>

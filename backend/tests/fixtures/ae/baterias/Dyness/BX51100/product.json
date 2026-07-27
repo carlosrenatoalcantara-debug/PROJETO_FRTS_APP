@@ -1,0 +1,13 @@
+{
+  "origin": "AE",
+  "documentType": "Technical Datasheet",
+  "familia": "bateria",
+  "fabricante": "Dyness",
+  "modelo": "BX51100",
+  "confidence": 0.88,
+  "dados": {
+    "quimica": "LiFePO4",
+    "capacidade_kwh": 5.12,
+    "profundidade_descarga_pct": 95
+  }
+}

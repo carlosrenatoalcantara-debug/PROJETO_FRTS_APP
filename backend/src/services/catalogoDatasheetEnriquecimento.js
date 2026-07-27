@@ -385,40 +385,74 @@ function deepClone(value) {
   return value === undefined ? undefined : JSON.parse(JSON.stringify(value))
 }
 
-function mergeSpecsIncremental(existentes = {}, extraidas = {}, camposPermitidos = []) {
+/**
+ * Merge de especificações dentro da whitelist técnica da família.
+ *
+ * Campos fora de `camposPermitidos` (preço, disponibilidade, dados
+ * administrativos e operacionais) são inalcançáveis por construção.
+ *
+ * @param {object} existentes
+ * @param {object} extraidas
+ * @param {string[]} camposPermitidos
+ * @param {object} [opcoes]
+ * @param {'preservar'|'sobrescrever'} [opcoes.politicaConflito='preservar']
+ *   preservar     — divergência é apenas reportada (comportamento histórico)
+ *   sobrescrever  — divergência é aplicada (fonte oficial com versão superior)
+ * @param {string[]} [opcoes.camposProtegidos=[]]
+ *   Campos com bloqueio manual explícito: nunca sobrescritos, por nenhuma fonte.
+ * @returns {{merged:object, preenchidos:string[], sobrescritos:object[],
+ *            conflitos:object[], bloqueados:object[]}}
+ */
+function mergeSpecsIncremental(existentes = {}, extraidas = {}, camposPermitidos = [], opcoes = {}) {
+  const { politicaConflito = 'preservar', camposProtegidos = [] } = opcoes
+  const protegidos = new Set(camposProtegidos)
+
   const merged = deepClone(existentes || {}) || {}
   const conflitos = []
   const preenchidos = []
+  const sobrescritos = []
+  const bloqueados = []
 
   for (const campo of camposPermitidos) {
     const novo = extraidas?.[campo]
     if (novo === null || novo === undefined || novo === '') continue
     const atual = merged?.[campo]
 
-    if (atual === null || atual === undefined || atual === '') {
+    const vazio = atual === null || atual === undefined || atual === ''
+    if (!vazio && JSON.stringify(atual) === JSON.stringify(novo)) continue
+
+    // Bloqueio manual explícito tem precedência sobre qualquer fonte automática.
+    if (protegidos.has(campo)) {
+      bloqueados.push({ campo, atual, extraido: novo, motivo: 'protecao_manual' })
+      continue
+    }
+
+    if (vazio) {
       merged[campo] = novo
       preenchidos.push(campo)
       continue
     }
 
-    const atualJson = JSON.stringify(atual)
-    const novoJson = JSON.stringify(novo)
-    if (atualJson !== novoJson) {
-      conflitos.push({ campo, atual, extraido: novo })
+    if (politicaConflito === 'sobrescrever') {
+      merged[campo] = novo
+      sobrescritos.push({ campo, anterior: atual, novo })
+      continue
     }
+
+    conflitos.push({ campo, atual, extraido: novo })
   }
 
   if (!merged._versao) merged._versao = '1.0'
-  return { merged, preenchidos, conflitos }
+  return { merged, preenchidos, sobrescritos, conflitos, bloqueados }
 }
 
-function equipamentoShadow(equipamento, entrada, specsMerged, identidade) {
+function equipamentoShadow(equipamento, entrada, specsMerged, identidade, origem = 'datasheet_gemini') {
   const especificacoes = { ...(specsMerged || {}) }
   return {
     ...equipamento,
     fabricante: identidade.fabricante,
     modelo: identidade.modelo,
-    origem: { tipo: 'datasheet_gemini', fonte: entrada.fonte?.arquivo, em: new Date() },
+    origem: { tipo: origem, fonte: entrada.fonte?.arquivo, em: new Date() },
     especificacoes,
     specs_canonicas: specsMerged,
   }
@@ -451,7 +485,22 @@ export function montarAtualizacaoIncremental(equipamento, entrada, options = {})
     origem: deepClone(equipamento.origem || null),
   }
 
-  const merge = mergeSpecsIncremental(equipamento.specs_canonicas || {}, entrada.specs_canonicas || {}, camposPermitidos)
+  // Defaults reproduzem exatamente o comportamento histórico (fluxo Gemini).
+  const {
+    origem = 'datasheet_gemini',
+    politicaConflito = 'preservar',
+    camposProtegidos = equipamento.protecao?.campos_protegidos || [],
+    knowledgeVersion = null,
+    tipoEvento = 'reprocessamento_gemini',
+    por = 's2.6.2_datasheets',
+  } = options
+
+  const merge = mergeSpecsIncremental(
+    equipamento.specs_canonicas || {},
+    entrada.specs_canonicas || {},
+    camposPermitidos,
+    { politicaConflito, camposProtegidos },
+  )
   const identidade = {
     fabricante: isUnknown(equipamento.fabricante) && !isUnknown(entrada.fabricante)
       ? entrada.fabricante
@@ -476,15 +525,17 @@ export function montarAtualizacaoIncremental(equipamento, entrada, options = {})
       motivo: 'validacao_critica',
       conflitos: merge.conflitos,
       preenchidos: merge.preenchidos,
+      sobrescritos: merge.sobrescritos,
+      bloqueados: merge.bloqueados,
       alertas: alertasExtraidos,
       before,
     }
   }
 
-  const shadow = equipamentoShadow(equipamento, entrada, merge.merged, identidade)
+  const shadow = equipamentoShadow(equipamento, entrada, merge.merged, identidade, origem)
   const resultadoQualidade = processarEquipamento(shadow, {
-    tipoEvento: 'reprocessamento_gemini',
-    por: 's2.6.2_datasheets',
+    tipoEvento,
+    por,
     observacao: `Enriquecimento incremental via ${entrada.fonte?.nome_arquivo || 'datasheet'}`,
   })
   const identificacao = montarIdentificacao(equipamento, entrada, identidade)
@@ -493,6 +544,7 @@ export function montarAtualizacaoIncremental(equipamento, entrada, options = {})
 
   const camposAlterados = [
     ...merge.preenchidos.map(campo => `specs_canonicas.${campo}`),
+    ...merge.sobrescritos.map(({ campo }) => `specs_canonicas.${campo}`),
   ]
   if (identidade.fabricante !== equipamento.fabricante) camposAlterados.push('fabricante')
   if (identidade.modelo !== equipamento.modelo) camposAlterados.push('modelo')
@@ -501,6 +553,8 @@ export function montarAtualizacaoIncremental(equipamento, entrada, options = {})
     motivo: 'sem_campos_novos',
     conflitos: merge.conflitos,
     preenchidos: merge.preenchidos,
+    sobrescritos: merge.sobrescritos,
+    bloqueados: merge.bloqueados,
     alertas: alertasExtraidos,
     before,
   }
@@ -512,10 +566,13 @@ export function montarAtualizacaoIncremental(equipamento, entrada, options = {})
     qualidade,
     identificacao,
     origem: {
-      tipo: 'datasheet_gemini',
+      tipo: origem,
       fonte: entrada.fonte?.arquivo || null,
       arquivo_original_url: entrada.fonte?.arquivo || null,
       em: new Date(),
+      // `set.origem` substitui o subdocumento inteiro: preserva a versão já
+      // registrada quando esta execução não traz uma nova (ex.: fluxo Gemini).
+      knowledge_version: knowledgeVersion ?? equipamento.origem?.knowledge_version ?? null,
     },
   }
 
@@ -538,8 +595,8 @@ export function montarAtualizacaoIncremental(equipamento, entrada, options = {})
       'validacao.historico': {
         $each: [{
           em: new Date(),
-          tipo: 'reprocessamento_gemini',
-          por: 's2.6.2_datasheets',
+          tipo: tipoEvento,
+          por,
           antes: before,
           depois: after,
           campos_alterados: camposAlterados,
@@ -550,6 +607,8 @@ export function montarAtualizacaoIncremental(equipamento, entrada, options = {})
     },
     conflitos: merge.conflitos,
     preenchidos: merge.preenchidos,
+    sobrescritos: merge.sobrescritos,
+    bloqueados: merge.bloqueados,
     alertas: alertasExtraidos,
     before,
     after,

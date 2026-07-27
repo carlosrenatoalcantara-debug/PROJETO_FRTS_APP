@@ -1,0 +1,17 @@
+{
+  "origin": "AE",
+  "documentType": "Technical Datasheet",
+  "familia": "inversor",
+  "fabricante": "Growatt",
+  "modelo": "MAX 100KTL3",
+  "knowledgeVersion": "2.0.1",
+  "lastAudit": "2026-07-22",
+  "confidence": 0.94,
+  "dados": {
+    "potencia_kw_ca": 100,
+    "n_mppts": 10,
+    "mppt_min_v": 200,
+    "mppt_max_v": 1000,
+    "fases_saida": 3
+  }
+}

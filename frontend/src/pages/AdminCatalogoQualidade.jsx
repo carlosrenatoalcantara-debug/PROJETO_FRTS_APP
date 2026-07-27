@@ -16,10 +16,14 @@
 import { useState, useEffect, useCallback } from 'react'
 import {
   BarChart2, AlertTriangle, CheckCircle2, RefreshCw,
-  XCircle, HelpCircle, Info, ChevronDown, ChevronUp
+  XCircle, HelpCircle, Info, ChevronDown, ChevronUp,
+  ShieldCheck, ExternalLink
 } from 'lucide-react'
 import Card, { CardHeader, CardBody } from '../components/ui/Card'
 import Button from '../components/ui/Button'
+import { executarAuditoriaRapida, aplicarAtualizacoes, urlWorkbench, workbenchConfigurado } from '../services/aeApi'
+import { obterPolitica, POLITICA } from '../services/aeConfig'
+import AuditoriaRapidaPainel from '../components/catalogo/AuditoriaRapidaPainel'
 
 const API_URL = '' /* URL relativa forçada — Vercel proxy → Railway */
 
@@ -112,6 +116,11 @@ export default function AdminCatalogoQualidade() {
   const [carregando, setCarregando] = useState(false)
   const [erro, setErro] = useState(null)
 
+  // ── Auditoria Rápida (AE) — toda comunicação via services/aeApi ──────────
+  const [auditando, setAuditando] = useState(false)
+  const [auditoria, setAuditoria] = useState(null)
+  const [aeErro, setAeErro] = useState(null)
+
   const carregar = useCallback(async () => {
     setCarregando(true)
     setErro(null)
@@ -130,6 +139,28 @@ export default function AdminCatalogoQualidade() {
       setCarregando(false)
     }
   }, [])
+
+  // Definido após `carregar` porque depende dele para atualizar os indicadores.
+  const auditar = useCallback(async () => {
+    setAuditando(true)
+    setAeErro(null)
+    try {
+      const { relatorio } = await executarAuditoriaRapida()
+      setAuditoria(relatorio)
+
+      // Política "aplicar automaticamente": aplica tudo logo após a auditoria.
+      if (obterPolitica() === POLITICA.AUTOMATICO && relatorio.total_atualizacoes > 0) {
+        await aplicarAtualizacoes({ selecionados: null })
+        await carregar()   // reflete os novos indicadores de qualidade
+      }
+    } catch (err) {
+      setAeErro(err.codigo === 'AE_NAO_CONFIGURADO'
+        ? 'Integração AE não configurada no servidor (AE_LIBRARY_DIR).'
+        : err.message)
+    } finally {
+      setAuditando(false)
+    }
+  }, [carregar])
 
   useEffect(() => { carregar() }, [carregar])
 
@@ -188,16 +219,59 @@ export default function AdminCatalogoQualidade() {
             Relatório S2.6.1 — gerado em {geradoEm}
           </p>
         </div>
-        <Button
-          variante="secundario"
-          onClick={carregar}
-          disabled={carregando}
-          className="flex items-center gap-2"
-        >
-          <RefreshCw size={14} className={carregando ? 'animate-spin' : ''} />
-          Atualizar
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variante="secundario"
+            onClick={carregar}
+            disabled={carregando}
+            className="flex items-center gap-2"
+          >
+            <RefreshCw size={14} className={carregando ? 'animate-spin' : ''} />
+            Atualizar
+          </Button>
+          <Button
+            variante="primario"
+            onClick={auditar}
+            carregando={auditando}
+            title="Compara o catálogo com o Datasheet Técnico AE (somente leitura)"
+            className="flex items-center gap-2"
+          >
+            {!auditando && <ShieldCheck size={14} />}
+            Auditoria Rápida
+          </Button>
+          <Button
+            variante="secundario"
+            onClick={() => window.open(urlWorkbench(), '_blank', 'noopener,noreferrer')}
+            disabled={!workbenchConfigurado()}
+            title={workbenchConfigurado() ? 'Abrir o Workbench do AE' : 'Defina VITE_AE_URL para habilitar'}
+            className="flex items-center gap-2"
+          >
+            <ExternalLink size={14} />
+            Abrir AE
+          </Button>
+        </div>
       </div>
+
+      {/* Feedback de processamento da Auditoria Rápida */}
+      {(auditando || aeErro) && (
+        <div className={`p-3 rounded-lg border text-sm ${aeErro ? 'bg-red-50 border-red-200 text-red-800' : 'bg-blue-50 border-blue-200 text-blue-800'}`}>
+          {aeErro ? (
+            <span className="flex items-center gap-2"><AlertTriangle size={14} /> Falha na Auditoria Rápida: {aeErro}</span>
+          ) : (
+            <span className="flex items-center gap-2"><RefreshCw size={14} className="animate-spin" /> Comparando catálogo com o AE…</span>
+          )}
+        </div>
+      )}
+
+      {/* Resultado da Auditoria Rápida */}
+      {auditoria && (
+        <AuditoriaRapidaPainel
+          relatorio={auditoria}
+          politica={obterPolitica()}
+          onCancelar={() => setAuditoria(null)}
+          onAplicado={carregar}
+        />
+      )}
 
       {/* ── 1. Resumo ──────────────────────────────────────────────────────── */}
       <Secao titulo="Resumo do Catálogo" icone={BarChart2}>
@@ -234,6 +308,7 @@ export default function AdminCatalogoQualidade() {
           )}
         </div>
       </Secao>
+
 
       {/* ── 2. Distribuição por nível ───────────────────────────────────────── */}
       <Secao titulo="Distribuição por Nível de Qualidade">
