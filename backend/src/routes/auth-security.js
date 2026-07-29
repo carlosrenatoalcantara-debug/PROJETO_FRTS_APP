@@ -98,6 +98,7 @@ router.post('/login', loginLimiter, async (req, res, next) => {
       email: user.email,
       role: user.role,
       permissions: user.permissions,
+      empresa_id: user.empresa_id ?? null,   // SSOT-P3 — M-4
     })
 
     // 📋 Log de sucesso
@@ -156,6 +157,7 @@ router.post('/refresh', (req, res) => {
       email: decoded.email,
       role: decoded.role,
       permissions: decoded.permissions,
+      empresa_id: decoded.empresa_id ?? null,   // SSOT-P3 — M-4: propaga no refresh
     })
 
     res.json({

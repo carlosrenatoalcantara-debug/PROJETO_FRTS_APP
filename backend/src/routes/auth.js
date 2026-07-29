@@ -24,6 +24,9 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ erro: 'Email e senha são obrigatórios' })
     }
 
+    // ⚠️ SSOT-P3 — ROTA DESABILITADA no server.js (auth-legacy). Se for reativada,
+    // este payload PRECISA incluir empresa_id, senão o token cai em 403 no
+    // exigirOrganizacao (M-4) e o usuário não acessa nenhum dado de negócio.
     // Para demo, aceitar credenciais padrão
     if (email === usuarioPadraoDemo.email && senha === usuarioPadraoDemo.senha) {
       const token = jwt.sign(
@@ -86,6 +89,8 @@ router.post('/reset-password', async (req, res) => {
       return res.status(400).json({ erro: 'Email é obrigatório' })
     }
 
+    // Token de PROPÓSITO ÚNICO (reset de senha) — não é token de sessão e não
+    // transita por decodificarUsuario para acesso a dados. Não requer empresa_id.
     // Gerar token de reset (válido por 1 hora)
     const tokenReset = jwt.sign(
       { email, tipo: 'reset' },

@@ -67,7 +67,10 @@ export async function login(req, res) {
       {
         userId: usuario._id || usuario.id,
         email: usuario.email,
-        perfil: usuario.perfil
+        perfil: usuario.perfil,
+        // SSOT-P3 — M-4: tenant no token. Sem ele, todo acesso a dado de negócio
+        // recebe 403 (exigirOrganizacao). Vem do usuário; nunca inventado.
+        empresa_id: usuario.empresa_id ?? null
       },
       JWT_SECRET,
       { expiresIn: JWT_EXPIRY }
@@ -158,7 +161,10 @@ export async function registrar(req, res) {
       {
         userId: usuario._id || usuario.id,
         email: usuario.email,
-        perfil: usuario.perfil
+        perfil: usuario.perfil,
+        // SSOT-P3 — M-4: tenant no token. Sem ele, todo acesso a dado de negócio
+        // recebe 403 (exigirOrganizacao). Vem do usuário; nunca inventado.
+        empresa_id: usuario.empresa_id ?? null
       },
       JWT_SECRET,
       { expiresIn: JWT_EXPIRY }

@@ -90,6 +90,8 @@ class JWTService {
       email: userPayload.email,
       role: userPayload.role || 'user',
       permissions: userPayload.permissions || [],
+      // SSOT-P3 — M-4: tenant propagado no par de tokens.
+      empresa_id: userPayload.empresa_id ?? null,
       iat: Math.floor(Date.now() / 1000),
     };
 
