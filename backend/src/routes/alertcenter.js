@@ -38,26 +38,29 @@ function _dbOk(res) {
 
 // Cache TTL curto p/ evitar recalcular a cada page hit (60s)
 const CACHE_TTL_MS = 60_000
-let _cache = { em: 0, alertas: null }
+// M-4: cache POR ORGANIZAÇÃO. Um cache global vazaria alertas entre tenants.
+const _cache = new Map()   // empresa_id → { em, alertas }
 
-async function obterTodosAlertas({ forcarRefresh = false } = {}) {
+async function obterTodosAlertas(req, { forcarRefresh = false } = {}) {
+  const _tenant = String(exigirTenant(req, 'alertcenter'))
   const agora = Date.now()
-  if (!forcarRefresh && _cache.alertas && (agora - _cache.em) < CACHE_TTL_MS) {
-    return _cache.alertas
+  const _c = _cache.get(_tenant)
+  if (!forcarRefresh && _c?.alertas && (agora - _c.em) < CACHE_TTL_MS) {
+    return _c.alertas
   }
   // Buscas paralelas em todas as fontes
   const [tecnicos, equipamentos, documentos, projetos, faturas, ativosGarantia] = await Promise.all([
-    Tecnico.find({}).lean(),
+    Tecnico.find(aplicarEscopo({}, req, { contexto: 'alert' })).lean(),
     Equipamento.find({}).lean(),
-    DocumentoTecnico.find({}).lean().catch(() => []),
-    ProjetoFV.find({}).lean(),
-    FaturaEnergia.find({}).lean().catch(() => []),
+    DocumentoTecnico.find(aplicarEscopo({}, req, { contexto: 'alert' })).lean().catch(() => []),
+    ProjetoFV.find(aplicarEscopo({}, req, { contexto: 'alert' })).lean(),
+    FaturaEnergia.find(aplicarEscopo({}, req, { contexto: 'alert' })).lean().catch(() => []),
     // P5-GARANTIA-SIMPLES-01 — apenas ativos com garantia_fim preenchida
-    AtivoEquipamento.find({ garantia_fim: { $ne: null }, status: { $nin: ['substituido', 'desativado'] } }, 'fabricante modelo qr_code garantia_fim status').lean().catch(() => []),
+    AtivoEquipamento.find(aplicarEscopo({ garantia_fim: { $ne: null }, status: { $nin: ['substituido', 'desativado'] } }, req, { contexto: 'alert' }), 'fabricante modelo qr_code garantia_fim status').lean().catch(() => []),
   ])
 
   // Beneficiárias agrupadas por projeto (uma query, hash em memória)
-  const benefs = await UnidadeBeneficiaria.find({}).lean().catch(() => [])
+  const benefs = await UnidadeBeneficiaria.find(aplicarEscopo({}, req, { contexto: 'alert' })).lean().catch(() => [])
   const beneficiariasPorProjeto = new Map()
   for (const b of benefs) {
     const k = String(b.projetoId)
@@ -86,13 +89,13 @@ async function obterTodosAlertas({ forcarRefresh = false } = {}) {
     tecnicos, equipamentos, documentos, projetos, beneficiariasPorProjeto, faturas,
     checklistsPorProjeto, diagnosticarFicha, ativos: ativosGarantia,
   })
-  _cache = { em: agora, alertas }
+  _cache.set(_tenant, { em: agora, alertas })
   return alertas
 }
 
-async function obterStatusMap(alertIds) {
+async function obterStatusMap(alertIds, req) {
   if (!alertIds.length) return new Map()
-  const docs = await AlertaStatus.find({ alert_id: { $in: alertIds } }).lean()
+  const docs = await AlertaStatus.find(aplicarEscopo({ alert_id: { $in: alertIds } }, req, { contexto: 'alert.status' })).lean()
   const m = new Map()
   for (const d of docs) m.set(d.alert_id, d)
   return m
@@ -115,8 +118,8 @@ async function auditar(req, acao, detalhe = null) {
 router.get('/', async (req, res) => {
   try {
     if (!_dbOk(res)) return
-    const alertas = await obterTodosAlertas({ forcarRefresh: req.query.refresh === '1' })
-    const statusMap = await obterStatusMap(alertas.map(a => a.id))
+    const alertas = await obterTodosAlertas(req, { forcarRefresh: req.query.refresh === '1' })
+    const statusMap = await obterStatusMap(alertas.map(a => a.id), req)
     const filtrados = filtrarAlertas(alertas, {
       severidade: req.query.severidade,
       origem: req.query.origem,
@@ -135,18 +138,18 @@ router.get('/', async (req, res) => {
     res.json({ sucesso: true, total: itens.length, total_geral: alertas.length, kpis, itens })
   } catch (err) {
     console.error('[alertcenter] GET:', err)
-    res.status(500).json({ erro: err.message })
+    res.status(err.status || 500).json({ erro: err.message, codigo: err.codigo })
   }
 })
 
 // ─── GET /kpis — só métricas (uso em badges/menu) ────────────────────────────
-router.get('/kpis', async (_req, res) => {
+router.get('/kpis', async (req, res) => {
   try {
     if (!_dbOk(res)) return
-    const alertas = await obterTodosAlertas()
-    const statusMap = await obterStatusMap(alertas.map(a => a.id))
+    const alertas = await obterTodosAlertas(req)
+    const statusMap = await obterStatusMap(alertas.map(a => a.id), req)
     res.json({ sucesso: true, kpis: calcularKPIs(alertas, statusMap) })
-  } catch (err) { res.status(500).json({ erro: err.message }) }
+  } catch (err) { res.status(err.status || 500).json({ erro: err.message, codigo: err.codigo }) }
 })
 
 // ─── GET /origens — labels para o frontend ───────────────────────────────────
@@ -163,7 +166,7 @@ async function mudarStatus(req, res, novoStatus, acaoAudit) {
     const usuario = req.auth?.id || req.auth?.email || 'anonymous'
     const histEntry = { acao: novoStatus === 'aberto' ? 'reaberto' : novoStatus, por: usuario, observacao }
     const doc = await AlertaStatus.findOneAndUpdate(
-      { alert_id },
+      aplicarEscopo({ alert_id }, req, { contexto: 'alert.status' }),
       {
         $set: {
           status: novoStatus,
@@ -173,7 +176,8 @@ async function mudarStatus(req, res, novoStatus, acaoAudit) {
           resolvido_em:  novoStatus === 'resolvido' ? new Date() : null,
         },
         $push: { historico: histEntry },
-        $setOnInsert: { alert_id },
+        // M-4: upsert precisa carimbar o tenant, senão cria doc órfão (empresa_id null).
+        $setOnInsert: { alert_id, empresa_id: exigirTenant(req, 'alert.status') },
       },
       { upsert: true, new: true }
     )
@@ -181,7 +185,7 @@ async function mudarStatus(req, res, novoStatus, acaoAudit) {
     res.json({ sucesso: true, item: doc })
   } catch (err) {
     console.error('[alertcenter]', err)
-    res.status(500).json({ erro: err.message })
+    res.status(err.status || 500).json({ erro: err.message, codigo: err.codigo })
   }
 }
 
@@ -196,13 +200,13 @@ router.post('/observacao', async (req, res) => {
     if (!alert_id || !observacao) return res.status(400).json({ erro: 'alert_id e observacao obrigatórios' })
     const usuario = req.auth?.id || req.auth?.email || 'anonymous'
     const doc = await AlertaStatus.findOneAndUpdate(
-      { alert_id },
-      { $push: { historico: { acao: 'observacao', por: usuario, observacao } }, $setOnInsert: { alert_id, status: 'aberto' } },
+      aplicarEscopo({ alert_id }, req, { contexto: 'alert.status' }),
+      { $push: { historico: { acao: 'observacao', por: usuario, observacao } }, $setOnInsert: { alert_id, status: 'aberto', empresa_id: exigirTenant(req, 'alert.status') } },
       { upsert: true, new: true }
     )
     auditar(req, 'ALERTA_OBSERVACAO', `${alert_id} | ${observacao.slice(0, 80)}`)
     res.json({ sucesso: true, item: doc })
-  } catch (err) { res.status(500).json({ erro: err.message }) }
+  } catch (err) { res.status(err.status || 500).json({ erro: err.message, codigo: err.codigo }) }
 })
 
 export default router

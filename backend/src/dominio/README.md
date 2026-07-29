@@ -32,6 +32,9 @@ históricos existentes estão estruturados.
 4. Compatibilidade com o legado é obtida por **adaptadores de leitura** nas
    bordas, nunca por concessão no modelo.
 
+O LME vive em `src/lme/` (ADR-022). O sentido da seta é verificado por check:
+`node src/lme/__checks__/lme.check.js` falha se algum arquivo daqui importar de lá.
+
 ---
 
 ## Mapeamento conceitual (D-1)
@@ -59,7 +62,10 @@ históricos existentes estão estruturados.
 
 **Limites:**
 - Não acessa banco, não conhece Mongoose, não conhece Express.
-- **Não está aplicado.** Nenhum controller o consome nesta fase.
+
+**Estado (Fase 0.5):** enforcement **aplicado**. `exigirOrganizacao` protege as
+rotas que tocam Aggregate Roots TENANT; `aplicarEscopo`/`carimbarTenant` filtram
+e carimbam nas consultas migradas. Cobertura por controller no relatório da fase.
 
 **Dependências:** nenhuma.
 
@@ -104,16 +110,17 @@ Regra de Validação, Agente de Conexão.
 
 ---
 
-## O que permanece para a Fase 0.5
+## Estado do enforcement (Fase 0.5)
 
-| # | Item | Bloqueio |
+| # | Item | Estado |
 |---|---|---|
-| 1 | Backfill de `empresa_id` nos dados legados | Requer decisão de empresa default + MongoDB |
-| 2 | Enforcement nos controllers (31 de 36 sem filtro) | Depende de (1) |
-| 3 | RBAC fail-closed (`rbacMiddleware` hoje é fail-open) | Depende de (1) |
-| 4 | Rotas sem `protegerModulo` (~14) | Depende de (1) |
-| 5 | Remover vazamento `$or:[{empresa_id},{empresa_id:null}]` | Depende de (1) |
-| 6 | `empresa_id` obrigatório no JWT | Depende de (1) |
+| 1 | RBAC fail-closed (anônimo → 401) | ✅ aplicado |
+| 2 | `exigirOrganizacao` nas rotas TENANT | ✅ 15 rotas |
+| 3 | Vazamento `$or:[{empresa_id},{empresa_id:null}]` | ✅ removido |
+| 4 | Escopo nas consultas por controller | 🔄 parcial — ver relatório da fase |
+| 5 | Backfill de `empresa_id` | ⛔ **LME** (fora do Core) |
 
-**Regra:** aplicar fail-closed antes do backfill torna todos os dados legados
-inacessíveis (`empresa_id: null` não casa com nenhum tenant). Ordem é inegociável.
+**Consequência aceita:** com fail-closed ativo e sem backfill, registros com
+`empresa_id: null` não são alcançáveis pelo Core. Isso é deliberado — dados
+legados são responsabilidade do LME, não do Core. Tokens sem `empresa_id` são
+rejeitados (403); compatibilidade com credenciais legadas não é implementada aqui.

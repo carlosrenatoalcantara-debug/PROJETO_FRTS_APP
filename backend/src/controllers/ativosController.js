@@ -3,6 +3,7 @@
  * CRUD do Gêmeo Digital + geração a partir de projeto. Backend apenas (sem telas).
  */
 import mongoose from 'mongoose'
+import { aplicarEscopo, carimbarTenant } from '../dominio/tenancy/index.js'   // Fase 0.5 — M-4
 import QRCode from 'qrcode'
 import { AtivoEquipamento } from '../models/AtivoEquipamento.js'
 import { ProjetoFV } from '../models/ProjetoFV.js'
@@ -17,6 +18,35 @@ function _dbOk(res) {
     return false
   }
   return true
+}
+
+// P5-GARANTIA-SIMPLES-01 — auto-preenchimento de garantia_fim
+function _garantiaMeses(eq) {
+  if (!eq) return null
+  const m = eq.suporte?.garantia_padrao_meses
+  if (m != null && m > 0) return m
+  const gp = eq.garantia_produto
+  if (!gp?.value || !gp?.unit) return null
+  return gp.unit === 'anos' ? gp.value * 12 : gp.value
+}
+
+function _somarMeses(data, meses) {
+  const d = new Date(data)
+  d.setMonth(d.getMonth() + meses)
+  return d
+}
+
+async function _autoPreencherGarantia(ativo) {
+  if (!ativo.data_instalacao) return
+  if (ativo.garantia_fim) return
+  if (!ativo.equipamento_id) return
+  if (!mongoose.Types.ObjectId.isValid(ativo.equipamento_id)) return
+  const eq = await Equipamento.findById(ativo.equipamento_id, 'suporte garantia_produto').lean()
+  const meses = _garantiaMeses(eq)
+  if (!meses) return
+  ativo.garantia_inicio = ativo.garantia_inicio || ativo.data_instalacao
+  ativo.garantia_fim    = _somarMeses(ativo.garantia_inicio, meses)
+  ativo.origem_garantia = 'auto_catalogo'
 }
 
 // Máquina de estados (P0-ASSET-MODEL-01 / FASE 3 do design)
@@ -39,7 +69,7 @@ export const listarAtivosProjeto = async (req, res) => {
     if (req.query.arranjo_id) filtro.arranjo_id = req.query.arranjo_id
     if (req.query.tipo)       filtro.tipo = req.query.tipo
     if (req.query.status)     filtro.status = req.query.status
-    const itens = await AtivoEquipamento.find(filtro).sort({ createdAt: 1 }).lean()
+    const itens = await AtivoEquipamento.find(aplicarEscopo(filtro, req, { contexto: 'ativos.listar' })).sort({ createdAt: 1 }).lean()
     const por_tipo = itens.reduce((acc, a) => { acc[a.tipo] = (acc[a.tipo] || 0) + 1; return acc }, {})
     res.json({ sucesso: true, total: itens.length, por_tipo, itens })
   } catch (e) { res.status(500).json({ erro: e.message }) }
@@ -51,7 +81,7 @@ export const buscarAtivo = async (req, res) => {
     if (!_dbOk(res)) return
     const { id } = req.params
     if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ erro: 'ID inválido' })
-    const ativo = await AtivoEquipamento.findById(id).lean()
+    const ativo = await AtivoEquipamento.findOne(aplicarEscopo({ _id: id }, req, { contexto: 'ativos' })).lean()
     if (!ativo) return res.status(404).json({ erro: 'Ativo não encontrado' })
     res.json({ sucesso: true, item: ativo })
   } catch (e) { res.status(500).json({ erro: e.message }) }
@@ -64,18 +94,18 @@ export const consultarPorQr = async (req, res) => {
   try {
     if (!_dbOk(res)) return
     const qr = String(req.params.qr || '').trim().toUpperCase()
-    const ativo = await AtivoEquipamento.findOne({ qr_code: qr }).lean()
+    const ativo = await AtivoEquipamento.findOne(aplicarEscopo({ qr_code: qr }, req, { contexto: 'ativos.qr' })).lean()
     if (!ativo) return res.status(404).json({ erro: 'QR não encontrado', qr_code: qr })
 
     const projeto = ativo.projeto_id
-      ? await ProjetoFV.findById(ativo.projeto_id, 'nome cliente cliente_nome arranjos status_migracao').lean()
+      ? await ProjetoFV.findOne(aplicarEscopo({ _id: ativo.projeto_id }, req, { contexto: 'ativos.projeto' }), 'nome cliente cliente_nome arranjos status_migracao documentacao_externa').lean()
       : null
     // Arranjo correspondente (preserva multiarranjo) — lido de ProjetoFV.arranjos[]
     const arranjo = (projeto && ativo.arranjo_id)
       ? (projeto.arranjos || []).find(a => a.id === ativo.arranjo_id) || null
       : null
     const equipamento = ativo.equipamento_id
-      ? await Equipamento.findById(ativo.equipamento_id, 'fabricante modelo tipo especificacoes qualidade.nivel').lean()
+      ? await Equipamento.findById(ativo.equipamento_id, 'fabricante modelo tipo especificacoes qualidade.nivel suporte garantia_produto').lean()
       : null
 
     res.json({
@@ -86,7 +116,8 @@ export const consultarPorQr = async (req, res) => {
         numero_serie: ativo.numero_serie, quantidade: ativo.quantidade, status: ativo.status,
         arranjo_id: ativo.arranjo_id,
         data_instalacao: ativo.data_instalacao, garantia_inicio: ativo.garantia_inicio,
-        garantia_fim: ativo.garantia_fim, topologia: ativo.topologia, localizacao: ativo.localizacao,
+        garantia_fim: ativo.garantia_fim, origem_garantia: ativo.origem_garantia || null,
+        topologia: ativo.topologia, localizacao: ativo.localizacao,
         // P1-ASSET-COMMISSIONING-01 — dados as-built (senha_wifi NUNCA exposta)
         data_comissionamento: ativo.data_comissionamento, comissionado_por: ativo.comissionado_por,
         conectividade: {
@@ -98,7 +129,7 @@ export const consultarPorQr = async (req, res) => {
         },
         historico: ativo.historico || [],
       },
-      projeto: projeto ? { _id: projeto._id, nome: projeto.nome, cliente: projeto.cliente?.nome || projeto.cliente_nome || null } : null,
+      projeto: projeto ? { _id: projeto._id, nome: projeto.nome, cliente: projeto.cliente?.nome || projeto.cliente_nome || null, documentacao_externa: projeto.documentacao_externa || null } : null,
       // Arranjo: do ProjetoFV.arranjos[] quando existir; senão expõe o arranjo_id do ativo
       // (linkage multiarranjo preservado no Gêmeo Digital mesmo em projeto legado single-arranjo).
       arranjo: arranjo
@@ -115,7 +146,7 @@ export const renderQrSvg = async (req, res) => {
   try {
     if (!_dbOk(res)) return
     const qr = String(req.params.qr || '').trim().toUpperCase()
-    const ativo = await AtivoEquipamento.findOne({ qr_code: qr }, '_id qr_code').lean()
+    const ativo = await AtivoEquipamento.findOne(aplicarEscopo({ qr_code: qr }, req, { contexto: 'ativos.qr' }), '_id qr_code').lean()
     if (!ativo) return res.status(404).json({ erro: 'QR não encontrado' })
     const base = (process.env.APP_URL || '').replace(/\/$/, '')
     const payload = base ? `${base}/ativo/${qr}` : qr   // scaneável: abre a página; fallback = código
@@ -145,7 +176,7 @@ export const comissionarPorQr = async (req, res) => {
   try {
     if (!_dbOk(res)) return
     const qr = String(req.params.qr || '').trim().toUpperCase()
-    const ativo = await AtivoEquipamento.findOne({ qr_code: qr })
+    const ativo = await AtivoEquipamento.findOne(aplicarEscopo({ qr_code: qr }, req, { contexto: 'ativos.qr' }))
     if (!ativo) return res.status(404).json({ erro: 'QR não encontrado', qr_code: qr })
 
     const body = req.body || {}
@@ -208,7 +239,7 @@ export const salvarMonitoramento = async (req, res) => {
     if (!_dbOk(res)) return
     const { id } = req.params
     if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ erro: 'ID inválido' })
-    const ativo = await AtivoEquipamento.findById(id)
+    const ativo = await AtivoEquipamento.findOne(aplicarEscopo({ _id: id }, req, { contexto: 'ativos' }))
     if (!ativo) return res.status(404).json({ erro: 'Ativo não encontrado' })
 
     const body = req.body || {}
@@ -235,7 +266,7 @@ export const consultarMonitoramento = async (req, res) => {
     if (!_dbOk(res)) return
     const { id } = req.params
     if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ erro: 'ID inválido' })
-    const ativo = await AtivoEquipamento.findById(id, 'monitoramento').lean()
+    const ativo = await AtivoEquipamento.findOne(aplicarEscopo({ _id: id }, req, { contexto: 'ativos' }), 'monitoramento').lean()
     if (!ativo) return res.status(404).json({ erro: 'Ativo não encontrado' })
     res.json({ sucesso: true, monitoramento: _monView(ativo.monitoramento || {}) })
   } catch (e) { res.status(500).json({ erro: e.message }) }
@@ -249,6 +280,102 @@ function _monView(m = {}) {
   out.atualizado_em = m.atualizado_em ?? null
   out.atualizado_por = m.atualizado_por ?? null
   return out
+}
+
+// ─── P5-ATIVO-MEDICOES-01 ─────────────────────────────────────────────────────
+// Medições elétricas de campo — embutidas em AtivoEquipamento.medicoes[].
+// NÃO implementa upload, bucket, OneDrive API, Google API ou telemetria.
+
+export const adicionarMedicao = async (req, res) => {
+  try {
+    if (!_dbOk(res)) return
+    const { id } = req.params
+    if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ erro: 'ID inválido' })
+    const ativo = await AtivoEquipamento.findOne(aplicarEscopo({ _id: id }, req, { contexto: 'ativos' }))
+    if (!ativo) return res.status(404).json({ erro: 'Ativo não encontrado' })
+
+    const b = req.body || {}
+    const medicao = {
+      data:      b.data ? new Date(b.data) : new Date(),
+      tipo:      b.tipo || 'OUTRO',
+      observacao: b.observacao ?? null,
+      voc:       b.voc != null && b.voc !== '' ? Number(b.voc) : null,
+      isc:       b.isc != null && b.isc !== '' ? Number(b.isc) : null,
+      vac:       b.vac != null && b.vac !== '' ? Number(b.vac) : null,
+      iac:       b.iac != null && b.iac !== '' ? Number(b.iac) : null,
+      potencia:  b.potencia != null && b.potencia !== '' ? Number(b.potencia) : null,
+      link_foto: b.link_foto || null,
+      usuario:   b.usuario || req.auth?.email || null,
+    }
+    ativo.medicoes.push(medicao)
+    ativo.historico.push({
+      tipo: 'medicao', data: new Date(),
+      usuario: medicao.usuario,
+      descricao: `Medição registrada — tipo: ${medicao.tipo}`,
+    })
+    await ativo.save()
+    const salva = ativo.medicoes[ativo.medicoes.length - 1]
+    res.status(201).json({ sucesso: true, medicao: salva })
+  } catch (e) { res.status(400).json({ erro: e.message }) }
+}
+
+export const listarMedicoes = async (req, res) => {
+  try {
+    if (!_dbOk(res)) return
+    const { id } = req.params
+    if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ erro: 'ID inválido' })
+    const ativo = await AtivoEquipamento.findOne(aplicarEscopo({ _id: id }, req, { contexto: 'ativos' }), 'medicoes').lean()
+    if (!ativo) return res.status(404).json({ erro: 'Ativo não encontrado' })
+    const lista = (ativo.medicoes || []).slice().reverse()
+    res.json({ sucesso: true, total: lista.length, medicoes: lista })
+  } catch (e) { res.status(500).json({ erro: e.message }) }
+}
+
+export const atualizarMedicao = async (req, res) => {
+  try {
+    if (!_dbOk(res)) return
+    const { id, medicaoId } = req.params
+    if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ erro: 'ID inválido' })
+    const ativo = await AtivoEquipamento.findOne(aplicarEscopo({ _id: id }, req, { contexto: 'ativos' }))
+    if (!ativo) return res.status(404).json({ erro: 'Ativo não encontrado' })
+    const med = ativo.medicoes.id(medicaoId)
+    if (!med) return res.status(404).json({ erro: 'Medição não encontrada' })
+
+    const b = req.body || {}
+    if (b.data != null)     med.data = new Date(b.data)
+    if (b.tipo != null)     med.tipo = b.tipo
+    if ('observacao' in b)  med.observacao = b.observacao ?? null
+    if ('voc'       in b)   med.voc       = b.voc != null && b.voc !== '' ? Number(b.voc) : null
+    if ('isc'       in b)   med.isc       = b.isc != null && b.isc !== '' ? Number(b.isc) : null
+    if ('vac'       in b)   med.vac       = b.vac != null && b.vac !== '' ? Number(b.vac) : null
+    if ('iac'       in b)   med.iac       = b.iac != null && b.iac !== '' ? Number(b.iac) : null
+    if ('potencia'  in b)   med.potencia  = b.potencia != null && b.potencia !== '' ? Number(b.potencia) : null
+    if ('link_foto' in b)   med.link_foto = b.link_foto ?? null
+    if (b.usuario != null)  med.usuario   = b.usuario
+
+    await ativo.save()
+    res.json({ sucesso: true, medicao: med })
+  } catch (e) { res.status(400).json({ erro: e.message }) }
+}
+
+export const removerMedicao = async (req, res) => {
+  try {
+    if (!_dbOk(res)) return
+    const { id, medicaoId } = req.params
+    if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ erro: 'ID inválido' })
+    const ativo = await AtivoEquipamento.findOne(aplicarEscopo({ _id: id }, req, { contexto: 'ativos' }))
+    if (!ativo) return res.status(404).json({ erro: 'Ativo não encontrado' })
+    const idx = ativo.medicoes.findIndex(m => String(m._id) === medicaoId)
+    if (idx === -1) return res.status(404).json({ erro: 'Medição não encontrada' })
+    ativo.medicoes.splice(idx, 1)
+    ativo.historico.push({
+      tipo: 'medicao', data: new Date(),
+      usuario: req.body?.usuario || req.auth?.email || null,
+      descricao: 'Medição removida',
+    })
+    await ativo.save()
+    res.json({ sucesso: true })
+  } catch (e) { res.status(400).json({ erro: e.message }) }
 }
 
 // POST /api/ativos/scan — P1-COMMISSIONING-SCAN-01
@@ -280,11 +407,13 @@ export const criarAtivo = async (req, res) => {
     }
     if (!body.tipo) return res.status(400).json({ erro: 'tipo é obrigatório' })
     const qr_code = body.qr_code || await gerarQrCode(body.tipo)
-    const doc = await AtivoEquipamento.create({
+    const doc = new AtivoEquipamento(carimbarTenant({
       ...body, qr_code,
       status: body.status || 'planejado',
       historico: [{ tipo: 'criacao', usuario: req.auth?.email || 'manual', descricao: 'Ativo criado manualmente' }],
-    })
+    }, req, { contexto: 'ativos.criar' }))
+    await _autoPreencherGarantia(doc)
+    await doc.save()
     res.status(201).json({ sucesso: true, item: doc.toObject() })
   } catch (e) { res.status(400).json({ erro: e.message }) }
 }
@@ -295,7 +424,7 @@ export const atualizarAtivo = async (req, res) => {
     if (!_dbOk(res)) return
     const { id } = req.params
     if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ erro: 'ID inválido' })
-    const ativo = await AtivoEquipamento.findById(id)
+    const ativo = await AtivoEquipamento.findOne(aplicarEscopo({ _id: id }, req, { contexto: 'ativos' }))
     if (!ativo) return res.status(404).json({ erro: 'Ativo não encontrado' })
 
     const body = req.body || {}
@@ -320,9 +449,13 @@ export const atualizarAtivo = async (req, res) => {
 
     const CAMPOS = ['arranjo_id', 'equipamento_id', 'fabricante', 'modelo', 'numero_serie',
       'quantidade', 'status', 'data_instalacao', 'data_comissionamento', 'garantia_inicio',
-      'garantia_fim', 'conectividade', 'localizacao', 'observacoes', 'topologia',
+      'garantia_fim', 'origem_garantia', 'conectividade', 'localizacao', 'observacoes', 'topologia',
       'substitui_ativo_id', 'substituido_por_ativo_id']
     for (const k of CAMPOS) if (body[k] !== undefined) ativo[k] = body[k]
+
+    // auto-preenche garantia_fim se data_instalacao mudou e garantia_fim ainda está em branco
+    const dataInstalacaoMudou = body.data_instalacao !== undefined
+    if (dataInstalacaoMudou && !ativo.garantia_fim) await _autoPreencherGarantia(ativo)
 
     await ativo.save()
     res.json({ sucesso: true, item: ativo.toObject() })
@@ -335,7 +468,7 @@ export const gerarAtivosDoProjeto = async (req, res) => {
     if (!_dbOk(res)) return
     const { projetoId } = req.params
     if (!mongoose.Types.ObjectId.isValid(projetoId)) return res.status(400).json({ erro: 'ID inválido' })
-    const projeto = await ProjetoFV.findById(projetoId).lean()
+    const projeto = await ProjetoFV.findOne(aplicarEscopo({ _id: projetoId }, req, { contexto: 'ativos.projeto' })).lean()
     if (!projeto) return res.status(404).json({ erro: 'Projeto não encontrado' })
 
     const dry_run = req.query.dry_run === '1' || req.body?.dry_run === true

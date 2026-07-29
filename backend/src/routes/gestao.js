@@ -1,4 +1,5 @@
 import { Router } from 'express'
+import { aplicarEscopo, exigirTenant } from '../dominio/tenancy/index.js'   // Fase 0.5 — M-4
 import mongoose from 'mongoose'
 import User from '../models/User.js'
 import { Empresa } from '../models/Empresa.js'
@@ -109,10 +110,13 @@ router.post('/usuarios', async (req, res) => {
     if (!_dbOk(res)) return
     const { nome, email, perfil, telefone, cargo, empresa_id, senha } = req.body || {}
     if (!nome || !email) return res.status(400).json({ erro: 'nome e email são obrigatórios' })
-    // S8.3.1: e-mail único
+    // S8.3.1: e-mail único — EXCEÇÃO DELIBERADA A M-4: a unicidade de e-mail é
+    // GLOBAL porque o login acontece ANTES de haver tenant resolvido. Escopar por
+    // organização permitiria dois usuários com o mesmo e-mail e tornaria o login ambíguo.
     if (await User.findOne({ email: String(email).toLowerCase() })) return res.status(409).json({ erro: 'E-mail já cadastrado' })
+    // M-4: empresa_id vem do TOKEN, nunca do body — impede criar usuário em outra organização.
     const doc = await User.create({
-      nome, email, perfil: perfil || 'visualizador', telefone, cargo, empresa_id: empresa_id || null,
+      nome, email, perfil: perfil || 'visualizador', telefone, cargo, empresa_id: exigirTenant(req, 'gestao.criarUser'),
       senha_hash: senha || Math.random().toString(36).slice(2) + 'A1!',
     })
     res.status(201).json({ sucesso: true, item: doc })   // toJSON remove senha_hash
@@ -124,7 +128,7 @@ router.put('/usuarios/:id', async (req, res) => {
     if (!_dbOk(res)) return
     const { id } = req.params
     if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ erro: 'ID inválido' })
-    const antes = await User.findById(id).lean()
+    const antes = await User.findOne(aplicarEscopo({ _id: id }, req, { contexto: 'gestao.user' })).lean()
     if (!antes) return res.status(404).json({ erro: 'Não encontrado' })
 
     const { nome, email, telefone, cargo, perfil, ativo } = req.body || {}
@@ -135,7 +139,7 @@ router.put('/usuarios/:id', async (req, res) => {
     const mudancas = {}
     for (const [k, v] of Object.entries({ nome, email, telefone, cargo, perfil, ativo })) if (v !== undefined) mudancas[k] = v
     const delta = calcularDelta(antes, mudancas)
-    const doc = await User.findByIdAndUpdate(id, { $set: mudancas }, { new: true, runValidators: true }).select('-senha_hash')
+    const doc = await User.findOneAndUpdate(aplicarEscopo({ _id: id }, req, { contexto: 'gestao.user' }), { $set: mudancas }, { new: true, runValidators: true }).select('-senha_hash')
     if (Object.keys(delta).length) await auditarDelta(req, 'USUARIO_EDITADO', antes.nome || id, delta)
     if (delta.ativo) await auditarDelta(req, 'STATUS_ALTERADO', antes.nome || id, { ativo: delta.ativo })
     res.json({ sucesso: true, item: doc, alteracoes: delta })
@@ -159,7 +163,7 @@ router.post('/usuarios/:id/reset-password', async (req, res) => {
       return res.status(403).json({ erro: 'Apenas Admin/Diretor podem redefinir acesso de usuários.' })
     }
 
-    const user = await User.findById(id)
+    const user = await User.findOne(aplicarEscopo({ _id: id }, req, { contexto: 'gestao.user' }))
     if (!user) return res.status(404).json({ erro: 'Usuário não encontrado' })
 
     // Rate-limit por usuário-alvo

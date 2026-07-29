@@ -83,7 +83,7 @@ import rotasAtivos from './routes/ativos.js'   // P1-ASSET-CORE-01
 import rotasPainel from './routes/painel.js'
 import rotasAlertCenter from './routes/alertcenter.js'   // S8.8
 import rotasCatalogoDiagnostico from './routes/catalogoDiagnostico.js'  // CAT-P0-UNIFY
-import { decodificarUsuario, protegerModulo } from './middleware/rbacMiddleware.js'
+import { decodificarUsuario, protegerModulo, exigirOrganizacao } from './middleware/rbacMiddleware.js'
 import rotasProjetosEV from './routes/projetosEV.js'
 import rotasDashboard  from './routes/dashboard.js'
 import rotasUpload      from './routes/upload.js'
@@ -223,25 +223,25 @@ app.use('/api/integrations', rotasIntegrations)
 app.use('/api/dimensionamento', rotasDimensionamento)
 // 🧪 Catálogo técnico — qualidade (S2.6.1 — endpoint admin de leitura)
 app.use('/api/admin/catalogo', protegerModulo('catalogo'), rotasAdminCatalogo)
-app.use('/api/materiais',      protegerModulo('catalogo'), rotasMateriais)
-app.use('/api/categorias-material', protegerModulo('catalogo'), rotasCategoriasMaterial)
+app.use('/api/materiais',      protegerModulo('catalogo'), exigirOrganizacao, rotasMateriais)
+app.use('/api/categorias-material', protegerModulo('catalogo'), exigirOrganizacao, rotasCategoriasMaterial)
 // 🔍 Motor de Recomendação de Kits FV (S2.14 — read-only analítico)
 app.use('/api/v1/kits',        rotasKitsV1)
 // app.use('/api/auth-legacy', rotasAuth)  // Rota antiga desabilitada
 app.use('/api/calculadora',  rotasCalculadora)
 // app.use('/api/carregadores-ev', rotasCarregadoresEV)  // ⚠️ DISABLED: pdfjs-dist blocker
-app.use('/api/dashboard',    rotasDashboard)
-app.use('/api/clientes',     rotasClientes)
-app.use('/api/projetos-fv',  protegerModulo('fv'), rotasProjetosFV)
-app.use('/api/instalacoes',  protegerModulo('fv'), rotasInstalacoes)   // S4A — Instalacao (isolado)
+app.use('/api/dashboard',    protegerModulo('fv'), exigirOrganizacao, rotasDashboard)
+app.use('/api/clientes',     protegerModulo('crm'), exigirOrganizacao, rotasClientes)
+app.use('/api/projetos-fv',  protegerModulo('fv'), exigirOrganizacao, rotasProjetosFV)
+app.use('/api/instalacoes',  protegerModulo('fv'), exigirOrganizacao, rotasInstalacoes)   // S4A — Instalacao (isolado)
 app.use('/api/publico',      rotasPublico)   // S5 — leitura pública (sem RBAC, é público)
 app.use('/api/empresa',      protegerModulo('configuracoes'), rotasEmpresa)   // S7.1
-app.use('/api/gestao',       protegerModulo('configuracoes'), rotasGestao)    // S7.2
-app.use('/api/ativos',       rotasAtivos)    // P1-ASSET-CORE-01 — Gêmeo Digital
-app.use('/api/painel',       rotasPainel)    // S7.3 — painel executivo, health, auditoria
-app.use('/api/alertcenter',  rotasAlertCenter)  // S8.8 — AlertCenter unificado
+app.use('/api/gestao',       protegerModulo('configuracoes'), exigirOrganizacao, rotasGestao)    // S7.2
+app.use('/api/ativos',       protegerModulo('fv'), exigirOrganizacao, rotasAtivos)    // P1-ASSET-CORE-01 — Gêmeo Digital
+app.use('/api/painel',       protegerModulo('configuracoes'), exigirOrganizacao, rotasPainel)    // S7.3 — painel executivo, health, auditoria
+app.use('/api/alertcenter',  protegerModulo('fv'), exigirOrganizacao, rotasAlertCenter)  // S8.8 — AlertCenter unificado
 app.use('/api/catalogo',     rotasCatalogoDiagnostico)  // CAT-P0-UNIFY — diagnóstico (read-only)
-app.use('/api/projetos-ev',  protegerModulo('ev'), rotasProjetosEV)
+app.use('/api/projetos-ev',  protegerModulo('ev'), exigirOrganizacao, rotasProjetosEV)
 app.use('/api/upload',       rotasUpload)
 app.use('/api/engenharia',   rotasEngenharia)
 app.use('/api/string',       rotasString)
@@ -249,7 +249,7 @@ app.use('/api/carga',        rotasCarga)
 app.use('/api/bess',         rotasBESS)
 app.use('/api/financeiro',   protegerModulo('financeiro'), rotasFinanceiro)
 app.use('/api/orcamento',    rotasOrcamento)
-app.use('/api/crm',          protegerModulo('crm'), rotasCRM)
+app.use('/api/crm',          protegerModulo('crm'), exigirOrganizacao, rotasCRM)
 app.use('/api/projeto',      rotasProjeto)
 app.use('/api/recomendacao', rotasRecomendacao)
 app.use('/api/decisao',      rotasDecisao)
@@ -257,9 +257,9 @@ app.use('/api/admin',        rotasAdmin)
 app.use('/api/unifilar',     rotasUnifilar)
 app.use('/api/irradiancia',  rotasIrradiancia)
 app.use('/api/referencia',   rotasReferencia)   // biblioteca de topologias de referência
-app.use('/api/projetos-fv/:projetoId/homologacao', rotasHomologacao)
-app.use('/api/projetos-fv/:projetoId/proposta', rotasProposta)
-app.use('/api/projetos-fv/:id/beneficiarias', rotasBeneficiarias)
+app.use('/api/projetos-fv/:projetoId/homologacao', protegerModulo('fv'), exigirOrganizacao, rotasHomologacao)
+app.use('/api/projetos-fv/:projetoId/proposta', protegerModulo('fv'), exigirOrganizacao, rotasProposta)
+app.use('/api/projetos-fv/:id/beneficiarias', protegerModulo('fv'), exigirOrganizacao, rotasBeneficiarias)
 // app.use('/api/fatura', rotasFatura)  // ⚠️ LAZY LOADED after polyfills
 // app.use('/api/parecer-acesso', rotasParecerAcesso)  // ⚠️ DISABLED: pdfjs-dist blocker
 // app.use('/api/bills', rotasBillIntake)  // ⚠️ DISABLED: pdfjs-dist blocker

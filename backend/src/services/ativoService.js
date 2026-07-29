@@ -144,7 +144,7 @@ export async function gerarAtivosProjeto(projeto, opts = {}) {
     por_tipo[spec.tipo] = (por_tipo[spec.tipo] || 0) + 1
 
     // idempotência: já existe por chave_origem?
-    const jaExiste = await AtivoEquipamento.findOne({ chave_origem: spec.chave_origem }).lean()
+    const jaExiste = await AtivoEquipamento.findOne({ chave_origem: spec.chave_origem, empresa_id: projeto?.empresa_id ?? null }).lean()
     if (jaExiste) { existentes++; ativos.push(jaExiste); continue }
 
     if (dry_run) { ativos.push({ ...spec, qr_code: '(dry-run)' }); criados++; continue }
@@ -152,6 +152,8 @@ export async function gerarAtivosProjeto(projeto, opts = {}) {
     const qr_code = await gerarQrCode(spec.tipo)
     const doc = await AtivoEquipamento.create({
       ...spec,
+      // M-4: herda o tenant do projeto de origem (AR TENANT).
+      empresa_id: projeto?.empresa_id ?? null,
       qr_code,
       status: 'planejado',
       historico: [{ tipo: 'criacao', usuario, descricao: `Ativo gerado a partir do projeto (arranjo ${spec.arranjo_id})` }],

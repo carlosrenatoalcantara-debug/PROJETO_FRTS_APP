@@ -9,6 +9,7 @@
  */
 
 import mongoose from 'mongoose'
+import { aplicarEscopo, carimbarTenant } from '../dominio/tenancy/index.js'   // Fase 0.5 — M-4
 import { Cliente } from '../models/Cliente.js'
 import { ProjetoFV } from '../models/ProjetoFV.js'
 import { memoryStore } from '../config/memoryStorage.js'
@@ -106,7 +107,7 @@ async function buscarCandidatosCliente(faturaDados) {
 
   if (ors.length === 0) return []
 
-  const candidatos = await Cliente.find({ $or: ors }).limit(10).lean()
+  const candidatos = await Cliente.find(aplicarEscopo({ $or: ors }, req, { contexto: 'funil.candidatos' })).limit(10).lean()
   return rankearCandidatos(candidatos, faturaDados)
 }
 
@@ -240,7 +241,7 @@ export async function finalizarComFatura(req, res) {
           codigo: 'CLIENTE_ID_OBRIGATORIO',
         })
       }
-      const existe = await Cliente.findById(decisaoCliente.clienteId).lean()
+      const existe = await Cliente.findOne(aplicarEscopo({ _id: decisaoCliente.clienteId }, req, { contexto: 'funil.cliente' })).lean()
       if (!existe) {
         return res.status(404).json({
           sucesso: false,
@@ -259,7 +260,7 @@ export async function finalizarComFatura(req, res) {
           codigo: 'NOME_OBRIGATORIO',
         })
       }
-      const novo = await Cliente.create({
+      const novo = await Cliente.create(carimbarTenant({
         nome: dados.nome,
         email: dados.email || `cliente-${Date.now()}@sem-email.local`,
         telefone: dados.telefone || '',
@@ -270,7 +271,7 @@ export async function finalizarComFatura(req, res) {
         cidade: dados.cidade || faturaDados.cidade || '',
         estado: dados.estado || faturaDados.estado || '',
         status: 'ativo',
-      })
+      }, req, { contexto: 'funil.criarCliente' }))
       clienteId = novo._id
       clienteCriado = true
     }
@@ -282,7 +283,7 @@ export async function finalizarComFatura(req, res) {
     const nome = nomeProjeto?.trim() ||
       `${faturaDados.nome || 'Projeto'} — ${new Date().toISOString().split('T')[0]}`
 
-    const projeto = await ProjetoFV.create({
+    const projeto = await ProjetoFV.create(carimbarTenant({
       clienteId,
       nome,
       status: 'rascunho',
@@ -329,7 +330,7 @@ export async function finalizarComFatura(req, res) {
         irradiancia_local: faturaDados.irradiancia || null,
         dados_brutos: faturaDados,
       },
-    })
+    }, req, { contexto: 'funil.criarProjeto' }))
 
     // ── 4. Resposta ──────────────────────────────────────────────────────────
     return res.status(201).json({

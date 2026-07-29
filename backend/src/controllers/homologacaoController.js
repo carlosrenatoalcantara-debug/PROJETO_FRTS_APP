@@ -66,10 +66,10 @@ async function _carregarDepsDocumento(projetoId, projetoBody) {
     if (mongoose.connection?.readyState !== 1) return out
     let proj = projetoBody
     const idValido = projetoId && mongoose.Types.ObjectId.isValid(projetoId)
-    if (idValido) { const p = await ProjetoFV.findById(projetoId).lean().catch(() => null); if (p) proj = p }
+    if (idValido) { const p = await ProjetoFV.findOne(aplicarEscopo({ _id: projetoId }, req, { contexto: 'homolog.projeto' })).lean().catch(() => null); if (p) proj = p }
 
     // Beneficiárias independem da origem dos equipamentos.
-    if (idValido) out.beneficiarias = await UnidadeBeneficiaria.find({ projetoId }).lean().catch(() => [])
+    if (idValido) out.beneficiarias = await UnidadeBeneficiaria.find(aplicarEscopo({ projetoId }, req, { contexto: 'homolog.beneficiarias' })).lean().catch(() => [])
 
     // P1-HOMOLOGACAO-SNAPSHOT-01: projeto congelado → snapshot congelado tem prioridade.
     const snapCat = proj?.governanca?.snapshot_catalogo
@@ -234,7 +234,7 @@ export async function obterChecklist(req, res) {
     let origem = 'template'
     let checklist = template
     if (mongoose.connection.readyState === 1 && mongoose.Types.ObjectId.isValid(projetoId)) {
-      const proj = await ProjetoFV.findById(projetoId).select('homologacao.checklist').lean().catch(() => null)
+      const proj = await ProjetoFV.findOne(aplicarEscopo({ _id: projetoId }, req, { contexto: 'homolog.checklist' })).select('homologacao.checklist').lean().catch(() => null)
       const salvo = proj?.homologacao?.checklist
       if (salvo && Array.isArray(salvo.documentos) && salvo.documentos.length > 0) {
         // Estado salvo é o que o usuário editou (gerado do mesmo template). Devolve-o,
@@ -268,7 +268,7 @@ export async function atualizarChecklist(req, res) {
     if (!mongoose.Types.ObjectId.isValid(projetoId)) {
       return res.status(400).json({ erro: 'ID de projeto inválido' })
     }
-    const projeto = await ProjetoFV.findById(projetoId)
+    const projeto = await ProjetoFV.findOne(aplicarEscopo({ _id: projetoId }, req, { contexto: 'homolog.projeto' }))
     if (!projeto) return res.status(404).json({ erro: 'Projeto não encontrado' })
 
     const atualizado_em = new Date()
@@ -320,7 +320,7 @@ export async function atualizarStatusHomologacao(req, res) {
     // P1-NEW01-HOMOLOGACAO-PERSISTENCE-FIX-01: status legado agora no Mongo (era Map).
     if (mongoose.connection.readyState !== 1) return res.status(503).json({ erro: 'MongoDB indisponível.', codigo: 'DB_OFFLINE' })
     if (!mongoose.Types.ObjectId.isValid(projetoId)) return res.status(400).json({ erro: 'ID de projeto inválido' })
-    const projeto = await ProjetoFV.findById(projetoId)
+    const projeto = await ProjetoFV.findOne(aplicarEscopo({ _id: projetoId }, req, { contexto: 'homolog.projeto' }))
     if (!projeto) return res.status(404).json({ erro: 'Projeto não encontrado' })
 
     projeto.homologacao = projeto.homologacao || {}
@@ -350,7 +350,7 @@ export async function obterStatusHomologacao(req, res) {
     // P1-NEW01-HOMOLOGACAO-PERSISTENCE-FIX-01: lê do Mongo (era Map).
     let homologacao = { projetoId, status: 'rascunho' }
     if (mongoose.connection.readyState === 1 && mongoose.Types.ObjectId.isValid(projetoId)) {
-      const proj = await ProjetoFV.findById(projetoId).select('homologacao').lean().catch(() => null)
+      const proj = await ProjetoFV.findOne(aplicarEscopo({ _id: projetoId }, req, { contexto: 'homolog.status' })).select('homologacao').lean().catch(() => null)
       if (proj?.homologacao) homologacao = { projetoId, ...proj.homologacao }
     }
 

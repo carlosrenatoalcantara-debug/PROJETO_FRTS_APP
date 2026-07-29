@@ -1,4 +1,5 @@
 import { Router } from 'express'
+import { aplicarEscopo } from '../dominio/tenancy/index.js'   // Fase 0.5 — M-4
 import mongoose from 'mongoose'
 import { ProjetoFV } from '../models/ProjetoFV.js'
 import { Equipamento } from '../models/Equipamento.js'
@@ -28,8 +29,9 @@ const media = (arr) => (arr.length ? +(arr.reduce((s, x) => s + x, 0) / arr.leng
 router.get('/executivo', async (req, res) => {
   try {
     if (!_dbOk(res)) return
-    const filtro = req.query.empresa_id
-      ? { $or: [{ empresa_id: req.query.empresa_id }, { empresa_id: null }] } : {}
+    // M-4: escopo vem do TOKEN. Removido o `$or:[{empresa_id},{empresa_id:null}]`
+    // (vazava projetos de empresa_id null) e o filtro por query string.
+    const filtro = aplicarEscopo({}, req, { contexto: 'painel.executivo' })
     const projetos = await ProjetoFV.find(filtro)
       .select('status potencia_kwp dimensionamento governanca.freeze_status governanca.comercial.workflow_status governanca.comercial.crm_pipeline governanca.snapshot_tecnico governanca.snapshot_financeiro')
       .lean()
@@ -107,26 +109,26 @@ router.get('/executivo', async (req, res) => {
 })
 
 // ─── GET /api/painel/health ──────────────────────────────────────────────────
-router.get('/health', async (_req, res) => {
+router.get('/health', async (req, res) => {
   try {
     if (!_dbOk(res)) return
     const [usuarios, empresas, vendedores, tecnicos, equipamentos, projetos] = await Promise.all([
-      User.countDocuments(), Empresa.countDocuments(), Vendedor.countDocuments(),
-      Tecnico.countDocuments(), Equipamento.countDocuments(), ProjetoFV.countDocuments(),
+      User.countDocuments(aplicarEscopo({}, req, { contexto: 'painel.health' })), Empresa.countDocuments(), Vendedor.countDocuments(aplicarEscopo({}, req, { contexto: 'painel.health' })),
+      Tecnico.countDocuments(aplicarEscopo({}, req, { contexto: 'painel.health' })), Equipamento.countDocuments(), ProjetoFV.countDocuments(aplicarEscopo({}, req, { contexto: 'painel.health' })),
     ])
-    const comSnapshot = await ProjetoFV.countDocuments({ 'governanca.snapshot_tecnico': { $ne: null } })
-    const congelados = await ProjetoFV.countDocuments({ 'governanca.freeze_status': { $in: ['CONGELADO', 'HOMOLOGADO'] } })
+    const comSnapshot = await ProjetoFV.countDocuments(aplicarEscopo({ 'governanca.snapshot_tecnico': { $ne: null } }, req, { contexto: 'painel.snapshot' }))
+    const congelados = await ProjetoFV.countDocuments(aplicarEscopo({ 'governanca.freeze_status': { $in: ['CONGELADO', 'HOMOLOGADO'] } }, req, { contexto: 'painel.congelados' }))
     // S7.3.1: métricas documentais (documento ≈ unifilar/proposta congelados)
-    const docsGerados = await ProjetoFV.countDocuments({ 'governanca.snapshot_unifilar': { $ne: null } })
+    const docsGerados = await ProjetoFV.countDocuments(aplicarEscopo({ 'governanca.snapshot_unifilar': { $ne: null } }, req, { contexto: 'painel.docs' }))
     const docsCongelados = congelados
     const semDocumentos = projetos - docsGerados
 
     // S8.4 — ciclo de vida e saúde do dataset
     const [arquivados, excluidos, legados, pendentesRev] = await Promise.all([
-      ProjetoFV.countDocuments({ status: 'arquivado' }),
-      ProjetoFV.countDocuments({ excluido: true }),
-      ProjetoFV.countDocuments({ legacy: true }),
-      ProjetoFV.countDocuments({ necessita_revisao: true }),
+      ProjetoFV.countDocuments(aplicarEscopo({ status: 'arquivado' }, req, { contexto: 'painel.arquivados' })),
+      ProjetoFV.countDocuments(aplicarEscopo({ excluido: true }, req, { contexto: 'painel.excluidos' })),
+      ProjetoFV.countDocuments(aplicarEscopo({ legacy: true }, req, { contexto: 'painel.legados' })),
+      ProjetoFV.countDocuments(aplicarEscopo({ necessita_revisao: true }, req, { contexto: 'painel.revisao' })),
     ])
     const ativos = projetos - arquivados - excluidos
 

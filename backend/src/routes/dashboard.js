@@ -3,6 +3,8 @@ import mongoose from 'mongoose'
 import { ProjetoFV } from '../models/ProjetoFV.js'
 import { ProjetoEV } from '../models/ProjetoEV.js'
 import { Cliente } from '../models/Cliente.js'
+// Fase 0.5 — M-4: escopo de organização.
+import { aplicarEscopo, exigirTenant } from '../dominio/tenancy/index.js'
 
 const router = Router()
 
@@ -10,7 +12,7 @@ const STATUS_ATIVOS_FV = ['rascunho', 'em_simulacao', 'dimensionado', 'proposta'
 const STATUS_ATIVOS_EV = ['rascunho', 'em_simulacao', 'dimensionado', 'proposta', 'aprovado', 'em_execucao']
 
 // GET /api/dashboard/resumo — contagens reais do MongoDB
-router.get('/resumo', async (_req, res) => {
+router.get('/resumo', async (req, res) => {
   try {
     if (mongoose.connection.readyState !== 1) {
       return res.json({
@@ -27,11 +29,11 @@ router.get('/resumo', async (_req, res) => {
     inicioMes.setHours(0, 0, 0, 0)
 
     const [projetosFVAtivos, projetosEVAtivos, totalClientes, receitaAgg] = await Promise.all([
-      ProjetoFV.countDocuments({ status: { $in: STATUS_ATIVOS_FV } }),
-      ProjetoEV.countDocuments({ status: { $in: STATUS_ATIVOS_EV } }),
-      Cliente.countDocuments({}),
+      ProjetoFV.countDocuments(aplicarEscopo({ status: { $in: STATUS_ATIVOS_FV } }, req, { contexto: 'dashboard.resumo' })),
+      ProjetoEV.countDocuments(aplicarEscopo({ status: { $in: STATUS_ATIVOS_EV } }, req, { contexto: 'dashboard.resumo' })),
+      Cliente.countDocuments(aplicarEscopo({}, req, { contexto: 'dashboard.resumo' })),
       ProjetoFV.aggregate([
-        { $match: { status: 'aprovado', updatedAt: { $gte: inicioMes } } },
+        { $match: aplicarEscopo({ status: 'aprovado', updatedAt: { $gte: inicioMes } }, req, { contexto: 'dashboard.receita' }) },
         { $group: { _id: null, total: { $sum: { $ifNull: ['$financeiro.valor_total', 0] } } } },
       ]),
     ])
@@ -58,12 +60,12 @@ router.get('/projetos-recentes', async (req, res) => {
     }
 
     const [fvRecentes, evRecentes] = await Promise.all([
-      ProjetoFV.find({})
+      ProjetoFV.find(aplicarEscopo({}, req, { contexto: 'dashboard.recentes' }))
         .sort({ updatedAt: -1 })
         .limit(limite)
         .populate('clienteId', 'nome')
         .lean(),
-      ProjetoEV.find({})
+      ProjetoEV.find(aplicarEscopo({}, req, { contexto: 'dashboard.recentes' }))
         .sort({ updatedAt: -1 })
         .limit(limite)
         .populate('clienteId', 'nome')

@@ -48,6 +48,8 @@ export const InstalacaoService = {
     const erros = []
 
     // 1) Estrutural (schema do Model — não persiste).
+    // NÃO é acesso a dados: instancia em memória apenas para validateSync(). O
+    // empresa_id já vem em `dados` (carimbado pelo controller) e é preservado.
     const doc = dados instanceof Instalacao ? dados : new Instalacao(dados)
     const structural = doc.validateSync()
     if (structural) {
@@ -65,8 +67,10 @@ export const InstalacaoService = {
     // 2) Referência ao Local (se informada).
     let localDoc = null
     if (plano.local_ref) {
-      localDoc = await Local.findById(plano.local_ref)
-      if (!localDoc) erros.push(`referência: Local ${plano.local_ref} não encontrado`)
+      // M-4: o Local deve pertencer à MESMA organização da Instalação. Service não
+      // recebe req — o tenant vem do próprio agregado (fonte de verdade aqui).
+      localDoc = await Local.findOne({ _id: plano.local_ref, empresa_id: plano.empresa_id ?? null })
+      if (!localDoc) erros.push(`referência: Local ${plano.local_ref} não encontrado nesta organização`)
     }
 
     // 3) Por Gerador → referências + integridade de MPPT + Strings.

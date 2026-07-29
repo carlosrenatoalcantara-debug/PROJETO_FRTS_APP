@@ -1,11 +1,12 @@
 import { CrmFunil } from '../models/CrmFunil.js'
+import { aplicarEscopo, carimbarTenant } from '../dominio/tenancy/index.js'   // Fase 0.5 — M-4
 import { CrmColuna } from '../models/CrmColuna.js'
 import { CrmLead } from '../models/CrmLead.js'
 
 // ========== FUNIS ==========
 export async function listarFunis(req, res) {
   try {
-    const funis = await CrmFunil.find({ ativo: true }).sort({ ordem: 1 })
+    const funis = await CrmFunil.find(aplicarEscopo({ ativo: true }, req, { contexto: 'crm.funis' })).sort({ ordem: 1 })
     res.json(funis)
   } catch (erro) {
     res.status(500).json({ erro: erro.message })
@@ -18,15 +19,15 @@ export async function criarFunil(req, res) {
     if (!nome) return res.status(400).json({ erro: 'Campo "nome" obrigatório.' })
 
     // Encontrar a próxima ordem
-    const ultimoFunil = await CrmFunil.findOne().sort({ ordem: -1 })
+    const ultimoFunil = await CrmFunil.findOne(aplicarEscopo({}, req, { contexto: 'crm.ultimoFunil' })).sort({ ordem: -1 })
     const novaOrdem = ultimoFunil ? ultimoFunil.ordem + 1 : 1
 
-    const novoFunil = new CrmFunil({
+    const novoFunil = new CrmFunil(carimbarTenant({
       nome,
       descricao,
       ordem: novaOrdem,
       ativo: true,
-    })
+    }, req, { contexto: 'crm.criarFunil' }))
 
     await novoFunil.save()
     res.status(201).json(novoFunil)
@@ -40,7 +41,7 @@ export async function atualizarFunil(req, res) {
     const { id } = req.params
     const { nome, ordem, descricao, ativo } = req.body
 
-    const funil = await CrmFunil.findById(id)
+    const funil = await CrmFunil.findOne(aplicarEscopo({ _id: id }, req, { contexto: 'crm.funil' }))
     if (!funil) return res.status(404).json({ erro: 'Funil não encontrado.' })
 
     if (nome !== undefined) funil.nome = nome
@@ -59,7 +60,7 @@ export async function deletarFunil(req, res) {
   try {
     const { id } = req.params
 
-    const funil = await CrmFunil.findById(id)
+    const funil = await CrmFunil.findOne(aplicarEscopo({ _id: id }, req, { contexto: 'crm.funil' }))
     if (!funil) return res.status(404).json({ erro: 'Funil não encontrado.' })
 
     // Soft delete - marcar como inativo
@@ -67,12 +68,12 @@ export async function deletarFunil(req, res) {
     await funil.save()
 
     // Desativar colunas associadas
-    await CrmColuna.updateMany({ funilId: id }, { ativo: false })
+    await CrmColuna.updateMany(aplicarEscopo({ funilId: id }, req, { contexto: 'crm.colunas' }), { ativo: false })
 
     // Arquivar leads associados
-    const colunas = await CrmColuna.find({ funilId: id })
+    const colunas = await CrmColuna.find(aplicarEscopo({ funilId: id }, req, { contexto: 'crm.colunas' }))
     const colunasIds = colunas.map(c => c._id)
-    await CrmLead.updateMany({ colunaId: { $in: colunasIds } }, { arquivado: true })
+    await CrmLead.updateMany(aplicarEscopo({ colunaId: { $in: colunasIds } }, req, { contexto: 'crm.leads' }), { arquivado: true })
 
     res.json({ mensagem: 'Funil desativado com sucesso', funil })
   } catch (erro) {
@@ -88,7 +89,7 @@ export async function listarColunas(req, res) {
 
     if (funilId) query.funilId = funilId
 
-    const colunas = await CrmColuna.find(query)
+    const colunas = await CrmColuna.find(aplicarEscopo(query, req, { contexto: 'crm.colunas' }))
       .populate('funilId', 'nome')
       .sort({ ordem: 1 })
 
@@ -106,21 +107,21 @@ export async function criarColuna(req, res) {
     if (!funilId) return res.status(400).json({ erro: 'Campo "funilId" obrigatório.' })
 
     // Validar se funil existe
-    const funil = await CrmFunil.findById(funilId)
+    const funil = await CrmFunil.findOne(aplicarEscopo({ _id: funilId }, req, { contexto: 'crm.funil' }))
     if (!funil) return res.status(404).json({ erro: 'Funil não encontrado.' })
 
     // Encontrar próxima ordem
-    const ultimaColuna = await CrmColuna.findOne({ funilId }).sort({ ordem: -1 })
+    const ultimaColuna = await CrmColuna.findOne(aplicarEscopo({ funilId }, req, { contexto: 'crm.ultimaColuna' })).sort({ ordem: -1 })
     const novaOrdem = ultimaColuna ? ultimaColuna.ordem + 1 : 1
 
-    const novaColuna = new CrmColuna({
+    const novaColuna = new CrmColuna(carimbarTenant({
       nome,
       funilId,
       descricao,
       limiteWIP,
       ordem: novaOrdem,
       ativo: true,
-    })
+    }, req, { contexto: 'crm.criarColuna' }))
 
     await novaColuna.save()
     await novaColuna.populate('funilId', 'nome')
@@ -136,7 +137,7 @@ export async function atualizarColuna(req, res) {
     const { id } = req.params
     const { nome, ordem, descricao, limiteWIP, ativo } = req.body
 
-    const coluna = await CrmColuna.findById(id)
+    const coluna = await CrmColuna.findOne(aplicarEscopo({ _id: id }, req, { contexto: 'crm.coluna' }))
     if (!coluna) return res.status(404).json({ erro: 'Coluna não encontrada.' })
 
     if (nome !== undefined) coluna.nome = nome
@@ -158,7 +159,7 @@ export async function deletarColuna(req, res) {
   try {
     const { id } = req.params
 
-    const coluna = await CrmColuna.findById(id)
+    const coluna = await CrmColuna.findOne(aplicarEscopo({ _id: id }, req, { contexto: 'crm.coluna' }))
     if (!coluna) return res.status(404).json({ erro: 'Coluna não encontrada.' })
 
     // Soft delete
@@ -166,7 +167,7 @@ export async function deletarColuna(req, res) {
     await coluna.save()
 
     // Arquivar leads nesta coluna
-    await CrmLead.updateMany({ colunaId: id }, { arquivado: true })
+    await CrmLead.updateMany(aplicarEscopo({ colunaId: id }, req, { contexto: 'crm.leads' }), { arquivado: true })
 
     res.json({ mensagem: 'Coluna desativada com sucesso', coluna })
   } catch (erro) {
@@ -202,19 +203,19 @@ export async function criarLead(req, res) {
     if (!funilId) return res.status(400).json({ erro: 'Campo "funilId" obrigatório.' })
 
     // Validar coluna
-    const coluna = await CrmColuna.findById(colunaId)
+    const coluna = await CrmColuna.findOne(aplicarEscopo({ _id: colunaId }, req, { contexto: 'crm.coluna' }))
     if (!coluna) return res.status(404).json({ erro: 'Coluna não encontrada.' })
 
     // Validar funil
-    const funil = await CrmFunil.findById(funilId)
+    const funil = await CrmFunil.findOne(aplicarEscopo({ _id: funilId }, req, { contexto: 'crm.funil' }))
     if (!funil) return res.status(404).json({ erro: 'Funil não encontrado.' })
 
     // Verificar limite WIP
     if (coluna.limiteWIP) {
-      const contagem = await CrmLead.countDocuments({
+      const contagem = await CrmLead.countDocuments(aplicarEscopo({
         colunaId,
         arquivado: false,
-      })
+      }, req, { contexto: 'crm.wip' }))
       if (contagem >= coluna.limiteWIP) {
         return res.status(400).json({
           erro: `Coluna atingiu o limite de ${coluna.limiteWIP} leads`,
@@ -222,7 +223,7 @@ export async function criarLead(req, res) {
       }
     }
 
-    const novoLead = new CrmLead({
+    const novoLead = new CrmLead(carimbarTenant({
       nome,
       funilId,
       colunaId,
@@ -241,7 +242,7 @@ export async function criarLead(req, res) {
       contato,
       tags,
       data_atualizacao_coluna: new Date(),
-    })
+    }, req, { contexto: 'crm.criarLead' }))
 
     await novoLead.save()
     await novoLead.populate(['funilId', 'colunaId', 'clienteId'])
@@ -261,7 +262,7 @@ export async function listarLeads(req, res) {
     if (funilId) query.funilId = funilId
     if (colunaId) query.colunaId = colunaId
 
-    const leads = await CrmLead.find(query)
+    const leads = await CrmLead.find(aplicarEscopo(query, req, { contexto: 'crm.leads' }))
       .populate('funilId', 'nome')
       .populate('colunaId', 'nome')
       .populate('clienteId', 'nome email telefone')
@@ -277,7 +278,7 @@ export async function obterLead(req, res) {
   try {
     const { id } = req.params
 
-    const lead = await CrmLead.findById(id)
+    const lead = await CrmLead.findOne(aplicarEscopo({ _id: id }, req, { contexto: 'crm.lead' }))
       .populate('funilId', 'nome')
       .populate('colunaId', 'nome')
       .populate('clienteId', 'nome email telefone endereco cidade estado latitude longitude')
@@ -312,20 +313,20 @@ export async function atualizarLead(req, res) {
       probabilidade_fechamento_pct,
     } = req.body
 
-    const lead = await CrmLead.findById(id)
+    const lead = await CrmLead.findOne(aplicarEscopo({ _id: id }, req, { contexto: 'crm.lead' }))
     if (!lead) return res.status(404).json({ erro: 'Lead não encontrado.' })
 
     // Se mudou de coluna, validar limite WIP
     if (colunaId && colunaId !== lead.colunaId.toString()) {
-      const novaColuna = await CrmColuna.findById(colunaId)
+      const novaColuna = await CrmColuna.findOne(aplicarEscopo({ _id: colunaId }, req, { contexto: 'crm.coluna' }))
       if (!novaColuna) return res.status(404).json({ erro: 'Coluna não encontrada.' })
 
       if (novaColuna.limiteWIP) {
-        const contagem = await CrmLead.countDocuments({
+        const contagem = await CrmLead.countDocuments(aplicarEscopo({
           colunaId,
           arquivado: false,
           _id: { $ne: id },
-        })
+        }, req, { contexto: 'crm.wip' }))
         if (contagem >= novaColuna.limiteWIP) {
           return res.status(400).json({
             erro: `Coluna atingiu o limite de ${novaColuna.limiteWIP} leads`,
@@ -371,20 +372,20 @@ export async function moverLead(req, res) {
 
     if (!colunaId) return res.status(400).json({ erro: 'Campo "colunaId" obrigatório.' })
 
-    const lead = await CrmLead.findById(id)
+    const lead = await CrmLead.findOne(aplicarEscopo({ _id: id }, req, { contexto: 'crm.lead' }))
     if (!lead) return res.status(404).json({ erro: 'Lead não encontrado.' })
 
     // Validar coluna
-    const novaColuna = await CrmColuna.findById(colunaId)
+    const novaColuna = await CrmColuna.findOne(aplicarEscopo({ _id: colunaId }, req, { contexto: 'crm.coluna' }))
     if (!novaColuna) return res.status(404).json({ erro: 'Coluna não encontrada.' })
 
     // Verificar limite WIP
     if (novaColuna.limiteWIP) {
-      const contagem = await CrmLead.countDocuments({
+      const contagem = await CrmLead.countDocuments(aplicarEscopo({
         colunaId,
         arquivado: false,
         _id: { $ne: id },
-      })
+      }, req, { contexto: 'crm.wip' }))
       if (contagem >= novaColuna.limiteWIP) {
         return res.status(400).json({
           erro: `Coluna atingiu o limite de ${novaColuna.limiteWIP} leads`,
@@ -407,7 +408,7 @@ export async function deletarLead(req, res) {
   try {
     const { id } = req.params
 
-    const lead = await CrmLead.findById(id)
+    const lead = await CrmLead.findOne(aplicarEscopo({ _id: id }, req, { contexto: 'crm.lead' }))
     if (!lead) return res.status(404).json({ erro: 'Lead não encontrado.' })
 
     // Soft delete
@@ -425,16 +426,16 @@ export async function obterEstatisticasFunil(req, res) {
   try {
     const { funilId } = req.params
 
-    const colunas = await CrmColuna.find({ funilId, ativo: true }).sort({ ordem: 1 })
+    const colunas = await CrmColuna.find(aplicarEscopo({ funilId, ativo: true }, req, { contexto: 'crm.colunas' })).sort({ ordem: 1 })
 
     const stats = await Promise.all(
       colunas.map(async (coluna) => {
-        const total = await CrmLead.countDocuments({
+        const total = await CrmLead.countDocuments(aplicarEscopo({
           colunaId: coluna._id,
           arquivado: false,
-        })
+        }, req, { contexto: 'crm.metricas' }))
         const valorTotal = await CrmLead.aggregate([
-          { $match: { colunaId: coluna._id, arquivado: false } },
+          { $match: aplicarEscopo({ colunaId: coluna._id, arquivado: false }, req, { contexto: 'crm.valorTotal' }) },
           { $group: { _id: null, total: { $sum: '$valor' } } },
         ])
 
@@ -456,7 +457,7 @@ export async function obterEstatisticasFunil(req, res) {
 export async function obterLeadsPorOrigem(req, res) {
   try {
     const stats = await CrmLead.aggregate([
-      { $match: { arquivado: false } },
+      { $match: aplicarEscopo({ arquivado: false }, req, { contexto: 'crm.stats' }) },
       {
         $group: {
           _id: '$origem',

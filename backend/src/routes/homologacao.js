@@ -1,4 +1,5 @@
 import { Router } from 'express'
+import { aplicarEscopo } from '../dominio/tenancy/index.js'   // Fase 0.5 — M-4
 import mongoose from 'mongoose'
 import {
   gerarMemorial,
@@ -22,9 +23,9 @@ import { obterRegras, CONCESSIONARIAS_COM_REGRAS } from '../utils/homologacao/co
 const router = Router({ mergeParams: true })
 
 // ── helpers ────────────────────────────────────────────────────────────────
-async function _carregarProjeto(projetoId) {
+async function _carregarProjeto(projetoId, req) {
   if (!mongoose.Types.ObjectId.isValid(projetoId)) return null
-  const projeto = await ProjetoFV.findById(projetoId).lean()
+  const projeto = await ProjetoFV.findOne(aplicarEscopo({ _id: projetoId }, req, { contexto: 'homolog' })).lean()
   if (!projeto) return null
   // Equipamentos referenciados (paineis + inversores)
   const ids = []
@@ -34,7 +35,7 @@ async function _carregarProjeto(projetoId) {
   const equipamentos = ids.length
     ? await Equipamento.find({ _id: { $in: ids } }).lean()
     : []
-  const beneficiarias = await UnidadeBeneficiaria.find({ projetoId }).lean().catch(() => [])
+  const beneficiarias = await UnidadeBeneficiaria.find(aplicarEscopo({ projetoId }, req, { contexto: 'homolog.benef' })).lean().catch(() => [])
   return { projeto, equipamentos, beneficiarias }
 }
 
@@ -82,7 +83,7 @@ router.post('/test-freeze', testarFreezimento)
 router.get('/assistida/checklist', async (req, res) => {
   try {
     if (mongoose.connection.readyState !== 1) return res.status(503).json({ erro: 'DB_OFFLINE' })
-    const dados = await _carregarProjeto(req.params.projetoId)
+    const dados = await _carregarProjeto(req.params.projetoId, req)
     if (!dados) return res.status(404).json({ erro: 'Projeto não encontrado' })
     const checklist = gerarChecklist({
       projeto: dados.projeto, equipamentos: dados.equipamentos, beneficiarias: dados.beneficiarias,
@@ -99,7 +100,7 @@ router.get('/assistida/checklist', async (req, res) => {
 router.get('/assistida/validacao', async (req, res) => {
   try {
     if (mongoose.connection.readyState !== 1) return res.status(503).json({ erro: 'DB_OFFLINE' })
-    const dados = await _carregarProjeto(req.params.projetoId)
+    const dados = await _carregarProjeto(req.params.projetoId, req)
     if (!dados) return res.status(404).json({ erro: 'Projeto não encontrado' })
     const v = validarDocumentos({
       projeto: dados.projeto, equipamentos: dados.equipamentos,
@@ -115,7 +116,7 @@ router.get('/assistida/validacao', async (req, res) => {
 router.get('/assistida/pacote', async (req, res) => {
   try {
     if (mongoose.connection.readyState !== 1) return res.status(503).json({ erro: 'DB_OFFLINE' })
-    const dados = await _carregarProjeto(req.params.projetoId)
+    const dados = await _carregarProjeto(req.params.projetoId, req)
     if (!dados) return res.status(404).json({ erro: 'Projeto não encontrado' })
     const pacote = montarPacoteDocumental({
       projeto: dados.projeto, equipamentos: dados.equipamentos, beneficiarias: dados.beneficiarias,
@@ -137,7 +138,7 @@ router.patch('/assistida/status', async (req, res) => {
     if (!STATUS_HOMOLOGACAO.includes(status)) {
       return res.status(400).json({ erro: 'Status inválido', validos: STATUS_HOMOLOGACAO })
     }
-    const projeto = await ProjetoFV.findById(req.params.projetoId)
+    const projeto = await ProjetoFV.findOne(aplicarEscopo({ _id: req.params.projetoId }, req, { contexto: 'homolog' }))
     if (!projeto) return res.status(404).json({ erro: 'Projeto não encontrado' })
 
     projeto.homologacao = projeto.homologacao || {}
@@ -174,7 +175,7 @@ router.patch('/protocolo', async (req, res) => {
   try {
     if (mongoose.connection.readyState !== 1) return res.status(503).json({ erro: 'DB_OFFLINE' })
     const { numero_protocolo } = req.body || {}
-    const projeto = await ProjetoFV.findById(req.params.projetoId)
+    const projeto = await ProjetoFV.findOne(aplicarEscopo({ _id: req.params.projetoId }, req, { contexto: 'homolog' }))
     if (!projeto) return res.status(404).json({ erro: 'Projeto não encontrado' })
 
     projeto.homologacao = projeto.homologacao || {}

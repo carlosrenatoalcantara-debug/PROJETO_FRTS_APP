@@ -12,6 +12,7 @@
  * NÃO altera os endpoints individuais existentes (preserva contrato da API).
  */
 import { UnidadeBeneficiaria } from '../models/UnidadeBeneficiaria.js'
+import { aplicarEscopo, carimbarTenant } from '../dominio/tenancy/index.js'   // Fase 0.5 — M-4
 import { ProjetoFV } from '../models/ProjetoFV.js'
 import { AuditLog } from '../models/AuditLog.js'
 import { validarRateio, calcularSomaRateio, MODALIDADES_GD } from '../utils/beneficiarias/beneficiariaRateio.js'
@@ -36,7 +37,7 @@ async function auditar(req, acao, projetoId, detalhe = null) {
 export const listarBeneficiarias = async (req, res) => {
   try {
     const { id } = req.params
-    const beneficiarias = await UnidadeBeneficiaria.find({ projetoId: id }).sort({ createdAt: 1 })
+    const beneficiarias = await UnidadeBeneficiaria.find(aplicarEscopo({ projetoId: id }, req, { contexto: 'benef' })).sort({ createdAt: 1 })
     res.json(beneficiarias)
   } catch (err) {
     console.error('❌ Erro ao listar beneficiárias:', err)
@@ -49,7 +50,7 @@ export const criarBeneficiaria = async (req, res) => {
     const { id } = req.params
     const { contaContrato, tipoRateio, valor, titular, cpf_cnpj, concessionaria, modalidade_gd } = req.body
 
-    const projeto = await ProjetoFV.findById(id)
+    const projeto = await ProjetoFV.findOne(aplicarEscopo({ _id: id }, req, { contexto: 'benef.projeto' }))
     if (!projeto) return res.status(404).json({ mensagem: 'Projeto não encontrado' })
     if (!contaContrato || !tipoRateio || valor === undefined) {
       return res.status(400).json({ mensagem: 'Campos obrigatórios: contaContrato, tipoRateio, valor' })
@@ -57,7 +58,7 @@ export const criarBeneficiaria = async (req, res) => {
 
     if (tipoRateio === 'percentual') {
       if (valor < 0 || valor > 100) return res.status(400).json({ mensagem: 'Percentual deve estar entre 0 e 100' })
-      const existentes = await UnidadeBeneficiaria.find({ projetoId: id, ativa: true })
+      const existentes = await UnidadeBeneficiaria.find(aplicarEscopo({ projetoId: id, ativa: true }, req, { contexto: 'benef' }))
       const somaAtual = calcularSomaRateio(existentes)
       if (somaAtual + valor > 100.001) {
         return res.status(400).json({
@@ -66,12 +67,12 @@ export const criarBeneficiaria = async (req, res) => {
       }
     }
 
-    const nova = new UnidadeBeneficiaria({
+    const nova = new UnidadeBeneficiaria(carimbarTenant({
       projetoId: id, contaContrato, tipoRateio, valor,
       titular: titular || null, cpf_cnpj: cpf_cnpj || null,
       concessionaria: concessionaria || null, modalidade_gd: modalidade_gd || null,
       historico: [{ acao: 'criado', depois: { contaContrato, tipoRateio, valor } }],
-    })
+    }, req, { contexto: 'benef.criar' }))
     await nova.save()
     auditar(req, 'BENEFICIARIA_ADICIONADA', id, `UC=${contaContrato} val=${valor}%`)
     res.status(201).json(nova)
@@ -86,11 +87,11 @@ export const atualizarBeneficiaria = async (req, res) => {
     const { id, beneficiariaId } = req.params
     const updates = req.body
 
-    const antes = await UnidadeBeneficiaria.findById(beneficiariaId).lean()
+    const antes = await UnidadeBeneficiaria.findOne(aplicarEscopo({ _id: beneficiariaId }, req, { contexto: 'benef' })).lean()
     if (!antes) return res.status(404).json({ mensagem: 'Beneficiária não encontrada' })
 
     if (updates.valor !== undefined && antes.tipoRateio === 'percentual') {
-      const demais = await UnidadeBeneficiaria.find({ projetoId: id, ativa: true, _id: { $ne: beneficiariaId } })
+      const demais = await UnidadeBeneficiaria.find(aplicarEscopo({ projetoId: id, ativa: true, _id: { $ne: beneficiariaId } }, req, { contexto: 'benef' }))
       const somaOutras = calcularSomaRateio(demais)
       if (somaOutras + Number(updates.valor) > 100.001) {
         return res.status(400).json({
@@ -104,8 +105,7 @@ export const atualizarBeneficiaria = async (req, res) => {
       antes: { valor: antes.valor, titular: antes.titular, contaContrato: antes.contaContrato },
       depois: updates,
     }
-    const beneficiaria = await UnidadeBeneficiaria.findByIdAndUpdate(
-      beneficiariaId,
+    const beneficiaria = await UnidadeBeneficiaria.findOneAndUpdate(aplicarEscopo({ _id: beneficiariaId }, req, { contexto: 'benef' }),
       { $set: updates, $push: { historico: histEntry } },
       { new: true }
     )
@@ -123,7 +123,7 @@ export const atualizarBeneficiaria = async (req, res) => {
 export const deletarBeneficiaria = async (req, res) => {
   try {
     const { id, beneficiariaId } = req.params
-    const beneficiaria = await UnidadeBeneficiaria.findByIdAndDelete(beneficiariaId)
+    const beneficiaria = await UnidadeBeneficiaria.findOneAndDelete(aplicarEscopo({ _id: beneficiariaId }, req, { contexto: 'benef' }))
     if (!beneficiaria) return res.status(404).json({ mensagem: 'Beneficiária não encontrada' })
     auditar(req, 'BENEFICIARIA_REMOVIDA', id, `UC=${beneficiaria.contaContrato}`)
     res.status(204).end()
@@ -138,7 +138,7 @@ export const deletarBeneficiaria = async (req, res) => {
 export const obterResumo = async (req, res) => {
   try {
     const { id } = req.params
-    const beneficiarias = await UnidadeBeneficiaria.find({ projetoId: id }).sort({ createdAt: 1 })
+    const beneficiarias = await UnidadeBeneficiaria.find(aplicarEscopo({ projetoId: id }, req, { contexto: 'benef' })).sort({ createdAt: 1 })
     const ativas = beneficiarias.filter(b => b.ativa !== false)
     const val = validarRateio(ativas)
     res.json({
@@ -167,7 +167,7 @@ export const importarLote = async (req, res) => {
     const { id } = req.params
     const { beneficiarias: novas = [], substituir = false } = req.body || {}
 
-    const projeto = await ProjetoFV.findById(id)
+    const projeto = await ProjetoFV.findOne(aplicarEscopo({ _id: id }, req, { contexto: 'benef.projeto' }))
     if (!projeto) return res.status(404).json({ mensagem: 'Projeto não encontrado' })
     if (!Array.isArray(novas) || novas.length === 0) {
       return res.status(400).json({ mensagem: 'Forneça um array beneficiarias com ao menos 1 item.' })
@@ -176,7 +176,7 @@ export const importarLote = async (req, res) => {
     // Valida a soma antes de persistir
     let paraValidar = novas
     if (!substituir) {
-      const existentes = await UnidadeBeneficiaria.find({ projetoId: id, ativa: true }).lean()
+      const existentes = await UnidadeBeneficiaria.find(aplicarEscopo({ projetoId: id, ativa: true }, req, { contexto: 'benef' })).lean()
       paraValidar = [...existentes, ...novas]
     }
     const val = validarRateio(paraValidar)
@@ -187,7 +187,7 @@ export const importarLote = async (req, res) => {
       })
     }
 
-    if (substituir) await UnidadeBeneficiaria.deleteMany({ projetoId: id })
+    if (substituir) await UnidadeBeneficiaria.deleteMany(aplicarEscopo({ projetoId: id }, req, { contexto: 'benef' }))
 
     const docs = novas.map(b => ({
       projetoId: id,

@@ -9,6 +9,8 @@ import { obterLocalProjeto } from '../dominio/local/index.js'
 // S3: camada de acesso ÚNICA à topologia (Instalação → nova; senão → Arranjo).
 // Proibido ler projeto.arranjos direto fora deste adapter.
 import { obterTopologiaProjeto } from '../dominio/topologia/index.js'
+// Fase 0.5 — M-4: escopo de organização (ponto único).
+import { aplicarEscopo, exigirTenant } from '../dominio/tenancy/index.js'
 import {
   derivarStatusSeguro, paraModel, podeExcluirDefinitivo, avaliarLegacy, MOTIVOS_ARQUIVAMENTO,
 } from '../utils/statusLifecycle.js'
@@ -44,14 +46,13 @@ function enriquecer(p) {
 export const listarProjetosFV = async (req, res) => {
   try {
     let projetos
-    // S7.2.1: filtro multiempresa opcional (?empresa_id=). Sem filtro → todos
-    // (projetos antigos com empresa_id null permanecem acessíveis na empresa default).
-    const empresaId = req?.query?.empresa_id || null
     // S8.4: por padrão esconde excluídos; ?incluir_excluidos=1 mostra (lixeira).
     const incluirExcluidos = ['1', 'true', 'yes'].includes(String(req?.query?.incluir_excluidos || '').toLowerCase())
     const incluirArquivados = ['1', 'true', 'yes'].includes(String(req?.query?.incluir_arquivados || '1').toLowerCase()) // default mostra arquivados
-    const filtro = {}
-    if (empresaId) filtro.$or = [{ empresa_id: empresaId }, { empresa_id: null }]
+    // Fase 0.5 — M-4: escopo de organização vem do TOKEN, nunca de query string.
+    // Removido o `$or:[{empresa_id},{empresa_id:null}]`, que vazava projetos de
+    // empresa_id null para qualquer organização, e o fallback "sem filtro → todos".
+    const filtro = aplicarEscopo({}, req, { contexto: 'listarProjetosFV' })
     if (!incluirExcluidos) filtro.excluido = { $ne: true }
     if (!incluirArquivados) filtro.status = { $ne: 'arquivado' }
 
@@ -69,7 +70,7 @@ export const listarProjetosFV = async (req, res) => {
     res.json(enriquecidos)
   } catch (err) {
     console.error('❌ Erro ao listar projetos FV:', err)
-    res.status(500).json({ erro: err.message })
+    res.status(err.status || 500).json({ erro: err.message, codigo: err.codigo })
   }
 }
 
@@ -79,7 +80,7 @@ export const buscarProjetoFV = async (req, res) => {
     if (mongoose.connection.readyState === 1) {
       // S1.5: popula local_ref para que o agregado Local acompanhe a resposta.
       // Enquanto local_ref = null (pré-backfill), populate é no-op → resposta idêntica.
-      p = await ProjetoFV.findById(req.params.id).populate('clienteId').populate('local_ref')
+      p = await ProjetoFV.findOne(aplicarEscopo({ _id: req.params.id }, req, { contexto: 'projetoFV' })).populate('clienteId').populate('local_ref')
     } else {
       // Memory storage fallback
       p = memoryStore.findProjetoFV(req.params.id)
@@ -103,7 +104,7 @@ export const buscarProjetoFV = async (req, res) => {
     res.json(base)
   } catch (err) {
     console.error('❌ Erro ao buscar projeto FV:', err)
-    res.status(500).json({ erro: err.message })
+    res.status(err.status || 500).json({ erro: err.message, codigo: err.codigo })
   }
 }
 
@@ -111,7 +112,7 @@ export const buscarProjetoFV = async (req, res) => {
 export const totaisProjetoFV = async (req, res) => {
   try {
     if (!_exigirMongo(res)) return
-    const p = await ProjetoFV.findById(req.params.id).lean()
+    const p = await ProjetoFV.findOne(aplicarEscopo({ _id: req.params.id }, req, { contexto: 'projetoFV' })).lean()
     if (!p) return res.status(404).json({ mensagem: 'Projeto não encontrado' })
     const topo = obterTopologiaProjeto(p)
     res.json({
@@ -121,7 +122,7 @@ export const totaisProjetoFV = async (req, res) => {
       totais: topo.totais,
     })
   } catch (err) {
-    res.status(500).json({ erro: err.message })
+    res.status(err.status || 500).json({ erro: err.message, codigo: err.codigo })
   }
 }
 
@@ -152,7 +153,7 @@ export const criarProjetoFV = async (req, res) => {
         return res.status(400).json({ erro: 'ClienteId inválido' })
       }
 
-      const novo = new ProjetoFV({
+      const novo = new ProjetoFV(carimbarTenant({
         clienteId,
         nome,
         status: status || 'rascunho',
@@ -163,7 +164,7 @@ export const criarProjetoFV = async (req, res) => {
         geocoding_confianca: geocoding_confianca !== undefined && geocoding_confianca !== null ? Number(geocoding_confianca) : null,
         geocodificado_em: geocodificado_em ? new Date(geocodificado_em) : null,
         irradiancia_local: 131.44,
-      })
+      }, req, { contexto: 'projetoFV.criar' }))
 
       await novo.save()
       await novo.populate('clienteId')
@@ -197,7 +198,7 @@ export const criarProjetoFV = async (req, res) => {
     }
   } catch (err) {
     console.error('❌ Erro ao criar projeto FV:', err)
-    res.status(500).json({ erro: err.message })
+    res.status(err.status || 500).json({ erro: err.message, codigo: err.codigo })
   }
 }
 
@@ -205,7 +206,7 @@ export const atualizarProjetoFV = async (req, res) => {
   try {
     let projeto
     if (mongoose.connection.readyState === 1) {
-      projeto = await ProjetoFV.findByIdAndUpdate(req.params.id, req.body, { new: true }).populate('clienteId')
+      projeto = await ProjetoFV.findOneAndUpdate(aplicarEscopo({ _id: req.params.id }, req, { contexto: 'projetoFV.atualizar' }), req.body, { new: true }).populate('clienteId')
     } else {
       // Memory storage fallback
       projeto = memoryStore.updateProjetoFV(req.params.id, req.body)
@@ -221,7 +222,7 @@ export const atualizarProjetoFV = async (req, res) => {
     res.json(projeto)
   } catch (err) {
     console.error('❌ Erro ao atualizar projeto FV:', err)
-    res.status(500).json({ erro: err.message })
+    res.status(err.status || 500).json({ erro: err.message, codigo: err.codigo })
   }
 }
 
@@ -240,11 +241,11 @@ export const excluirProjetoFV = async (req, res) => {
       if (!removido) return res.status(404).json({ mensagem: 'Projeto não encontrado' })
       return res.status(204).end()
     }
-    const projeto = await ProjetoFV.findById(req.params.id)
+    const projeto = await ProjetoFV.findOne(aplicarEscopo({ _id: req.params.id }, req, { contexto: 'projetoFV' }))
     if (!projeto) return res.status(404).json({ mensagem: 'Projeto não encontrado' })
 
     if (podeExcluirDefinitivo(projeto)) {
-      await ProjetoFV.findByIdAndDelete(projeto._id)
+      await ProjetoFV.findOneAndDelete(aplicarEscopo({ _id: projeto._id }, req, { contexto: 'projetoFV.excluir' }))
       auditarCiclo(req, 'PROJETO_EXCLUIDO', projeto._id, 'hard delete (regra ok)')
       return res.status(204).end()
     }
@@ -263,7 +264,7 @@ export const excluirProjetoFV = async (req, res) => {
     res.json({ sucesso: true, soft: true, item: enriquecer(projeto) })
   } catch (err) {
     console.error('❌ Erro ao excluir projeto FV:', err)
-    res.status(500).json({ erro: err.message })
+    res.status(err.status || 500).json({ erro: err.message, codigo: err.codigo })
   }
 }
 
@@ -274,7 +275,7 @@ export const excluirProjetoFV = async (req, res) => {
 export const duplicarProjetoFV = async (req, res) => {
   try {
     if (!_exigirMongo(res)) return
-    const orig = await ProjetoFV.findById(req.params.id).lean()
+    const orig = await ProjetoFV.findOne(aplicarEscopo({ _id: req.params.id }, req, { contexto: 'projetoFV' })).lean()
     if (!orig) return res.status(404).json({ mensagem: 'Projeto não encontrado' })
     if (orig.excluido) return res.status(400).json({ erro: 'Não é possível duplicar projeto excluído.' })
 
@@ -299,12 +300,12 @@ export const duplicarProjetoFV = async (req, res) => {
       // marca a origem na descrição (não-funcional)
       nome: `${resto.nome || 'Projeto'} (cópia)`,
     }
-    const novo = await ProjetoFV.create(copia)
+    const novo = await ProjetoFV.create(carimbarTenant(copia, req, { contexto: 'projetoFV.duplicar' }))
     auditarCiclo(req, 'PROJETO_DUPLICADO', novo._id, `origem=${_id}`)
     res.status(201).json({ sucesso: true, item: enriquecer(novo), origem: _id })
   } catch (err) {
     console.error('❌ Erro ao duplicar projeto FV:', err)
-    res.status(500).json({ erro: err.message })
+    res.status(err.status || 500).json({ erro: err.message, codigo: err.codigo })
   }
 }
 
@@ -316,7 +317,7 @@ export const duplicarProjetoFV = async (req, res) => {
 export const ampliarProjetoFV = async (req, res) => {
   try {
     if (!_exigirMongo(res)) return
-    const orig = await ProjetoFV.findById(req.params.id).lean()
+    const orig = await ProjetoFV.findOne(aplicarEscopo({ _id: req.params.id }, req, { contexto: 'projetoFV' })).lean()
     if (!orig) return res.status(404).json({ mensagem: 'Projeto não encontrado' })
     if (orig.excluido) return res.status(400).json({ erro: 'Não é possível ampliar projeto excluído.' })
 
@@ -351,7 +352,7 @@ export const ampliarProjetoFV = async (req, res) => {
       arranjos,
     }
 
-    const novo = await ProjetoFV.create(ampliacao)
+    const novo = await ProjetoFV.create(carimbarTenant(ampliacao, req, { contexto: 'projetoFV.ampliar' }))
     auditarCiclo(req, 'PROJETO_AMPLIADO', novo._id, `origem=${_id} arranjos=${arranjos.length}`)
     res.status(201).json({
       sucesso: true,
@@ -362,7 +363,7 @@ export const ampliarProjetoFV = async (req, res) => {
     })
   } catch (err) {
     console.error('❌ Erro ao ampliar projeto FV:', err)
-    res.status(500).json({ erro: err.message })
+    res.status(err.status || 500).json({ erro: err.message, codigo: err.codigo })
   }
 }
 
@@ -375,7 +376,7 @@ export const arquivarProjetoFV = async (req, res) => {
     if (!MOTIVOS_ARQUIVAMENTO.includes(motivo)) {
       return res.status(400).json({ erro: `motivo inválido (use um de: ${MOTIVOS_ARQUIVAMENTO.join(', ')})` })
     }
-    const projeto = await ProjetoFV.findById(req.params.id)
+    const projeto = await ProjetoFV.findOne(aplicarEscopo({ _id: req.params.id }, req, { contexto: 'projetoFV' }))
     if (!projeto) return res.status(404).json({ mensagem: 'Projeto não encontrado' })
     projeto.status = 'arquivado'
     projeto.arquivado_em = new Date()
@@ -386,7 +387,7 @@ export const arquivarProjetoFV = async (req, res) => {
     res.json({ sucesso: true, item: enriquecer(projeto) })
   } catch (err) {
     console.error('❌ Erro ao arquivar projeto FV:', err)
-    res.status(500).json({ erro: err.message })
+    res.status(err.status || 500).json({ erro: err.message, codigo: err.codigo })
   }
 }
 
@@ -394,7 +395,7 @@ export const arquivarProjetoFV = async (req, res) => {
 export const restaurarProjetoFV = async (req, res) => {
   try {
     if (!_exigirMongo(res)) return
-    const projeto = await ProjetoFV.findById(req.params.id)
+    const projeto = await ProjetoFV.findOne(aplicarEscopo({ _id: req.params.id }, req, { contexto: 'projetoFV' }))
     if (!projeto) return res.status(404).json({ mensagem: 'Projeto não encontrado' })
     const veioDe = projeto.excluido ? 'excluido' : (projeto.status === 'arquivado' ? 'arquivado' : 'nada')
     if (veioDe === 'nada') return res.status(400).json({ erro: 'Projeto não está arquivado nem excluído.' })
@@ -411,7 +412,7 @@ export const restaurarProjetoFV = async (req, res) => {
     res.json({ sucesso: true, item: enriquecer(projeto) })
   } catch (err) {
     console.error('❌ Erro ao restaurar projeto FV:', err)
-    res.status(500).json({ erro: err.message })
+    res.status(err.status || 500).json({ erro: err.message, codigo: err.codigo })
   }
 }
 
@@ -422,7 +423,7 @@ export const alterarStatusCiclo = async (req, res) => {
     const { status } = req.body || {}
     if (!status) return res.status(400).json({ erro: 'status obrigatório' })
     const novo = paraModel(String(status).toUpperCase())
-    const projeto = await ProjetoFV.findById(req.params.id)
+    const projeto = await ProjetoFV.findOne(aplicarEscopo({ _id: req.params.id }, req, { contexto: 'projetoFV' }))
     if (!projeto) return res.status(404).json({ mensagem: 'Projeto não encontrado' })
     const antes = projeto.status
     if (antes === novo) return res.json({ sucesso: true, item: enriquecer(projeto), inalterado: true })
@@ -432,7 +433,7 @@ export const alterarStatusCiclo = async (req, res) => {
     res.json({ sucesso: true, item: enriquecer(projeto), alteracao: { antes, depois: novo } })
   } catch (err) {
     console.error('❌ Erro ao alterar status FV:', err)
-    res.status(500).json({ erro: err.message })
+    res.status(err.status || 500).json({ erro: err.message, codigo: err.codigo })
   }
 }
 
@@ -447,7 +448,7 @@ export const listarProjetosFVPorCliente = async (req, res) => {
 
     let projetosDocliente
     if (mongoose.connection.readyState === 1) {
-      projetosDocliente = await ProjetoFV.find({ clienteId }).sort({ createdAt: -1 })
+      projetosDocliente = await ProjetoFV.find(aplicarEscopo({ clienteId }, req, { contexto: 'projetoFV.porCliente' })).sort({ createdAt: -1 })
     } else {
       // Memory storage fallback
       projetosDocliente = memoryStore.findProjetoFVByCliente(clienteId).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
@@ -457,7 +458,7 @@ export const listarProjetosFVPorCliente = async (req, res) => {
     res.json(projetosDocliente)
   } catch (err) {
     console.error('❌ Erro ao listar projetos por cliente:', err)
-    res.status(500).json({ erro: err.message })
+    res.status(err.status || 500).json({ erro: err.message, codigo: err.codigo })
   }
 }
 
@@ -481,7 +482,7 @@ export const salvarTelhado = async (req, res) => {
 
     let projeto
     if (mongoose.connection.readyState === 1) {
-      projeto = await ProjetoFV.findById(id)
+      projeto = await ProjetoFV.findOne(aplicarEscopo({ _id: id }, req, { contexto: 'projetoFV' }))
     } else {
       projeto = memoryStore.findProjetoFV(id)
     }
@@ -525,7 +526,7 @@ export const salvarTelhado = async (req, res) => {
     res.json(projeto)
   } catch (err) {
     console.error('❌ Erro ao salvar telhado:', err)
-    res.status(500).json({ erro: err.message })
+    res.status(err.status || 500).json({ erro: err.message, codigo: err.codigo })
   }
 }
 
@@ -540,7 +541,7 @@ export const obterTelhado = async (req, res) => {
 
     let projeto
     if (mongoose.connection.readyState === 1) {
-      projeto = await ProjetoFV.findById(id).populate('local_ref')
+      projeto = await ProjetoFV.findOne(aplicarEscopo({ _id: id }, req, { contexto: 'projetoFV' })).populate('local_ref')
     } else {
       projeto = memoryStore.findProjetoFV(id)
     }
@@ -562,7 +563,7 @@ export const obterTelhado = async (req, res) => {
     })
   } catch (err) {
     console.error('❌ Erro ao obter telhado:', err)
-    res.status(500).json({ erro: err.message })
+    res.status(err.status || 500).json({ erro: err.message, codigo: err.codigo })
   }
 }
 
@@ -608,6 +609,7 @@ export const salvarEtapaProjetoFV = async (req, res) => {
       'protecoes', 'orcamento', 'proposta', 'workflow', 'unifilar', 'fatura',
       'engenharia_eletrica',  // S2.11.2 — arranjo + clima + resultado de compatibilidade
       'arranjos',             // P1-UX-FRONT-CONNECT-01 — múltiplos arranjos de componentes
+      'instalacao_ref',       // S4C-0 — vínculo persistente ProjetoFV → Instalacao (só o link)
     ]
     if (!ETAPAS_PERMITIDAS.includes(etapa)) {
       return res.status(400).json({
@@ -708,6 +710,17 @@ export const salvarEtapaProjetoFV = async (req, res) => {
         break
       }
 
+      case 'instalacao_ref': {
+        // S4C-0 — persiste APENAS o vínculo ProjetoFV → Instalacao. Não cria/gera
+        // topologia. Recebe { id }: ObjectId (vincula) ou null (remove o vínculo).
+        const id = dados.id ?? null
+        if (id !== null && !mongoose.Types.ObjectId.isValid(id)) {
+          return res.status(400).json({ erro: 'instalacao_ref: id deve ser ObjectId válido ou null' })
+        }
+        $set.instalacao_ref = id
+        break
+      }
+
       default:
         // equipamentos, protecoes, proposta, workflow, unifilar — set direto
         $set[etapa] = dados
@@ -716,7 +729,7 @@ export const salvarEtapaProjetoFV = async (req, res) => {
     // ⚠️ FIX defensivo: garantir que `workflow` não seja null antes de tocar subcampos.
     // Sem isso, MongoDB lança "Cannot create field 'ultima_atividade' in element {workflow: null}"
     // pois $set em path dot-notation falha quando o ancestral é null.
-    const projetoAtual = await ProjetoFV.findById(id).select('workflow governanca.freeze_status governanca.comercial.workflow_status').lean()
+    const projetoAtual = await ProjetoFV.findOne(aplicarEscopo({ _id: id }, req, { contexto: 'projetoFV' })).select('workflow governanca.freeze_status governanca.comercial.workflow_status').lean()
     if (!projetoAtual) return res.status(404).json({ erro: 'Projeto não encontrado' })
 
     // ── S3.5/S4.2: Freeze guard ────────────────────────────────────────────────
@@ -738,7 +751,7 @@ export const salvarEtapaProjetoFV = async (req, res) => {
     }
 
     if (!projetoAtual.workflow) {
-      await ProjetoFV.updateOne({ _id: id }, { $set: { workflow: {} } })
+      await ProjetoFV.updateOne(aplicarEscopo({ _id: id }, req, { contexto: 'projetoFV.workflow' }), { $set: { workflow: {} } })
     }
 
     // P0-ENGENHARIA-ELETRICA-PERSIST-FIX-01: mesmo null-guard para engenharia_eletrica.
@@ -747,7 +760,7 @@ export const salvarEtapaProjetoFV = async (req, res) => {
     // updateOne condicional (filtro engenharia_eletrica:null) inicializa {} apenas quando
     // ainda é null — idempotente e nunca sobrescreve dados existentes.
     if (etapa === 'engenharia_eletrica') {
-      await ProjetoFV.updateOne({ _id: id, engenharia_eletrica: null }, { $set: { engenharia_eletrica: {} } })
+      await ProjetoFV.updateOne(aplicarEscopo({ _id: id, engenharia_eletrica: null }, req, { contexto: 'projetoFV.engenharia' }), { $set: { engenharia_eletrica: {} } })
     }
 
     // Sempre atualiza ultima_atividade + schema_version.
@@ -761,8 +774,8 @@ export const salvarEtapaProjetoFV = async (req, res) => {
     }
     $set.schema_version = 3  // documento passa a ser v3 a partir do primeiro save via wizard
 
-    const projeto = await ProjetoFV.findByIdAndUpdate(
-      id,
+    const projeto = await ProjetoFV.findOneAndUpdate(
+      aplicarEscopo({ _id: id }, req, { contexto: 'projetoFV.salvarEtapa' }),
       { $set },
       { new: true, runValidators: true }
     ).populate('clienteId')
@@ -780,7 +793,7 @@ export const salvarEtapaProjetoFV = async (req, res) => {
     })
   } catch (err) {
     console.error('❌ Erro ao salvar etapa FV:', err)
-    res.status(500).json({ erro: err.message })
+    res.status(err.status || 500).json({ erro: err.message, codigo: err.codigo })
   }
 }
 
@@ -792,7 +805,7 @@ export const gerarUnifilarProjeto = async (req, res) => {
       return res.status(400).json({ erro: 'ID inválido' })
     }
 
-    const projeto = await ProjetoFV.findById(id)
+    const projeto = await ProjetoFV.findOne(aplicarEscopo({ _id: id }, req, { contexto: 'projetoFV' }))
     if (!projeto) return res.status(404).json({ erro: 'Projeto não encontrado' })
 
     const dim = projeto.dimensionamento
@@ -825,7 +838,7 @@ export const gerarUnifilarProjeto = async (req, res) => {
     )
   } catch (err) {
     console.error('❌ Erro ao gerar unifilar:', err)
-    res.status(500).json({ erro: err.message })
+    res.status(err.status || 500).json({ erro: err.message, codigo: err.codigo })
   }
 }
 
@@ -880,7 +893,7 @@ export const congelarProjetoFV = async (req, res) => {
       return res.status(400).json({ erro: `novo_status deve ser um de: ${STATUS_VALIDOS.join(', ')}` })
     }
 
-    const projeto = await ProjetoFV.findById(id)
+    const projeto = await ProjetoFV.findOne(aplicarEscopo({ _id: id }, req, { contexto: 'projetoFV' }))
     if (!projeto) return res.status(404).json({ erro: 'Projeto não encontrado' })
 
     const gov = projeto.governanca || {}
@@ -894,7 +907,7 @@ export const congelarProjetoFV = async (req, res) => {
       const tecnicoId = projeto.tecnico_principal_id || projeto.tecnico_id || null
       if (tecnicoId && mongoose.Types.ObjectId.isValid(tecnicoId)) {
         try {
-          const tec = await Tecnico.findById(tecnicoId).lean()
+          const tec = await Tecnico.findOne(aplicarEscopo({ _id: tecnicoId }, req, { contexto: 'tecnico' })).lean()
           if (tec) snapshotRT = montarSnapshotRT(tec, agora)
         } catch { /* segue sem snapshot RT */ }
       }
@@ -972,7 +985,7 @@ export const congelarProjetoFV = async (req, res) => {
     res.json({ sucesso: true, governanca: projeto.governanca })
   } catch (err) {
     console.error('❌ Erro ao congelar projeto:', err)
-    res.status(500).json({ erro: err.message })
+    res.status(err.status || 500).json({ erro: err.message, codigo: err.codigo })
   }
 }
 
@@ -989,7 +1002,7 @@ export const criarRevisaoProjetoFV = async (req, res) => {
 
     const { usuario = null, motivo = null, alteracoes = null } = req.body || {}
 
-    const projeto = await ProjetoFV.findById(id)
+    const projeto = await ProjetoFV.findOne(aplicarEscopo({ _id: id }, req, { contexto: 'projetoFV' }))
     if (!projeto) return res.status(404).json({ erro: 'Projeto não encontrado' })
 
     const gov = (projeto.governanca && projeto.governanca.toObject?.()) || projeto.governanca || {}
@@ -1029,7 +1042,7 @@ export const criarRevisaoProjetoFV = async (req, res) => {
     res.json({ sucesso: true, revisao_atual: novaRev, governanca: projeto.governanca })
   } catch (err) {
     console.error('❌ Erro ao criar revisão:', err)
-    res.status(500).json({ erro: err.message })
+    res.status(err.status || 500).json({ erro: err.message, codigo: err.codigo })
   }
 }
 
@@ -1050,7 +1063,7 @@ export const alterarStatusGovernanca = async (req, res) => {
       return res.status(400).json({ erro: `status deve ser um de: ${STATUS_VALIDOS.join(', ')}` })
     }
 
-    const projeto = await ProjetoFV.findById(id)
+    const projeto = await ProjetoFV.findOne(aplicarEscopo({ _id: id }, req, { contexto: 'projetoFV' }))
     if (!projeto) return res.status(404).json({ erro: 'Projeto não encontrado' })
 
     const gov = (projeto.governanca && projeto.governanca.toObject?.()) || projeto.governanca || {}
@@ -1097,7 +1110,7 @@ export const alterarStatusGovernanca = async (req, res) => {
     res.json({ sucesso: true, freeze_status: status, governanca: projeto.governanca })
   } catch (err) {
     console.error('❌ Erro ao alterar status de governança:', err)
-    res.status(500).json({ erro: err.message })
+    res.status(err.status || 500).json({ erro: err.message, codigo: err.codigo })
   }
 }
 
@@ -1112,7 +1125,7 @@ export const detectarDivergenciaProjetoFV = async (req, res) => {
     const { id } = req.params
     if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ erro: 'ID inválido' })
 
-    const projeto = await ProjetoFV.findById(id).lean()
+    const projeto = await ProjetoFV.findOne(aplicarEscopo({ _id: id }, req, { contexto: 'projetoFV' })).lean()
     if (!projeto) return res.status(404).json({ erro: 'Projeto não encontrado' })
 
     const snapCat = projeto.governanca?.snapshot_catalogo
@@ -1203,7 +1216,7 @@ export const detectarDivergenciaProjetoFV = async (req, res) => {
     })
   } catch (err) {
     console.error('❌ Erro ao detectar divergência:', err)
-    res.status(500).json({ erro: err.message })
+    res.status(err.status || 500).json({ erro: err.message, codigo: err.codigo })
   }
 }
 
@@ -1284,7 +1297,7 @@ export const salvarComercialProjetoFV = async (req, res) => {
       desconto_pct, desconto_limite_pct, margem_liquida_pct = null,
       cenarios_congelados = null, congelar = false, usuario = null } = req.body || {}
 
-    const projeto = await ProjetoFV.findById(id)
+    const projeto = await ProjetoFV.findOne(aplicarEscopo({ _id: id }, req, { contexto: 'projetoFV' }))
     if (!projeto) return res.status(404).json({ erro: 'Projeto não encontrado' })
 
     const { govObj, com } = _carregarComercial(projeto.governanca)
@@ -1325,7 +1338,7 @@ export const salvarComercialProjetoFV = async (req, res) => {
     res.json({ sucesso: true, comercial: projeto.governanca.comercial })
   } catch (err) {
     console.error('❌ Erro ao salvar comercial:', err)
-    res.status(500).json({ erro: err.message })
+    res.status(err.status || 500).json({ erro: err.message, codigo: err.codigo })
   }
 }
 
@@ -1345,7 +1358,7 @@ export const atualizarWorkflowComercial = async (req, res) => {
       return res.status(400).json({ erro: `status deve ser um de: ${WORKFLOW_COMERCIAL.join(', ')}` })
     }
 
-    const projeto = await ProjetoFV.findById(id)
+    const projeto = await ProjetoFV.findOne(aplicarEscopo({ _id: id }, req, { contexto: 'projetoFV' }))
     if (!projeto) return res.status(404).json({ erro: 'Projeto não encontrado' })
 
     const { govObj, com } = _carregarComercial(projeto.governanca)
@@ -1374,7 +1387,7 @@ export const atualizarWorkflowComercial = async (req, res) => {
     res.json({ sucesso: true, workflow_status: status, comercial: projeto.governanca.comercial })
   } catch (err) {
     console.error('❌ Erro no workflow comercial:', err)
-    res.status(500).json({ erro: err.message })
+    res.status(err.status || 500).json({ erro: err.message, codigo: err.codigo })
   }
 }
 
@@ -1394,7 +1407,7 @@ export const registrarAssinaturaComercial = async (req, res) => {
     if (!PAPEIS.includes(papel)) return res.status(400).json({ erro: `papel deve ser: ${PAPEIS.join(', ')}` })
     if (!nome || !hash) return res.status(400).json({ erro: 'nome e hash são obrigatórios' })
 
-    const projeto = await ProjetoFV.findById(id)
+    const projeto = await ProjetoFV.findOne(aplicarEscopo({ _id: id }, req, { contexto: 'projetoFV' }))
     if (!projeto) return res.status(404).json({ erro: 'Projeto não encontrado' })
 
     const { govObj, com } = _carregarComercial(projeto.governanca)
@@ -1424,7 +1437,7 @@ export const registrarAssinaturaComercial = async (req, res) => {
     res.json({ sucesso: true, comercial: projeto.governanca.comercial })
   } catch (err) {
     console.error('❌ Erro ao registrar assinatura:', err)
-    res.status(500).json({ erro: err.message })
+    res.status(err.status || 500).json({ erro: err.message, codigo: err.codigo })
   }
 }
 
@@ -1444,7 +1457,7 @@ export const registrarAprovacaoComercial = async (req, res) => {
     if (!TIPOS.includes(tipo)) return res.status(400).json({ erro: `tipo deve ser: ${TIPOS.join(', ')}` })
     if (!aprovado_por) return res.status(400).json({ erro: 'aprovado_por é obrigatório' })
 
-    const projeto = await ProjetoFV.findById(id)
+    const projeto = await ProjetoFV.findOne(aplicarEscopo({ _id: id }, req, { contexto: 'projetoFV' }))
     if (!projeto) return res.status(404).json({ erro: 'Projeto não encontrado' })
 
     const { govObj, com } = _carregarComercial(projeto.governanca)
@@ -1460,7 +1473,7 @@ export const registrarAprovacaoComercial = async (req, res) => {
     res.json({ sucesso: true, comercial: projeto.governanca.comercial })
   } catch (err) {
     console.error('❌ Erro ao registrar aprovação:', err)
-    res.status(500).json({ erro: err.message })
+    res.status(err.status || 500).json({ erro: err.message, codigo: err.codigo })
   }
 }
 
@@ -1493,7 +1506,7 @@ export const criarRevisaoComercial = async (req, res) => {
 
     const { usuario = null, motivo = null, snapshot_comercial: novoSnap = null } = req.body || {}
 
-    const projeto = await ProjetoFV.findById(id)
+    const projeto = await ProjetoFV.findOne(aplicarEscopo({ _id: id }, req, { contexto: 'projetoFV' }))
     if (!projeto) return res.status(404).json({ erro: 'Projeto não encontrado' })
 
     const { govObj, com } = _carregarComercial(projeto.governanca)
@@ -1532,7 +1545,7 @@ export const criarRevisaoComercial = async (req, res) => {
     res.json({ sucesso: true, revisao_atual: novaRev, comercial: projeto.governanca.comercial })
   } catch (err) {
     console.error('❌ Erro ao criar revisão comercial:', err)
-    res.status(500).json({ erro: err.message })
+    res.status(err.status || 500).json({ erro: err.message, codigo: err.codigo })
   }
 }
 
@@ -1595,7 +1608,7 @@ export const congelarCenarioComercial = async (req, res) => {
     const { scenario_id, snapshots = {}, hash = null, usuario = null } = req.body || {}
     if (!scenario_id) return res.status(400).json({ erro: 'scenario_id é obrigatório' })
 
-    const projeto = await ProjetoFV.findById(id)
+    const projeto = await ProjetoFV.findOne(aplicarEscopo({ _id: id }, req, { contexto: 'projetoFV' }))
     if (!projeto) return res.status(404).json({ erro: 'Projeto não encontrado' })
 
     const { govObj, com } = _carregarComercial(projeto.governanca)
@@ -1618,7 +1631,7 @@ export const congelarCenarioComercial = async (req, res) => {
     await _salvarCenario(projeto, govObj, com, mapa, cen, res)
   } catch (err) {
     console.error('❌ Erro ao congelar cenário:', err)
-    res.status(500).json({ erro: err.message })
+    res.status(err.status || 500).json({ erro: err.message, codigo: err.codigo })
   }
 }
 
@@ -1636,7 +1649,7 @@ export const workflowCenarioComercial = async (req, res) => {
     if (!scenario_id) return res.status(400).json({ erro: 'scenario_id é obrigatório' })
     if (!WORKFLOW_COMERCIAL.includes(status)) return res.status(400).json({ erro: `status inválido` })
 
-    const projeto = await ProjetoFV.findById(id)
+    const projeto = await ProjetoFV.findOne(aplicarEscopo({ _id: id }, req, { contexto: 'projetoFV' }))
     if (!projeto) return res.status(404).json({ erro: 'Projeto não encontrado' })
 
     const { govObj, com } = _carregarComercial(projeto.governanca)
@@ -1655,7 +1668,7 @@ export const workflowCenarioComercial = async (req, res) => {
     await _salvarCenario(projeto, govObj, com, mapa, cen, res)
   } catch (err) {
     console.error('❌ Erro no workflow do cenário:', err)
-    res.status(500).json({ erro: err.message })
+    res.status(err.status || 500).json({ erro: err.message, codigo: err.codigo })
   }
 }
 
@@ -1675,7 +1688,7 @@ export const assinarCenarioComercial = async (req, res) => {
     if (!PAPEIS.includes(papel)) return res.status(400).json({ erro: `papel deve ser: ${PAPEIS.join(', ')}` })
     if (!nome || !hash) return res.status(400).json({ erro: 'nome e hash são obrigatórios' })
 
-    const projeto = await ProjetoFV.findById(id)
+    const projeto = await ProjetoFV.findOne(aplicarEscopo({ _id: id }, req, { contexto: 'projetoFV' }))
     if (!projeto) return res.status(404).json({ erro: 'Projeto não encontrado' })
 
     const { govObj, com } = _carregarComercial(projeto.governanca)
@@ -1705,7 +1718,7 @@ export const assinarCenarioComercial = async (req, res) => {
     await _salvarCenario(projeto, govObj, com, mapa, cen, res)
   } catch (err) {
     console.error('❌ Erro ao assinar cenário:', err)
-    res.status(500).json({ erro: err.message })
+    res.status(err.status || 500).json({ erro: err.message, codigo: err.codigo })
   }
 }
 
@@ -1722,7 +1735,7 @@ export const revisaoCenarioComercial = async (req, res) => {
     const { scenario_id, usuario = null, motivo = null } = req.body || {}
     if (!scenario_id) return res.status(400).json({ erro: 'scenario_id é obrigatório' })
 
-    const projeto = await ProjetoFV.findById(id)
+    const projeto = await ProjetoFV.findOne(aplicarEscopo({ _id: id }, req, { contexto: 'projetoFV' }))
     if (!projeto) return res.status(404).json({ erro: 'Projeto não encontrado' })
 
     const { govObj, com } = _carregarComercial(projeto.governanca)
@@ -1746,7 +1759,7 @@ export const revisaoCenarioComercial = async (req, res) => {
     await _salvarCenario(projeto, govObj, com, mapa, cen, res)
   } catch (err) {
     console.error('❌ Erro na revisão do cenário:', err)
-    res.status(500).json({ erro: err.message })
+    res.status(err.status || 500).json({ erro: err.message, codigo: err.codigo })
   }
 }
 
@@ -1769,7 +1782,7 @@ export const atualizarCrm = async (req, res) => {
     if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ erro: 'ID inválido' })
     const { crm_pipeline = null, followup = null, usuario = null } = req.body || {}
 
-    const projeto = await ProjetoFV.findById(id)
+    const projeto = await ProjetoFV.findOne(aplicarEscopo({ _id: id }, req, { contexto: 'projetoFV' }))
     if (!projeto) return res.status(404).json({ erro: 'Projeto não encontrado' })
 
     const { govObj, com } = _carregarComercial(projeto.governanca)
@@ -1797,7 +1810,7 @@ export const atualizarCrm = async (req, res) => {
     res.json({ sucesso: true, comercial: projeto.governanca.comercial })
   } catch (err) {
     console.error('❌ Erro ao atualizar CRM:', err)
-    res.status(500).json({ erro: err.message })
+    res.status(err.status || 500).json({ erro: err.message, codigo: err.codigo })
   }
 }
 
@@ -1815,7 +1828,7 @@ export const registrarComunicacao = async (req, res) => {
     const CANAIS = ['whatsapp', 'email', 'compartilhamento', 'followup', 'outro']
     if (!CANAIS.includes(canal)) return res.status(400).json({ erro: `canal deve ser: ${CANAIS.join(', ')}` })
 
-    const projeto = await ProjetoFV.findById(id)
+    const projeto = await ProjetoFV.findOne(aplicarEscopo({ _id: id }, req, { contexto: 'projetoFV' }))
     if (!projeto) return res.status(404).json({ erro: 'Projeto não encontrado' })
 
     const { govObj, com } = _carregarComercial(projeto.governanca)
@@ -1837,7 +1850,7 @@ export const registrarComunicacao = async (req, res) => {
     res.json({ sucesso: true, comercial: projeto.governanca.comercial })
   } catch (err) {
     console.error('❌ Erro ao registrar comunicação:', err)
-    res.status(500).json({ erro: err.message })
+    res.status(err.status || 500).json({ erro: err.message, codigo: err.codigo })
   }
 }
 
@@ -1854,7 +1867,7 @@ export const criarCompartilhamento = async (req, res) => {
     if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ erro: 'ID inválido' })
     const { cenario_id = null, validade_dias = 30, usuario = null } = req.body || {}
 
-    const projeto = await ProjetoFV.findById(id)
+    const projeto = await ProjetoFV.findOne(aplicarEscopo({ _id: id }, req, { contexto: 'projetoFV' }))
     if (!projeto) return res.status(404).json({ erro: 'Projeto não encontrado' })
 
     const { govObj, com } = _carregarComercial(projeto.governanca)
@@ -1905,7 +1918,7 @@ export const criarCompartilhamento = async (req, res) => {
     res.json({ sucesso: true, share_id, token, validade, comercial: projeto.governanca.comercial })
   } catch (err) {
     console.error('❌ Erro ao criar compartilhamento:', err)
-    res.status(500).json({ erro: err.message })
+    res.status(err.status || 500).json({ erro: err.message, codigo: err.codigo })
   }
 }
 
@@ -1920,6 +1933,11 @@ export const obterPropostaPublica = async (req, res) => {
     const { token } = req.params
     if (!token) return res.status(400).json({ erro: 'token ausente' })
 
+    // EXCEÇÃO DELIBERADA A M-4 — rota PÚBLICA (/api/publico/proposta/:token),
+    // sem autenticação por design: o token de compartilhamento É a credencial.
+    // Aplicar escopo de organização aqui quebraria o compartilhamento de proposta
+    // com o cliente final, que não possui login. O token é aleatório, single-purpose
+    // e só expõe a proposta à qual pertence — não há travessia entre organizações.
     const projeto = await ProjetoFV.findOne(
       { 'governanca.comercial.compartilhamentos.token': token }
     )
@@ -1971,6 +1989,6 @@ export const obterPropostaPublica = async (req, res) => {
     })
   } catch (err) {
     console.error('❌ Erro ao obter proposta pública:', err)
-    res.status(500).json({ erro: err.message })
+    res.status(err.status || 500).json({ erro: err.message, codigo: err.codigo })
   }
 }

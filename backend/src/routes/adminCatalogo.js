@@ -9,6 +9,7 @@
  */
 
 import { Router } from 'express'
+import { aplicarEscopo, carimbarTenant } from '../dominio/tenancy/index.js'   // Fase 0.5 — M-4
 import multer from 'multer'
 import mongoose from 'mongoose'
 import { Equipamento } from '../models/Equipamento.js'
@@ -716,7 +717,7 @@ router.post('/documento-enterprise', uploadDS.single('arquivo'), async (req, res
     const hash = crypto.createHash('sha256').update(buffer).digest('hex')
 
     // Dedup global: mesmo arquivo → reaproveita o documento existente
-    let doc = await DocumentoTecnico.findOne({ hash_sha256: hash })
+    let doc = await DocumentoTecnico.findOne(aplicarEscopo({ hash_sha256: hash }, req, { contexto: 'doc.dedup' }))
     if (doc) {
       await _auditCatalogo(req, 'UPLOAD_DOCUMENTO', `dedup ${tipo}/${req.file.originalname} (ref existente)`)
       return res.json({ sucesso: true, deduplicado: true, documento: doc })
@@ -740,18 +741,18 @@ router.post('/documento-enterprise', uploadDS.single('arquivo'), async (req, res
 
     // S8.2.1: versionamento — nunca sobrescreve; nova versão p/ mesmo fabricante+modelo+tipo
     const anterior = (fabricante && modelo)
-      ? await DocumentoTecnico.findOne({ fabricante, modelo, tipo }).sort({ versao: -1 }).lean()
+      ? await DocumentoTecnico.findOne(aplicarEscopo({ fabricante, modelo, tipo }, req, { contexto: 'doc.versao' })).sort({ versao: -1 }).lean()
       : null
     const versao = anterior ? (anterior.versao || 1) + 1 : 1
 
-    doc = await DocumentoTecnico.create({
+    doc = await DocumentoTecnico.create(carimbarTenant({
       tipo, fabricante, modelo, nome: req.file.originalname, hash_sha256: hash,
       document_path, url_storage, storage_provider, versao,
       tamanho_original: otim.tamanho_original, tamanho_final: otim.tamanho_final,
       economia_pct: otim.reducao_pct, dpi_final: otim.dpi_final,
       documento_assinado: assinatura.assinado, otimizacao_pulada: assinatura.assinado,
       motivo_preservacao: assinatura.assinado ? 'Preservada validade jurídica' : null,
-    })
+    }, req, { contexto: 'doc.criar' }))
     if (versao > 1) await _auditCatalogo(req, 'NOVA_VERSAO', `${fabricante} ${modelo} v${versao}`)
     res.json({ sucesso: true, deduplicado: false, assinatura, versao, documento: doc })
   } catch (err) {
@@ -788,7 +789,7 @@ router.get('/equipamento/:id/status-documental', async (req, res) => {
 router.get('/documento/:id/download', async (req, res) => {
   try {
     if (mongoose.connection.readyState !== 1) return res.status(503).json({ sucesso: false, erro: 'DB_OFFLINE' })
-    const doc = await DocumentoTecnico.findById(req.params.id).lean()
+    const doc = await DocumentoTecnico.findOne(aplicarEscopo({ _id: req.params.id }, req, { contexto: 'doc.buscar' })).lean()
     if (!doc) return res.status(404).json({ sucesso: false, erro: 'Documento não encontrado' })
     const ref = { document_path: doc.document_path, url_storage: doc.url_storage, hash: doc.hash_sha256 }
 
@@ -813,7 +814,7 @@ router.post('/storage/migrar', async (req, res) => {
     if (mongoose.connection.readyState !== 1) return res.status(503).json({ sucesso: false, erro: 'DB_OFFLINE' })
     const { de = { provider: 'local' }, para } = req.body || {}
     if (!para?.provider || !PROVIDERS_DISPONIVEIS.includes(para.provider)) return res.status(400).json({ sucesso: false, erro: 'provider destino inválido' })
-    const documentos = await DocumentoTecnico.find({ arquivado: { $ne: true } }).lean()
+    const documentos = await DocumentoTecnico.find(aplicarEscopo({ arquivado: { $ne: true } }, req, { contexto: 'doc.listar' })).lean()
     const validarHash = (buf) => crypto.createHash('sha256').update(buf).digest('hex')
     const resultado = await migrarStorage({ documentos, de, para, validarHash })
     await _auditCatalogo(req, 'MIGRACAO_STORAGE', `${de.provider} → ${para.provider}: ${resultado.migrados}/${resultado.total}`)

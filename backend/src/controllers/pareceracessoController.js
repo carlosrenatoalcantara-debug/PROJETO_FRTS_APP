@@ -1,4 +1,5 @@
 import { PDFParse } from 'pdf-parse'
+import { aplicarEscopo, carimbarTenant, exigirTenant } from '../dominio/tenancy/index.js'   // Fase 0.5 — M-4
 import { Cliente } from '../models/Cliente.js'
 import { ProjetoFV } from '../models/ProjetoFV.js'
 import { Equipamento } from '../models/Equipamento.js'
@@ -378,14 +379,14 @@ export const extrairParecer = async (req, res) => {
       if (dadosCliente.cpf_cnpj) searchQuery.cpf_cnpj = dadosCliente.cpf_cnpj
       if (dadosInstalacao.numero_cliente) searchQuery.numero_cliente = dadosInstalacao.numero_cliente
 
-      cliente = await Cliente.findOne({
-        $or: Object.keys(searchQuery).map(key => ({ [key]: searchQuery[key] }))
-      })
+      cliente = await Cliente.findOne(aplicarEscopo({
+        $or: Object.keys(searchQuery).map(key => ({ [key]: searchQuery[key] })),
+      }, req, { contexto: 'parecer.buscarCliente' }))
     }
 
     // If not found, create new client
     if (!cliente) {
-      const novoCliente = new Cliente({
+      const novoCliente = new Cliente(carimbarTenant({
         nome: dadosCliente.nome || 'Cliente Parecer',
         email: dadosCliente.email || `${dadosInstalacao.numero_cliente || Date.now()}@parecer.local`,
         cpf_cnpj: dadosCliente.cpf_cnpj || '',
@@ -394,7 +395,7 @@ export const extrairParecer = async (req, res) => {
         distribuidora: dadosInstalacao.distribuidora || '',
         tipo_ligacao: dadosInstalacao.fase_tensao || 'Monofásico',
         tags: ['parecer-import'],
-      })
+      }, req, { contexto: 'parecer.criarCliente' }))
 
       try {
         cliente = await novoCliente.save()
@@ -438,7 +439,7 @@ export const extrairParecer = async (req, res) => {
     }
 
     // ===== STEP 5: Create ProjetoFV =====
-    const projeto = new ProjetoFV({
+    const projeto = new ProjetoFV(carimbarTenant({
       clienteId: cliente._id,
       nome: `${cliente.nome} - Parecer ${dadosInstalacao.numero_cliente || new Date().toISOString().split('T')[0]}`,
       status: 'em_simulacao',
@@ -474,7 +475,7 @@ export const extrairParecer = async (req, res) => {
           fases: dadosInstalacao.fase_tensao === 'Trifásico' ? 3 : 1,
         },
       },
-    })
+    }, req, { contexto: 'parecer.criarProjeto' }))
 
     await projeto.save()
     console.log(`✓ Projeto FV created: ${projeto._id}`)
@@ -605,7 +606,7 @@ export const obterUnifilarProjeto = async (req, res) => {
   try {
     const { projectId } = req.params
 
-    const projeto = await ProjetoFV.findById(projectId).populate('clienteId')
+    const projeto = await ProjetoFV.findOne(aplicarEscopo({ _id: projectId }, req, { contexto: 'parecer.buscarProjeto' })).populate('clienteId')
     if (!projeto) {
       return res.status(404).json({ erro: 'Projeto não encontrado' })
     }

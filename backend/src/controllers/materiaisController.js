@@ -9,6 +9,7 @@
  */
 
 import { Material, STATUS_MATERIAL } from '../models/Material.js'
+import { exigirTenant } from '../dominio/tenancy/index.js'   // Fase 0.5 — M-4
 import { derivarChaveCanonica } from '../utils/catalogo/chaveCanonicaMaterial.js'
 import {
   carregarTemplate,
@@ -19,7 +20,8 @@ import {
 
 const HISTORICO_MAX = 5
 
-function empresaDoReq(req) { return req.auth?.empresa_id ?? null }
+// Fase 0.5 — M-4: delega ao contrato central de tenancy (fail-closed).
+const empresaDoReq = (req) => exigirTenant(req, 'materiais')
 function usuarioDoReq(req) { return req.auth?.email ?? 'sistema' }
 function escaparRegex(s) { return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&') }
 
@@ -99,7 +101,7 @@ export async function listarMateriais(req, res) {
       paginacao: { pagina, limite, total, totalPaginas: Math.max(1, Math.ceil(total / limite)) },
     })
   } catch (err) {
-    res.status(500).json({ mensagem: 'Erro ao listar materiais', erro: err.message })
+    res.status(err.status || 500).json({ codigo: err.codigo, mensagem: 'Erro ao listar materiais', erro: err.message })
   }
 }
 
@@ -110,7 +112,7 @@ export async function buscarMaterial(req, res) {
     if (!material) return res.status(404).json({ mensagem: 'Material não encontrado' })
     res.json(material)
   } catch (err) {
-    res.status(500).json({ mensagem: 'Erro ao buscar material', erro: err.message })
+    res.status(err.status || 500).json({ codigo: err.codigo, mensagem: 'Erro ao buscar material', erro: err.message })
   }
 }
 
@@ -135,7 +137,7 @@ export async function criarMaterial(req, res) {
     if (err?.name === 'ValidationError') {
       return res.status(400).json({ mensagem: 'Dados inválidos', erro: err.message })
     }
-    res.status(500).json({ mensagem: 'Erro ao criar material', erro: err.message })
+    res.status(err.status || 500).json({ codigo: err.codigo, mensagem: 'Erro ao criar material', erro: err.message })
   }
 }
 
@@ -162,7 +164,7 @@ export async function atualizarMaterial(req, res) {
     if (err?.name === 'ValidationError') {
       return res.status(400).json({ mensagem: 'Dados inválidos', erro: err.message })
     }
-    res.status(500).json({ mensagem: 'Erro ao atualizar material', erro: err.message })
+    res.status(err.status || 500).json({ codigo: err.codigo, mensagem: 'Erro ao atualizar material', erro: err.message })
   }
 }
 
@@ -181,7 +183,7 @@ export async function alterarStatusMaterial(req, res) {
     if (!material) return res.status(404).json({ mensagem: 'Material não encontrado' })
     res.json(material)
   } catch (err) {
-    res.status(500).json({ mensagem: 'Erro ao alterar status', erro: err.message })
+    res.status(err.status || 500).json({ codigo: err.codigo, mensagem: 'Erro ao alterar status', erro: err.message })
   }
 }
 
@@ -210,6 +212,6 @@ export async function registrarCompra(req, res) {
     if (!material) return res.status(404).json({ mensagem: 'Material não encontrado' })
     res.status(201).json(material)
   } catch (err) {
-    res.status(500).json({ mensagem: 'Erro ao registrar compra', erro: err.message })
+    res.status(err.status || 500).json({ codigo: err.codigo, mensagem: 'Erro ao registrar compra', erro: err.message })
   }
 }

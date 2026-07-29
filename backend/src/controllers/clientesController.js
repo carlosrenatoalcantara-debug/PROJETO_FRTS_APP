@@ -1,10 +1,12 @@
 import { Cliente } from '../models/Cliente.js'
 import mongoose from 'mongoose'
 import { memoryStore } from '../config/memoryStorage.js'
+// Fase 0.5 — M-4: escopo de organização (ponto único).
+import { aplicarEscopo, carimbarTenant } from '../dominio/tenancy/index.js'
 
 const usarMemoryStorage = () => mongoose.connection.readyState !== 1
 
-export const listarClientes = async (_req, res) => {
+export const listarClientes = async (req, res) => {
   try {
     let clientes
 
@@ -17,12 +19,12 @@ export const listarClientes = async (_req, res) => {
     }
 
     // Usar MongoDB se disponível
-    clientes = await Cliente.find().sort({ createdAt: -1 })
+    clientes = await Cliente.find(aplicarEscopo({}, req, { contexto: 'listarClientes' })).sort({ createdAt: -1 })
     console.log(`✓ GET /api/clientes - Listando ${clientes.length} clientes (MongoDB)`)
     res.json(clientes)
   } catch (err) {
     console.error('❌ Erro ao listar clientes:', err)
-    res.status(500).json({ mensagem: 'Erro ao listar clientes', erro: err.message })
+    res.status(err.status || 500).json({ codigo: err.codigo, mensagem: 'Erro ao listar clientes', erro: err.message })
   }
 }
 
@@ -39,12 +41,12 @@ export const buscarCliente = async (req, res) => {
     }
 
     // Usar MongoDB se disponível
-    cliente = await Cliente.findById(req.params.id)
+    cliente = await Cliente.findOne(aplicarEscopo({ _id: req.params.id }, req, { contexto: 'buscarCliente' }))
     if (!cliente) return res.status(404).json({ mensagem: 'Cliente não encontrado' })
     res.json(cliente)
   } catch (err) {
     console.error('❌ Erro ao buscar cliente:', err)
-    res.status(500).json({ mensagem: 'Erro ao buscar cliente', erro: err.message })
+    res.status(err.status || 500).json({ codigo: err.codigo, mensagem: 'Erro ao buscar cliente', erro: err.message })
   }
 }
 
@@ -98,7 +100,7 @@ export const criarCliente = async (req, res) => {
     }
 
     // Usar MongoDB se disponível
-    novo = new Cliente(clienteData)
+    novo = new Cliente(carimbarTenant(clienteData, req, { contexto: 'criarCliente' }))
     await novo.save()
     console.log('✓ Cliente criado com sucesso (MongoDB):', novo._id, `(${nome})`)
     res.status(201).json(novo)
@@ -108,37 +110,37 @@ export const criarCliente = async (req, res) => {
       return res.status(400).json({ mensagem: 'Email já cadastrado' })
     }
     console.error('❌ Erro ao criar cliente:', err.message)
-    res.status(500).json({ mensagem: 'Erro ao criar cliente', erro: err.message })
+    res.status(err.status || 500).json({ codigo: err.codigo, mensagem: 'Erro ao criar cliente', erro: err.message })
   }
 }
 
 export const atualizarCliente = async (req, res) => {
   try {
-    const cliente = await Cliente.findByIdAndUpdate(req.params.id, req.body, { new: true })
+    const cliente = await Cliente.findOneAndUpdate(aplicarEscopo({ _id: req.params.id }, req, { contexto: 'atualizarCliente' }), req.body, { new: true })
     if (!cliente) return res.status(404).json({ mensagem: 'Cliente não encontrado' })
     console.log('✓ Cliente atualizado:', cliente._id)
     res.json(cliente)
   } catch (err) {
     console.error('❌ Erro ao atualizar cliente:', err)
-    res.status(500).json({ mensagem: 'Erro ao atualizar cliente', erro: err.message })
+    res.status(err.status || 500).json({ codigo: err.codigo, mensagem: 'Erro ao atualizar cliente', erro: err.message })
   }
 }
 
 export const excluirCliente = async (req, res) => {
   try {
-    const cliente = await Cliente.findByIdAndDelete(req.params.id)
+    const cliente = await Cliente.findOneAndDelete(aplicarEscopo({ _id: req.params.id }, req, { contexto: 'excluirCliente' }))
     if (!cliente) return res.status(404).json({ mensagem: 'Cliente não encontrado' })
     console.log('✓ Cliente excluído:', req.params.id)
     res.status(204).end()
   } catch (err) {
     console.error('❌ Erro ao excluir cliente:', err)
-    res.status(500).json({ mensagem: 'Erro ao excluir cliente', erro: err.message })
+    res.status(err.status || 500).json({ codigo: err.codigo, mensagem: 'Erro ao excluir cliente', erro: err.message })
   }
 }
 
 export const listarProjetosPorCliente = async (req, res) => {
   try {
-    const cliente = await Cliente.findById(req.params.id)
+    const cliente = await Cliente.findOne(aplicarEscopo({ _id: req.params.id }, req, { contexto: 'clienteDetalhe' }))
     if (!cliente) return res.status(404).json({ mensagem: 'Cliente não encontrado' })
     res.json({
       cliente,
@@ -149,6 +151,6 @@ export const listarProjetosPorCliente = async (req, res) => {
     })
   } catch (err) {
     console.error('❌ Erro ao listar projetos:', err)
-    res.status(500).json({ mensagem: 'Erro ao listar projetos', erro: err.message })
+    res.status(err.status || 500).json({ codigo: err.codigo, mensagem: 'Erro ao listar projetos', erro: err.message })
   }
 }

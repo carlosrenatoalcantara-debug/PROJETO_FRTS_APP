@@ -25,7 +25,10 @@ router.post('/', async (req, res) => {
       })
     }
 
-    // Criar lead a partir da submissão da calculadora
+    // EXCEÇÃO DELIBERADA A M-4 — rota PÚBLICA (/api/calculadora), sem autenticação:
+    // capta lead de visitante anônimo do site. Não existe tenant na requisição, por
+    // definição. O lead nasce com empresa_id null e é roteado para uma organização
+    // por decisão comercial posterior (fora do escopo da Fase 0.5).
     const novoLead = new Lead({
       nome,
       email,

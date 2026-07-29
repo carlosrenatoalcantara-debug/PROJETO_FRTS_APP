@@ -1,4 +1,5 @@
 import { Router } from 'express'
+import { aplicarEscopo, carimbarTenant } from '../dominio/tenancy/index.js'   // Fase 0.5 — M-4
 import mongoose from 'mongoose'
 import multer from 'multer'
 import { PDFParse } from 'pdf-parse'
@@ -53,7 +54,7 @@ router.get('/', async (req, res) => {
     if (!_dbOk(res)) return
     const filtro = {}
     if (req.query.status) filtro.status_revisao = req.query.status
-    const itens = await FaturaEnergia.find(filtro).sort({ status_revisao: 1, createdAt: -1 }).limit(200)
+    const itens = await FaturaEnergia.find(aplicarEscopo(filtro, req, { contexto: 'fatura.listar' })).sort({ status_revisao: 1, createdAt: -1 }).limit(200)
     res.json({ sucesso: true, itens })
   } catch (err) { res.status(500).json({ erro: err.message }) }
 })
@@ -62,7 +63,7 @@ router.get('/:id', async (req, res) => {
   try {
     if (!_dbOk(res)) return
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) return res.status(400).json({ erro: 'ID inválido' })
-    const f = await FaturaEnergia.findById(req.params.id)
+    const f = await FaturaEnergia.findOne(aplicarEscopo({ _id: req.params.id }, req, { contexto: 'fatura' }))
     if (!f) return res.status(404).json({ erro: 'Fatura não encontrada' })
     res.json({ sucesso: true, item: f })
   } catch (err) { res.status(500).json({ erro: err.message }) }
@@ -77,7 +78,7 @@ router.get('/:id/analise', async (req, res) => {
   try {
     if (!_dbOk(res)) return
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) return res.status(400).json({ erro: 'ID inválido' })
-    const f = await FaturaEnergia.findById(req.params.id).lean()
+    const f = await FaturaEnergia.findOne(aplicarEscopo({ _id: req.params.id }, req, { contexto: 'fatura' })).lean()
     if (!f) return res.status(404).json({ erro: 'Fatura não encontrada' })
     const dashboard = gerarDashboardEnergetico(f)
     res.json({ sucesso: true, fatura_id: f._id, dashboard })
@@ -131,7 +132,7 @@ router.post('/analisar', upload.single('pdf'), async (req, res) => {
     // Persiste se DB disponível
     let salvo = null
     if (mongoose.connection.readyState === 1) {
-      salvo = await FaturaEnergia.create({
+      salvo = await FaturaEnergia.create(carimbarTenant({
         origem: { tipo: req.file ? 'PDF' : 'TEXTO', arquivo_nome: arquivoNome, importado_por: req.auth?.id || null },
         concessionaria_detectada: normalizada.concessionaria_detectada,
         cliente: normalizada.cliente,
@@ -147,8 +148,8 @@ router.post('/analisar', upload.single('pdf'), async (req, res) => {
         alertas: normalizada.alertas,
         necessita_revisao: normalizada.necessita_revisao,
         status_revisao: normalizada.status_revisao,
-        empresa_id: req.auth?.empresa_id || null,
-      })
+        // empresa_id é carimbado por carimbarTenant (fail-closed) — não do req direto.
+      }, req, { contexto: 'fatura.criar' }))
       auditar(req, 'FATURA_IMPORTADA', salvo._id, `${normalizada.concessionaria_detectada.concessionaria} | ${arquivoNome || 'texto'}`)
       auditar(req, 'FATURA_PROCESSADA', salvo._id, `alertas=${normalizada.alertas.length} revisao=${normalizada.necessita_revisao}`)
     }
@@ -170,7 +171,7 @@ router.put('/:id/campo', async (req, res) => {
     if (!_dbOk(res)) return
     const { caminho, valor } = req.body || {}
     if (!caminho) return res.status(400).json({ erro: 'caminho obrigatório (ex.: cliente.nome).' })
-    const f = await FaturaEnergia.findById(req.params.id)
+    const f = await FaturaEnergia.findOne(aplicarEscopo({ _id: req.params.id }, req, { contexto: 'fatura' }))
     if (!f) return res.status(404).json({ erro: 'Fatura não encontrada' })
 
     // navega até o pai do campo
@@ -199,16 +200,16 @@ router.put('/:id/campo', async (req, res) => {
 router.post('/:id/aprovar', async (req, res) => {
   try {
     if (!_dbOk(res)) return
-    const f = await FaturaEnergia.findById(req.params.id)
+    const f = await FaturaEnergia.findOne(aplicarEscopo({ _id: req.params.id }, req, { contexto: 'fatura' }))
     if (!f) return res.status(404).json({ erro: 'Fatura não encontrada' })
 
     // Verifica duplicidade com faturas previamente aprovadas
     const ucAtual = f.unidade_consumidora?.numero_uc?.valor
     if (ucAtual) {
-      const conflito = await FaturaEnergia.findOne({
+      const conflito = await FaturaEnergia.findOne(aplicarEscopo({
         _id: { $ne: f._id }, status_revisao: 'aprovada',
         'unidade_consumidora.numero_uc.valor': ucAtual,
-      })
+      }, req, { contexto: 'fatura.conflito' }))
       if (conflito) {
         return res.status(409).json({
           erro: `UC ${ucAtual} já foi importada (fatura ${conflito._id}). Confirme antes de duplicar.`,
@@ -223,9 +224,9 @@ router.post('/:id/aprovar', async (req, res) => {
         const { Cliente } = await import('../models/Cliente.js')
         const cpf = f.cliente?.cpf_cnpj?.valor
         let cliente = null
-        if (cpf) cliente = await Cliente.findOne({ cpf_cnpj: cpf })
+        if (cpf) cliente = await Cliente.findOne(aplicarEscopo({ cpf_cnpj: cpf }, req, { contexto: 'fatura.cliente' }))
         if (!cliente) {
-          cliente = await Cliente.create({
+          cliente = await Cliente.create(carimbarTenant({
             nome:      f.cliente?.nome?.valor || 'Importado',
             cpf_cnpj:  cpf || null,
             email:     null,
@@ -234,7 +235,7 @@ router.post('/:id/aprovar', async (req, res) => {
             cidade:    f.cliente?.cidade?.valor || null,
             uf:        f.cliente?.uf?.valor || null,
             cep:       f.cliente?.cep?.valor || null,
-          })
+          }, req, { contexto: 'fatura.criarCliente' }))
         }
         clienteId = cliente?._id || null
       } catch (e) {

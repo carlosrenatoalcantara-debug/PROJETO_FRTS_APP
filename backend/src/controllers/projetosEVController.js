@@ -1,4 +1,5 @@
 import { ProjetoEV } from '../models/ProjetoEV.js'
+import { aplicarEscopo, carimbarTenant } from '../dominio/tenancy/index.js'   // Fase 0.5 — M-4
 import { CarregadorEV } from '../models/CarregadorEV.js'
 import { AuditLog } from '../models/AuditLog.js'
 import mongoose from 'mongoose'
@@ -32,7 +33,7 @@ export const vincularCarregadorEV = async (req, res) => {
     if (usarMemoryStorage()) return res.status(503).json({ erro: 'DB_OFFLINE' })
     const { id } = req.params
     if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ erro: 'ID inválido' })
-    const projeto = await ProjetoEV.findById(id)
+    const projeto = await ProjetoEV.findOne(aplicarEscopo({ _id: id }, req, { contexto: 'ev' }))
     if (!projeto) return res.status(404).json({ erro: 'Projeto não encontrado' })
 
     const { carregador_id } = req.body || {}
@@ -78,7 +79,7 @@ export const listarProjetosEV = async (_req, res) => {
       console.log('⚠️  Usando armazenamento em memória (MongoDB indisponível)')
       projetos = memoryStore.findAllProjetoEV()
     } else {
-      projetos = await ProjetoEV.find().populate('clienteId').sort({ createdAt: -1 })
+      projetos = await ProjetoEV.find(aplicarEscopo({}, req, { contexto: 'ev.listar' })).populate('clienteId').sort({ createdAt: -1 })
     }
 
     console.log(`✓ GET /api/projetos-ev - Listando ${projetos.length} projetos EV`)
@@ -102,7 +103,7 @@ export const buscarProjetoEV = async (req, res) => {
     if (usarMemoryStorage()) {
       p = memoryStore.findProjetoEV(req.params.id)
     } else {
-      p = await ProjetoEV.findById(req.params.id).populate('clienteId')
+      p = await ProjetoEV.findOne(aplicarEscopo({ _id: req.params.id }, req, { contexto: 'ev' })).populate('clienteId')
     }
 
     if (!p) return res.status(404).json({ mensagem: 'Projeto não encontrado' })
@@ -121,7 +122,7 @@ export const buscarProjetoEV = async (req, res) => {
             p.calculos_nbr = resultados.calculos_nbr
             // Se não está em memory storage, salvar no MongoDB
             if (!usarMemoryStorage()) {
-              await ProjetoEV.findByIdAndUpdate(req.params.id, { calculos_nbr: resultados.calculos_nbr })
+              await ProjetoEV.findOneAndUpdate(aplicarEscopo({ _id: req.params.id }, req, { contexto: 'ev' }), { calculos_nbr: resultados.calculos_nbr })
             }
           }
         } catch (calcErr) {
@@ -231,7 +232,7 @@ export const criarProjetoEV = async (req, res) => {
       ...(req.body.politica_herdada != null && { politica_herdada: req.body.politica_herdada }),
     }
 
-    const novo = new ProjetoEV(novoProjetoData)
+    const novo = new ProjetoEV(carimbarTenant(novoProjetoData, req, { contexto: 'ev.criar' }))
 
     await novo.save()
     await novo.populate('clienteId')
@@ -274,7 +275,7 @@ export const atualizarProjetoEV = async (req, res) => {
     }
 
     // Buscar projeto atual para comparação
-    const projetoAtual = await ProjetoEV.findById(req.params.id)
+    const projetoAtual = await ProjetoEV.findOne(aplicarEscopo({ _id: req.params.id }, req, { contexto: 'ev' }))
     if (!projetoAtual) return res.status(404).json({ mensagem: 'Projeto não encontrado' })
 
     // Merge dos dados
@@ -365,7 +366,7 @@ export const atualizarProjetoEV = async (req, res) => {
       }
     }
 
-    const projeto = await ProjetoEV.findByIdAndUpdate(req.params.id, dadosAtualizacao, { new: true }).populate('clienteId')
+    const projeto = await ProjetoEV.findOneAndUpdate(aplicarEscopo({ _id: req.params.id }, req, { contexto: 'ev' }), dadosAtualizacao, { new: true }).populate('clienteId')
     console.log('✓ Projeto EV atualizado:', req.params.id)
     // EV-ALIGN-01: audit (alteração de carregadores → evento específico)
     if (dadosAtualizacao.carregadores) {
@@ -397,7 +398,7 @@ export const excluirProjetoEV = async (req, res) => {
       return
     }
 
-    const projeto = await ProjetoEV.findByIdAndDelete(req.params.id)
+    const projeto = await ProjetoEV.findOneAndDelete(aplicarEscopo({ _id: req.params.id }, req, { contexto: 'ev' }))
     if (!projeto) return res.status(404).json({ mensagem: 'Projeto não encontrado' })
     console.log('✓ Projeto EV excluído:', req.params.id)
     res.status(204).end()
@@ -428,7 +429,7 @@ export const listarProjetosEVPorCliente = async (req, res) => {
     if (!mongoose.Types.ObjectId.isValid(clienteId)) {
       return res.status(400).json({ erro: 'ClienteId inválido' })
     }
-    const projetosDocliente = await ProjetoEV.find({ clienteId }).sort({ createdAt: -1 })
+    const projetosDocliente = await ProjetoEV.find(aplicarEscopo({ clienteId }, req, { contexto: 'ev.porCliente' })).sort({ createdAt: -1 })
     console.log(`✓ Listando ${projetosDocliente.length} projetos EV do cliente ${clienteId}`)
     res.json(projetosDocliente)
   } catch (err) {
@@ -454,7 +455,7 @@ export const calcularNormasProjetoEV = async (req, res) => {
       projeto = memoryStore.findProjetoEV(id)
       if (!projeto) return res.status(404).json({ mensagem: 'Projeto não encontrado' })
     } else {
-      projeto = await ProjetoEV.findById(id)
+      projeto = await ProjetoEV.findOne(aplicarEscopo({ _id: id }, req, { contexto: 'ev' }))
       if (!projeto) return res.status(404).json({ mensagem: 'Projeto não encontrado' })
     }
 
@@ -490,7 +491,7 @@ export const exportarPDFProjetoEV = async (req, res) => {
       return res.status(400).json({ erro: 'ID do projeto inválido' })
     }
 
-    const projeto = await ProjetoEV.findById(id).populate('clienteId')
+    const projeto = await ProjetoEV.findOne(aplicarEscopo({ _id: id }, req, { contexto: 'ev' })).populate('clienteId')
     if (!projeto) {
       return res.status(404).json({ mensagem: 'Projeto não encontrado' })
     }
@@ -538,7 +539,7 @@ export const recalcularPotenciasProjetosEV = async (_req, res) => {
       return res.status(503).json({ erro: 'MongoDB não disponível para esta operação' })
     }
 
-    const projetos = await ProjetoEV.find({ carregadores: { $exists: true, $ne: [] } })
+    const projetos = await ProjetoEV.find(aplicarEscopo({ carregadores: { $exists: true, $ne: [] } }, req, { contexto: 'ev.recalcular' }))
 
     let atualizados = 0
     let erros = 0
@@ -552,7 +553,7 @@ export const recalcularPotenciasProjetosEV = async (_req, res) => {
         )
 
         if (projeto.quantidade_pontos !== quantidade_pontos || projeto.potencia_total_kw !== potencia_total_kw) {
-          await ProjetoEV.findByIdAndUpdate(projeto._id, {
+          await ProjetoEV.findOneAndUpdate(aplicarEscopo({ _id: projeto._id }, req, { contexto: 'ev' }), {
             quantidade_pontos,
             potencia_total_kw,
           })
