@@ -1,0 +1,198 @@
+{
+  "metadata": {
+    "versao": "1.0",
+    "criado": "2026-07-02",
+    "descricao": "Índice de símbolos elétricos para unifilares EV + FV",
+    "nota": "Valores dinâmicos vêm de calculos_nbr do projeto. Símbolos aqui são base, sem valores hardcoded."
+  },
+
+  "disjuntores": {
+    "arquivo": "1-disjuntor-simbolos.svg",
+    "componentes": [
+      {
+        "id": "disjuntor-monopolar",
+        "descricao": "Disjuntor Monopolar (1P)",
+        "quantidade_polos": 1,
+        "label_dinamico": "{disjuntor_a}A"
+      },
+      {
+        "id": "disjuntor-bipolar",
+        "descricao": "Disjuntor Bipolar (2P)",
+        "quantidade_polos": 2,
+        "label_dinamico": "{disjuntor_a}A"
+      },
+      {
+        "id": "disjuntor-tripolar",
+        "descricao": "Disjuntor Tripolar (3P)",
+        "quantidade_polos": 3,
+        "label_dinamico": "{disjuntor_a}A"
+      },
+      {
+        "id": "disjuntor-tetrapolar",
+        "descricao": "Disjuntor Tetrapolar (4P)",
+        "quantidade_polos": 4,
+        "label_dinamico": "{disjuntor_a}A"
+      }
+    ]
+  },
+
+  "idr": {
+    "arquivo": "2-idr-simbolos.svg",
+    "componentes": [
+      {
+        "id": "idr-bipolar",
+        "descricao": "IDR Bipolar (2P)",
+        "quantidade_polos": 2,
+        "label_dinamico": "{dr_ma}mA"
+      },
+      {
+        "id": "idr-tripolar",
+        "descricao": "IDR Tripolar (3P)",
+        "quantidade_polos": 3,
+        "label_dinamico": "{dr_ma}mA"
+      },
+      {
+        "id": "idr-tetrapolar",
+        "descricao": "IDR Tetrapolar (4P)",
+        "quantidade_polos": 4,
+        "label_dinamico": "{dr_ma}mA"
+      }
+    ]
+  },
+
+  "dps": {
+    "arquivo": "3-dps-multiplo.svg",
+    "descricao": "Dispositivo Proteção contra Surto",
+    "componentes": [
+      {
+        "id": "dps-1",
+        "descricao": "DPS (1 unidade)",
+        "quantidade_unidades": 1,
+        "label_dinamico": "{dps_kv}V"
+      },
+      {
+        "id": "dps-2",
+        "descricao": "DPS (2 unidades em série)",
+        "quantidade_unidades": 2,
+        "label_dinamico": "{dps_kv}V"
+      },
+      {
+        "id": "dps-3",
+        "descricao": "DPS (3 unidades em série)",
+        "quantidade_unidades": 3,
+        "label_dinamico": "{dps_kv}V"
+      },
+      {
+        "id": "dps-4",
+        "descricao": "DPS (4 unidades em série)",
+        "quantidade_unidades": 4,
+        "label_dinamico": "{dps_kv}V"
+      }
+    ]
+  },
+
+  "barramento": {
+    "arquivo": "4-barramento-acessorios.svg",
+    "componentes": [
+      {
+        "id": "barramento-ponto-derivacao",
+        "descricao": "Ponto de Derivação",
+        "simbolo": "●"
+      },
+      {
+        "id": "barramento-conector-generico",
+        "descricao": "Conector Genérico",
+        "simbolo": "□"
+      },
+      {
+        "id": "barramento-parafuso",
+        "descricao": "Parafuso",
+        "simbolo": "⊗"
+      },
+      {
+        "id": "barramento-pente",
+        "descricao": "Barramento Pente",
+        "simbolo": "┃"
+      },
+      {
+        "id": "barramento-aterramento",
+        "descricao": "Aterramento",
+        "simbolo": "🔌"
+      },
+      {
+        "id": "barramento-neutro",
+        "descricao": "Neutro",
+        "simbolo": "█"
+      }
+    ]
+  },
+
+  "barramentos": {
+    "bifasico": {
+      "arquivo": "5-barramento-bifasico.svg",
+      "descricao": "Barramento Bifásico (Fase + Fase)"
+    },
+    "trifasico": {
+      "arquivo": "6-barramento-trifasico.svg",
+      "descricao": "Barramento Trifásico (3 Fases)"
+    }
+  },
+
+  "condutores": {
+    "arquivo": "7-condutores-simbolos.svg",
+    "componentes": [
+      {
+        "id": "condutor-neutro-3f",
+        "descricao": "Neutro + 3 Fases",
+        "representacao": "║ (4 linhas)"
+      },
+      {
+        "id": "condutor-neutro-2f",
+        "descricao": "Neutro + 2 Fases",
+        "representacao": "║ (3 linhas)"
+      },
+      {
+        "id": "condutor-neutro-1f",
+        "descricao": "Neutro + 1 Fase",
+        "representacao": "║ (2 linhas)"
+      },
+      {
+        "id": "condutor-fases",
+        "descricao": "Fases (sem neutro)",
+        "representacao": "│ (n linhas)"
+      },
+      {
+        "id": "condutor-aterramento",
+        "descricao": "Aterramento / Terra",
+        "representacao": "─T─"
+      },
+      {
+        "id": "condutor-retorno",
+        "descricao": "Retornos",
+        "representacao": "║ (múltiplas linhas)"
+      }
+    ]
+  },
+
+  "integracacao_do_engine": {
+    "localizacao": "frontend/src/utils/adapterDiagramaEV.js",
+    "funcao_chave": "desenharComponente(tipo, propriedades)",
+    "exemplo": {
+      "disjuntor": {
+        "svg": "1-disjuntor-simbolos.svg",
+        "extrair_de_calculos": "calculos_nbr.disjuntor_a",
+        "renderizar_como": "icon + label '63A'"
+      },
+      "idr": {
+        "svg": "2-idr-simbolos.svg",
+        "extrair_de_calculos": "calculos_nbr.dr_ma",
+        "renderizar_como": "icon + label '30mA'"
+      },
+      "dps": {
+        "svg": "3-dps-multiplo.svg",
+        "extrair_de_calculos": "calculos_nbr.dps_kv + quantidade",
+        "renderizar_como": "icon + label '0.28V' (múltiplos se necessário)"
+      }
+    }
+  }
+}
