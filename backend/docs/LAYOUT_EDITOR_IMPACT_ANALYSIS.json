@@ -1,0 +1,38 @@
+{
+  "gerado_em": "2026-06-17",
+  "sprint": "P0-LAYOUT-DIAGRAMA-FORENSICS-01",
+  "executor": "Sonnet 4.6 (READ-ONLY)",
+  "impacto": {
+    "projetos_fv_total": 575,
+    "projetos_fv_afetados": 575,
+    "percentual": "100%",
+    "projetos_ev_afetados": 0,
+    "projetos_novos_afetados": true,
+    "projetos_antigos_afetados": true,
+    "motivo": "O botão 'Editar Diagrama' está no header da página ProjetosFVDetalhes, visível em TODOS os projetos FV independente do estado ou dados. Nenhum projeto FV possui calculos_nbr (verificado: 0/575).",
+    "pagina_afetada": "ProjetosFVDetalhes.jsx — modal 'Editor de Diagrama Técnico'",
+    "funcionalidade_afetada": "100% dos cliques em 'Editar Diagrama' em qualquer projeto FV",
+    "dados_atlas_corrompidos": false,
+    "nota_diagrama_editado": "O campo diagrama_editado não existe no schema explícito de ProjetoFV (verificado: 0/575 projetos com este campo). O PATCH /api/projetos-fv/:id salva em campo Mixed genérico; a persistência no servidor nunca foi validada. Nenhum dado foi corrompido pois o erro ocorre ANTES de qualquer save."
+  },
+  "timing": {
+    "commit_introduziu_bug": "08098a9 — 2026-05-13",
+    "descricao_commit": "feat: Adicionar diagrama interativo e página de detalhes para projetos EV",
+    "sprints_posteriores_que_nao_corrigiram": [
+      "P0-FV-STABILITY (93b40de)",
+      "Sprint 8.7 Beneficiárias (bf2ac1b)",
+      "P1-MULTIARRANJO-UX-RESTORE-01",
+      "P0-DIMENSIONAMENTO-ENGINEERING-RESTORE-01"
+    ],
+    "nota": "O bug existe desde 2026-05-13. Nenhuma sprint posterior tocou ProjetosFVDetalhes.jsx no contexto do diagrama."
+  },
+  "severidade": {
+    "nivel": "ALTA",
+    "motivo": "O botão 'Editar Diagrama' está no header principal visível em todos os projetos FV. Qualquer usuário que clicar vê um erro vermelho '❌ Erro ao Carregar Diagrama'. Não há workaround.",
+    "funcionalidade_bloqueada": "Editor de Diagrama Técnico nos projetos FV",
+    "funcionalidade_preservada": "Todos os outros recursos FV (resumo, layout, BESS, financeiro, unifilar, governança, etc.) NÃO são afetados"
+  },
+  "segunda_consequencia": {
+    "descricao": "O botão 'Salvar Diagrama' chama PATCH /api/projetos-fv/:id com diagrama_editado: {nodes, edges}. O schema ProjetoFV não declara diagrama_editado explicitamente. Mongoose armazena em campo Mixed pelo findByIdAndUpdate — pode funcionar, mas sem validação de schema. Esta segunda consequência é SILENCIOSA (nunca é atingida pois o editor não abre)."
+  }
+}

@@ -1,0 +1,133 @@
+{
+  "sprint": "P4-GEMEO-DIGITAL-OM-FORENSICS-01",
+  "data": "2026-06-19",
+  "revisao_gemini": "OBRIGATÓRIA E PENDENTE",
+  "metodologia": "Auditoria READ-ONLY por leitura estática de código. Sem execução de funcionalidade, sem acesso ao MongoDB Atlas, sem contagens reais de documentos.",
+  "maturidade_om_global_pct": 30,
+  "calculo_global": "Média simples das 9 dimensões: (25+25+25+25+50+25+0+75+25)/9 = 27.8, banda ~30%.",
+  "dimensoes": {
+    "garantias": {
+      "pct": 25,
+      "implementado": [
+        "AtivoEquipamento.garantia_inicio (Date)",
+        "AtivoEquipamento.garantia_fim (Date)",
+        "Editáveis via PUT /api/ativos/:id",
+        "Catálogo Equipamento.garantia_produto e garantia_performance (value+unit)",
+        "Tipo 'garantia' presente no enum do historico[]"
+      ],
+      "lacunas": [
+        "garantia_fim não é derivado de garantia_inicio + garantia do catálogo (manual)",
+        "Nenhum alerta de garantia próxima do vencimento (AlertCenter não cobre ativo)",
+        "Evento 'garantia' nunca é gravado automaticamente no histórico",
+        "Sem ligação automática entre garantia do catálogo e garantia do ativo"
+      ]
+    },
+    "visitas_tecnicas": {
+      "pct": 25,
+      "implementado": [
+        "Tipos 'manutencao', 'inspecao', 'falha' no enum do historico[]",
+        "Status 'manutencao' na máquina de estados",
+        "Campo localizacao no ativo"
+      ],
+      "lacunas": [
+        "Não existe entidade VisitaTecnica",
+        "Sem agendamento, responsável, checklist, custo, fotos, resultado",
+        "historico[] é por-ativo; visita é agregador transversal (1 visita -> N ativos)",
+        "Nenhum endpoint dedicado para registrar manutenção/inspeção/falha"
+      ]
+    },
+    "substituicoes": {
+      "pct": 25,
+      "implementado": [
+        "AtivoEquipamento.substitui_ativo_id (ref auto)",
+        "AtivoEquipamento.substituido_por_ativo_id (ref auto)",
+        "Status 'substituido' (terminal) na máquina de estados",
+        "Tipo 'troca' no enum do historico[]",
+        "Campos editáveis via PUT"
+      ],
+      "lacunas": [
+        "Sem endpoint atômico de substituição",
+        "Cadeia bidirecional preenchida manualmente (risco de cadeia quebrada)",
+        "Evento 'troca' não gravado automaticamente",
+        "Sem captura de motivo/serial defeituoso/número de RMA — inútil para warranty claim confiável"
+      ]
+    },
+    "expansoes": {
+      "pct": 25,
+      "implementado": [
+        "ProjetoFV.tipo_projeto [novo|ampliacao] + projeto_origem_id",
+        "ProjetoFV.arranjos[] com somente_leitura (congela arranjo executado)",
+        "arranjos[].tipo [principal|existente|ampliacao|secundario] e origem [original|ampliacao]",
+        "Geração idempotente (chave_origem) preserva ativos antigos sem duplicar"
+      ],
+      "lacunas": [
+        "Sem flag/vínculo de expansão no nível do AtivoEquipamento (ex.: expansao_origem_id)",
+        "Retrofit não modelado",
+        "Troca de inversor recai na lacuna de Substituição"
+      ]
+    },
+    "monitoramento": {
+      "pct": 50,
+      "implementado": [
+        "Subdoc monitoramento (portal, plant_id, gateway_sn, logger_id, usuario, senha, url)",
+        "usuario/senha criptografados AES-256-GCM, nunca expostos (só flags *_definido)",
+        "Endpoints POST/GET /api/ativos/:id/monitoramento",
+        "UI: card Monitoramento em AtivoQR.jsx",
+        "Evento 'monitoramento' gravado no histórico ao salvar"
+      ],
+      "lacunas": [
+        "É registro de credenciais/identificadores, não ingestão de dados",
+        "atualizado_em/atualizado_por presentes, mas sem leituras de geração"
+      ]
+    },
+    "telemetria": {
+      "pct": 25,
+      "implementado": [
+        "Identificadores de portal já modelados (plant_id, logger_id, gateway_sn, url)",
+        "Credenciais cifradas disponíveis para um futuro coletor"
+      ],
+      "lacunas": [
+        "Nenhuma ingestão de dados (kWh, potência, status de comunicação)",
+        "Sem séries temporais / coleção de leituras",
+        "Sem integração com APIs de portais (Solarman, SolisCloud, etc.)",
+        "Sem detecção de offline/underperformance",
+        "Sem alarmes de telemetria"
+      ]
+    },
+    "chamados": {
+      "pct": 0,
+      "implementado": [],
+      "lacunas": [
+        "Entidade Chamado/ticket/OrdemServico inexistente (busca só retornou falsos positivos em parsers/erros)",
+        "Sem ciclo de vida, SLA, prioridade, solicitante",
+        "Sem vínculo a projeto/ativos"
+      ]
+    },
+    "historico": {
+      "pct": 75,
+      "implementado": [
+        "HistoricoSchema embutido com 10 tipos: criacao, instalacao, troca, garantia, manutencao, comissionamento, monitoramento, falha, inspecao, mudanca_status",
+        "Diffs campo-a-campo: alteracoes[] {campo, de, para}",
+        "status_de/status_para por evento",
+        "Em uso real: comissionamento, mudanca_status e monitoramento gravam eventos",
+        "Renderizado na UI (AtivoQR.jsx)"
+      ],
+      "lacunas": [
+        "Tipos 'garantia', 'manutencao', 'falha', 'inspecao', 'troca' existem no enum mas não têm endpoint que os grave",
+        "Sem homologação refletida no histórico do ativo (vive no ProjetoFV)"
+      ]
+    },
+    "documentacao": {
+      "pct": 25,
+      "implementado": [
+        "Catálogo Equipamento.documentos_tecnicos[] (datasheet, manual, INMETRO, IEC, declaração, garantia)",
+        "Catálogo Equipamento.certificacao (INMETRO/IEC com validade)"
+      ],
+      "lacunas": [
+        "AtivoEquipamento.documentos[] declarado mas RESERVADO/não implementado",
+        "Documentação vive no catálogo (as-specified), não no ativo (as-built)",
+        "Sem laudos/fotos/relatórios anexados ao ativo ou à visita"
+      ]
+    }
+  }
+}

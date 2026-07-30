@@ -1,0 +1,82 @@
+{
+  "sprint": "P0-DIMENSIONAMENTO-REGRESSION-FORENSICS-01",
+  "read_only": true,
+  "gerado_em": "2026-06-17T02:32:17.618Z",
+  "itens": [
+    {
+      "id": "F1-tipo-inversor",
+      "sintoma": "Só [String] aparece; sem [Micro]/[Otimizado]",
+      "classificacao": "REGRESSÃO+BUG",
+      "componente": "frontend/src/utils/catalogoEngenhariaAdapter.js:agruparInversores (l.98)",
+      "causa": "hard-code const tipo=\"string\" para todo inversor do catálogo",
+      "prioridade": "P0",
+      "esforco": "baixo",
+      "risco": "baixo",
+      "dependencias": [
+        "heurística tecnologiaInversor já existente (backend)"
+      ]
+    },
+    {
+      "id": "F2-filtro-marcas",
+      "sintoma": "Marcas micro/otim (Hoymiles/APsystems/TSUN/SolarEdge) sob String",
+      "classificacao": "REGRESSÃO+FUNCIONALIDADE_INCOMPLETA",
+      "componente": "agruparInversores + catálogo sem classificação",
+      "causa": "tecnologia não armazenada (0/175) + adapter ignora",
+      "prioridade": "P0",
+      "esforco": "baixo-medio",
+      "risco": "baixo",
+      "dependencias": [
+        "F1"
+      ]
+    },
+    {
+      "id": "F3-potencia-interrogacao",
+      "sintoma": "Equip. mostram ?W / ?kW",
+      "classificacao": "BUG_EXIBICAO+DADO_FALTANTE",
+      "componente": "frontend/src/components/fv/GerenciadorArranjos.jsx:26-27",
+      "causa": "122/175 inversores SEM potencia + 3/186 módulos; fallback cai em \"?\"",
+      "prioridade": "P1",
+      "esforco": "medio",
+      "risco": "medio",
+      "dependencias": [
+        "waves de datasheet (enriquecimento)"
+      ]
+    },
+    {
+      "id": "F4-multiarranjo",
+      "sintoma": "Múltiplos arranjos",
+      "classificacao": "FUNCIONAL (não-bug, ~85%)",
+      "componente": "GerenciadorArranjos+ConfiguradorArranjoFV+ProjetoFV.arranjos[]",
+      "causa": "implementado (backend+frontend+persistência+API); degradado por F1/F3",
+      "prioridade": "P2",
+      "esforco": "baixo",
+      "risco": "baixo",
+      "dependencias": [
+        "F1",
+        "F3"
+      ]
+    },
+    {
+      "id": "F5-quantidade",
+      "sintoma": "Quantidade de módulos/inversores em E5",
+      "classificacao": "CONFIGURACAO/PERCEPCAO (não-regressão)",
+      "componente": "E5Dimensionamento (auto) + E7/ConfiguradorArranjoFV (manual)",
+      "causa": "realocada de E5->E7 (E5 header: REMOVIDO hardware->E7); não sumiu",
+      "prioridade": "P2",
+      "esforco": "baixo(doc/UX)",
+      "risco": "baixo",
+      "dependencias": []
+    },
+    {
+      "id": "F6-mapa-zoom",
+      "sintoma": "Zoom insuficiente p/ telhado",
+      "classificacao": "CONFIGURACAO",
+      "componente": "frontend/src/components/fv/MapaTelhado.jsx (LOCAL_ZOOM=17, sem maxZoom)",
+      "causa": "zoom inicial 17; sem cap artificial; limite real = tiles Google (hybrid ~20-21, rural BR menor)",
+      "prioridade": "P2",
+      "esforco": "baixo",
+      "risco": "baixo",
+      "dependencias": []
+    }
+  ]
+}

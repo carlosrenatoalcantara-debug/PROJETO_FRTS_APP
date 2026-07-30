@@ -1,0 +1,77 @@
+{
+  "gerado_em": "2026-06-17",
+  "sprint": "P0-LAYOUT-DIAGRAMA-FORENSICS-01",
+  "executor": "Sonnet 4.6 (READ-ONLY)",
+  "contrato_InteractiveDiagram": {
+    "descricao": "Campos esperados pelo componente InteractiveDiagram (EV — NBR 5410)",
+    "prop_calculos": {
+      "origem_correta": "ProjetoEV.calculos_nbr",
+      "campos": {
+        "corrente_projeto_a": { "tipo": "Number", "obrigatorio": true, "usado_em": "gridNode.data.corrente_projeto_a / label" },
+        "disjuntor_a": { "tipo": "Number", "obrigatorio": true, "usado_em": "breakerNode.data.corrente_a / label" },
+        "corrente_maxima_a": { "tipo": "Number", "obrigatorio": false, "usado_em": "breakerNode.data.corrente_maxima_a" },
+        "dps_kv": { "tipo": "Number", "obrigatorio": true, "usado_em": "dpsNode.data.tensao_kv / label" },
+        "dps_capacidade_a": { "tipo": "Number", "obrigatorio": false, "usado_em": "dpsNode.data.capacidade_a" },
+        "dr_ma": { "tipo": "Number", "obrigatorio": true, "usado_em": "drNode.data.ma / label" },
+        "bitola_cabo_mm2": { "tipo": "Number", "obrigatorio": true, "usado_em": "cableNode.data.bitola_mm2 / label" },
+        "queda_tensao_pct": { "tipo": "Number", "obrigatorio": false, "usado_em": "specsNode.data.queda_tensao_pct" },
+        "tempo_seccionamento_s": { "tipo": "Number", "obrigatorio": false, "usado_em": "specsNode.data.tempo_seccionamento_s" },
+        "materiais": { "tipo": "Array", "obrigatorio": false, "usado_em": "specsNode.data.materiais" }
+      }
+    },
+    "prop_projeto": {
+      "origem_correta": "ProjetoEV (adaptado no call site)",
+      "campos": {
+        "projeto_nome": { "tipo": "String", "obrigatorio": false, "usado_em": "specsNode / exportar JSON" },
+        "cliente_nome": { "tipo": "String", "obrigatorio": false, "usado_em": "specsNode.data.cliente_nome" },
+        "endereco": { "tipo": "String", "obrigatorio": false, "usado_em": "specsNode.data.endereco" },
+        "comprimento_cabo": { "tipo": "Number", "obrigatorio": false, "default": 10, "usado_em": "cableNode.data.comprimento_m" },
+        "tensao": { "tipo": "String", "obrigatorio": false, "usado_em": "gridNode.data.fases / tensao ('220V'|'380V')" },
+        "carregador_potencia_kw": { "tipo": "Number", "obrigatorio": false, "usado_em": "chargerNode.data.potencia_kw / label" },
+        "carregador_tipo": { "tipo": "String", "obrigatorio": false, "usado_em": "chargerNode.data.tipo_carregador" },
+        "carregador_marca": { "tipo": "String", "obrigatorio": false, "usado_em": "chargerNode.data.marca" },
+        "carregador_modelo": { "tipo": "String", "obrigatorio": false, "usado_em": "chargerNode.data.modelo" },
+        "tecnico_nome": { "tipo": "String", "obrigatorio": false, "usado_em": "specsNode.data.tecnico_nome" },
+        "tecnico_crea": { "tipo": "String", "obrigatorio": false, "usado_em": "specsNode.data.tecnico_crea" }
+      }
+    }
+  },
+  "schema_ProjetoEV_calculos_nbr": {
+    "arquivo": "backend/src/models/ProjetoEV.js",
+    "linhas": "51-62",
+    "existe": true,
+    "campos": [
+      "corrente_projeto_a", "corrente_maxima_a", "bitola_cabo_mm2",
+      "disjuntor_a", "dr_ma", "dps_kv", "dps_capacidade_a",
+      "tempo_seccionamento_s", "queda_tensao_pct", "materiais"
+    ]
+  },
+  "schema_ProjetoFV_calculos": {
+    "arquivo": "backend/src/models/ProjetoFV.js",
+    "linha_relevante": 266,
+    "campo_existente": "calculos_principais",
+    "campo_calculos_nbr_existe": false,
+    "nota": "ProjetoFV usa 'calculos_principais' (Mixed) dentro do subdoc de análise de arranjo, não 'calculos_nbr'. São propósitos completamente diferentes: calculos_principais contém voc_string_max, vmpp, fator_oversizing, etc. (engenharia fotovoltaica); calculos_nbr contém corrente, disjuntor, DPS, DR, cabo (elétrica NBR 5410 para EV)."
+  },
+  "compatibilidade_multiarranjo": {
+    "InteractiveDiagram_usa_arranjos": false,
+    "InteractiveDiagram_usa_modulos": false,
+    "InteractiveDiagram_usa_inversores": false,
+    "MULTIARRANJO_impacta_InteractiveDiagram": false,
+    "estrutura_antes_MULTIARRANJO": "arranjo.modulo (singular), arranjo.inversor (singular)",
+    "estrutura_depois_MULTIARRANJO": "arranjo.modulos[] (array), arranjo.inversores[] (array)",
+    "InteractiveDiagram_conhece_arranjos": false,
+    "conclusao": "Sem impacto. InteractiveDiagram é um editor EV puro. MULTIARRANJO tocou somente GerenciadorArranjos.jsx (wizard FV)."
+  },
+  "o_que_ProjetoFV_passa_para_InteractiveDiagram": {
+    "calculos": "undefined (projeto.calculos_nbr não existe no schema FV)",
+    "projeto.projeto_nome": "projeto.nomeCliente (OK — campo FV real)",
+    "projeto.endereco": "projeto.endereco (OK — campo FV real)",
+    "projeto.comprimento_cabo": "projeto.comprimento_cabo_m || 10 (OK — campo FV real)",
+    "projeto.carregador_potencia_kw": "NÃO PASSADO (seria undefined)",
+    "projeto.carregador_tipo": "NÃO PASSADO (seria undefined)",
+    "projeto.carregador_marca": "NÃO PASSADO (seria undefined)",
+    "projeto.cliente_nome": "NÃO PASSADO (seria undefined)",
+    "projeto.tecnico_nome": "NÃO PASSADO (seria undefined)"
+  }
+}

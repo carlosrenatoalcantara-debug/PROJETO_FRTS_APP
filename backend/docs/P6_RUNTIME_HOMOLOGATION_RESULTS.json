@@ -1,0 +1,169 @@
+{
+  "sprint": "P6-RUNTIME-HOMOLOGATION-01",
+  "data": "2026-06-19",
+  "modelo": "Claude Sonnet 4.6",
+  "commit_alvo": "e9c1ff7",
+  "commit_producao": "127f7f5",
+  "branch_alvo": "sprint/p1-bug-art-01",
+  "branch_producao": "main",
+
+  "declaracao_honestidade": {
+    "railway_acessado": true,
+    "vercel_acessado": true,
+    "atlas_acessado": true,
+    "runtime_executado": true,
+    "runtime_versao": "PRE-FIX (127f7f5) — commit e9c1ff7 NAO deployado",
+    "razao_nao_deployado": "Branch sprint/p1-bug-art-01 pushed ao GitHub mas nao merged ao main. Deploy automatico Railway/Vercel ocorre somente no push ao main."
+  },
+
+  "ambiente": {
+    "railway_url": "https://projetofrtsapp-production.up.railway.app",
+    "railway_health": {"status": "ok", "mongodb": "conectado", "mongodbState": 1},
+    "vercel_url": "https://projeto-frts-app.vercel.app",
+    "atlas_estado": "conectado (mongodbState: 1)",
+    "cliente_teste_id": "6a3588caf3fada9effa61ce6",
+    "cliente_teste_nome": "COMERCIAL OLIVEIRA E AVELINO LTDA",
+    "projeto_teste_id": "6a35954ff3fada9effa61d09",
+    "projeto_teste_nome": "Mercado Avelino"
+  },
+
+  "testes": [
+    {
+      "id": "T1",
+      "bug": "BUG-P0-01",
+      "descricao": "Navegação pós-cadastro de cliente",
+      "status": "NAO_TESTADO",
+      "razao": "Requer criação de cliente e verificação de redirecionamento automático"
+    },
+    {
+      "id": "T2",
+      "bug": "BUG-P0-02",
+      "descricao": "E1 Upload obrigatório quando cliente tem OCR",
+      "status": "PRESENTE",
+      "evidencia": "Etapa E1 exibida com campo upload; breadcrumb 'Consumo · Fatura' visível",
+      "url_testada": "https://projeto-frts-app.vercel.app/projetos-fv/novo?clienteId=6a3588caf3fada9effa61ce6"
+    },
+    {
+      "id": "T3",
+      "bug": "BUG-P0-03",
+      "descricao": "Dados do consumo não pré-preenchidos (consumo_kwh, distribuidora, valor_kwh)",
+      "status": "PRESENTE",
+      "evidencia": "Campos E2 vazios; cliente tem consumo_kwh=17045, distribuidora=COSERN, valor_kwh=1.03198"
+    },
+    {
+      "id": "T4",
+      "bug": "BUG-P0-04",
+      "descricao": "Tipo de ligação exibe Monofásico em vez de Trifásico 380V",
+      "status": "PRESENTE",
+      "evidencia": "Campo tipo_ligacao mostrou 'Monofásico'; cliente tem 'Trifásico 380V'"
+    },
+    {
+      "id": "T5",
+      "bug": "BUG-P1-01",
+      "descricao": "Irradiância CRESESB usa estado RN (5.9) em vez de cidade Natal (5.42)",
+      "status": "INDICIO",
+      "evidencia": "Info text mostrou '5.9 kWh/m²/dia' (média territorial do estado). Fix usa .split(/[,\\-]/) para extrair cidade do formato 'Natal - Rio Grande do Norte'",
+      "nota": "NASA POWER retornou 5.77 para coords Natal (runtime confirmado)"
+    },
+    {
+      "id": "T6",
+      "bug": "BUG-P1-02",
+      "descricao": "Import datasheet Talesun TP6L72M(H)-445W",
+      "status": "NAO_TESTADO",
+      "razao": "PDF não disponível para upload durante o teste"
+    },
+    {
+      "id": "T7",
+      "bug": "BUG-P1-03/04",
+      "descricao": "Import datasheet SUN2000-60KTL (OCR + extração garantias)",
+      "status": "NAO_TESTADO",
+      "razao": "PDF não disponível para upload"
+    },
+    {
+      "id": "T8",
+      "bug": "BUG-P1-03",
+      "descricao": "Import SUN2000-50KTL (falha silenciosa → alerta âmbar após fix)",
+      "status": "NAO_TESTADO",
+      "razao": "PDF não disponível para upload"
+    },
+    {
+      "id": "T9",
+      "bug": "BUG-P1-02",
+      "descricao": "Fallback manual após OCR falhar",
+      "status": "NAO_TESTADO",
+      "razao": "Sem PDF disponível para induzir falha controlada"
+    },
+    {
+      "id": "T10",
+      "bug": "BUG-P0-05",
+      "descricao": "Letras dos arranjos B, C, D (não A, A, A)",
+      "status": "NAO_TESTADO",
+      "razao": "Etapa E7 tem lista de painéis muito extensa (~150 itens); botão 'Adicionar Novo Arranjo' inacessível via scroll durante teste"
+    },
+    {
+      "id": "T11",
+      "bug": "BUG-P0-05",
+      "descricao": "Estrutura dentro do arranjo",
+      "status": "NAO_TESTADO"
+    },
+    {
+      "id": "T12",
+      "bug": "BUG-P0-06",
+      "descricao": "Quantidade de inversores (capInv default 5→20 kW)",
+      "status": "PRESENTE",
+      "evidencia": "Seção 'Inversores ~25 un. (estimativa E5)' visível em E7. Cálculo PRÉ-FIX: Math.ceil(123.09/5)=25. Com fix: Math.ceil(123.09/20)=7.",
+      "potencia_kwp_teste": 123.09,
+      "inversores_pre_fix": 25,
+      "inversores_pos_fix_esperado": 7
+    },
+    {
+      "id": "T13",
+      "bug": "BUG-P0-07",
+      "descricao": "Orçamento iniciando com preços zerados (não hardcoded 620/4000/130)",
+      "status": "PARCIAL",
+      "evidencia": "Painéis mostram R$0/un (a maioria sem precoUnitario no catálogo). Comportamento consistente com fix. E8Orçamento não acessado diretamente."
+    },
+    {
+      "id": "T14",
+      "bug": "BUG-P1-05",
+      "descricao": "Beneficiária não pré-adicionada da UC do cliente",
+      "status": "PRESENTE",
+      "evidencia": "'Nenhuma beneficiária adicionada' em sub-etapa 'Consumo · Beneficiárias'. SET_BENEFICIARIAS não dispatched em PRÉ-FIX."
+    },
+    {
+      "id": "T15",
+      "bug": "BUG-P2-01/02",
+      "descricao": "Governança sem hash_tecnico/score_qualidade/nivel_qualidade",
+      "status": "INCONCLUSIVO",
+      "razao": "Aba Governança crasha com React error #31 ({imax, secao, disj}). Bug pré-existente não relacionado ao P0 sprint."
+    },
+    {
+      "id": "T16",
+      "bug": "BUG-P2-03",
+      "descricao": "Botão 'Abrir Documentação Homologada' quando status=HOMOLOGADO",
+      "status": "INCONCLUSIVO",
+      "razao": "Aba Governança crasha. Projeto Mercado Avelino tem badge HOMOLOGADO (correto para teste), mas aba inacessível.",
+      "nota": "Crash: React error #31 (object {imax, secao, disj} renderizado como child)"
+    },
+    {
+      "id": "T17",
+      "bug": "BUG-P4-UNIFILAR-01",
+      "descricao": "Geração do diagrama unifilar (formato API: {itens:[]} vs [])",
+      "status": "PARCIAL_OK",
+      "evidencia": "Aba Unifilar carregou. Diagrama renderizado: Talesun TP6L72M(H)-445W, SUN2000-60KTL-M0, snapshot congelado. Botões SVG/PNG disponíveis. Seção de ativos (alvo do bug) não verificada."
+    }
+  ],
+
+  "sumario": {
+    "total_testes": 17,
+    "executados": 8,
+    "presentes": 5,
+    "indicios": 1,
+    "inconclusivos": 3,
+    "nao_testados": 9
+  },
+
+  "resultado_final": "DEPLOY_NAO_APROVADO",
+  "motivo": "Commit e9c1ff7 nao deployado em producao. Branch sprint/p1-bug-art-01 pushed ao GitHub mas nao merged ao main.",
+  "acao_necessaria": "Merge sprint/p1-bug-art-01 → main (requer autorização do usuário)"
+}

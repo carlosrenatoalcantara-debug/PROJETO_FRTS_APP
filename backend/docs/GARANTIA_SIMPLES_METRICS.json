@@ -1,0 +1,105 @@
+{
+  "sprint": "P5-GARANTIA-SIMPLES-01",
+  "data": "2026-06-19",
+  "modelo": "Sonnet",
+  "revisao_gemini": "opcional",
+
+  "escopo": {
+    "arquivos_backend_alterados": 5,
+    "arquivos_frontend_alterados": 2,
+    "arquivos_frontend_criados": 1,
+    "dependencias_novas": 0,
+    "endpoints_novos": 0,
+    "schemas_alterados": 2,
+    "campos_adicionados": 7,
+    "linhas_aprox_adicionadas": 230,
+    "linhas_aprox_removidas": 1
+  },
+
+  "campos_adicionados": {
+    "Equipamento.suporte": {
+      "subcampos": ["telefone", "email", "site", "portal_garantia", "garantia_padrao_meses"],
+      "tipo": "subdocumento embutido (todos opcionais)",
+      "retrocompativel": true
+    },
+    "AtivoEquipamento.origem_garantia": {
+      "tipo": "String",
+      "valores": ["manual", "auto_catalogo", null],
+      "retrocompativel": true
+    }
+  },
+
+  "campos_pre_existentes_aproveitados": [
+    "AtivoEquipamento.garantia_inicio",
+    "AtivoEquipamento.garantia_fim",
+    "Equipamento.garantia_produto.value",
+    "Equipamento.garantia_produto.unit"
+  ],
+
+  "auto_fill": {
+    "trigger": "criarAtivo ou atualizarAtivo com data_instalacao + equipamento_id + garantia_fim null",
+    "fonte_primaria": "Equipamento.suporte.garantia_padrao_meses",
+    "fonte_fallback": "Equipamento.garantia_produto (value + unit convertido para meses)",
+    "resultado": "garantia_inicio + garantia_fim calculados; origem_garantia = 'auto_catalogo'",
+    "sem_inventar": true
+  },
+
+  "alertcenter": {
+    "origin_nova": "garantia",
+    "detector": "detectarAlertasGarantia",
+    "severidades": {
+      "critico": "garantia vencida (dias <= 0)",
+      "aviso": "vence em até 30 dias",
+      "info": "vence em até 90 dias"
+    },
+    "kpis_novos": ["por_origem.garantia", "cards.garantias_vencidas", "cards.garantias_vencendo"],
+    "query": "AtivoEquipamento.find({ garantia_fim: { $ne: null } }) — projeção mínima"
+  },
+
+  "ui": {
+    "status_badge": true,
+    "dias_restantes_coloridos": true,
+    "telefone_link": "tel:",
+    "email_link": "mailto:",
+    "portal_nova_aba": true,
+    "card_nao_renderiza_sem_dados": true,
+    "nota_auto_preenchimento": true
+  },
+
+  "nao_implementado": [
+    "Chamados / OS / Tickets",
+    "SLA / workflow de aprovação",
+    "Integração com API do fabricante",
+    "Upload de documentos de garantia",
+    "ProjetoEV / Segurança / Snapshot / Homologação / Governança (intocados)"
+  ],
+
+  "snapshot_afetado": false,
+  "governanca_afetada": false,
+  "homologacao_afetada": false,
+  "projetoev_afetado": false,
+  "seguranca_afetada": false,
+  "qr_afetado": false,
+  "comissionamento_afetado": false,
+  "medicoes_afetadas": false,
+  "docs_externos_afetados": false,
+
+  "build": {
+    "executado": true,
+    "resultado": "sucesso",
+    "tempo": "8.61s",
+    "erros": 0,
+    "modulos": 2332,
+    "modulos_antes": 2331,
+    "chunk_warning": "pré-existente — não introduzido por P5-GARANTIA-SIMPLES-01"
+  },
+
+  "validacao": {
+    "build": true,
+    "leitura_codigo": true,
+    "atlas_ativo": false,
+    "device_fisico": false,
+    "portal_garantia_real": false,
+    "honestidade": "Funcionalidade validada por leitura de código e análise de fluxo. Nenhum ativo real com garantia_fim testado contra Atlas."
+  }
+}

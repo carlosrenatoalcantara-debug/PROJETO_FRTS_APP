@@ -1,0 +1,409 @@
+{
+  "meta": {
+    "sprint": "P0-CATALOG-FORENSICS-04",
+    "gerado_em": "2026-06-06T19:49:53.268Z",
+    "fonte": "Atlas cluster0.iva0pph.mongodb.net / forte_solar / equipamentos",
+    "somente_leitura": true,
+    "total_documentos": 95
+  },
+  "fase1_inventario": {
+    "por_tipo": {
+      "modulo": 56,
+      "carregador_ev": 17,
+      "inversor": 22
+    },
+    "total_fabricantes": 27,
+    "ranking_fabricantes": [
+      {
+        "fabricante": "ZNShine Solar",
+        "total": 29,
+        "tipos": {
+          "modulo": 29
+        }
+      },
+      {
+        "fabricante": "Goodwe",
+        "total": 9,
+        "tipos": {
+          "inversor": 9
+        }
+      },
+      {
+        "fabricante": "Risen Energy",
+        "total": 7,
+        "tipos": {
+          "modulo": 7
+        }
+      },
+      {
+        "fabricante": "Huawei",
+        "total": 7,
+        "tipos": {
+          "carregador_ev": 1,
+          "inversor": 6
+        }
+      },
+      {
+        "fabricante": "Trina Solar",
+        "total": 6,
+        "tipos": {
+          "modulo": 6
+        }
+      },
+      {
+        "fabricante": "Renesola",
+        "total": 5,
+        "tipos": {
+          "modulo": 5
+        }
+      },
+      {
+        "fabricante": "Neosolar",
+        "total": 4,
+        "tipos": {
+          "modulo": 4
+        }
+      },
+      {
+        "fabricante": "Sirius Energias Renováveis",
+        "total": 2,
+        "tipos": {
+          "modulo": 2
+        }
+      },
+      {
+        "fabricante": "INTELBRAS",
+        "total": 2,
+        "tipos": {
+          "carregador_ev": 2
+        }
+      },
+      {
+        "fabricante": "Wallbox",
+        "total": 2,
+        "tipos": {
+          "carregador_ev": 2
+        }
+      },
+      {
+        "fabricante": "Schneider",
+        "total": 2,
+        "tipos": {
+          "carregador_ev": 2
+        }
+      },
+      {
+        "fabricante": "Canadian Solar",
+        "total": 2,
+        "tipos": {
+          "modulo": 2
+        }
+      },
+      {
+        "fabricante": "Solplanet",
+        "total": 2,
+        "tipos": {
+          "inversor": 2
+        }
+      },
+      {
+        "fabricante": "Chint",
+        "total": 2,
+        "tipos": {
+          "inversor": 2
+        }
+      },
+      {
+        "fabricante": "Solis",
+        "total": 2,
+        "tipos": {
+          "inversor": 2
+        }
+      },
+      {
+        "fabricante": "OSDA SOLAR",
+        "total": 1,
+        "tipos": {
+          "modulo": 1
+        }
+      },
+      {
+        "fabricante": "Tesla",
+        "total": 1,
+        "tipos": {
+          "carregador_ev": 1
+        }
+      },
+      {
+        "fabricante": "BYD",
+        "total": 1,
+        "tipos": {
+          "carregador_ev": 1
+        }
+      },
+      {
+        "fabricante": "WEG",
+        "total": 1,
+        "tipos": {
+          "carregador_ev": 1
+        }
+      },
+      {
+        "fabricante": "ChargePoint",
+        "total": 1,
+        "tipos": {
+          "carregador_ev": 1
+        }
+      },
+      {
+        "fabricante": "Kia",
+        "total": 1,
+        "tipos": {
+          "carregador_ev": 1
+        }
+      },
+      {
+        "fabricante": "Porsche",
+        "total": 1,
+        "tipos": {
+          "carregador_ev": 1
+        }
+      },
+      {
+        "fabricante": "SOLPLANET",
+        "total": 1,
+        "tipos": {
+          "carregador_ev": 1
+        }
+      },
+      {
+        "fabricante": "Deye",
+        "total": 1,
+        "tipos": {
+          "inversor": 1
+        }
+      },
+      {
+        "fabricante": "Página 1 de 1",
+        "total": 1,
+        "tipos": {
+          "carregador_ev": 1
+        }
+      },
+      {
+        "fabricante": "Fast Station",
+        "total": 1,
+        "tipos": {
+          "carregador_ev": 1
+        }
+      },
+      {
+        "fabricante": "Fast Wall\tFast Wall",
+        "total": 1,
+        "tipos": {
+          "carregador_ev": 1
+        }
+      }
+    ],
+    "total_modelos_distintos": 92
+  },
+  "fase2_completude": {
+    "inversores_avaliados": 22,
+    "media_geral": 90,
+    "por_fabricante": [
+      {
+        "fabricante": "Goodwe",
+        "inversores": 9,
+        "completude_media": 93.3
+      },
+      {
+        "fabricante": "Chint",
+        "inversores": 2,
+        "completude_media": 90
+      },
+      {
+        "fabricante": "Huawei",
+        "inversores": 6,
+        "completude_media": 88.9
+      },
+      {
+        "fabricante": "Solis",
+        "inversores": 2,
+        "completude_media": 86.7
+      },
+      {
+        "fabricante": "Deye",
+        "inversores": 1,
+        "completude_media": 86.7
+      },
+      {
+        "fabricante": "Solplanet",
+        "inversores": 2,
+        "completude_media": 83.4
+      }
+    ],
+    "campos_mais_ausentes": [
+      {
+        "campo": "tensao_partida",
+        "ausente_em": 22,
+        "de": 22
+      },
+      {
+        "campo": "n_mppts",
+        "ausente_em": 2,
+        "de": 22
+      },
+      {
+        "campo": "strings_por_mppt",
+        "ausente_em": 2,
+        "de": 22
+      },
+      {
+        "campo": "corrente_max_por_mppt",
+        "ausente_em": 2,
+        "de": 22
+      },
+      {
+        "campo": "faixa_mppt",
+        "ausente_em": 2,
+        "de": 22
+      },
+      {
+        "campo": "corrente_isc_max",
+        "ausente_em": 1,
+        "de": 22
+      },
+      {
+        "campo": "tensao_max_entrada",
+        "ausente_em": 1,
+        "de": 22
+      },
+      {
+        "campo": "dimensoes",
+        "ausente_em": 1,
+        "de": 22
+      },
+      {
+        "campo": "fabricante",
+        "ausente_em": 0,
+        "de": 22
+      },
+      {
+        "campo": "modelo",
+        "ausente_em": 0,
+        "de": 22
+      },
+      {
+        "campo": "potencia_kw",
+        "ausente_em": 0,
+        "de": 22
+      },
+      {
+        "campo": "potencia_maxima_kw",
+        "ausente_em": 0,
+        "de": 22
+      },
+      {
+        "campo": "eficiencia_maxima",
+        "ausente_em": 0,
+        "de": 22
+      },
+      {
+        "campo": "peso_kg",
+        "ausente_em": 0,
+        "de": 22
+      },
+      {
+        "campo": "grau_protecao_ip",
+        "ausente_em": 0,
+        "de": 22
+      }
+    ]
+  },
+  "fase3_aprendizados": {
+    "documentos": 95,
+    "possuem_todas_estruturas": 95,
+    "por_estrutura": {
+      "identificacao": 95,
+      "origem": 95,
+      "qualidade": 95,
+      "specs_canonicas": 95,
+      "status_operacional": 95,
+      "validacao": 95
+    },
+    "schema_versoes": {
+      "2.0": 95
+    }
+  },
+  "fase4_proveniencia": {
+    "por_origem": {
+      "desconhecido": 95
+    },
+    "percentuais": {
+      "desconhecido": "100%"
+    }
+  },
+  "fase5_inteligencia": {
+    "aliascampos": 138,
+    "dicionariocanonicos": 23,
+    "datasheet_processamentos": 1,
+    "datasheetcaches": 0,
+    "auditlogs": 1432
+  },
+  "fase6_engenharia": {
+    "inversores": 22,
+    "utilizavel_em_projeto": 22,
+    "selecionaveis": 22,
+    "score_global_60+": 0,
+    "niveis_qualidade": {
+      "incompleto": 3,
+      "invalido": 3,
+      "suspeito": 16
+    },
+    "classificacao": {
+      "A_engenharia": 17,
+      "B_unifilar": 22,
+      "C_parecer": 22,
+      "D_revisao": 8,
+      "E_perfil_conservador": 3
+    }
+  },
+  "fase7_roadmap": [
+    {
+      "fabricante": "Goodwe",
+      "inversores": 9,
+      "completude": 93.3,
+      "prioridade": "P0"
+    },
+    {
+      "fabricante": "Huawei",
+      "inversores": 6,
+      "completude": 88.9,
+      "prioridade": "P1"
+    },
+    {
+      "fabricante": "Solplanet",
+      "inversores": 2,
+      "completude": 83.4,
+      "prioridade": "P2"
+    },
+    {
+      "fabricante": "Solis",
+      "inversores": 2,
+      "completude": 86.7,
+      "prioridade": "P2"
+    },
+    {
+      "fabricante": "Chint",
+      "inversores": 2,
+      "completude": 90,
+      "prioridade": "P2"
+    },
+    {
+      "fabricante": "Deye",
+      "inversores": 1,
+      "completude": 86.7,
+      "prioridade": "P3"
+    }
+  ]
+}

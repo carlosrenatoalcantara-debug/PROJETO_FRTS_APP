@@ -1,0 +1,82 @@
+{
+  "sprint": "P5-PROJETO-DOCUMENTOS-EXTERNOS-01",
+  "data": "2026-06-19",
+  "modelo": "Sonnet",
+  "revisao_gemini": "opcional",
+
+  "escopo": {
+    "arquivos_backend_alterados": 2,
+    "arquivos_frontend_alterados": 2,
+    "arquivos_frontend_criados": 1,
+    "dependencias_novas": 0,
+    "endpoints_novos": 0,
+    "schemas_alterados": 1,
+    "linhas_aprox_adicionadas": 160,
+    "linhas_aprox_removidas": 2
+  },
+
+  "campo_criado": {
+    "nome": "documentacao_externa",
+    "modelo": "ProjetoFV",
+    "tipo": "subdocumento embutido",
+    "subcampos": ["pasta_principal", "pasta_fotos", "pasta_homologacao", "pasta_garantia", "pasta_medicoes", "observacoes"],
+    "default": "null (todos os subcampos)",
+    "retrocompativel": true
+  },
+
+  "nao_implementado": [
+    "Upload de arquivos",
+    "Sincronização automática",
+    "API Microsoft / Graph",
+    "API Google Drive",
+    "API Dropbox",
+    "Azure Blob / S3 / GCS",
+    "Preview de arquivos",
+    "Contagem de arquivos na pasta"
+  ],
+
+  "ux_condicional": {
+    "apenas_pasta_principal": "Exibe único botão '📁 Abrir Pasta Cliente'",
+    "pastas_especificas": "Exibe botão individual por pasta preenchida (Fotos, Homologação, Garantia, Medições)",
+    "sem_links": "Card vazio com instrução de preenchimento"
+  },
+
+  "integracao_ativo_qr": {
+    "campo_exposto": "dados.projeto.documentacao_externa.pasta_principal",
+    "condicional": "link só aparece se pasta_principal preenchida",
+    "abertura": "target='_blank' rel='noopener noreferrer'"
+  },
+
+  "compatibilidade": {
+    "projeto_novo": "Campo null → card vazio com instrução",
+    "projeto_legado": "Campo ausente do documento → mesmo comportamento (null coalescido no frontend)",
+    "projeto_congelado": "Campo editável mesmo após congelamento (documentação externa é metadado operacional, não governa snapshot técnico)",
+    "projeto_homologado": "Idem — links externos não afetam snapshots congelados"
+  },
+
+  "snapshot_afetado": false,
+  "governanca_afetada": false,
+  "homologacao_afetada": false,
+  "ativos_afetados": false,
+  "qr_afetado": false,
+  "comissionamento_afetado": false,
+
+  "build": {
+    "executado": true,
+    "resultado": "sucesso",
+    "tempo": "12.30s",
+    "erros": 0,
+    "modulos": 2330,
+    "modulos_antes": 2329,
+    "chunk_warning": "pré-existente — não introduzido por P5"
+  },
+
+  "validacao": {
+    "build": true,
+    "leitura_codigo": true,
+    "abertura_link_real": false,
+    "device_fisico": false,
+    "atlas_ativo": false,
+    "honestidade": "Funcionalidade validada por leitura de código e análise do fluxo PATCH. Nenhum link de OneDrive/Drive testado em ambiente real."
+  }
+}

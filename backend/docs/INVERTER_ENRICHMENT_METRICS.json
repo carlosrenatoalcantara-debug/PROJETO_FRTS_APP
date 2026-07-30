@@ -1,0 +1,32 @@
+{
+  "sprint": "P1-INVERTER-DATASHEET-ENRICH-01",
+  "gerado_em": "2026-06-14T19:48:43.134Z",
+  "alvo": {
+    "inversores_invalidos": 131,
+    "modelos_unicos": 131,
+    "classes": {
+      "A": 130,
+      "B": 1,
+      "C": 0
+    }
+  },
+  "execucao": {
+    "inversores_enriquecidos": 0,
+    "sairam_de_invalido": 0,
+    "projetos_beneficiados": 0,
+    "permanecem_sem_solucao": 131,
+    "motivo_bloqueio": [
+      "0/131 possuem datasheet_original ou documento datasheet anexado",
+      "130/131 possuem 0 especificacoes",
+      "nenhuma pasta local de datasheets (Desktop/OneDrive) encontrada",
+      "nenhuma GEMINI_API_KEY/ANTHROPIC_API_KEY configurada (pipeline de extracao indisponivel)",
+      "fracao relevante de SKUs esta suja (ex.: fabricante=Deye com modelo estilo Huawei SUN2000) — exige limpeza antes de localizar datasheet"
+    ]
+  },
+  "potencial_se_executado": {
+    "proxy_alcance_projetos_total": 464,
+    "alcance_top10_modelos": 262,
+    "alcance_top20_modelos": 316,
+    "nota": "projetos_beneficiados por modelo pode ter sobreposicao entre modelos; valores sao alcance por modelo, nao soma deduplicada"
+  }
+}

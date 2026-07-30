@@ -1,0 +1,87 @@
+{
+  "sprint": "P5-ATIVO-MEDICOES-01",
+  "data": "2026-06-19",
+  "modelo": "Sonnet",
+  "revisao_gemini": "opcional",
+
+  "escopo": {
+    "arquivos_backend_alterados": 3,
+    "arquivos_frontend_alterados": 1,
+    "arquivos_frontend_criados": 1,
+    "dependencias_novas": 0,
+    "endpoints_novos": 4,
+    "schemas_novos": 1,
+    "campos_adicionados_a_schema_existente": 1,
+    "linhas_aprox_adicionadas": 230,
+    "linhas_aprox_removidas": 0
+  },
+
+  "schema_criado": {
+    "nome": "MedicaoSchema",
+    "colecao_hospedeira": "ativos_equipamento",
+    "tipo_armazenamento": "subdocumento embutido (array medicoes[])",
+    "campos": ["data", "tipo", "observacao", "voc", "isc", "vac", "iac", "potencia", "link_foto", "usuario"],
+    "tipos_enum": ["COMISSIONAMENTO", "GARANTIA", "SUPORTE", "AMPLIACAO", "INSPECAO", "OUTRO"],
+    "retrocompativel": true,
+    "upload_implementado": false,
+    "apis_externas": false
+  },
+
+  "endpoints": [
+    { "metodo": "POST",   "rota": "/api/ativos/:id/medicoes",                "funcao": "adicionarMedicao" },
+    { "metodo": "GET",    "rota": "/api/ativos/:id/medicoes",                "funcao": "listarMedicoes" },
+    { "metodo": "PUT",    "rota": "/api/ativos/:id/medicoes/:medicaoId",     "funcao": "atualizarMedicao" },
+    { "metodo": "DELETE", "rota": "/api/ativos/:id/medicoes/:medicaoId",     "funcao": "removerMedicao" }
+  ],
+
+  "historico_integrado": {
+    "tipo_novo_adicionado": "medicao",
+    "quando_registrado": ["adicionarMedicao (criacao)", "removerMedicao (remocao)"]
+  },
+
+  "ux": {
+    "ultima_medicao_destacada": true,
+    "historico_expansivel": true,
+    "link_foto_nova_aba": true,
+    "remover_com_confirmacao": true,
+    "form_inline": true
+  },
+
+  "nao_implementado": [
+    "Upload de arquivos",
+    "Bucket (Azure Blob / S3 / GCS)",
+    "API Microsoft / OneDrive",
+    "API Google Drive",
+    "API Dropbox",
+    "Telemetria automática",
+    "Sistema de chamados / OS / agenda",
+    "Workflow de aprovação"
+  ],
+
+  "snapshot_afetado": false,
+  "governanca_afetada": false,
+  "homologacao_afetada": false,
+  "projetoev_afetado": false,
+  "seguranca_afetada": false,
+  "qr_afetado": false,
+  "comissionamento_afetado": false,
+
+  "build": {
+    "executado": true,
+    "resultado": "sucesso",
+    "tempo": "10.60s",
+    "erros": 0,
+    "modulos": 2331,
+    "modulos_antes": 2330,
+    "chunk_warning": "pré-existente — não introduzido por P5-ATIVO-MEDICOES-01"
+  },
+
+  "validacao": {
+    "build": true,
+    "leitura_codigo": true,
+    "atlas_ativo": false,
+    "device_fisico": false,
+    "link_foto_real": false,
+    "honestidade": "Funcionalidade validada por leitura de código e análise de fluxo. Nenhuma medição real testada contra Atlas."
+  }
+}

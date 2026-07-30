@@ -1,0 +1,122 @@
+{
+  "gerado_em": "2026-06-17",
+  "sprint": "P0-FV-FLOW-FORENSICS-01",
+  "executor": "Sonnet 4.6 (READ-ONLY)",
+  "nota": "Roadmap de correção em ordem de impacto operacional. Estimativas de esforço são orientativas (small=<1 dia, medium=1-3 dias, large=3-7 dias).",
+
+  "sprints_recomendadas": [
+    {
+      "id": "SPRINT-01",
+      "prioridade": "P0",
+      "titulo": "P0-FV-HOMOLOGACAO-CONNECT-01",
+      "gap_ids": ["GAP-01"],
+      "descricao": "Conectar o componente Homologacao.jsx real à aba Homologação em ProjetosFVDetalhes.jsx. Substituir AbaHomologacao() (stub) pelo componente existente passando projetoId, projeto e cliente.",
+      "arquivos": [
+        "frontend/src/pages/ProjetosFVDetalhes.jsx (linhas 596-605 + import)"
+      ],
+      "esforco": "small",
+      "justificativa": "Componente 100% pronto. Apenas desconectado. 1 arquivo, ~25 linhas. Impacto: todos os 575 projetos ganham acesso a checklist, memorial, carta, ART."
+    },
+    {
+      "id": "SPRINT-02",
+      "prioridade": "P0",
+      "titulo": "P0-FV-NOMEADO-CLIENTE-FIX-01",
+      "gap_ids": ["GAP-04"],
+      "descricao": "Substituir todas as referências a projeto.nomeCliente em ProjetosFVDetalhes.jsx por projeto.clienteId?.nome || projeto.nome. Garantir que o header e a aba Resumo exibam o nome correto.",
+      "arquivos": [
+        "frontend/src/pages/ProjetosFVDetalhes.jsx (8+ ocorrências)"
+      ],
+      "esforco": "small",
+      "justificativa": "Todos os projetos novos (v3) mostram header vazio. Fix simples, alto impacto."
+    },
+    {
+      "id": "SPRINT-03",
+      "prioridade": "P0",
+      "titulo": "P0-FV-GOVERNANCA-SNAPSHOT-01",
+      "gap_ids": ["GAP-03"],
+      "descricao": "Criar função construirSnapshotsProjeto() em ProjetosFVDetalhes.jsx que derive snapshot técnico dos dados do projeto (dimensionamento, equipamentos, arranjos) e passe via prop construirSnapshots para GovernancaPainel.",
+      "arquivos": [
+        "frontend/src/pages/ProjetosFVDetalhes.jsx",
+        "frontend/src/utils/engenhariaGovernanca.js (reutilizar construirSnapshotTecnico)"
+      ],
+      "esforco": "medium",
+      "justificativa": "Congelar um projeto pela tela de detalhes não grava snapshot técnico — a governança fica cega. A divergência com catálogo também fica inoperante."
+    },
+    {
+      "id": "SPRINT-04",
+      "prioridade": "P0",
+      "titulo": "P0-FV-ORCAMENTO-DETALHE-01",
+      "gap_ids": ["GAP-02"],
+      "descricao": "Recalcular resultadoFinanceiro no backend a partir do projeto existente (ou expor endpoint /api/projetos-fv/:id/financeiro/recalcular) e alimentar PropostaEnterprise na aba Comercial.",
+      "arquivos": [
+        "frontend/src/pages/ProjetosFVDetalhes.jsx (linha 235: resultadoFinanceiro={null})",
+        "backend/src/controllers/projetosFVController.js ou novo endpoint"
+      ],
+      "esforco": "medium",
+      "justificativa": "A aba Comercial (aprovação, assinaturas, negociação) fica inoperante sem valores financeiros reais. Bloqueia o workflow comercial pós-wizard."
+    },
+    {
+      "id": "SPRINT-05",
+      "prioridade": "P1",
+      "titulo": "P1-FV-UNIFILAR-GATE-01",
+      "gap_ids": ["GAP-05"],
+      "descricao": "Adicionar gate no UnifilarFV: exibir aviso quando freeze_status ≠ CONGELADO e comercial.workflow_status ≠ ASSINADO. Não bloquear, mas alertar que o unifilar é preliminar.",
+      "arquivos": [
+        "frontend/src/components/fv/UnifilarFV.jsx"
+      ],
+      "esforco": "small",
+      "justificativa": "Evita que o unifilar seja enviado à concessionária com equipamentos pré-aprovação."
+    },
+    {
+      "id": "SPRINT-06",
+      "prioridade": "P1",
+      "titulo": "P1-FV-BENEFICIARIAS-PRIORIDADE-01",
+      "gap_ids": ["GAP-09"],
+      "descricao": "Adicionar seletor tipoRateio (percentual/prioridade) no formulário de nova beneficiária em BeneficiariasPainel.jsx. Ajustar validação de rateio para suportar prioridade.",
+      "arquivos": [
+        "frontend/src/components/fv/BeneficiariasPainel.jsx"
+      ],
+      "esforco": "small",
+      "justificativa": "Backend já suporta. UI apenas não expõe. Lei 14.300/2022."
+    },
+    {
+      "id": "SPRINT-07",
+      "prioridade": "P1",
+      "titulo": "P1-FV-INSTALACAO-01",
+      "gap_ids": ["GAP-07"],
+      "descricao": "Criar aba 'Instalação' em ProjetosFVDetalhes: checklist de instalação, data, equipe, fotos, laudo de conformidade. Schema: novo subdoc instalacao em ProjetoFV.",
+      "arquivos": [
+        "frontend/src/pages/ProjetosFVDetalhes.jsx (nova aba)",
+        "frontend/src/components/fv/AbaInstalacao.jsx (novo)",
+        "backend/src/models/ProjetoFV.js (additive subdoc)"
+      ],
+      "esforco": "large",
+      "justificativa": "Etapa 10 do fluxo real completamente fora do sistema."
+    },
+    {
+      "id": "SPRINT-08",
+      "prioridade": "P1",
+      "titulo": "P1-FV-COMISSIONAMENTO-LINK-01",
+      "gap_ids": ["GAP-08"],
+      "descricao": "Adicionar campo projeto_fv_id (ref ProjetoFV) no schema Ativo. Exibir badge 'Comissionado' na tela de detalhes FV quando ativo vinculado existe.",
+      "arquivos": [
+        "backend/src/models/Ativo.js",
+        "frontend/src/pages/ProjetosFVDetalhes.jsx"
+      ],
+      "esforco": "medium",
+      "justificativa": "Rastreabilidade projeto→ativo→comissionamento."
+    },
+    {
+      "id": "SPRINT-09",
+      "prioridade": "P2",
+      "titulo": "P2-FV-FINANCEIRO-SNAPSHOT-01",
+      "gap_ids": ["GAP-10"],
+      "descricao": "Na AbaFinanceiro de ProjetosFVDetalhes, priorizar projeto.governanca.snapshot_financeiro quando congelado. Fallback para projeto.dimensionamento (atual).",
+      "arquivos": [
+        "frontend/src/pages/ProjetosFVDetalhes.jsx (AbaFinanceiro function)"
+      ],
+      "esforco": "small",
+      "justificativa": "Evita exibir valores desatualizados após renegociação."
+    }
+  ]
+}

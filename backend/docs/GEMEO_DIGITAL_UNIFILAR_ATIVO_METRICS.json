@@ -1,0 +1,94 @@
+{
+  "sprint": "P4-GEMEO-DIGITAL-UNIFILAR-ATIVO-01",
+  "data": "2026-06-19",
+  "modelo": "Sonnet",
+  "tipo": "METRICAS",
+
+  "escopo": {
+    "arquivos_frontend_alterados": 2,
+    "arquivos_backend_alterados": 0,
+    "dependencias_novas": 0,
+    "endpoints_novos": 0,
+    "schemas_alterados": 0,
+    "linhas_aprox_adicionadas": 35,
+    "linhas_aprox_removidas": 2
+  },
+
+  "gap_fechado": {
+    "id": "GAP-DT-01",
+    "titulo": "Unifilar não referencia AtivoEquipamento",
+    "status_anterior": "ABERTO",
+    "status_atual": "FECHADO (parcial — single-arranjo; multi-arranjo é melhoria futura)"
+  },
+
+  "funcionalidades_adicionadas": [
+    "Clique no símbolo de painéis → navega para /ativo/:qr do AtivoEquipamento módulo",
+    "Clique no símbolo do inversor → navega para /ativo/:qr do AtivoEquipamento inversor",
+    "Hover visual no SVG: brightness(0.92) em qualquer g[data-ativo-id]",
+    "cursor:pointer em símbolos clicáveis (via CSS inline no SVG)",
+    "Link 'Gêmeo Digital (unifilar operacional)' → /unifilar/:projetoId",
+    "Badge 'N ativos vinculados' quando ativos são carregados",
+    "data-ativo-id, data-qr, data-arranjo-id, data-tipo, data-status nos <g> do SVG"
+  ],
+
+  "identidade_adicionada": {
+    "data_ativo_id": "MongoDB _id do AtivoEquipamento (identidade principal)",
+    "data_qr": "QR code FORTE-<TIPO3>-<SEQ6> (redundância operacional)",
+    "data_arranjo_id": "ID do arranjo (link ProjetoFV.arranjos[].id)",
+    "data_tipo": "tipo do ativo: modulo | inversor",
+    "data_status": "status atual: planejado | instalado | operacional | manutencao | substituido | desativado"
+  },
+
+  "reutilizacao": {
+    "AtivoEquipamento": "reutilizado sem modificação (modelo intacto)",
+    "AtivoQR_jsx": "reutilizado sem modificação (destino do clique)",
+    "Unifilar_jsx": "reutilizado sem modificação (unifilar operacional completo)",
+    "gerarUnifilarSVG_js": "estendido com parâmetro opcional ativos=[]",
+    "endpoint_ativos": "/api/ativos/projeto/:id — já existia, reutilizado"
+  },
+
+  "limitacoes_conhecidas": {
+    "multi_arranjo": "Para projetos multi-arranjo, todos os MPPTs linkam para o primeiro ativo de módulo encontrado. Mapeamento 1:1 MPPT→arranjo é melhoria futura.",
+    "snapshot_svg": "O SVG snapshot congelado NÃO tem os data-* attributes (gerado antes do P4). Clicar no snapshot não navega; o link para o unifilar operacional cobre esse caso.",
+    "microinversor": "ativoModulo detecta tipo='microinversor' mas gerarUnifilarSVG não tem símbolo específico para micro. Clique na zona de módulos cobre o caso."
+  },
+
+  "regressoes": {
+    "total": 0,
+    "observacoes": [
+      "Parâmetro ativos=[] é opcional — chamadas existentes sem segundo argumento continuam funcionando",
+      "gerarUnifilarSVG chamado sem ativos: ativoGAttrs retorna '' → nenhum data-* attribute → SVG idêntico ao anterior",
+      "handleSVGClick retorna cedo se e.target.closest('[data-ativo-id]') não encontrar elemento",
+      "SVG download (SVG/PNG) inalterado",
+      "Snapshot congelado exibido inalterado",
+      "Origem explícita S8.1.1 inalterada"
+    ]
+  },
+
+  "build": {
+    "executado": true,
+    "resultado": "sucesso",
+    "tempo": "12.69s",
+    "erros": 0,
+    "modulos": 2329,
+    "chunk_warning": "pré-existente — não introduzido por P4"
+  },
+
+  "validacao": {
+    "build": true,
+    "leitura_codigo": true,
+    "clique_real": false,
+    "device_fisico": false,
+    "ambiente_real": false,
+    "honestidade": "Linkagem validada por leitura de código e análise de event delegation. Não testado em ambiente com Atlas ativo nem com ativos reais."
+  },
+
+  "maturidade_digital_twin": {
+    "antes_p4": "60%",
+    "apos_p4": "63%",
+    "dimensao_engenharia_antes": "85%",
+    "dimensao_engenharia_apos": "90%",
+    "gap_dt01_fechado": true,
+    "gaps_restantes": ["GAP-DT-02 (telemetria)", "GAP-DT-03 (O&M)", "GAP-DT-04 (substituição UI)", "GAP-DT-06 (garantia auto)", "GAP-DT-07 (documentos)", "GAP-DT-08 (equipamento_id backfill)", "GAP-DT-09 (ampliação wizard)", "GAP-DT-10 (ENEL)"]
+  }
+}

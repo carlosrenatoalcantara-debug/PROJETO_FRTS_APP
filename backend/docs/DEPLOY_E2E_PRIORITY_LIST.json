@@ -1,0 +1,90 @@
+{
+  "sprint": "P6-DEPLOY-E2E-VALIDATION-01",
+  "data": "2026-06-19",
+  "modelo": "Sonnet",
+
+  "proxima_sprint_recomendada": "P6-BUG-FIX-01",
+  "nota": "Corrigir P1 antes de qualquer nova feature. P2s devem ser corrigidos antes de push para produção.",
+
+  "prioridades": [
+    {
+      "ordem": 1,
+      "id": "BUG-P4-UNIFILAR-01",
+      "prioridade": "P1",
+      "titulo": "Corrigir fetch de ativos em UnifilarFV.jsx",
+      "arquivo": "frontend/src/components/fv/UnifilarFV.jsx",
+      "linhas_afetadas": [26, 27],
+      "fix": {
+        "remover": ".then(data => setAtivos(Array.isArray(data) ? data : []))",
+        "adicionar": ".then(data => setAtivos(Array.isArray(data?.itens) ? data.itens : []))"
+      },
+      "risco_regressao": "NENHUM — mudança mínima isolada",
+      "tempo_estimado": "5 minutos",
+      "validacao_necessaria": "Gerar unifilar com projeto que tenha ativos → verificar data-ativo-id no SVG → clicar no símbolo → navegar para AtivoQR"
+    },
+    {
+      "ordem": 2,
+      "id": "BUG-P5-ALERTCENTER-01",
+      "prioridade": "P2",
+      "titulo": "Filtrar ativos substituídos/desativados da query de garantia",
+      "arquivo": "backend/src/routes/alertcenter.js",
+      "fix": {
+        "remover": "AtivoEquipamento.find({ garantia_fim: { $ne: null } }, ...)",
+        "adicionar": "AtivoEquipamento.find({ garantia_fim: { $ne: null }, status: { $nin: ['substituido', 'desativado'] } }, ...)"
+      },
+      "risco_regressao": "NENHUM — só reduz alertas gerados",
+      "tempo_estimado": "3 minutos"
+    },
+    {
+      "ordem": 3,
+      "id": "BUG-P5-MEDICOES-01",
+      "prioridade": "P2",
+      "titulo": "Substituir window.confirm por confirmação inline em MedicoesAtivoCard",
+      "arquivo": "frontend/src/components/fv/MedicoesAtivoCard.jsx",
+      "fix": "Adicionar estado `confirmandoRemover: null | medicaoId`. Quando clicado, mostrar 'Tem certeza? [Cancelar] [Remover]' inline no item.",
+      "risco_regressao": "BAIXO — apenas UX de confirmação",
+      "tempo_estimado": "15 minutos"
+    },
+    {
+      "ordem": 4,
+      "id": "BUG-P5-GARANTIA-01",
+      "prioridade": "P3",
+      "titulo": "Adicionar validação de ObjectId em _autoPreencherGarantia",
+      "arquivo": "backend/src/controllers/ativosController.js",
+      "fix": "Adicionar `if (!mongoose.Types.ObjectId.isValid(ativo.equipamento_id)) return` após `if (!ativo.equipamento_id) return`",
+      "risco_regressao": "NENHUM — só evita erro raro",
+      "tempo_estimado": "2 minutos"
+    },
+    {
+      "ordem": 5,
+      "id": "MELHORIA-P5-MEDICOES-02",
+      "prioridade": "P3",
+      "titulo": "Verificar rota /ativo/:qr no roteador React",
+      "acao": "Confirmar em App.jsx ou router principal que a rota /ativo/:qr existe e aponta para AtivoQR component",
+      "tempo_estimado": "5 minutos (verificação)"
+    },
+    {
+      "ordem": 6,
+      "id": "MELHORIA-P5-GARANTIA-02",
+      "prioridade": "P3",
+      "titulo": "Verificar link /ativo/QR no AlertCenter",
+      "acao": "Confirmar que alertas de garantia no AlertCenter navegam corretamente para a página AtivoQR",
+      "tempo_estimado": "5 minutos (verificação)"
+    }
+  ],
+
+  "nao_corrigido_nesta_sprint": true,
+  "motivo": "Sprint P6 é exclusivamente de validação — nenhum código alterado",
+
+  "fluxos_que_requerem_ambiente_real": [
+    "FASE-1 Login/Auth/Sessão",
+    "FASE-2 Projetos FV (legado/novo/congelado)",
+    "FASE-3 Dimensionamento FV",
+    "FASE-4 Orçamento/Proposta/PDF",
+    "FASE-5 Governança/Snapshot",
+    "FASE-6 Homologação completa",
+    "FASE-7 DocumentosExternos (link real OneDrive/Drive)",
+    "FASE-10 Scanner Android/iPhone câmera/OCR/QR",
+    "Atlas persistência todas as features"
+  ]
+}

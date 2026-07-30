@@ -1,0 +1,62 @@
+{
+  "gerado_em": "2026-06-17",
+  "sprint": "P0-LAYOUT-DIAGRAMA-FORENSICS-01",
+  "executor": "Sonnet 4.6 (READ-ONLY)",
+  "mensagem_de_erro": "Dados incompletos para inicializar diagrama",
+  "causa_raiz": {
+    "categoria": ["MIGRAÇÃO_INCOMPLETA", "INCOMPATIBILIDADE_DE_SCHEMA"],
+    "resumo": "O componente InteractiveDiagram é exclusivo para projetos EV (carregadores elétricos, NBR 5410). Foi copiado/colado na página ProjetosFVDetalhes.jsx sem adaptar o prop 'calculos'. O campo calculos_nbr existe SOMENTE no schema ProjetoEV; ProjetoFV não tem este campo. Resultado: calculos prop = undefined → diagrama nunca inicializa.",
+    "arquivo_erro": "frontend/src/components/diagram/InteractiveDiagram.jsx",
+    "linha_erro": 131,
+    "condicao_exata": "if (calculos && projeto) { ... } else { setErro('Dados incompletos para inicializar diagrama') }",
+    "linha_condicao": "87-132",
+    "prop_com_problema": "calculos={projeto?.calculos_nbr}",
+    "arquivo_chamador": "frontend/src/pages/ProjetosFVDetalhes.jsx",
+    "linha_chamador": 280,
+    "campo_inexistente": "ProjetoFV.calculos_nbr",
+    "campo_correto_em_fv": "ProjetoFV.calculos_principais (schema diferente, propósito diferente)",
+    "campo_correto_em_ev": "ProjetoEV.calculos_nbr (existe e contém corrente, disjuntor, DPS, DR, cabo)",
+    "commit_introduziu_bug": "08098a904137fb9ee14ec1f89607f74e8c814f6c",
+    "mensagem_commit": "feat: Adicionar diagrama interativo e página de detalhes para projetos EV",
+    "autor_commit": "Claude Haiku 4.5 (co-authored)"
+  },
+  "fluxo_completo": {
+    "1_botao": {
+      "arquivo": "frontend/src/pages/ProjetosFVDetalhes.jsx",
+      "linha": "179-185",
+      "codigo": "<Button icone={Edit2} onClick={abrirEditorDiagrama}>Editar Diagrama</Button>"
+    },
+    "2_handler": {
+      "arquivo": "frontend/src/pages/ProjetosFVDetalhes.jsx",
+      "linha": "67-73",
+      "codigo": "const abrirEditorDiagrama = () => { carregarDiagramaLocal(`projeto-fv-${id}`); setModalEditorAberto(true) }"
+    },
+    "3_modal_abre": {
+      "arquivo": "frontend/src/pages/ProjetosFVDetalhes.jsx",
+      "linha": "262-291",
+      "codigo": "modalEditorAberto && <div ...><InteractiveDiagram calculos={projeto?.calculos_nbr} .../></div>"
+    },
+    "4_prop_invalida": {
+      "descricao": "projeto?.calculos_nbr === undefined porque ProjetoFV não tem esse campo (0 de 575 projetos possuem)"
+    },
+    "5_useEffect_no_diagrama": {
+      "arquivo": "frontend/src/components/diagram/InteractiveDiagram.jsx",
+      "linha": "87-140",
+      "condicao": "if (calculos && projeto) → false (calculos = undefined)"
+    },
+    "6_erro_setado": {
+      "arquivo": "frontend/src/components/diagram/InteractiveDiagram.jsx",
+      "linha": "131",
+      "codigo": "setErro('Dados incompletos para inicializar diagrama')"
+    },
+    "7_render_erro": {
+      "arquivo": "frontend/src/components/diagram/InteractiveDiagram.jsx",
+      "linha": "539-548",
+      "codigo": "if (erro) return <div>❌ Erro ao Carregar Diagrama ... {erro}</div>"
+    }
+  },
+  "multiarranjo_impacto": {
+    "introduziu_regressao": false,
+    "motivo": "P1-MULTIARRANJO-UX-RESTORE-01 alterou somente GerenciadorArranjos.jsx (wizard FV). InteractiveDiagram não usa arranjos, módulos nem inversores FV — é um editor EV puro. Não há overlap."
+  }
+}

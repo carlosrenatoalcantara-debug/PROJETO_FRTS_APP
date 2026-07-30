@@ -1,0 +1,148 @@
+{
+  "sprint": "P2-FV-MULTIARRANJO-STATUS-01",
+  "data": "2026-06-19",
+  "modelo": "Claude Sonnet 4.6",
+  "etapa": "E7 — Projeto · Equipamentos",
+
+  "arvore_visual": {
+    "etapa": "E7Equipamentos.jsx",
+    "sub_blocos": [
+      {
+        "id": "secao_paineis",
+        "rotulo_ui": "Módulos Fotovoltaicos",
+        "cor_borda": "amber-200",
+        "cor_fundo": "amber-50",
+        "corresponde_a": "Arranjo A (módulos)",
+        "componente": "SeletorPaineis",
+        "arquivo": "frontend/src/components/fv/SeletorPaineis.jsx",
+        "state_key": "equipamentos.painel",
+        "colapsa": true,
+        "label_arranjo_na_ui": false
+      },
+      {
+        "id": "secao_inversores",
+        "rotulo_ui": "Inversores",
+        "cor_borda": "blue-200",
+        "cor_fundo": "blue-50",
+        "corresponde_a": "Arranjo A (inversores)",
+        "componente": "SeletorInversores",
+        "arquivo": "frontend/src/components/fv/SeletorInversores.jsx",
+        "state_key": "equipamentos.inversor",
+        "colapsa": true,
+        "label_arranjo_na_ui": false
+      },
+      {
+        "id": "secao_estrutura",
+        "rotulo_ui": "Estruturas de Fixação",
+        "cor_borda": "slate-300",
+        "cor_fundo": "slate-50",
+        "corresponde_a": "GLOBAL — todos os arranjos",
+        "componente": "SeletorEstrutura",
+        "arquivo": "frontend/src/components/fv/SeletorEstrutura.jsx",
+        "state_key": "equipamentos.estrutura",
+        "colapsa": true,
+        "label_arranjo_na_ui": false,
+        "nota": "NÃO está vinculado a nenhum arranjo específico. Único para o projeto."
+      },
+      {
+        "id": "secao_configurador_eletrico",
+        "rotulo_ui": "Configuração Elétrica do Arranjo",
+        "cor_borda": "violet-200",
+        "cor_fundo": "violet-50",
+        "corresponde_a": "Arranjo A (strings/MPPT)",
+        "componente": "ConfiguradorArranjoFV",
+        "arquivo": "frontend/src/components/fv/ConfiguradorArranjoFV.jsx",
+        "state_key": "engenharia_eletrica (salvo via API)",
+        "visivel_quando": "equipamentos.painel && equipamentos.inversor",
+        "label_arranjo_na_ui": false
+      },
+      {
+        "id": "gerenciador_arranjos",
+        "rotulo_ui": "Arranjos do Sistema",
+        "cor_borda": "emerald-200",
+        "cor_fundo": "emerald-50",
+        "corresponde_a": "Arranjos secundários (B, C, D...)",
+        "componente": "GerenciadorArranjos",
+        "arquivo": "frontend/src/components/fv/GerenciadorArranjos.jsx",
+        "state_key": "arranjos[]",
+        "cards_dinamicos": true,
+        "botao_adicionar": "Novo arranjo",
+        "label_arranjo_na_ui": true,
+        "estrutura_do_card": {
+          "header": {
+            "campo": "input[rotulo]",
+            "editavel": true,
+            "valor_inicial": "Arranjo B / C / D..."
+          },
+          "secao_modulos": {
+            "label_ui": "Módulos",
+            "icone": "Sun (amber)",
+            "campos": ["Fabricante (select)", "Modelo (select)", "Qtd (number)"],
+            "state_key": "arranjos[i].paineis[]",
+            "multi_linha": true
+          },
+          "secao_inversores": {
+            "label_ui": "Inversores",
+            "icone": "Zap (blue)",
+            "campos": ["Fabricante (select)", "Modelo (select)", "Qtd (number)"],
+            "state_key": "arranjos[i].inversores[]",
+            "multi_linha": true
+          },
+          "secao_estrutura": null,
+          "secao_orientacao_inclinacao": {
+            "label_ui": "Orientação / Inclinação",
+            "campos": ["Orientação (select: Norte/NE/NO/Leste/Oeste/Sul)", "Inclinação (number 0–90°)"],
+            "state_key": "arranjos[i].orientacao + arranjos[i].inclinacao",
+            "nota": "Informativo — não persiste em schema MongoDB (sem alteração de schema)"
+          },
+          "botoes": ["Duplicar (Copy)", "Excluir (Trash2)"]
+        }
+      }
+    ]
+  },
+
+  "state_shape": {
+    "arranjo_primario_A": {
+      "state_key": "equipamentos",
+      "campos": {
+        "painel": "objeto único com snapshot_equipamento",
+        "inversor": "objeto único com snapshot_equipamento",
+        "estrutura": "objeto único (GLOBAL)",
+        "quantidadeModulos": "número — pode ser ajustado pelo ConfiguradorArranjoFV"
+      }
+    },
+    "arranjos_secundarios_B_C": {
+      "state_key": "arranjos[]",
+      "campo_por_item": {
+        "id": "string (gerado localmente)",
+        "rotulo": "string (ex: 'Arranjo B')",
+        "tipo": "'secundario' | 'principal' | 'ampliacao'",
+        "somente_leitura": "boolean (true para arranjos existentes em ampliação)",
+        "paineis": "array de { equipamento_id, fabricante, marca, modelo, tipo, potencia_w, quantidade }",
+        "inversores": "array de { equipamento_id, fabricante, marca, modelo, tipo, potencia_kw, quantidade }",
+        "orientacao": "string (UX only — não persiste em schema)",
+        "inclinacao": "string (UX only — não persiste em schema)",
+        "estrutura": "AUSENTE — campo não existe no shape"
+      }
+    }
+  },
+
+  "fluxo_persistencia": {
+    "trigger": "avancar() em E7Equipamentos.jsx → persistirArranjos() → salvarArranjos(projetoId, montarArranjosPayload())",
+    "montarArranjosPayload": {
+      "tipo_novo": "Cria lista com [Arranjo A (de equipamentos.painel/inversor)] + [...arranjos[] secundários]",
+      "tipo_ampliacao": "Usa state.arranjos[] diretamente (já hidratados do banco)",
+      "campo_estrutura": "NÃO incluído em nenhum dos shapes gerados"
+    },
+    "endpoint": "salvarArranjos → POST/PUT /api/projetos-fv/:id/arranjos",
+    "schema_backend": "arranjos[].paineis[] + arranjos[].inversores[] (sem estrutura por arranjo)"
+  },
+
+  "commits_implementacao": [
+    { "hash": "d32bd30", "descricao": "Arquitetura definitiva multi-arranjo (read-only / ampliação)" },
+    { "hash": "e4b803f", "descricao": "UX core: múltiplos arranjos e ampliação de usina" },
+    { "hash": "6fed7f6", "descricao": "Conecta UI a múltiplos arranjos, ampliação e read-only" },
+    { "hash": "5506d34", "descricao": "arranjos[] com N inversores/tecnologias/expansões" },
+    { "hash": "dd2ac3c", "descricao": "Configurador de arranjos — P1-MULTIARRANJO-UX-RESTORE-01 (atual)" }
+  ]
+}

@@ -1,0 +1,94 @@
+{
+  "sprint": "P5-GARANTIA-SIMPLES-01",
+  "data": "2026-06-19",
+  "modelo": "Sonnet",
+  "tipo": "DIFF",
+
+  "arquivos_alterados": [
+    {
+      "arquivo": "backend/src/models/Equipamento.js",
+      "tipo": "MODIFICADO",
+      "mudanca": "Campo aditivo 'suporte' adicionado após bloco 'certificacao': telefone, email, site, portal_garantia, garantia_padrao_meses (todos String|Number default null)",
+      "retrocompatibilidade": "Equipamentos existentes lêem suporte:{} sem erro"
+    },
+    {
+      "arquivo": "backend/src/models/AtivoEquipamento.js",
+      "tipo": "MODIFICADO",
+      "mudanca": "Campo aditivo 'origem_garantia: String default null' adicionado após 'garantia_fim'. garantia_inicio e garantia_fim já existiam.",
+      "retrocompatibilidade": "Ativos existentes lêem origem_garantia: null sem erro"
+    },
+    {
+      "arquivo": "backend/src/controllers/ativosController.js",
+      "tipo": "MODIFICADO",
+      "mudancas": [
+        "_garantiaMeses(eq): deriva meses de suporte.garantia_padrao_meses ou garantia_produto",
+        "_somarMeses(data, meses): Date + N meses",
+        "_autoPreencherGarantia(ativo): auto-fill garantia_inicio/fim/origem quando condições atendidas",
+        "criarAtivo: usa new + save em vez de .create() para permitir _autoPreencherGarantia",
+        "atualizarAtivo: chama _autoPreencherGarantia quando data_instalacao muda e garantia_fim é nulo",
+        "atualizarAtivo: CAMPOS[] inclui 'origem_garantia'",
+        "consultarPorQr: projeção Equipamento extendida com 'suporte garantia_produto'",
+        "consultarPorQr: ativo response inclui 'origem_garantia'"
+      ]
+    },
+    {
+      "arquivo": "backend/src/utils/alertcenter/alertDetectors.js",
+      "tipo": "MODIFICADO",
+      "mudancas": [
+        "ORIGENS[]: adicionado 'garantia'",
+        "detectarAlertasGarantia(ativos, hoje): nova função — critico(vencida), aviso(≤30d), info(≤90d)",
+        "agregarAlertas(): aceita parâmetro 'ativos', inclui detectarAlertasGarantia",
+        "calcularKPIs(): por_origem.garantia, cards.garantias_vencidas, cards.garantias_vencendo"
+      ]
+    },
+    {
+      "arquivo": "backend/src/routes/alertcenter.js",
+      "tipo": "MODIFICADO",
+      "mudancas": [
+        "Import: AtivoEquipamento",
+        "obterTodosAlertas(): query AtivoEquipamento com garantia_fim $ne null (projeção mínima)",
+        "agregarAlertas(): passa ativos: ativosGarantia"
+      ]
+    },
+    {
+      "arquivo": "frontend/src/pages/AlertCenter.jsx",
+      "tipo": "MODIFICADO",
+      "mudanca": "ORIGEM_LABEL: adicionados 'garantia: Garantia' e 'homologacao: Homologação'"
+    },
+    {
+      "arquivo": "frontend/src/pages/AtivoQR.jsx",
+      "tipo": "MODIFICADO",
+      "mudancas": [
+        "Import: GarantiaCard from '../components/fv/GarantiaCard'",
+        "JSX: <GarantiaCard ativo={dados.ativo} equipamento={dados.equipamento_catalogo} /> entre Projeto/Arranjo e Comissionamento"
+      ]
+    }
+  ],
+
+  "arquivos_criados": [
+    {
+      "arquivo": "frontend/src/components/fv/GarantiaCard.jsx",
+      "descricao": "Card React read-only: status ATIVA/PRÓXIMA/VENCIDA, datas, dias restantes, telefone (tel:), email (mailto:), site e portal de garantia (nova aba). Retorna null se sem dados."
+    },
+    "backend/docs/GARANTIA_SIMPLES_REPORT.md",
+    "backend/docs/GARANTIA_SIMPLES_DIFF.json",
+    "backend/docs/GARANTIA_SIMPLES_METRICS.json"
+  ],
+
+  "arquivos_nao_alterados": [
+    "backend/src/models/ProjetoEV.js",
+    "backend/src/models/ProjetoFV.js",
+    "backend/src/controllers/homologacaoController.js",
+    "backend/src/services/ativoSeguranca.js",
+    "frontend/src/pages/EtiquetaScanner.jsx",
+    "frontend/src/components/fv/MedicoesAtivoCard.jsx",
+    "frontend/src/components/fv/DocumentosExternos.jsx"
+  ],
+
+  "campos_pre_existentes_nao_alterados": [
+    "AtivoEquipamento.garantia_inicio",
+    "AtivoEquipamento.garantia_fim",
+    "Equipamento.garantia_produto",
+    "Equipamento.garantia_performance"
+  ]
+}

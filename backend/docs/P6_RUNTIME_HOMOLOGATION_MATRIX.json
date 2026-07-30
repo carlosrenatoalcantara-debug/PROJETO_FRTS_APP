@@ -1,0 +1,192 @@
+{
+  "sprint": "P6-RUNTIME-HOMOLOGATION-01",
+  "data": "2026-06-19",
+  "modelo": "Claude Sonnet 4.6",
+  "commit_alvo": "e9c1ff7",
+  "commit_producao": "127f7f5",
+
+  "matriz_bugs": [
+    {
+      "bug_id": "BUG-P0-01",
+      "arquivo": "frontend/src/pages/Clientes.jsx",
+      "descricao": "Navegação pós-cadastro não redireciona para ficha do cliente",
+      "status_codigo": "CORRIGIDO_NO_COMMIT",
+      "status_runtime": "NAO_TESTADO",
+      "metodo_validacao": null
+    },
+    {
+      "bug_id": "BUG-P0-02",
+      "arquivo": "frontend/src/pages/ProjetosFVNovo.jsx",
+      "descricao": "E1 Upload exibida mesmo com cliente tendo conta OCR",
+      "status_codigo": "CORRIGIDO_NO_COMMIT",
+      "status_runtime": "PRESENTE_CONFIRMADO",
+      "metodo_validacao": "EXECUCAO_REAL",
+      "evidencia": "E1 exibida em URL /projetos-fv/novo?clienteId=6a3588caf3fada9effa61ce6"
+    },
+    {
+      "bug_id": "BUG-P0-03",
+      "arquivo": "frontend/src/pages/ProjetosFVNovo.jsx",
+      "descricao": "Consumo, distribuidora, valor kWh não pré-preenchidos",
+      "status_codigo": "CORRIGIDO_NO_COMMIT",
+      "status_runtime": "PRESENTE_CONFIRMADO",
+      "metodo_validacao": "EXECUCAO_REAL",
+      "evidencia": "Campos E2 vazios apesar de cliente ter consumo_kwh=17045"
+    },
+    {
+      "bug_id": "BUG-P0-04",
+      "arquivo": "frontend/src/pages/ProjetosFVNovo.jsx",
+      "descricao": "Tipo de ligação exibe Monofásico em vez de Trifásico 380V",
+      "status_codigo": "CORRIGIDO_NO_COMMIT",
+      "status_runtime": "PRESENTE_CONFIRMADO",
+      "metodo_validacao": "EXECUCAO_REAL",
+      "evidencia": "Campo mostrou Monofásico; cliente tem tipo_ligacao=Trifásico 380V"
+    },
+    {
+      "bug_id": "BUG-P0-05",
+      "arquivo": "frontend/src/components/fv/GerenciadorArranjos.jsx",
+      "descricao": "Arranjos adicionados recebem letra A duplicada em vez de B, C, D",
+      "status_codigo": "CORRIGIDO_NO_COMMIT",
+      "status_runtime": "NAO_TESTADO",
+      "metodo_validacao": null
+    },
+    {
+      "bug_id": "BUG-P0-06",
+      "arquivo": "frontend/src/components/fv/etapas/E5Dimensionamento.jsx",
+      "descricao": "Número de inversores usa default 5 kW em vez de 20 kW",
+      "status_codigo": "CORRIGIDO_NO_COMMIT",
+      "status_runtime": "PRESENTE_CONFIRMADO",
+      "metodo_validacao": "EXECUCAO_REAL",
+      "evidencia": "E7 mostrou '~25 un.' para 123.09 kWp (Math.ceil(123.09/5)=25)"
+    },
+    {
+      "bug_id": "BUG-P0-07",
+      "arquivo": "frontend/src/components/fv/etapas/E8Orcamento.jsx",
+      "descricao": "Orçamento inicia com preços hardcoded (620/4000/130) em vez de R$0",
+      "status_codigo": "CORRIGIDO_NO_COMMIT",
+      "status_runtime": "PARCIAL",
+      "metodo_validacao": "EXECUCAO_REAL_PARCIAL",
+      "evidencia": "Painéis em E7 mostram R$0/un (sem precoUnitario). E8 não acessado diretamente."
+    },
+    {
+      "bug_id": "BUG-P1-01",
+      "arquivo": "frontend/src/components/fv/etapas/E4Irradiancia.jsx",
+      "descricao": "CRESESB usa estado RN (5.9) em vez de cidade Natal (5.42) por split errado",
+      "status_codigo": "CORRIGIDO_NO_COMMIT",
+      "status_runtime": "INDICIO",
+      "metodo_validacao": "EXECUCAO_REAL_PARCIAL",
+      "evidencia": "Info text CRESESB mostra '5.9 kWh/m²/dia'. NASA retornou 5.77 para Natal."
+    },
+    {
+      "bug_id": "BUG-P1-02",
+      "arquivo": "frontend/src/components/fv/AssistenteDatasheet.jsx",
+      "descricao": "OCR bem-sucedido não chama onExtrair automaticamente",
+      "status_codigo": "CORRIGIDO_NO_COMMIT",
+      "status_runtime": "NAO_TESTADO",
+      "metodo_validacao": null
+    },
+    {
+      "bug_id": "BUG-P1-03",
+      "arquivo": "frontend/src/components/fv/AssistenteDatasheet.jsx",
+      "descricao": "OCR parcial/falho silencia erro (sem fallback manual)",
+      "status_codigo": "CORRIGIDO_NO_COMMIT",
+      "status_runtime": "NAO_TESTADO",
+      "metodo_validacao": null
+    },
+    {
+      "bug_id": "BUG-P1-04",
+      "arquivo": "backend/src/controllers/datasheetController.js",
+      "descricao": "normalizar() não desembrulha envelope {dados:{}} e perde garantias",
+      "status_codigo": "CORRIGIDO_NO_COMMIT",
+      "status_runtime": "NAO_TESTADO",
+      "metodo_validacao": null
+    },
+    {
+      "bug_id": "BUG-P1-05",
+      "arquivo": "frontend/src/pages/ProjetosFVNovo.jsx",
+      "descricao": "Primeira UC não pré-adicionada como beneficiária",
+      "status_codigo": "CORRIGIDO_NO_COMMIT",
+      "status_runtime": "PRESENTE_CONFIRMADO",
+      "metodo_validacao": "EXECUCAO_REAL",
+      "evidencia": "Sub-etapa Beneficiárias: 'Nenhuma beneficiária adicionada'"
+    },
+    {
+      "bug_id": "BUG-P2-01",
+      "arquivo": "backend/src/controllers/projetosFVController.js",
+      "descricao": "hash_tecnico/score_qualidade/nivel_qualidade incluídos em mudancas[]",
+      "status_codigo": "CORRIGIDO_NO_COMMIT",
+      "status_runtime": "INCONCLUSIVO",
+      "metodo_validacao": "INCONCLUSIVO",
+      "evidencia": "Aba Governança crasha com React error #31 (bug pré-existente)"
+    },
+    {
+      "bug_id": "BUG-P2-02",
+      "arquivo": "backend/src/controllers/projetosFVController.js",
+      "descricao": "Impacto exibe campo com prefixo 'especificacoes.' em vez do nome limpo",
+      "status_codigo": "CORRIGIDO_NO_COMMIT",
+      "status_runtime": "INCONCLUSIVO",
+      "metodo_validacao": "INCONCLUSIVO",
+      "evidencia": "Aba Governança crasha"
+    },
+    {
+      "bug_id": "BUG-P2-03",
+      "arquivo": "frontend/src/components/fv/GovernancaPainel.jsx",
+      "descricao": "Botão 'Abrir Documentação Homologada' ausente quando status=HOMOLOGADO",
+      "status_codigo": "CORRIGIDO_NO_COMMIT",
+      "status_runtime": "INCONCLUSIVO",
+      "metodo_validacao": "INCONCLUSIVO",
+      "evidencia": "Projeto HOMOLOGADO encontrado (6a35954ff3fada9effa61d09) mas aba crasha"
+    },
+    {
+      "bug_id": "BUG-P4-UNIFILAR-01",
+      "arquivo": "frontend/src/components/fv/UnifilarFV.jsx",
+      "descricao": "setAtivos recebe objeto {itens:[]} mas espera array",
+      "status_codigo": "CORRIGIDO_NO_COMMIT",
+      "status_runtime": "PARCIAL_OK",
+      "metodo_validacao": "EXECUCAO_REAL_PARCIAL",
+      "evidencia": "Diagrama unifilar carregou com dados corretos. Seção de ativos não verificada."
+    },
+    {
+      "bug_id": "BUG-P5-ALERTCENTER-01",
+      "arquivo": "backend/src/routes/alertcenter.js",
+      "descricao": "Alertas de garantia incluem ativos substituídos/desativados",
+      "status_codigo": "CORRIGIDO_NO_COMMIT",
+      "status_runtime": "NAO_TESTADO",
+      "metodo_validacao": null
+    }
+  ],
+
+  "bugs_deferred_nao_no_commit": [
+    {
+      "bug_id": "BUG-P5-GARANTIA-01",
+      "arquivo": "backend/src/controllers/ativosController.js",
+      "motivo": "Misto com P5-GARANTIA-SIMPLES-01"
+    },
+    {
+      "bug_id": "BUG-P5-MEDICOES-01",
+      "arquivo": "frontend/src/components/fv/MedicoesAtivoCard.jsx",
+      "motivo": "Depende de model/rotas de P5-ATIVO-MEDICOES-01"
+    }
+  ],
+
+  "bug_pre_existente_detectado": {
+    "tipo": "React error #31",
+    "descricao": "Object {imax, secao, disj} renderizado como React child",
+    "aba_afetada": "Governança",
+    "nao_relacionado_ao_commit": true,
+    "impacto_nos_testes": ["T15", "T16"]
+  },
+
+  "estatisticas": {
+    "total_bugs_commit": 17,
+    "confirmados_presentes_pre_fix": 5,
+    "com_indicio": 1,
+    "inconclusivos": 3,
+    "nao_testados": 9,
+    "testes_executados_em_runtime": 8
+  },
+
+  "resultado": "DEPLOY_NAO_APROVADO",
+  "versao_producao": "127f7f5 (PRE-FIX)",
+  "versao_sprint": "e9c1ff7 (NAO deployado)",
+  "proxima_acao": "Merge sprint/p1-bug-art-01 → main e re-executar P6"
+}

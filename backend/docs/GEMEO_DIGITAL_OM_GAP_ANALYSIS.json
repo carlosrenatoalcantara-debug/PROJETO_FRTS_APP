@@ -1,0 +1,159 @@
+{
+  "sprint": "P4-GEMEO-DIGITAL-OM-FORENSICS-01",
+  "data": "2026-06-19",
+  "revisao_gemini": "OBRIGATÓRIA E PENDENTE",
+  "metodologia": "READ-ONLY. Lacunas identificadas por leitura estática; nenhuma execução, nenhum acesso a banco.",
+  "total_gaps": 11,
+  "gaps": [
+    {
+      "id": "GAP-OM-01",
+      "titulo": "Garantia do ativo é 100% manual e desconectada do catálogo",
+      "prioridade": "ALTA",
+      "descricao": "garantia_inicio e garantia_fim existem em AtivoEquipamento mas não são derivados de garantia_inicio + Equipamento.garantia_produto/garantia_performance. Preenchimento puramente manual via PUT.",
+      "impacto": "Garantias raramente preenchidas; impossível saber cobertura de um ativo no momento de uma falha. Risco de compliance e de perda comercial em warranty claims.",
+      "arquivos_afetados": [
+        "backend/src/models/AtivoEquipamento.js",
+        "backend/src/controllers/ativosController.js",
+        "backend/src/models/Equipamento.js"
+      ],
+      "esforco_estimado": "S",
+      "pre_requisito": "Ativo linkado ao catálogo via equipamento_id (já existe o campo, nem sempre preenchido)"
+    },
+    {
+      "id": "GAP-OM-02",
+      "titulo": "Sem alerta de garantia próxima do vencimento",
+      "prioridade": "ALTA",
+      "descricao": "O AlertCenter (AlertaStatus + alertDetectors.js) cobre origens rt|catalogo|documento|projeto|fatura, mas NÃO cobre ativo nem garantia_fim. Nenhum detector observa garantia vencendo.",
+      "impacto": "Cliente/operação não é avisado antes do fim da garantia; perde-se a janela de acionamento junto ao fabricante.",
+      "arquivos_afetados": [
+        "backend/src/utils/alertcenter/alertDetectors.js",
+        "backend/src/models/AlertaStatus.js"
+      ],
+      "esforco_estimado": "S",
+      "pre_requisito": "GAP-OM-01 (garantia_fim calculado de forma confiável)"
+    },
+    {
+      "id": "GAP-OM-03",
+      "titulo": "Substituição sem endpoint atômico de domínio",
+      "prioridade": "ALTA",
+      "descricao": "substitui_ativo_id e substituido_por_ativo_id existem no schema mas não há lógica que crie o substituto, ligue a cadeia bidirecional, transicione status e grave o evento 'troca' nos dois lados de forma atômica. Hoje exige múltiplos PUTs manuais.",
+      "impacto": "Risco de cadeia de substituição quebrada (um lado preenchido, outro não); rastreabilidade não confiável; processo propenso a erro humano.",
+      "arquivos_afetados": [
+        "backend/src/models/AtivoEquipamento.js",
+        "backend/src/controllers/ativosController.js",
+        "backend/src/routes/ativos.js",
+        "backend/src/services/ativoService.js"
+      ],
+      "esforco_estimado": "M",
+      "pre_requisito": "Nenhum (reusa entidade e histórico existentes)"
+    },
+    {
+      "id": "GAP-OM-04",
+      "titulo": "Substituição não captura motivo/serial/RMA — inútil para warranty claim",
+      "prioridade": "MEDIA",
+      "descricao": "Mesmo se a cadeia for preenchida, não há captura estruturada de motivo da troca, serial do componente defeituoso, data da falha ou número de garantia/RMA.",
+      "impacto": "Impossível montar dossiê de pleito de garantia a partir dos dados do gêmeo digital.",
+      "arquivos_afetados": [
+        "backend/src/models/AtivoEquipamento.js",
+        "backend/src/controllers/ativosController.js"
+      ],
+      "esforco_estimado": "S",
+      "pre_requisito": "GAP-OM-03"
+    },
+    {
+      "id": "GAP-OM-05",
+      "titulo": "Entidade VisitaTecnica inexistente",
+      "prioridade": "ALTA",
+      "descricao": "Não há modelo VisitaTecnica. Visitas preventivas/corretivas/inspeções só poderiam ser registradas como eventos soltos no historico[] de cada ativo, sem agendamento, responsável, checklist, custo ou resultado agregado.",
+      "impacto": "Impossível planejar/gerenciar manutenção; sem visão de 'visita' que toca N ativos; sem relatórios de O&M.",
+      "arquivos_afetados": [
+        "backend/src/models/ (nova coleção visitas_tecnicas)",
+        "backend/src/controllers/ (novo)",
+        "backend/src/routes/ (novo)",
+        "backend/src/models/AtivoEquipamento.js (espelhamento no histórico)"
+      ],
+      "esforco_estimado": "L",
+      "pre_requisito": "Decisão de arquitetura (coleção própria — ver ARCHITECTURE.md)"
+    },
+    {
+      "id": "GAP-OM-06",
+      "titulo": "Entidade Chamado/ticket inexistente",
+      "prioridade": "MEDIA",
+      "descricao": "Não há modelo de chamado/ordem de serviço. Sem ciclo de vida (aberto->triagem->atendimento->resolvido->fechado), SLA, prioridade, solicitante ou vínculo a projeto/ativos.",
+      "impacto": "Sem fila de atendimento O&M; sem SLA; sem origem para gerar visitas/substituições.",
+      "arquivos_afetados": [
+        "backend/src/models/ (nova coleção chamados)",
+        "backend/src/controllers/ (novo)",
+        "backend/src/routes/ (novo)"
+      ],
+      "esforco_estimado": "L",
+      "pre_requisito": "Decisão de arquitetura (entidade própria — ver ARCHITECTURE.md)"
+    },
+    {
+      "id": "GAP-OM-07",
+      "titulo": "Telemetria: zero ingestão de dados (só registro de credenciais)",
+      "prioridade": "MEDIA",
+      "descricao": "O subdoc monitoramento guarda credenciais e identificadores (plant_id, logger_id, gateway_sn) cifrados, mas não há coletor que puxe leituras nem coleção de séries temporais.",
+      "impacto": "Sem visão de geração real, sem detecção de inversor offline/underperformance, sem prova de produção para o cliente.",
+      "arquivos_afetados": [
+        "backend/src/models/AtivoEquipamento.js (monitoramento já existe)",
+        "backend/src/services/ (novo coletor)",
+        "backend/src/models/ (nova coleção leituras)"
+      ],
+      "esforco_estimado": "XL",
+      "pre_requisito": "Integração com APIs externas de portais (Solarman, SolisCloud, etc.)"
+    },
+    {
+      "id": "GAP-OM-08",
+      "titulo": "Endpoints de operação ausentes (falha/manutenção/inspeção)",
+      "prioridade": "MEDIA",
+      "descricao": "Os tipos 'falha', 'manutencao', 'inspecao', 'garantia', 'troca' existem no enum do histórico, mas nenhum endpoint os grava. Só comissionamento, mudanca_status e monitoramento geram eventos.",
+      "impacto": "Eventos de O&M só seriam graváveis por manipulação genérica; o histórico rico fica subutilizado.",
+      "arquivos_afetados": [
+        "backend/src/controllers/ativosController.js",
+        "backend/src/routes/ativos.js"
+      ],
+      "esforco_estimado": "S",
+      "pre_requisito": "Idealmente integrado a VisitaTecnica (GAP-OM-05)"
+    },
+    {
+      "id": "GAP-OM-09",
+      "titulo": "Expansão sem vínculo no nível do ativo",
+      "prioridade": "BAIXA",
+      "descricao": "ProjetoFV modela ampliação (tipo_projeto/projeto_origem_id/arranjos somente_leitura), mas o AtivoEquipamento não tem marca de 'gerado em expansão' nem vínculo à leva original de ativos.",
+      "impacto": "Difícil distinguir, no gêmeo digital, ativos originais de ativos de ampliação; relatórios de expansão dependem de cruzar com o projeto.",
+      "arquivos_afetados": [
+        "backend/src/models/AtivoEquipamento.js",
+        "backend/src/services/ativoService.js"
+      ],
+      "esforco_estimado": "S",
+      "pre_requisito": "Nenhum"
+    },
+    {
+      "id": "GAP-OM-10",
+      "titulo": "Documentação por ativo é campo reservado não implementado",
+      "prioridade": "BAIXA",
+      "descricao": "AtivoEquipamento.documentos[] está declarado como [Mixed] mas explicitamente 'RESERVADO — não implementado'. Documentação (laudos, fotos, manuais) vive só no catálogo.",
+      "impacto": "Sem anexar laudo de comissionamento, foto de instalação ou termo de garantia ao ativo específico.",
+      "arquivos_afetados": [
+        "backend/src/models/AtivoEquipamento.js",
+        "backend/src/controllers/ativosController.js"
+      ],
+      "esforco_estimado": "M",
+      "pre_requisito": "Definição de storage (base64 inline vs. blob externo)"
+    },
+    {
+      "id": "GAP-OM-11",
+      "titulo": "Homologação não reflete no histórico do gêmeo digital",
+      "prioridade": "BAIXA",
+      "descricao": "A homologação é robusta em ProjetoFV.homologacao (status, checklist, protocolo, histórico_status), mas não há tipo 'homologacao' no enum do histórico do ATIVO nem espelhamento do marco de homologação nos ativos da usina.",
+      "impacto": "O gêmeo digital de um ativo não sabe que a usina foi homologada; timeline do ativo fica incompleta.",
+      "arquivos_afetados": [
+        "backend/src/models/AtivoEquipamento.js",
+        "backend/src/controllers/homologacaoController.js"
+      ],
+      "esforco_estimado": "S",
+      "pre_requisito": "Nenhum"
+    }
+  ]
+}

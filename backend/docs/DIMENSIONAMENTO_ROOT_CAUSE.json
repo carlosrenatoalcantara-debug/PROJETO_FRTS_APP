@@ -1,0 +1,56 @@
+{
+  "sprint": "P0-DIMENSIONAMENTO-REGRESSION-FORENSICS-01",
+  "read_only": true,
+  "gerado_em": "2026-06-17T02:32:17.635Z",
+  "causa_raiz_principal": {
+    "arquivo": "frontend/src/utils/catalogoEngenhariaAdapter.js",
+    "funcao": "agruparInversores",
+    "linha": 98,
+    "codigo": "const tipo = \"string\"  // hard-code para todo inversor",
+    "efeito": "colapsa string/micro/otimizador em \"string\" -> só aba String; marcas misturadas",
+    "introduzido_em": "Sprint 8.1 (commit 506979e) — catálogo Mongo como fonte de engenharia",
+    "fix_minimo": "derivar tecnologia por equipamento (reusar heurística tecnologiaInversor: voc<=100->micro; nome solaredge->otimizador; etc.) em vez do literal"
+  },
+  "evidencia_catalogo": {
+    "inversores_total": 175,
+    "com_campo_tecnologia": 0,
+    "tecnologia_heuristica": {
+      "micro": 16,
+      "string": 149,
+      "otimizador": 9,
+      "hibrido": 1
+    },
+    "inversores_sem_potencia_rendeiza_interrogacao": 122,
+    "modulos_total": 186,
+    "modulos_sem_potencia": 3,
+    "modulos_potenciaW_sem_potenciaWp": 15
+  },
+  "pontos_render_interrogacao": [
+    "GerenciadorArranjos.jsx:26-27",
+    "E7Equipamentos.jsx:208-275 (badges estimativa)"
+  ],
+  "multiarranjo": {
+    "backend": true,
+    "frontend": true,
+    "persistencia": true,
+    "api": true,
+    "quebrado": false,
+    "escondido": false,
+    "percentual": "~85%"
+  },
+  "quantidade": {
+    "manual_em": "E7/ConfiguradorArranjoFV",
+    "auto_em": "E5Dimensionamento",
+    "persistencia": true,
+    "realocada": "E5->E7 (não removida)"
+  },
+  "mapa": {
+    "componente": "MapaTelhado.jsx",
+    "local_zoom": 17,
+    "maxZoom": "não configurado (default Google)",
+    "mapTypeId": "hybrid",
+    "zoomControl": true,
+    "cap_artificial": false,
+    "limite_real": "tiles Google por região"
+  }
+}

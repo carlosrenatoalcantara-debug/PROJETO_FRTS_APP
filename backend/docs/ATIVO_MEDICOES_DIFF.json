@@ -1,0 +1,66 @@
+{
+  "sprint": "P5-ATIVO-MEDICOES-01",
+  "data": "2026-06-19",
+  "modelo": "Sonnet",
+  "tipo": "DIFF",
+
+  "arquivos_alterados": [
+    {
+      "arquivo": "backend/src/models/AtivoEquipamento.js",
+      "tipo": "MODIFICADO",
+      "mudancas": [
+        "MedicaoSchema adicionado antes de HistoricoSchema — 11 campos: data, tipo (enum 6 valores), observacao, voc, isc, vac, iac, potencia, link_foto, usuario",
+        "AtivoEquipamentoSchema: campo 'medicoes: [MedicaoSchema]' adicionado após 'historico', antes de 'documentos'",
+        "HistoricoSchema.tipo enum: adicionado 'medicao' como 11º tipo permitido"
+      ],
+      "retrocompatibilidade": "Ativos existentes lêem medicoes: [] sem erro (default: []). Nenhuma migração necessária."
+    },
+    {
+      "arquivo": "backend/src/controllers/ativosController.js",
+      "tipo": "MODIFICADO",
+      "mudancas": [
+        "adicionarMedicao: POST /:id/medicoes — cria subdoc, registra historico tipo='medicao'",
+        "listarMedicoes: GET /:id/medicoes — projection 'medicoes', retorna em ordem reversa",
+        "atualizarMedicao: PUT /:id/medicoes/:medicaoId — usa .id(medicaoId) Mongoose",
+        "removerMedicao: DELETE /:id/medicoes/:medicaoId — splice + historico"
+      ],
+      "posicao": "Inserido após _monView(), antes de scanEtiqueta()"
+    },
+    {
+      "arquivo": "backend/src/routes/ativos.js",
+      "tipo": "MODIFICADO",
+      "mudancas": [
+        "Import: adicionarMedicao, listarMedicoes, atualizarMedicao, removerMedicao",
+        "4 rotas adicionadas entre /:id/monitoramento e /projeto/:id"
+      ]
+    },
+    {
+      "arquivo": "frontend/src/pages/AtivoQR.jsx",
+      "tipo": "MODIFICADO",
+      "mudancas": [
+        "Import: MedicoesAtivoCard from '../components/fv/MedicoesAtivoCard'",
+        "JSX: <MedicoesAtivoCard ativoId={dados.ativo._id} /> inserido após <MonitoramentoCard>"
+      ]
+    }
+  ],
+
+  "arquivos_criados": [
+    {
+      "arquivo": "frontend/src/components/fv/MedicoesAtivoCard.jsx",
+      "descricao": "Componente React: lista medições, destaca última, form novo/editar, link foto em nova aba, remover com confirm()"
+    },
+    "backend/docs/ATIVO_MEDICOES_REPORT.md",
+    "backend/docs/ATIVO_MEDICOES_DIFF.json",
+    "backend/docs/ATIVO_MEDICOES_METRICS.json"
+  ],
+
+  "arquivos_nao_alterados": [
+    "backend/src/models/ProjetoEV.js",
+    "backend/src/models/ProjetoFV.js",
+    "backend/src/controllers/homologacaoController.js",
+    "frontend/src/utils/engenhariaGovernanca.js",
+    "frontend/src/pages/Unifilar.jsx",
+    "frontend/src/pages/EtiquetaScanner.jsx",
+    "backend/src/services/ativoSeguranca.js"
+  ]
+}

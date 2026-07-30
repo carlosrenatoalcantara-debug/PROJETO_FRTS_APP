@@ -1,0 +1,58 @@
+{
+  "sprint": "P5-PROJETO-DOCUMENTOS-EXTERNOS-01",
+  "data": "2026-06-19",
+  "modelo": "Sonnet",
+  "tipo": "DIFF",
+
+  "arquivos_alterados": [
+    {
+      "arquivo": "backend/src/models/ProjetoFV.js",
+      "tipo": "MODIFICADO",
+      "mudanca": "Campo aditivo documentacao_externa adicionado ao projetoFVSchema",
+      "posicao": "Após campo observacoes (linha 805), antes do bloco S2.7",
+      "retrocompatibilidade": "Projetos existentes lêem null sem erro (todos os subcampos têm default: null)"
+    },
+    {
+      "arquivo": "backend/src/controllers/ativosController.js",
+      "tipo": "MODIFICADO",
+      "mudancas": [
+        "Projection do findById (linha 71): adicionado 'documentacao_externa'",
+        "Response objeto projeto (linha 101): adicionado campo documentacao_externa"
+      ],
+      "rota_afetada": "GET /api/ativos/qr/:qr"
+    },
+    {
+      "arquivo": "frontend/src/pages/ProjetosFVDetalhes.jsx",
+      "tipo": "MODIFICADO",
+      "mudancas": [
+        "Import adicionado: DocumentosExternos from '../components/fv/DocumentosExternos'",
+        "Aba 'documentos': substituída de <DocumentCenter /> solo para <div space-y-6> com DocumentCenter + DocumentosExternos"
+      ]
+    },
+    {
+      "arquivo": "frontend/src/pages/AtivoQR.jsx",
+      "tipo": "MODIFICADO",
+      "mudanca": "Seção 'Projeto / Arranjo': adicionado link condicional '📁 Abrir Pasta do Projeto' quando dados.projeto.documentacao_externa.pasta_principal existe"
+    }
+  ],
+
+  "arquivos_criados": [
+    {
+      "arquivo": "frontend/src/components/fv/DocumentosExternos.jsx",
+      "descricao": "Componente React de índice de documentação externa: exibe links, abre em nova aba, permite editar/salvar via PATCH /api/projetos-fv/:id"
+    },
+    "backend/docs/PROJETO_DOCUMENTOS_EXTERNOS_REPORT.md",
+    "backend/docs/PROJETO_DOCUMENTOS_EXTERNOS_DIFF.json",
+    "backend/docs/PROJETO_DOCUMENTOS_EXTERNOS_METRICS.json"
+  ],
+
+  "arquivos_nao_alterados": [
+    "backend/src/models/ProjetoEV.js",
+    "backend/src/models/AtivoEquipamento.js",
+    "backend/src/controllers/homologacaoController.js",
+    "frontend/src/components/fv/homologacao/*",
+    "frontend/src/utils/engenhariaGovernanca.js",
+    "frontend/src/pages/Unifilar.jsx",
+    "frontend/src/pages/EtiquetaScanner.jsx"
+  ]
+}

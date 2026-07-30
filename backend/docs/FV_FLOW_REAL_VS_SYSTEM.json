@@ -1,0 +1,132 @@
+{
+  "gerado_em": "2026-06-17",
+  "sprint": "P0-FV-FLOW-FORENSICS-01",
+  "executor": "Sonnet 4.6 (READ-ONLY)",
+  "revisao_gemini": "OBRIGATÓRIA e PENDENTE",
+
+  "fluxo_real_forte_solar": [
+    { "etapa": 1, "nome": "Cliente",               "descricao": "Cadastro do cliente (dados básicos, CPF/CNPJ, contato)" },
+    { "etapa": 2, "nome": "Conta de Energia",      "descricao": "Leitura da fatura: consumo, tarifa, tipo de ligação, concessionária" },
+    { "etapa": 3, "nome": "Dimensionamento",       "descricao": "Cálculo do sistema (kWp, painéis, inversores, strings)" },
+    { "etapa": 4, "nome": "Seleção de Equipamentos", "descricao": "Escolha técnica: painel, inversor, estrutura, arranjo" },
+    { "etapa": 5, "nome": "Orçamento",             "descricao": "Precificação formal + proposta comercial ao cliente" },
+    { "etapa": 6, "nome": "Aprovação Comercial",   "descricao": "Aceite do cliente + workflow (assinatura, desconto, jurídico)" },
+    { "etapa": 7, "nome": "Engenharia",            "descricao": "Projeto elétrico (unifilar, memorial descritivo, ART)" },
+    { "etapa": 8, "nome": "Unifilar",              "descricao": "Diagrama unifilar formal NBR 5410 / NBR 16274" },
+    { "etapa": 9, "nome": "Homologação",           "descricao": "Protocolo ANEEL/Concessionária: checklist + pacote documental" },
+    { "etapa": 10, "nome": "Instalação",           "descricao": "Execução física (fora do sistema, campo)" },
+    { "etapa": 11, "nome": "Comissionamento",      "descricao": "Scan de QR, vistoria, entrega formal do ativo" },
+    { "etapa": 12, "nome": "Operação",             "descricao": "Monitoramento pós-instalação" }
+  ],
+
+  "fluxo_sistema_atual": [
+    {
+      "etapa_real": 1,
+      "nome": "Cliente",
+      "status": "PARCIAL",
+      "tela": "Clientes.jsx + ClienteGerenciamento.jsx",
+      "rota": "/clientes",
+      "endpoint": "GET/POST /api/clientes",
+      "nota": "Cadastro básico existe. Sem validação de CPF/CNPJ, sem histórico de projetos inline."
+    },
+    {
+      "etapa_real": 2,
+      "nome": "Conta de Energia",
+      "status": "FUNCIONAL",
+      "tela": "ProjetosFVNovo.jsx (wizard E1Upload → E2Consumo → E3Localizacao → E4Irradiancia)",
+      "rota": "/projetos-fv/novo",
+      "endpoint": "POST /api/upload/fatura → /api/projetos-fv/:id (slices)",
+      "nota": "Upload PDF com OCR Gemini Vision. Extração: consumo, tarifa, concessionária, tipo ligação. Geocoding automático. Funcional mas não há validação de conta de energia duplicada."
+    },
+    {
+      "etapa_real": 3,
+      "nome": "Dimensionamento",
+      "status": "FUNCIONAL",
+      "tela": "ProjetosFVNovo.jsx (E5Dimensionamento)",
+      "rota": "/projetos-fv/novo?etapa=5",
+      "endpoint": "PATCH /api/projetos-fv/:id (slice dimensionamento)",
+      "nota": "Motor automático: kWp, painéis, inversores, strings, performance ratio. GerenciadorArranjos para multi-MPPT. Parcialmente desconectado da seleção de equipamentos em projetos existentes."
+    },
+    {
+      "etapa_real": 4,
+      "nome": "Seleção de Equipamentos",
+      "status": "FUNCIONAL",
+      "tela": "ProjetosFVNovo.jsx (E7Equipamentos)",
+      "rota": "/projetos-fv/novo?etapa=7",
+      "endpoint": "PATCH /api/projetos-fv/:id (slice equipamentos + arranjos)",
+      "nota": "SeletorPaineis + SeletorInversores + SeletorEstrutura + ConfiguradorArranjoFV. Catálogo de 186 módulos e 175 inversores. GAP: 69.7% inversores sem potência (P0-UNKNOWN-POWER)."
+    },
+    {
+      "etapa_real": 5,
+      "nome": "Orçamento",
+      "status": "PARCIAL — VER FASE 2",
+      "tela": "ProjetosFVNovo.jsx (E8Orcamento) + ProjetosFVDetalhes aba 'Comercial' (PropostaEnterprise)",
+      "rota": "/projetos-fv/novo (wizard) e /projetos-fv/:id?aba=comercial",
+      "endpoint": "PATCH /api/projetos-fv/:id + /api/projetos-fv/:id/governanca/comercial",
+      "nota": "Dois contextos distintos: (1) wizard E8 tem orçamento manual com PDF e (2) PropostaEnterprise em ProjetosFVDetalhes usa snapshotTecnico=null e resultadoFinanceiro=null — não calcula real. GAP crítico: veja Fase 2."
+    },
+    {
+      "etapa_real": 6,
+      "nome": "Aprovação Comercial",
+      "status": "PARCIAL",
+      "tela": "ProjetosDetalhes aba 'Comercial' (PropostaEnterprise)",
+      "rota": "/projetos-fv/:id (aba comercial)",
+      "endpoint": "PATCH /api/projetos-fv/:id/governanca/comercial + /assinatura",
+      "nota": "Workflow de estados existe (EM_ANALISE → APROVADO → ASSINADO). Assinaturas digitais com SHA-256. MAS: snapshotTecnico=null e resultadoFinanceiro=null na página de detalhes — comparações multi-cenário ficam em branco."
+    },
+    {
+      "etapa_real": 7,
+      "nome": "Engenharia",
+      "status": "PARCIAL",
+      "tela": "ProjetosFVDetalhes aba 'Governança' (GovernancaPainel)",
+      "rota": "/projetos-fv/:id (aba governança)",
+      "endpoint": "POST /api/projetos-fv/:id/governanca/congelar",
+      "nota": "Freeze técnico existe (RASCUNHO → CONGELADO → HOMOLOGADO). MAS: ProjetosFVDetalhes não passa construirSnapshots para GovernancaPainel — ao clicar 'Congelar', o snapshot é vazio {}. Congelamento funciona mas sem dados técnicos snapshottados."
+    },
+    {
+      "etapa_real": 8,
+      "nome": "Unifilar",
+      "status": "FUNCIONAL — VER FASE 3",
+      "tela": "ProjetosFVDetalhes aba 'Unifilar' (UnifilarFV)",
+      "rota": "/projetos-fv/:id (aba unifilar)",
+      "endpoint": "POST /api/unifilar/gerar + snapshot em governanca.snapshot_unifilar",
+      "nota": "Geração SVG a partir de projeto atual OU snapshot congelado. Derivado de dimensionamento (A), não de equipamentos orçados aprovados (B). Veja Fase 3."
+    },
+    {
+      "etapa_real": 9,
+      "nome": "Homologação",
+      "status": "PLACEHOLDER na tela detalhes + PARCIAL no componente dedicado",
+      "tela": "ProjetosFVDetalhes aba 'Homologação' (AbaHomologacao stub) + components/fv/homologacao/* (não conectado)",
+      "rota": "/projetos-fv/:id (aba homologação)",
+      "endpoint": "GET+PATCH /api/projetos-fv/:id/homologacao/checklist + /assistida/*",
+      "nota": "DESCONEXÃO CRÍTICA: AbaHomologacao() na página de detalhes é apenas um stub 'Homologação em desenvolvimento...'. O componente real Homologacao.jsx (com checklist, memorial, carta, ART) existe mas NÃO é renderizado em ProjetosFVDetalhes. Veja Fase 4."
+    },
+    {
+      "etapa_real": 10,
+      "nome": "Instalação",
+      "status": "AUSENTE",
+      "tela": "—",
+      "rota": "—",
+      "endpoint": "—",
+      "nota": "Nenhuma tela, endpoint ou schema para registro de instalação física. Completamente fora do sistema."
+    },
+    {
+      "etapa_real": 11,
+      "nome": "Comissionamento",
+      "status": "PARCIAL (módulo separado)",
+      "tela": "EtiquetaScanner.jsx + AtivoQR.jsx",
+      "rota": "/etiqueta-scanner, /ativo-qr",
+      "endpoint": "/api/ativos + /api/ativos/:id/comissionamento",
+      "nota": "Módulo de Ativos separado (sprint p1-asset-commissioning). Não integrado ao fluxo ProjetoFV. Escaneamento de QR, ficha técnica, comissionamento. Mas não há link automático do projeto → ativo → comissionamento."
+    },
+    {
+      "etapa_real": 12,
+      "nome": "Operação",
+      "status": "PARCIAL (módulo separado)",
+      "tela": "AtivoQR.jsx → monitoramento",
+      "rota": "/ativo-qr/:id",
+      "endpoint": "/api/ativos/:id/monitoramento",
+      "nota": "Monitoramento de ativos via WiFi (credenciais criptografadas AES-256-GCM). Sem integração ao ProjetoFV."
+    }
+  ]
+}

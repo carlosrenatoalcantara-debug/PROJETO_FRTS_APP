@@ -1,0 +1,110 @@
+{
+  "sprint": "P2-FV-MULTIARRANJO-STATUS-01",
+  "data": "2026-06-19",
+  "modelo": "Claude Sonnet 4.6",
+  "classificacao": "ATENDE_PARCIALMENTE",
+
+  "requisito_usuario": {
+    "descricao": "Cada arranjo (A, B, C) deve ter: módulos próprios, inversor próprio e estrutura própria",
+    "arranjos_esperados": ["A", "B", "C"],
+    "campos_por_arranjo": ["modulos", "inversor", "estrutura"]
+  },
+
+  "gaps": [
+    {
+      "id": "GAP-01",
+      "titulo": "Arranjo A sem bloco visual rotulado",
+      "severidade": "MEDIA",
+      "descricao": "O arranjo primário (A) não tem um card ou seção com o rótulo 'Arranjo A'. Está distribuído como seções globais de E7: SeletorPaineis (âmbar) + SeletorInversores (azul) + SeletorEstrutura (slate). O usuário não vê 'Arranjo A' em nenhum momento.",
+      "componente": "E7Equipamentos.jsx",
+      "impacto_ux": "Alto — usuário não entende que as seções globais correspondem ao Arranjo A",
+      "o_que_falta": "Agrupar as seções globais de E7 em um card rotulado 'Arranjo A' visualmente equivalente aos cards de B, C"
+    },
+    {
+      "id": "GAP-02",
+      "titulo": "Estrutura não é por arranjo",
+      "severidade": "ALTA",
+      "descricao": "SeletorEstrutura em E7 é GLOBAL — seleciona uma única estrutura para todo o projeto. GerenciadorArranjos (arranjos B, C…) não tem campo de estrutura. O shape de dados arranjos[] no ProjetoFVContext e em blocoParaBackend (E7) não inclui o campo 'estrutura'. A persistência (salvarArranjos) não carrega estrutura por arranjo.",
+      "componente": "GerenciadorArranjos.jsx + E7Equipamentos.jsx + ProjetoFVContext.jsx",
+      "impacto_funcional": "Crítico — o requisito 'Arranjo B com estrutura própria' não é atendível sem modificação de código",
+      "o_que_falta": "Adicionar em cada card de GerenciadorArranjos um SeletorEstrutura ou campo de tipo de estrutura; adicionar campo 'estrutura' no shape arranjos[]; propagar para backend"
+    },
+    {
+      "id": "GAP-03",
+      "titulo": "Inconsistência visual entre Arranjo A e B/C",
+      "severidade": "MEDIA",
+      "descricao": "O Arranjo A usa seletores completos com busca, filtro, catálogo, badge de selecionado, modo colapsável. Os arranjos B/C usam linhas simples Fabricante→Modelo (select duplo) sem filtros. A experiência é inconsistente entre o arranjo primário e secundários.",
+      "componente": "E7Equipamentos.jsx vs GerenciadorArranjos.jsx",
+      "impacto_ux": "Médio — inconsistência de UI entre arranjos",
+      "o_que_falta": "Uniformizar a experiência de seleção, ou separar claramente a intenção (Arranjo A = detalhe técnico completo, B/C = especificação simplificada)"
+    },
+    {
+      "id": "GAP-04",
+      "titulo": "Quantidade de módulos por arranjo sem integração com E5",
+      "severidade": "BAIXA",
+      "descricao": "GerenciadorArranjos registra quantidade por linha de módulo (campo quantidade em cada linha de paineis[]). Mas não há redistribuição automática do total de módulos (dim.numPaineis) entre arranjos A + B + C. O usuário tem que distribuir manualmente sem feedback do total.",
+      "componente": "GerenciadorArranjos.jsx + E5Dimensionamento.jsx",
+      "impacto_funcional": "Baixo — funcional, mas sem assistência de distribuição",
+      "o_que_falta": "Indicador de total vs distribuído entre arranjos (opcional para UX)"
+    },
+    {
+      "id": "GAP-05",
+      "titulo": "Shape de dados de arranjos secundários diferente do primário",
+      "severidade": "BAIXA",
+      "descricao": "Arranjo A usa painel: {} (objeto único) e inversor: {} (objeto único). Arranjos B/C usam paineis: [] (array) e inversores: [] (array). A função blocoParaBackend normaliza para array, mas a distinção no estado React cria dois shapes incompatíveis que requerem tratamento especial.",
+      "componente": "ProjetoFVContext.jsx + E7Equipamentos.jsx/blocoParaBackend",
+      "impacto_tecnico": "Baixo — já mitigado por blocoParaBackend, mas aumenta complexidade de manutenção",
+      "o_que_falta": "Unificar shape (usar paineis[]/inversores[] também para o arranjo A) em refatoração futura"
+    }
+  ],
+
+  "atende": [
+    {
+      "item": "Blocos visuais para arranjos B e C",
+      "status": "ATENDE",
+      "detalhe": "GerenciadorArranjos renderiza card independente para cada arranjo secundário com header editável"
+    },
+    {
+      "item": "Módulos próprios por arranjo",
+      "status": "ATENDE_PARCIALMENTE",
+      "detalhe": "A: via SeletorPaineis global. B/C: via paineis[] em cada card. Funcional mas experiências diferentes."
+    },
+    {
+      "item": "Inversores próprios por arranjo",
+      "status": "ATENDE_PARCIALMENTE",
+      "detalhe": "A: via SeletorInversores global. B/C: via inversores[] em cada card."
+    },
+    {
+      "item": "Estrutura própria por arranjo",
+      "status": "NAO_ATENDE",
+      "detalhe": "Estrutura é global em SeletorEstrutura. Não existe campo estrutura por arranjo secundário."
+    },
+    {
+      "item": "Botão Novo arranjo cria card visual",
+      "status": "ATENDE",
+      "detalhe": "addArranjo() em GerenciadorArranjos cria arranjoVazio e re-renderiza a lista imediatamente."
+    },
+    {
+      "item": "Letras B, C, D... para novos arranjos",
+      "status": "ATENDE",
+      "detalhe": "proximaLetra() percorre B–Z e usa a primeira letra não ocupada. BUG-P0-05 (A, A, A) foi corrigido no commit e9c1ff7."
+    },
+    {
+      "item": "Duplicar arranjo",
+      "status": "ATENDE",
+      "detalhe": "dupArranjo() em GerenciadorArranjos faz deep clone e insere após o arranjo original."
+    },
+    {
+      "item": "Excluir arranjo",
+      "status": "ATENDE",
+      "detalhe": "delArranjo() remove o arranjo pelo índice."
+    }
+  ],
+
+  "veredicto": {
+    "classificacao": "ATENDE_PARCIALMENTE",
+    "percentual_estimado": 60,
+    "bloqueador_principal": "GAP-02 — estrutura não é por arranjo (campo ausente no shape e na UI)",
+    "segundo_bloqueador": "GAP-01 — Arranjo A não tem bloco visual independente rotulado"
+  }
+}

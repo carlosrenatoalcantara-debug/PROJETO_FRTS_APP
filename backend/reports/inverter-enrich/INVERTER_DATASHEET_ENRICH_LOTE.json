@@ -1,0 +1,3302 @@
+{
+  "sprint": "P1-INVERTER-DATASHEET-ENRICH-01",
+  "fase": "4-5 (plano)",
+  "gerado_em": "2026-06-14T19:48:43.133Z",
+  "mecanismo_oficial": "npm run catalogo:enriquecer-datasheets -- --dir=<pasta_datasheets> --apply (Gemini) | requer PDFs + GEMINI_API_KEY",
+  "principios": [
+    "nunca sobrescrever dado real",
+    "origem rastreavel (fonte_dados.fonte + url)",
+    "idempotente",
+    "registrar fonte"
+  ],
+  "campos_alvo": [
+    "potencia_kw",
+    "tensao_max_entrada",
+    "tensao_mppt_min",
+    "tensao_mppt_max",
+    "corrente_max_por_mppt",
+    "n_mppts",
+    "strings_por_mppt",
+    "eficiencia_maxima",
+    "fases",
+    "garantia_anos"
+  ],
+  "total_modelos": 131,
+  "itens": [
+    {
+      "prioridade": 1,
+      "fabricante": "Deye",
+      "modelo": "SUN2000G3-US-220",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 110,
+      "equipamento_ids": [
+        "6a272aff0bb8928e11abce10"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 2,
+      "fabricante": "Deye",
+      "modelo": "SUN2000G-US-220",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 36,
+      "equipamento_ids": [
+        "6a272aff0bb8928e11abce0d"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 3,
+      "fabricante": "Deye",
+      "modelo": "SUN-M225G4-EU-Q0",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 30,
+      "equipamento_ids": [
+        "6a272b010bb8928e11abce33"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 4,
+      "fabricante": "Tsun",
+      "modelo": "TSOL-MX2250",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 16,
+      "equipamento_ids": [
+        "6a272b000bb8928e11abce25"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 5,
+      "fabricante": "Tsun",
+      "modelo": "TSOL-MP2250",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 16,
+      "equipamento_ids": [
+        "6a272b010bb8928e11abce3b"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 6,
+      "fabricante": "Growatt",
+      "modelo": "MIN 5000TL-X",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 13,
+      "equipamento_ids": [
+        "6a272b000bb8928e11abce23"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 7,
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI6000-B2",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 12,
+      "equipamento_ids": [
+        "6a272b070bb8928e11abce9a"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 8,
+      "fabricante": "Solaredge",
+      "modelo": "SE 27.6K 380/220v",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 11,
+      "equipamento_ids": [
+        "6a272aff0bb8928e11abce1a"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 9,
+      "fabricante": "Saj",
+      "modelo": "M2-2.25K-S4",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 9,
+      "equipamento_ids": [
+        "6a272aff0bb8928e11abce13"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 10,
+      "fabricante": "Solaredge",
+      "modelo": "SE 20.1K 380/220v",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 9,
+      "equipamento_ids": [
+        "6a272aff0bb8928e11abce19"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 11,
+      "fabricante": "Hoymiles",
+      "modelo": "HMS-2000DW-4T",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 8,
+      "equipamento_ids": [
+        "6a272b000bb8928e11abce1e"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 12,
+      "fabricante": "Solaredge",
+      "modelo": "SE 33.3K 380/220v",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 8,
+      "equipamento_ids": [
+        "6a272b030bb8928e11abce59"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 13,
+      "fabricante": "Nep",
+      "modelo": "BDM-2250",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 7,
+      "equipamento_ids": [
+        "6a272b070bb8928e11abce9c"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 14,
+      "fabricante": "Deye",
+      "modelo": "SUN-8K-G03",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 6,
+      "equipamento_ids": [
+        "6a272b000bb8928e11abce1c"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 15,
+      "fabricante": "Growatt",
+      "modelo": "MIN 6000TL-X",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 6,
+      "equipamento_ids": [
+        "6a272b010bb8928e11abce31"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 16,
+      "fabricante": "Deye",
+      "modelo": "SUN-4K-G",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 5,
+      "equipamento_ids": [
+        "6a272b030bb8928e11abce56"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 17,
+      "fabricante": "Growatt",
+      "modelo": "MIC 3000TL-X",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 4,
+      "equipamento_ids": [
+        "6a272b000bb8928e11abce20"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 18,
+      "fabricante": "Deye",
+      "modelo": "SUN-10K-G",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 4,
+      "equipamento_ids": [
+        "6a272b030bb8928e11abce53"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 19,
+      "fabricante": "Deye",
+      "modelo": "SUN-5K-G @220",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 3,
+      "equipamento_ids": [
+        "6a272aff0bb8928e11abce0f"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 20,
+      "fabricante": "Growatt",
+      "modelo": "MAX 75KTL3 LV",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 3,
+      "equipamento_ids": [
+        "6a272b000bb8928e11abce2a"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 21,
+      "fabricante": "Growatt",
+      "modelo": "MIN 8000TL-X(E)",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 3,
+      "equipamento_ids": [
+        "6a272b010bb8928e11abce2e"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 22,
+      "fabricante": "Deye",
+      "modelo": "SUN-8K-G",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 3,
+      "equipamento_ids": [
+        "6a272b010bb8928e11abce30"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 23,
+      "fabricante": "Growatt",
+      "modelo": "MID 36KTL3-X",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 3,
+      "equipamento_ids": [
+        "6a272b010bb8928e11abce36"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 24,
+      "fabricante": "Growatt",
+      "modelo": "MIC 2000TL-X",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 3,
+      "equipamento_ids": [
+        "6a272b020bb8928e11abce41"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 25,
+      "fabricante": "Deye",
+      "modelo": "SUN-25K-G02",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 3,
+      "equipamento_ids": [
+        "6a272b020bb8928e11abce4d"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 26,
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI15K-B",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 3,
+      "equipamento_ids": [
+        "6a272b030bb8928e11abce5e"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 27,
+      "fabricante": "Deye",
+      "modelo": "SUN-6K-G",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 3,
+      "equipamento_ids": [
+        "6a272b040bb8928e11abce67"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 28,
+      "fabricante": "Deye",
+      "modelo": "SUN-12K-G",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 3,
+      "equipamento_ids": [
+        "6a272b040bb8928e11abce6e"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 29,
+      "fabricante": "Deye",
+      "modelo": "SUN-75K-G03",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 3,
+      "equipamento_ids": [
+        "6a272b050bb8928e11abce73"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 30,
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI36K-B X2",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 3,
+      "equipamento_ids": [
+        "6a272b090bb8928e11abcebe"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 31,
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI20K-B X2",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 3,
+      "equipamento_ids": [
+        "6a272b090bb8928e11abcec2"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 32,
+      "fabricante": "Solplanet",
+      "modelo": "ASW6000-S-G2",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 3,
+      "equipamento_ids": [
+        "6a272b0a0bb8928e11abced6"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 33,
+      "fabricante": "Deye",
+      "modelo": "SUN-35K-G03",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 2,
+      "equipamento_ids": [
+        "6a272aff0bb8928e11abce14"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 34,
+      "fabricante": "Growatt",
+      "modelo": "MAC 60KTL3-X LV",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 2,
+      "equipamento_ids": [
+        "6a272aff0bb8928e11abce16"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 35,
+      "fabricante": "Deye",
+      "modelo": "SUN-35K-G02",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 2,
+      "equipamento_ids": [
+        "6a272b000bb8928e11abce26"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 36,
+      "fabricante": "Growatt",
+      "modelo": "MIN 10000 TL-X",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 2,
+      "equipamento_ids": [
+        "6a272b010bb8928e11abce39"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 37,
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI20K-B",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 2,
+      "equipamento_ids": [
+        "6a272b010bb8928e11abce3c"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 38,
+      "fabricante": "Growatt",
+      "modelo": "MIC 2500TL-X",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 2,
+      "equipamento_ids": [
+        "6a272b020bb8928e11abce42"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 39,
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI15K-B X2",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 2,
+      "equipamento_ids": [
+        "6a272b020bb8928e11abce44"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 40,
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI30K-B X2",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 2,
+      "equipamento_ids": [
+        "6a272b030bb8928e11abce4f"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 41,
+      "fabricante": "Growatt",
+      "modelo": "50000TL3-S",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 2,
+      "equipamento_ids": [
+        "6a272b030bb8928e11abce51"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 42,
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI8000-B X2",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 2,
+      "equipamento_ids": [
+        "6a272b040bb8928e11abce63"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 43,
+      "fabricante": "Deye",
+      "modelo": "SUN-15K-G02-LV",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 2,
+      "equipamento_ids": [
+        "6a272b040bb8928e11abce66"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 44,
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI17K-B",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 2,
+      "equipamento_ids": [
+        "6a272b050bb8928e11abce76"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 45,
+      "fabricante": "Solaredge",
+      "modelo": "SE 100K Manager 380/220v",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 2,
+      "equipamento_ids": [
+        "6a272b050bb8928e11abce77"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 46,
+      "fabricante": "Solplanet",
+      "modelo": "ASW20K-LT-G2 Pro",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 2,
+      "equipamento_ids": [
+        "6a272b050bb8928e11abce79"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 47,
+      "fabricante": "Hoymiles",
+      "modelo": "HMS-1800-4T",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 2,
+      "equipamento_ids": [
+        "6a272b060bb8928e11abce82"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 48,
+      "fabricante": "Enphase",
+      "modelo": "IQ8P-72-2-BR",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 2,
+      "equipamento_ids": [
+        "6a272b060bb8928e11abce8f"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 49,
+      "fabricante": "Tsun",
+      "modelo": "TSOL-MS2000",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 2,
+      "equipamento_ids": [
+        "6a272b060bb8928e11abce90"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 50,
+      "fabricante": "Deye",
+      "modelo": "MINVDE-MO-220-2.25KW",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 2,
+      "equipamento_ids": [
+        "6a272b060bb8928e11abce92"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 51,
+      "fabricante": "Deye",
+      "modelo": "SUN-6.6K-G05P1-EU-AM2",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 2,
+      "equipamento_ids": [
+        "6a272b070bb8928e11abce96"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 52,
+      "fabricante": "Deye",
+      "modelo": "SUN-5K-G05",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 2,
+      "equipamento_ids": [
+        "6a272b070bb8928e11abcea3"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 53,
+      "fabricante": "Deye",
+      "modelo": "SUN-15K-G03",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 2,
+      "equipamento_ids": [
+        "6a272b080bb8928e11abceb4"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 54,
+      "fabricante": "Solplanet",
+      "modelo": "ASW5000-S-G2",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 2,
+      "equipamento_ids": [
+        "6a272b090bb8928e11abcebf"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 55,
+      "fabricante": "Growatt",
+      "modelo": "MAC 25KTL3-XL",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 2,
+      "equipamento_ids": [
+        "6a272b0a0bb8928e11abceca"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 56,
+      "fabricante": "Solplanet",
+      "modelo": "ASW3000-S-G2",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 2,
+      "equipamento_ids": [
+        "6a272b0b0bb8928e11abcee4"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 57,
+      "fabricante": "Solax",
+      "modelo": "X1-BOOST-6K-G4",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 2,
+      "equipamento_ids": [
+        "6a272b0c0bb8928e11abceed"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 58,
+      "fabricante": "Deye",
+      "modelo": "SUN-75K-G",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 1,
+      "equipamento_ids": [
+        "6a272aff0bb8928e11abce12"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 59,
+      "fabricante": "Solaredge",
+      "modelo": "SE 75K 380/220v",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 1,
+      "equipamento_ids": [
+        "6a272b000bb8928e11abce28"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 60,
+      "fabricante": "Deye",
+      "modelo": "SUN-30K-G",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 1,
+      "equipamento_ids": [
+        "6a272b010bb8928e11abce2f"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 61,
+      "fabricante": "Solaredge",
+      "modelo": "SE 27.6K 220/127v",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 1,
+      "equipamento_ids": [
+        "6a272b010bb8928e11abce35"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 62,
+      "fabricante": "Growatt",
+      "modelo": "MID 40KTL3-X",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 1,
+      "equipamento_ids": [
+        "6a272b020bb8928e11abce3e"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 63,
+      "fabricante": "Deye",
+      "modelo": "SUN-20K-G",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 1,
+      "equipamento_ids": [
+        "6a272b020bb8928e11abce45"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 64,
+      "fabricante": "Solis",
+      "modelo": "50K",
+      "classe": "B",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 1,
+      "equipamento_ids": [
+        "6a272b020bb8928e11abce47"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 65,
+      "fabricante": "Solaredge",
+      "modelo": "SE 20.1K 220/127v",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 1,
+      "equipamento_ids": [
+        "6a272b020bb8928e11abce4a"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 66,
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI60K-B",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 1,
+      "equipamento_ids": [
+        "6a272b020bb8928e11abce4c"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 67,
+      "fabricante": "Chint",
+      "modelo": "POWER CPS SCA50KTL-T/EU",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 1,
+      "equipamento_ids": [
+        "6a272b030bb8928e11abce52"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 68,
+      "fabricante": "Fronius",
+      "modelo": "PRIMO 6.0-1",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 1,
+      "equipamento_ids": [
+        "6a272b030bb8928e11abce54"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 69,
+      "fabricante": "Growatt",
+      "modelo": "MAX 60KTL3 LV",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 1,
+      "equipamento_ids": [
+        "6a272b030bb8928e11abce57"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 70,
+      "fabricante": "Growatt",
+      "modelo": "MAC 50KTL3-X LV",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 1,
+      "equipamento_ids": [
+        "6a272b030bb8928e11abce5a"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 71,
+      "fabricante": "Solplanet",
+      "modelo": "ASW33K-LT-G3",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 1,
+      "equipamento_ids": [
+        "6a272b040bb8928e11abce61"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 72,
+      "fabricante": "Growatt",
+      "modelo": "MID 30KTL3-X",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 1,
+      "equipamento_ids": [
+        "6a272b040bb8928e11abce64"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 73,
+      "fabricante": "Deye",
+      "modelo": "SUN-8K-SG01LP1-EU",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 1,
+      "equipamento_ids": [
+        "6a272b040bb8928e11abce65"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 74,
+      "fabricante": "Chint",
+      "modelo": "POWER CPS SCA15KTL-T/EU",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 1,
+      "equipamento_ids": [
+        "6a272b040bb8928e11abce6a"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 75,
+      "fabricante": "Sofar",
+      "modelo": "7.5KTLM",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 1,
+      "equipamento_ids": [
+        "6a272b040bb8928e11abce6d"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 76,
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI9000-B X2",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 1,
+      "equipamento_ids": [
+        "6a272b050bb8928e11abce70"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 77,
+      "fabricante": "Apsystems",
+      "modelo": "DS3D-220",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 1,
+      "equipamento_ids": [
+        "6a272b050bb8928e11abce72"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 78,
+      "fabricante": "Deye",
+      "modelo": "SUN1000G3-US-220",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 1,
+      "equipamento_ids": [
+        "6a272b050bb8928e11abce78"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 79,
+      "fabricante": "Solaredge",
+      "modelo": "SE8250H 220V",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 1,
+      "equipamento_ids": [
+        "6a272b050bb8928e11abce7c"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 80,
+      "fabricante": "Sofar",
+      "modelo": "4KTLM-G3",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 1,
+      "equipamento_ids": [
+        "6a272b050bb8928e11abce7d"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 81,
+      "fabricante": "Deye",
+      "modelo": "SUN-15K-G05",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 1,
+      "equipamento_ids": [
+        "6a272b050bb8928e11abce7e"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 82,
+      "fabricante": "Deye",
+      "modelo": "SUN-18K-G03",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 1,
+      "equipamento_ids": [
+        "6a272b050bb8928e11abce80"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 83,
+      "fabricante": "Tsun",
+      "modelo": "TSOL-MX2500D",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 1,
+      "equipamento_ids": [
+        "6a272b060bb8928e11abce86"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 84,
+      "fabricante": "Deye",
+      "modelo": "SUN-20K-G04",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 1,
+      "equipamento_ids": [
+        "6a272b060bb8928e11abce87"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 85,
+      "fabricante": "Deye",
+      "modelo": "SUN-7K-G",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 1,
+      "equipamento_ids": [
+        "6a272b070bb8928e11abce93"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 86,
+      "fabricante": "Deye",
+      "modelo": "SUN-40K-G03",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 1,
+      "equipamento_ids": [
+        "6a272b070bb8928e11abce98"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 87,
+      "fabricante": "Solaredge",
+      "modelo": "SE 75K Manager 380/220v",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 1,
+      "equipamento_ids": [
+        "6a272b070bb8928e11abce9e"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 88,
+      "fabricante": "Deye",
+      "modelo": "SUN-35K-G",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 1,
+      "equipamento_ids": [
+        "6a272b070bb8928e11abce9f"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 89,
+      "fabricante": "Deye",
+      "modelo": "SUN-40K-G",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 1,
+      "equipamento_ids": [
+        "6a272b070bb8928e11abcea1"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 90,
+      "fabricante": "Deye",
+      "modelo": "SUN-18K-G04",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 1,
+      "equipamento_ids": [
+        "6a272b070bb8928e11abcea2"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 91,
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI40K-B",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 1,
+      "equipamento_ids": [
+        "6a272b080bb8928e11abcea6"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 92,
+      "fabricante": "Deye",
+      "modelo": "SUN-25K-G",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 1,
+      "equipamento_ids": [
+        "6a272b080bb8928e11abcea9"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 93,
+      "fabricante": "Deye",
+      "modelo": "SUN-60K-G",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 1,
+      "equipamento_ids": [
+        "6a272b080bb8928e11abceaa"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 94,
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI125K-B",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 1,
+      "equipamento_ids": [
+        "6a272b080bb8928e11abceac"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 95,
+      "fabricante": "Apsystems",
+      "modelo": "QT2D-380",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 1,
+      "equipamento_ids": [
+        "6a272b080bb8928e11abceb0"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 96,
+      "fabricante": "Solis",
+      "modelo": "S6-GR1P5K-S",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 1,
+      "equipamento_ids": [
+        "6a272b080bb8928e11abceb3"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 97,
+      "fabricante": "Deye",
+      "modelo": "SUN-20K-G02-LV",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 1,
+      "equipamento_ids": [
+        "6a272b090bb8928e11abceb7"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 98,
+      "fabricante": "Sungrow",
+      "modelo": "SG75CX-P2",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 1,
+      "equipamento_ids": [
+        "6a272b090bb8928e11abceb9"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 99,
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI10000-B X2P",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 1,
+      "equipamento_ids": [
+        "6a272b090bb8928e11abcec1"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 100,
+      "fabricante": "Solis",
+      "modelo": "MINI-1500-4G",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 1,
+      "equipamento_ids": [
+        "6a272b090bb8928e11abcec5"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 101,
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI50K-B",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 1,
+      "equipamento_ids": [
+        "6a272b090bb8928e11abcec6"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 102,
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI10K-B X2",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 1,
+      "equipamento_ids": [
+        "6a272b0a0bb8928e11abcec7"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 103,
+      "fabricante": "Goodwe",
+      "modelo": "GW10K-MS",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 1,
+      "equipamento_ids": [
+        "6a272b0a0bb8928e11abcec8"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 104,
+      "fabricante": "Goodwe",
+      "modelo": "GW5000-DNS-30",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 1,
+      "equipamento_ids": [
+        "6a272b0a0bb8928e11abcece"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 105,
+      "fabricante": "Goodwe",
+      "modelo": "GW15K-SDT-20",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 1,
+      "equipamento_ids": [
+        "6a272b0a0bb8928e11abcecf"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 106,
+      "fabricante": "Sungrow",
+      "modelo": "SG8K3-D",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 1,
+      "equipamento_ids": [
+        "6a272b0a0bb8928e11abced2"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 107,
+      "fabricante": "Goodwe",
+      "modelo": "GW8000-DT",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 1,
+      "equipamento_ids": [
+        "6a272b0a0bb8928e11abced4"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 108,
+      "fabricante": "Solis",
+      "modelo": "S5-GC37.5K",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 1,
+      "equipamento_ids": [
+        "6a272b0b0bb8928e11abcedc"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 109,
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI25K-B X2",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 1,
+      "equipamento_ids": [
+        "6a272b0b0bb8928e11abcede"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 110,
+      "fabricante": "Solplanet",
+      "modelo": "ASW15K-LT-G2 Pro",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 1,
+      "equipamento_ids": [
+        "6a272b0c0bb8928e11abcee7"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 111,
+      "fabricante": "Deye",
+      "modelo": "SUN-10K-G @380",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 1,
+      "equipamento_ids": [
+        "6a272b0c0bb8928e11abcee8"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 112,
+      "fabricante": "Goodwe",
+      "modelo": "GW7.5K-MS-G40",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 1,
+      "equipamento_ids": [
+        "6a272b0c0bb8928e11abceeb"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 113,
+      "fabricante": "Deye",
+      "modelo": "SUN-7.5K-G",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 1,
+      "equipamento_ids": [
+        "6a272b0c0bb8928e11abceee"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 114,
+      "fabricante": "Solis",
+      "modelo": "S6-GR1P5K",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 1,
+      "equipamento_ids": [
+        "6a272b0c0bb8928e11abceef"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 115,
+      "fabricante": "Sungrow",
+      "modelo": "SG6K-D",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 1,
+      "equipamento_ids": [
+        "6a272b0c0bb8928e11abcef1"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 116,
+      "fabricante": "Deye",
+      "modelo": "SUN1300G-US-220",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 1,
+      "equipamento_ids": [
+        "6a272b0c0bb8928e11abcef3"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 117,
+      "fabricante": "Deye",
+      "modelo": "SUN-20K-G02",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 1,
+      "equipamento_ids": [
+        "6a272b0d0bb8928e11abcef4"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 118,
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI25K-B",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 1,
+      "equipamento_ids": [
+        "6a272b0d0bb8928e11abcef5"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 119,
+      "fabricante": "Growatt",
+      "modelo": "20000TL3-S",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 1,
+      "equipamento_ids": [
+        "6a272b0d0bb8928e11abcef7"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 120,
+      "fabricante": "Hoymiles",
+      "modelo": "HMS-2000-4T",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 0,
+      "equipamento_ids": [
+        "6a272b050bb8928e11abce7b"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 121,
+      "fabricante": "Deye",
+      "modelo": "SUN-75K-G05",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 0,
+      "equipamento_ids": [
+        "6a272b060bb8928e11abce8a"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 122,
+      "fabricante": "Solplanet",
+      "modelo": "ASW4000-S-G2",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 0,
+      "equipamento_ids": [
+        "6a272b060bb8928e11abce8c"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 123,
+      "fabricante": "Growatt",
+      "modelo": "NEO 2000M-X",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 0,
+      "equipamento_ids": [
+        "6a272b080bb8928e11abceab"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 124,
+      "fabricante": "Solis",
+      "modelo": "S6-GR1P3K-S",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 0,
+      "equipamento_ids": [
+        "6a272b090bb8928e11abceb5"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 125,
+      "fabricante": "Deye",
+      "modelo": "SUN-5K-G @380",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 0,
+      "equipamento_ids": [
+        "6a272b090bb8928e11abceb6"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 126,
+      "fabricante": "Growatt",
+      "modelo": "15000TL3-S",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 0,
+      "equipamento_ids": [
+        "6a272b0a0bb8928e11abcec9"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 127,
+      "fabricante": "Tsun",
+      "modelo": "TSOL-MP3000",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 0,
+      "equipamento_ids": [
+        "6a272b0a0bb8928e11abced1"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 128,
+      "fabricante": "Goodwe",
+      "modelo": "GW5000-DT",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 0,
+      "equipamento_ids": [
+        "6a272b0b0bb8928e11abced8"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 129,
+      "fabricante": "Goodwe",
+      "modelo": "GW8000-MS-C30",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 0,
+      "equipamento_ids": [
+        "6a272b0b0bb8928e11abcedb"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 130,
+      "fabricante": "Sungrow",
+      "modelo": "SG15RT-P2",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 0,
+      "equipamento_ids": [
+        "6a272b0b0bb8928e11abcee5"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    },
+    {
+      "prioridade": 131,
+      "fabricante": "Goodwe",
+      "modelo": "GW3300-XS-30",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_beneficiados": 0,
+      "equipamento_ids": [
+        "6a272b0c0bb8928e11abceec"
+      ],
+      "campos_a_extrair": [
+        "potencia_kw",
+        "tensao_max_entrada",
+        "tensao_mppt_min",
+        "tensao_mppt_max",
+        "corrente_max_por_mppt",
+        "n_mppts",
+        "strings_por_mppt",
+        "eficiencia_maxima",
+        "fases",
+        "garantia_anos"
+      ],
+      "status": "PENDENTE_DATASHEET",
+      "bloqueio": "sem datasheet anexado e sem fonte local/AI disponivel"
+    }
+  ]
+}

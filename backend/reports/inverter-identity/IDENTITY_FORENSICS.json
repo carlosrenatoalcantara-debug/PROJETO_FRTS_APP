@@ -1,0 +1,267 @@
+{
+  "sprint": "P0-INVERTER-IDENTITY-FORENSICS-01",
+  "read_only": true,
+  "gerado_em": "2026-06-14T19:57:35.889Z",
+  "fase1_equipamentos_sun2000": {
+    "total": 8,
+    "fabricantes_armazenados": {
+      "Huawei": 6,
+      "Deye": 2
+    },
+    "registros": [
+      {
+        "_id": "6a22191cdf17c1aa4c0743ad",
+        "fabricante": "Huawei",
+        "modelo": "SUN2000-30KTL-M3",
+        "fabricante_normalizado": "HUAWEI",
+        "origem_tipo": "desconhecido",
+        "origem_fonte": null,
+        "nivel": "incompleto",
+        "aliases": []
+      },
+      {
+        "_id": "6a22191ddf17c1aa4c0743ae",
+        "fabricante": "Huawei",
+        "modelo": "SUN2000-36KTL-M3",
+        "fabricante_normalizado": "HUAWEI",
+        "origem_tipo": "desconhecido",
+        "origem_fonte": null,
+        "nivel": "incompleto",
+        "aliases": []
+      },
+      {
+        "_id": "6a22191ddf17c1aa4c0743af",
+        "fabricante": "Huawei",
+        "modelo": "SUN2000-40KTL-M3",
+        "fabricante_normalizado": "HUAWEI",
+        "origem_tipo": "desconhecido",
+        "origem_fonte": null,
+        "nivel": "incompleto",
+        "aliases": []
+      },
+      {
+        "_id": "6a221cbbdf17c1aa4c0743b5",
+        "fabricante": "Huawei",
+        "modelo": "SUN2000-100KTL-M",
+        "fabricante_normalizado": "HUAWEI",
+        "origem_tipo": "desconhecido",
+        "origem_fonte": null,
+        "nivel": "incompleto",
+        "aliases": []
+      },
+      {
+        "_id": "6a221cbbdf17c1aa4c0743b6",
+        "fabricante": "Huawei",
+        "modelo": "SUN2000-100KTL-M2",
+        "fabricante_normalizado": "HUAWEI",
+        "origem_tipo": "desconhecido",
+        "origem_fonte": null,
+        "nivel": "incompleto",
+        "aliases": []
+      },
+      {
+        "_id": "6a221cbcdf17c1aa4c0743b7",
+        "fabricante": "Huawei",
+        "modelo": "SUN2000-100KTL",
+        "fabricante_normalizado": "HUAWEI",
+        "origem_tipo": "desconhecido",
+        "origem_fonte": null,
+        "nivel": "suspeito",
+        "aliases": []
+      },
+      {
+        "_id": "6a272aff0bb8928e11abce0d",
+        "fabricante": "Deye",
+        "modelo": "SUN2000G-US-220",
+        "fabricante_normalizado": "DEYE",
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "nivel": "invalido",
+        "aliases": [
+          "DEYE SUN2000G-US-220"
+        ]
+      },
+      {
+        "_id": "6a272aff0bb8928e11abce10",
+        "fabricante": "Deye",
+        "modelo": "SUN2000G3-US-220",
+        "fabricante_normalizado": "DEYE",
+        "origem_tipo": "import_solarmarket",
+        "origem_fonte": "solarmarket_pricingtable",
+        "nivel": "invalido",
+        "aliases": [
+          "DEYE SUN2000G3-US-220"
+        ]
+      }
+    ]
+  },
+  "huawei_presenca": {
+    "catalogo_equipamento": 7,
+    "projeto_bind": 0,
+    "proposta_sm": 0,
+    "observacoes": 0,
+    "total_qualquer_lugar": 7
+  },
+  "fase2_fabricante_por_contexto": {
+    "inversor_bind": {
+      "Deye": 146
+    },
+    "proposta_sm_equip": {
+      "DEYE SUN2000G-US-220": 45,
+      "DEYE SUN2000G3-US-220": 110,
+      "Jonathas Resun550Wx8/Deye Sun2000": 1
+    },
+    "observacoes": {}
+  },
+  "fase2_amostra_proposta_sm": [
+    {
+      "projeto": "6a2aa1ae1222567143ff37d2",
+      "categoria": "Inversor",
+      "item": "DEYE SUN2000G-US-220",
+      "qnt": 7
+    },
+    {
+      "projeto": "6a2aa1ae1222567143ff37d3",
+      "categoria": "Inversor",
+      "item": "DEYE SUN2000G3-US-220",
+      "qnt": 3
+    },
+    {
+      "projeto": "6a2aa1ae1222567143ff37da",
+      "categoria": "Inversor",
+      "item": "DEYE SUN2000G3-US-220",
+      "qnt": 3
+    },
+    {
+      "projeto": "6a2aa1ae1222567143ff37db",
+      "categoria": "Inversor",
+      "item": "DEYE SUN2000G-US-220",
+      "qnt": 2
+    },
+    {
+      "projeto": "6a2aa1ae1222567143ff37dc",
+      "categoria": "Inversor",
+      "item": "DEYE SUN2000G3-US-220",
+      "qnt": 2
+    },
+    {
+      "projeto": "6a2aa1ae1222567143ff37dd",
+      "categoria": "Inversor",
+      "item": "DEYE SUN2000G3-US-220",
+      "qnt": 5
+    },
+    {
+      "projeto": "6a2aa1ae1222567143ff37de",
+      "categoria": "KIT",
+      "item": "Jonathas Resun550Wx8/Deye Sun2000",
+      "qnt": 1
+    },
+    {
+      "projeto": "6a2aa1ae1222567143ff37de",
+      "categoria": "Inversor",
+      "item": "DEYE SUN2000G3-US-220",
+      "qnt": 2
+    },
+    {
+      "projeto": "6a2aa1af1222567143ff37e2",
+      "categoria": "Inversor",
+      "item": "DEYE SUN2000G-US-220",
+      "qnt": 3
+    },
+    {
+      "projeto": "6a2aa1af1222567143ff37e3",
+      "categoria": "Inversor",
+      "item": "DEYE SUN2000G3-US-220",
+      "qnt": 6
+    },
+    {
+      "projeto": "6a2aa1af1222567143ff37ec",
+      "categoria": "Inversor",
+      "item": "DEYE SUN2000G3-US-220",
+      "qnt": 4
+    },
+    {
+      "projeto": "6a2aa1b01222567143ff37f1",
+      "categoria": "Inversor",
+      "item": "DEYE SUN2000G3-US-220",
+      "qnt": 6
+    },
+    {
+      "projeto": "6a2aa1b01222567143ff37f7",
+      "categoria": "Inversor",
+      "item": "DEYE SUN2000G-US-220",
+      "qnt": 2
+    },
+    {
+      "projeto": "6a2aa1b01222567143ff37fe",
+      "categoria": "Inversor",
+      "item": "DEYE SUN2000G-US-220",
+      "qnt": 2
+    },
+    {
+      "projeto": "6a2aa1b01222567143ff37ff",
+      "categoria": "Inversor",
+      "item": "DEYE SUN2000G-US-220",
+      "qnt": 2
+    }
+  ],
+  "fase4_tabela": [
+    {
+      "modelo": "SUN2000G3-US-220",
+      "fabricante_armazenado": "Deye",
+      "fabricante_normalizado": "DEYE",
+      "origem_tipo": "import_solarmarket",
+      "projetos_afetados": 110
+    },
+    {
+      "modelo": "SUN2000G-US-220",
+      "fabricante_armazenado": "Deye",
+      "fabricante_normalizado": "DEYE",
+      "origem_tipo": "import_solarmarket",
+      "projetos_afetados": 36
+    },
+    {
+      "modelo": "SUN2000-30KTL-M3",
+      "fabricante_armazenado": "Huawei",
+      "fabricante_normalizado": "HUAWEI",
+      "origem_tipo": "desconhecido",
+      "projetos_afetados": 0
+    },
+    {
+      "modelo": "SUN2000-36KTL-M3",
+      "fabricante_armazenado": "Huawei",
+      "fabricante_normalizado": "HUAWEI",
+      "origem_tipo": "desconhecido",
+      "projetos_afetados": 0
+    },
+    {
+      "modelo": "SUN2000-40KTL-M3",
+      "fabricante_armazenado": "Huawei",
+      "fabricante_normalizado": "HUAWEI",
+      "origem_tipo": "desconhecido",
+      "projetos_afetados": 0
+    },
+    {
+      "modelo": "SUN2000-100KTL-M",
+      "fabricante_armazenado": "Huawei",
+      "fabricante_normalizado": "HUAWEI",
+      "origem_tipo": "desconhecido",
+      "projetos_afetados": 0
+    },
+    {
+      "modelo": "SUN2000-100KTL-M2",
+      "fabricante_armazenado": "Huawei",
+      "fabricante_normalizado": "HUAWEI",
+      "origem_tipo": "desconhecido",
+      "projetos_afetados": 0
+    },
+    {
+      "modelo": "SUN2000-100KTL",
+      "fabricante_armazenado": "Huawei",
+      "fabricante_normalizado": "HUAWEI",
+      "origem_tipo": "desconhecido",
+      "projetos_afetados": 0
+    }
+  ],
+  "projetos_com_sun2000": 146
+}

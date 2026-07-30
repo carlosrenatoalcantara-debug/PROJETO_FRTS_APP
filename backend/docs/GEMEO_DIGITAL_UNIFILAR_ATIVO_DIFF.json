@@ -1,0 +1,121 @@
+{
+  "sprint": "P4-GEMEO-DIGITAL-UNIFILAR-ATIVO-01",
+  "data": "2026-06-19",
+  "modelo": "Sonnet",
+  "tipo": "DIFF",
+
+  "arquivos_alterados": [
+    {
+      "arquivo": "frontend/src/utils/gerarUnifilarSVG.js",
+      "tipo": "MODIFICADO",
+      "mudancas": [
+        {
+          "linha": 181,
+          "tipo": "assinatura",
+          "de": "export const gerarUnifilarSVG = (projeto) => {",
+          "para": "export const gerarUnifilarSVG = (projeto, ativos = []) => {"
+        },
+        {
+          "linha": "após_destructuring",
+          "tipo": "adicao",
+          "descricao": "Bloco Digital Twin linkage: ativoModulo, ativoInversor, função ativoGAttrs(ativo)"
+        },
+        {
+          "linha": "defs_svg",
+          "tipo": "adicao",
+          "descricao": "CSS hover no SVG: g[data-ativo-id]{cursor:pointer} g[data-ativo-id]:hover{filter:brightness(0.92)}"
+        },
+        {
+          "linha": "mppt_forEach_inicio",
+          "tipo": "adicao",
+          "descricao": "Abertura de <g data-ativo-id data-qr data-arranjo-id data-tipo data-status> ao redor do grupo de painéis"
+        },
+        {
+          "linha": "mppt_forEach_antes_coletora",
+          "tipo": "adicao",
+          "descricao": "Fechamento </g> antes da coletora vertical e combiner"
+        },
+        {
+          "linha": "inversor",
+          "tipo": "modificacao",
+          "descricao": "svgInversor() envolto em <g data-ativo-id data-qr data-arranjo-id data-tipo data-status>"
+        }
+      ]
+    },
+    {
+      "arquivo": "frontend/src/components/fv/UnifilarFV.jsx",
+      "tipo": "MODIFICADO",
+      "mudancas": [
+        {
+          "linha": 1,
+          "tipo": "import",
+          "de": "import { useState } from 'react'",
+          "para": "import { useState, useEffect } from 'react'"
+        },
+        {
+          "linha": 2,
+          "tipo": "import_novo",
+          "descricao": "import { Link, useNavigate } from 'react-router-dom'"
+        },
+        {
+          "linha": 3,
+          "tipo": "import",
+          "de": "import { Download, RefreshCw, Zap } from 'lucide-react'",
+          "para": "import { Download, ExternalLink, RefreshCw, Zap } from 'lucide-react'"
+        },
+        {
+          "linha": "hooks",
+          "tipo": "adicao",
+          "descricao": "const navigate = useNavigate(); const [ativos, setAtivos] = useState([])"
+        },
+        {
+          "linha": "useEffect",
+          "tipo": "adicao",
+          "descricao": "fetch /api/ativos/projeto/:id ao montar; popula estado ativos"
+        },
+        {
+          "linha": "handleGerarUnifilar",
+          "tipo": "modificacao",
+          "de": "gerarUnifilarSVG(projeto)",
+          "para": "gerarUnifilarSVG(projeto, ativos)"
+        },
+        {
+          "linha": "antes_return",
+          "tipo": "adicao",
+          "descricao": "handleSVGClick(e): event delegation via e.target.closest('[data-ativo-id]'); navega para /ativo/:qr"
+        },
+        {
+          "linha": "botoes",
+          "tipo": "adicao",
+          "descricao": "Link para /unifilar/:projetoId (Gêmeo Digital — unifilar operacional)"
+        },
+        {
+          "linha": "botoes",
+          "tipo": "adicao",
+          "descricao": "Badge 'N ativos vinculados' quando ativos.length > 0"
+        },
+        {
+          "linha": "svg_wrapper",
+          "tipo": "modificacao",
+          "descricao": "onClick={handleSVGClick} adicionado ao <div dangerouslySetInnerHTML>"
+        }
+      ]
+    }
+  ],
+
+  "arquivos_criados": [
+    "backend/docs/GEMEO_DIGITAL_UNIFILAR_ATIVO_REPORT.md",
+    "backend/docs/GEMEO_DIGITAL_UNIFILAR_ATIVO_DIFF.json",
+    "backend/docs/GEMEO_DIGITAL_UNIFILAR_ATIVO_METRICS.json"
+  ],
+
+  "arquivos_nao_alterados": [
+    "backend/src/models/AtivoEquipamento.js",
+    "backend/src/models/ProjetoFV.js",
+    "backend/src/services/ativoService.js",
+    "frontend/src/pages/Unifilar.jsx",
+    "frontend/src/pages/AtivoQR.jsx",
+    "frontend/src/utils/engenhariaGovernanca.js",
+    "frontend/src/App.jsx"
+  ]
+}

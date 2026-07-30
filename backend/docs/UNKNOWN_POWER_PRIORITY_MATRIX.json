@@ -1,0 +1,228 @@
+{
+  "gerado_em": "2026-06-17T17:57:00.000Z",
+  "sprint": "P0-UNKNOWN-POWER-FORENSICS-01",
+  "executor": "Sonnet 4.6 (READ-ONLY)",
+  "criterios": {
+    "P0": "Em uso ativo em projeto existente com potencia_kw=null no arranjo",
+    "P1": "Fabricante estratégico (top 5 por volume ou uso frequente no mercado BR); datasheet obtível",
+    "P1_DEFERIDO": "Fabricante estratégico mas com bloqueio técnico conhecido (HTTP 403, parceiro necessário)",
+    "P2": "Fabricante nicho / poucos modelos / não em uso ativo; datasheet obtível mas baixa urgência"
+  },
+  "recomendacao_global": "Abrir P1-DATASHEET-WAVE-NEXT focando em Deye (37 modelos) + Growatt (18) + Kehua (17) + Goodwe (8, P0 imediato). Usar estratégia híbrida: para modelos com kW no nome (87 de 122), a potência pode ser populada via regex sem precisar de PDF — apenas requer confirmação humana ou sprint de auto-enriquecimento rápido.",
+  "alerta_duplicatas": "Tsun tem 3 modelos SolarMarket sem spec + 3+ modelos enriquecidos via Wave 1b. São DOCUMENTOS DIFERENTES (mesmo modelo, duas entradas). Limpar antes do Wave Next para evitar confusão no catálogo.",
+  "prioridades": [
+    {
+      "prioridade": "P0",
+      "fabricante": "Goodwe",
+      "modelo": "GW8000-DT",
+      "motivo": "Em uso ativo no projeto 'Cristiano 600kw'. potencia_kw=null no arranjo salvo → ?kW na tela do projeto.",
+      "acao": "Enriquecer GW8000-DT com datasheet real (8kW, disponível em goodwe.com). Atualizar também o arranjo salvo no projeto.",
+      "pot_kw_estimada": 8,
+      "derivavel_pelo_nome": false,
+      "fabricante_estrategico": true,
+      "datasheet_acessivel": true,
+      "projetos_afetados": ["Cristiano 600kw"]
+    },
+    {
+      "prioridade": "P1-ALTA",
+      "fabricante": "Deye",
+      "total_modelos": 37,
+      "motivo": "Maior fabricante sem-pot no catálogo (30% do total). Fornecedor principal Forte Solar. 35/37 têm kW no nome — candidatos a auto-enriquecimento rápido.",
+      "acao": "Wave Next Deye: para os 35 com kW no nome, popular potencia_kw via regex do modelo (rápido). Para SUN1000G3-US-220 e SUN1300G-US-220 (modelos US), buscar datasheet em solarmanpv.com ou deye.com.",
+      "pot_derivavel_count": 35,
+      "pot_nao_derivavel_count": 2,
+      "datasheet_acessivel": true,
+      "projetos_afetados": []
+    },
+    {
+      "prioridade": "P1-ALTA",
+      "fabricante": "Growatt",
+      "total_modelos": 18,
+      "motivo": "2º maior (14.8%). Já enriquecido parcialmente (Wave 1). 10/18 não têm kW no nome — requer datasheet.",
+      "acao": "Wave Next Growatt: 8 modelos com kW no nome (auto-enriquecimento). 10 modelos MIC/MIN/NEO/TL3-S requerem PDF do ginlong.com.",
+      "pot_derivavel_count": 8,
+      "pot_nao_derivavel_count": 10,
+      "datasheet_acessivel": true,
+      "projetos_afetados": []
+    },
+    {
+      "prioridade": "P1-ALTA",
+      "fabricante": "Kehua",
+      "total_modelos": 17,
+      "motivo": "3º maior (13.9%). Já enriquecido parcialmente. 14/17 deriváveis pelo nome. 3 modelos watt (8000/9000/10000) requerem PDF.",
+      "acao": "Wave Next Kehua: 14 auto-enriquecíveis. 3 modelos (SPI8000/SPI9000/SPI10000) = 8kW/9kW/10kW — extrair do PDF kehua.com.",
+      "pot_derivavel_count": 14,
+      "pot_nao_derivavel_count": 3,
+      "datasheet_acessivel": true,
+      "projetos_afetados": []
+    },
+    {
+      "prioridade": "P1-MEDIA",
+      "fabricante": "Goodwe",
+      "total_modelos": 8,
+      "motivo": "8 modelos, 5 sem derivação pelo nome. Além do GW8000-DT (P0), os demais são catálogo-only.",
+      "acao": "Wave Next Goodwe: completar os 7 modelos restantes. goodwe.com tem PDFs livres.",
+      "pot_derivavel_count": 3,
+      "pot_nao_derivavel_count": 5,
+      "datasheet_acessivel": true,
+      "projetos_afetados": []
+    },
+    {
+      "prioridade": "P1-DEFERIDO",
+      "fabricante": "Solaredge",
+      "total_modelos": 9,
+      "motivo": "9 otimizadores. 8/9 têm kW no nome. HTTP 403 bloqueia download automatizado de PDFs.",
+      "acao": "Manter deferido. Se necessário, inserir manualmente via Claude Vision com PDF baixado do portal parceiro ou via spec manual.",
+      "pot_derivavel_count": 8,
+      "pot_nao_derivavel_count": 1,
+      "datasheet_acessivel": false,
+      "bloqueio": "HTTP 403 em solaredge.com",
+      "projetos_afetados": []
+    },
+    {
+      "prioridade": "P1-MEDIA",
+      "fabricante": "Sungrow",
+      "total_modelos": 4,
+      "motivo": "Fabricante estratégico. 2 modelos deriváveis, 2 requerem PDF.",
+      "acao": "Wave Next: SG8K3-D/SG6K-D auto-enriquecíveis. SG75CX-P2 (75kW) e SG15RT-P2 (15kW) via sungrowpower.com.",
+      "pot_derivavel_count": 2,
+      "pot_nao_derivavel_count": 2,
+      "datasheet_acessivel": true,
+      "projetos_afetados": []
+    },
+    {
+      "prioridade": "P1-MEDIA",
+      "fabricante": "Hoymiles",
+      "total_modelos": 3,
+      "motivo": "Microinversor estratégico. 100% derivável pelo nome.",
+      "acao": "Auto-enriquecimento pelos nomes (HMS-2000DW=2kW, HMS-2000=2kW, HMS-1800=1.8kW). Confirmar com hoymiles.com.",
+      "pot_derivavel_count": 3,
+      "pot_nao_derivavel_count": 0,
+      "datasheet_acessivel": true,
+      "projetos_afetados": []
+    },
+    {
+      "prioridade": "P1-MEDIA",
+      "fabricante": "Enphase",
+      "total_modelos": 1,
+      "motivo": "Fabricante estratégico. IQ8P-72-2-BR não tem kW no nome mas é importante para segmento micro.",
+      "acao": "Buscar spec do IQ8P-72-2-BR em enphase.com (potência nominal ~366W = 0.366kW).",
+      "pot_derivavel_count": 0,
+      "pot_nao_derivavel_count": 1,
+      "datasheet_acessivel": true,
+      "projetos_afetados": []
+    },
+    {
+      "prioridade": "P2",
+      "fabricante": "Solplanet",
+      "total_modelos": 7,
+      "motivo": "Não estratégico no portfólio atual. 4/7 sem derivação.",
+      "acao": "Baixa prioridade. Incluir em Wave N+2 se houver demanda.",
+      "pot_derivavel_count": 3,
+      "pot_nao_derivavel_count": 4,
+      "datasheet_acessivel": true,
+      "projetos_afetados": []
+    },
+    {
+      "prioridade": "P2",
+      "fabricante": "Solis",
+      "total_modelos": 6,
+      "motivo": "100% derivável. Baixa urgência por não estar em projetos.",
+      "acao": "Auto-enriquecimento rápido pelo nome. Wave N+1 ou junto com Deye.",
+      "pot_derivavel_count": 6,
+      "pot_nao_derivavel_count": 0,
+      "datasheet_acessivel": true,
+      "projetos_afetados": []
+    },
+    {
+      "prioridade": "P2-ALERTA",
+      "fabricante": "Tsun",
+      "total_modelos": 3,
+      "motivo": "Duplicatas SolarMarket de modelos já enriquecidos em Wave 1b. Limpeza necessária antes de enriquecimento.",
+      "acao": "Resolver duplicatas (1 enriquecido + 1 SolarMarket para mesmo modelo). Decidir entre merge ou remoção do duplicata SolarMarket.",
+      "pot_derivavel_count": 0,
+      "pot_nao_derivavel_count": 3,
+      "datasheet_acessivel": true,
+      "projetos_afetados": [],
+      "alerta": "Podem existir dois documentos para TSOL-MS2000, TSOL-MX2500D na coleção Equipamento"
+    },
+    {
+      "prioridade": "P2",
+      "fabricante": "Chint",
+      "total_modelos": 2,
+      "motivo": "100% derivável. Não em projetos ativos.",
+      "acao": "Auto-enriquecimento. Baixa urgência.",
+      "pot_derivavel_count": 2,
+      "pot_nao_derivavel_count": 0,
+      "datasheet_acessivel": true,
+      "projetos_afetados": []
+    },
+    {
+      "prioridade": "P2",
+      "fabricante": "Sofar",
+      "total_modelos": 2,
+      "motivo": "100% derivável. Não em projetos ativos.",
+      "acao": "Auto-enriquecimento. Baixa urgência.",
+      "pot_derivavel_count": 2,
+      "pot_nao_derivavel_count": 0,
+      "datasheet_acessivel": true,
+      "projetos_afetados": []
+    },
+    {
+      "prioridade": "P2",
+      "fabricante": "Apsystems",
+      "total_modelos": 2,
+      "motivo": "Micro nicho. DS3D-220 e QT2D-380 sem kW no nome.",
+      "acao": "Requer datasheet apsystemsusa.com. Baixa urgência.",
+      "pot_derivavel_count": 0,
+      "pot_nao_derivavel_count": 2,
+      "datasheet_acessivel": true,
+      "projetos_afetados": []
+    },
+    {
+      "prioridade": "P2",
+      "fabricante": "Fronius",
+      "total_modelos": 1,
+      "motivo": "1 modelo nicho. PRIMO 6.0-1 = 6kW (inferível pelo usuário).",
+      "acao": "fronius.com tem PDFs. Baixa urgência.",
+      "pot_derivavel_count": 0,
+      "pot_nao_derivavel_count": 1,
+      "datasheet_acessivel": true,
+      "projetos_afetados": []
+    },
+    {
+      "prioridade": "P2",
+      "fabricante": "Nep",
+      "total_modelos": 1,
+      "motivo": "BDM-2250 = 2.25kW. Usado apenas em cenário de teste (Paulo Carlos), não em projeto DB real.",
+      "acao": "nepse.com. Baixa urgência.",
+      "pot_derivavel_count": 0,
+      "pot_nao_derivavel_count": 1,
+      "datasheet_acessivel": true,
+      "projetos_afetados": []
+    },
+    {
+      "prioridade": "P2",
+      "fabricante": "Solax",
+      "total_modelos": 1,
+      "motivo": "100% derivável. 1 modelo. Não em projetos.",
+      "acao": "Auto-enriquecimento pelo nome. Muito baixa urgência.",
+      "pot_derivavel_count": 1,
+      "pot_nao_derivavel_count": 0,
+      "datasheet_acessivel": true,
+      "projetos_afetados": []
+    }
+  ],
+  "recomendacao_wave_next": {
+    "abrir_sprint": true,
+    "nome_sugerido": "P1-DATASHEET-WAVE-NEXT-01",
+    "escopo_sugerido": [
+      "FASE 1 (auto-enriquecimento, sem PDF): popular potencia_kw via regex do campo `modelo` para os 87 inversores com kW no nome. Requer validação humana ou threshold de confiança alto.",
+      "FASE 2 (PDF manual estratégico): Deye SUN1000G3/SUN1300G + Growatt MIC/MIN/NEO + Kehua SPI8000/9000/10000 + Goodwe GW5000DT/DT/GW3300/GW8000DT/GW5000DNS.",
+      "FASE 3 (deduplicação): resolver duplicatas Tsun (SolarMarket vs Wave1b).",
+      "FORA DO ESCOPO: Solaredge (HTTP 403 permanente)."
+    ],
+    "pre_requisito": "Revisão Gemini obrigatória de todas as sprints pendentes antes de iniciar Wave Next.",
+    "cuidado": "Nunca popular potencia_kw com valor inferido sem registrar origem='inferido_do_nome' e fonte explicita. O campo `pontuacao_qualidade` deve refletir o método."
+  }
+}

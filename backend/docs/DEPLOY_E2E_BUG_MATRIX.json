@@ -1,0 +1,138 @@
+{
+  "sprint": "P6-DEPLOY-E2E-VALIDATION-01",
+  "data": "2026-06-19",
+  "modelo": "Sonnet",
+  "metodo_validacao": "ANALISE_ESTATICA_CODIGO",
+  "ambiente_real_utilizado": false,
+
+  "bugs": [
+    {
+      "id": "BUG-P4-UNIFILAR-01",
+      "prioridade": "P1",
+      "tipo": "BUG",
+      "sprint_origem": "P4-GEMEO-DIGITAL-UNIFILAR-ATIVO-01",
+      "arquivo": "frontend/src/components/fv/UnifilarFV.jsx",
+      "linhas": [25, 26, 27, 28],
+      "titulo": "Fetch de ativos nunca popula o array — SVG gerado sem data-ativo-id",
+      "descricao": "O fetch em UnifilarFV.jsx recebe { sucesso, total, por_tipo, itens } mas testa Array.isArray(data) esperando um array direto. Array.isArray(objeto) é sempre false → setAtivos([]) sempre chamado.",
+      "codigo_atual": ".then(r => r.ok ? r.json() : []).then(data => setAtivos(Array.isArray(data) ? data : []))",
+      "codigo_correto": ".then(r => r.ok ? r.json() : { itens: [] }).then(data => setAtivos(Array.isArray(data?.itens) ? data.itens : []))",
+      "impacto": [
+        "ativoModulo e ativoInversor sempre undefined",
+        "gerarUnifilarSVG recebe ativos=[] → sem data-ativo-id em nenhum <g>",
+        "Click no símbolo do painel não navega para /ativo/:qr",
+        "Click no símbolo do inversor não navega para /ativo/:qr",
+        "Hover cursor:pointer nunca aparece no SVG",
+        "Badge 'N ativos vinculados' nunca exibe"
+      ],
+      "core_feature_afetada": "P4-GEMEO-DIGITAL-UNIFILAR-ATIVO-01 — click-to-navigate é a feature central do sprint",
+      "silencioso": true,
+      "detectado_por": "ANALISE_ESTATICA",
+      "correcao_pendente": true
+    },
+    {
+      "id": "BUG-P5-ALERTCENTER-01",
+      "prioridade": "P2",
+      "tipo": "BUG",
+      "sprint_origem": "P5-GARANTIA-SIMPLES-01",
+      "arquivo": "backend/src/routes/alertcenter.js",
+      "linha": 48,
+      "titulo": "Query de garantia inclui ativos substituídos e desativados",
+      "descricao": "A query AtivoEquipamento.find({ garantia_fim: { $ne: null } }) não filtra status. Equipamentos com status 'substituido' ou 'desativado' geram alertas de garantia espúrios no AlertCenter.",
+      "codigo_atual": "AtivoEquipamento.find({ garantia_fim: { $ne: null } }, 'fabricante modelo qr_code garantia_fim status').lean().catch(() => [])",
+      "codigo_correto": "AtivoEquipamento.find({ garantia_fim: { $ne: null }, status: { $nin: ['substituido', 'desativado'] } }, 'fabricante modelo qr_code garantia_fim status').lean().catch(() => [])",
+      "impacto": "Operador vê alertas de garantia para equipamentos que já foram substituídos ou desativados. Ruído no AlertCenter.",
+      "detectado_por": "ANALISE_ESTATICA",
+      "correcao_pendente": true
+    },
+    {
+      "id": "BUG-P5-MEDICOES-01",
+      "prioridade": "P2",
+      "tipo": "UX",
+      "sprint_origem": "P5-ATIVO-MEDICOES-01",
+      "arquivo": "frontend/src/components/fv/MedicoesAtivoCard.jsx",
+      "linha": 122,
+      "titulo": "window.confirm() bloqueado em iOS PWA standalone mode",
+      "descricao": "A função remover() usa window.confirm('Remover esta medição?'). Em iOS Safari standalone (Add to Home Screen), window.confirm() é bloqueado e sempre retorna false. O botão 'Remover' não faz nada nesses dispositivos.",
+      "codigo_atual": "if (!window.confirm('Remover esta medição?')) return",
+      "codigo_correto": "Substituir por estado inline de confirmação (ex: botão 'Confirmar?' expandido no lugar do item)",
+      "impacto": "Técnicos usando a app no iPhone como PWA não conseguem remover medições incorretas.",
+      "use_case_afetado": "Campo → iPhone PWA → AtivoQR → Medições → Remover",
+      "detectado_por": "ANALISE_ESTATICA",
+      "correcao_pendente": true
+    },
+    {
+      "id": "BUG-P5-GARANTIA-01",
+      "prioridade": "P3",
+      "tipo": "BUG",
+      "sprint_origem": "P5-GARANTIA-SIMPLES-01",
+      "arquivo": "backend/src/controllers/ativosController.js",
+      "funcao": "_autoPreencherGarantia",
+      "titulo": "_autoPreencherGarantia sem validação de ObjectId — possível CastError",
+      "descricao": "Se equipamento_id for um string não-vazio mas inválido como ObjectId, Equipamento.findById() lança CastError. A função não tem try-catch e não valida com mongoose.Types.ObjectId.isValid(). Em prática só ocorre via API direta; a UI sempre envia ObjectId válido via seletor.",
+      "codigo_atual": "if (!ativo.equipamento_id) return\nconst eq = await Equipamento.findById(ativo.equipamento_id, ...)",
+      "codigo_correto": "if (!ativo.equipamento_id) return\nif (!mongoose.Types.ObjectId.isValid(ativo.equipamento_id)) return\nconst eq = await Equipamento.findById(ativo.equipamento_id, ...)",
+      "impacto": "Chamada de API direta com equipamento_id inválido → 400 com CastError em vez de criar o ativo normalmente",
+      "detectado_por": "ANALISE_ESTATICA",
+      "correcao_pendente": true
+    },
+    {
+      "id": "MELHORIA-P5-MEDICOES-02",
+      "prioridade": "P3",
+      "tipo": "MELHORIA",
+      "sprint_origem": "P5-ATIVO-MEDICOES-01",
+      "arquivo": "frontend/src/components/fv/MedicoesAtivoCard.jsx",
+      "titulo": "Medições exigem fetch separado — latência extra em campo",
+      "descricao": "AtivoQR.jsx carrega o ativo completo em um fetch inicial mas não inclui medicoes[]. MedicoesAtivoCard faz um segundo fetch para /api/ativos/:id/medicoes. Em campo com sinal fraco, essa latência extra é perceptível.",
+      "solucao_sugerida": "Incluir medicoes (apenas ultima) na resposta do GET /api/ativos/qr/:qr, ou aceitar o 2-fetch como trade-off consciente.",
+      "correcao_pendente": false
+    },
+    {
+      "id": "MELHORIA-P5-GARANTIA-02",
+      "prioridade": "P3",
+      "tipo": "MELHORIA",
+      "sprint_origem": "P5-GARANTIA-SIMPLES-01",
+      "arquivo": "backend/src/utils/alertcenter/alertDetectors.js",
+      "funcao": "detectarAlertasGarantia",
+      "titulo": "Link do alerta de garantia usa /ativo/:qr_code — verificar roteamento SPA",
+      "descricao": "O link gerado é `/ativo/${encodeURIComponent(a.qr_code || a._id)}`. Precisa confirmar que o roteador React registra `/ativo/:qr` e não `/ativos/:id` ou similar.",
+      "verificacao_necessaria": "Confirmar em App.jsx ou router que a rota /ativo/:qr existe",
+      "correcao_pendente": false
+    }
+  ],
+
+  "totais": {
+    "P0": 0,
+    "P1": 1,
+    "P2": 2,
+    "P3": 3,
+    "total_bugs_reais": 3,
+    "total_melhorias": 3,
+    "total": 6
+  },
+
+  "regressoes_encontradas": 0,
+
+  "areas_sem_regressao": [
+    "ProjetoEV (não tocado)",
+    "QR code generation",
+    "EtiquetaScanner",
+    "Comissionamento (comissionarPorQr)",
+    "Monitoramento (salvarMonitoramento / consultarMonitoramento)",
+    "Segurança AES-256-GCM",
+    "Snapshot / Governança",
+    "Homologação",
+    "AlertCenter detectores existentes (RT, catálogo, documentos, projetos, faturas, homologação)"
+  ],
+
+  "areas_aprovadas_sem_ressalva": [
+    "DocumentosExternos.jsx — PATCH, links, legado",
+    "GarantiaCard.jsx — render condicional, badge, contatos",
+    "MedicoesAtivoCard.jsx — form, lista, link foto (exceto window.confirm)",
+    "AtivoEquipamento.medicoes schema — subdoc, enum, _id, retrocompat",
+    "Equipamento.suporte schema — todos opcionais, retrocompat",
+    "Auto-fill garantia_fim — lógica correta, sem inventar",
+    "AlertCenter garantia — detector, KPIs",
+    "consultarPorQr — projeção extendida, resposta correta"
+  ]
+}

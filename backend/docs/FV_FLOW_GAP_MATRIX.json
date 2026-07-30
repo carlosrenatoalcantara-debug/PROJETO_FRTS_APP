@@ -1,0 +1,120 @@
+{
+  "gerado_em": "2026-06-17",
+  "sprint": "P0-FV-FLOW-FORENSICS-01",
+  "executor": "Sonnet 4.6 (READ-ONLY)",
+
+  "gaps": [
+    {
+      "id": "GAP-01",
+      "prioridade": "P0",
+      "titulo": "Homologação é STUB na tela principal",
+      "etapa_real": 9,
+      "componente_stub": "ProjetosFVDetalhes.jsx:596-605 (AbaHomologacao)",
+      "componente_real": "components/fv/homologacao/Homologacao.jsx (checklist, memorial, carta, ART)",
+      "evidencia": "AbaHomologacao() retorna apenas <p>Homologação em desenvolvimento...</p>. O componente Homologacao.jsx completo não é nem importado em ProjetosFVDetalhes.jsx.",
+      "impacto": "100% dos projetos FV sem acesso a: checklist de documentos, memorial descritivo, carta à concessionária, dados para ART. Processo 100% manual fora do sistema.",
+      "esforco_correcao": "BAIXO — substituir AbaHomologacao() por <Homologacao projetoId={id} projeto={projeto} cliente={projeto.clienteId} /> (1 arquivo, ~20 linhas)"
+    },
+    {
+      "id": "GAP-02",
+      "prioridade": "P0",
+      "titulo": "Orçamento formal inexistente após criação do projeto",
+      "etapa_real": 5,
+      "evidencia": "PropostaEnterprise em ProjetosFVDetalhes.jsx:232-238 recebe snapshotTecnico={projeto.governanca?.snapshot_tecnico} e resultadoFinanceiro={null} hardcoded. Sem resultadoFinanceiro, a comparação multi-cenário e o centro financeiro ficam em branco ('—' em todos os campos).",
+      "impacto": "Usuário que quiser renegociar orçamento de projeto salvo precisa abrir o wizard novamente. Aba Comercial mostra workflow mas sem valores para comparar.",
+      "esforco_correcao": "MÉDIO — recalcular resultadoFinanceiro no backend (ou no frontend) a partir dos dados do projeto existente e passá-lo para PropostaEnterprise"
+    },
+    {
+      "id": "GAP-03",
+      "prioridade": "P0",
+      "titulo": "Governança: congelar não captura snapshot técnico",
+      "etapa_real": 7,
+      "evidencia": "ProjetosFVDetalhes.jsx:216-228 passa GovernancaPainel sem prop construirSnapshots. Na função congelar() do GovernancaPainel (linha 59): 'const snapshots = construirSnapshots ? construirSnapshots() : {}' — sem o prop, envia {} vazio.",
+      "impacto": "Ao clicar 'Congelar' na aba Governança de um projeto existente, o snapshot_tecnico, snapshot_catalogo e snapshot_unifilar ficam vazios. O congelamento ocorre (muda freeze_status) mas sem dados de engenharia snapshottados. Divergência com catálogo não funciona.",
+      "esforco_correcao": "MÉDIO — criar construtor de snapshot para ProjetosFVDetalhes que derive dados do projeto.dimensionamento + projeto.equipamentos + projeto.governanca e passe para GovernancaPainel"
+    },
+    {
+      "id": "GAP-04",
+      "prioridade": "P0",
+      "titulo": "nomeCliente não existe no schema ProjetoFV",
+      "etapa_real": 1,
+      "evidencia": "ProjetosFVDetalhes.jsx usa projeto.nomeCliente em 8+ locais (header, AbaResumo, cliente_nome do diagrama). ProjetoFV schema não tem campo nomeCliente. O campo vem de clienteId.nome (populate) mas o frontend acessa .nomeCliente que fica undefined.",
+      "impacto": "Cabeçalho do projeto exibe undefined em todos os projetos novos (v3). Projetos legados (importados do SolarMarket) podem ter nomeCliente como campo raw. Projetos novos criados pelo wizard mostram header vazio.",
+      "esforco_correcao": "BAIXO — substituir projeto.nomeCliente por projeto.clienteId?.nome || projeto.nome em ProjetosFVDetalhes.jsx (1 arquivo, find+replace)"
+    },
+    {
+      "id": "GAP-05",
+      "prioridade": "P1",
+      "titulo": "Unifilar gerado de dimensionamento, não de equipamentos aprovados",
+      "etapa_real": 8,
+      "evidencia": "UnifilarFV.jsx:25 chama gerarUnifilarSVG(projeto) usando dados atuais do projeto (dimensionamento). Não há validação de que o orçamento foi aprovado antes de gerar o unifilar. Processo real: o unifilar deve refletir os equipamentos efetivamente orçados e aprovados.",
+      "impacto": "Unifilar pode ser gerado com equipamentos não orçados ou pré-aprovação do cliente. Risco de retrabalho na homologação se o cliente modificar seleção após unifilar.",
+      "esforco_correcao": "MÉDIO — gate: exigir freeze_status=CONGELADO (ou comercial.workflow_status=ASSINADO) antes de liberar geração do unifilar"
+    },
+    {
+      "id": "GAP-06",
+      "prioridade": "P1",
+      "titulo": "BESS é placeholder",
+      "etapa_real": "N/A (não existe no fluxo real atual)",
+      "evidencia": "AbaBESS() em ProjetosFVDetalhes.jsx:557-565 retorna 'BESS em desenvolvimento...'",
+      "impacto": "Sem cotação ou dimensionamento de bateria integrado. Aba visível mas vazia.",
+      "esforco_correcao": "ALTO — implementação completa de BESS (sprint dedicada)"
+    },
+    {
+      "id": "GAP-07",
+      "prioridade": "P1",
+      "titulo": "Instalação completamente ausente do sistema",
+      "etapa_real": 10,
+      "evidencia": "Nenhuma tela, rota, endpoint, schema ou referência ao processo de instalação física existe no sistema.",
+      "impacto": "Etapa 10 do fluxo real é 100% manual. Sem registro de: data instalação, equipe, checklist instalação, fotos, laudo de conformidade.",
+      "esforco_correcao": "ALTO — sprint dedicada (checklist de instalação, fotos, equipe, data)"
+    },
+    {
+      "id": "GAP-08",
+      "prioridade": "P1",
+      "titulo": "Comissionamento desconectado do Projeto FV",
+      "etapa_real": 11,
+      "evidencia": "Módulo de Ativos (sprint p1-asset-commissioning) existe mas não há link automático ProjetoFV._id → Ativo._id → comissionamento. O usuário precisa escanear o QR manualmente sem vínculo ao projeto.",
+      "impacto": "Rastreabilidade projeto→ativo→comissionamento quebrada. Não é possível saber quais projetos foram comissionados a partir da tela de projetos.",
+      "esforco_correcao": "MÉDIO — campo projeto_fv_id no Ativo + filtro na tela de projetos"
+    },
+    {
+      "id": "GAP-09",
+      "prioridade": "P1",
+      "titulo": "Beneficiárias: campo tipoRateio='prioridade' suportado no backend mas invisível na UI",
+      "etapa_real": "N/A (Lei 14.300/2022)",
+      "evidencia": "UnidadeBeneficiaria schema:31 tem enum ['percentual','prioridade']. BeneficiariasPainel.jsx usa sempre tipoRateio:'percentual' no novoForm. Não há seletor de tipo de rateio na UI. O backend aceita 'prioridade' mas a UI nunca envia.",
+      "impacto": "Projetos GD com rateio por prioridade (não percentual) não podem ser configurados. Limitação funcional da Lei 14.300/2022.",
+      "esforco_correcao": "BAIXO — adicionar seletor tipoRateio (percentual/prioridade) no formulário de cadastro de beneficiária"
+    },
+    {
+      "id": "GAP-10",
+      "prioridade": "P2",
+      "titulo": "Aba Financeiro usa dados legados do dimensionamento",
+      "etapa_real": 5,
+      "evidencia": "AbaFinanceiro em ProjetosFVDetalhes.jsx:568-594 mostra economiaAnual, payback, economia25anos vindos de projeto.dimensionamento (calculado no wizard). Não usa o Centro Financeiro EPC (CentroFinanceiroFV) nem o snapshot_financeiro congelado.",
+      "impacto": "Valores financeiros exibidos podem estar desatualizados se tarifa ou equipamentos mudaram. Não reflete desconto comercial negociado.",
+      "esforco_correcao": "MÉDIO — usar projeto.governanca.snapshot_financeiro como fonte primária quando congelado"
+    },
+    {
+      "id": "GAP-11",
+      "prioridade": "P2",
+      "titulo": "Operação/monitoramento sem link ao projeto FV",
+      "etapa_real": 12,
+      "evidencia": "Monitoramento de ativos em AtivoQR.jsx não referencia ProjetoFV. Não há dashboard de geração x consumo real por projeto.",
+      "impacto": "Pós-operação invisível no sistema de projetos.",
+      "esforco_correcao": "ALTO — integração com inversores (API Growatt/Goodwe/Deye) ou inserção manual de leituras"
+    }
+  ],
+
+  "resumo": {
+    "total_gaps": 11,
+    "P0": 4,
+    "P1": 4,
+    "P2": 3,
+    "etapas_completamente_ausentes": ["Instalação"],
+    "etapas_placeholder": ["Homologação (tela principal)", "BESS"],
+    "etapas_funcionais": ["Conta de Energia", "Dimensionamento", "Seleção de Equipamentos"],
+    "etapas_parciais": ["Cliente", "Orçamento", "Aprovação Comercial", "Engenharia", "Unifilar", "Comissionamento", "Operação"]
+  }
+}

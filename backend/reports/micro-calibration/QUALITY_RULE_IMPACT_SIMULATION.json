@@ -1,0 +1,84 @@
+{
+  "sprint": "P0-QUALITY-RULE-MICRO-CALIBRATION-01",
+  "read_only": true,
+  "gerado_em": "2026-06-15T12:33:17.407Z",
+  "validacao_replica": {
+    "inversores": 172,
+    "baterimporte_DB": 172,
+    "fidelidade_pct": 100
+  },
+  "tecnologia_distribuicao": {
+    "string": 157,
+    "microinversor": 14,
+    "hibrido": 1
+  },
+  "score_global_atual": 34.67,
+  "cenario_A_regras": {
+    "transicoes": {
+      "invalido->suspeito": 0,
+      "invalido->incompleto": 4,
+      "invalido->utilizavel": 0,
+      "invalido->validado": 0,
+      "suspeito->utilizavel": 0,
+      "suspeito->incompleto": 1,
+      "suspeito->validado": 0,
+      "incompleto->utilizavel": 0
+    },
+    "distribuicao_inversores": {
+      "validado": 1,
+      "utilizavel": 18,
+      "incompleto": 16,
+      "suspeito": 11,
+      "invalido": 126,
+      "aguardando_revisao": 0
+    },
+    "score_global_catalogo": 34.82
+  },
+  "cenario_B_regras_conf": {
+    "transicoes": {
+      "invalido->suspeito": 126,
+      "invalido->incompleto": 4,
+      "invalido->utilizavel": 0,
+      "invalido->validado": 0,
+      "suspeito->utilizavel": 0,
+      "suspeito->incompleto": 1,
+      "suspeito->validado": 0,
+      "incompleto->utilizavel": 0
+    },
+    "distribuicao_inversores": {
+      "validado": 1,
+      "utilizavel": 18,
+      "incompleto": 16,
+      "suspeito": 137,
+      "invalido": 0,
+      "aguardando_revisao": 0
+    },
+    "score_global_catalogo": 42.56
+  },
+  "cenario_C_regras_origem_datasheet": {
+    "transicoes": {
+      "invalido->suspeito": 0,
+      "invalido->incompleto": 0,
+      "invalido->utilizavel": 4,
+      "invalido->validado": 0,
+      "suspeito->utilizavel": 1,
+      "suspeito->incompleto": 0,
+      "suspeito->validado": 0,
+      "incompleto->utilizavel": 0
+    },
+    "distribuicao_inversores": {
+      "validado": 1,
+      "utilizavel": 23,
+      "incompleto": 11,
+      "suspeito": 11,
+      "invalido": 126,
+      "aguardando_revisao": 0
+    },
+    "score_global_catalogo": 35.28
+  },
+  "projetos_recuperados": {
+    "A_regras": 54,
+    "B_regras_conf": 354,
+    "C_regras_origem_datasheet": 54
+  }
+}

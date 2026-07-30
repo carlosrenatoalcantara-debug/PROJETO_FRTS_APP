@@ -1,0 +1,2646 @@
+{
+  "sprint": "P1-INVERTER-DATASHEET-SOURCING-01",
+  "read_only": true,
+  "gerado_em": "2026-06-14T20:03:30.939Z",
+  "total_inversores_invalidos": 131,
+  "modelos_unicos": 131,
+  "modelos_com_projetos": 119,
+  "modelos_sem_projetos": 12,
+  "classificacao": {
+    "A": 127,
+    "B": 4,
+    "C": 0
+  },
+  "projetos_distintos_bloqueados_total": 464,
+  "uniao_roi": {
+    "top1": 110,
+    "top3": 176,
+    "top5": 208,
+    "top10": 262,
+    "top20": 316
+  },
+  "ranking_por_frequencia": [
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN2000G3-US-220",
+      "ocorrencias": 1,
+      "projetos": 110,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN2000G-US-220",
+      "ocorrencias": 1,
+      "projetos": 36,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-M225G4-EU-Q0",
+      "ocorrencias": 1,
+      "projetos": 30,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Tsun",
+      "modelo": "TSOL-MP2250",
+      "ocorrencias": 1,
+      "projetos": 16,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Tsun",
+      "modelo": "TSOL-MX2250",
+      "ocorrencias": 1,
+      "projetos": 16,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Growatt",
+      "modelo": "MIN 5000TL-X",
+      "ocorrencias": 1,
+      "projetos": 13,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI6000-B2",
+      "ocorrencias": 1,
+      "projetos": 12,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Solaredge",
+      "modelo": "SE 27.6K 380/220v",
+      "ocorrencias": 1,
+      "projetos": 11,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Saj",
+      "modelo": "M2-2.25K-S4",
+      "ocorrencias": 1,
+      "projetos": 9,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Solaredge",
+      "modelo": "SE 20.1K 380/220v",
+      "ocorrencias": 1,
+      "projetos": 9,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Hoymiles",
+      "modelo": "HMS-2000DW-4T",
+      "ocorrencias": 1,
+      "projetos": 8,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Solaredge",
+      "modelo": "SE 33.3K 380/220v",
+      "ocorrencias": 1,
+      "projetos": 8,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Nep",
+      "modelo": "BDM-2250",
+      "ocorrencias": 1,
+      "projetos": 7,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Growatt",
+      "modelo": "MIN 6000TL-X",
+      "ocorrencias": 1,
+      "projetos": 6,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-8K-G03",
+      "ocorrencias": 1,
+      "projetos": 6,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-4K-G",
+      "ocorrencias": 1,
+      "projetos": 5,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Growatt",
+      "modelo": "MIC 3000TL-X",
+      "ocorrencias": 1,
+      "projetos": 4,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-10K-G",
+      "ocorrencias": 1,
+      "projetos": 4,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Solplanet",
+      "modelo": "ASW6000-S-G2",
+      "ocorrencias": 1,
+      "projetos": 3,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Growatt",
+      "modelo": "MAX 75KTL3 LV",
+      "ocorrencias": 1,
+      "projetos": 3,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Growatt",
+      "modelo": "MIC 2000TL-X",
+      "ocorrencias": 1,
+      "projetos": 3,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Growatt",
+      "modelo": "MID 36KTL3-X",
+      "ocorrencias": 1,
+      "projetos": 3,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Growatt",
+      "modelo": "MIN 8000TL-X(E)",
+      "ocorrencias": 1,
+      "projetos": 3,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-12K-G",
+      "ocorrencias": 1,
+      "projetos": 3,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-25K-G02",
+      "ocorrencias": 1,
+      "projetos": 3,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-5K-G @220",
+      "ocorrencias": 1,
+      "projetos": 3,
+      "classe": "B"
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-6K-G",
+      "ocorrencias": 1,
+      "projetos": 3,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-75K-G03",
+      "ocorrencias": 1,
+      "projetos": 3,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-8K-G",
+      "ocorrencias": 1,
+      "projetos": 3,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI15K-B",
+      "ocorrencias": 1,
+      "projetos": 3,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI20K-B X2",
+      "ocorrencias": 1,
+      "projetos": 3,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI36K-B X2",
+      "ocorrencias": 1,
+      "projetos": 3,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Growatt",
+      "modelo": "50000TL3-S",
+      "ocorrencias": 1,
+      "projetos": 2,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Solplanet",
+      "modelo": "ASW20K-LT-G2 Pro",
+      "ocorrencias": 1,
+      "projetos": 2,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Solplanet",
+      "modelo": "ASW3000-S-G2",
+      "ocorrencias": 1,
+      "projetos": 2,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Solplanet",
+      "modelo": "ASW5000-S-G2",
+      "ocorrencias": 1,
+      "projetos": 2,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Hoymiles",
+      "modelo": "HMS-1800-4T",
+      "ocorrencias": 1,
+      "projetos": 2,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Enphase",
+      "modelo": "IQ8P-72-2-BR",
+      "ocorrencias": 1,
+      "projetos": 2,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Growatt",
+      "modelo": "MAC 25KTL3-XL",
+      "ocorrencias": 1,
+      "projetos": 2,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Growatt",
+      "modelo": "MAC 60KTL3-X LV",
+      "ocorrencias": 1,
+      "projetos": 2,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Growatt",
+      "modelo": "MIC 2500TL-X",
+      "ocorrencias": 1,
+      "projetos": 2,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Growatt",
+      "modelo": "MIN 10000 TL-X",
+      "ocorrencias": 1,
+      "projetos": 2,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "MINVDE-MO-220-2.25KW",
+      "ocorrencias": 1,
+      "projetos": 2,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Solaredge",
+      "modelo": "SE 100K Manager 380/220v",
+      "ocorrencias": 1,
+      "projetos": 2,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-15K-G02-LV",
+      "ocorrencias": 1,
+      "projetos": 2,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-15K-G03",
+      "ocorrencias": 1,
+      "projetos": 2,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-35K-G02",
+      "ocorrencias": 1,
+      "projetos": 2,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-35K-G03",
+      "ocorrencias": 1,
+      "projetos": 2,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-5K-G05",
+      "ocorrencias": 1,
+      "projetos": 2,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-6.6K-G05P1-EU-AM2",
+      "ocorrencias": 1,
+      "projetos": 2,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI15K-B X2",
+      "ocorrencias": 1,
+      "projetos": 2,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI17K-B",
+      "ocorrencias": 1,
+      "projetos": 2,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI20K-B",
+      "ocorrencias": 1,
+      "projetos": 2,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI30K-B X2",
+      "ocorrencias": 1,
+      "projetos": 2,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI8000-B X2",
+      "ocorrencias": 1,
+      "projetos": 2,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Tsun",
+      "modelo": "TSOL-MS2000",
+      "ocorrencias": 1,
+      "projetos": 2,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Solax",
+      "modelo": "X1-BOOST-6K-G4",
+      "ocorrencias": 1,
+      "projetos": 2,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Growatt",
+      "modelo": "20000TL3-S",
+      "ocorrencias": 1,
+      "projetos": 1,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Sofar",
+      "modelo": "4KTLM-G3",
+      "ocorrencias": 1,
+      "projetos": 1,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Solis",
+      "modelo": "50K",
+      "ocorrencias": 1,
+      "projetos": 1,
+      "classe": "B"
+    },
+    {
+      "fabricante": "Sofar",
+      "modelo": "7.5KTLM",
+      "ocorrencias": 1,
+      "projetos": 1,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Solplanet",
+      "modelo": "ASW15K-LT-G2 Pro",
+      "ocorrencias": 1,
+      "projetos": 1,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Solplanet",
+      "modelo": "ASW33K-LT-G3",
+      "ocorrencias": 1,
+      "projetos": 1,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Apsystems",
+      "modelo": "DS3D-220",
+      "ocorrencias": 1,
+      "projetos": 1,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Goodwe",
+      "modelo": "GW10K-MS",
+      "ocorrencias": 1,
+      "projetos": 1,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Goodwe",
+      "modelo": "GW15K-SDT-20",
+      "ocorrencias": 1,
+      "projetos": 1,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Goodwe",
+      "modelo": "GW5000-DNS-30",
+      "ocorrencias": 1,
+      "projetos": 1,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Goodwe",
+      "modelo": "GW7.5K-MS-G40",
+      "ocorrencias": 1,
+      "projetos": 1,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Goodwe",
+      "modelo": "GW8000-DT",
+      "ocorrencias": 1,
+      "projetos": 1,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Growatt",
+      "modelo": "MAC 50KTL3-X LV",
+      "ocorrencias": 1,
+      "projetos": 1,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Growatt",
+      "modelo": "MAX 60KTL3 LV",
+      "ocorrencias": 1,
+      "projetos": 1,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Growatt",
+      "modelo": "MID 30KTL3-X",
+      "ocorrencias": 1,
+      "projetos": 1,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Growatt",
+      "modelo": "MID 40KTL3-X",
+      "ocorrencias": 1,
+      "projetos": 1,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Solis",
+      "modelo": "MINI-1500-4G",
+      "ocorrencias": 1,
+      "projetos": 1,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Chint",
+      "modelo": "POWER CPS SCA15KTL-T/EU",
+      "ocorrencias": 1,
+      "projetos": 1,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Chint",
+      "modelo": "POWER CPS SCA50KTL-T/EU",
+      "ocorrencias": 1,
+      "projetos": 1,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Fronius",
+      "modelo": "PRIMO 6.0-1",
+      "ocorrencias": 1,
+      "projetos": 1,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Apsystems",
+      "modelo": "QT2D-380",
+      "ocorrencias": 1,
+      "projetos": 1,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Solis",
+      "modelo": "S5-GC37.5K",
+      "ocorrencias": 1,
+      "projetos": 1,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Solis",
+      "modelo": "S6-GR1P5K",
+      "ocorrencias": 1,
+      "projetos": 1,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Solis",
+      "modelo": "S6-GR1P5K-S",
+      "ocorrencias": 1,
+      "projetos": 1,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Solaredge",
+      "modelo": "SE 20.1K 220/127v",
+      "ocorrencias": 1,
+      "projetos": 1,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Solaredge",
+      "modelo": "SE 27.6K 220/127v",
+      "ocorrencias": 1,
+      "projetos": 1,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Solaredge",
+      "modelo": "SE 75K 380/220v",
+      "ocorrencias": 1,
+      "projetos": 1,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Solaredge",
+      "modelo": "SE 75K Manager 380/220v",
+      "ocorrencias": 1,
+      "projetos": 1,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Solaredge",
+      "modelo": "SE8250H 220V",
+      "ocorrencias": 1,
+      "projetos": 1,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Sungrow",
+      "modelo": "SG6K-D",
+      "ocorrencias": 1,
+      "projetos": 1,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Sungrow",
+      "modelo": "SG75CX-P2",
+      "ocorrencias": 1,
+      "projetos": 1,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Sungrow",
+      "modelo": "SG8K3-D",
+      "ocorrencias": 1,
+      "projetos": 1,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-10K-G @380",
+      "ocorrencias": 1,
+      "projetos": 1,
+      "classe": "B"
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-15K-G05",
+      "ocorrencias": 1,
+      "projetos": 1,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-18K-G03",
+      "ocorrencias": 1,
+      "projetos": 1,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-18K-G04",
+      "ocorrencias": 1,
+      "projetos": 1,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-20K-G",
+      "ocorrencias": 1,
+      "projetos": 1,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-20K-G02",
+      "ocorrencias": 1,
+      "projetos": 1,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-20K-G02-LV",
+      "ocorrencias": 1,
+      "projetos": 1,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-20K-G04",
+      "ocorrencias": 1,
+      "projetos": 1,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-25K-G",
+      "ocorrencias": 1,
+      "projetos": 1,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-30K-G",
+      "ocorrencias": 1,
+      "projetos": 1,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-35K-G",
+      "ocorrencias": 1,
+      "projetos": 1,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-40K-G",
+      "ocorrencias": 1,
+      "projetos": 1,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-40K-G03",
+      "ocorrencias": 1,
+      "projetos": 1,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-60K-G",
+      "ocorrencias": 1,
+      "projetos": 1,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-7.5K-G",
+      "ocorrencias": 1,
+      "projetos": 1,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-75K-G",
+      "ocorrencias": 1,
+      "projetos": 1,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-7K-G",
+      "ocorrencias": 1,
+      "projetos": 1,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-8K-SG01LP1-EU",
+      "ocorrencias": 1,
+      "projetos": 1,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN1000G3-US-220",
+      "ocorrencias": 1,
+      "projetos": 1,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN1300G-US-220",
+      "ocorrencias": 1,
+      "projetos": 1,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI10000-B X2P",
+      "ocorrencias": 1,
+      "projetos": 1,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI10K-B X2",
+      "ocorrencias": 1,
+      "projetos": 1,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI125K-B",
+      "ocorrencias": 1,
+      "projetos": 1,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI25K-B",
+      "ocorrencias": 1,
+      "projetos": 1,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI25K-B X2",
+      "ocorrencias": 1,
+      "projetos": 1,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI40K-B",
+      "ocorrencias": 1,
+      "projetos": 1,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI50K-B",
+      "ocorrencias": 1,
+      "projetos": 1,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI60K-B",
+      "ocorrencias": 1,
+      "projetos": 1,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI9000-B X2",
+      "ocorrencias": 1,
+      "projetos": 1,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Tsun",
+      "modelo": "TSOL-MX2500D",
+      "ocorrencias": 1,
+      "projetos": 1,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Growatt",
+      "modelo": "15000TL3-S",
+      "ocorrencias": 1,
+      "projetos": 0,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Solplanet",
+      "modelo": "ASW4000-S-G2",
+      "ocorrencias": 1,
+      "projetos": 0,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Goodwe",
+      "modelo": "GW3300-XS-30",
+      "ocorrencias": 1,
+      "projetos": 0,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Goodwe",
+      "modelo": "GW5000-DT",
+      "ocorrencias": 1,
+      "projetos": 0,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Goodwe",
+      "modelo": "GW8000-MS-C30",
+      "ocorrencias": 1,
+      "projetos": 0,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Hoymiles",
+      "modelo": "HMS-2000-4T",
+      "ocorrencias": 1,
+      "projetos": 0,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Growatt",
+      "modelo": "NEO 2000M-X",
+      "ocorrencias": 1,
+      "projetos": 0,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Solis",
+      "modelo": "S6-GR1P3K-S",
+      "ocorrencias": 1,
+      "projetos": 0,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Sungrow",
+      "modelo": "SG15RT-P2",
+      "ocorrencias": 1,
+      "projetos": 0,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-5K-G @380",
+      "ocorrencias": 1,
+      "projetos": 0,
+      "classe": "B"
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-75K-G05",
+      "ocorrencias": 1,
+      "projetos": 0,
+      "classe": "A"
+    },
+    {
+      "fabricante": "Tsun",
+      "modelo": "TSOL-MP3000",
+      "ocorrencias": 1,
+      "projetos": 0,
+      "classe": "A"
+    }
+  ],
+  "ranking_por_roi": [
+    {
+      "prioridade": 1,
+      "fabricante": "Deye",
+      "modelo": "SUN2000G3-US-220",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 110,
+      "equipamento_ids": [
+        "6a272aff0bb8928e11abce10"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 2,
+      "fabricante": "Deye",
+      "modelo": "SUN2000G-US-220",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 36,
+      "equipamento_ids": [
+        "6a272aff0bb8928e11abce0d"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 3,
+      "fabricante": "Deye",
+      "modelo": "SUN-M225G4-EU-Q0",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 30,
+      "equipamento_ids": [
+        "6a272b010bb8928e11abce33"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 4,
+      "fabricante": "Tsun",
+      "modelo": "TSOL-MP2250",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 16,
+      "equipamento_ids": [
+        "6a272b010bb8928e11abce3b"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 5,
+      "fabricante": "Tsun",
+      "modelo": "TSOL-MX2250",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 16,
+      "equipamento_ids": [
+        "6a272b000bb8928e11abce25"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 6,
+      "fabricante": "Growatt",
+      "modelo": "MIN 5000TL-X",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 13,
+      "equipamento_ids": [
+        "6a272b000bb8928e11abce23"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 7,
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI6000-B2",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 12,
+      "equipamento_ids": [
+        "6a272b070bb8928e11abce9a"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 8,
+      "fabricante": "Solaredge",
+      "modelo": "SE 27.6K 380/220v",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 11,
+      "equipamento_ids": [
+        "6a272aff0bb8928e11abce1a"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 9,
+      "fabricante": "Saj",
+      "modelo": "M2-2.25K-S4",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 9,
+      "equipamento_ids": [
+        "6a272aff0bb8928e11abce13"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 10,
+      "fabricante": "Solaredge",
+      "modelo": "SE 20.1K 380/220v",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 9,
+      "equipamento_ids": [
+        "6a272aff0bb8928e11abce19"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 11,
+      "fabricante": "Hoymiles",
+      "modelo": "HMS-2000DW-4T",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 8,
+      "equipamento_ids": [
+        "6a272b000bb8928e11abce1e"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 12,
+      "fabricante": "Solaredge",
+      "modelo": "SE 33.3K 380/220v",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 8,
+      "equipamento_ids": [
+        "6a272b030bb8928e11abce59"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 13,
+      "fabricante": "Nep",
+      "modelo": "BDM-2250",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 7,
+      "equipamento_ids": [
+        "6a272b070bb8928e11abce9c"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 14,
+      "fabricante": "Growatt",
+      "modelo": "MIN 6000TL-X",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 6,
+      "equipamento_ids": [
+        "6a272b010bb8928e11abce31"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 15,
+      "fabricante": "Deye",
+      "modelo": "SUN-8K-G03",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 6,
+      "equipamento_ids": [
+        "6a272b000bb8928e11abce1c"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 16,
+      "fabricante": "Deye",
+      "modelo": "SUN-4K-G",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 5,
+      "equipamento_ids": [
+        "6a272b030bb8928e11abce56"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 17,
+      "fabricante": "Growatt",
+      "modelo": "MIC 3000TL-X",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 4,
+      "equipamento_ids": [
+        "6a272b000bb8928e11abce20"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 18,
+      "fabricante": "Deye",
+      "modelo": "SUN-10K-G",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 4,
+      "equipamento_ids": [
+        "6a272b030bb8928e11abce53"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 19,
+      "fabricante": "Solplanet",
+      "modelo": "ASW6000-S-G2",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 3,
+      "equipamento_ids": [
+        "6a272b0a0bb8928e11abced6"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 20,
+      "fabricante": "Growatt",
+      "modelo": "MAX 75KTL3 LV",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 3,
+      "equipamento_ids": [
+        "6a272b000bb8928e11abce2a"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 21,
+      "fabricante": "Growatt",
+      "modelo": "MIC 2000TL-X",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 3,
+      "equipamento_ids": [
+        "6a272b020bb8928e11abce41"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 22,
+      "fabricante": "Growatt",
+      "modelo": "MID 36KTL3-X",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 3,
+      "equipamento_ids": [
+        "6a272b010bb8928e11abce36"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 23,
+      "fabricante": "Growatt",
+      "modelo": "MIN 8000TL-X(E)",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 3,
+      "equipamento_ids": [
+        "6a272b010bb8928e11abce2e"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 24,
+      "fabricante": "Deye",
+      "modelo": "SUN-12K-G",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 3,
+      "equipamento_ids": [
+        "6a272b040bb8928e11abce6e"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 25,
+      "fabricante": "Deye",
+      "modelo": "SUN-25K-G02",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 3,
+      "equipamento_ids": [
+        "6a272b020bb8928e11abce4d"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 26,
+      "fabricante": "Deye",
+      "modelo": "SUN-5K-G @220",
+      "classe": "B",
+      "ocorrencias": 1,
+      "projetos_impactados": 3,
+      "equipamento_ids": [
+        "6a272aff0bb8928e11abce0f"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 27,
+      "fabricante": "Deye",
+      "modelo": "SUN-6K-G",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 3,
+      "equipamento_ids": [
+        "6a272b040bb8928e11abce67"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 28,
+      "fabricante": "Deye",
+      "modelo": "SUN-75K-G03",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 3,
+      "equipamento_ids": [
+        "6a272b050bb8928e11abce73"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 29,
+      "fabricante": "Deye",
+      "modelo": "SUN-8K-G",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 3,
+      "equipamento_ids": [
+        "6a272b010bb8928e11abce30"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 30,
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI15K-B",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 3,
+      "equipamento_ids": [
+        "6a272b030bb8928e11abce5e"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 31,
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI20K-B X2",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 3,
+      "equipamento_ids": [
+        "6a272b090bb8928e11abcec2"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 32,
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI36K-B X2",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 3,
+      "equipamento_ids": [
+        "6a272b090bb8928e11abcebe"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 33,
+      "fabricante": "Growatt",
+      "modelo": "50000TL3-S",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 2,
+      "equipamento_ids": [
+        "6a272b030bb8928e11abce51"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 34,
+      "fabricante": "Solplanet",
+      "modelo": "ASW20K-LT-G2 Pro",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 2,
+      "equipamento_ids": [
+        "6a272b050bb8928e11abce79"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 35,
+      "fabricante": "Solplanet",
+      "modelo": "ASW3000-S-G2",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 2,
+      "equipamento_ids": [
+        "6a272b0b0bb8928e11abcee4"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 36,
+      "fabricante": "Solplanet",
+      "modelo": "ASW5000-S-G2",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 2,
+      "equipamento_ids": [
+        "6a272b090bb8928e11abcebf"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 37,
+      "fabricante": "Hoymiles",
+      "modelo": "HMS-1800-4T",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 2,
+      "equipamento_ids": [
+        "6a272b060bb8928e11abce82"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 38,
+      "fabricante": "Enphase",
+      "modelo": "IQ8P-72-2-BR",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 2,
+      "equipamento_ids": [
+        "6a272b060bb8928e11abce8f"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 39,
+      "fabricante": "Growatt",
+      "modelo": "MAC 25KTL3-XL",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 2,
+      "equipamento_ids": [
+        "6a272b0a0bb8928e11abceca"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 40,
+      "fabricante": "Growatt",
+      "modelo": "MAC 60KTL3-X LV",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 2,
+      "equipamento_ids": [
+        "6a272aff0bb8928e11abce16"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 41,
+      "fabricante": "Growatt",
+      "modelo": "MIC 2500TL-X",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 2,
+      "equipamento_ids": [
+        "6a272b020bb8928e11abce42"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 42,
+      "fabricante": "Growatt",
+      "modelo": "MIN 10000 TL-X",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 2,
+      "equipamento_ids": [
+        "6a272b010bb8928e11abce39"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 43,
+      "fabricante": "Deye",
+      "modelo": "MINVDE-MO-220-2.25KW",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 2,
+      "equipamento_ids": [
+        "6a272b060bb8928e11abce92"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 44,
+      "fabricante": "Solaredge",
+      "modelo": "SE 100K Manager 380/220v",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 2,
+      "equipamento_ids": [
+        "6a272b050bb8928e11abce77"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 45,
+      "fabricante": "Deye",
+      "modelo": "SUN-15K-G02-LV",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 2,
+      "equipamento_ids": [
+        "6a272b040bb8928e11abce66"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 46,
+      "fabricante": "Deye",
+      "modelo": "SUN-15K-G03",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 2,
+      "equipamento_ids": [
+        "6a272b080bb8928e11abceb4"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 47,
+      "fabricante": "Deye",
+      "modelo": "SUN-35K-G02",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 2,
+      "equipamento_ids": [
+        "6a272b000bb8928e11abce26"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 48,
+      "fabricante": "Deye",
+      "modelo": "SUN-35K-G03",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 2,
+      "equipamento_ids": [
+        "6a272aff0bb8928e11abce14"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 49,
+      "fabricante": "Deye",
+      "modelo": "SUN-5K-G05",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 2,
+      "equipamento_ids": [
+        "6a272b070bb8928e11abcea3"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 50,
+      "fabricante": "Deye",
+      "modelo": "SUN-6.6K-G05P1-EU-AM2",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 2,
+      "equipamento_ids": [
+        "6a272b070bb8928e11abce96"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 51,
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI15K-B X2",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 2,
+      "equipamento_ids": [
+        "6a272b020bb8928e11abce44"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 52,
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI17K-B",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 2,
+      "equipamento_ids": [
+        "6a272b050bb8928e11abce76"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 53,
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI20K-B",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 2,
+      "equipamento_ids": [
+        "6a272b010bb8928e11abce3c"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 54,
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI30K-B X2",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 2,
+      "equipamento_ids": [
+        "6a272b030bb8928e11abce4f"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 55,
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI8000-B X2",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 2,
+      "equipamento_ids": [
+        "6a272b040bb8928e11abce63"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 56,
+      "fabricante": "Tsun",
+      "modelo": "TSOL-MS2000",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 2,
+      "equipamento_ids": [
+        "6a272b060bb8928e11abce90"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 57,
+      "fabricante": "Solax",
+      "modelo": "X1-BOOST-6K-G4",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 2,
+      "equipamento_ids": [
+        "6a272b0c0bb8928e11abceed"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 58,
+      "fabricante": "Growatt",
+      "modelo": "20000TL3-S",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 1,
+      "equipamento_ids": [
+        "6a272b0d0bb8928e11abcef7"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 59,
+      "fabricante": "Sofar",
+      "modelo": "4KTLM-G3",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 1,
+      "equipamento_ids": [
+        "6a272b050bb8928e11abce7d"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 60,
+      "fabricante": "Solis",
+      "modelo": "50K",
+      "classe": "B",
+      "ocorrencias": 1,
+      "projetos_impactados": 1,
+      "equipamento_ids": [
+        "6a272b020bb8928e11abce47"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 61,
+      "fabricante": "Sofar",
+      "modelo": "7.5KTLM",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 1,
+      "equipamento_ids": [
+        "6a272b040bb8928e11abce6d"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 62,
+      "fabricante": "Solplanet",
+      "modelo": "ASW15K-LT-G2 Pro",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 1,
+      "equipamento_ids": [
+        "6a272b0c0bb8928e11abcee7"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 63,
+      "fabricante": "Solplanet",
+      "modelo": "ASW33K-LT-G3",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 1,
+      "equipamento_ids": [
+        "6a272b040bb8928e11abce61"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 64,
+      "fabricante": "Apsystems",
+      "modelo": "DS3D-220",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 1,
+      "equipamento_ids": [
+        "6a272b050bb8928e11abce72"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 65,
+      "fabricante": "Goodwe",
+      "modelo": "GW10K-MS",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 1,
+      "equipamento_ids": [
+        "6a272b0a0bb8928e11abcec8"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 66,
+      "fabricante": "Goodwe",
+      "modelo": "GW15K-SDT-20",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 1,
+      "equipamento_ids": [
+        "6a272b0a0bb8928e11abcecf"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 67,
+      "fabricante": "Goodwe",
+      "modelo": "GW5000-DNS-30",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 1,
+      "equipamento_ids": [
+        "6a272b0a0bb8928e11abcece"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 68,
+      "fabricante": "Goodwe",
+      "modelo": "GW7.5K-MS-G40",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 1,
+      "equipamento_ids": [
+        "6a272b0c0bb8928e11abceeb"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 69,
+      "fabricante": "Goodwe",
+      "modelo": "GW8000-DT",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 1,
+      "equipamento_ids": [
+        "6a272b0a0bb8928e11abced4"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 70,
+      "fabricante": "Growatt",
+      "modelo": "MAC 50KTL3-X LV",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 1,
+      "equipamento_ids": [
+        "6a272b030bb8928e11abce5a"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 71,
+      "fabricante": "Growatt",
+      "modelo": "MAX 60KTL3 LV",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 1,
+      "equipamento_ids": [
+        "6a272b030bb8928e11abce57"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 72,
+      "fabricante": "Growatt",
+      "modelo": "MID 30KTL3-X",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 1,
+      "equipamento_ids": [
+        "6a272b040bb8928e11abce64"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 73,
+      "fabricante": "Growatt",
+      "modelo": "MID 40KTL3-X",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 1,
+      "equipamento_ids": [
+        "6a272b020bb8928e11abce3e"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 74,
+      "fabricante": "Solis",
+      "modelo": "MINI-1500-4G",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 1,
+      "equipamento_ids": [
+        "6a272b090bb8928e11abcec5"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 75,
+      "fabricante": "Chint",
+      "modelo": "POWER CPS SCA15KTL-T/EU",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 1,
+      "equipamento_ids": [
+        "6a272b040bb8928e11abce6a"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 76,
+      "fabricante": "Chint",
+      "modelo": "POWER CPS SCA50KTL-T/EU",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 1,
+      "equipamento_ids": [
+        "6a272b030bb8928e11abce52"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 77,
+      "fabricante": "Fronius",
+      "modelo": "PRIMO 6.0-1",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 1,
+      "equipamento_ids": [
+        "6a272b030bb8928e11abce54"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 78,
+      "fabricante": "Apsystems",
+      "modelo": "QT2D-380",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 1,
+      "equipamento_ids": [
+        "6a272b080bb8928e11abceb0"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 79,
+      "fabricante": "Solis",
+      "modelo": "S5-GC37.5K",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 1,
+      "equipamento_ids": [
+        "6a272b0b0bb8928e11abcedc"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 80,
+      "fabricante": "Solis",
+      "modelo": "S6-GR1P5K",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 1,
+      "equipamento_ids": [
+        "6a272b0c0bb8928e11abceef"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 81,
+      "fabricante": "Solis",
+      "modelo": "S6-GR1P5K-S",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 1,
+      "equipamento_ids": [
+        "6a272b080bb8928e11abceb3"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 82,
+      "fabricante": "Solaredge",
+      "modelo": "SE 20.1K 220/127v",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 1,
+      "equipamento_ids": [
+        "6a272b020bb8928e11abce4a"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 83,
+      "fabricante": "Solaredge",
+      "modelo": "SE 27.6K 220/127v",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 1,
+      "equipamento_ids": [
+        "6a272b010bb8928e11abce35"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 84,
+      "fabricante": "Solaredge",
+      "modelo": "SE 75K 380/220v",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 1,
+      "equipamento_ids": [
+        "6a272b000bb8928e11abce28"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 85,
+      "fabricante": "Solaredge",
+      "modelo": "SE 75K Manager 380/220v",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 1,
+      "equipamento_ids": [
+        "6a272b070bb8928e11abce9e"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 86,
+      "fabricante": "Solaredge",
+      "modelo": "SE8250H 220V",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 1,
+      "equipamento_ids": [
+        "6a272b050bb8928e11abce7c"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 87,
+      "fabricante": "Sungrow",
+      "modelo": "SG6K-D",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 1,
+      "equipamento_ids": [
+        "6a272b0c0bb8928e11abcef1"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 88,
+      "fabricante": "Sungrow",
+      "modelo": "SG75CX-P2",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 1,
+      "equipamento_ids": [
+        "6a272b090bb8928e11abceb9"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 89,
+      "fabricante": "Sungrow",
+      "modelo": "SG8K3-D",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 1,
+      "equipamento_ids": [
+        "6a272b0a0bb8928e11abced2"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 90,
+      "fabricante": "Deye",
+      "modelo": "SUN-10K-G @380",
+      "classe": "B",
+      "ocorrencias": 1,
+      "projetos_impactados": 1,
+      "equipamento_ids": [
+        "6a272b0c0bb8928e11abcee8"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 91,
+      "fabricante": "Deye",
+      "modelo": "SUN-15K-G05",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 1,
+      "equipamento_ids": [
+        "6a272b050bb8928e11abce7e"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 92,
+      "fabricante": "Deye",
+      "modelo": "SUN-18K-G03",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 1,
+      "equipamento_ids": [
+        "6a272b050bb8928e11abce80"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 93,
+      "fabricante": "Deye",
+      "modelo": "SUN-18K-G04",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 1,
+      "equipamento_ids": [
+        "6a272b070bb8928e11abcea2"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 94,
+      "fabricante": "Deye",
+      "modelo": "SUN-20K-G",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 1,
+      "equipamento_ids": [
+        "6a272b020bb8928e11abce45"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 95,
+      "fabricante": "Deye",
+      "modelo": "SUN-20K-G02",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 1,
+      "equipamento_ids": [
+        "6a272b0d0bb8928e11abcef4"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 96,
+      "fabricante": "Deye",
+      "modelo": "SUN-20K-G02-LV",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 1,
+      "equipamento_ids": [
+        "6a272b090bb8928e11abceb7"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 97,
+      "fabricante": "Deye",
+      "modelo": "SUN-20K-G04",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 1,
+      "equipamento_ids": [
+        "6a272b060bb8928e11abce87"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 98,
+      "fabricante": "Deye",
+      "modelo": "SUN-25K-G",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 1,
+      "equipamento_ids": [
+        "6a272b080bb8928e11abcea9"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 99,
+      "fabricante": "Deye",
+      "modelo": "SUN-30K-G",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 1,
+      "equipamento_ids": [
+        "6a272b010bb8928e11abce2f"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 100,
+      "fabricante": "Deye",
+      "modelo": "SUN-35K-G",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 1,
+      "equipamento_ids": [
+        "6a272b070bb8928e11abce9f"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 101,
+      "fabricante": "Deye",
+      "modelo": "SUN-40K-G",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 1,
+      "equipamento_ids": [
+        "6a272b070bb8928e11abcea1"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 102,
+      "fabricante": "Deye",
+      "modelo": "SUN-40K-G03",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 1,
+      "equipamento_ids": [
+        "6a272b070bb8928e11abce98"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 103,
+      "fabricante": "Deye",
+      "modelo": "SUN-60K-G",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 1,
+      "equipamento_ids": [
+        "6a272b080bb8928e11abceaa"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 104,
+      "fabricante": "Deye",
+      "modelo": "SUN-7.5K-G",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 1,
+      "equipamento_ids": [
+        "6a272b0c0bb8928e11abceee"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 105,
+      "fabricante": "Deye",
+      "modelo": "SUN-75K-G",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 1,
+      "equipamento_ids": [
+        "6a272aff0bb8928e11abce12"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 106,
+      "fabricante": "Deye",
+      "modelo": "SUN-7K-G",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 1,
+      "equipamento_ids": [
+        "6a272b070bb8928e11abce93"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 107,
+      "fabricante": "Deye",
+      "modelo": "SUN-8K-SG01LP1-EU",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 1,
+      "equipamento_ids": [
+        "6a272b040bb8928e11abce65"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 108,
+      "fabricante": "Deye",
+      "modelo": "SUN1000G3-US-220",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 1,
+      "equipamento_ids": [
+        "6a272b050bb8928e11abce78"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 109,
+      "fabricante": "Deye",
+      "modelo": "SUN1300G-US-220",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 1,
+      "equipamento_ids": [
+        "6a272b0c0bb8928e11abcef3"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 110,
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI10000-B X2P",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 1,
+      "equipamento_ids": [
+        "6a272b090bb8928e11abcec1"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 111,
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI10K-B X2",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 1,
+      "equipamento_ids": [
+        "6a272b0a0bb8928e11abcec7"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 112,
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI125K-B",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 1,
+      "equipamento_ids": [
+        "6a272b080bb8928e11abceac"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 113,
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI25K-B",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 1,
+      "equipamento_ids": [
+        "6a272b0d0bb8928e11abcef5"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 114,
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI25K-B X2",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 1,
+      "equipamento_ids": [
+        "6a272b0b0bb8928e11abcede"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 115,
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI40K-B",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 1,
+      "equipamento_ids": [
+        "6a272b080bb8928e11abcea6"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 116,
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI50K-B",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 1,
+      "equipamento_ids": [
+        "6a272b090bb8928e11abcec6"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 117,
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI60K-B",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 1,
+      "equipamento_ids": [
+        "6a272b020bb8928e11abce4c"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 118,
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI9000-B X2",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 1,
+      "equipamento_ids": [
+        "6a272b050bb8928e11abce70"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 119,
+      "fabricante": "Tsun",
+      "modelo": "TSOL-MX2500D",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 1,
+      "equipamento_ids": [
+        "6a272b060bb8928e11abce86"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 120,
+      "fabricante": "Growatt",
+      "modelo": "15000TL3-S",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 0,
+      "equipamento_ids": [
+        "6a272b0a0bb8928e11abcec9"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 121,
+      "fabricante": "Solplanet",
+      "modelo": "ASW4000-S-G2",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 0,
+      "equipamento_ids": [
+        "6a272b060bb8928e11abce8c"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 122,
+      "fabricante": "Goodwe",
+      "modelo": "GW3300-XS-30",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 0,
+      "equipamento_ids": [
+        "6a272b0c0bb8928e11abceec"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 123,
+      "fabricante": "Goodwe",
+      "modelo": "GW5000-DT",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 0,
+      "equipamento_ids": [
+        "6a272b0b0bb8928e11abced8"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 124,
+      "fabricante": "Goodwe",
+      "modelo": "GW8000-MS-C30",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 0,
+      "equipamento_ids": [
+        "6a272b0b0bb8928e11abcedb"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 125,
+      "fabricante": "Hoymiles",
+      "modelo": "HMS-2000-4T",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 0,
+      "equipamento_ids": [
+        "6a272b050bb8928e11abce7b"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 126,
+      "fabricante": "Growatt",
+      "modelo": "NEO 2000M-X",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 0,
+      "equipamento_ids": [
+        "6a272b080bb8928e11abceab"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 127,
+      "fabricante": "Solis",
+      "modelo": "S6-GR1P3K-S",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 0,
+      "equipamento_ids": [
+        "6a272b090bb8928e11abceb5"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 128,
+      "fabricante": "Sungrow",
+      "modelo": "SG15RT-P2",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 0,
+      "equipamento_ids": [
+        "6a272b0b0bb8928e11abcee5"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 129,
+      "fabricante": "Deye",
+      "modelo": "SUN-5K-G @380",
+      "classe": "B",
+      "ocorrencias": 1,
+      "projetos_impactados": 0,
+      "equipamento_ids": [
+        "6a272b090bb8928e11abceb6"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 130,
+      "fabricante": "Deye",
+      "modelo": "SUN-75K-G05",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 0,
+      "equipamento_ids": [
+        "6a272b060bb8928e11abce8a"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    },
+    {
+      "prioridade": 131,
+      "fabricante": "Tsun",
+      "modelo": "TSOL-MP3000",
+      "classe": "A",
+      "ocorrencias": 1,
+      "projetos_impactados": 0,
+      "equipamento_ids": [
+        "6a272b0a0bb8928e11abced1"
+      ],
+      "precisa_datasheet": true,
+      "datasheet_status": "PENDENTE"
+    }
+  ]
+}

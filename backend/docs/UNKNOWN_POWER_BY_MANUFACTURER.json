@@ -1,0 +1,322 @@
+{
+  "gerado_em": "2026-06-17T17:57:00.000Z",
+  "sprint": "P0-UNKNOWN-POWER-FORENSICS-01",
+  "executor": "Sonnet 4.6 (READ-ONLY)",
+  "resumo": {
+    "total_inversores_sem_pot": 122,
+    "com_potencia_derivavel_pelo_nome": 87,
+    "sem_potencia_derivavel": 35,
+    "total_fabricantes": 17,
+    "top3_por_volume": ["Deye (37)", "Growatt (18)", "Kehua (17)"],
+    "fabricantes_100pct_derivavel": ["Hoymiles", "Solis", "Chint", "Sofar", "Solax"],
+    "fabricantes_0pct_derivavel": ["Tsun", "Apsystems"],
+    "fabricantes_com_http403_datasheet": ["Solaredge"]
+  },
+  "por_fabricante": [
+    {
+      "rank": 1,
+      "fabricante": "Deye",
+      "total_modelos_sem_pot": 37,
+      "percentual_do_total": "30.3%",
+      "com_pot_derivavel": 35,
+      "sem_pot_derivavel": 2,
+      "tecnologias": {"string": 37},
+      "estrategico": true,
+      "has_datasheet_issue": false,
+      "modelos_sem_derivacao": ["SUN1000G3-US-220", "SUN1300G-US-220"],
+      "nota": "Maior fabricante no catálogo com items sem-pot. 35/37 têm kW no nome (SUN-5K-G → 5kW, SUN-25K-G → 25kW). SUN1000G3/SUN1300G são modelos US-market com naming diferente. Deye já tem 5 itens enriquecidos via Wave 1; estes 37 são duplicatas do import SolarMarket.",
+      "modelos": [
+        {"modelo":"SUN-5K-G @220","pot_kw_nome":5},{"modelo":"SUN-75K-G","pot_kw_nome":75},
+        {"modelo":"SUN-35K-G03","pot_kw_nome":35},{"modelo":"SUN-8K-G03","pot_kw_nome":8},
+        {"modelo":"SUN-35K-G02","pot_kw_nome":35},{"modelo":"SUN-30K-G","pot_kw_nome":30},
+        {"modelo":"SUN-8K-G","pot_kw_nome":8},{"modelo":"SUN-20K-G","pot_kw_nome":20},
+        {"modelo":"SUN-25K-G02","pot_kw_nome":25},{"modelo":"SUN-10K-G","pot_kw_nome":10},
+        {"modelo":"SUN-4K-G","pot_kw_nome":4},{"modelo":"SUN-8K-SG01LP1-EU","pot_kw_nome":8},
+        {"modelo":"SUN-15K-G02-LV","pot_kw_nome":15},{"modelo":"SUN-6K-G","pot_kw_nome":6},
+        {"modelo":"SUN-12K-G","pot_kw_nome":12},{"modelo":"SUN-75K-G03","pot_kw_nome":75},
+        {"modelo":"SUN1000G3-US-220","pot_kw_nome":null},{"modelo":"SUN-15K-G05","pot_kw_nome":15},
+        {"modelo":"SUN-18K-G03","pot_kw_nome":18},{"modelo":"SUN-20K-G04","pot_kw_nome":20},
+        {"modelo":"SUN-75K-G05","pot_kw_nome":75},{"modelo":"SUN-7K-G","pot_kw_nome":7},
+        {"modelo":"SUN-6.6K-G05P1-EU-AM2","pot_kw_nome":6.6},{"modelo":"SUN-40K-G03","pot_kw_nome":40},
+        {"modelo":"SUN-35K-G","pot_kw_nome":35},{"modelo":"SUN-40K-G","pot_kw_nome":40},
+        {"modelo":"SUN-18K-G04","pot_kw_nome":18},{"modelo":"SUN-5K-G05","pot_kw_nome":5},
+        {"modelo":"SUN-25K-G","pot_kw_nome":25},{"modelo":"SUN-60K-G","pot_kw_nome":60},
+        {"modelo":"SUN-15K-G03","pot_kw_nome":15},{"modelo":"SUN-5K-G @380","pot_kw_nome":5},
+        {"modelo":"SUN-20K-G02-LV","pot_kw_nome":20},{"modelo":"SUN-10K-G @380","pot_kw_nome":10},
+        {"modelo":"SUN-7.5K-G","pot_kw_nome":7.5},{"modelo":"SUN1300G-US-220","pot_kw_nome":null},
+        {"modelo":"SUN-20K-G02","pot_kw_nome":20}
+      ]
+    },
+    {
+      "rank": 2,
+      "fabricante": "Growatt",
+      "total_modelos_sem_pot": 18,
+      "percentual_do_total": "14.8%",
+      "com_pot_derivavel": 8,
+      "sem_pot_derivavel": 10,
+      "tecnologias": {"string": 18},
+      "estrategico": true,
+      "has_datasheet_issue": false,
+      "modelos_sem_derivacao": ["MIC 3000TL-X","MIN 8000TL-X(E)","MIN 6000TL-X","MIN 10000 TL-X","MIC 2000TL-X","MIC 2500TL-X","50000TL3-S","NEO 2000M-X","15000TL3-S","20000TL3-S"],
+      "nota": "10/18 não têm kW no nome (MIC/MIN/NEO/TL3-S series codificam watt em vez de kW ou usam numero raw). Growatt já tem 2 modelos enriquecidos via Wave 1 (MID 5000TL-X, etc). Datasheet gratuito em ginlong.com/growatt.com.",
+      "modelos": [
+        {"modelo":"MAC 60KTL3-X LV","pot_kw_nome":60},{"modelo":"MIC 3000TL-X","pot_kw_nome":null},
+        {"modelo":"MAX 75KTL3 LV","pot_kw_nome":75},{"modelo":"MIN 8000TL-X(E)","pot_kw_nome":null},
+        {"modelo":"MIN 6000TL-X","pot_kw_nome":null},{"modelo":"MID 36KTL3-X","pot_kw_nome":36},
+        {"modelo":"MIN 10000 TL-X","pot_kw_nome":null},{"modelo":"MID 40KTL3-X","pot_kw_nome":40},
+        {"modelo":"MIC 2000TL-X","pot_kw_nome":null},{"modelo":"MIC 2500TL-X","pot_kw_nome":null},
+        {"modelo":"50000TL3-S","pot_kw_nome":null},{"modelo":"MAX 60KTL3 LV","pot_kw_nome":60},
+        {"modelo":"MAC 50KTL3-X LV","pot_kw_nome":50},{"modelo":"MID 30KTL3-X","pot_kw_nome":30},
+        {"modelo":"NEO 2000M-X","pot_kw_nome":null},{"modelo":"15000TL3-S","pot_kw_nome":null},
+        {"modelo":"MAC 25KTL3-XL","pot_kw_nome":25},{"modelo":"20000TL3-S","pot_kw_nome":null}
+      ]
+    },
+    {
+      "rank": 3,
+      "fabricante": "Kehua",
+      "total_modelos_sem_pot": 17,
+      "percentual_do_total": "13.9%",
+      "com_pot_derivavel": 14,
+      "sem_pot_derivavel": 3,
+      "tecnologias": {"string": 17},
+      "estrategico": true,
+      "has_datasheet_issue": false,
+      "modelos_sem_derivacao": ["TECH SPI8000-B X2","TECH SPI9000-B X2","TECH SPI10000-B X2P"],
+      "nota": "14/17 deriváveis (SPIxxK pattern). 3 modelos usam watt no nome (8000, 9000, 10000). Kehua já tem 1 modelo enriquecido via Wave 1 (SPI40). Datasheet acessível em kehua.com.",
+      "modelos": [
+        {"modelo":"TECH SPI20K-B","pot_kw_nome":20},{"modelo":"TECH SPI15K-B X2","pot_kw_nome":15},
+        {"modelo":"TECH SPI60K-B","pot_kw_nome":60},{"modelo":"TECH SPI30K-B X2","pot_kw_nome":30},
+        {"modelo":"TECH SPI15K-B","pot_kw_nome":15},{"modelo":"TECH SPI8000-B X2","pot_kw_nome":null},
+        {"modelo":"TECH SPI9000-B X2","pot_kw_nome":null},{"modelo":"TECH SPI17K-B","pot_kw_nome":17},
+        {"modelo":"TECH SPI40K-B","pot_kw_nome":40},{"modelo":"TECH SPI125K-B","pot_kw_nome":125},
+        {"modelo":"TECH SPI36K-B X2","pot_kw_nome":36},{"modelo":"TECH SPI10000-B X2P","pot_kw_nome":null},
+        {"modelo":"TECH SPI20K-B X2","pot_kw_nome":20},{"modelo":"TECH SPI50K-B","pot_kw_nome":50},
+        {"modelo":"TECH SPI10K-B X2","pot_kw_nome":10},{"modelo":"TECH SPI25K-B X2","pot_kw_nome":25},
+        {"modelo":"TECH SPI25K-B","pot_kw_nome":25}
+      ]
+    },
+    {
+      "rank": 4,
+      "fabricante": "Solaredge",
+      "total_modelos_sem_pot": 9,
+      "percentual_do_total": "7.4%",
+      "com_pot_derivavel": 8,
+      "sem_pot_derivavel": 1,
+      "tecnologias": {"otimizador": 9},
+      "estrategico": true,
+      "has_datasheet_issue": true,
+      "modelos_sem_derivacao": ["SE8250H 220V"],
+      "nota": "PERMANENTEMENTE DEFERIDO: solaredge.com retorna HTTP 403 para todos os PDFs. 8/9 têm kW no nome. SE8250H = 8.25kW (inferível mas nome não segue padrão SE-xxK). Enriquecimento manual requere acesso ao site ou parceiro SolarEdge.",
+      "modelos": [
+        {"modelo":"SE 20.1K 380/220v","pot_kw_nome":20.1},{"modelo":"SE 27.6K 380/220v","pot_kw_nome":27.6},
+        {"modelo":"SE 75K 380/220v","pot_kw_nome":75},{"modelo":"SE 27.6K 220/127v","pot_kw_nome":27.6},
+        {"modelo":"SE 20.1K 220/127v","pot_kw_nome":20.1},{"modelo":"SE 33.3K 380/220v","pot_kw_nome":33.3},
+        {"modelo":"SE 100K Manager 380/220v","pot_kw_nome":100},{"modelo":"SE8250H 220V","pot_kw_nome":null},
+        {"modelo":"SE 75K Manager 380/220v","pot_kw_nome":75}
+      ]
+    },
+    {
+      "rank": 5,
+      "fabricante": "Goodwe",
+      "total_modelos_sem_pot": 8,
+      "percentual_do_total": "6.6%",
+      "com_pot_derivavel": 3,
+      "sem_pot_derivavel": 5,
+      "tecnologias": {"string": 8},
+      "estrategico": true,
+      "has_datasheet_issue": false,
+      "modelos_sem_derivacao": ["GW5000-DNS-30","GW8000-DT","GW5000-DT","GW8000-MS-C30","GW3300-XS-30"],
+      "nota": "IMPACTO ATIVO: GW8000-DT está em uso no projeto 'Cristiano 600kw' (potencia_kw=null). Goodwe GWxxxxDT/DNS series não seguem padrão xK. Datasheet acessível em goodwe.com.",
+      "modelos": [
+        {"modelo":"GW10K-MS","pot_kw_nome":10},{"modelo":"GW5000-DNS-30","pot_kw_nome":null},
+        {"modelo":"GW15K-SDT-20","pot_kw_nome":15},{"modelo":"GW8000-DT","pot_kw_nome":null},
+        {"modelo":"GW5000-DT","pot_kw_nome":null},{"modelo":"GW8000-MS-C30","pot_kw_nome":null},
+        {"modelo":"GW7.5K-MS-G40","pot_kw_nome":7.5},{"modelo":"GW3300-XS-30","pot_kw_nome":null}
+      ]
+    },
+    {
+      "rank": 6,
+      "fabricante": "Solplanet",
+      "total_modelos_sem_pot": 7,
+      "percentual_do_total": "5.7%",
+      "com_pot_derivavel": 3,
+      "sem_pot_derivavel": 4,
+      "tecnologias": {"string": 7},
+      "estrategico": false,
+      "has_datasheet_issue": false,
+      "modelos_sem_derivacao": ["ASW4000-S-G2","ASW5000-S-G2","ASW6000-S-G2","ASW3000-S-G2"],
+      "nota": "ASWxxxxK derivável, ASWxxxx (watt) não. Solplanet é AISWEI — documentação disponível em solplanet.net.",
+      "modelos": [
+        {"modelo":"ASW33K-LT-G3","pot_kw_nome":33},{"modelo":"ASW20K-LT-G2 Pro","pot_kw_nome":20},
+        {"modelo":"ASW4000-S-G2","pot_kw_nome":null},{"modelo":"ASW5000-S-G2","pot_kw_nome":null},
+        {"modelo":"ASW6000-S-G2","pot_kw_nome":null},{"modelo":"ASW3000-S-G2","pot_kw_nome":null},
+        {"modelo":"ASW15K-LT-G2 Pro","pot_kw_nome":15}
+      ]
+    },
+    {
+      "rank": 7,
+      "fabricante": "Solis",
+      "total_modelos_sem_pot": 6,
+      "percentual_do_total": "4.9%",
+      "com_pot_derivavel": 6,
+      "sem_pot_derivavel": 0,
+      "tecnologias": {"string": 6},
+      "estrategico": false,
+      "has_datasheet_issue": false,
+      "nota": "100% derivável pelo nome. Datasheet disponível em ginlong.com.",
+      "modelos": [
+        {"modelo":"50K","pot_kw_nome":50},{"modelo":"S6-GR1P5K-S","pot_kw_nome":5},
+        {"modelo":"S6-GR1P3K-S","pot_kw_nome":3},{"modelo":"MINI-1500-4G","pot_kw_nome":1.5},
+        {"modelo":"S5-GC37.5K","pot_kw_nome":37.5},{"modelo":"S6-GR1P5K","pot_kw_nome":5}
+      ]
+    },
+    {
+      "rank": 8,
+      "fabricante": "Sungrow",
+      "total_modelos_sem_pot": 4,
+      "percentual_do_total": "3.3%",
+      "com_pot_derivavel": 2,
+      "sem_pot_derivavel": 2,
+      "tecnologias": {"string": 4},
+      "estrategico": true,
+      "has_datasheet_issue": false,
+      "modelos_sem_derivacao": ["SG75CX-P2","SG15RT-P2"],
+      "nota": "SGxxK deriva, SGxxxxCX não. SG75CX = 75kW (inferível). Datasheet disponível em sungrowpower.com.",
+      "modelos": [
+        {"modelo":"SG75CX-P2","pot_kw_nome":null},{"modelo":"SG8K3-D","pot_kw_nome":8},
+        {"modelo":"SG15RT-P2","pot_kw_nome":null},{"modelo":"SG6K-D","pot_kw_nome":6}
+      ]
+    },
+    {
+      "rank": 9,
+      "fabricante": "Hoymiles",
+      "total_modelos_sem_pot": 3,
+      "percentual_do_total": "2.5%",
+      "com_pot_derivavel": 3,
+      "sem_pot_derivavel": 0,
+      "tecnologias": {"microinversor": 3},
+      "estrategico": true,
+      "has_datasheet_issue": false,
+      "nota": "100% derivável. Microinversores HMS-2000 = 2kW, HMS-1800 = 1.8kW. Datasheet disponível em hoymiles.com.",
+      "modelos": [
+        {"modelo":"HMS-2000DW-4T","pot_kw_nome":2},{"modelo":"HMS-2000-4T","pot_kw_nome":2},
+        {"modelo":"HMS-1800-4T","pot_kw_nome":1.8}
+      ]
+    },
+    {
+      "rank": 10,
+      "fabricante": "Tsun",
+      "total_modelos_sem_pot": 3,
+      "percentual_do_total": "2.5%",
+      "com_pot_derivavel": 0,
+      "sem_pot_derivavel": 3,
+      "tecnologias": {"microinversor": 3},
+      "estrategico": false,
+      "has_datasheet_issue": false,
+      "nota": "TSUN já tem modelos enriquecidos via Wave 1b (documentos diferentes). Estes 3 são os DUPLICATAS do SolarMarket. TSOL-MX2500D = 2.5kW, TSOL-MS2000 = 2kW, TSOL-MP3000 = 3kW (potência inferível pelo usuário mas não pelo regex). Pode haver limpeza de duplicatas nesta família.",
+      "alerta_duplicatas": true,
+      "modelos": [
+        {"modelo":"TSOL-MX2500D","pot_kw_nome":null},{"modelo":"TSOL-MS2000","pot_kw_nome":null},
+        {"modelo":"TSOL-MP3000","pot_kw_nome":null}
+      ]
+    },
+    {
+      "rank": 11,
+      "fabricante": "Chint",
+      "total_modelos_sem_pot": 2,
+      "percentual_do_total": "1.6%",
+      "com_pot_derivavel": 2,
+      "sem_pot_derivavel": 0,
+      "tecnologias": {"string": 2},
+      "estrategico": false,
+      "has_datasheet_issue": false,
+      "nota": "100% derivável. CPS SCA50KTL = 50kW, CPS SCA15KTL = 15kW.",
+      "modelos": [
+        {"modelo":"POWER CPS SCA50KTL-T/EU","pot_kw_nome":50},
+        {"modelo":"POWER CPS SCA15KTL-T/EU","pot_kw_nome":15}
+      ]
+    },
+    {
+      "rank": 12,
+      "fabricante": "Sofar",
+      "total_modelos_sem_pot": 2,
+      "percentual_do_total": "1.6%",
+      "com_pot_derivavel": 2,
+      "sem_pot_derivavel": 0,
+      "tecnologias": {"string": 2},
+      "estrategico": false,
+      "has_datasheet_issue": false,
+      "nota": "100% derivável. 7.5KTLM = 7.5kW, 4KTLM-G3 = 4kW. Datasheet em sofarsolar.com.",
+      "modelos": [
+        {"modelo":"7.5KTLM","pot_kw_nome":7.5},{"modelo":"4KTLM-G3","pot_kw_nome":4}
+      ]
+    },
+    {
+      "rank": 13,
+      "fabricante": "Apsystems",
+      "total_modelos_sem_pot": 2,
+      "percentual_do_total": "1.6%",
+      "com_pot_derivavel": 0,
+      "sem_pot_derivavel": 2,
+      "tecnologias": {"microinversor": 2},
+      "estrategico": false,
+      "has_datasheet_issue": false,
+      "nota": "DS3D-220 e QT2D-380 — nomes não codificam kW (220/380 são tensão AC). DS3D = ~880W por string, QT2D = ~380W/painel. Requer datasheet. Disponível em apsystemsusa.com.",
+      "modelos": [
+        {"modelo":"DS3D-220","pot_kw_nome":null},{"modelo":"QT2D-380","pot_kw_nome":null}
+      ]
+    },
+    {
+      "rank": 14,
+      "fabricante": "Fronius",
+      "total_modelos_sem_pot": 1,
+      "percentual_do_total": "0.8%",
+      "com_pot_derivavel": 0,
+      "sem_pot_derivavel": 1,
+      "tecnologias": {"string": 1},
+      "estrategico": false,
+      "has_datasheet_issue": false,
+      "nota": "PRIMO 6.0-1 = 6kW (inferível pelo usuário, '6.0' no nome). Fronius não usa xK padrão, regex falha. Datasheet em fronius.com.",
+      "modelos": [{"modelo":"PRIMO 6.0-1","pot_kw_nome":null}]
+    },
+    {
+      "rank": 15,
+      "fabricante": "Enphase",
+      "total_modelos_sem_pot": 1,
+      "percentual_do_total": "0.8%",
+      "com_pot_derivavel": 0,
+      "sem_pot_derivavel": 1,
+      "tecnologias": {"microinversor": 1},
+      "estrategico": true,
+      "has_datasheet_issue": false,
+      "nota": "IQ8P-72-2-BR = microinversor de ~366W nominal. Nome codifica potência de forma não-numérica (P=peak, 72=célula). Datasheet em enphase.com.",
+      "modelos": [{"modelo":"IQ8P-72-2-BR","pot_kw_nome":null}]
+    },
+    {
+      "rank": 16,
+      "fabricante": "Nep",
+      "total_modelos_sem_pot": 1,
+      "percentual_do_total": "0.8%",
+      "com_pot_derivavel": 0,
+      "sem_pot_derivavel": 1,
+      "tecnologias": {"microinversor": 1},
+      "estrategico": false,
+      "has_datasheet_issue": false,
+      "nota": "BDM-2250 = microinversor 2250W/2.25kW (número no nome mas 2250 = watts, não kW). Usado no cenário-teste Paulo Carlos (arranjo ampliação). Datasheet em nepse.com.",
+      "modelos": [{"modelo":"BDM-2250","pot_kw_nome":null}]
+    },
+    {
+      "rank": 17,
+      "fabricante": "Solax",
+      "total_modelos_sem_pot": 1,
+      "percentual_do_total": "0.8%",
+      "com_pot_derivavel": 1,
+      "sem_pot_derivavel": 0,
+      "tecnologias": {"string": 1},
+      "estrategico": false,
+      "has_datasheet_issue": false,
+      "nota": "100% derivável. X1-BOOST-6K-G4 = 6kW. Datasheet em solaxpower.com.",
+      "modelos": [{"modelo":"X1-BOOST-6K-G4","pot_kw_nome":6}]
+    }
+  ]
+}

@@ -1,0 +1,3278 @@
+{
+  "sprint": "P1-INVERTER-DATASHEET-ENRICH-01",
+  "fase": "1-3",
+  "read_only": true,
+  "gerado_em": "2026-06-14T19:46:41.646Z",
+  "total_inversores_invalidos": 131,
+  "modelos_unicos": 131,
+  "fabricantes_rank": [
+    {
+      "fab": "Deye",
+      "modelos_unicos": 41,
+      "ocorrencias": 41,
+      "projetos": 243
+    },
+    {
+      "fab": "Growatt",
+      "modelos_unicos": 19,
+      "ocorrencias": 19,
+      "projetos": 50
+    },
+    {
+      "fab": "Kehua",
+      "modelos_unicos": 18,
+      "ocorrencias": 18,
+      "projetos": 40
+    },
+    {
+      "fab": "Solaredge",
+      "modelos_unicos": 9,
+      "ocorrencias": 9,
+      "projetos": 35
+    },
+    {
+      "fab": "Goodwe",
+      "modelos_unicos": 8,
+      "ocorrencias": 8,
+      "projetos": 5
+    },
+    {
+      "fab": "Solplanet",
+      "modelos_unicos": 7,
+      "ocorrencias": 7,
+      "projetos": 11
+    },
+    {
+      "fab": "Solis",
+      "modelos_unicos": 6,
+      "ocorrencias": 6,
+      "projetos": 5
+    },
+    {
+      "fab": "Tsun",
+      "modelos_unicos": 5,
+      "ocorrencias": 5,
+      "projetos": 35
+    },
+    {
+      "fab": "Sungrow",
+      "modelos_unicos": 4,
+      "ocorrencias": 4,
+      "projetos": 3
+    },
+    {
+      "fab": "Hoymiles",
+      "modelos_unicos": 3,
+      "ocorrencias": 3,
+      "projetos": 10
+    },
+    {
+      "fab": "Chint",
+      "modelos_unicos": 2,
+      "ocorrencias": 2,
+      "projetos": 2
+    },
+    {
+      "fab": "Sofar",
+      "modelos_unicos": 2,
+      "ocorrencias": 2,
+      "projetos": 2
+    },
+    {
+      "fab": "Apsystems",
+      "modelos_unicos": 2,
+      "ocorrencias": 2,
+      "projetos": 2
+    },
+    {
+      "fab": "Saj",
+      "modelos_unicos": 1,
+      "ocorrencias": 1,
+      "projetos": 9
+    },
+    {
+      "fab": "Fronius",
+      "modelos_unicos": 1,
+      "ocorrencias": 1,
+      "projetos": 1
+    },
+    {
+      "fab": "Enphase",
+      "modelos_unicos": 1,
+      "ocorrencias": 1,
+      "projetos": 2
+    },
+    {
+      "fab": "Nep",
+      "modelos_unicos": 1,
+      "ocorrencias": 1,
+      "projetos": 7
+    },
+    {
+      "fab": "Solax",
+      "modelos_unicos": 1,
+      "ocorrencias": 1,
+      "projetos": 2
+    }
+  ],
+  "classificacao": {
+    "por_modelo": {
+      "A": 130,
+      "B": 1,
+      "C": 0
+    },
+    "por_ocorrencia": {
+      "A": 130,
+      "B": 1,
+      "C": 0
+    }
+  },
+  "ranking_por_ocorrencia": [
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN2000G3-US-220",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 110,
+      "classe": "A",
+      "ids": [
+        "6a272aff0bb8928e11abce10"
+      ]
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN2000G-US-220",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 36,
+      "classe": "A",
+      "ids": [
+        "6a272aff0bb8928e11abce0d"
+      ]
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-M225G4-EU-Q0",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 30,
+      "classe": "A",
+      "ids": [
+        "6a272b010bb8928e11abce33"
+      ]
+    },
+    {
+      "fabricante": "Tsun",
+      "modelo": "TSOL-MX2250",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 16,
+      "classe": "A",
+      "ids": [
+        "6a272b000bb8928e11abce25"
+      ]
+    },
+    {
+      "fabricante": "Tsun",
+      "modelo": "TSOL-MP2250",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 16,
+      "classe": "A",
+      "ids": [
+        "6a272b010bb8928e11abce3b"
+      ]
+    },
+    {
+      "fabricante": "Growatt",
+      "modelo": "MIN 5000TL-X",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 13,
+      "classe": "A",
+      "ids": [
+        "6a272b000bb8928e11abce23"
+      ]
+    },
+    {
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI6000-B2",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 12,
+      "classe": "A",
+      "ids": [
+        "6a272b070bb8928e11abce9a"
+      ]
+    },
+    {
+      "fabricante": "Solaredge",
+      "modelo": "SE 27.6K 380/220v",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 11,
+      "classe": "A",
+      "ids": [
+        "6a272aff0bb8928e11abce1a"
+      ]
+    },
+    {
+      "fabricante": "Saj",
+      "modelo": "M2-2.25K-S4",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 9,
+      "classe": "A",
+      "ids": [
+        "6a272aff0bb8928e11abce13"
+      ]
+    },
+    {
+      "fabricante": "Solaredge",
+      "modelo": "SE 20.1K 380/220v",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 9,
+      "classe": "A",
+      "ids": [
+        "6a272aff0bb8928e11abce19"
+      ]
+    },
+    {
+      "fabricante": "Hoymiles",
+      "modelo": "HMS-2000DW-4T",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 8,
+      "classe": "A",
+      "ids": [
+        "6a272b000bb8928e11abce1e"
+      ]
+    },
+    {
+      "fabricante": "Solaredge",
+      "modelo": "SE 33.3K 380/220v",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 8,
+      "classe": "A",
+      "ids": [
+        "6a272b030bb8928e11abce59"
+      ]
+    },
+    {
+      "fabricante": "Nep",
+      "modelo": "BDM-2250",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 7,
+      "classe": "A",
+      "ids": [
+        "6a272b070bb8928e11abce9c"
+      ]
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-8K-G03",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 6,
+      "classe": "A",
+      "ids": [
+        "6a272b000bb8928e11abce1c"
+      ]
+    },
+    {
+      "fabricante": "Growatt",
+      "modelo": "MIN 6000TL-X",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 6,
+      "classe": "A",
+      "ids": [
+        "6a272b010bb8928e11abce31"
+      ]
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-4K-G",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 5,
+      "classe": "A",
+      "ids": [
+        "6a272b030bb8928e11abce56"
+      ]
+    },
+    {
+      "fabricante": "Growatt",
+      "modelo": "MIC 3000TL-X",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 4,
+      "classe": "A",
+      "ids": [
+        "6a272b000bb8928e11abce20"
+      ]
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-10K-G",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 4,
+      "classe": "A",
+      "ids": [
+        "6a272b030bb8928e11abce53"
+      ]
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-5K-G @220",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 3,
+      "classe": "A",
+      "ids": [
+        "6a272aff0bb8928e11abce0f"
+      ]
+    },
+    {
+      "fabricante": "Growatt",
+      "modelo": "MAX 75KTL3 LV",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 3,
+      "classe": "A",
+      "ids": [
+        "6a272b000bb8928e11abce2a"
+      ]
+    },
+    {
+      "fabricante": "Growatt",
+      "modelo": "MIN 8000TL-X(E)",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 3,
+      "classe": "A",
+      "ids": [
+        "6a272b010bb8928e11abce2e"
+      ]
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-8K-G",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 3,
+      "classe": "A",
+      "ids": [
+        "6a272b010bb8928e11abce30"
+      ]
+    },
+    {
+      "fabricante": "Growatt",
+      "modelo": "MID 36KTL3-X",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 3,
+      "classe": "A",
+      "ids": [
+        "6a272b010bb8928e11abce36"
+      ]
+    },
+    {
+      "fabricante": "Growatt",
+      "modelo": "MIC 2000TL-X",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 3,
+      "classe": "A",
+      "ids": [
+        "6a272b020bb8928e11abce41"
+      ]
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-25K-G02",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 3,
+      "classe": "A",
+      "ids": [
+        "6a272b020bb8928e11abce4d"
+      ]
+    },
+    {
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI15K-B",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 3,
+      "classe": "A",
+      "ids": [
+        "6a272b030bb8928e11abce5e"
+      ]
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-6K-G",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 3,
+      "classe": "A",
+      "ids": [
+        "6a272b040bb8928e11abce67"
+      ]
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-12K-G",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 3,
+      "classe": "A",
+      "ids": [
+        "6a272b040bb8928e11abce6e"
+      ]
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-75K-G03",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 3,
+      "classe": "A",
+      "ids": [
+        "6a272b050bb8928e11abce73"
+      ]
+    },
+    {
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI36K-B X2",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 3,
+      "classe": "A",
+      "ids": [
+        "6a272b090bb8928e11abcebe"
+      ]
+    },
+    {
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI20K-B X2",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 3,
+      "classe": "A",
+      "ids": [
+        "6a272b090bb8928e11abcec2"
+      ]
+    },
+    {
+      "fabricante": "Solplanet",
+      "modelo": "ASW6000-S-G2",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 3,
+      "classe": "A",
+      "ids": [
+        "6a272b0a0bb8928e11abced6"
+      ]
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-35K-G03",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 2,
+      "classe": "A",
+      "ids": [
+        "6a272aff0bb8928e11abce14"
+      ]
+    },
+    {
+      "fabricante": "Growatt",
+      "modelo": "MAC 60KTL3-X LV",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 2,
+      "classe": "A",
+      "ids": [
+        "6a272aff0bb8928e11abce16"
+      ]
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-35K-G02",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 2,
+      "classe": "A",
+      "ids": [
+        "6a272b000bb8928e11abce26"
+      ]
+    },
+    {
+      "fabricante": "Growatt",
+      "modelo": "MIN 10000 TL-X",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 2,
+      "classe": "A",
+      "ids": [
+        "6a272b010bb8928e11abce39"
+      ]
+    },
+    {
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI20K-B",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 2,
+      "classe": "A",
+      "ids": [
+        "6a272b010bb8928e11abce3c"
+      ]
+    },
+    {
+      "fabricante": "Growatt",
+      "modelo": "MIC 2500TL-X",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 2,
+      "classe": "A",
+      "ids": [
+        "6a272b020bb8928e11abce42"
+      ]
+    },
+    {
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI15K-B X2",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 2,
+      "classe": "A",
+      "ids": [
+        "6a272b020bb8928e11abce44"
+      ]
+    },
+    {
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI30K-B X2",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 2,
+      "classe": "A",
+      "ids": [
+        "6a272b030bb8928e11abce4f"
+      ]
+    },
+    {
+      "fabricante": "Growatt",
+      "modelo": "50000TL3-S",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 2,
+      "classe": "A",
+      "ids": [
+        "6a272b030bb8928e11abce51"
+      ]
+    },
+    {
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI8000-B X2",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 2,
+      "classe": "A",
+      "ids": [
+        "6a272b040bb8928e11abce63"
+      ]
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-15K-G02-LV",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 2,
+      "classe": "A",
+      "ids": [
+        "6a272b040bb8928e11abce66"
+      ]
+    },
+    {
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI17K-B",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 2,
+      "classe": "A",
+      "ids": [
+        "6a272b050bb8928e11abce76"
+      ]
+    },
+    {
+      "fabricante": "Solaredge",
+      "modelo": "SE 100K Manager 380/220v",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 2,
+      "classe": "A",
+      "ids": [
+        "6a272b050bb8928e11abce77"
+      ]
+    },
+    {
+      "fabricante": "Solplanet",
+      "modelo": "ASW20K-LT-G2 Pro",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 2,
+      "classe": "A",
+      "ids": [
+        "6a272b050bb8928e11abce79"
+      ]
+    },
+    {
+      "fabricante": "Hoymiles",
+      "modelo": "HMS-1800-4T",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 2,
+      "classe": "A",
+      "ids": [
+        "6a272b060bb8928e11abce82"
+      ]
+    },
+    {
+      "fabricante": "Enphase",
+      "modelo": "IQ8P-72-2-BR",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 2,
+      "classe": "A",
+      "ids": [
+        "6a272b060bb8928e11abce8f"
+      ]
+    },
+    {
+      "fabricante": "Tsun",
+      "modelo": "TSOL-MS2000",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 2,
+      "classe": "A",
+      "ids": [
+        "6a272b060bb8928e11abce90"
+      ]
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "MINVDE-MO-220-2.25KW",
+      "ocorrencias": 1,
+      "sem_especificacoes": 0,
+      "solarmarket": 1,
+      "projetos_beneficiados": 2,
+      "classe": "A",
+      "ids": [
+        "6a272b060bb8928e11abce92"
+      ]
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-6.6K-G05P1-EU-AM2",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 2,
+      "classe": "A",
+      "ids": [
+        "6a272b070bb8928e11abce96"
+      ]
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-5K-G05",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 2,
+      "classe": "A",
+      "ids": [
+        "6a272b070bb8928e11abcea3"
+      ]
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-15K-G03",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 2,
+      "classe": "A",
+      "ids": [
+        "6a272b080bb8928e11abceb4"
+      ]
+    },
+    {
+      "fabricante": "Solplanet",
+      "modelo": "ASW5000-S-G2",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 2,
+      "classe": "A",
+      "ids": [
+        "6a272b090bb8928e11abcebf"
+      ]
+    },
+    {
+      "fabricante": "Growatt",
+      "modelo": "MAC 25KTL3-XL",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 2,
+      "classe": "A",
+      "ids": [
+        "6a272b0a0bb8928e11abceca"
+      ]
+    },
+    {
+      "fabricante": "Solplanet",
+      "modelo": "ASW3000-S-G2",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 2,
+      "classe": "A",
+      "ids": [
+        "6a272b0b0bb8928e11abcee4"
+      ]
+    },
+    {
+      "fabricante": "Solax",
+      "modelo": "X1-BOOST-6K-G4",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 2,
+      "classe": "A",
+      "ids": [
+        "6a272b0c0bb8928e11abceed"
+      ]
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-75K-G",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272aff0bb8928e11abce12"
+      ]
+    },
+    {
+      "fabricante": "Solaredge",
+      "modelo": "SE 75K 380/220v",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b000bb8928e11abce28"
+      ]
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-30K-G",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b010bb8928e11abce2f"
+      ]
+    },
+    {
+      "fabricante": "Solaredge",
+      "modelo": "SE 27.6K 220/127v",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b010bb8928e11abce35"
+      ]
+    },
+    {
+      "fabricante": "Growatt",
+      "modelo": "MID 40KTL3-X",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b020bb8928e11abce3e"
+      ]
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-20K-G",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b020bb8928e11abce45"
+      ]
+    },
+    {
+      "fabricante": "Solis",
+      "modelo": "50K",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "B",
+      "ids": [
+        "6a272b020bb8928e11abce47"
+      ]
+    },
+    {
+      "fabricante": "Solaredge",
+      "modelo": "SE 20.1K 220/127v",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b020bb8928e11abce4a"
+      ]
+    },
+    {
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI60K-B",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b020bb8928e11abce4c"
+      ]
+    },
+    {
+      "fabricante": "Chint",
+      "modelo": "POWER CPS SCA50KTL-T/EU",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b030bb8928e11abce52"
+      ]
+    },
+    {
+      "fabricante": "Fronius",
+      "modelo": "PRIMO 6.0-1",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b030bb8928e11abce54"
+      ]
+    },
+    {
+      "fabricante": "Growatt",
+      "modelo": "MAX 60KTL3 LV",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b030bb8928e11abce57"
+      ]
+    },
+    {
+      "fabricante": "Growatt",
+      "modelo": "MAC 50KTL3-X LV",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b030bb8928e11abce5a"
+      ]
+    },
+    {
+      "fabricante": "Solplanet",
+      "modelo": "ASW33K-LT-G3",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b040bb8928e11abce61"
+      ]
+    },
+    {
+      "fabricante": "Growatt",
+      "modelo": "MID 30KTL3-X",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b040bb8928e11abce64"
+      ]
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-8K-SG01LP1-EU",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b040bb8928e11abce65"
+      ]
+    },
+    {
+      "fabricante": "Chint",
+      "modelo": "POWER CPS SCA15KTL-T/EU",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b040bb8928e11abce6a"
+      ]
+    },
+    {
+      "fabricante": "Sofar",
+      "modelo": "7.5KTLM",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b040bb8928e11abce6d"
+      ]
+    },
+    {
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI9000-B X2",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b050bb8928e11abce70"
+      ]
+    },
+    {
+      "fabricante": "Apsystems",
+      "modelo": "DS3D-220",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b050bb8928e11abce72"
+      ]
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN1000G3-US-220",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b050bb8928e11abce78"
+      ]
+    },
+    {
+      "fabricante": "Solaredge",
+      "modelo": "SE8250H 220V",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b050bb8928e11abce7c"
+      ]
+    },
+    {
+      "fabricante": "Sofar",
+      "modelo": "4KTLM-G3",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b050bb8928e11abce7d"
+      ]
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-15K-G05",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b050bb8928e11abce7e"
+      ]
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-18K-G03",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b050bb8928e11abce80"
+      ]
+    },
+    {
+      "fabricante": "Tsun",
+      "modelo": "TSOL-MX2500D",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b060bb8928e11abce86"
+      ]
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-20K-G04",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b060bb8928e11abce87"
+      ]
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-7K-G",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b070bb8928e11abce93"
+      ]
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-40K-G03",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b070bb8928e11abce98"
+      ]
+    },
+    {
+      "fabricante": "Solaredge",
+      "modelo": "SE 75K Manager 380/220v",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b070bb8928e11abce9e"
+      ]
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-35K-G",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b070bb8928e11abce9f"
+      ]
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-40K-G",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b070bb8928e11abcea1"
+      ]
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-18K-G04",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b070bb8928e11abcea2"
+      ]
+    },
+    {
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI40K-B",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b080bb8928e11abcea6"
+      ]
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-25K-G",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b080bb8928e11abcea9"
+      ]
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-60K-G",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b080bb8928e11abceaa"
+      ]
+    },
+    {
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI125K-B",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b080bb8928e11abceac"
+      ]
+    },
+    {
+      "fabricante": "Apsystems",
+      "modelo": "QT2D-380",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b080bb8928e11abceb0"
+      ]
+    },
+    {
+      "fabricante": "Solis",
+      "modelo": "S6-GR1P5K-S",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b080bb8928e11abceb3"
+      ]
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-20K-G02-LV",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b090bb8928e11abceb7"
+      ]
+    },
+    {
+      "fabricante": "Sungrow",
+      "modelo": "SG75CX-P2",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b090bb8928e11abceb9"
+      ]
+    },
+    {
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI10000-B X2P",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b090bb8928e11abcec1"
+      ]
+    },
+    {
+      "fabricante": "Solis",
+      "modelo": "MINI-1500-4G",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b090bb8928e11abcec5"
+      ]
+    },
+    {
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI50K-B",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b090bb8928e11abcec6"
+      ]
+    },
+    {
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI10K-B X2",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b0a0bb8928e11abcec7"
+      ]
+    },
+    {
+      "fabricante": "Goodwe",
+      "modelo": "GW10K-MS",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b0a0bb8928e11abcec8"
+      ]
+    },
+    {
+      "fabricante": "Goodwe",
+      "modelo": "GW5000-DNS-30",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b0a0bb8928e11abcece"
+      ]
+    },
+    {
+      "fabricante": "Goodwe",
+      "modelo": "GW15K-SDT-20",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b0a0bb8928e11abcecf"
+      ]
+    },
+    {
+      "fabricante": "Sungrow",
+      "modelo": "SG8K3-D",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b0a0bb8928e11abced2"
+      ]
+    },
+    {
+      "fabricante": "Goodwe",
+      "modelo": "GW8000-DT",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b0a0bb8928e11abced4"
+      ]
+    },
+    {
+      "fabricante": "Solis",
+      "modelo": "S5-GC37.5K",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b0b0bb8928e11abcedc"
+      ]
+    },
+    {
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI25K-B X2",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b0b0bb8928e11abcede"
+      ]
+    },
+    {
+      "fabricante": "Solplanet",
+      "modelo": "ASW15K-LT-G2 Pro",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b0c0bb8928e11abcee7"
+      ]
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-10K-G @380",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b0c0bb8928e11abcee8"
+      ]
+    },
+    {
+      "fabricante": "Goodwe",
+      "modelo": "GW7.5K-MS-G40",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b0c0bb8928e11abceeb"
+      ]
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-7.5K-G",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b0c0bb8928e11abceee"
+      ]
+    },
+    {
+      "fabricante": "Solis",
+      "modelo": "S6-GR1P5K",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b0c0bb8928e11abceef"
+      ]
+    },
+    {
+      "fabricante": "Sungrow",
+      "modelo": "SG6K-D",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b0c0bb8928e11abcef1"
+      ]
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN1300G-US-220",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b0c0bb8928e11abcef3"
+      ]
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-20K-G02",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b0d0bb8928e11abcef4"
+      ]
+    },
+    {
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI25K-B",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b0d0bb8928e11abcef5"
+      ]
+    },
+    {
+      "fabricante": "Growatt",
+      "modelo": "20000TL3-S",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b0d0bb8928e11abcef7"
+      ]
+    },
+    {
+      "fabricante": "Hoymiles",
+      "modelo": "HMS-2000-4T",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 0,
+      "classe": "A",
+      "ids": [
+        "6a272b050bb8928e11abce7b"
+      ]
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-75K-G05",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 0,
+      "classe": "A",
+      "ids": [
+        "6a272b060bb8928e11abce8a"
+      ]
+    },
+    {
+      "fabricante": "Solplanet",
+      "modelo": "ASW4000-S-G2",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 0,
+      "classe": "A",
+      "ids": [
+        "6a272b060bb8928e11abce8c"
+      ]
+    },
+    {
+      "fabricante": "Growatt",
+      "modelo": "NEO 2000M-X",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 0,
+      "classe": "A",
+      "ids": [
+        "6a272b080bb8928e11abceab"
+      ]
+    },
+    {
+      "fabricante": "Solis",
+      "modelo": "S6-GR1P3K-S",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 0,
+      "classe": "A",
+      "ids": [
+        "6a272b090bb8928e11abceb5"
+      ]
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-5K-G @380",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 0,
+      "classe": "A",
+      "ids": [
+        "6a272b090bb8928e11abceb6"
+      ]
+    },
+    {
+      "fabricante": "Growatt",
+      "modelo": "15000TL3-S",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 0,
+      "classe": "A",
+      "ids": [
+        "6a272b0a0bb8928e11abcec9"
+      ]
+    },
+    {
+      "fabricante": "Tsun",
+      "modelo": "TSOL-MP3000",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 0,
+      "classe": "A",
+      "ids": [
+        "6a272b0a0bb8928e11abced1"
+      ]
+    },
+    {
+      "fabricante": "Goodwe",
+      "modelo": "GW5000-DT",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 0,
+      "classe": "A",
+      "ids": [
+        "6a272b0b0bb8928e11abced8"
+      ]
+    },
+    {
+      "fabricante": "Goodwe",
+      "modelo": "GW8000-MS-C30",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 0,
+      "classe": "A",
+      "ids": [
+        "6a272b0b0bb8928e11abcedb"
+      ]
+    },
+    {
+      "fabricante": "Sungrow",
+      "modelo": "SG15RT-P2",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 0,
+      "classe": "A",
+      "ids": [
+        "6a272b0b0bb8928e11abcee5"
+      ]
+    },
+    {
+      "fabricante": "Goodwe",
+      "modelo": "GW3300-XS-30",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 0,
+      "classe": "A",
+      "ids": [
+        "6a272b0c0bb8928e11abceec"
+      ]
+    }
+  ],
+  "ranking_por_roi": [
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN2000G3-US-220",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 110,
+      "classe": "A",
+      "ids": [
+        "6a272aff0bb8928e11abce10"
+      ]
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN2000G-US-220",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 36,
+      "classe": "A",
+      "ids": [
+        "6a272aff0bb8928e11abce0d"
+      ]
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-M225G4-EU-Q0",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 30,
+      "classe": "A",
+      "ids": [
+        "6a272b010bb8928e11abce33"
+      ]
+    },
+    {
+      "fabricante": "Tsun",
+      "modelo": "TSOL-MX2250",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 16,
+      "classe": "A",
+      "ids": [
+        "6a272b000bb8928e11abce25"
+      ]
+    },
+    {
+      "fabricante": "Tsun",
+      "modelo": "TSOL-MP2250",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 16,
+      "classe": "A",
+      "ids": [
+        "6a272b010bb8928e11abce3b"
+      ]
+    },
+    {
+      "fabricante": "Growatt",
+      "modelo": "MIN 5000TL-X",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 13,
+      "classe": "A",
+      "ids": [
+        "6a272b000bb8928e11abce23"
+      ]
+    },
+    {
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI6000-B2",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 12,
+      "classe": "A",
+      "ids": [
+        "6a272b070bb8928e11abce9a"
+      ]
+    },
+    {
+      "fabricante": "Solaredge",
+      "modelo": "SE 27.6K 380/220v",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 11,
+      "classe": "A",
+      "ids": [
+        "6a272aff0bb8928e11abce1a"
+      ]
+    },
+    {
+      "fabricante": "Saj",
+      "modelo": "M2-2.25K-S4",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 9,
+      "classe": "A",
+      "ids": [
+        "6a272aff0bb8928e11abce13"
+      ]
+    },
+    {
+      "fabricante": "Solaredge",
+      "modelo": "SE 20.1K 380/220v",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 9,
+      "classe": "A",
+      "ids": [
+        "6a272aff0bb8928e11abce19"
+      ]
+    },
+    {
+      "fabricante": "Hoymiles",
+      "modelo": "HMS-2000DW-4T",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 8,
+      "classe": "A",
+      "ids": [
+        "6a272b000bb8928e11abce1e"
+      ]
+    },
+    {
+      "fabricante": "Solaredge",
+      "modelo": "SE 33.3K 380/220v",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 8,
+      "classe": "A",
+      "ids": [
+        "6a272b030bb8928e11abce59"
+      ]
+    },
+    {
+      "fabricante": "Nep",
+      "modelo": "BDM-2250",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 7,
+      "classe": "A",
+      "ids": [
+        "6a272b070bb8928e11abce9c"
+      ]
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-8K-G03",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 6,
+      "classe": "A",
+      "ids": [
+        "6a272b000bb8928e11abce1c"
+      ]
+    },
+    {
+      "fabricante": "Growatt",
+      "modelo": "MIN 6000TL-X",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 6,
+      "classe": "A",
+      "ids": [
+        "6a272b010bb8928e11abce31"
+      ]
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-4K-G",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 5,
+      "classe": "A",
+      "ids": [
+        "6a272b030bb8928e11abce56"
+      ]
+    },
+    {
+      "fabricante": "Growatt",
+      "modelo": "MIC 3000TL-X",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 4,
+      "classe": "A",
+      "ids": [
+        "6a272b000bb8928e11abce20"
+      ]
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-10K-G",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 4,
+      "classe": "A",
+      "ids": [
+        "6a272b030bb8928e11abce53"
+      ]
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-5K-G @220",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 3,
+      "classe": "A",
+      "ids": [
+        "6a272aff0bb8928e11abce0f"
+      ]
+    },
+    {
+      "fabricante": "Growatt",
+      "modelo": "MAX 75KTL3 LV",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 3,
+      "classe": "A",
+      "ids": [
+        "6a272b000bb8928e11abce2a"
+      ]
+    },
+    {
+      "fabricante": "Growatt",
+      "modelo": "MIN 8000TL-X(E)",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 3,
+      "classe": "A",
+      "ids": [
+        "6a272b010bb8928e11abce2e"
+      ]
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-8K-G",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 3,
+      "classe": "A",
+      "ids": [
+        "6a272b010bb8928e11abce30"
+      ]
+    },
+    {
+      "fabricante": "Growatt",
+      "modelo": "MID 36KTL3-X",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 3,
+      "classe": "A",
+      "ids": [
+        "6a272b010bb8928e11abce36"
+      ]
+    },
+    {
+      "fabricante": "Growatt",
+      "modelo": "MIC 2000TL-X",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 3,
+      "classe": "A",
+      "ids": [
+        "6a272b020bb8928e11abce41"
+      ]
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-25K-G02",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 3,
+      "classe": "A",
+      "ids": [
+        "6a272b020bb8928e11abce4d"
+      ]
+    },
+    {
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI15K-B",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 3,
+      "classe": "A",
+      "ids": [
+        "6a272b030bb8928e11abce5e"
+      ]
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-6K-G",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 3,
+      "classe": "A",
+      "ids": [
+        "6a272b040bb8928e11abce67"
+      ]
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-12K-G",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 3,
+      "classe": "A",
+      "ids": [
+        "6a272b040bb8928e11abce6e"
+      ]
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-75K-G03",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 3,
+      "classe": "A",
+      "ids": [
+        "6a272b050bb8928e11abce73"
+      ]
+    },
+    {
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI36K-B X2",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 3,
+      "classe": "A",
+      "ids": [
+        "6a272b090bb8928e11abcebe"
+      ]
+    },
+    {
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI20K-B X2",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 3,
+      "classe": "A",
+      "ids": [
+        "6a272b090bb8928e11abcec2"
+      ]
+    },
+    {
+      "fabricante": "Solplanet",
+      "modelo": "ASW6000-S-G2",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 3,
+      "classe": "A",
+      "ids": [
+        "6a272b0a0bb8928e11abced6"
+      ]
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-35K-G03",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 2,
+      "classe": "A",
+      "ids": [
+        "6a272aff0bb8928e11abce14"
+      ]
+    },
+    {
+      "fabricante": "Growatt",
+      "modelo": "MAC 60KTL3-X LV",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 2,
+      "classe": "A",
+      "ids": [
+        "6a272aff0bb8928e11abce16"
+      ]
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-35K-G02",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 2,
+      "classe": "A",
+      "ids": [
+        "6a272b000bb8928e11abce26"
+      ]
+    },
+    {
+      "fabricante": "Growatt",
+      "modelo": "MIN 10000 TL-X",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 2,
+      "classe": "A",
+      "ids": [
+        "6a272b010bb8928e11abce39"
+      ]
+    },
+    {
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI20K-B",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 2,
+      "classe": "A",
+      "ids": [
+        "6a272b010bb8928e11abce3c"
+      ]
+    },
+    {
+      "fabricante": "Growatt",
+      "modelo": "MIC 2500TL-X",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 2,
+      "classe": "A",
+      "ids": [
+        "6a272b020bb8928e11abce42"
+      ]
+    },
+    {
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI15K-B X2",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 2,
+      "classe": "A",
+      "ids": [
+        "6a272b020bb8928e11abce44"
+      ]
+    },
+    {
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI30K-B X2",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 2,
+      "classe": "A",
+      "ids": [
+        "6a272b030bb8928e11abce4f"
+      ]
+    },
+    {
+      "fabricante": "Growatt",
+      "modelo": "50000TL3-S",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 2,
+      "classe": "A",
+      "ids": [
+        "6a272b030bb8928e11abce51"
+      ]
+    },
+    {
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI8000-B X2",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 2,
+      "classe": "A",
+      "ids": [
+        "6a272b040bb8928e11abce63"
+      ]
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-15K-G02-LV",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 2,
+      "classe": "A",
+      "ids": [
+        "6a272b040bb8928e11abce66"
+      ]
+    },
+    {
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI17K-B",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 2,
+      "classe": "A",
+      "ids": [
+        "6a272b050bb8928e11abce76"
+      ]
+    },
+    {
+      "fabricante": "Solaredge",
+      "modelo": "SE 100K Manager 380/220v",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 2,
+      "classe": "A",
+      "ids": [
+        "6a272b050bb8928e11abce77"
+      ]
+    },
+    {
+      "fabricante": "Solplanet",
+      "modelo": "ASW20K-LT-G2 Pro",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 2,
+      "classe": "A",
+      "ids": [
+        "6a272b050bb8928e11abce79"
+      ]
+    },
+    {
+      "fabricante": "Hoymiles",
+      "modelo": "HMS-1800-4T",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 2,
+      "classe": "A",
+      "ids": [
+        "6a272b060bb8928e11abce82"
+      ]
+    },
+    {
+      "fabricante": "Enphase",
+      "modelo": "IQ8P-72-2-BR",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 2,
+      "classe": "A",
+      "ids": [
+        "6a272b060bb8928e11abce8f"
+      ]
+    },
+    {
+      "fabricante": "Tsun",
+      "modelo": "TSOL-MS2000",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 2,
+      "classe": "A",
+      "ids": [
+        "6a272b060bb8928e11abce90"
+      ]
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "MINVDE-MO-220-2.25KW",
+      "ocorrencias": 1,
+      "sem_especificacoes": 0,
+      "solarmarket": 1,
+      "projetos_beneficiados": 2,
+      "classe": "A",
+      "ids": [
+        "6a272b060bb8928e11abce92"
+      ]
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-6.6K-G05P1-EU-AM2",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 2,
+      "classe": "A",
+      "ids": [
+        "6a272b070bb8928e11abce96"
+      ]
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-5K-G05",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 2,
+      "classe": "A",
+      "ids": [
+        "6a272b070bb8928e11abcea3"
+      ]
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-15K-G03",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 2,
+      "classe": "A",
+      "ids": [
+        "6a272b080bb8928e11abceb4"
+      ]
+    },
+    {
+      "fabricante": "Solplanet",
+      "modelo": "ASW5000-S-G2",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 2,
+      "classe": "A",
+      "ids": [
+        "6a272b090bb8928e11abcebf"
+      ]
+    },
+    {
+      "fabricante": "Growatt",
+      "modelo": "MAC 25KTL3-XL",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 2,
+      "classe": "A",
+      "ids": [
+        "6a272b0a0bb8928e11abceca"
+      ]
+    },
+    {
+      "fabricante": "Solplanet",
+      "modelo": "ASW3000-S-G2",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 2,
+      "classe": "A",
+      "ids": [
+        "6a272b0b0bb8928e11abcee4"
+      ]
+    },
+    {
+      "fabricante": "Solax",
+      "modelo": "X1-BOOST-6K-G4",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 2,
+      "classe": "A",
+      "ids": [
+        "6a272b0c0bb8928e11abceed"
+      ]
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-75K-G",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272aff0bb8928e11abce12"
+      ]
+    },
+    {
+      "fabricante": "Solaredge",
+      "modelo": "SE 75K 380/220v",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b000bb8928e11abce28"
+      ]
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-30K-G",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b010bb8928e11abce2f"
+      ]
+    },
+    {
+      "fabricante": "Solaredge",
+      "modelo": "SE 27.6K 220/127v",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b010bb8928e11abce35"
+      ]
+    },
+    {
+      "fabricante": "Growatt",
+      "modelo": "MID 40KTL3-X",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b020bb8928e11abce3e"
+      ]
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-20K-G",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b020bb8928e11abce45"
+      ]
+    },
+    {
+      "fabricante": "Solis",
+      "modelo": "50K",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "B",
+      "ids": [
+        "6a272b020bb8928e11abce47"
+      ]
+    },
+    {
+      "fabricante": "Solaredge",
+      "modelo": "SE 20.1K 220/127v",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b020bb8928e11abce4a"
+      ]
+    },
+    {
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI60K-B",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b020bb8928e11abce4c"
+      ]
+    },
+    {
+      "fabricante": "Chint",
+      "modelo": "POWER CPS SCA50KTL-T/EU",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b030bb8928e11abce52"
+      ]
+    },
+    {
+      "fabricante": "Fronius",
+      "modelo": "PRIMO 6.0-1",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b030bb8928e11abce54"
+      ]
+    },
+    {
+      "fabricante": "Growatt",
+      "modelo": "MAX 60KTL3 LV",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b030bb8928e11abce57"
+      ]
+    },
+    {
+      "fabricante": "Growatt",
+      "modelo": "MAC 50KTL3-X LV",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b030bb8928e11abce5a"
+      ]
+    },
+    {
+      "fabricante": "Solplanet",
+      "modelo": "ASW33K-LT-G3",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b040bb8928e11abce61"
+      ]
+    },
+    {
+      "fabricante": "Growatt",
+      "modelo": "MID 30KTL3-X",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b040bb8928e11abce64"
+      ]
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-8K-SG01LP1-EU",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b040bb8928e11abce65"
+      ]
+    },
+    {
+      "fabricante": "Chint",
+      "modelo": "POWER CPS SCA15KTL-T/EU",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b040bb8928e11abce6a"
+      ]
+    },
+    {
+      "fabricante": "Sofar",
+      "modelo": "7.5KTLM",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b040bb8928e11abce6d"
+      ]
+    },
+    {
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI9000-B X2",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b050bb8928e11abce70"
+      ]
+    },
+    {
+      "fabricante": "Apsystems",
+      "modelo": "DS3D-220",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b050bb8928e11abce72"
+      ]
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN1000G3-US-220",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b050bb8928e11abce78"
+      ]
+    },
+    {
+      "fabricante": "Solaredge",
+      "modelo": "SE8250H 220V",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b050bb8928e11abce7c"
+      ]
+    },
+    {
+      "fabricante": "Sofar",
+      "modelo": "4KTLM-G3",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b050bb8928e11abce7d"
+      ]
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-15K-G05",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b050bb8928e11abce7e"
+      ]
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-18K-G03",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b050bb8928e11abce80"
+      ]
+    },
+    {
+      "fabricante": "Tsun",
+      "modelo": "TSOL-MX2500D",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b060bb8928e11abce86"
+      ]
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-20K-G04",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b060bb8928e11abce87"
+      ]
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-7K-G",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b070bb8928e11abce93"
+      ]
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-40K-G03",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b070bb8928e11abce98"
+      ]
+    },
+    {
+      "fabricante": "Solaredge",
+      "modelo": "SE 75K Manager 380/220v",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b070bb8928e11abce9e"
+      ]
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-35K-G",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b070bb8928e11abce9f"
+      ]
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-40K-G",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b070bb8928e11abcea1"
+      ]
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-18K-G04",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b070bb8928e11abcea2"
+      ]
+    },
+    {
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI40K-B",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b080bb8928e11abcea6"
+      ]
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-25K-G",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b080bb8928e11abcea9"
+      ]
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-60K-G",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b080bb8928e11abceaa"
+      ]
+    },
+    {
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI125K-B",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b080bb8928e11abceac"
+      ]
+    },
+    {
+      "fabricante": "Apsystems",
+      "modelo": "QT2D-380",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b080bb8928e11abceb0"
+      ]
+    },
+    {
+      "fabricante": "Solis",
+      "modelo": "S6-GR1P5K-S",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b080bb8928e11abceb3"
+      ]
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-20K-G02-LV",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b090bb8928e11abceb7"
+      ]
+    },
+    {
+      "fabricante": "Sungrow",
+      "modelo": "SG75CX-P2",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b090bb8928e11abceb9"
+      ]
+    },
+    {
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI10000-B X2P",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b090bb8928e11abcec1"
+      ]
+    },
+    {
+      "fabricante": "Solis",
+      "modelo": "MINI-1500-4G",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b090bb8928e11abcec5"
+      ]
+    },
+    {
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI50K-B",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b090bb8928e11abcec6"
+      ]
+    },
+    {
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI10K-B X2",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b0a0bb8928e11abcec7"
+      ]
+    },
+    {
+      "fabricante": "Goodwe",
+      "modelo": "GW10K-MS",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b0a0bb8928e11abcec8"
+      ]
+    },
+    {
+      "fabricante": "Goodwe",
+      "modelo": "GW5000-DNS-30",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b0a0bb8928e11abcece"
+      ]
+    },
+    {
+      "fabricante": "Goodwe",
+      "modelo": "GW15K-SDT-20",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b0a0bb8928e11abcecf"
+      ]
+    },
+    {
+      "fabricante": "Sungrow",
+      "modelo": "SG8K3-D",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b0a0bb8928e11abced2"
+      ]
+    },
+    {
+      "fabricante": "Goodwe",
+      "modelo": "GW8000-DT",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b0a0bb8928e11abced4"
+      ]
+    },
+    {
+      "fabricante": "Solis",
+      "modelo": "S5-GC37.5K",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b0b0bb8928e11abcedc"
+      ]
+    },
+    {
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI25K-B X2",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b0b0bb8928e11abcede"
+      ]
+    },
+    {
+      "fabricante": "Solplanet",
+      "modelo": "ASW15K-LT-G2 Pro",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b0c0bb8928e11abcee7"
+      ]
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-10K-G @380",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b0c0bb8928e11abcee8"
+      ]
+    },
+    {
+      "fabricante": "Goodwe",
+      "modelo": "GW7.5K-MS-G40",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b0c0bb8928e11abceeb"
+      ]
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-7.5K-G",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b0c0bb8928e11abceee"
+      ]
+    },
+    {
+      "fabricante": "Solis",
+      "modelo": "S6-GR1P5K",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b0c0bb8928e11abceef"
+      ]
+    },
+    {
+      "fabricante": "Sungrow",
+      "modelo": "SG6K-D",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b0c0bb8928e11abcef1"
+      ]
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN1300G-US-220",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b0c0bb8928e11abcef3"
+      ]
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-20K-G02",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b0d0bb8928e11abcef4"
+      ]
+    },
+    {
+      "fabricante": "Kehua",
+      "modelo": "TECH SPI25K-B",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b0d0bb8928e11abcef5"
+      ]
+    },
+    {
+      "fabricante": "Growatt",
+      "modelo": "20000TL3-S",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 1,
+      "classe": "A",
+      "ids": [
+        "6a272b0d0bb8928e11abcef7"
+      ]
+    },
+    {
+      "fabricante": "Hoymiles",
+      "modelo": "HMS-2000-4T",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 0,
+      "classe": "A",
+      "ids": [
+        "6a272b050bb8928e11abce7b"
+      ]
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-75K-G05",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 0,
+      "classe": "A",
+      "ids": [
+        "6a272b060bb8928e11abce8a"
+      ]
+    },
+    {
+      "fabricante": "Solplanet",
+      "modelo": "ASW4000-S-G2",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 0,
+      "classe": "A",
+      "ids": [
+        "6a272b060bb8928e11abce8c"
+      ]
+    },
+    {
+      "fabricante": "Growatt",
+      "modelo": "NEO 2000M-X",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 0,
+      "classe": "A",
+      "ids": [
+        "6a272b080bb8928e11abceab"
+      ]
+    },
+    {
+      "fabricante": "Solis",
+      "modelo": "S6-GR1P3K-S",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 0,
+      "classe": "A",
+      "ids": [
+        "6a272b090bb8928e11abceb5"
+      ]
+    },
+    {
+      "fabricante": "Deye",
+      "modelo": "SUN-5K-G @380",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 0,
+      "classe": "A",
+      "ids": [
+        "6a272b090bb8928e11abceb6"
+      ]
+    },
+    {
+      "fabricante": "Growatt",
+      "modelo": "15000TL3-S",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 0,
+      "classe": "A",
+      "ids": [
+        "6a272b0a0bb8928e11abcec9"
+      ]
+    },
+    {
+      "fabricante": "Tsun",
+      "modelo": "TSOL-MP3000",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 0,
+      "classe": "A",
+      "ids": [
+        "6a272b0a0bb8928e11abced1"
+      ]
+    },
+    {
+      "fabricante": "Goodwe",
+      "modelo": "GW5000-DT",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 0,
+      "classe": "A",
+      "ids": [
+        "6a272b0b0bb8928e11abced8"
+      ]
+    },
+    {
+      "fabricante": "Goodwe",
+      "modelo": "GW8000-MS-C30",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 0,
+      "classe": "A",
+      "ids": [
+        "6a272b0b0bb8928e11abcedb"
+      ]
+    },
+    {
+      "fabricante": "Sungrow",
+      "modelo": "SG15RT-P2",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 0,
+      "classe": "A",
+      "ids": [
+        "6a272b0b0bb8928e11abcee5"
+      ]
+    },
+    {
+      "fabricante": "Goodwe",
+      "modelo": "GW3300-XS-30",
+      "ocorrencias": 1,
+      "sem_especificacoes": 1,
+      "solarmarket": 1,
+      "projetos_beneficiados": 0,
+      "classe": "A",
+      "ids": [
+        "6a272b0c0bb8928e11abceec"
+      ]
+    }
+  ]
+}
