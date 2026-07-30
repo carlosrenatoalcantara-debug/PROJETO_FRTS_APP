@@ -57,3 +57,9 @@ CHANGELOG.md
 # P1-ATLAS-CUTOVER-01: dado de RUNTIME do fallback local — NÃO versionar (era
 # fonte de divergência vs Atlas). O Atlas (forte_solar.equipamentos) é a fonte oficial.
 backend/data/memory-storage.json
+
+# Graphify: mapa do código, regenerável a qualquer momento com `graphify update .`
+graphify-out/
+
+# PDFs de teste gerados pelo backend, regeneraveis
+backend/_pg_*.pdf
