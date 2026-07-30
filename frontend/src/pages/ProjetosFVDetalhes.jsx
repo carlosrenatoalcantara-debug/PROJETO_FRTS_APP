@@ -23,6 +23,7 @@ import InteractiveDiagram from '../components/diagram/InteractiveDiagram'
 import { carregarDiagramaLocal, salvarDiagramaLocal, deletarDiagramaLocal } from '../components/diagram/utils/diagramPersistence'
 import BeneficiariasPainel from '../components/fv/BeneficiariasPainel'
 import Homologacao from '../components/fv/homologacao/Homologacao'
+import DocumentosExternos from '../components/fv/DocumentosExternos'
 
 export default function ProjetosFVDetalhes() {
   const { id } = useParams()
@@ -266,7 +267,12 @@ export default function ProjetosFVDetalhes() {
             />
           </div>
         )}
-        {abaAtiva === 'documentos' && <DocumentCenter projeto={projeto} />}
+        {abaAtiva === 'documentos' && (
+          <div className="space-y-6">
+            <DocumentCenter projeto={projeto} />
+            <DocumentosExternos projeto={projeto} onAtualizar={carregarProjeto} />
+          </div>
+        )}
         {abaAtiva === 'comercial' && (
           <PropostaEnterprise
             projetoId={id}

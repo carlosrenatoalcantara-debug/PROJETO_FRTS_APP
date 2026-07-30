@@ -19,7 +19,7 @@ const SEV_CONFIG = {
   info:    { cor: 'bg-blue-100 text-blue-800 border-blue-300',  icone: Info,           label: 'Info' },
 }
 
-const ORIGEM_LABEL = { rt: 'RT', catalogo: 'Catálogo', documento: 'Documento', projeto: 'Projeto', fatura: 'Fatura' }
+const ORIGEM_LABEL = { rt: 'RT', catalogo: 'Catálogo', documento: 'Documento', projeto: 'Projeto', fatura: 'Fatura', homologacao: 'Homologação', garantia: 'Garantia' }
 
 export default function AlertCenter() {
   const nav = useNavigate()

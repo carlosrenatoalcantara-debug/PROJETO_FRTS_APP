@@ -178,7 +178,7 @@ function svgLinhaCabo(x1, y1, x2, y2, bitola, cor) {
  * @param {string}  [projeto.uf]           - sigla da UF para temp. de projeto
  * @returns {string} SVG como string
  */
-export const gerarUnifilarSVG = (projeto) => {
+export const gerarUnifilarSVG = (projeto, ativos = []) => {
   const {
     nome           = 'Projeto FV',
     nomeCliente    = 'Cliente',
@@ -191,6 +191,14 @@ export const gerarUnifilarSVG = (projeto) => {
     arranjoMPPTs   = null,
     uf             = null,
   } = projeto
+
+  // P4-GEMEO-DIGITAL-UNIFILAR-ATIVO-01: Digital Twin linkage
+  const ativoModulo   = ativos.find(a => a.tipo === 'modulo' || a.tipo === 'microinversor')
+  const ativoInversor = ativos.find(a => a.tipo === 'inversor')
+  function ativoGAttrs(ativo) {
+    if (!ativo) return ''
+    return ` data-ativo-id="${ativo._id}" data-qr="${esc(ativo.qr_code || '')}" data-arranjo-id="${esc(String(ativo.arranjo_id || ''))}" data-tipo="${ativo.tipo}" data-status="${ativo.status || ''}"`
+  }
 
   // ── Monta modelo elétrico normalizado ──────────────────────────────────────
   const modelo = montarModeloEletrico({
@@ -264,6 +272,7 @@ export const gerarUnifilarSVG = (projeto) => {
   let svg = `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" font-family="Arial,Helvetica,sans-serif">
   <defs>
+    <style>g[data-ativo-id]{cursor:pointer}g[data-ativo-id]:hover{filter:brightness(0.92)}</style>
     <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
       <path d="M0,0 L10,5 L0,10 z" fill="#374151"/>
     </marker>
@@ -322,6 +331,8 @@ export const gerarUnifilarSVG = (projeto) => {
     const nMod     = mppt.modPorString
     const usaCombi = numStr > 1
 
+    // Painéis: grupo clicável Digital Twin (P4)
+    svg += `<g${ativoGAttrs(ativoModulo)}>`
     // Faixa de fundo do grupo MPPT
     svg += `
   <rect x="16" y="${yStart - 4}" width="${xInvLeft - 24}" height="${mpptHeights[gi]}"
@@ -353,6 +364,7 @@ export const gerarUnifilarSVG = (projeto) => {
       svg += `<line x1="${xPanFim}" y1="${yStr + 34}" x2="${xTarget}" y2="${yStr + 34}" stroke="${COR.stringDC}" stroke-width="2"/>`
     }
 
+    svg += `</g>`
     // Coletora vertical (barra de strings ao DC bus)
     if (usaCombi && yStrings.length > 1) {
       const yTop = yStrings[0]
@@ -377,7 +389,9 @@ export const gerarUnifilarSVG = (projeto) => {
   })
 
   // ── Inversor ───────────────────────────────────────────────────────────────
+  svg += `<g${ativoGAttrs(ativoInversor)}>`
   svg += svgInversor(xInvCX, yInvTop, yInvBot, painel ? invMarca : 'Inversor', invModelo, invPotKW, invNMPPT, mpptYs, tensaoACDisp, invTipo)
+  svg += `</g>`
 
   // ── Inversor → Disjuntor AC ────────────────────────────────────────────────
   svg += svgLinhaCabo(xInvRight, yAC, xDJAC - 19, yAC, cabos.ac.secao, COR.quadroAC)

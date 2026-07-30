@@ -12,10 +12,28 @@ import mongoose from 'mongoose'
  * fica para a sprint avançada de O&M.
  */
 
+// P5-ATIVO-MEDICOES-01 — medições elétricas de campo (embutidas; links externos, nunca upload)
+const MedicaoSchema = new mongoose.Schema({
+  data:      { type: Date,   default: () => new Date() },
+  tipo: {
+    type: String,
+    enum: ['COMISSIONAMENTO', 'GARANTIA', 'SUPORTE', 'AMPLIACAO', 'INSPECAO', 'OUTRO'],
+    default: 'OUTRO',
+  },
+  observacao: { type: String, default: null },
+  voc:        { type: Number, default: null },   // tensão em circuito aberto (V)
+  isc:        { type: Number, default: null },   // corrente de curto-circuito (A)
+  vac:        { type: Number, default: null },   // tensão AC (V)
+  iac:        { type: Number, default: null },   // corrente AC (A)
+  potencia:   { type: Number, default: null },   // potência (W)
+  link_foto:  { type: String, default: null },   // link externo (OneDrive, Drive…) — nunca upload
+  usuario:    { type: String, default: null },
+})
+
 const HistoricoSchema = new mongoose.Schema({
   tipo: {
     type: String,
-    enum: ['criacao', 'instalacao', 'troca', 'garantia', 'manutencao', 'comissionamento', 'monitoramento', 'falha', 'inspecao', 'mudanca_status'],
+    enum: ['criacao', 'instalacao', 'troca', 'garantia', 'manutencao', 'comissionamento', 'monitoramento', 'falha', 'inspecao', 'mudanca_status', 'medicao'],
   },
   data:        { type: Date,   default: () => new Date() },
   usuario:     { type: String, default: null },
@@ -60,8 +78,9 @@ const AtivoEquipamentoSchema = new mongoose.Schema({
   comissionado_por:     { type: String, default: null },   // P1-ASSET-COMMISSIONING-01
 
   // ── Garantia ────────────────────────────────────────────────────────────────
-  garantia_inicio: { type: Date, default: null },
-  garantia_fim:    { type: Date, default: null },
+  garantia_inicio:  { type: Date, default: null },
+  garantia_fim:     { type: Date, default: null },
+  origem_garantia:  { type: String, default: null },   // 'manual' | 'auto_catalogo'
 
   // ── Conectividade (reservado; preenchido em fases futuras) ────────────────────
   conectividade: {
@@ -100,6 +119,9 @@ const AtivoEquipamentoSchema = new mongoose.Schema({
 
   // ── Histórico (embutido) ──────────────────────────────────────────────────────
   historico: { type: [HistoricoSchema], default: [] },
+
+  // ── Medições de campo (P5-ATIVO-MEDICOES-01) — valores elétricos + links externos ──
+  medicoes: { type: [MedicaoSchema], default: [] },
 
   // ── Documentos (RESERVADO — não implementado nesta sprint) ────────────────────
   documentos: { type: [mongoose.Schema.Types.Mixed], default: [] },

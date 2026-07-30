@@ -12,7 +12,7 @@
  */
 
 export const SEVERIDADES = ['info', 'aviso', 'erro', 'critico']
-export const ORIGENS = ['rt', 'catalogo', 'documento', 'projeto', 'fatura', 'homologacao']
+export const ORIGENS = ['rt', 'catalogo', 'documento', 'projeto', 'fatura', 'homologacao', 'garantia']
 
 const DIA_MS = 24 * 60 * 60 * 1000
 
@@ -431,13 +431,70 @@ export function detectarAlertasHomologacao(projetos, checklistsPorProjeto = new 
   return alertas
 }
 
-// ── 7. AGREGADOR PRINCIPAL ─────────────────────────────────────────────────
+// ── 7. ALERTAS DE GARANTIA (P5-GARANTIA-SIMPLES-01) ───────────────────────
+
+/**
+ * Detecta ativos com garantia vencendo ou vencida.
+ * ≤ 0 dias → crítico, ≤ 30 dias → aviso, ≤ 90 dias → info.
+ *
+ * @param {Array<object>} ativos  lista de AtivoEquipamento (lean) com garantia_fim
+ * @param {Date} [hoje]           para testes reprodutíveis
+ */
+export function detectarAlertasGarantia(ativos, hoje = new Date()) {
+  const alertas = []
+  for (const a of ativos || []) {
+    if (!a.garantia_fim) continue
+    const fim = new Date(a.garantia_fim)
+    if (Number.isNaN(fim.getTime())) continue
+    const diasRestantes = Math.floor((fim.getTime() - hoje.getTime()) / DIA_MS)
+    const label = `${a.fabricante || '?'} ${a.modelo || '?'} (${a.qr_code || a._id})`
+    const link  = `/ativo/${encodeURIComponent(a.qr_code || a._id)}`
+
+    if (diasRestantes <= 0) {
+      alertas.push({
+        id: _id('garantia_vencida', a._id),
+        origem: 'garantia', severidade: 'critico',
+        titulo: `Garantia VENCIDA — ${label}`,
+        descricao: `Venceu em ${fim.toLocaleDateString('pt-BR')} (há ${Math.abs(diasRestantes)} dia(s)).`,
+        data: fim.toISOString(),
+        acao_recomendada: 'Verificar cobertura de garantia com o fabricante.',
+        link,
+        contexto: { ativo_id: a._id, qr_code: a.qr_code, dias: diasRestantes },
+      })
+    } else if (diasRestantes <= 30) {
+      alertas.push({
+        id: _id('garantia_30d', a._id),
+        origem: 'garantia', severidade: 'aviso',
+        titulo: `Garantia vence em ${diasRestantes} dia(s) — ${label}`,
+        descricao: `Vencimento: ${fim.toLocaleDateString('pt-BR')}.`,
+        data: fim.toISOString(),
+        acao_recomendada: 'Registrar medição de desempenho antes do vencimento.',
+        link,
+        contexto: { ativo_id: a._id, qr_code: a.qr_code, dias: diasRestantes },
+      })
+    } else if (diasRestantes <= 90) {
+      alertas.push({
+        id: _id('garantia_90d', a._id),
+        origem: 'garantia', severidade: 'info',
+        titulo: `Garantia vence em ${diasRestantes} dias — ${label}`,
+        descricao: `Vencimento: ${fim.toLocaleDateString('pt-BR')}.`,
+        data: fim.toISOString(),
+        acao_recomendada: 'Programar inspeção e medição antes do vencimento.',
+        link,
+        contexto: { ativo_id: a._id, qr_code: a.qr_code, dias: diasRestantes },
+      })
+    }
+  }
+  return alertas
+}
+
+// ── 8. AGREGADOR PRINCIPAL ─────────────────────────────────────────────────
 
 /**
  * Combina todos os detectores em uma lista única + KPIs.
  * Recebe um objeto `fontes` para evitar I/O dentro deste módulo.
  */
-export function agregarAlertas({ tecnicos = [], equipamentos = [], documentos = [], projetos = [], beneficiariasPorProjeto = new Map(), faturas = [], checklistsPorProjeto = new Map(), diagnosticarFicha = null, hoje = new Date() } = {}) {
+export function agregarAlertas({ tecnicos = [], equipamentos = [], documentos = [], projetos = [], beneficiariasPorProjeto = new Map(), faturas = [], checklistsPorProjeto = new Map(), diagnosticarFicha = null, ativos = [], hoje = new Date() } = {}) {
   const alertas = [
     ...detectarAlertasRT(tecnicos, hoje),
     ...detectarAlertasCatalogo(equipamentos, { diagnosticarFicha }),
@@ -445,6 +502,7 @@ export function agregarAlertas({ tecnicos = [], equipamentos = [], documentos = 
     ...detectarAlertasProjetos(projetos, beneficiariasPorProjeto),
     ...detectarAlertasFaturas(faturas),
     ...detectarAlertasHomologacao(projetos, checklistsPorProjeto),
+    ...detectarAlertasGarantia(ativos, hoje),
   ]
   return alertas
 }
@@ -455,7 +513,7 @@ export function calcularKPIs(alertas, statusPorId = new Map()) {
     return !st || st === 'aberto'
   })
   const por_severidade = { info: 0, aviso: 0, erro: 0, critico: 0 }
-  const por_origem = { rt: 0, catalogo: 0, documento: 0, projeto: 0, fatura: 0, homologacao: 0 }
+  const por_origem = { rt: 0, catalogo: 0, documento: 0, projeto: 0, fatura: 0, homologacao: 0, garantia: 0 }
   for (const a of ativos) {
     if (a.severidade in por_severidade) por_severidade[a.severidade]++
     if (a.origem in por_origem) por_origem[a.origem]++
@@ -472,6 +530,8 @@ export function calcularKPIs(alertas, statusPorId = new Map()) {
       faturas_inconsistentes: ativos.filter(a => a.origem === 'fatura').length,
       homologacao_pendentes: ativos.filter(a => a.origem === 'homologacao' && a.severidade !== 'info').length,
       homologacao_aptos: ativos.filter(a => a.id.startsWith('homolog_apto')).length,
+      garantias_vencidas: ativos.filter(a => a.id.startsWith('garantia_vencida')).length,
+      garantias_vencendo: ativos.filter(a => a.id.startsWith('garantia_30d') || a.id.startsWith('garantia_90d')).length,
     },
   }
 }

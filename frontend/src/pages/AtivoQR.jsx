@@ -4,6 +4,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import EtiquetaScanner from './EtiquetaScanner'
+import MedicoesAtivoCard from '../components/fv/MedicoesAtivoCard'
+import GarantiaCard from '../components/fv/GarantiaCard'
 
 const STATUS_COR = {
   planejado: 'bg-slate-100 text-slate-700',
@@ -215,7 +217,20 @@ export default function AtivoQR() {
               <div className="text-xs font-semibold text-slate-400 uppercase mb-2">Projeto / Arranjo</div>
               <Linha rotulo="Projeto" valor={dados.projeto?.nome} />
               <Linha rotulo="Arranjo" valor={dados.arranjo?.rotulo || dados.arranjo?.id} />
+              {dados.projeto?.documentacao_externa?.pasta_principal && (
+                <a
+                  href={dados.projeto.documentacao_externa.pasta_principal}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-3 flex items-center justify-center gap-2 bg-blue-50 text-blue-700 font-semibold py-2.5 rounded-xl text-sm"
+                >
+                  📁 Abrir Pasta do Projeto
+                </a>
+              )}
             </div>
+
+            {/* Garantia (P5-GARANTIA-SIMPLES-01) */}
+            <GarantiaCard ativo={dados.ativo} equipamento={dados.equipamento_catalogo} />
 
             {/* Comissionamento (form mobile) */}
             {!editar && (
@@ -262,6 +277,9 @@ export default function AtivoQR() {
 
             {/* Monitoramento (registro permanente) */}
             {dados.ativo?._id && <MonitoramentoCard ativoId={dados.ativo._id} />}
+
+            {/* Medições de campo (P5-ATIVO-MEDICOES-01) */}
+            {dados.ativo?._id && <MedicoesAtivoCard ativoId={dados.ativo._id} />}
 
             {/* Histórico */}
             {dados.ativo?.historico?.length > 0 && (
