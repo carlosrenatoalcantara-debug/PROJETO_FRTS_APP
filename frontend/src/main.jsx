@@ -7,6 +7,11 @@ import { AuthProvider } from './context/AuthContext'
 import App from './App'
 import './index.css'
 import { getGoogleMapsApiKey } from './utils/googleMapsKey'
+import { instalarInterceptorHttp } from './services/http'
+
+// Camada HTTP única: injeta Authorization nas chamadas à API desta aplicação.
+// Instalado antes do render para cobrir qualquer fetch disparado no mount.
+instalarInterceptorHttp()
 
 const apiKey = getGoogleMapsApiKey()
 

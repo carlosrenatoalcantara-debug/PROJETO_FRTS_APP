@@ -20,6 +20,7 @@ import {
 } from 'lucide-react'
 import Card, { CardHeader, CardBody } from '../components/ui/Card'
 import Button from '../components/ui/Button'
+import { apiFetch } from '../services/http'
 
 const API_URL = '' /* URL relativa forçada — Vercel proxy → Railway */
 
@@ -116,7 +117,7 @@ export default function AdminCatalogoQualidade() {
     setCarregando(true)
     setErro(null)
     try {
-      const res = await fetch(`${API_URL}/api/admin/catalogo/qualidade-relatorio`)
+      const res = await apiFetch(`${API_URL}/api/admin/catalogo/qualidade-relatorio`)
       if (!res.ok) {
         const body = await res.json().catch(() => ({}))
         throw new Error(body.erro || `HTTP ${res.status}`)

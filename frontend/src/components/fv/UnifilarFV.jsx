@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { apiFetch } from '../../services/http'
 import { Link, useNavigate } from 'react-router-dom'
 import { Download, ExternalLink, RefreshCw, Zap } from 'lucide-react'
 import Card, { CardHeader, CardBody } from '../ui/Card'
@@ -22,7 +23,7 @@ export default function UnifilarFV({ projeto }) {
 
   useEffect(() => {
     if (!projeto?._id) return
-    fetch(`/api/ativos/projeto/${projeto._id}`)
+    apiFetch(`/api/ativos/projeto/${projeto._id}`)
       .then(r => r.ok ? r.json() : { itens: [] })
       .then(data => setAtivos(Array.isArray(data?.itens) ? data.itens : []))
       .catch(() => {})
