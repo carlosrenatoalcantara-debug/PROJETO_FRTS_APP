@@ -628,7 +628,7 @@ function TelaDetalhes({ cliente, onVoltar }) {
               <Sun size={18} className="text-amber-500" />
               <h2 className="font-semibold text-slate-900">Projetos FV</h2>
             </div>
-            <Button icone={Plus} tamanho="sm" variante="primario" onClick={() => navigate('/projetos-fv/novo')}>Novo</Button>
+            <Button icone={Plus} tamanho="sm" variante="primario" onClick={() => navigate('/fv/projetos')}>Novo</Button>
           </CardHeader>
           <CardBody>
             {carregando ? (
@@ -638,7 +638,7 @@ function TelaDetalhes({ cliente, onVoltar }) {
             ) : (
               <div className="space-y-2">
                 {projetosFV.map((p) => (
-                  <button key={p._id} onClick={() => navigate(`/projetos-fv/${p._id}`)} className="w-full text-left p-3 bg-amber-50 rounded-lg border border-amber-200 hover:bg-amber-100 transition-colors">
+                  <button key={p._id} onClick={() => navigate(`/fv/projetos/${p._id}`)} className="w-full text-left p-3 bg-amber-50 rounded-lg border border-amber-200 hover:bg-amber-100 transition-colors">
                     <p className="font-medium text-slate-900">{p.nome}</p>
                     <p className="text-xs text-slate-600 mt-1">{p.potenciaKwp} kWp · {p.status}</p>
                   </button>

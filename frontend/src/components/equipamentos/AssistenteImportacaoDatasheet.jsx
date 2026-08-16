@@ -5,8 +5,8 @@ import {
   resumirQualidade,
   STATUS,
   PROVENIENCIA,
-} from '../../../../backend/src/ai/camposEquipamento.js'
-import { validarPlausibilidadeInversor } from '../../../../backend/src/ai/validacaoEletricaInversor.js'
+} from '@fortesolar/fv-shared/ai/campos-equipamento'
+import { validarPlausibilidadeInversor } from '@fortesolar/fv-shared/ai/validacao-eletrica-inversor'
 
 const API_URL = ''
 

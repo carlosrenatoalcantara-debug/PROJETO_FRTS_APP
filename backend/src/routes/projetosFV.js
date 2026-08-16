@@ -37,6 +37,24 @@ import {
   prepararComFatura,
   finalizarComFatura,
 } from '../controllers/projetoFVFunilController.js'
+import {
+  listarCotacoes,
+  obterCotacao,
+  listarOrcamentos,
+  obterOrcamento,
+  obterOrcamentoVigente,
+  calcularFinanceiro,
+  obterBaseline,
+  obterGate,
+  listarFases,
+  criarCotacao,
+  criarOrcamento,
+  atualizarOrcamento,
+  emitirOrcamento,
+  aprovarOrcamento,
+  rejeitarOrcamento,
+  cancelarOrcamento,
+} from '../controllers/agregadosFvController.js'
 
 const router = Router()
 
@@ -79,6 +97,34 @@ router.put('/:id/governanca/comercial/crm',           atualizarCrm)
 router.post('/:id/governanca/comercial/comunicacao',  registrarComunicacao)
 router.post('/:id/governanca/comercial/compartilhar', criarCompartilhamento)
 
+// ── FV-API-001 · API canônica dos agregados (SOMENTE LEITURA) ───────────────
+// Respondem direto por Cotacao/Orcamento/Baseline/Gate, sem adapters e sem
+// tocar no subdocumento legado. Nenhuma rota existente foi alterada.
+// `/orcamentos/vigente` vem antes de `/orcamentos` por clareza — os padrões têm
+// contagens de segmento diferentes, então não há ambiguidade de roteamento.
+// Leitura
+router.get('/:id/cotacoes',                 listarCotacoes)
+router.get('/:id/cotacoes/:cotacaoId',      obterCotacao)
+// `/vigente` ANTES de `/:orcamentoId` — senao o parametro captura a palavra.
+router.get('/:id/orcamentos/vigente',       obterOrcamentoVigente)
+router.get('/:id/orcamentos',               listarOrcamentos)
+router.get('/:id/orcamentos/:orcamentoId',  obterOrcamento)
+router.get('/:id/baseline',                 obterBaseline)
+router.get('/:id/gate',                     obterGate)
+router.get('/:id/fases',                    listarFases)
+
+// ── FV-API-002 · Escrita do fluxo comercial ─────────────────────────────────
+// Cada rota delega a UMA operacao de dominio. A Baseline NAO tem rota de
+// escrita: ela nasce exclusivamente de `/orcamentos/:id/aprovar` e e imutavel
+// (M-2) — nao existe PUT, PATCH nem DELETE para ela.
+router.post('/:id/cotacoes',                          criarCotacao)
+router.post('/:id/orcamentos',                        criarOrcamento)
+router.put('/:id/orcamentos/:orcamentoId',            atualizarOrcamento)
+router.post('/:id/orcamentos/:orcamentoId/emitir',    emitirOrcamento)
+router.post('/:id/orcamentos/:orcamentoId/aprovar',   aprovarOrcamento)
+router.post('/:id/orcamentos/:orcamentoId/rejeitar',  rejeitarOrcamento)
+router.post('/:id/orcamentos/:orcamentoId/cancelar',  cancelarOrcamento)
+
 // ── CRUD existente (preservado) ─────────────────────────────────────────────
 router.get('/',                    listarProjetosFV)
 router.get('/:id',                 buscarProjetoFV)
@@ -98,5 +144,8 @@ router.post('/:id/ampliar',   ampliarProjetoFV)
 router.post('/:id/arquivar',  arquivarProjetoFV)
 router.post('/:id/restaurar', restaurarProjetoFV)
 router.put('/:id/status',     alterarStatusCiclo)
+
+// FV-DOM-012 — contrato financeiro V1. POST porque executa o motor; não grava.
+router.post('/:id/financeiro/calcular', calcularFinanceiro)
 
 export default router

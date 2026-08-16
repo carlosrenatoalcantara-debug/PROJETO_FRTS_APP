@@ -113,7 +113,7 @@ export default function Dashboard() {
               <h2 className="font-semibold text-slate-900">Projetos Recentes</h2>
               <p className="text-sm text-slate-500 mt-0.5">Últimas atualizações nos projetos</p>
             </div>
-            <Button icone={Plus} tamanho="sm" onClick={() => navigate('/projetos-fv/novo')}>
+            <Button icone={Plus} tamanho="sm" onClick={() => navigate('/fv/projetos')}>
               Novo Projeto
             </Button>
           </div>
@@ -124,7 +124,7 @@ export default function Dashboard() {
           ) : recentes.length === 0 ? (
             <div className="p-8 text-center">
               <p className="text-slate-500 mb-3">Nenhum projeto cadastrado ainda.</p>
-              <Button icone={Plus} tamanho="sm" onClick={() => navigate('/projetos-fv/novo')}>
+              <Button icone={Plus} tamanho="sm" onClick={() => navigate('/fv/projetos')}>
                 Criar primeiro projeto
               </Button>
             </div>

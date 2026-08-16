@@ -30,18 +30,10 @@ export function filtrarProjetos(lista, filtro = 'todos') {
   })
 }
 
-// Badge visual por status canônico — emoji + classes tailwind utilitárias.
-export const BADGES_STATUS = {
-  RASCUNHO:   { icone: '🟡', cor: 'bg-amber-100 text-amber-800',   label: 'Rascunho' },
-  EM_ANALISE: { icone: '🟠', cor: 'bg-orange-100 text-orange-800', label: 'Em análise' },
-  PROPOSTA:   { icone: '🔵', cor: 'bg-blue-100 text-blue-800',     label: 'Proposta' },
-  APROVADO:   { icone: '🟢', cor: 'bg-emerald-100 text-emerald-800', label: 'Aprovado' },
-  EXECUCAO:   { icone: '⚙️', cor: 'bg-sky-100 text-sky-800',       label: 'Execução' },
-  CONCLUIDO:  { icone: '✅', cor: 'bg-emerald-100 text-emerald-800', label: 'Concluído' },
-  PERDIDO:    { icone: '🔴', cor: 'bg-red-100 text-red-800',       label: 'Perdido' },
-  CANCELADO:  { icone: '⛔', cor: 'bg-red-100 text-red-800',       label: 'Cancelado' },
-  ARQUIVADO:  { icone: '📦', cor: 'bg-slate-200 text-slate-700',   label: 'Arquivado' },
-}
-export function badgeDe(statusDisplay) {
-  return BADGES_STATUS[statusDisplay] || BADGES_STATUS.RASCUNHO
-}
+// FV-UX-006 (F3.1): os badges eram uma lista paralela cujo conjunto de chaves era
+// mantido à mão em sincronia com o vocabulário do ciclo de vida no backend.
+// Agora ambos saem da fonte única.
+export {
+  ESTADOS_CICLO as BADGES_STATUS,
+  badgeDe,
+} from '@fortesolar/fv-shared/estados/ciclo-vida'

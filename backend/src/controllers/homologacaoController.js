@@ -8,6 +8,7 @@ import {
 import { ProjetoFV } from '../models/ProjetoFV.js'
 import { Equipamento } from '../models/Equipamento.js'
 import { UnidadeBeneficiaria } from '../models/UnidadeBeneficiaria.js'
+import { projetoEstaCongelado } from '@fortesolar/fv-shared/estados/congelamento'
 
 // P1-NEW01-HOMOLOGACAO-PERSISTENCE-FIX-01: o Map() legado foi REMOVIDO.
 // Todo o estado de homologação (checklist + status legado) agora persiste no Mongo
@@ -18,10 +19,8 @@ import { UnidadeBeneficiaria } from '../models/UnidadeBeneficiaria.js'
  * Quando CONGELADO/HOMOLOGADO, a homologação DEVE usar o snapshot_catalogo
  * (equipamentos do orçamento aprovado), não o catálogo vivo.
  */
-function _estaCongelado(proj) {
-  const fs = proj?.governanca?.freeze_status
-  return fs === 'CONGELADO' || fs === 'HOMOLOGADO'
-}
+// FV-DOM-002A: decisão vem do contrato único, nunca de um booleano local.
+const _estaCongelado = projetoEstaCongelado
 
 /**
  * P1-HOMOLOGACAO-SNAPSHOT-01: converte o snapshot_catalogo congelado no formato

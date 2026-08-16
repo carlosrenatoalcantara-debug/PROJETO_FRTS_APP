@@ -13,7 +13,7 @@ import {
 } from '../utils/catalogQualityEngine'
 import { avaliarUtilizavel } from '../utils/utilizavelProjeto'
 import FichaTecnicaModal from '../components/fv/FichaTecnicaModal'
-import { montarFichaTecnica } from '../../../backend/src/utils/catalogo/fichaTecnicaMap.js'
+import { montarFichaTecnica } from '@fortesolar/fv-shared/catalogo/ficha-tecnica-map'
 
 const API_URL = '' /* URL relativa forçada — Vercel proxy → Railway */
 

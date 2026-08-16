@@ -1,4 +1,9 @@
-import { ProjetoFV } from '../models/ProjetoFV.js'
+import { ProjetoFV, FREEZE_STATUS, FREEZE_STATUS_TRAVADOS, ehFreezeStatusValido } from '../models/ProjetoFV.js'
+// FV-UX-006 (F3.1): máquina de estados do Projeto FV — fonte única.
+import {
+  ESTADOS_CONGELADOS as CONGELADOS_COMERCIAL, TRANSICOES_FREEZE,
+  statusJuridicoDeEstado, validarTransicaoComercial, normalizarFreezeLegado,
+} from '@fortesolar/fv-shared/estados'
 import { Equipamento } from '../models/Equipamento.js'
 import { Tecnico } from '../models/Tecnico.js'
 import mongoose from 'mongoose'
@@ -6,13 +11,20 @@ import { memoryStore } from '../config/memoryStorage.js'
 import { montarSnapshotRT } from '../utils/snapshotRT.js'
 import { montarArranjosAmpliacao } from '../services/arranjosService.js'
 import { obterLocalProjeto } from '../dominio/local/index.js'
+// FV-DOM-002: convergência do domínio comercial para Cotacao/Orcamento/Baseline.
+import { obterOrcamentoProjeto, totaisDeItens } from '../dominio/orcamento/obterOrcamentoProjeto.js'
+import { OrcamentoService } from '../services/OrcamentoService.js'
+import { resolverCongelamento } from '../dominio/congelamento/resolverCongelamento.js'
 // S3: camada de acesso ÚNICA à topologia (Instalação → nova; senão → Arranjo).
 // Proibido ler projeto.arranjos direto fora deste adapter.
 import { obterTopologiaProjeto } from '../dominio/topologia/index.js'
 // Fase 0.5 — M-4: escopo de organização (ponto único).
-import { aplicarEscopo, exigirTenant } from '../dominio/tenancy/index.js'
+// `carimbarTenant` faltava neste import: `criarProjetoFV`, `duplicarProjetoFV` e
+// `ampliarProjetoFV` já o usavam, e as três estouravam ReferenceError em runtime.
+// Defeito pré-existente, encontrado ao exercitar a criação pela nova UX (FV-UX-014).
+import { aplicarEscopo, exigirTenant, tenantDoReq, carimbarTenant } from '../dominio/tenancy/index.js'
 import {
-  derivarStatusSeguro, paraModel, podeExcluirDefinitivo, avaliarLegacy, MOTIVOS_ARQUIVAMENTO,
+  derivarStatusSeguro, paraModel, podeExcluirDefinitivo, avaliarLegacy, MOTIVOS_ARQUIVAMENTO, STATUS,
 } from '../utils/statusLifecycle.js'
 import { AuditLog } from '../models/AuditLog.js'
 
@@ -101,6 +113,35 @@ export const buscarProjetoFV = async (req, res) => {
     const topo = obterTopologiaProjeto(plano)
     base.arranjos_normalizados = topo.arranjos_normalizados
     base.totais = topo.totais
+    // FV-UX-003 (F2): Local resolvido pelo adapter do Core. Antes o frontend
+    // importava obterLocalProjeto direto de backend/src/dominio — o Core não sai
+    // do backend. Derivado (INV-58): só na resposta, nunca persistido.
+    base.local_resolvido = obterLocalProjeto(plano)
+    // FV-DOM-002: o orçamento vem do agregado `Orcamento` (fonte operacional),
+    // projetado na forma legada para não alterar a UX nesta sprint. Projetos
+    // históricos, sem agregado, continuam devolvendo o subdoc como está.
+    const orcVigente = await OrcamentoService.vigenteDoProjeto({
+      projeto_ref: plano._id, empresa_id: tenantDoReq(req),
+    })
+    // FV-DOM-003: o agregado é exposto NA SUA FORMA PRÓPRIA. É daqui que a UX
+    // passa a ler — não mais de `orcamento`, que é a projeção legada.
+    base.orcamento_vigente = orcVigente
+      ? {
+          _id: orcVigente._id,
+          estado: orcVigente.estado,
+          numero: orcVigente.numero,
+          versao: orcVigente.versao,
+          cotacao_ref: orcVigente.cotacao_ref,
+          baseline_ref: orcVigente.baseline_ref,
+          itens: orcVigente.itens,
+          condicoes: orcVigente.condicoes,
+          totais: totaisDeItens(orcVigente.itens),
+        }
+      : null
+    // @deprecated FV-DOM-003 — projeção legada mantida SÓ para os projetos
+    // históricos que nunca passaram pelo agregado (7 em produção). Nenhum
+    // consumidor funcional depende dela. Sai com o backfill (LME).
+    base.orcamento = obterOrcamentoProjeto(plano, orcVigente)
     res.json(base)
   } catch (err) {
     console.error('❌ Erro ao buscar projeto FV:', err)
@@ -422,7 +463,18 @@ export const alterarStatusCiclo = async (req, res) => {
     if (!_exigirMongo(res)) return
     const { status } = req.body || {}
     if (!status) return res.status(400).json({ erro: 'status obrigatório' })
-    const novo = paraModel(String(status).toUpperCase())
+    // FV-UX-005 (F3.2 / defeito I-1): status desconhecido é ERRO, não fallback.
+    // Antes, `paraModel` devolvia 'rascunho' para qualquer entrada inválida e a
+    // gravação seguia com 200 — inclusive regredindo projetos já concluídos.
+    const informado = String(status).toUpperCase()
+    const novo = paraModel(informado)
+    if (novo === null) {
+      return res.status(422).json({
+        erro: `Status "${status}" não pertence ao ciclo de vida do projeto.`,
+        codigo: 'STATUS_INVALIDO',
+        status_validos: STATUS,
+      })
+    }
     const projeto = await ProjetoFV.findOne(aplicarEscopo({ _id: req.params.id }, req, { contexto: 'projetoFV' }))
     if (!projeto) return res.status(404).json({ mensagem: 'Projeto não encontrado' })
     const antes = projeto.status
@@ -582,7 +634,7 @@ export const obterTelhado = async (req, res) => {
  *   equipamentos   → projeto.equipamentos
  *   layout_solar   → projeto.layout_solar + espelha telhado
  *   protecoes      → projeto.protecoes
- *   orcamento      → projeto.orcamento + espelha financeiro.payback_anos/irr_pct
+ *   orcamento      → agregado `Orcamento` (FV-DOM-003) + espelha financeiro.*
  *   proposta       → projeto.proposta
  *   workflow       → projeto.workflow
  *   unifilar       → projeto.unifilar
@@ -655,8 +707,14 @@ export const salvarEtapaProjetoFV = async (req, res) => {
         break
       }
       case 'orcamento': {
-        $set.orcamento = dados
-        // Espelha campos básicos para `financeiro` legado
+        // FV-DOM-003: a escrita em `ProjetoFV.orcamento` foi REMOVIDA. A etapa
+        // grava exclusivamente no agregado `Orcamento` (adiante neste handler).
+        // O subdocumento passa a ser somente-leitura: nenhum caminho da aplicação
+        // o escreve; ele só guarda o que projetos históricos já tinham.
+        //
+        // `financeiro.*` continua sendo espelhado porque NÃO é o subdocumento
+        // legado — é o campo de indicadores financeiros do próprio ProjetoFV, e
+        // o agregado deliberadamente não os persiste (INV-58: são derivados).
         if (dados.payback_anos !== undefined) $set['financeiro.payback_anos'] = dados.payback_anos
         if (dados.irr_pct      !== undefined) $set['financeiro.irr_pct']      = dados.irr_pct
         if (dados.npv_r        !== undefined) $set['financeiro.npv_r']        = dados.npv_r
@@ -736,14 +794,23 @@ export const salvarEtapaProjetoFV = async (req, res) => {
     // Projetos CONGELADO/HOMOLOGADO (técnico) ou ASSINADO (comercial) não aceitam
     // recálculo nem alteração silenciosa. Apenas a etapa 'workflow' é tolerada.
     // Snapshots e mudança de status passam por endpoints dedicados.
+    // FV-DOM-002A: a decisão vem do CONTRATO ÚNICO — orçamento aprovado +
+    // baseline válida — com cláusula de compatibilidade para projetos legados.
+    // Antes, este guard reimplementava o booleano por conta própria e não
+    // enxergava o Baseline.
     const freezeStatus = projetoAtual.governanca?.freeze_status
     const comStatus    = projetoAtual.governanca?.comercial?.workflow_status
-    const travado = freezeStatus === 'CONGELADO' || freezeStatus === 'HOMOLOGADO' || comStatus === 'ASSINADO'
-    if (travado && etapa !== 'workflow') {
-      const motivo = comStatus === 'ASSINADO' ? 'ASSINADO (comercial)' : freezeStatus
+    const congelamento = await resolverCongelamento({
+      _id: projetoAtual._id ?? id,
+      empresa_id: tenantDoReq(req),
+      governanca: projetoAtual.governanca,
+    })
+    if (congelamento.congelado && etapa !== 'workflow') {
       return res.status(409).json({
-        erro: `Projeto ${motivo} — alteração de "${etapa}" bloqueada.`,
+        erro: `Projeto congelado — alteração de "${etapa}" bloqueada.`,
         codigo: 'PROJETO_CONGELADO',
+        motivo: congelamento.motivo,
+        detalhe: congelamento.detalhe,
         freeze_status: freezeStatus,
         workflow_comercial: comStatus,
         dica: 'Crie uma revisão (técnica ou comercial) para reabrir antes de editar.',
@@ -782,12 +849,28 @@ export const salvarEtapaProjetoFV = async (req, res) => {
 
     if (!projeto) return res.status(404).json({ erro: 'Projeto não encontrado' })
 
+    // ── FV-DOM-003: o agregado `Orcamento` é a ÚNICA fonte da etapa ───────────
+    // A ponte legada (`$set.orcamento`) foi removida. Consequência: falhar aqui
+    // em silêncio PERDERIA o orçamento — não há mais onde ele caia. Por isso a
+    // falha passou a ser FATAL, fechando o achado A-3 da FV-DOM-002.
+    let orcamento_agregado = null
+    if (etapa === 'orcamento') {
+      const r = await OrcamentoService.gravarEtapaOrcamento({
+        projeto: projeto.toObject(),
+        dados,
+        empresa_id: tenantDoReq(req),
+        por: req.auth?.email ?? req.auth?.userId ?? null,
+      })
+      orcamento_agregado = { _id: r.orcamento?._id, estado: r.orcamento?.estado, acao: r.acao }
+    }
+
     console.log(`✓ Etapa "${etapa}" salva para projeto ${id}`)
     res.json({
       sucesso: true,
       etapa,
       projeto_id: projeto._id,
       schema_version: projeto.schema_version,
+      ...(orcamento_agregado ? { orcamento_agregado } : {}),
       // Retorna apenas o subdoc atualizado + metadados básicos (não o doc inteiro)
       [etapa === 'fatura' ? 'fatura_extracao' : etapa]: projeto[etapa === 'fatura' ? 'fatura_extracao' : etapa],
     })
@@ -797,6 +880,25 @@ export const salvarEtapaProjetoFV = async (req, res) => {
   }
 }
 
+/**
+ * POST /:id/unifilar/gerar — unifilar do projeto pelo motor canônico (FV-DOM-007B).
+ *
+ * ── O que esta rota fazia antes ──────────────────────────────────────────────
+ * Delegava ao `unifilarController.gerarUnifilarFV` montando o corpo à mão com
+ * `modelo: 'Fronius SYMO'`, `tensao_rede: 'trifasico'` e `bess: null` FIXOS — e
+ * lia `dim.numPaineis`/`dim.numStrings`, que não existem no documento (o schema
+ * usa `num_paineis`/`num_strings`). Resultado: `Array(undefined)` estourava, ou o
+ * diagrama saía descrevendo um inversor que o projeto não tem.
+ *
+ * Agora chama o motor do domínio, que usa a engenharia normativa real e desenha
+ * o equipamento, a topologia MPPT e a ligação do projeto.
+ *
+ * A rota é a MESMA — nenhum endpoint novo foi criado. O que mudou foi de onde
+ * vem o desenho.
+ *
+ * Sempre desenha o estado ATUAL (`origem: 'dados_atuais'`). O desenho congelado
+ * é outro fato e vive em `governanca.snapshot_unifilar` (M-2).
+ */
 export const gerarUnifilarProjeto = async (req, res) => {
   try {
     const { id } = req.params
@@ -806,36 +908,39 @@ export const gerarUnifilarProjeto = async (req, res) => {
     }
 
     const projeto = await ProjetoFV.findOne(aplicarEscopo({ _id: id }, req, { contexto: 'projetoFV' }))
+      .populate('clienteId', 'nome')
+      .lean()
     if (!projeto) return res.status(404).json({ erro: 'Projeto não encontrado' })
 
-    const dim = projeto.dimensionamento
-    if (!dim) {
-      return res.status(400).json({ erro: 'Projeto sem dimensionamento' })
+    // Ativos tornam os símbolos clicáveis (gêmeo digital). São opcionais: sem
+    // eles o diagrama sai igual, apenas estático — por isso a falha aqui não
+    // derruba a geração.
+    let ativos = []
+    try {
+      const { AtivoEquipamento } = await import('../models/AtivoEquipamento.js')
+      ativos = await AtivoEquipamento.find(
+        aplicarEscopo({ projeto_id: id }, req, { contexto: 'unifilar.ativos' }),
+      ).lean()
+    } catch (e) {
+      console.warn('⚠️ unifilar: ativos indisponíveis —', e.message)
     }
 
-    const { gerarUnifilarFV } = await import('../controllers/unifilarController.js')
+    const { gerarUnifilarDoProjeto } = await import('../dominio/unifilar/index.js')
+    const resultado = gerarUnifilarDoProjeto(projeto, {
+      ativos,
+      nomeCliente: projeto.clienteId?.nome ?? null,
+    })
 
-    const res2 = {
-      json: (data) => {
-        res.json(data)
-      },
-      status: (code) => ({
-        json: (data) => res.status(code).json(data),
-      }),
-    }
-
-    gerarUnifilarFV(
-      {
-        body: {
-          paineis: dim.numPaineis,
-          strings: Array(dim.numStrings).fill(null),
-          inversor: { potenciaKW: dim.potenciaArredondada, modelo: 'Fronius SYMO' },
-          tensao_rede: 'trifasico',
-          bess: null,
-        },
-      },
-      res2
-    )
+    res.json({
+      sucesso: true,
+      svg: resultado.svg,
+      origem: resultado.origem,
+      // Sem fallback silencioso: quem consome sabe qual campo veio do projeto e
+      // qual foi assumido pelo motor.
+      proveniencia: resultado.proveniencia,
+      lacunas: resultado.lacunas,
+      especificacoes: resultado.especificacoes,
+    })
   } catch (err) {
     console.error('❌ Erro ao gerar unifilar:', err)
     res.status(err.status || 500).json({ erro: err.message, codigo: err.codigo })
@@ -888,9 +993,10 @@ export const congelarProjetoFV = async (req, res) => {
       novo_status = 'CONGELADO',
     } = req.body || {}
 
-    const STATUS_VALIDOS = ['CONGELADO', 'HOMOLOGADO']
-    if (!STATUS_VALIDOS.includes(novo_status)) {
-      return res.status(400).json({ erro: `novo_status deve ser um de: ${STATUS_VALIDOS.join(', ')}` })
+    // Subconjunto deliberado do vocabulário canônico: este endpoint captura
+    // snapshot, então só produz estados travados (FV-UX-005 / F3.3).
+    if (!FREEZE_STATUS_TRAVADOS.includes(novo_status)) {
+      return res.status(400).json({ erro: `novo_status deve ser um de: ${FREEZE_STATUS_TRAVADOS.join(', ')}` })
     }
 
     const projeto = await ProjetoFV.findOne(aplicarEscopo({ _id: id }, req, { contexto: 'projetoFV' }))
@@ -1058,9 +1164,9 @@ export const alterarStatusGovernanca = async (req, res) => {
     if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ erro: 'ID inválido' })
 
     const { status, usuario = null } = req.body || {}
-    const STATUS_VALIDOS = ['RASCUNHO', 'EM_REVISAO', 'APROVADO', 'CONGELADO', 'HOMOLOGADO']
-    if (!STATUS_VALIDOS.includes(status)) {
-      return res.status(400).json({ erro: `status deve ser um de: ${STATUS_VALIDOS.join(', ')}` })
+    // FV-UX-005 (F3.3): vocabulário vem da fonte única, não de uma cópia local.
+    if (!ehFreezeStatusValido(status)) {
+      return res.status(400).json({ erro: `status deve ser um de: ${FREEZE_STATUS.join(', ')}` })
     }
 
     const projeto = await ProjetoFV.findOne(aplicarEscopo({ _id: id }, req, { contexto: 'projetoFV' }))
@@ -1075,13 +1181,8 @@ export const alterarStatusGovernanca = async (req, res) => {
     // P1-FV-FREEZE-TO-ENGINEERING-01: valida a transição do ciclo de vida.
     // CONGELADO/HOMOLOGADO via /governanca/congelar (capturam snapshot); aqui
     // tratamos as transições de status sem snapshot (aprovação, reabertura).
-    const TRANSICOES_VALIDAS = {
-      RASCUNHO:   ['APROVADO', 'EM_REVISAO'],
-      EM_REVISAO: ['APROVADO', 'RASCUNHO'],
-      APROVADO:   ['CONGELADO', 'RASCUNHO', 'EM_REVISAO'],
-      CONGELADO:  ['HOMOLOGADO', 'EM_REVISAO'],
-      HOMOLOGADO: ['EM_REVISAO'],
-    }
+    // FV-UX-006 (F3.1): tabela vem da fonte única (era inline e duplicada na UI).
+    const TRANSICOES_VALIDAS = TRANSICOES_FREEZE
     if (status !== anterior && !(TRANSICOES_VALIDAS[anterior] || []).includes(status)) {
       return res.status(422).json({
         erro: `Transição inválida: ${anterior} → ${status}.`,
@@ -1239,44 +1340,12 @@ function _carregarComercial(gov) {
   }
 }
 
-const WORKFLOW_COMERCIAL = ['RASCUNHO', 'EM_ANALISE', 'NEGOCIACAO', 'AGUARDANDO_CLIENTE', 'APROVADO',
-  'ASSINADO', 'IMPLANTACAO', 'CONCLUIDO', 'REPROVADO', 'CANCELADO', 'EXPIRADO']
-
-// S4.3: máquina de estados (espelho de comercialStateMachine.js no frontend)
-const TRANSICOES_COMERCIAL = {
-  RASCUNHO:           ['EM_ANALISE', 'CANCELADO'],
-  EM_ANALISE:         ['NEGOCIACAO', 'AGUARDANDO_CLIENTE', 'REPROVADO', 'CANCELADO'],
-  NEGOCIACAO:         ['AGUARDANDO_CLIENTE', 'APROVADO', 'REPROVADO', 'CANCELADO'],
-  AGUARDANDO_CLIENTE: ['APROVADO', 'NEGOCIACAO', 'REPROVADO', 'EXPIRADO', 'CANCELADO'],
-  APROVADO:           ['ASSINADO', 'NEGOCIACAO', 'CANCELADO', 'EXPIRADO'],
-  ASSINADO:           ['IMPLANTACAO', 'CANCELADO'],
-  IMPLANTACAO:        ['CONCLUIDO', 'CANCELADO'],
-  CONCLUIDO:          [],
-  REPROVADO:          ['EM_ANALISE'],
-  CANCELADO:          [],
-  EXPIRADO:           ['EM_ANALISE'],
-}
-const ORDEM_COMERCIAL = { RASCUNHO: 1, EM_ANALISE: 2, NEGOCIACAO: 3, AGUARDANDO_CLIENTE: 4, APROVADO: 5, ASSINADO: 6, IMPLANTACAO: 7, CONCLUIDO: 8 }
-const CONGELADOS_COMERCIAL = ['ASSINADO', 'IMPLANTACAO', 'CONCLUIDO']
-
-function _statusJuridicoDeEstado(estado) {
-  if (['ASSINADO', 'IMPLANTACAO', 'CONCLUIDO'].includes(estado)) return 'ASSINADO'
-  if (estado === 'CANCELADO') return 'CANCELADO'
-  if (estado === 'EXPIRADO') return 'EXPIRADO'
-  if (estado === 'REPROVADO') return 'EM_REVISAO'
-  return 'PENDENTE_ASSINATURA'
-}
-
-function _validarTransicaoComercial(de, para) {
-  if (de === para) return { ok: false, motivo: 'Estado de origem e destino iguais.' }
-  if (!WORKFLOW_COMERCIAL.includes(para)) return { ok: false, motivo: `Estado "${para}" inválido.` }
-  const permitidas = TRANSICOES_COMERCIAL[de] || []
-  if (permitidas.includes(para)) return { ok: true }
-  if (CONGELADOS_COMERCIAL.includes(de) && (ORDEM_COMERCIAL[para] || 0) < (ORDEM_COMERCIAL[de] || 0)) {
-    return { ok: false, requer_revisao: true, motivo: `${de}: retroceder para ${para} exige nova revisão comercial.` }
-  }
-  return { ok: false, motivo: `Transição ${de} → ${para} não permitida.` }
-}
+// FV-UX-006 (F3.1): as tabelas WORKFLOW_COMERCIAL / TRANSICOES_COMERCIAL /
+// ORDEM_COMERCIAL / CONGELADOS_COMERCIAL e as funções de validação viviam aqui,
+// duplicadas em frontend/src/utils/comercialStateMachine.js. Agora vêm da fonte
+// única. Os aliases locais preservam os nomes usados no restante do arquivo.
+const _statusJuridicoDeEstado = statusJuridicoDeEstado
+const _validarTransicaoComercial = validarTransicaoComercial
 
 function _proximaRevComercial(atual) {
   return _proximaRevisao(atual || 'A')
@@ -1561,13 +1630,31 @@ function _ipReal(req) {
   return { ip_real, forwarded_for: fwd || null, proxy_chain, user_agent: req.headers['user-agent'] || null }
 }
 
+// FV-UX-006 (F3.1): a normalização do vocabulário legado dos cenários (FV-UX-005 /
+// defeito I-2) passou para a fonte única — `normalizarFreezeLegado`.
+const _normalizarFreezeCenario = normalizarFreezeLegado
+
+/**
+ * Grava `freeze_status` num cenário rejeitando valor fora do vocabulário canônico.
+ * O schema não protege este caminho (Mixed), então a validação é em runtime.
+ */
+function _definirFreezeCenario(cen, valor) {
+  if (!ehFreezeStatusValido(valor)) {
+    throw Object.assign(
+      new Error(`freeze_status "${valor}" fora do vocabulário canônico: ${FREEZE_STATUS.join(', ')}`),
+      { status: 422, codigo: 'FREEZE_STATUS_INVALIDO' },
+    )
+  }
+  cen.freeze_status = valor
+}
+
 // Carrega/inicializa o objeto de governança de um cenário específico.
 function _carregarCenarioGov(com, scenarioId) {
   const mapa = (com.cenarios_governanca && typeof com.cenarios_governanca === 'object')
     ? { ...com.cenarios_governanca } : {}
   const atual = mapa[scenarioId] || {
     scenario_id: scenarioId,
-    freeze_status: 'EDITAVEL',          // EDITAVEL | CONGELADO
+    freeze_status: 'RASCUNHO',          // vocabulário canônico (FREEZE_STATUS)
     workflow_status: 'EM_ANALISE',
     status_juridico: 'PENDENTE_ASSINATURA',
     snapshot_comercial: null,
@@ -1584,6 +1671,8 @@ function _carregarCenarioGov(com, scenarioId) {
   atual.assinaturas = Array.isArray(atual.assinaturas) ? [...atual.assinaturas] : []
   atual.revisoes = Array.isArray(atual.revisoes) ? [...atual.revisoes] : []
   atual.timeline = Array.isArray(atual.timeline) ? [...atual.timeline] : []
+  // FV-UX-005 (F3.3): converte 'EDITAVEL' legado para o canônico ao carregar.
+  atual.freeze_status = _normalizarFreezeCenario(atual.freeze_status)
   return { mapa, cen: atual }
 }
 
@@ -1619,7 +1708,7 @@ export const congelarCenarioComercial = async (req, res) => {
       return res.status(409).json({ erro: `Cenário ${scenario_id} já está CONGELADO — crie revisão para alterar.`, codigo: 'CENARIO_CONGELADO' })
     }
 
-    cen.freeze_status = 'CONGELADO'
+    _definirFreezeCenario(cen, 'CONGELADO')
     cen.congelado_em = agora
     cen.hash = hash || cen.hash
     if (snapshots.comercial   != null) cen.snapshot_comercial   = snapshots.comercial
@@ -1662,7 +1751,7 @@ export const workflowCenarioComercial = async (req, res) => {
     const agora = new Date()
     cen.workflow_status = status
     cen.status_juridico = _statusJuridicoDeEstado(status)
-    if (CONGELADOS_COMERCIAL.includes(status)) { cen.freeze_status = 'CONGELADO'; cen.congelado_em = cen.congelado_em || agora }
+    if (CONGELADOS_COMERCIAL.includes(status)) { _definirFreezeCenario(cen, 'CONGELADO'); cen.congelado_em = cen.congelado_em || agora }
     cen.timeline.push({ timestamp: agora, usuario, acao: 'workflow', detalhe: `Cenário ${scenario_id}: ${anterior} → ${status}.` })
 
     await _salvarCenario(projeto, govObj, com, mapa, cen, res)
@@ -1710,7 +1799,7 @@ export const assinarCenarioComercial = async (req, res) => {
     if (PAPEIS.every(p => papeisAssinados.has(p))) {
       cen.workflow_status = 'ASSINADO'
       cen.status_juridico = 'ASSINADO'
-      cen.freeze_status = 'CONGELADO'
+      _definirFreezeCenario(cen, 'CONGELADO')
       cen.congelado_em = cen.congelado_em || agora
       cen.timeline.push({ timestamp: agora, usuario, acao: 'workflow', detalhe: `Cenário ${scenario_id} ASSINADO (todas as assinaturas).` })
     }
@@ -1749,7 +1838,9 @@ export const revisaoCenarioComercial = async (req, res) => {
       snapshot_comercial: cen.snapshot_comercial || null,
     })
     cen.revisao_atual = novaRev
-    cen.freeze_status = 'EDITAVEL'
+    // FV-UX-005 (F3.3): revisão reabre o cenário — 'EDITAVEL' era o vocabulário
+    // paralelo; o equivalente canônico de 'reaberto após revisão' é EM_REVISAO.
+    _definirFreezeCenario(cen, 'EM_REVISAO')
     cen.workflow_status = 'EM_ANALISE'
     cen.status_juridico = 'EM_REVISAO'
     cen.congelado_em = null

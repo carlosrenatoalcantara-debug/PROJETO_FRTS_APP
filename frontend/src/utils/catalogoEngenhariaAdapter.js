@@ -9,7 +9,7 @@
  */
 
 // P0-DIMENSIONAMENTO-ENGINEERING-RESTORE-01: reúso da fonte única de tecnologia (sem duplicar regras).
-import { tecnologiaInversor } from '../../../backend/src/services/regrasPlausibilidade.js'
+import { tecnologiaInversor } from '@fortesolar/fv-shared/engenharia/regras-plausibilidade'
 
 const num = (v) => { if (v == null || v === '') return null; const n = Number(v); return Number.isFinite(n) ? n : null }
 const pick = (e, ks) => { for (const k of ks) { const v = num(e?.[k]); if (v !== null) return v } return null }

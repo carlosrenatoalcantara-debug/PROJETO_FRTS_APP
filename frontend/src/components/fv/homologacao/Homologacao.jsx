@@ -7,7 +7,6 @@ import CentralHistorico from './CentralHistorico'
 import ChecklistDocumentos from './ChecklistDocumentos'
 import BeneficiariasPainel from '../BeneficiariasPainel'
 import { obterEquipamentosEngenharia } from '../../../utils/engenhariaGovernanca'
-import { obterLocalProjeto } from '../../../../../backend/src/dominio/local/index.js'
 
 /**
  * P1-CENTRAL-HOMOLOGACAO-MVP — Central Operacional de Homologação.
@@ -25,7 +24,9 @@ export default function Homologacao({ projetoId, projeto, cliente }) {
   const usaSnapshot = eng.origem === 'snapshot'
 
   const idProjeto = projetoId || proj?._id
-  const estado = proj?.estado || obterLocalProjeto(proj).estado
+  // FV-UX-003 (F2): Local resolvido chega pronto de GET /api/projetos-fv/:id
+  // (campo derivado local_resolvido). O adapter do Core permanece no backend.
+  const estado = proj?.estado || proj?.local_resolvido?.estado
   const concessionaria = proj?.homologacao?.concessionaria || proj?.concessionaria
 
   const abas = [

@@ -1,4 +1,6 @@
 import mongoose from 'mongoose'
+// FV-UX-006 (F3.1): vocabulário de freeze_status — fonte única compartilhada.
+import { FREEZE_STATUS } from '@fortesolar/fv-shared/estados/governanca-freeze'
 
 // ─── Subdoc schemas v3 ────────────────────────────────────────────────────────
 // Todos os subdocs abaixo são NOVOS (S2.7 additive).
@@ -506,6 +508,16 @@ const comercialV3Schema = new mongoose.Schema({
   }],
 }, { _id: false })
 
+/**
+ * FV-UX-006 (F3.1): o vocabulário de `freeze_status` vem da fonte única em
+ * @fortesolar/fv-shared/estados/governanca-freeze — o mesmo módulo que alimenta
+ * os guards do controller e a UI. Reexportado aqui porque o enum do schema o
+ * consome e os consumidores históricos importam do model.
+ */
+export {
+  FREEZE_STATUS, FREEZE_STATUS_TRAVADOS, ehFreezeStatusValido,
+} from '@fortesolar/fv-shared/estados/governanca-freeze'
+
 const governancaV3Schema = new mongoose.Schema({
   /** Versão do motor de engenharia que gerou os snapshots (ex: 'ENG-2.0'). */
   engineering_version: { type: String, default: null },
@@ -517,7 +529,7 @@ const governancaV3Schema = new mongoose.Schema({
    */
   freeze_status: {
     type: String,
-    enum: ['RASCUNHO', 'EM_REVISAO', 'APROVADO', 'CONGELADO', 'HOMOLOGADO', null],
+    enum: [...FREEZE_STATUS, null],
     default: 'RASCUNHO',
   },
 

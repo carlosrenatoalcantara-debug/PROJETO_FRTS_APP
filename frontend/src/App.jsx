@@ -35,6 +35,7 @@ import AlertCenter            from './pages/AlertCenter'
 import RedefinirSenha         from './pages/RedefinirSenha'
 import AtivoQR                from './pages/AtivoQR'
 import Unifilar               from './pages/Unifilar'
+import { rotasFv } from './fv/rotas'
 
 export default function App() {
   return (
@@ -81,6 +82,10 @@ export default function App() {
         <Route path="equipamentos/baterias"        element={<Baterias />} />
         <Route path="admin/catalogo/qualidade"     element={<AdminCatalogoQualidade />} />
         <Route path="kits/recomendar"              element={<RecomendacaoKits />} />
+
+        {/* FV-UX-010 — nova UX FV (fluxo canônico). Convive com as rotas
+            clássicas acima, que permanecem inalteradas. */}
+        {rotasFv}
       </Route>
     </Routes>
   )

@@ -12,7 +12,6 @@ import { calcularDimensionamentoAuto, selecionarKitsAuto, gerarOrcamentoAuto } f
 import { gerarUnifilarSVG } from '../utils/gerarUnifilarSVG'
 import { gerarPropostaPDF, abrirOuBaixarProposta } from '../utils/gerarPropostaPDF'
 import { obterIrradianciaCity, obterIrradianciaFallback } from '../data/irradianciaRN.js'
-import NovaPropostaV2 from './NovaPropostaV2'  // S2 — funil v2 (atrás da flag ?wizard=v2)
 
 const ETAPAS = [
   { num: 1, rotulo: 'Localização', icone: MapPin },
@@ -1023,12 +1022,10 @@ export default function NovaProposta() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
 
-  // ─── DEPRECATED_DO_NOT_USE — Funil v2 desabilitado ────────────────────────
+  // ─── DEPRECATED_DO_NOT_USE ────────────────────────────────────────────────
   // Substituído por ProjetosFVNovo (/projetos-fv/novo), que é o wizard oficial FV.
-  // Arquivo NovaPropostaV2.jsx mantido em disco para histórico — NÃO apagar.
-  // if (searchParams.get('wizard') === 'v2') {
-  //   return <NovaPropostaV2 />
-  // }
+  // FV-UX-002 (F1): o funil v2 (NovaPropostaV2 + components/fv/funilv2/) foi
+  // removido — estava desabilitado e sem consumidores. Histórico no Git.
   // ─────────────────────────────────────────────────────────────────────────
 
   const clienteId = searchParams.get('clienteId')

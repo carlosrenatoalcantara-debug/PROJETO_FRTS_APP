@@ -63,14 +63,22 @@ export function recomendarSistema(req, res) {
       razaoRecomendacao.push('BESS não é economicamente viável no cenário atual')
     }
 
-    // Análise Financeira
-    const paybackAnos = financeiro?.payback || 8
+    // ── Análise Financeira ────────────────────────────────────────────────────
+    // FV-DOM-011B: payback e TIR tinham fallbacks numéricos fixos, e isso fazia
+    // esta ROTA DE DECISÃO afirmar "excelente retorno financeiro (TIR > 10%)"
+    // para projetos sem TIR nenhuma — o valor fabricado passava no teste.
+    // Ausência agora é `null`, as comparações exigem número, e a lacuna vai
+    // declarada na resposta.
+    //
+    // `economiaAnual` mantém a estimativa por consumo (fallback de CÁLCULO
+    // declarado, não valor fabricado) — mexer nela seria mudar fórmula.
+    const paybackAnos = financeiro?.payback ?? null
     const economiaAnual = financeiro?.economia_total_25anos ? Math.round(financeiro.economia_total_25anos / 25) : consumo.consumoMensal * 12 * 0.95 * 0.3
-    const tir = financeiro?.tir || 12
+    const tir = financeiro?.tir ?? null
 
-    if (tir > 10) {
+    if (tir != null && tir > 10) {
       razaoRecomendacao.push('excelente retorno financeiro (TIR > 10%)')
-    } else if (tir > 6) {
+    } else if (tir != null && tir > 6) {
       razaoRecomendacao.push('retorno financeiro satisfatório')
     }
 
@@ -100,8 +108,10 @@ export function recomendarSistema(req, res) {
       bess: temBESS ? {
         capacidade_kwh: bess?.capacidadeKWh || 10,
         autonomia_horas: bess?.autonomiaHoras || 4,
-        investimento: bess?.investimentoTotal || 45000,
-        payback_anos: bess?.paybackComBateria || 12
+        // FV-DOM-011B: havia fallbacks fixos aqui — investimento e payback de BESS
+        // fabricados quando o dimensionamento não os produziu.
+        investimento: bess?.investimentoTotal ?? null,
+        payback_anos: bess?.paybackComBateria ?? null
       } : null
     }
 
@@ -120,7 +130,9 @@ export function recomendarSistema(req, res) {
       justificativa += `Sem bateria no cenário atual (economicamente menos viável). `
     }
 
-    justificativa += `Economia estimada de R$ ${economiaAnual.toLocaleString()}/ano com payback de ${paybackAnos} anos.`
+    justificativa += paybackAnos == null
+      ? `Economia estimada de R$ ${economiaAnual.toLocaleString()}/ano. Payback não calculado — faltam dados financeiros.`
+      : `Economia estimada de R$ ${economiaAnual.toLocaleString()}/ano com payback de ${paybackAnos} anos.`
 
     // Adicionar alertas de segurança
     if (!validacao?.valido) {
@@ -138,8 +150,14 @@ export function recomendarSistema(req, res) {
         anual: economiaAnual
       },
       payback: paybackAnos,
-      tir: +(tir.toFixed(2)),
-      vpl: financeiro?.vpl || null,
+      tir: tir == null ? null : +(tir.toFixed(2)),
+      vpl: financeiro?.vpl ?? null,
+      // Campos que não puderam ser calculados — em vez de número assumido.
+      lacunas: [
+        paybackAnos == null && 'payback',
+        tir == null && 'tir',
+        financeiro?.vpl == null && 'vpl',
+      ].filter(Boolean),
       confiabilidade,
       alertas: alertas.length > 0 ? alertas : null,
       analise: {

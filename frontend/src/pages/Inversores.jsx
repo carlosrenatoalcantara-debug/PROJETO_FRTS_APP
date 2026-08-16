@@ -5,7 +5,7 @@ import Button from '../components/ui/Button'
 import ModalNovoInversor from '../components/equipamentos/ModalNovoInversor'
 import AssistenteImportacaoDatasheet from '../components/equipamentos/AssistenteImportacaoDatasheet'
 // P1-INV-UI-01: edição manual dirigida pelo MESMO esquema do SSOT (sem dialeto).
-import { obterCamposEditaveis, classificarCampos, STATUS } from '../../../backend/src/ai/camposEquipamento.js'
+import { obterCamposEditaveis, classificarCampos, STATUS } from '@fortesolar/fv-shared/ai/campos-equipamento'
 import BadgeEngenharia from '../components/engenharia/BadgeEngenharia.jsx'
 import { payloadEngenharia } from '../utils/engenharia/engenhariaPayload.js'
 

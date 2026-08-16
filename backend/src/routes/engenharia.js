@@ -54,6 +54,17 @@ const _ok = val => typeof val === 'string' && val.trim().length > 0
 // Rotas existentes — NÃO ALTERAR
 // ══════════════════════════════════════════════════════════════════════════════
 
+// ── ROTA ÓRFÃ TECNICAMENTE PRESERVADA — FV-DOM-011C ──────────────────────────
+// `POST /api/engenharia/fv` tem ZERO consumidores no frontend (confirmado por
+// varredura em `hardeningFinanceiro.check.js`). Ainda assim NÃO é removida:
+//
+// o `calcularFluxoCaixa` que ela expõe é a única implementação do sistema com
+// VPL e payback DESCONTADO — precisamente os indicadores que a decisão D2
+// (adotar ou não VPL, e com qual taxa) vai avaliar. Removê-la agora apagaria a
+// referência antes de a decisão existir.
+//
+// Reavaliar quando D2 for fechada. Sem consumidor, o risco de manter é nulo:
+// a rota não é chamada por ninguém e não afeta EV.
 router.post('/fv', calcularFV)
 router.post('/compatibilidade-eletrica', analisarCompatibilidadeEletrica)
 router.post('/optimizer-arranjo', otimizarArranjoHandler)

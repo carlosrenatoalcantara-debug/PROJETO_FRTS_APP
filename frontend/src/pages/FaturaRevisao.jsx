@@ -83,7 +83,7 @@ export default function FaturaRevisao() {
     <div className="space-y-5 max-w-5xl mx-auto">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2"><FileText size={22} /> Revisão de Faturas</h1>
-        <button onClick={() => navigate('/projetos-fv')} className="text-sm text-slate-500 hover:text-slate-700">← Voltar</button>
+        <button onClick={() => navigate('/fv/projetos')} className="text-sm text-slate-500 hover:text-slate-700">← Voltar</button>
       </div>
 
       {msg && <div className={`px-4 py-2 rounded border text-sm ${msg.tipo === 'erro' ? 'bg-red-50 border-red-200 text-red-700' : 'bg-emerald-50 border-emerald-200 text-emerald-700'}`}>{msg.texto}</div>}

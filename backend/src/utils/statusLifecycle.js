@@ -1,35 +1,19 @@
 /**
  * statusLifecycle.js — Sprint 8.4
+ *
  * Helpers PUROS do ciclo de vida do projeto FV. Sem dependências (mongoose).
- * Aplicados no controller e testáveis em isolamento.
+ *
+ * FV-UX-006 (F3.1): o VOCABULÁRIO e os MAPEAMENTOS do ciclo de vida deixaram de
+ * viver aqui — vivem em @fortesolar/fv-shared/estados/ciclo-vida, junto com os
+ * metadados de apresentação que o frontend mantinha em paralelo. Este arquivo
+ * reexporta para preservar o caminho de import histórico e guarda apenas o que
+ * NÃO é máquina de estados: derivações de compatibilidade e diagnóstico legado.
  */
-
-// Ciclo canônico em UPPERCASE (exibição) — mapeado p/ valores do model (lowercase).
-export const STATUS = [
-  'RASCUNHO', 'EM_ANALISE', 'PROPOSTA', 'APROVADO', 'EXECUCAO',
-  'CONCLUIDO', 'PERDIDO', 'CANCELADO', 'ARQUIVADO',
-]
-
-// Mapa de exibição → valor no model (compat com o enum existente).
-const MAPA_LOWER = {
-  RASCUNHO: 'rascunho', EM_ANALISE: 'em_analise', PROPOSTA: 'proposta',
-  APROVADO: 'aprovado', EXECUCAO: 'em_execucao', CONCLUIDO: 'concluido',
-  PERDIDO: 'perdido', CANCELADO: 'cancelado', ARQUIVADO: 'arquivado',
-}
-// Inverso + apelidos legados.
-const MAPA_UPPER = {
-  rascunho: 'RASCUNHO', em_simulacao: 'RASCUNHO', em_analise: 'EM_ANALISE',
-  dimensionado: 'EM_ANALISE', proposta: 'PROPOSTA', aprovado: 'APROVADO',
-  em_execucao: 'EXECUCAO', concluido: 'CONCLUIDO', perdido: 'PERDIDO',
-  cancelado: 'CANCELADO', arquivado: 'ARQUIVADO',
-}
-
-export function paraModel(displayStatus) {
-  return MAPA_LOWER[displayStatus] || 'rascunho'
-}
-export function paraDisplay(modelStatus) {
-  return MAPA_UPPER[modelStatus] || 'RASCUNHO'
-}
+export {
+  STATUS, paraModel, paraDisplay, ehStatusValido, badgeDe, ESTADOS_CICLO,
+} from '@fortesolar/fv-shared/estados/ciclo-vida'
+import { projetoEstaCongelado } from '@fortesolar/fv-shared/estados/congelamento'
+import { paraDisplay } from '@fortesolar/fv-shared/estados/ciclo-vida'
 
 /**
  * Calcula um status SEGURO para projetos antigos sem `status`.
@@ -50,8 +34,8 @@ export function derivarStatusSeguro(projeto) {
   const temAssinatura = Array.isArray(com.assinaturas) && com.assinaturas.length > 0
   if (temAssinatura) return 'APROVADO'
 
-  const fs = gov.freeze_status
-  if (fs === 'CONGELADO' || fs === 'HOMOLOGADO') return 'PROPOSTA'
+  // FV-DOM-002A: contrato único de congelamento.
+  if (projetoEstaCongelado(projeto)) return 'PROPOSTA'
 
   return 'RASCUNHO'
 }
@@ -65,7 +49,7 @@ export function podeExcluirDefinitivo(projeto) {
   const status = derivarStatusSeguro(projeto)
   if (status !== 'RASCUNHO') return false
   const gov = projeto.governanca || {}
-  if (['CONGELADO', 'HOMOLOGADO'].includes(gov.freeze_status)) return false
+  if (projetoEstaCongelado(projeto)) return false
   if (Array.isArray(gov.comercial?.assinaturas) && gov.comercial.assinaturas.length > 0) return false
   if (Array.isArray(projeto.documentos_tecnicos) && projeto.documentos_tecnicos.length > 0) return false
   // Compat: campo legado documentos[] (se existir)
@@ -98,7 +82,7 @@ export function avaliarLegacy(projeto) {
   if (!projeto._schema && !projeto.wizard_versao) motivos.push('schema_antigo')
 
   const gov = projeto.governanca || {}
-  if (['CONGELADO', 'HOMOLOGADO'].includes(gov.freeze_status)) {
+  if (projetoEstaCongelado(projeto)) {
     if (!gov.snapshot_tecnico && !gov.snapshot_geoespacial) motivos.push('snapshot_ausente')
   }
 

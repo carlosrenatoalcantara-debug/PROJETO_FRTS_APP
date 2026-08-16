@@ -31,19 +31,41 @@ export async function gerarPropostaComercial(projeto, cliente, financeiro = {}) 
   const dataProposal = new Date()
   const numeroProposal = `PROP-${projeto._id || 'DRAFT'}-${dataProposal.getFullYear()}`
 
-  // Dados para cálculos
-  const potenciaKWp = projeto.potencia_kwp || 5
-  const geracaoMensal = (potenciaKWp * 131.44 / 12).toFixed(2)
-  const geracaoAnual = (potenciaKWp * 131.44).toFixed(2)
-  const tarifaMensal = parseFloat(financeiro.tarifa_media || 0.80)
-  const economiaGerada = (geracaoMensal * tarifaMensal).toFixed(2)
-  const contaAtual = financeiro.conta_media || 500
-  const contaApos = Math.max(30, contaAtual - economiaGerada)
-  const investimento = financeiro.investimento_total || 25000
-  const payback = (investimento / (economiaGerada * 12)).toFixed(1)
-  const tir = financeiro.tir || 15.5
-  const vpl = financeiro.vpl || 85000
-  const economiaTotal25anos = (economiaGerada * 12 * 25 * 0.8).toFixed(0)
+  // ── Dados para cálculos ─────────────────────────────────────────────────────
+  // FV-DOM-011B: estes campos tinham defaults FABRICADOS — 5 kWp, tarifa R$ 0,80,
+  // conta R$ 500, investimento R$ 25.000, TIR 15,5 %, VPL R$ 85.000. Um projeto
+  // sem dados financeiros gerava uma proposta ASSINÁVEL com números que não
+  // vieram de lugar nenhum.
+  //
+  // Agora a ausência é `null` e o documento mostra "—". Nenhum substituto foi
+  // inventado. A FÓRMULA do payback não mudou (segue `inv / (economia × 12)`) —
+  // corrigi-la é D1, e continua PENDENTE.
+  const num = (v) => {
+    if (v === null || v === undefined || v === '') return null
+    const n = Number(v)
+    return Number.isFinite(n) ? n : null
+  }
+  /** Ausente → "—". Zero é valor legítimo e continua sendo exibido. */
+  const ou = (v, sufixo = '') => (v == null ? '—' : `${v}${sufixo}`)
+  const moeda = (v) => (v == null ? '—' : `R$ ${Number(v).toLocaleString('pt-BR')}`)
+  const fix = (v, casas) => (v == null ? null : Number(v).toFixed(casas))
+
+  const potenciaKWp = num(projeto.potencia_kwp)
+  const geracaoMensal = potenciaKWp == null ? null : fix(potenciaKWp * 131.44 / 12, 2)
+  const geracaoAnual = potenciaKWp == null ? null : fix(potenciaKWp * 131.44, 2)
+  const tarifaMensal = num(financeiro.tarifa_media)
+  const economiaGerada = (geracaoMensal == null || tarifaMensal == null)
+    ? null : fix(geracaoMensal * tarifaMensal, 2)
+  const contaAtual = num(financeiro.conta_media)
+  const contaApos = (contaAtual == null || economiaGerada == null)
+    ? null : Math.max(30, contaAtual - economiaGerada)
+  const investimento = num(financeiro.investimento_total)
+  const payback = (investimento == null || economiaGerada == null || Number(economiaGerada) === 0)
+    ? null : fix(investimento / (economiaGerada * 12), 1)
+  const tir = num(financeiro.tir)
+  const vpl = num(financeiro.vpl)
+  const economiaTotal25anos = economiaGerada == null
+    ? null : fix(economiaGerada * 12 * 25 * 0.8, 0)
 
   // Funções auxiliares
   function addCabecalho() {
@@ -101,11 +123,11 @@ export async function gerarPropostaComercial(projeto, cliente, financeiro = {}) 
 
   // KPIs em destaque
   const kpis = [
-    { titulo: 'Potência Instalada', valor: `${potenciaKWp} kWp`, icon: '⚡' },
-    { titulo: 'Geração Mensal', valor: `${geracaoMensal} kWh`, icon: '☀️' },
-    { titulo: 'Economia Mensal', valor: `R$ ${economiaGerada}`, icon: '💰' },
-    { titulo: 'Payback', valor: `${payback} anos`, icon: '📊' },
-    { titulo: 'Economia 25 Anos', valor: `R$ ${economiaTotal25anos}`, icon: '🎯' },
+    { titulo: 'Potência Instalada', valor: ou(potenciaKWp, ' kWp'), icon: '⚡' },
+    { titulo: 'Geração Mensal', valor: ou(geracaoMensal, ' kWh'), icon: '☀️' },
+    { titulo: 'Economia Mensal', valor: economiaGerada == null ? '—' : `R$ ${economiaGerada}`, icon: '💰' },
+    { titulo: 'Payback', valor: ou(payback, ' anos'), icon: '📊' },
+    { titulo: 'Economia 25 Anos', valor: economiaTotal25anos == null ? '—' : `R$ ${economiaTotal25anos}`, icon: '🎯' },
   ]
 
   let yKPI = 200
@@ -144,9 +166,9 @@ export async function gerarPropostaComercial(projeto, cliente, financeiro = {}) 
 
   // Linhas
   const linhas = [
-    { desc: 'Consumo Estimado', atual: `R$ ${contaAtual.toFixed(2)}`, depois: `R$ ${contaApos.toFixed(2)}` },
+    { desc: 'Consumo Estimado', atual: contaAtual == null ? '—' : `R$ ${contaAtual.toFixed(2)}`, depois: contaApos == null ? '—' : `R$ ${contaApos.toFixed(2)}` },
     { desc: 'Taxa Mínima', atual: '(Incluída)', depois: 'R$ 30-50' },
-    { desc: 'Economia Mensal', atual: 'R$ 0', depois: `R$ ${economiaGerada}` },
+    { desc: 'Economia Mensal', atual: 'R$ 0', depois: economiaGerada == null ? '—' : `R$ ${economiaGerada}` },
   ]
 
   let rowY = tableY + 35
@@ -162,7 +184,7 @@ export async function gerarPropostaComercial(projeto, cliente, financeiro = {}) 
   // Economia em destaque
   doc.fillColor(CORES.destaque).rect(50, rowY + 10, largura - 100, 40).fill()
   doc.fillColor('white').fontSize(14).font('Helvetica-Bold').text(
-    `ECONOMIA MENSAL: R$ ${economiaGerada}`,
+    economiaGerada == null ? 'ECONOMIA MENSAL: —' : `ECONOMIA MENSAL: R$ ${economiaGerada}`,
     60, rowY + 20, { width: largura - 120 }
   )
   addRodape()
@@ -218,12 +240,12 @@ export async function gerarPropostaComercial(projeto, cliente, financeiro = {}) 
 
   let yFin = 150
   const financeirosItems = [
-    { label: 'Investimento Total', valor: `R$ ${investimento.toLocaleString('pt-BR')}`, destaque: true },
-    { label: 'Payback Simples', valor: `${payback} anos`, destaque: false },
-    { label: 'Taxa Interna de Retorno (TIR)', valor: `${tir}% a.a.`, destaque: false },
-    { label: 'Valor Presente Líquido (VPL)', valor: `R$ ${vpl.toLocaleString('pt-BR')}`, destaque: false },
-    { label: 'Geração Anual Estimada', valor: `${geracaoAnual} kWh`, destaque: false },
-    { label: 'Economia Anual', valor: `R$ ${(economiaGerada * 12).toFixed(2)}`, destaque: false },
+    { label: 'Investimento Total', valor: moeda(investimento), destaque: true },
+    { label: 'Payback Simples', valor: ou(payback, ' anos'), destaque: false },
+    { label: 'Taxa Interna de Retorno (TIR)', valor: ou(tir, '% a.a.'), destaque: false },
+    { label: 'Valor Presente Líquido (VPL)', valor: moeda(vpl), destaque: false },
+    { label: 'Geração Anual Estimada', valor: ou(geracaoAnual, ' kWh'), destaque: false },
+    { label: 'Economia Anual', valor: economiaGerada == null ? '—' : `R$ ${(economiaGerada * 12).toFixed(2)}`, destaque: false },
   ]
 
   financeirosItems.forEach((item) => {
@@ -258,15 +280,15 @@ export async function gerarPropostaComercial(projeto, cliente, financeiro = {}) 
   doc.fontSize(9).font('Helvetica-Bold')
   meses.forEach((mes, idx) => {
     const xMes = 50 + (idx % 6) * 100
-    const valor = (geracaoMensal * geracao_meses[idx]).toFixed(0)
+    const valor = geracaoMensal == null ? '—' : (geracaoMensal * geracao_meses[idx]).toFixed(0)
     doc.fillColor(CORES.fundo).rect(xMes, yMeses, 90, 80).fill()
     doc.fillColor(CORES.primaria).text(mes, xMes + 5, yMeses + 5)
-    doc.fillColor(CORES.destaque).fontSize(12).text(valor + ' kWh', xMes + 5, yMeses + 35)
+    doc.fillColor(CORES.destaque).fontSize(12).text(valor === '—' ? '—' : valor + ' kWh', xMes + 5, yMeses + 35)
     if ((idx + 1) % 6 === 0) yMeses += 95
   })
 
   doc.fillColor(CORES.primaria).fontSize(12).font('Helvetica-Bold').text(
-    `Total Anual: ${geracaoAnual} kWh`,
+    `Total Anual: ${ou(geracaoAnual, ' kWh')}`,
     50, yMeses + 20
   )
   addRodape()
@@ -316,25 +338,27 @@ export async function gerarPropostaComercial(projeto, cliente, financeiro = {}) 
   addCabecalho()
   doc.fillColor(CORES.texto).fontSize(24).font('Helvetica-Bold').text('Detalhamento do Investimento', 40, 80)
 
+  // Sem investimento informado não há composição: `null` percorre a lista e vira
+  // "—". Os percentuais (45/15/25/10/5 %) NÃO mudaram.
   const invest_items = [
-    { desc: 'Kit Fotovoltaico (painéis + inversor)', valor: (investimento * 0.45).toFixed(2) },
-    { desc: 'Materiais e Componentes', valor: (investimento * 0.15).toFixed(2) },
-    { desc: 'Mão de Obra', valor: (investimento * 0.25).toFixed(2) },
-    { desc: 'Projeto Técnico e Homologação', valor: (investimento * 0.10).toFixed(2) },
-    { desc: 'Impostos e Taxas', valor: (investimento * 0.05).toFixed(2) },
+    { desc: 'Kit Fotovoltaico (painéis + inversor)', valor: investimento == null ? null : (investimento * 0.45).toFixed(2) },
+    { desc: 'Materiais e Componentes', valor: investimento == null ? null : (investimento * 0.15).toFixed(2) },
+    { desc: 'Mão de Obra', valor: investimento == null ? null : (investimento * 0.25).toFixed(2) },
+    { desc: 'Projeto Técnico e Homologação', valor: investimento == null ? null : (investimento * 0.10).toFixed(2) },
+    { desc: 'Impostos e Taxas', valor: investimento == null ? null : (investimento * 0.05).toFixed(2) },
   ]
 
   let yInv = 150
   invest_items.forEach((item) => {
     doc.fillColor(CORES.fundo).rect(50, yInv, largura - 100, 25).fill()
     doc.fillColor(CORES.texto).fontSize(10).font('Helvetica').text(item.desc, 60, yInv + 5)
-    doc.fontSize(11).font('Helvetica-Bold').text(`R$ ${parseFloat(item.valor).toLocaleString('pt-BR')}`, largura - 150, yInv + 5)
+    doc.fontSize(11).font('Helvetica-Bold').text(item.valor == null ? '—' : `R$ ${parseFloat(item.valor).toLocaleString('pt-BR')}`, largura - 150, yInv + 5)
     yInv += 30
   })
 
   doc.fillColor(CORES.destaque).rect(50, yInv, largura - 100, 35).fill()
   doc.fillColor('white').fontSize(14).font('Helvetica-Bold').text('TOTAL', 60, yInv + 8)
-  doc.fontSize(16).text(`R$ ${investimento.toLocaleString('pt-BR')}`, largura - 200, yInv + 5)
+  doc.fontSize(16).text(moeda(investimento), largura - 200, yInv + 5)
 
   yInv += 50
   doc.fillColor(CORES.texto).fontSize(12).font('Helvetica-Bold').text('Condições Comerciais', 50, yInv)
