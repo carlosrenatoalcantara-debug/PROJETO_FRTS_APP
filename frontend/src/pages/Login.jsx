@@ -31,13 +31,26 @@ export default function Login() {
       const dados = await res.json()
 
       if (!res.ok) {
-        setErro(dados.erro || 'Erro ao fazer login')
+        // /api/auth/login responde { error, code }; `erro` era o campo de outro
+        // contrato e deixava toda falha sem mensagem visível.
+        setErro(dados.error || dados.erro || 'Erro ao fazer login')
         return
       }
 
-      // Salvar token
-      localStorage.setItem('token', dados.token)
-      localStorage.setItem('usuario', JSON.stringify(dados.usuario))
+      // O endpoint devolve `accessToken` (par access/refresh). Ler `dados.token`
+      // gravava a string "undefined" no localStorage: o AuthContext a tratava
+      // como sessão válida, o interceptor mandava `Bearer undefined` e toda rota
+      // protegida respondia 401 sem que a tela indicasse falha de login.
+      if (!dados.accessToken) {
+        setErro('Resposta de login inválida do servidor')
+        return
+      }
+      // Mesma chave lida pelo AuthContext e pela camada HTTP.
+      localStorage.setItem('accessToken', dados.accessToken)
+      if (dados.refreshToken) localStorage.setItem('refreshToken', dados.refreshToken)
+      localStorage.setItem('usuario', JSON.stringify(dados.user))
+      // Remove credencial do contrato antigo, que sobreviveria ao novo login.
+      localStorage.removeItem('token')
 
       // Redirecionar para dashboard
       navigate('/dashboard')
@@ -260,12 +273,6 @@ export default function Login() {
           </div>
         </div>
 
-        {/* Info box */}
-        <div className="mt-6 p-4 bg-white/10 backdrop-blur border border-white/20 rounded-lg text-center">
-          <p className="text-sm text-white/80">
-            Demo: <code className="bg-white/10 px-2 py-1 rounded text-xs">demo@fortesolar.com.br</code>
-          </p>
-        </div>
       </div>
 
       <style>{`
