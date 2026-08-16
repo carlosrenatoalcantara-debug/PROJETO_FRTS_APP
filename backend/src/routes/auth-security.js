@@ -40,51 +40,30 @@ router.post('/login', loginLimiter, async (req, res, next) => {
       })
     }
 
-    // ✅ Validar força da senha
-    const passwordValidation = ValidationService.validatePassword(password)
-    if (!passwordValidation.isValid) {
-      return res.status(400).json({
+    // A força da senha NÃO é validada aqui. Esta é a verificação de uma senha
+    // já existente, não a definição de uma nova: aplicar a política de
+    // complexidade no login rejeitaria com 400 a senha CORRETA de qualquer
+    // usuário cadastrado antes da política — antes mesmo de consultar o banco.
+    // A política continua valendo onde a senha é definida (registro e reset).
+
+    // FAIL-CLOSED: sem banco não há como verificar credencial. Nunca autenticar
+    // por fallback — é exatamente assim que o bloco demo removido abaixo
+    // concedia sessão de administrador sem consultar o MongoDB.
+    if (mongoose.connection.readyState !== 1) {
+      auditLogger.logAuthFailure({
+        email, reason: 'DB_OFFLINE', ip: req.ip, userAgent: req.get('user-agent'),
+      })
+      return res.status(503).json({
         success: false,
-        error: 'Senha fraca. Requer: 12+ chars, maiúscula, minúscula, número, caractere especial',
-        feedback: passwordValidation.feedback,
-        code: 'WEAK_PASSWORD',
+        error: 'Serviço de autenticação indisponível.',
+        code: 'DB_OFFLINE',
       })
     }
 
-    // 🔔 TODO: Buscar usuário no MongoDB
-    // const user = await User.findOne({ email })
-    // if (!user || !user.isActive) {
-    //   auditLogger.logAuthFailure({ email, reason: 'USER_NOT_FOUND', ip: req.ip })
-    //   return res.status(401).json({ error: 'Credenciais inválidas' })
-    // }
-
-    // Para demo: aceitar usuário de teste
-    let user = null
-    if (email === 'demo@fortesolar.com.br' && password === 'DemoPass123!') {
-      user = {
-        id: 'demo-user-001',
-        email: 'demo@fortesolar.com.br',
-        nome: 'Usuário Demo',
-        role: 'operator',
-        permissions: ['read:crm', 'write:proposal', 'read:equipment'],
-        isActive: true,
-      }
-    } else if (email === 'admin@fortesolar.com.br' && password === 'AdminPass123!') {
-      user = {
-        id: 'admin-user-001',
-        email: 'admin@fortesolar.com.br',
-        nome: 'Administrador',
-        role: 'admin',
-        permissions: ['*'],
-        isActive: true,
-      }
-    } else {
-      auditLogger.logAuthFailure({
-        email,
-        reason: 'INVALID_CREDENTIALS',
-        ip: req.ip,
-        userAgent: req.get('user-agent'),
-      })
+    // Resposta única para inexistente / senha errada / inativo: distingui-las
+    // permitiria enumerar usuários. O motivo real vai só para a auditoria.
+    const negarCredencial = (reason) => {
+      auditLogger.logAuthFailure({ email, reason, ip: req.ip, userAgent: req.get('user-agent') })
       return res.status(401).json({
         success: false,
         error: 'Credenciais inválidas',
@@ -92,18 +71,43 @@ router.post('/login', loginLimiter, async (req, res, next) => {
       })
     }
 
-    // ✅ Gerar tokens
+    const user = await User.findOne({ email })
+    if (!user) return negarCredencial('USER_NOT_FOUND')
+    if (user.ativo === false) return negarCredencial('USER_INACTIVE')
+
+    const senhaValida = await user.compararSenha(password)
+    if (!senhaValida) return negarCredencial('INVALID_PASSWORD')
+
+    // M-4: sem organização o token não abre nenhum dado de negócio
+    // (exigirOrganizacao devolveria 403 em toda rota TENANT). Recusar aqui, com
+    // código próprio, é mais honesto que entregar uma sessão que não funciona.
+    if (user.empresa_id == null) {
+      auditLogger.logAuthFailure({
+        email, reason: 'TENANT_AUSENTE', ip: req.ip, userAgent: req.get('user-agent'),
+      })
+      return res.status(403).json({
+        success: false,
+        error: 'Usuário sem organização vinculada. Contate o administrador.',
+        code: 'TENANT_AUSENTE',
+      })
+    }
+
+    user.ultimo_login = new Date()
+    await user.save()
+
+    // `role` alimenta o RBAC: decodificarUsuario lê `d.perfil || d.role` e
+    // normalizarPerfil converte para o perfil da matriz.
     const { accessToken, refreshToken, expiresIn } = jwtService.generateTokenPair({
-      id: user.id,
+      id: user._id.toString(),
       email: user.email,
-      role: user.role,
-      permissions: user.permissions,
-      empresa_id: user.empresa_id ?? null,   // SSOT-P3 — M-4
+      role: user.perfil,
+      permissions: [],
+      empresa_id: user.empresa_id,   // SSOT-P3 — M-4: vem do usuário, nunca inventado
     })
 
     // 📋 Log de sucesso
     auditLogger.logAuthSuccess({
-      userId: user.id,
+      userId: user._id.toString(),
       email: user.email,
       method: 'password',
       ip: req.ip,
@@ -117,10 +121,10 @@ router.post('/login', loginLimiter, async (req, res, next) => {
       refreshToken,
       expiresIn,
       user: {
-        id: user.id,
+        id: user._id.toString(),
         email: user.email,
         nome: user.nome,
-        role: user.role,
+        role: user.perfil,
       },
     })
   } catch (error) {
