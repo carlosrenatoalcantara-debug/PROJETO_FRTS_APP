@@ -47,6 +47,39 @@ D5 segue sem valor: **nenhuma foi decidida no código** — protegido por `finan
 
 ---
 
+## 1B · Decisões de engenharia elétrica (FV-DOM-024)
+
+Fechadas em 17/08/2026. Fundamentadas nas normas **já citadas pelo próprio
+código**, medidas na FV-DOM-023. Nenhuma foi escolhida por conveniência.
+
+| # | Questão | Decisão | Fonte |
+|---|---|---|---|
+| **Q1** | Fator de segurança na Isc | `Isc_total = Isc_stc × strings × 1,25` | **NBR 16690 §5.2**, citada em `fv-shared/engenharia/engenhariaNormativa.js` |
+| **Q2** | Coeficiente térmico de Vmpp | usar `coef_temp_voc_pct_c` **provisoriamente** | sem fonte para o `×0,75` do wizard; `coef_temp_vmpp_pct_c` fica para evolução |
+| **Q3** | Vmpp mínimo | comparado em condição **QUENTE** (`Tcel = Tmax + 1,25·(NOCT−20)`) | **NBR 16690 §5.1** |
+| **Q4** | Unidade do coeficiente | catálogo guarda **`%/°C`**; conversão para fração **só na fronteira** | campo `coef_temp_voc_pct_c` + regra `COEF_TEMP_VOC_FORA_FAIXA` (faixa `[-0,5; -0,15]`) |
+| **Q5** | NOCT canônico | **44 °C** quando o módulo não declara | alinhamento com `fv-shared` |
+| **Q6** | Histórico | **congelado** — projetos existentes não são recalculados | coerente com D4 (histórico não se reescreve) |
+| **Modelo A** | `mppts[]` | permanece **topologia autorada pelo projetista**; o sistema valida, não distribui strings | FV-DOM-022/023 |
+
+**Consequência direta:** `compatibilidadeEletricaService` (backend) passa a
+divergir do canônico em Q1 — hoje usa `Isc × strings` sem fator. A validação
+local do `ConfiguradorArranjoFV` diverge em Q2, Q3 e Q4 (esta última é um
+**erro de unidade**: trata `%/°C` como fração e infla a Voc em ~4×, reduzindo o
+máximo de módulos em série de 11 para 3 nos módulos vindos do catálogo Mongo).
+
+**Impacto de Q1 medido (FV-DOM-024)** — catálogo elétrico de referência:
+`227 de 700` combinações módulo × inversor têm faixa de virada. Um arranjo muda
+de aprovado para reprovado quando `limite/1,25 < Isc × strings ≤ limite`, isto
+é, quando a corrente já ocupa **mais de 80 % do limite do MPPT**. O fator é
+monotônico: **só aperta, nunca afrouxa** — zero casos no sentido inverso.
+
+**Contagem de projetos em produção: NÃO DETERMINADA.** Não existe credencial
+somente-leitura; a única do Atlas é a de aplicação, com escrita. Pré-requisito
+declarado da FV-DOM-025.
+
+---
+
 ## 2 · Domínio financeiro
 
 ### Motores consolidados — `packages/fv-shared/financeiro/`

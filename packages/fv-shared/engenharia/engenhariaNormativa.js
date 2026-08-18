@@ -78,6 +78,92 @@ export function calcularTemperaturas(uf) {
   return TEMPERATURAS_UF[(uf || '').toUpperCase()] || TEMP_PADRAO
 }
 
+// ─── PRIMITIVAS CANÔNICAS (FV-DOM-025) ───────────────────────────────────────
+//
+// Este bloco é a FONTE ÚNICA das regras elétricas decididas na FV-DOM-023/024.
+// Antes dele havia três implementações vivas das mesmas fórmulas — este arquivo,
+// `compatibilidadeEletricaService` no backend e `validarArranjo` dentro do
+// `ConfiguradorArranjoFV` — que discordavam sobre o fator da Isc, o coeficiente
+// de Vmpp, o critério de mínimo e a UNIDADE do coeficiente térmico.
+//
+// As funções normativas abaixo passaram a COMPOR estas primitivas. Nenhum
+// resultado mudou: a equivalência é provada valor a valor contra o git em
+// `unifilarEquivalencia.check.js` §7.
+
+/** Temperatura STC — °C. Referência de todas as correções térmicas. */
+export const TEMP_STC_C = 25
+
+/**
+ * NOCT padrão quando o módulo não declara — Q5 (FV-DOM-024).
+ * O backend usava 45 e este arquivo 44; 44 é o canônico.
+ */
+export const NOCT_PADRAO_C = 44
+
+/** Fator de segurança da corrente — Q1, NBR 16690 §5.2. */
+export const FATOR_ISC_NBR16690 = 1.25
+
+/** Irradiâncias de referência do modelo NOCT (IEC 61215 §11.6). */
+const G_STC = 1000
+const G_NOCT_REF = 800
+
+/**
+ * Coeficiente térmico → fração por Kelvin — Q4 (FV-DOM-024).
+ *
+ * ÚNICO ponto de conversão do sistema. O catálogo `Equipamento` guarda em
+ * `%/°C` (campo `coef_temp_voc_pct_c`, faixa [-0,5; -0,15] validada pela regra
+ * `COEF_TEMP_VOC_FORA_FAIXA`). O catálogo elétrico estático deste pacote guarda
+ * em fração (−0,0028). A heurística aceita os dois e é o motivo de a conversão
+ * poder viver num lugar só.
+ *
+ * Sem ela, `%/°C` tratado como fração infla a correção em ~100× — o defeito que
+ * a FV-DOM-023 mediu no wizard (Voc frio de 565 V virava 2179 V).
+ *
+ * @param {number} coef  em %/°C (canônico) ou em fração/K (legado)
+ * @returns {number} fração por Kelvin
+ */
+export function coefParaFracao(coef) {
+  const n = Number(coef)
+  if (!Number.isFinite(n)) return 0
+  return Math.abs(n) > 0.1 ? n / 100 : n
+}
+
+/**
+ * Fator de correção térmica linear (IEC 61215): `1 + α × (T − 25)`.
+ * `> 1` no frio (α < 0, ΔT < 0), `< 1` no calor.
+ *
+ * @param {number} coefFracao  coeficiente já em fração/K
+ * @param {number} tempC       temperatura da grandeza (°C)
+ */
+export function fatorTermico(coefFracao, tempC) {
+  return 1 + coefFracao * (tempC - TEMP_STC_C)
+}
+
+/**
+ * Temperatura de célula pelo modelo NOCT (IEC 61215 §11.6), a G = 1000 W/m²:
+ *   `T_cel = T_amb + (NOCT − 20) × (1000 / 800)`
+ *
+ * @param {number} tAmbC
+ * @param {number} [noctC]  padrão canônico 44 °C (Q5)
+ */
+export function temperaturaCelula(tAmbC, noctC = NOCT_PADRAO_C) {
+  return tAmbC + (noctC - 20) * (G_STC / G_NOCT_REF)
+}
+
+/**
+ * Corrente de projeto — Q1, NBR 16690 §5.2: `Isc × strings × 1,25`.
+ *
+ * Módulos em série não somam corrente; strings em paralelo somam. O fator 1,25
+ * é normativo e vale por MPPT.
+ *
+ * @param {number} isc       Isc do módulo em STC (A)
+ * @param {number} [strings] strings em paralelo no MPPT
+ */
+export function correnteProjeto(isc, strings = 1) {
+  const i = Number(isc), n = Number(strings)
+  if (!Number.isFinite(i) || !Number.isFinite(n)) return 0
+  return i * n * FATOR_ISC_NBR16690
+}
+
 // ─── CÁLCULOS DE TENSÃO E CORRENTE (NBR 16690) ───────────────────────────────
 
 /**
@@ -95,7 +181,10 @@ export function calcularTemperaturas(uf) {
  * @returns {number} Voc_max da string (V)
  */
 export function calcularVocMaxString(voc, nModulos, coefAbs, tmin) {
-  const fator = 1 + coefAbs * (tmin - 25)   // >1 quando Tmin < 25°C
+  // Compõe a primitiva canônica. O piso de 0,8 é trava de segurança desta
+  // apresentação (só dispararia com Tmin acima de ~99 °C) e permanece aqui —
+  // levá-lo à primitiva mudaria o backend, que nunca o teve.
+  const fator = fatorTermico(coefAbs, tmin)   // >1 quando Tmin < 25°C
   return +(voc * nModulos * Math.max(fator, 0.8)).toFixed(1)
 }
 
@@ -116,9 +205,11 @@ export function calcularVocMaxString(voc, nModulos, coefAbs, tmin) {
  * @param {number} noct     - temperatura NOCT do módulo (°C), padrão 44°C
  * @returns {number} Vmpp_min da string (V)
  */
-export function calcularVmppMinString(vmpp, nModulos, coefAbs, tmax, noct = 44) {
-  const tCelula = tmax + 1.25 * (noct - 20)
-  const fator   = 1 + coefAbs * (tCelula - 25)   // <1 quando Tcell > 25°C
+export function calcularVmppMinString(vmpp, nModulos, coefAbs, tmax, noct = NOCT_PADRAO_C) {
+  // `1.25 × (noct − 20)` era o mesmo `(noct − 20) × (1000/800)` do backend,
+  // escrito de outra forma. Agora é uma conta só.
+  const tCelula = temperaturaCelula(tmax, noct)
+  const fator   = fatorTermico(coefAbs, tCelula)   // <1 quando Tcell > 25°C
   return +(vmpp * nModulos * Math.max(fator, 0.5)).toFixed(1)
 }
 
@@ -130,7 +221,7 @@ export function calcularVmppMinString(vmpp, nModulos, coefAbs, tmax, noct = 44) 
  * @returns {number}
  */
 export function calcularIscMax(isc) {
-  return +(isc * 1.25).toFixed(2)
+  return +correnteProjeto(isc, 1).toFixed(2)
 }
 
 // ─── CORRENTE DE SAÍDA AC (NBR 5410) ─────────────────────────────────────────

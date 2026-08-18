@@ -51,6 +51,21 @@ export function listarProjetos() {
 }
 
 /**
+ * Grava UMA etapa do agregado `ProjetoFV` — FV-UX-018.
+ *
+ * `PUT /api/projetos-fv/:id/etapa` já existia e é a operação de escrita do
+ * agregado: lista fechada de etapas, whitelist de campos por etapa, escopo de
+ * organização pelo token (M-4) e guard de congelamento (409 `PROJETO_CONGELADO`).
+ * Nenhuma rota nova foi criada — a lacuna da FV-OPS-001 era de TELA, não de API.
+ *
+ * O servidor decide tudo: o cliente só transporta `{ etapa, dados }`.
+ */
+export function salvarEtapaProjeto(projetoId, etapa, dados) {
+  return enviar(`${base(projetoId)}/etapa`,
+    { method: 'PUT', body: json({ etapa, dados }) }, `salvarEtapa:${etapa}`)
+}
+
+/**
  * Cria um Projeto FV — FV-UX-014.
  *
  * `POST /api/projetos-fv` já existia (é o mesmo endpoint que o wizard usa). O
@@ -59,6 +74,38 @@ export function listarProjetos() {
  */
 export function criarProjeto(dados) {
   return enviar('/api/projetos-fv', { method: 'POST', body: json(dados) }, 'criarProjeto')
+}
+
+/**
+ * Catálogo canônico de equipamentos — FV-UX-019.
+ *
+ * `GET /api/equipamentos/engenharia` é a API oficial do catálogo desde a S8.1:
+ * já filtra por tipo, já exclui o que está bloqueado para projeto
+ * (`utilizavel_em_projeto`) e devolve o documento do `Equipamento` como está.
+ * Nenhum endpoint novo — e nenhuma especificação é copiada para outro lugar.
+ *
+ * @param {'modulo'|'inversor'} tipo
+ */
+export function listarCatalogo(tipo) {
+  return obterJson(`/api/equipamentos/engenharia?tipo=${encodeURIComponent(tipo)}`, 'listarCatalogo')
+}
+
+/**
+ * Executa o motor de dimensionamento existente — FV-UX-020.
+ *
+ * `POST /api/dimensionamento/calcular` roda `dimensionarFV`, que é stateless e
+ * NÃO persiste: a gravação continua sendo `PUT /:id/etapa`. Nenhuma fórmula de
+ * dimensionamento existe do lado do cliente.
+ *
+ * ── Atenção ao que vem junto ─────────────────────────────────────────────────
+ * A resposta traz também `payback_anos`, `vpl_r`, `tir_aa`, `economia_*` e
+ * `custo_total_r`, calculados pelo motor ANTIGO com defaults próprios de tarifa,
+ * custo por kWp, inflação e taxa. A FV-DOM-015E auditou esse bloco e o manteve
+ * onde estava. Ele NÃO entra no fluxo canônico: o financeiro é o contrato V1.
+ */
+export function calcularDimensionamento(dados) {
+  return enviar('/api/dimensionamento/calcular',
+    { method: 'POST', body: json(dados) }, 'calcularDimensionamento')
 }
 
 /** Clientes da organização — necessários para vincular o projeto na criação. */
@@ -145,6 +192,26 @@ export function validarRateioBeneficiarias(projetoId, beneficiarias) {
 export function gerarUnifilar(projetoId) {
   return enviar(`${base(projetoId)}/unifilar/gerar`,
     { method: 'POST', body: json({}) }, 'gerarUnifilar')
+}
+
+// ── Financeiro — FV-UX-017 ──────────────────────────────────────────────────
+// Endpoint canônico do contrato V1 (FV-DOM-012). Nenhum endpoint novo.
+
+/**
+ * Executa o contrato financeiro V1 para o projeto.
+ *
+ * POST porque a rota é POST — o domínio NÃO persiste (INV-58): o resultado é
+ * derivado do projeto e do orçamento vigente a cada chamada. O servidor ignora
+ * o corpo por completo: totais, payback ou VPL enviados pelo cliente não entram
+ * no cálculo.
+ *
+ * Devolve `{ payback, payback_descontado, vpl, tir, economia, premissas,
+ * proveniencia, lacunas, contrato_versao, premissas_versao }`. O cliente
+ * apresenta esses campos como vieram — nenhum é recalculado aqui.
+ */
+export function calcularFinanceiro(projetoId) {
+  return enviar(`${base(projetoId)}/financeiro/calcular`,
+    { method: 'POST', body: json({}) }, 'calcularFinanceiro')
 }
 
 /** Topologia, quando `instalacao_ref` está preenchido. */

@@ -22,7 +22,30 @@ const EMPRESA = {
   cor: process.env.EMPRESA_COR || '#1e40af',
 }
 
-export async function gerarPropostaComercial(projeto, cliente, financeiro = {}) {
+/**
+ * Gera a proposta comercial em PDF.
+ *
+ * ── FV-DOM-015 (execução de D4) ─────────────────────────────────────────────
+ * Este service NÃO calcula mais indicador financeiro nenhum. Ele recebe o
+ * resultado do contrato V1 (`@fortesolar/fv-shared/financeiro/contrato-v1`),
+ * produzido pelo domínio, e APRESENTA.
+ *
+ * O que saiu daqui:
+ *   • payback  `investimento / (economia × 12)`      — sem inflação nem degradação,
+ *                                                      errava até +106 % em prazo longo
+ *   • economia 25 anos  `economia × 12 × 25 × 0,8`   — fator 0,8 sem justificativa
+ *   • geração  `potencia × 131,44`                    — estimativa técnica que
+ *                                                      substituía a geração real
+ *
+ * O que o contrato entrega: payback fracionário (D1) + inteiro secundário, VPL
+ * à TMA nominal de 10 % (D2), TIR com estado de convergência, e `lacunas` quando
+ * uma premissa obrigatória — como a inflação (D3) — não veio do projeto.
+ *
+ * @param {object} projeto
+ * @param {object} cliente
+ * @param {object} contrato  resultado de `calcularFinanceiroDoProjeto`
+ */
+export async function gerarPropostaComercial(projeto, cliente, contrato = null) {
   const doc = new PDFDocument({ bufferPages: true, margin: 40 })
 
   // Configurações do PDF
@@ -31,41 +54,46 @@ export async function gerarPropostaComercial(projeto, cliente, financeiro = {}) 
   const dataProposal = new Date()
   const numeroProposal = `PROP-${projeto._id || 'DRAFT'}-${dataProposal.getFullYear()}`
 
-  // ── Dados para cálculos ─────────────────────────────────────────────────────
-  // FV-DOM-011B: estes campos tinham defaults FABRICADOS — 5 kWp, tarifa R$ 0,80,
-  // conta R$ 500, investimento R$ 25.000, TIR 15,5 %, VPL R$ 85.000. Um projeto
-  // sem dados financeiros gerava uma proposta ASSINÁVEL com números que não
-  // vieram de lugar nenhum.
-  //
-  // Agora a ausência é `null` e o documento mostra "—". Nenhum substituto foi
-  // inventado. A FÓRMULA do payback não mudou (segue `inv / (economia × 12)`) —
-  // corrigi-la é D1, e continua PENDENTE.
   const num = (v) => {
     if (v === null || v === undefined || v === '') return null
     const n = Number(v)
     return Number.isFinite(n) ? n : null
   }
-  /** Ausente → "—". Zero é valor legítimo e continua sendo exibido. */
+  /** Ausente → "—". Zero informado continua sendo zero. */
   const ou = (v, sufixo = '') => (v == null ? '—' : `${v}${sufixo}`)
   const moeda = (v) => (v == null ? '—' : `R$ ${Number(v).toLocaleString('pt-BR')}`)
   const fix = (v, casas) => (v == null ? null : Number(v).toFixed(casas))
 
-  const potenciaKWp = num(projeto.potencia_kwp)
-  const geracaoMensal = potenciaKWp == null ? null : fix(potenciaKWp * 131.44 / 12, 2)
-  const geracaoAnual = potenciaKWp == null ? null : fix(potenciaKWp * 131.44, 2)
-  const tarifaMensal = num(financeiro.tarifa_media)
-  const economiaGerada = (geracaoMensal == null || tarifaMensal == null)
-    ? null : fix(geracaoMensal * tarifaMensal, 2)
-  const contaAtual = num(financeiro.conta_media)
+  // ── Tudo abaixo vem do contrato. Nenhuma fórmula financeira aqui. ──────────
+  const c = contrato ?? {}
+  const ent = c.entradas ?? {}
+  const prem = c.premissas ?? {}
+
+  const potenciaKWp = num(ent.potencia_wp) == null ? null : +(num(ent.potencia_wp) / 1000).toFixed(2)
+  const geracaoAnual = fix(num(ent.geracao_anual_kwh), 2)
+  const geracaoMensal = geracaoAnual == null ? null : fix(Number(geracaoAnual) / 12, 2)
+  const tarifaMensal = num(prem.tarifa_kwh)
+  const investimento = num(ent.investimento_r)
+
+  // Indicadores — do contrato, sem recálculo.
+  const payback = num(c.payback?.anos)
+  const paybackInteiro = num(c.payback?.anos_inteiro)
+  const vpl = num(c.vpl?.valor_r)
+  const tmaPct = num(c.vpl?.taxa_aa_pct)
+  const tir = num(c.tir?.valor_aa_pct)
+  const tirConvergiu = c.tir?.convergiu === true
+  const economiaAnual = num(c.economia?.anual_1ano_r)
+  const economiaTotal25anos = fix(num(c.economia?.horizonte_r), 0)
+  const economiaGerada = economiaAnual == null ? null : fix(economiaAnual / 12, 2)
+
+  // Conta depois: comparação de apresentação. O piso de R$ 30 é o custo de
+  // disponibilidade (REN 1.000/2021), não premissa financeira.
+  const contaAtual = num(projeto.conta_media)
   const contaApos = (contaAtual == null || economiaGerada == null)
-    ? null : Math.max(30, contaAtual - economiaGerada)
-  const investimento = num(financeiro.investimento_total)
-  const payback = (investimento == null || economiaGerada == null || Number(economiaGerada) === 0)
-    ? null : fix(investimento / (economiaGerada * 12), 1)
-  const tir = num(financeiro.tir)
-  const vpl = num(financeiro.vpl)
-  const economiaTotal25anos = economiaGerada == null
-    ? null : fix(economiaGerada * 12 * 25 * 0.8, 0)
+    ? null : Math.max(30, contaAtual - Number(economiaGerada))
+
+  /** Lacunas declaradas pelo contrato — exibidas, nunca preenchidas. */
+  const lacunas = Array.isArray(c.lacunas) ? c.lacunas : []
 
   // Funções auxiliares
   function addCabecalho() {
@@ -241,11 +269,17 @@ export async function gerarPropostaComercial(projeto, cliente, financeiro = {}) 
   let yFin = 150
   const financeirosItems = [
     { label: 'Investimento Total', valor: moeda(investimento), destaque: true },
-    { label: 'Payback Simples', valor: ou(payback, ' anos'), destaque: false },
-    { label: 'Taxa Interna de Retorno (TIR)', valor: ou(tir, '% a.a.'), destaque: false },
-    { label: 'Valor Presente Líquido (VPL)', valor: moeda(vpl), destaque: false },
+    // D1: fracionário é o oficial; o inteiro acompanha como referência conservadora.
+    { label: 'Payback', valor: payback == null ? '—'
+      : `${payback} anos${paybackInteiro == null ? '' : ` (${paybackInteiro}º ano)`}`, destaque: false },
+    // E7: TIR que não convergiu não é apresentada como se fosse resultado.
+    { label: 'Taxa Interna de Retorno (TIR)',
+      valor: (tir == null || !tirConvergiu) ? '—' : `${tir}% a.a.`, destaque: false },
+    // D2: o VPL declara a TMA que o produziu.
+    { label: 'Valor Presente Líquido (VPL)',
+      valor: vpl == null ? '—' : `${moeda(vpl)}${tmaPct == null ? '' : ` (TMA ${tmaPct}% a.a.)`}`, destaque: false },
     { label: 'Geração Anual Estimada', valor: ou(geracaoAnual, ' kWh'), destaque: false },
-    { label: 'Economia Anual', valor: economiaGerada == null ? '—' : `R$ ${(economiaGerada * 12).toFixed(2)}`, destaque: false },
+    { label: 'Economia Anual (ano 1)', valor: moeda(economiaAnual), destaque: false },
   ]
 
   financeirosItems.forEach((item) => {
@@ -260,6 +294,24 @@ export async function gerarPropostaComercial(projeto, cliente, financeiro = {}) 
     }
     yFin += 35
   })
+
+  // ── Lacunas do contrato (D3/D4) ───────────────────────────────────────────
+  // Quando uma premissa obrigatória não veio do projeto, o documento DIZ o que
+  // não pôde ser calculado, em vez de esconder o "—" atrás de um número.
+  const ROTULO_LACUNA = {
+    investimento_r: 'investimento (orçamento aprovado)',
+    geracao_anual_kwh: 'geração anual',
+    tarifa_kwh: 'tarifa de energia',
+    inflacao_energia_aa_pct: 'inflação energética',
+  }
+  if (lacunas.length > 0) {
+    doc.fillColor('#b45309').fontSize(10).font('Helvetica-Bold').text(
+      'Indicadores não calculados — dados ausentes no projeto:', 50, yFin + 5)
+    doc.fillColor(CORES.cinza).fontSize(9).font('Helvetica').text(
+      lacunas.map((l) => ROTULO_LACUNA[l] ?? l).join(' · '), 50, yFin + 20,
+      { width: largura - 100 })
+    yFin += 40
+  }
 
   doc.fillColor(CORES.primaria).fontSize(12).font('Helvetica-Bold').text('Formas de Pagamento:', 50, yFin + 10)
   doc.fillColor(CORES.texto).fontSize(10).font('Helvetica').text(
@@ -444,7 +496,7 @@ export async function gerarPropostaComercial(projeto, cliente, financeiro = {}) 
   doc.fillColor(CORES.texto).fontSize(10).font('Helvetica-Bold').text('Observações:', 50, yAceite)
   yAceite += 20
   doc.fontSize(9).font('Helvetica').text(
-    financeiro.observacoes || 'Esta proposta está vinculada aos dados técnicos do projeto e não constitui promessa de venda.',
+    'Esta proposta está vinculada aos dados técnicos do projeto e não constitui promessa de venda.',
     50, yAceite, { width: largura - 100, align: 'justify' }
   )
 

@@ -79,7 +79,10 @@ function DetalheCotacao({ cotacao, ehOrigem }) {
     ['HSP', p.hsp_kwh_m2_dia != null ? `${p.hsp_kwh_m2_dia} kWh/m²·dia` : null],
     ['Performance ratio', p.performance_ratio != null ? String(p.performance_ratio) : null],
     ['Área disponível', p.area_disponivel_m2 != null ? `${p.area_disponivel_m2} m²` : null],
-  ].filter(([, v]) => v)
+    // FV-UX-018: `0 %` é premissa informada, não ausência — por isso o teste é
+    // `!= null` e o filtro abaixo compara com `null`, não com valor "falsy".
+    ['Inflação energética', p.inflacao_energia_aa_pct != null ? `${p.inflacao_energia_aa_pct}% a.a.` : null],
+  ].filter(([, v]) => v != null)
 
   return (
     <article className="rounded border border-slate-200 bg-white p-4">

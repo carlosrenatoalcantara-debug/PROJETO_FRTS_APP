@@ -154,8 +154,16 @@ export const calcularFinanceiro = async (req, res) => {
 
     const orcamento = await OrcamentoService.vigenteDoProjeto(filtro)
 
+    // FV-DOM-016A: as premissas do cenário (tarifa, inflação) vivem na Cotação
+    // de origem. `cotacao_ref` é obrigatório e imutável no Orçamento, então a
+    // cadeia orçamento → cotação é sempre determinada.
+    const cotacao = orcamento?.cotacao_ref
+      ? await Cotacao.findOne(aplicarEscopo(
+          { _id: orcamento.cotacao_ref }, req, { contexto: 'financeiro.cotacao' })).lean()
+      : null
+
     const { calcularFinanceiroDoProjeto } = await import('../dominio/financeiro/index.js')
-    const resultado = calcularFinanceiroDoProjeto(completo, { orcamento })
+    const resultado = calcularFinanceiroDoProjeto(completo, { orcamento, cotacao })
 
     res.json(envelope(projeto, { financeiro: resultado }))
   } catch (err) { tratar(res, err, 'calcularFinanceiro') }

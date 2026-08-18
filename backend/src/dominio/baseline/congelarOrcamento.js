@@ -114,6 +114,11 @@ export function montarConteudoBaseline({ orcamento, cotacao, em = new Date() }) 
         hsp_kwh_m2_dia:     cotacao.premissas?.hsp_kwh_m2_dia ?? null,
         performance_ratio:  cotacao.premissas?.performance_ratio ?? null,
         area_disponivel_m2: cotacao.premissas?.area_disponivel_m2 ?? null,
+        // FV-DOM-016A: a premissa financeira do cenário entra no congelamento.
+        // Sem ela, a Baseline guardaria um conjunto incompleto — e o retorno do
+        // contrato assinado não seria reproduzível. Baselines ANTERIORES não são
+        // tocadas; o campo simplesmente não existe nelas.
+        inflacao_energia_aa_pct: cotacao.premissas?.inflacao_energia_aa_pct ?? null,
       },
       composicao: (cotacao.composicao || []).map((c) => ({
         equipamento_ref: c.equipamento_ref ? String(c.equipamento_ref) : null,

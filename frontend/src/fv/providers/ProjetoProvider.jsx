@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react'
-import { buscarProjeto } from '../api/agregadosFvApi'
+import { buscarProjeto, salvarEtapaProjeto } from '../api/agregadosFvApi'
 
 /**
  * ProjetoProvider — raiz da nova UX FV — FV-UX-010.
@@ -41,13 +41,30 @@ export function ProjetoProvider({ projetoId, children }) {
 
   useEffect(() => { recarregar() }, [recarregar])
 
+  /**
+   * Grava uma etapa do agregado e RELÊ o servidor — FV-UX-018.
+   *
+   * A resposta do PUT não é adotada como estado: quem manda é o GET seguinte.
+   * O servidor espelha campos flat, carimba `workflow.ultima_atividade` e pode
+   * recusar por congelamento; confiar no eco do PUT criaria uma segunda versão
+   * do projeto do lado do cliente.
+   *
+   * O erro sobe para quem chamou — a tela exibe a mensagem do servidor.
+   */
+  const salvarEtapa = useCallback(async (etapa, dados) => {
+    if (!projetoId) throw new Error('salvarEtapa: projeto ausente')
+    await salvarEtapaProjeto(projetoId, etapa, dados)
+    await recarregar()
+  }, [projetoId, recarregar])
+
   const valor = useMemo(() => ({
     projetoId,
     projeto,
     carregando,
     erro,
     recarregar,
-  }), [projetoId, projeto, carregando, erro, recarregar])
+    acoes: { salvarEtapa },
+  }), [projetoId, projeto, carregando, erro, recarregar, salvarEtapa])
 
   return <Ctx.Provider value={valor}>{children}</Ctx.Provider>
 }

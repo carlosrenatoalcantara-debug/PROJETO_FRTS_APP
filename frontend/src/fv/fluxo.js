@@ -24,10 +24,20 @@
 /** Agregado que cada etapa consome. `null` = agregado ainda não implementado. */
 export const ETAPAS_FLUXO = Object.freeze([
   { chave: 'projeto',       rotulo: 'Projeto',        grupo: 'origem',    agregado: 'ProjetoFV' },
+  // FV-UX-019: a seleção de equipamentos vive no próprio ProjetoFV
+  // (`equipamentos.paineis[]` / `equipamentos.inversor`) e referencia o
+  // catálogo por `equipamento_id`. Não tem agregado próprio.
+  { chave: 'equipamentos',  rotulo: 'Equipamentos',   grupo: 'origem',    agregado: 'ProjetoFV' },
+  // FV-UX-020: o dimensionamento é gravado em `ProjetoFV.dimensionamento` e
+  // calculado pelo motor existente no servidor. Sem agregado próprio.
+  { chave: 'dimensionamento', rotulo: 'Dimensionamento', grupo: 'origem', agregado: 'ProjetoFV' },
   { chave: 'beneficiarias', rotulo: 'Beneficiárias',  grupo: 'origem',    agregado: 'UnidadeBeneficiaria' },
   { chave: 'cotacao',    rotulo: 'Cotação',           grupo: 'comercial', agregado: 'Cotacao' },
   { chave: 'orcamentos', rotulo: 'Orçamentos',        grupo: 'comercial', agregado: 'Orcamento' },
   { chave: 'aprovacao',  rotulo: 'Aprovação',         grupo: 'comercial', agregado: 'Orcamento' },
+  // FV-UX-017: o Financeiro é DERIVADO do projeto + orçamento vigente (INV-58),
+  // não tem agregado próprio. Fica no comercial porque é o retorno da proposta.
+  { chave: 'financeiro', rotulo: 'Financeiro',        grupo: 'comercial', agregado: 'Orcamento' },
   { chave: 'baseline',   rotulo: 'Baseline',          grupo: 'contrato',  agregado: 'Baseline' },
   { chave: 'gate',       rotulo: 'Gate',              grupo: 'contrato',  agregado: 'Baseline' },
   { chave: 'engenharia',  rotulo: 'Engenharia',       grupo: 'execucao', agregado: null, paralela: true },

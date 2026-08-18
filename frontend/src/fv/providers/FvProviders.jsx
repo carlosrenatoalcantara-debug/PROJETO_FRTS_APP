@@ -5,6 +5,7 @@ import { ContratoProvider } from './ContratoProvider'
 import { FasesProvider } from './FasesProvider'
 import { BeneficiariasProvider } from './BeneficiariasProvider'
 import { UnifilarProvider } from './UnifilarProvider'
+import { FinanceiroProvider } from './FinanceiroProvider'
 
 /**
  * FvProviders — composição dos providers da nova UX FV.
@@ -24,7 +25,9 @@ export function FvProviders({ projetoId, children }) {
             <FasesProvider>
               <BeneficiariasProvider>
                 <UnifilarProvider>
-                  {children}
+                  <FinanceiroProvider>
+                    {children}
+                  </FinanceiroProvider>
                 </UnifilarProvider>
               </BeneficiariasProvider>
             </FasesProvider>
@@ -42,3 +45,4 @@ export { useContrato } from './ContratoProvider'
 export { useFases } from './FasesProvider'
 export { useBeneficiarias } from './BeneficiariasProvider'
 export { useUnifilar } from './UnifilarProvider'
+export { useFinanceiro } from './FinanceiroProvider'

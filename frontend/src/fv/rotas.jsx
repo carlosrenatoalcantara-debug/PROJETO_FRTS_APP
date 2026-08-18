@@ -2,10 +2,13 @@ import { Navigate, Route } from 'react-router-dom'
 import ListaProjetos from './paginas/ListaProjetos'
 import ProjetoFluxoLayout from './paginas/ProjetoFluxoLayout'
 import EtapaProjeto from './paginas/etapas/EtapaProjeto'
+import EtapaEquipamentos from './paginas/etapas/EtapaEquipamentos'
+import EtapaDimensionamento from './paginas/etapas/EtapaDimensionamento'
 import EtapaBeneficiarias from './paginas/etapas/EtapaBeneficiarias'
 import EtapaCotacao from './paginas/etapas/EtapaCotacao'
 import EtapaOrcamentos from './paginas/etapas/EtapaOrcamentos'
 import EtapaAprovacao from './paginas/etapas/EtapaAprovacao'
+import EtapaFinanceiro from './paginas/etapas/EtapaFinanceiro'
 import EtapaBaseline from './paginas/etapas/EtapaBaseline'
 import EtapaGate from './paginas/etapas/EtapaGate'
 import EtapaEngenharia from './paginas/etapas/EtapaEngenharia'
@@ -32,10 +35,13 @@ export const rotasFv = (
     <Route path="fv/projetos/:id" element={<ProjetoFluxoLayout />}>
     <Route index element={<Navigate to="projeto" replace />} />
     <Route path="projeto"     element={<EtapaProjeto />} />
+    <Route path="equipamentos" element={<EtapaEquipamentos />} />
+    <Route path="dimensionamento" element={<EtapaDimensionamento />} />
     <Route path="beneficiarias" element={<EtapaBeneficiarias />} />
     <Route path="cotacao"     element={<EtapaCotacao />} />
     <Route path="orcamentos"  element={<EtapaOrcamentos />} />
     <Route path="aprovacao"   element={<EtapaAprovacao />} />
+    <Route path="financeiro"  element={<EtapaFinanceiro />} />
     <Route path="baseline"    element={<EtapaBaseline />} />
     <Route path="gate"        element={<EtapaGate />} />
     <Route path="engenharia"  element={<EtapaEngenharia />} />

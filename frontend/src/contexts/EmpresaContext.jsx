@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState } from 'react'
+import { useAuth } from '../context/AuthContext'
 
 const CHAVE_LS = 'forte_solar_empresa_v1'
 
@@ -143,6 +144,10 @@ function deGrupos(doc) {
 }
 
 export function EmpresaProvider({ children }) {
+  // EmpresaProvider é montado DENTRO de AuthProvider (main.jsx) — o token é a
+  // condição de carregamento da configuração institucional. O valor em si nunca
+  // é lido nem repassado adiante: serve apenas como sinal de "já autenticado".
+  const { token } = useAuth()
   const [empresa, setEmpresa] = useState(() => {
     try {
       const salvo = localStorage.getItem(CHAVE_LS)
@@ -161,8 +166,15 @@ export function EmpresaProvider({ children }) {
     aplicarCSSVars(empresa.corPrimaria, empresa.corSecundaria)
   }, [])
 
-  // S7.1: carrega a configuração persistida no banco (singleton), com fallback localStorage
+  // S7.1: carrega a configuração persistida no banco (singleton), com fallback localStorage.
+  //
+  // M-4 (fail-closed): /api/empresa exige autenticação. Este efeito dependia apenas
+  // do mount — disparava ANTES do login, recebia 401 e nunca refazia a busca, deixando
+  // branding/cores/dados institucionais presos no PADRAO_EMPRESA por toda a sessão.
+  // Agora depende do token: nada é pedido enquanto anônimo, e a configuração é
+  // recarregada assim que a autenticação existe (inclusive após logout → novo login).
   useEffect(() => {
+    if (!token) return
     let vivo = true
     fetch('/api/empresa')
       .then(r => r.ok ? r.json() : null)
@@ -173,7 +185,7 @@ export function EmpresaProvider({ children }) {
       })
       .catch(() => { /* offline → mantém localStorage */ })
     return () => { vivo = false }
-  }, [])
+  }, [token])
 
   // S7.1: persiste no banco (fire-and-forget; localStorage é o cache imediato)
   function persistirBackend(estado) {

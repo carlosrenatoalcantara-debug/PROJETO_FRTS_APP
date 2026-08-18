@@ -29,6 +29,7 @@ export default function FormNovaCotacao({ aoCriar }) {
   const [consumo, setConsumo] = useState('')
   const [tarifa, setTarifa] = useState('')
   const [hsp, setHsp] = useState('')
+  const [inflacao, setInflacao] = useState('')
   const [enviando, setEnviando] = useState(false)
   const [erro, setErro] = useState(null)
 
@@ -44,10 +45,14 @@ export default function FormNovaCotacao({ aoCriar }) {
           consumo_kwh_mes: num(consumo),
           tarifa_kwh: num(tarifa),
           hsp_kwh_m2_dia: num(hsp),
+          // FV-UX-018 (D3): campo VAZIO vira `undefined` — o contrato declara
+          // lacuna. `0` digitado é premissa legítima e é preservado como zero.
+          // `num()` já distingue os dois casos; nenhum default é aplicado aqui.
+          inflacao_energia_aa_pct: num(inflacao),
         },
       })
       setAberto(false)
-      setRotulo(''); setConsumo(''); setTarifa(''); setHsp('')
+      setRotulo(''); setConsumo(''); setTarifa(''); setHsp(''); setInflacao('')
       aoCriar?.(nova?.cotacao?._id ?? null)
     } catch (e) {
       setErro(e.codigo ? `${e.message} (${e.codigo})` : e.message)
@@ -104,6 +109,18 @@ export default function FormNovaCotacao({ aoCriar }) {
           <span className="text-slate-600">HSP (kWh/m²·dia)</span>
           <input type="number" min="0" step="any" value={hsp} onChange={(e) => setHsp(e.target.value)}
             className="mt-1 w-full rounded border border-slate-300 px-2 py-1" />
+        </label>
+        <label className="text-sm">
+          <span className="text-slate-600">Inflação energética (% a.a.)</span>
+          <input
+            type="number" min="0" step="any" value={inflacao}
+            onChange={(e) => setInflacao(e.target.value)}
+            className="mt-1 w-full rounded border border-slate-300 px-2 py-1"
+          />
+          <span className="mt-1 block text-xs text-slate-500">
+            Inflação energética anual considerada neste cenário. Informe 0% se não
+            considerar reajuste.
+          </span>
         </label>
       </div>
 

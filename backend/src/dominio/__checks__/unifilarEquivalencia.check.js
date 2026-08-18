@@ -20,6 +20,12 @@ import { readFileSync, writeFileSync, mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
+// FV-DOM-015: a referência de equivalência é o commit PRÉ-CHECKPOINT.
+// Depois de `1ab2693`, `HEAD` já contém o código migrado — comparar contra ele
+// compararia o novo consigo mesmo. `BASE_EQUIVALENCIA` fixa o último estado
+// anterior às sprints FV, que é o que estas verificações precisam.
+const BASE_EQUIVALENCIA = '38fa34f'
+
 const AQUI = path.dirname(fileURLToPath(import.meta.url))
 const RAIZ_PKG = path.resolve(AQUI, '../../../../packages/fv-shared/engenharia')
 
@@ -46,7 +52,7 @@ async function carregarReferencia() {
     ['frontend/src/utils/gerarUnifilarSVG.js', 'gerarUnifilarSVG.js'],
   ]
   for (const [origem, destino] of arquivos) {
-    const conteudo = execFileSync('git', ['show', `HEAD:${origem}`], {
+    const conteudo = execFileSync('git', ['show', `${BASE_EQUIVALENCIA}:${origem}`], {
       cwd: raizRepo, encoding: 'utf8', maxBuffer: 8 * 1024 * 1024,
     })
     writeFileSync(path.join(dir, destino), conteudo)
@@ -183,13 +189,75 @@ async function main() {
   secao('7 · Fórmulas normativas idênticas')
   const refNorm = await import(pathToFileURL(path.join(RAIZ_PKG, 'engenhariaNormativa.js')).href)
   const { execFileSync } = await import('node:child_process')
-  const original = execFileSync('git', ['show', 'HEAD:frontend/src/utils/engenhariaNormativa.js'], {
+  const original = execFileSync('git', ['show', `${BASE_EQUIVALENCIA}:frontend/src/utils/engenhariaNormativa.js`], {
     cwd: path.resolve(AQUI, '../../../..'), encoding: 'utf8', maxBuffer: 8 * 1024 * 1024,
   })
-  const atual = readFileSync(path.join(RAIZ_PKG, 'engenhariaNormativa.js'), 'utf8')
-  // Só o cabeçalho de documentação e o caminho do import podem ter mudado.
-  const corpo = (s) => s.slice(s.indexOf('export const TEMPERATURAS_UF'))
-  ok(corpo(original) === corpo(atual), 'corpo de engenhariaNormativa inalterado (byte a byte)')
+  // ── FV-DOM-025: de byte a byte para VALOR a valor ────────────────────────
+  //
+  // Até aqui a garantia era textual: o corpo do arquivo tinha de ser idêntico ao
+  // do git. A FV-DOM-025 acrescentou as primitivas canônicas (`fatorTermico`,
+  // `temperaturaCelula`, `coefParaFracao`, `correnteProjeto`) e fez as três
+  // funções normativas passarem a COMPÔ-LAS. O texto mudou de propósito.
+  //
+  // A comparação textual foi então substituída por uma varredura de RESULTADO
+  // contra a mesma referência do git — garantia mais forte, não mais fraca: um
+  // arquivo pode ser reescrito por inteiro sem que nenhum número mude, e é
+  // exatamente isso que precisa ser provado.
+  const refDir = mkdtempSync(path.join(tmpdir(), 'norm-ref-'))
+  writeFileSync(path.join(refDir, 'catalogoEletrico.js'),
+    execFileSync('git', ['show', `${BASE_EQUIVALENCIA}:frontend/src/data/catalogoEletrico.js`],
+      { cwd: path.resolve(AQUI, '../../../..'), encoding: 'utf8', maxBuffer: 8 * 1024 * 1024 }))
+  writeFileSync(path.join(refDir, 'engenhariaNormativa.js'),
+    original.replace("from '../data/catalogoEletrico.js'", "from './catalogoEletrico.js'"))
+  const baseNorm = await import(pathToFileURL(path.join(refDir, 'engenhariaNormativa.js')).href)
+
+  let divergencias = 0
+  let amostras = 0
+  for (const voc of [37.5, 41.4, 49.5, 51.8, 53.2]) {
+    for (const n of [1, 6, 11, 14, 18, 24]) {
+      for (const coef of [-0.0024, -0.0028, -0.0029, -0.0035]) {
+        for (const t of [-8, -5, 0, 2, 5, 10, 14, 25, 30]) {
+          amostras++
+          if (baseNorm.calcularVocMaxString(voc, n, coef, t) !==
+              refNorm.calcularVocMaxString(voc, n, coef, t)) divergencias++
+        }
+      }
+    }
+  }
+  ok(divergencias === 0, `calcularVocMaxString idêntica em ${amostras} amostras`)
+
+  divergencias = 0; amostras = 0
+  for (const vmpp of [31.2, 34.2, 41.2, 43.1, 44.2]) {
+    for (const n of [1, 6, 11, 14, 18, 24]) {
+      for (const coef of [-0.0024, -0.0028, -0.0035]) {
+        for (const t of [28, 34, 35, 36, 37, 38, 40]) {
+          for (const noct of [42, 43, 44, 45]) {
+            amostras++
+            if (baseNorm.calcularVmppMinString(vmpp, n, coef, t, noct) !==
+                refNorm.calcularVmppMinString(vmpp, n, coef, t, noct)) divergencias++
+          }
+        }
+      }
+    }
+  }
+  ok(divergencias === 0, `calcularVmppMinString idêntica em ${amostras} amostras`)
+
+  divergencias = 0; amostras = 0
+  for (const isc of [10.5, 12.28, 13.9, 14.0, 16.23, 17.57]) {
+    amostras++
+    if (baseNorm.calcularIscMax(isc) !== refNorm.calcularIscMax(isc)) divergencias++
+  }
+  ok(divergencias === 0, `calcularIscMax idêntica em ${amostras} amostras`)
+
+  // O DEFAULT de NOCT é parte do contrato: 44 °C antes e depois (Q5).
+  ok(baseNorm.calcularVmppMinString(41.2, 11, -0.0028, 38) ===
+     refNorm.calcularVmppMinString(41.2, 11, -0.0028, 38),
+    'NOCT padrão preservado (44 °C)')
+
+  // As funções PRÉ-EXISTENTES não podem ter sumido nem trocado de assinatura.
+  for (const nome of Object.keys(baseNorm)) {
+    ok(typeof refNorm[nome] === typeof baseNorm[nome], `export preservado: ${nome}`)
+  }
 
   // Amostras diretas das fórmulas mais sensíveis — se o corpo mudar um dia, estas
   // ainda acusam a mudança de RESULTADO, não só de texto.
@@ -203,7 +271,7 @@ async function main() {
   ok(refNorm.selecionarDPS(400).modelo.includes('600V'), 'DPS 600 V para string curta')
 
   console.log(falhas === 0
-    ? '\nOK — motor canônico equivalente ao original, byte a byte.'
+    ? '\nOK — motor canônico equivalente ao original: SVG byte a byte, fórmulas valor a valor.'
     : `\n${falhas} FALHA(S).`)
   process.exit(falhas === 0 ? 0 : 1)
 }

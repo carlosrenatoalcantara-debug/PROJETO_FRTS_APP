@@ -44,6 +44,18 @@ const PremissasSchema = new mongoose.Schema({
   hsp_kwh_m2_dia:       { type: Number, default: null, min: 0 },
   performance_ratio:    { type: Number, default: null, min: 0, max: 1 },
   area_disponivel_m2:   { type: Number, default: null, min: 0 },
+
+  // FV-DOM-016A — premissa financeira do CENÁRIO.
+  //
+  // D3: obrigatória para calcular retorno, e SEM DEFAULT. `null` significa "não
+  // informada" e produz lacuna no contrato V1 — nunca um valor assumido. `0` é
+  // escolha legítima e é preservada como zero.
+  //
+  // Fica aqui, e não em Empresa ou ProjetoFV, porque premissa é do cenário: um
+  // projeto tem N cotações, cada uma com as suas. A TMA (10 % nominal, D2) é
+  // premissa do MÉTODO e permanece versionada no contrato.
+  inflacao_energia_aa_pct: { type: Number, default: null, min: 0 },
+
   observacoes:          { type: String, default: null },
 }, { _id: false })
 

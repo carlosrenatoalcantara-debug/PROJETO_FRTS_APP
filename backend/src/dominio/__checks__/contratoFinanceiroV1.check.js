@@ -29,7 +29,16 @@ const PROJETO = {
   dimensionamento: { potencia_kwp: 14.3, geracao_anual_kwh: 18000 },
   fatura_extracao: { tarifa_kwh: 0.98, media_anual_kwh: 16000 },
 }
-const ORCAMENTO = { total_r: 80000, reajuste_anual_pct: 0 }
+// FV-UX-017: o agregado `Orcamento` NÃO persiste `total_r` (INV-58) — o total é
+// DERIVADO dos itens. O fixture antigo usava um campo que nunca existe, o que
+// mascarava a lacuna permanente de investimento em todo projeto.
+const ORCAMENTO = {
+  reajuste_anual_pct: 0,
+  itens: [
+    { descricao: 'Kit', tipo: 'material', quantidade: 1, valor_unitario_r: 62000 },
+    { descricao: 'Instalação', tipo: 'servico', quantidade: 1, valor_unitario_r: 18000 },
+  ],
+}
 
 async function main() {
   const C = await import('@fortesolar/fv-shared/financeiro/contrato-v1')
@@ -132,7 +141,8 @@ async function main() {
   secao('9 · Adapter de domínio — proveniência e engineering lock')
   const { entradas, premissas, proveniencia } = dominio.adaptarProjetoParaFinanceiro(PROJETO, { orcamento: ORCAMENTO })
   ok(entradas.investimento_r === 80000, 'investimento vem do orçamento canônico')
-  ok(proveniencia.investimento_r === 'orcamento.total_r', 'proveniência do investimento declarada')
+  ok(proveniencia.investimento_r === 'orcamento.itens (derivado)',
+    `proveniência declara a derivação (${proveniencia.investimento_r})`)
   ok(entradas.potencia_wp === 14300, 'kWp convertido para Wp')
   ok(premissas.inflacao_energia_aa_pct === null, 'sem inflação no projeto → null, não default')
   ok(proveniencia.inflacao_energia_aa_pct === null, 'proveniência de inflação = ausente')

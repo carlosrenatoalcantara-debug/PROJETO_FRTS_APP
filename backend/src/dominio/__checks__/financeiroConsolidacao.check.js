@@ -21,6 +21,12 @@ import { tmpdir } from 'node:os'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { execFileSync } from 'node:child_process'
 
+// FV-DOM-015: a referência de equivalência é o commit PRÉ-CHECKPOINT.
+// Depois de `1ab2693`, `HEAD` já contém o código migrado — comparar contra ele
+// compararia o novo consigo mesmo. `BASE_EQUIVALENCIA` fixa o último estado
+// anterior às sprints FV, que é o que estas verificações precisam.
+const BASE_EQUIVALENCIA = '38fa34f'
+
 const AQUI = path.dirname(fileURLToPath(import.meta.url))
 const RAIZ_REPO = path.resolve(AQUI, '../../../..')
 const PKG = path.resolve(RAIZ_REPO, 'packages/fv-shared/financeiro')
@@ -29,7 +35,7 @@ let falhas = 0
 const ok = (c, m) => { console.log((c ? '✓' : '✗ FALHOU') + ' ' + m); if (!c) falhas++ }
 const secao = (t) => console.log(`\n── ${t}`)
 
-const doHead = (caminho) => execFileSync('git', ['show', `HEAD:${caminho}`], {
+const doHead = (caminho) => execFileSync('git', ['show', `${BASE_EQUIVALENCIA}:${caminho}`], {
   cwd: RAIZ_REPO, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024,
 })
 

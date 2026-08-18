@@ -140,13 +140,19 @@ async function main() {
   ok(!resZero.body?.justificativa?.includes('excelente retorno'),
     'TIR 0 não afirma excelente retorno')
 
-  secao('7 · Nenhuma fórmula financeira foi alterada')
+  secao('7 · Fórmulas do PDF — migradas para o contrato V1 (FV-DOM-015)')
+  // Este bloco protegia as fórmulas próprias do PDF enquanto D4 estava pendente.
+  // Com D4 aprovada e executada, elas SAÍRAM de propósito: o payback simplificado
+  // (que errava até +106 %), o fator de geração 131,44 e a economia de 25 anos
+  // com fator 0,8. O check inverteu de sentido — agora exige que não voltem.
   const svc = ler('backend/src/services/propostaComercialService.js')
-  ok(svc.includes('investimento / (economiaGerada * 12)'), 'fórmula do payback do PDF intacta (D1 pendente)')
-  ok(svc.includes('potenciaKWp * 131.44'), 'fator de geração intacto')
-  ok(svc.includes('economiaGerada * 12 * 25 * 0.8'), 'economia 25 anos intacta')
+  ok(!svc.includes('investimento / (economiaGerada * 12)'), 'payback simplificado REMOVIDO')
+  ok(!svc.includes('potenciaKWp * 131.44'), 'fator de geração REMOVIDO')
+  ok(!svc.includes('economiaGerada * 12 * 25 * 0.8'), 'economia 25 anos própria REMOVIDA')
+  ok(svc.includes('c.payback?.anos') && svc.includes('c.vpl?.valor_r'),
+    'indicadores vêm do contrato V1')
   ok(svc.includes('* 0.45') && svc.includes('* 0.15') && svc.includes('* 0.25'),
-    'percentuais da composição do investimento intactos')
+    'percentuais da composição do investimento intactos (apresentação, não indicador)')
 
   secao('8 · Nenhuma decisão D1–D5 incorporada')
   const { calcularRetorno } = await import('@fortesolar/fv-shared/financeiro/engine')
