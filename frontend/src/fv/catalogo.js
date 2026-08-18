@@ -122,6 +122,65 @@ export function inversorDoCatalogo(equipamento) {
   }
 }
 
+// ─── Dados elétricos para o validador canônico — FV-UX-026 ───────────────────
+//
+// O `Equipamento.especificacoes` é Mixed e as chaves variam com a origem do
+// registro. A precedência abaixo é a MESMA que `catalogoEngenhariaAdapter` e
+// `extrairSpecsInversor` já usam — não é regra nova.
+//
+// A diferença, de novo, é a ausência de default: aquele adapter fecha cada
+// leitura com `?? 0` / `?? 1`. Aqui o que o catálogo não declara vira `null` e
+// sobe como LACUNA. Um zero fabricado num limite de tensão faria o validador
+// aprovar qualquer coisa.
+
+/** Parâmetros elétricos do módulo. Coeficiente em %/°C — Q4 converte no motor. */
+export function eletricoDoModulo(equipamento) {
+  const e = equipamento?.especificacoes ?? {}
+  return {
+    voc: primeiroNumero(e, ['voc', 'voc_v']),
+    vmpp: primeiroNumero(e, ['vmpp', 'vmp', 'vmpp_v']),
+    isc: primeiroNumero(e, ['isc', 'isc_a']),
+    impp: primeiroNumero(e, ['impp', 'imp', 'impp_a', 'imp_a']),
+    potencia_w: potenciaDoModulo(equipamento),
+    coef_temp_voc: primeiroNumero(e, ['coef_temp_voc_pct_c', 'coef_temp_voc']),
+    temp_noct: primeiroNumero(e, ['noct_c', 'noct', 'temp_noct']),
+  }
+}
+
+/** Limites do inversor, nos nomes que o validador espera. */
+export function eletricoDoInversor(equipamento) {
+  const e = equipamento?.especificacoes ?? {}
+  return {
+    tensao_max_entrada: primeiroNumero(e, ['tensao_max_entrada', 'voc_max', 'voc_max_dc', 'tensao_max_dc']),
+    mppt_min: primeiroNumero(e, ['tensao_mppt_min', 'faixa_mppt_min', 'mppt_min']),
+    mppt_max: primeiroNumero(e, ['tensao_mppt_max', 'faixa_mppt_max', 'mppt_max']),
+    corrente_max_mppt: primeiroNumero(e, ['corrente_max_por_mppt', 'corrente_max_mppt', 'isc_max_mppt', 'ipv_max']),
+    potencia_ca_kw: potenciaDoInversor(equipamento),
+  }
+}
+
+/** Quantidade de MPPTs declarada pelo catálogo. `null` se ausente. */
+export function nMpptsDoInversor(equipamento) {
+  return primeiroNumero(equipamento?.especificacoes, ['n_mppts', 'mppts', 'numero_mppt'])
+}
+
+/** Entradas físicas por MPPT declaradas pelo catálogo. `null` se ausente. */
+export function entradasPorMppt(equipamento) {
+  return primeiroNumero(equipamento?.especificacoes, ['strings_por_mppt', 'entradas_por_mppt'])
+}
+
+/** Campos elétricos que o catálogo não declarou — viram lacuna, não default. */
+export function lacunasEletricas(eletricoMod, eletricoInv) {
+  const faltando = []
+  for (const [k, v] of Object.entries(eletricoMod ?? {})) {
+    if (v === null && k !== 'temp_noct') faltando.push(`modulo.${k}`)
+  }
+  for (const [k, v] of Object.entries(eletricoInv ?? {})) {
+    if (v === null) faltando.push(`inversor.${k}`)
+  }
+  return faltando
+}
+
 /** Id do catálogo já selecionado no projeto, para reabrir a tela no mesmo lugar. */
 export function idSelecionado(item) {
   const ref = item?.equipamento_id ?? item?.id ?? null

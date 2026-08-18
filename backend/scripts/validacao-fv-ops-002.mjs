@@ -167,7 +167,9 @@ ok(!!val.json?.clima_utilizado, 'proveniência climática declarada')
 ok(val.json.clima_utilizado.usou_fallback === false, 'clima informado, sem fallback')
 
 // ═══ 7 · Topologia MPPT ═════════════════════════════════════════════════════
-secao('7 · TOPOLOGIA MPPT (autorada)')
+secao('7 · TOPOLOGIA MPPT (autorada — FV-UX-026)')
+// Payload EXATAMENTE como `paraArranjoPersistido` da nova UX o monta, incluindo
+// `entradas[].strings[]` — a topologia real, não só o resumo.
 await api('PUT', `/api/projetos-fv/${P}/etapa`, {
   etapa: 'engenharia_eletrica',
   dados: {
@@ -175,8 +177,10 @@ await api('PUT', `/api/projetos-fv/${P}/etapa`, {
       quantidade_modulos_por_string: 12, quantidade_strings_paralelo: 1,
       total_modulos: 24, num_mppts_usados: 2,
       mppts: [
-        { mppt: 1, strings_paralelo: 1, modulos_por_string: 12, total_modulos: 12 },
-        { mppt: 2, strings_paralelo: 1, modulos_por_string: 12, total_modulos: 12 },
+        { mppt: 1, strings_paralelo: 1, modulos_por_string: 12, total_modulos: 12,
+          entradas: [{ entrada: 1, strings: [{ modulos: 12 }] }] },
+        { mppt: 2, strings_paralelo: 1, modulos_por_string: 12, total_modulos: 12,
+          entradas: [{ entrada: 1, strings: [{ modulos: 12 }] }] },
       ],
     },
     clima_utilizado: { cidade: 'Natal', uf: 'RN', temperatura_min_historica_c: 14,
@@ -194,6 +198,54 @@ ok(A.arranjo.mppts.every((m) => m.modulos_por_string === 12), 'módulos por stri
 ok(A.arranjo.num_mppts_usados === 2, 'MPPTs usados preservados')
 ok(A.compatibilidade.calculos_principais.isc_total === 17.5, 'diagnóstico canônico persistido')
 ok(A.clima_utilizado.uf === 'RN', 'proveniência climática persistida')
+
+// A topologia REAL (entradas físicas) sobrevive ao reload — é o que a nova UX
+// edita e o que distingue MPPT parcialmente ocupado de MPPT cheio.
+ok(A.arranjo.mppts[0].entradas?.length === 1, 'entradas físicas persistidas')
+ok(A.arranjo.mppts[0].entradas?.[0]?.strings?.[0]?.modulos === 12, 'módulos por string na entrada')
+ok(A.arranjo.total_modulos === 24, `total distribuído ${A.arranjo.total_modulos}`)
+
+// MPPT DESIGUAL: o caso que nenhum motor deriva e que só a autoria produz.
+await api('PUT', `/api/projetos-fv/${P}/etapa`, {
+  etapa: 'engenharia_eletrica',
+  dados: { arranjo: {
+    quantidade_modulos_por_string: 10, quantidade_strings_paralelo: 2,
+    total_modulos: 24, num_mppts_usados: 2,
+    mppts: [
+      { mppt: 1, strings_paralelo: 2, modulos_por_string: 10, total_modulos: 20,
+        entradas: [{ entrada: 1, strings: [{ modulos: 10 }, { modulos: 10 }] }] },
+      { mppt: 2, strings_paralelo: 1, modulos_por_string: 4, total_modulos: 4,
+        entradas: [{ entrada: 1, strings: [{ modulos: 4 }] }] },
+    ],
+  } },
+})
+const desigual = (await api('GET', `/api/projetos-fv/${P}`)).json.engenharia_eletrica.arranjo
+ok(desigual.mppts[0].total_modulos === 20 && desigual.mppts[1].total_modulos === 4,
+  'MPPT desigual preservado (20 + 4)')
+// Validação por MPPT: cada um julgado por si.
+const vA = await api('POST', '/api/engenharia/compatibilidade-eletrica', {
+  dados_eletricos_modulo: { voc: 49.9, vmpp: 41.8, isc: 14, impp: 13.2, potencia_w: 550, coef_temp_voc: -0.27, temp_noct: 44 },
+  dados_eletricos_inversor: { tensao_max_entrada: 1000, mppt_min: 200, mppt_max: 850, corrente_max_mppt: 25, potencia_ca_kw: 20 },
+  arranjo_proposto: { quantidade_modulos_por_string: 10, quantidade_strings_paralelo: 2, num_mppt_usados: 1 },
+  dados_climaticos_regiao: { temperatura_min_historica_c: 14, temperatura_max_historica_c: 38 },
+})
+ok(vA.json.calculos.isc_total === 35, `MPPT desigual — Isc 35 A reprova contra 25 A`)
+ok(vA.json.erros.some((e) => e.codigo === 'CORRENTE_ISC_EXCEDIDA'), 'diagnóstico por MPPT emitido')
+
+// Restaura a topologia válida para o restante do fluxo.
+await api('PUT', `/api/projetos-fv/${P}/etapa`, {
+  etapa: 'engenharia_eletrica',
+  dados: { arranjo: {
+    quantidade_modulos_por_string: 12, quantidade_strings_paralelo: 1,
+    total_modulos: 24, num_mppts_usados: 2,
+    mppts: [
+      { mppt: 1, strings_paralelo: 1, modulos_por_string: 12, total_modulos: 12,
+        entradas: [{ entrada: 1, strings: [{ modulos: 12 }] }] },
+      { mppt: 2, strings_paralelo: 1, modulos_por_string: 12, total_modulos: 12,
+        entradas: [{ entrada: 1, strings: [{ modulos: 12 }] }] },
+    ],
+  } },
+})
 
 // ═══ 8 · Cotação → Orçamento ════════════════════════════════════════════════
 secao('8 · COTAÇÃO → ORÇAMENTO')

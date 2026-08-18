@@ -108,6 +108,21 @@ export function calcularDimensionamento(dados) {
     { method: 'POST', body: json(dados) }, 'calcularDimensionamento')
 }
 
+/**
+ * Validação elétrica canônica — FV-UX-026.
+ *
+ * `POST /api/engenharia/compatibilidade-eletrica` é o adapter do contrato
+ * consolidado na FV-DOM-025: Isc × 1,25 (NBR 16690 §5.2), Voc a Tmin, Vmpp na
+ * condição quente, coeficiente em %/°C convertido na fronteira, NOCT 44.
+ *
+ * Stateless — não persiste. Voc, Vmpp e Isc são grandezas POR MPPT, então a
+ * tela chama uma vez por MPPT. Nenhum cálculo elétrico existe no cliente.
+ */
+export function validarCompatibilidadeEletrica(corpo) {
+  return enviar('/api/engenharia/compatibilidade-eletrica',
+    { method: 'POST', body: json(corpo) }, 'validarCompatibilidadeEletrica')
+}
+
 /** Clientes da organização — necessários para vincular o projeto na criação. */
 export function listarClientes() {
   return obterJson('/api/clientes', 'listarClientes')

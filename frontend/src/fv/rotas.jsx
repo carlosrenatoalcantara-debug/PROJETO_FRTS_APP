@@ -4,6 +4,7 @@ import ProjetoFluxoLayout from './paginas/ProjetoFluxoLayout'
 import EtapaProjeto from './paginas/etapas/EtapaProjeto'
 import EtapaEquipamentos from './paginas/etapas/EtapaEquipamentos'
 import EtapaDimensionamento from './paginas/etapas/EtapaDimensionamento'
+import EtapaMppt from './paginas/etapas/EtapaMppt'
 import EtapaBeneficiarias from './paginas/etapas/EtapaBeneficiarias'
 import EtapaCotacao from './paginas/etapas/EtapaCotacao'
 import EtapaOrcamentos from './paginas/etapas/EtapaOrcamentos'
@@ -37,6 +38,7 @@ export const rotasFv = (
     <Route path="projeto"     element={<EtapaProjeto />} />
     <Route path="equipamentos" element={<EtapaEquipamentos />} />
     <Route path="dimensionamento" element={<EtapaDimensionamento />} />
+    <Route path="mppt"          element={<EtapaMppt />} />
     <Route path="beneficiarias" element={<EtapaBeneficiarias />} />
     <Route path="cotacao"     element={<EtapaCotacao />} />
     <Route path="orcamentos"  element={<EtapaOrcamentos />} />

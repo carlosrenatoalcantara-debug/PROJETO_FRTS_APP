@@ -31,6 +31,9 @@ export const ETAPAS_FLUXO = Object.freeze([
   // FV-UX-020: o dimensionamento é gravado em `ProjetoFV.dimensionamento` e
   // calculado pelo motor existente no servidor. Sem agregado próprio.
   { chave: 'dimensionamento', rotulo: 'Dimensionamento', grupo: 'origem', agregado: 'ProjetoFV' },
+  // FV-UX-026: topologia AUTORAL do projetista, gravada em
+  // `engenharia_eletrica.arranjo.mppts[]`. Sem agregado proprio.
+  { chave: 'mppt', rotulo: 'Topologia MPPT', grupo: 'origem', agregado: 'ProjetoFV' },
   { chave: 'beneficiarias', rotulo: 'Beneficiárias',  grupo: 'origem',    agregado: 'UnidadeBeneficiaria' },
   { chave: 'cotacao',    rotulo: 'Cotação',           grupo: 'comercial', agregado: 'Cotacao' },
   { chave: 'orcamentos', rotulo: 'Orçamentos',        grupo: 'comercial', agregado: 'Orcamento' },
