@@ -216,7 +216,11 @@ async function main() {
   let copias = ''
   try {
     const { execFileSync } = await import('node:child_process')
-    copias = execFileSync('git', ['grep', '-l', 'calcularContratoV1', '--', 'frontend/src'],
+    // `__tests__` fica de fora: um teste que NOMEIA o símbolo para proibi-lo é o
+    // oposto de uma violação. Enquanto os testes de `/fv` estavam sem commit, o
+    // `git grep` não os via e o check passava por acidente.
+    copias = execFileSync('git',
+      ['grep', '-l', 'calcularContratoV1', '--', 'frontend/src', ':!*__tests__*'],
       { cwd: RAIZ, encoding: 'utf8' }).trim()
   } catch (e) { if (e.status !== 1) throw e }
   ok(copias === '', 'nenhum consumidor do contrato no frontend (a UX consome a API)')

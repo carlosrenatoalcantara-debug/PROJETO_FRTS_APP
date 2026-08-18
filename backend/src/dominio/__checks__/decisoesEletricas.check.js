@@ -132,10 +132,13 @@ if (git !== null) {
   for (const a of suspeitos.filter((x) => TOCADOS_POR_SPRINTS_ANTERIORES.has(x))) {
     console.log(`   (pré-existente) ${a} — ${TOCADOS_POR_SPRINTS_ANTERIORES.get(a)}`)
   }
-  // O único arquivo de produto tocado por ESTA sprint é a documentação de estado.
-  const docs = alterados.filter((a) => a.endsWith('FV-ESTADO-COMPACTADO.md'))
-  ok(docs.length === 1, 'o estado canônico foi atualizado (é o entregável da sprint)')
 }
+// O entregável da FV-DOM-024 é o registro das decisões no estado canônico. Isso
+// se verifica pelo CONTEÚDO do documento (§1–§3), não pelo `git status`: depois
+// do commit a árvore fica limpa e uma asserção baseada em "arquivo modificado"
+// passaria a falhar sem que nada tivesse regredido.
+ok(ESTADO.includes('## 1B · Decisões de engenharia elétrica'),
+  'a seção das decisões existe no estado canônico')
 
 secao('8 · Autorização para a FV-DOM-025')
 // A quebra de linha do markdown separa as palavras — normaliza antes de buscar.
