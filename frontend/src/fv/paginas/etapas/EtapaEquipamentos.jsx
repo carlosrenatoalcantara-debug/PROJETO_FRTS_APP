@@ -4,6 +4,8 @@ import { listarCatalogo } from '../../api/agregadosFvApi'
 import {
   painelDoCatalogo, inversorDoCatalogo, idSelecionado,
   potenciaDoModulo, potenciaDoInversor, rotuloDoEquipamento,
+  rotuloDoInversor, tipoDoInversor, fasesDoInversor, avisoDeFase,
+  TECNOLOGIAS_INVERSOR,
 } from '../../catalogo'
 
 /**
@@ -111,6 +113,25 @@ export default function EtapaEquipamentos() {
   const potModulo = moduloEscolhido ? potenciaDoModulo(moduloEscolhido) : null
   const potInversor = inversorEscolhido ? potenciaDoInversor(inversorEscolhido) : null
 
+  // A3: agrupamento por tecnologia. `Outros` recolhe o que a regra do domínio
+  // classificar fora da lista fechada — nenhuma categoria é inventada aqui.
+  const porTecnologia = (() => {
+    const restante = new Set((inversores ?? []).map((e) => String(e._id)))
+    const grupos = TECNOLOGIAS_INVERSOR.map(([chave, rotulo]) => {
+      const lista = (inversores ?? []).filter((e) => tipoDoInversor(e) === chave)
+      for (const e of lista) restante.delete(String(e._id))
+      return [chave, rotulo, lista]
+    }).filter(([, , lista]) => lista.length > 0)
+    const outros = (inversores ?? []).filter((e) => restante.has(String(e._id)))
+    return outros.length ? [...grupos, ['outros', 'Outros', outros]] : grupos
+  })()
+
+  // A4: aviso de fase — compara o que os Dados Técnicos gravaram com o que o
+  // catálogo declara. Sem bloqueio, sem esconder opção.
+  const avisoFase = inversorEscolhido
+    ? avisoDeFase(projeto?.fatura_extracao?.tipo_ligacao, fasesDoInversor(inversorEscolhido))
+    : null
+
   return (
     <section className="mx-auto max-w-2xl p-6">
       <h2 className="text-lg font-semibold text-slate-900">Equipamentos</h2>
@@ -174,12 +195,21 @@ export default function EtapaEquipamentos() {
               className="mt-1 w-full rounded border border-slate-300 px-2 py-1"
             >
               <option value="">{catalogoCarregando ? 'carregando catálogo…' : 'não selecionado'}</option>
-              {(inversores ?? []).map((e) => (
-                <option key={e._id} value={String(e._id)}>
-                  {rotuloDoEquipamento(e, potenciaDoInversor(e), 'kW')}
-                </option>
+              {/* A3: agrupado por tecnologia. `tecnologiaInversor` é a regra
+                  única do domínio — nada é classificado aqui. */}
+              {porTecnologia.map(([chave, rotulo, lista]) => (
+                <optgroup key={chave} label={`${rotulo} (${lista.length})`}>
+                  {lista.map((e) => (
+                    <option key={e._id} value={String(e._id)}>{rotuloDoInversor(e)}</option>
+                  ))}
+                </optgroup>
               ))}
             </select>
+            {avisoFase && (
+              <span className="mt-1 block rounded border border-amber-300 bg-amber-50 px-2 py-1 text-xs text-amber-800">
+                ⚠ {avisoFase}
+              </span>
+            )}
             {inversorEscolhido && potInversor === null && (
               <span className="mt-1 block text-xs text-amber-700">
                 O catálogo não declara a potência deste inversor. Será gravada como não informada.

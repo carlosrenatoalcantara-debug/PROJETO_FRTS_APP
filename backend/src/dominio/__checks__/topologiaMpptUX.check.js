@@ -51,11 +51,17 @@ ok(TOPO.includes('ENTRADA AUTORAL'), 'o modelo declara a autoria do projetista')
 ok(TOPO.includes('export function topologiaVazia'), 'a topologia inicial nasce VAZIA')
 
 secao('3 · Nenhuma fórmula elétrica no cliente')
+// FV-UX-028 (A2): `@fortesolar/fv-shared` saiu da lista de proibidos — a etapa
+// passou a CONSUMIR `calcularTemperaturas`. O que segue proibido é REESCREVER
+// fórmula ou tabela; por isso `TEMPERATURAS_UF` entrou no lugar.
 for (const p of ['Math.pow', 'fatorTermico', 'temperaturaCelula', 'correnteProjeto',
-  'coefParaFracao', '1.25', '@fortesolar/fv-shared', 'oversizing =']) {
+  'coefParaFracao', '1.25', 'oversizing =', 'TEMPERATURAS_UF']) {
   ok(!fontes.includes(p), `ausente no cliente: \`${p}\``)
 }
 ok(ETAPA.includes('validarCompatibilidadeEletrica'), 'a tela chama o validador canônico')
+const importsPkg = ETAPA.split('\n').filter((l) => l.includes('@fortesolar/fv-shared'))
+ok(importsPkg.length === 1 && importsPkg[0].includes('calcularTemperaturas'),
+  'A2 — único import do pacote é `calcularTemperaturas` (tabela canônica)')
 
 secao('4 · Ausência ≠ zero, e nenhum default técnico')
 for (const d of ['?? 8', '|| 8', '?? 6', '|| 6', '?? 14', '|| 14', '?? 550', '?? 2,']) {
@@ -156,6 +162,54 @@ for (const p of ['payback', 'vpl_r', 'tir_aa', 'economia_anual']) {
 for (const p of ['createContext', 'localStorage', 'sessionStorage', 'buscarProjeto', 'fetch(']) {
   ok(!ETAPA.includes(p), `sem estado paralelo nem HTTP direto (\`${p}\`)`)
 }
+
+
+// ═══ FV-UX-028 — as cinco correções objetivas ═══════════════════════════════
+const CATALOGO = ler('frontend/src/fv/catalogo.js')
+const EQUIP = ler('frontend/src/fv/paginas/etapas/EtapaEquipamentos.jsx')
+const catSemCom = semComentarios(CATALOGO)
+
+secao('11 · A5b — `catalogo.js` consome o leitor SSOT')
+ok(catSemCom.includes('lerInversor('), 'usa `lerInversor` do dicionário canônico')
+ok(!catSemCom.includes('paraDimensionamento'),
+  '`paraDimensionamento` NÃO é usado — carrega ?? 2 / ?? 600 / ?? 550 / ?? 13')
+// Nenhuma lista de aliases de inversor sobrevivendo no arquivo.
+for (const alias of ["'voc_max_dc'", "'faixa_mppt_min'", "'corrente_max_por_mppt'", "'fases_saida'"]) {
+  ok(!catSemCom.includes(alias), `sem leitor paralelo (${alias})`)
+}
+for (const d of ['?? 2', '?? 600', '?? 100', '?? 550', '?? 13', '|| 2', '|| 600']) {
+  ok(!catSemCom.includes(d), `sem default numérico \`${d}\``)
+}
+
+secao('12 · A3 — seletor enriquecido, sem classificação nova')
+ok(CATALOGO.includes('export function rotuloDoInversor'), 'rótulo dedicado ao inversor')
+ok(CATALOGO.includes('TECNOLOGIAS_INVERSOR'), 'lista FECHADA de tecnologias')
+ok(catSemCom.includes('tecnologiaInversor('), 'classificação vem da regra do domínio')
+ok(EQUIP.includes('optgroup'), 'a lista é agrupada por tecnologia')
+ok(EQUIP.includes('rotuloDoInversor'), 'a tela usa o rótulo enriquecido')
+
+secao('13 · A4 — aviso de fase, sem bloqueio')
+ok(CATALOGO.includes('export function avisoDeFase'), 'função de aviso existe')
+ok(catSemCom.includes('adequação da entrada elétrica'), 'texto do aviso conforme decidido')
+ok(EQUIP.includes('avisoDeFase('), 'a tela consulta o aviso')
+// Não pode filtrar nem desabilitar por fase.
+ok(!/filter\([^)]*fases/.test(semComentarios(EQUIP)), 'não filtra opções por fase')
+ok(!/disabled=\{[^}]*fase/i.test(EQUIP), 'não desabilita por fase')
+
+secao('14 · A1 — separador inequívoco no rótulo do MPPT')
+ok(ETAPA.includes("{' · '}"), 'separador presente entre o número e a contagem')
+
+secao('15 · A2 — clima pela UF, sem tabela nova')
+ok(ETAPA.includes('calcularTemperaturas('), 'consome a função canônica')
+ok(!semComentarios(ETAPA).includes('TEMPERATURAS_UF'), 'não replica a tabela')
+ok(ETAPA.includes("fonte: 'localizacao'") && ETAPA.includes("fonte: 'uf'"),
+  'declara a origem das temperaturas')
+// Precedência: persistido > UF > lacuna.
+const trechoClima = ETAPA.slice(ETAPA.indexOf('const clima = useMemo'), ETAPA.indexOf('const persistida'))
+ok(trechoClima.indexOf('tmin !== null && tmax !== null') < trechoClima.indexOf('calcularTemperaturas'),
+  'persistido tem precedência sobre a UF')
+ok(trechoClima.includes('temperatura_min_historica_c: tmin, temperatura_max_historica_c: tmax, uf, fonte: null }'),
+  'sem UF e sem persistido, permanece a lacuna')
 
 console.log(falhas === 0
   ? '\nOK — topologia autoral, validada pelo canônico; unifilar sem lacunas; nada calculado no cliente.'

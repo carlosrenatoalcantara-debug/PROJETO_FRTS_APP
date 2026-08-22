@@ -29,6 +29,7 @@
  * Puro: sem React, sem I/O.
  */
 import { tecnologiaInversor } from '@fortesolar/fv-shared/engenharia/regras-plausibilidade'
+import { lerInversor } from '@fortesolar/fv-shared/inversores'
 
 /** Número finito ou `null`. Nunca 0 por omissão, nunca NaN. */
 const num = (v) => {
@@ -51,14 +52,37 @@ export function potenciaDoModulo(equipamento) {
   return primeiroNumero(equipamento?.especificacoes, ['potencia', 'potencia_w', 'potenciaW'])
 }
 
-/** Potência do inversor (kW). */
-export function potenciaDoInversor(equipamento) {
-  return primeiroNumero(equipamento?.especificacoes, ['potencia', 'potencia_kw', 'potencia_ca'])
+// ─── Inversor: leitura pela SSOT (A5b — FV-UX-028) ───────────────────────────
+//
+// Antes, cada função abaixo tinha a sua própria lista de aliases. Era um leitor
+// PARALELO ao dicionário canônico `fv-shared/inversores`, e perdia dois aliases
+// que o SSOT reconhece: `nMppts` e `num_mppt`. Um inversor cadastrado com
+// qualquer um dos dois chegava à tela sem contagem de MPPT, e a etapa de
+// topologia não inicializava.
+//
+// `lerInversor` devolve todos os campos canônicos, com `null` onde o catálogo
+// não declarou. `paraDimensionamento` NÃO é usado de propósito: ele fecha as
+// leituras com `?? 2`, `?? 600`, `?? 100`, `?? 550` e `?? 13` — limites de
+// segurança fabricados, que pertencem à FV-DOM-029 e não podem entrar aqui.
+
+/** Leitura canônica do inversor. `null` continua `null`. */
+function canonico(equipamento) {
+  if (!equipamento) return null
+  return lerInversor(equipamento.especificacoes ?? {}, {
+    fabricante: equipamento.fabricante,
+    modelo: equipamento.modelo,
+    subtipo: equipamento.especificacoes?.subtipo,
+  })
 }
 
-/** Fases de saída do inversor. */
+/** Potência CA do inversor (kW). */
+export function potenciaDoInversor(equipamento) {
+  return num(canonico(equipamento)?.potencia_kw)
+}
+
+/** Fases de saída. `null` quando o catálogo não declara — não se infere aqui. */
 export function fasesDoInversor(equipamento) {
-  return primeiroNumero(equipamento?.especificacoes, ['fases', 'fases_saida'])
+  return num(canonico(equipamento)?.fases)
 }
 
 /**
@@ -72,13 +96,13 @@ export function fasesDoInversor(equipamento) {
  * vazio faria um microinversor ser desenhado como inversor central.
  */
 export function tipoDoInversor(equipamento) {
-  const e = equipamento?.especificacoes ?? {}
+  const c = canonico(equipamento)
   const tec = tecnologiaInversor({
     fabricante: equipamento?.fabricante,
     modelo: equipamento?.modelo,
-    voc_max_dc_v: primeiroNumero(e, ['tensao_max_entrada', 'voc_max', 'voc_max_dc', 'tensao_max_dc']),
-    potencia_kw_ca: potenciaDoInversor(equipamento),
-    n_mppts: primeiroNumero(e, ['n_mppts', 'mppts', 'numero_mppt']),
+    voc_max_dc_v: num(c?.tensao_max_entrada),
+    potencia_kw_ca: num(c?.potencia_kw),
+    n_mppts: num(c?.n_mppts),
   })
   if (!tec) return null
   return tec === 'microinversor' ? 'micro' : tec
@@ -88,6 +112,67 @@ export function tipoDoInversor(equipamento) {
 export function rotuloDoEquipamento(equipamento, potencia, unidade) {
   const nome = [equipamento?.fabricante, equipamento?.modelo].filter(Boolean).join(' ') || 'sem identificação'
   return potencia === null ? `${nome} — potência não informada` : `${nome} — ${potencia} ${unidade}`
+}
+
+/** Rótulos das tecnologias que `tecnologiaInversor` devolve. Lista fechada. */
+export const TECNOLOGIAS_INVERSOR = Object.freeze([
+  ['string', 'String'],
+  ['micro', 'Microinversor'],
+  ['hibrido', 'Híbrido'],
+  ['otimizador', 'Otimizador'],
+])
+
+/** Rótulo da fase a partir do número de fases. `null` não vira "monofásico". */
+export function rotuloDaFase(fases) {
+  if (fases === 1) return 'Monofásico'
+  if (fases === 2) return 'Bifásico'
+  if (fases === 3) return 'Trifásico'
+  return null
+}
+
+/**
+ * Rótulo do inversor no seletor — A3 (FV-UX-028).
+ *
+ * Antes só havia `Fabricante Modelo — kW`, com string, micro, híbrido e
+ * otimizador na mesma lista plana. A auditoria FV-UX-027 mostrou 50 opções em
+ * que não dava para distinguir um trifásico de 25 kW de um micro de 400 W.
+ *
+ * Cada dado ausente vira `—`; nada é completado.
+ */
+export function rotuloDoInversor(equipamento) {
+  const nome = [equipamento?.fabricante, equipamento?.modelo].filter(Boolean).join(' ') || 'sem identificação'
+  const e = eletricoDoInversor(equipamento)
+  const ou = (v, sufixo = '') => (v === null || v === undefined ? '—' : `${v}${sufixo}`)
+  const partes = [
+    ou(e?.potencia_ca_kw, ' kW'),
+    rotuloDaFase(fasesDoInversor(equipamento)) ?? '—',
+    `${ou(nMpptsDoInversor(equipamento))} MPPT`,
+    `Vmax ${ou(e?.tensao_max_entrada, ' V')}`,
+    `MPPT ${ou(e?.mppt_min)}–${ou(e?.mppt_max, ' V')}`,
+    `Imax ${ou(e?.corrente_max_mppt, ' A')}`,
+  ]
+  return `${nome} — ${partes.join(' · ')}`
+}
+
+/**
+ * Incompatibilidade de fase — A4 (FV-UX-028).
+ *
+ * NÃO é regra elétrica nova nem bloqueio: compara dois dados já persistidos e
+ * devolve o texto do aviso, ou `null` quando não há o que avisar. Decisão do
+ * usuário registrada na FV-UX-027B: mostrar, nunca esconder nem impedir.
+ *
+ * Ausência de qualquer um dos lados → `null`. Não se presume fase.
+ */
+export function avisoDeFase(tipoLigacaoInstalacao, fasesEquipamento) {
+  const inst = String(tipoLigacaoInstalacao ?? '').trim()
+  if (!inst || fasesEquipamento === null || fasesEquipamento === undefined) return null
+  const fasesInstalacao = /trif/i.test(inst) ? 3 : /bif/i.test(inst) ? 2 : /monof/i.test(inst) ? 1 : null
+  if (fasesInstalacao === null) return null
+  if (fasesInstalacao === fasesEquipamento) return null
+  const rotuloEquip = rotuloDaFase(fasesEquipamento)
+  if (!rotuloEquip) return null
+  return `Instalação atual: ${inst}. Este inversor é ${rotuloEquip} e pode exigir ` +
+    'adequação da entrada elétrica.'
 }
 
 /**
@@ -147,26 +232,33 @@ export function eletricoDoModulo(equipamento) {
   }
 }
 
-/** Limites do inversor, nos nomes que o validador espera. */
+/** Limites do inversor, nos nomes que o validador espera. Tudo pela SSOT. */
 export function eletricoDoInversor(equipamento) {
-  const e = equipamento?.especificacoes ?? {}
+  const c = canonico(equipamento)
+  if (!c) return null
   return {
-    tensao_max_entrada: primeiroNumero(e, ['tensao_max_entrada', 'voc_max', 'voc_max_dc', 'tensao_max_dc']),
-    mppt_min: primeiroNumero(e, ['tensao_mppt_min', 'faixa_mppt_min', 'mppt_min']),
-    mppt_max: primeiroNumero(e, ['tensao_mppt_max', 'faixa_mppt_max', 'mppt_max']),
-    corrente_max_mppt: primeiroNumero(e, ['corrente_max_por_mppt', 'corrente_max_mppt', 'isc_max_mppt', 'ipv_max']),
-    potencia_ca_kw: potenciaDoInversor(equipamento),
+    tensao_max_entrada: num(c.tensao_max_entrada),
+    mppt_min: num(c.tensao_mppt_min),
+    mppt_max: num(c.tensao_mppt_max),
+    // Precedência entre DOIS campos reais do catálogo — a mesma de
+    // `catalogoQualidade`. Não é default: se ambos faltarem, permanece `null`.
+    corrente_max_mppt: num(c.corrente_isc_max) ?? num(c.corrente_max_por_mppt),
+    potencia_ca_kw: num(c.potencia_kw),
   }
 }
 
 /** Quantidade de MPPTs declarada pelo catálogo. `null` se ausente. */
 export function nMpptsDoInversor(equipamento) {
-  return primeiroNumero(equipamento?.especificacoes, ['n_mppts', 'mppts', 'numero_mppt'])
+  return num(canonico(equipamento)?.n_mppts)
 }
 
-/** Entradas físicas por MPPT declaradas pelo catálogo. `null` se ausente. */
+/**
+ * Entradas físicas por MPPT. O SSOT normaliza para ARRAY (uma posição por
+ * MPPT); a soma é o total de entradas do equipamento.
+ */
 export function entradasPorMppt(equipamento) {
-  return primeiroNumero(equipamento?.especificacoes, ['strings_por_mppt', 'entradas_por_mppt'])
+  const v = canonico(equipamento)?.entradas_por_mppt
+  return Array.isArray(v) && v.length ? v : null
 }
 
 /** Campos elétricos que o catálogo não declarou — viram lacuna, não default. */

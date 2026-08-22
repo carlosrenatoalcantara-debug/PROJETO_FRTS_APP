@@ -278,12 +278,21 @@ describe('FV-UX-019 · nenhum catálogo paralelo, nenhum cálculo no cliente', (
     }
   })
 
-  it('18 · a única regra compartilhada usada é a classificação de tecnologia', async () => {
+  it('18 · só entram peças CANÔNICAS do domínio compartilhado', async () => {
     const cat = await ler('../catalogo.js')
     const imports = cat.split('\n').filter((l) => l.startsWith('import '))
-    expect(imports).toHaveLength(1)
-    expect(imports[0]).toContain('regras-plausibilidade')
-    expect(imports[0]).toContain('tecnologiaInversor')
+    // A FV-UX-019 exigia exatamente 1 import. A FV-UX-028 (A5b) somou o leitor
+    // SSOT do inversor — que é o oposto de uma regra local: substituiu a lista
+    // de aliases própria que este arquivo mantinha. A exigência passou a ser
+    // "todo import vem de `@fortesolar/fv-shared`", que é o que importa.
+    expect(imports.length).toBeGreaterThan(0)
+    for (const l of imports) expect(l).toContain('@fortesolar/fv-shared')
+    expect(cat).toContain('tecnologiaInversor')
+    expect(cat).toContain('lerInversor')
+    // E `paraDimensionamento` continua FORA do CÓDIGO: é ele que carrega os
+    // defaults (`?? 2`, `?? 600`, `?? 550`, `?? 13`). O nome aparece só no
+    // comentário que explica por que não é usado — citar não é usar.
+    expect(semComentarios(cat)).not.toContain('paraDimensionamento')
   })
 
   it('19 · nenhuma chamada HTTP direta na etapa', async () => {

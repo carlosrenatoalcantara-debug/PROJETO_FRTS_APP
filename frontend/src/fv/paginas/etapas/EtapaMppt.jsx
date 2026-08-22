@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useProjeto } from '../../providers/ProjetoProvider'
 import { listarCatalogo, validarCompatibilidadeEletrica } from '../../api/agregadosFvApi'
+import { calcularTemperaturas } from '@fortesolar/fv-shared/engenharia/normativa'
 import {
   eletricoDoModulo, eletricoDoInversor, nMpptsDoInversor, lacunasEletricas,
 } from '../../catalogo'
@@ -77,11 +78,36 @@ export default function EtapaMppt() {
     [eletricoMod, eletricoInv])
 
   const totalModulos = inteiro(projeto?.dimensionamento?.num_paineis ?? painelSel?.quantidade)
-  const clima = useMemo(() => ({
-    temperatura_min_historica_c: projeto?.localizacao?.temperatura_min_historica_c ?? null,
-    temperatura_max_historica_c: projeto?.localizacao?.temperatura_max_historica_c ?? null,
-    uf: projeto?.local_resolvido?.estado ?? null,
-  }), [projeto])
+
+  /**
+   * Clima de projeto — A2 (FV-UX-028).
+   *
+   * A auditoria FV-UX-027 encontrou a etapa Dados Técnicos prometendo que a UF
+   * "decide Tmin/Tmax", enquanto esta tela mandava dois `null` e o motor caía
+   * no fallback nacional de 10/40 °C. A UF informada não tinha efeito algum.
+   *
+   * Precedência, sem tabela nova e sem fórmula copiada:
+   *   1. Tmin/Tmax persistidos em `localizacao` — o que o projeto mediu;
+   *   2. `calcularTemperaturas(uf)` — a tabela canônica de `fv-shared`;
+   *   3. nada — o motor aplica o fallback dele e DECLARA o warning.
+   */
+  const clima = useMemo(() => {
+    const loc = projeto?.localizacao ?? {}
+    const tmin = loc.temperatura_min_historica_c ?? null
+    const tmax = loc.temperatura_max_historica_c ?? null
+    const uf = projeto?.local_resolvido?.estado ?? loc.estado ?? null
+    if (tmin !== null && tmax !== null) {
+      return { temperatura_min_historica_c: tmin, temperatura_max_historica_c: tmax, uf, fonte: 'localizacao' }
+    }
+    if (uf) {
+      const t = calcularTemperaturas(uf)
+      return {
+        temperatura_min_historica_c: t.tmin, temperatura_max_historica_c: t.tmax,
+        uf, fonte: 'uf',
+      }
+    }
+    return { temperatura_min_historica_c: tmin, temperatura_max_historica_c: tmax, uf, fonte: null }
+  }, [projeto])
 
   // Topologia persistida; na ausência dela, MPPTs VAZIOS — nada é sugerido.
   const persistida = useMemo(
@@ -156,7 +182,9 @@ export default function EtapaMppt() {
           uf: clima.uf,
           temperatura_min_historica_c: primeiro?.clima_utilizado?.temperatura_min_historica_c ?? null,
           temperatura_max_historica_c: primeiro?.clima_utilizado?.temperatura_max_historica_c ?? null,
-          fonte: primeiro?.clima_utilizado?.fonte ?? null,
+          // A2: registra DE ONDE vieram as temperaturas — `localizacao` (medidas)
+          // ou `uf` (tabela canônica). Sem isso, o histórico não distingue as duas.
+          fonte: primeiro?.clima_utilizado?.fonte ?? clima.fonte ?? null,
           usou_fallback: primeiro?.clima_utilizado?.usou_fallback ?? null,
         },
         compatibilidade: {
@@ -200,6 +228,11 @@ export default function EtapaMppt() {
           ['Inversor', inversorSel?.modelo ? `${inversorSel.marca ?? '—'} ${inversorSel.modelo}` : null, 'Equipamentos'],
           ['Módulos no projeto', totalModulos, 'Dimensionamento'],
           ['MPPTs do inversor', nMppts, 'Catálogo'],
+          ['Tmin / Tmax de projeto',
+            clima.temperatura_min_historica_c === null ? null
+              : `${clima.temperatura_min_historica_c} / ${clima.temperatura_max_historica_c} °C` +
+                (clima.fonte === 'uf' ? ` — tabela ${clima.uf}` : ' — medidos no local'),
+            'Dados técnicos'],
         ].map(([k, v, origem]) => (
           <div key={k} className="flex gap-2 px-4 py-2">
             <dt className="w-48 shrink-0 text-slate-500">{k}</dt>
@@ -232,10 +265,13 @@ export default function EtapaMppt() {
                 <div key={i} className={`rounded border-2 bg-white p-4 ${
                   erroMppt ? 'border-red-300' : mpptUtilizado(mppt) ? 'border-slate-300' : 'border-slate-200'}`}>
                   <div className="flex items-center justify-between">
+                    {/* A1: o separador não é decoração. Sem ele, "MPPT 1" seguido
+                        de "12 módulo(s)" é lido como "MPPT 112" — só a margem CSS
+                        separava os dois números. */}
                     <h3 className="text-sm font-semibold text-slate-900">
                       MPPT {i + 1}
                       <span className="ml-2 font-normal text-slate-500">
-                        {totalDoMppt(mppt)} módulo(s)
+                        {' · '}{totalDoMppt(mppt)} módulo(s)
                         {!mpptUtilizado(mppt) && ' — livre'}
                       </span>
                     </h3>

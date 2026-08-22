@@ -419,11 +419,23 @@ describe('FV-UX-026 · nenhum cálculo elétrico no cliente', () => {
   it('23 · nenhuma fórmula elétrica na etapa nem no modelo', async () => {
     const fontes = semComentarios(await ler('../paginas/etapas/EtapaMppt.jsx'))
       + semComentarios(await ler('../topologia.js'))
+    // `@fortesolar/fv-shared` saiu desta lista na FV-UX-028 (A2): a etapa passou
+    // a CONSUMIR `calcularTemperaturas` do pacote canônico. Proibir o import
+    // proibiria justamente o comportamento correto — o que continua proibido é
+    // reescrever fórmula, e é o que as entradas abaixo verificam.
     for (const p of ['Math.pow', 'fatorTermico', 'temperaturaCelula', 'correnteProjeto',
-      'coefParaFracao', '1.25', 'voc *', 'vmpp *', 'isc *', '@fortesolar/fv-shared',
-      'oversizing =', 'tensao_max_entrada >']) {
+      'coefParaFracao', '1.25', 'voc *', 'vmpp *', 'isc *',
+      'oversizing =', 'tensao_max_entrada >', 'TEMPERATURAS_UF', 'tmin:', 'tmax:']) {
       expect(fontes.includes(p), `encontrou \`${p}\``).toBe(false)
     }
+  })
+
+  it('23b · A2 — a única importação do pacote é a tabela climática canônica', async () => {
+    const fonte = await ler('../paginas/etapas/EtapaMppt.jsx')
+    const imports = fonte.split('\n').filter((l) => l.includes('@fortesolar/fv-shared'))
+    expect(imports).toHaveLength(1)
+    expect(imports[0]).toContain('calcularTemperaturas')
+    expect(imports[0]).toContain('engenharia/normativa')
   })
 
   it('24 · nenhuma distribuição automática — `sugerirMPPTs` não existe aqui', async () => {

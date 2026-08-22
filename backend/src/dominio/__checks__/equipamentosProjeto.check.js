@@ -75,9 +75,17 @@ for (const p of ['Math.pow', 'Math.sqrt', 'Math.ceil', 'engenhariaNormativa', 'u
 }
 // A única regra compartilhada é a classificação de tecnologia — reúso da fonte
 // única, não uma segunda opinião escrita no cliente.
+// A FV-UX-019 exigia exatamente 1 import. A FV-UX-028 (A5b) somou `lerInversor`,
+// o leitor SSOT do inversor — que SUBSTITUIU a lista de aliases que este arquivo
+// mantinha. Não é regra a mais: é uma regra local a menos. A exigência passou a
+// ser que TODO import venha do pacote compartilhado.
 const imports = CATALOGO_UX.split('\n').filter((l) => l.startsWith('import '))
-ok(imports.length === 1 && imports[0].includes('tecnologiaInversor'),
-  'um único import de domínio: tecnologiaInversor')
+ok(imports.length > 0 && imports.every((l) => l.includes('@fortesolar/fv-shared')),
+  `todos os ${imports.length} imports vêm de @fortesolar/fv-shared`)
+ok(CATALOGO_UX.includes('tecnologiaInversor'), 'classificação pela regra do domínio')
+ok(CATALOGO_UX.includes('lerInversor'), 'leitura pelo dicionário SSOT')
+ok(!semComentarios(CATALOGO_UX).includes('paraDimensionamento'),
+  '`paraDimensionamento` fora — é ele que carrega os defaults')
 
 secao('7 · Nenhuma cópia paralela do estado do projeto')
 for (const p of ['createContext', 'localStorage', 'sessionStorage', 'buscarProjeto']) {
