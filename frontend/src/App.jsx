@@ -27,6 +27,8 @@ import Login               from './pages/Login'
 import AdminCatalogoQualidade from './pages/AdminCatalogoQualidade'
 import RecomendacaoKits       from './pages/RecomendacaoKits'
 import PropostaPublica        from './pages/PropostaPublica'
+// FV-UX-035 — proposta do fluxo canônico: um link por grupo, todas as opções.
+import PropostaFVPublica      from './pages/PropostaFVPublica'
 import PainelExecutivo        from './pages/PainelExecutivo'
 import Auditoria              from './pages/Auditoria'
 import FaturaRevisao          from './pages/FaturaRevisao'
@@ -44,6 +46,7 @@ export default function App() {
       <Route path="/redefinir-senha" element={<RedefinirSenha />} />
       <Route path="/calculadora" element={<Calculadora />} />
       <Route path="/p/:token" element={<PropostaPublica />} />
+      <Route path="/proposta/:token" element={<PropostaFVPublica />} />
       <Route path="/ativo/:qr" element={<AtivoQR />} />   {/* P1-ASSET-QR-CODE-01 — pública (campo) */}
       <Route path="/unifilar/:projetoId" element={<Unifilar />} />   {/* P1-UNIFILAR-INTERATIVO-01 — pública (campo) */}
       <Route path="/" element={<Layout />}>

@@ -1,23 +1,32 @@
 /**
  * topologiaInversor.js — P0-ARRAY-CONFIG-MICROINVERSOR-01
  *
- * Classificação EXPLÍCITA da topologia do inversor — sem heurística oculta.
- * Ordem de precedência (documentada):
- *   1. campo `topologia` explícito (no equipamento ou nos dados elétricos do catálogo);
- *   2. padrões de modelo/fabricante claros (micro / otimizador);
- *   3. default = 'string'.
+ * FV-DOM-031 (decisão 4): este arquivo deixou de ter regra própria.
+ *
+ * Havia três classificadores independentes e a auditoria mediu 10 divergências
+ * em 50 modelos — inclusive um microinversor real (Deye SUN-M2000G4) tratado
+ * como string por este aqui. A classificação passou a viver em
+ * `classificarTopologiaInversor` (dicionário SSOT de inversores). O que resta
+ * neste módulo é a TRADUÇÃO para o vocabulário que o wizard já consumia.
+ *
+ * `HYBRID` mapeia para `'string'` porque este enum não tem híbrido e porque os
+ * consumidores daqui (`ConfiguradorArranjoFV`, `UnifilarFV`, `descricaoTopologia`)
+ * usam o valor para decidir o LADO CC do desenho — e o híbrido é string do lado
+ * CC. Quem precisa distinguir híbrido usa o enum canônico.
  *
  * NÃO altera SSOT/Atlas — apenas LÊ o inversor para classificar.
  */
+import { classificarTopologiaInversor, TOPOLOGIA } from '@fortesolar/fv-shared/inversores'
 
 export const TOPOLOGIAS = { STRING: 'string', MICRO: 'micro', OTIMIZADOR: 'otimizador' }
 
-// Padrões de MICROINVERSOR (fabricante/modelo). Conservador — só marca micro com sinal claro.
-const RE_MICRO = /(HOYMILES|\bHMS-?\d|\bHMT-?\d|APSYSTEMS|AP\s?SYSTEMS|\bDS3\b|\bQS1\b|\bQT2\b|ENPHASE|\bIQ[ ]?[78]\b|TSUN|TSOL|NEP\b|\bBDM-?\d|MICRO\s*INVERSOR|MICROINVERSOR|MICRO-?INVERTER)/i
-// Padrões de OTIMIZADOR (SolarEdge + power optimizer)
-const RE_OTIM = /(SOLAREDGE|SOLAR\s?EDGE|POWER\s*OPTIMIZER|OTIMIZADOR|HD-?WAVE|\bSE\d{2,}|\bP\d{3,}\b)/i
-// Deye MICRO: modelos "SUN-M…" / "…MI…" (string Deye é "SUN-5K-G", "SUN2000G…" → NÃO micro)
-const RE_DEYE_MICRO = /(SUN-?M\d|SUN\d{3,4}-?\d?-?MI|MICRO)/i
+/** Enum canônico → vocabulário histórico do wizard. */
+const VOCABULARIO_WIZARD = {
+  [TOPOLOGIA.MICRO]: TOPOLOGIAS.MICRO,
+  [TOPOLOGIA.OTIMIZADOR]: TOPOLOGIAS.OTIMIZADOR,
+  [TOPOLOGIA.HYBRID]: TOPOLOGIAS.STRING,
+  [TOPOLOGIA.STRING]: TOPOLOGIAS.STRING,
+}
 
 /**
  * @param {object} inversor      equipamento selecionado (fabricante, modelo, id, topologia?, tipo?)
@@ -25,19 +34,20 @@ const RE_DEYE_MICRO = /(SUN-?M\d|SUN\d{3,4}-?\d?-?MI|MICRO)/i
  * @returns {'string'|'micro'|'otimizador'}
  */
 export function classificarTopologia(inversor, eletricoInv) {
-  // 1) campo explícito tem prioridade absoluta
-  const explicito = eletricoInv?.topologia ?? inversor?.topologia
-  if (explicito && Object.values(TOPOLOGIAS).includes(explicito)) return explicito
-
-  const txt = `${inversor?.fabricante ?? ''} ${inversor?.modelo ?? ''} ${inversor?.nome ?? ''} ${inversor?.id ?? ''}`
-
-  // 2) padrões explícitos
-  const ehDeye = /DEYE/i.test(txt)
-  if (RE_MICRO.test(txt) || (ehDeye && RE_DEYE_MICRO.test(txt) && /MICRO/i.test(txt))) return TOPOLOGIAS.MICRO
-  if (RE_OTIM.test(txt)) return TOPOLOGIAS.OTIMIZADOR
-
-  // 3) default
-  return TOPOLOGIAS.STRING
+  const esp = {
+    // O campo explícito continua com prioridade absoluta, e o do catálogo
+    // elétrico continua vencendo o do equipamento — mesma ordem de antes.
+    tipo_topologia: eletricoInv?.topologia ?? inversor?.topologia ?? inversor?.tipo_topologia,
+    tensao_max_entrada: eletricoInv?.tensao_max_entrada ?? inversor?.tensao_max_entrada,
+    potencia_kw: eletricoInv?.potencia_ca_kw ?? inversor?.potencia_kw,
+    n_mppts: eletricoInv?.n_mppts ?? inversor?.n_mppts,
+  }
+  // O wizard identifica o equipamento por qualquer um destes campos.
+  const ctx = {
+    fabricante: inversor?.fabricante ?? inversor?.marca ?? '',
+    modelo: `${inversor?.modelo ?? ''} ${inversor?.nome ?? ''} ${inversor?.id ?? ''}`.trim(),
+  }
+  return VOCABULARIO_WIZARD[classificarTopologiaInversor(esp, ctx)]
 }
 
 export const ehMicro = (inv, el) => classificarTopologia(inv, el) === TOPOLOGIAS.MICRO

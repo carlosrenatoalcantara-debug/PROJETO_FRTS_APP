@@ -48,11 +48,14 @@ const ESPECIFICACOES = [
  */
 export default function EtapaUnifilar() {
   const {
-    svg, origem, proveniencia, lacunas, especificacoes,
+    svg, origem, proveniencia, lacunas, especificacoes, impedimento,
     snapshot, temSnapshot, carregando, erro, gerar,
   } = useUnifilar()
   // A liberação da fase é decisão do servidor — nenhum booleano local de
   // "congelado" é construído aqui (FV-UX-004 / FV-UX-011).
+  // FV-DOM-031C: o servidor DECLARA a topologia em `especificacoes.topologia`.
+  // A tela não a deduz — só a lê para escolher o texto certo.
+  const topologiaMicro = especificacoes?.topologia === 'micro'
   const { liberadaPara, motivoDe } = useContrato()
   const liberada = liberadaPara('engenharia')
   const motivo = motivoDe('engenharia')
@@ -112,14 +115,21 @@ export default function EtapaUnifilar() {
       )}
 
       {/* ── Lacunas declaradas pelo servidor ────────────────────────────────── */}
-      {!mostrandoSnapshot && lacunas.length > 0 && (
+      {/* Com impedimento não houve desenho, então "o motor usou valores padrão"
+          descreveria algo que não aconteceu. O motivo técnico já cobre o caso. */}
+      {!mostrandoSnapshot && !impedimento && lacunas.length > 0 && (
         <div className="mt-4 rounded border border-amber-200 bg-amber-50 p-3">
           <p className="text-sm font-medium text-amber-900">
             {lacunas.length} dado(s) ausente(s) no projeto
           </p>
           <p className="mt-1 text-xs text-amber-800">
-            O motor usou valores padrão para desenhar. Os itens abaixo NÃO descrevem
-            este projeto — preencha-os antes de usar o diagrama para homologação.
+            {/* FV-DOM-031C: a frase depende de qual motor desenhou. O de string
+                cai em valores padrão; o de microinversores não assume nada e
+                deixa o campo em branco. Dizer "usou valores padrão" num projeto
+                micro seria descrever um comportamento que não aconteceu. */}
+            {topologiaMicro
+              ? 'O motor deixou estes campos em branco — nenhum valor foi assumido. Preencha-os antes de usar o diagrama para homologação.'
+              : 'O motor usou valores padrão para desenhar. Os itens abaixo NÃO descrevem este projeto — preencha-os antes de usar o diagrama para homologação.'}
           </p>
           <ul className="mt-2 flex flex-wrap gap-2">
             {lacunas.map((c) => (
@@ -170,7 +180,44 @@ export default function EtapaUnifilar() {
         <p className="mt-6 text-sm text-slate-500">Gerando diagrama…</p>
       )}
 
-      {!carregando && !svgExibido && !erro && (
+      {/* ── Recusa do domínio (FV-DOM-056) ──────────────────────────────────
+          Antes desta sprint, um projeto sem topologia válida recebia um desenho
+          feito com o número ESTIMADO de módulos — plausível e eletricamente
+          impossível. Agora o servidor recusa, e o motivo técnico ocupa o lugar
+          do diagrama em vez de um vazio genérico. */}
+      {!mostrandoSnapshot && impedimento && (
+        <div className="mt-6 rounded border-2 border-red-300 bg-red-50 p-5">
+          <p className="text-sm font-semibold text-red-900">
+            O diagrama não pode ser gerado
+          </p>
+          <p className="mt-2 text-sm text-red-800">{impedimento.motivo}</p>
+          {impedimento.detalhe?.diagnosticos?.length > 0 && (
+            <ul className="mt-3 flex flex-col gap-1">
+              {impedimento.detalhe.diagnosticos.map((d, i) => (
+                <li key={i} className="text-xs text-red-800">⛔ {d}</li>
+              ))}
+            </ul>
+          )}
+          {impedimento.detalhe?.campo && (
+            <p className="mt-3 text-xs text-red-700">
+              Preencha em <code className="rounded bg-red-100 px-1">{impedimento.detalhe.campo}</code>
+              {' '}— etapa Topologia MPPT.
+            </p>
+          )}
+          {impedimento.detalhe?.modulos_na_topologia !== undefined && (
+            <p className="mt-3 text-xs text-red-700">
+              {impedimento.detalhe.modulos_na_topologia} módulo(s) na topologia ·
+              {' '}{impedimento.detalhe.modulos_na_composicao} na composição.
+            </p>
+          )}
+          <p className="mt-3 text-xs text-red-700">
+            Nenhum desenho alternativo é produzido: um diagrama que não corresponde
+            à topologia validada não pode virar documento de homologação.
+          </p>
+        </div>
+      )}
+
+      {!carregando && !svgExibido && !erro && !impedimento && (
         <div className="mt-6 rounded border-2 border-dashed border-slate-300 p-10 text-center">
           <p className="text-sm text-slate-600">Nenhum diagrama disponível.</p>
           <p className="mt-1 text-xs text-slate-500">

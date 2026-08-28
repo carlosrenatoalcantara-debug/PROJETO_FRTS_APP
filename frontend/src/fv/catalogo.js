@@ -29,6 +29,7 @@
  * Puro: sem React, sem I/O.
  */
 import { tecnologiaInversor } from '@fortesolar/fv-shared/engenharia/regras-plausibilidade'
+import { lerModulo, potenciaDoModulo } from '@fortesolar/fv-shared/modulos'
 import { lerInversor } from '@fortesolar/fv-shared/inversores'
 
 /** Número finito ou `null`. Nunca 0 por omissão, nunca NaN. */
@@ -47,10 +48,13 @@ function primeiroNumero(obj, chaves) {
   return null
 }
 
-/** Potência do módulo (W) — como o catálogo a declarar, sem completar. */
-export function potenciaDoModulo(equipamento) {
-  return primeiroNumero(equipamento?.especificacoes, ['potencia', 'potencia_w', 'potenciaW'])
-}
+/**
+ * Potência do módulo (W) — como o catálogo a declarar, sem completar.
+ * FV-DOM-031D: a lista de aliases MUDOU DE LUGAR para `fv-shared/modulos`, para
+ * que o backend (unifilar de micro) leia o módulo pela mesma fonte. Mesmos
+ * aliases, mesma ordem — reexportado aqui para não quebrar os importadores.
+ */
+export { potenciaDoModulo }
 
 // ─── Inversor: leitura pela SSOT (A5b — FV-UX-028) ───────────────────────────
 //
@@ -61,9 +65,11 @@ export function potenciaDoModulo(equipamento) {
 // topologia não inicializava.
 //
 // `lerInversor` devolve todos os campos canônicos, com `null` onde o catálogo
-// não declarou. `paraDimensionamento` NÃO é usado de propósito: ele fecha as
-// leituras com `?? 2`, `?? 600`, `?? 100`, `?? 550` e `?? 13` — limites de
-// segurança fabricados, que pertencem à FV-DOM-029 e não podem entrar aqui.
+// não declarou. `paraDimensionamento` NÃO é usado: quando esta leitura foi
+// escrita (FV-UX-028) ele fechava tudo com `?? 2`, `?? 600`, `?? 100`, `?? 550`
+// e `?? 13` — limites de segurança fabricados. A FV-DOM-029 os removeu, mas a
+// leitura direta pelo dicionário continua sendo a certa aqui: é o SSOT, sem a
+// camada de projeção que o dimensionamento legado precisa.
 
 /** Leitura canônica do inversor. `null` continua `null`. */
 function canonico(equipamento) {
@@ -220,15 +226,13 @@ export function inversorDoCatalogo(equipamento) {
 
 /** Parâmetros elétricos do módulo. Coeficiente em %/°C — Q4 converte no motor. */
 export function eletricoDoModulo(equipamento) {
-  const e = equipamento?.especificacoes ?? {}
+  // FV-DOM-031D: delega ao leitor SSOT. A ORDEM das chaves do objeto é a mesma
+  // de antes porque os consumidores iteram sobre ela (`lacunasEletricas`).
+  const c = lerModulo(equipamento)
   return {
-    voc: primeiroNumero(e, ['voc', 'voc_v']),
-    vmpp: primeiroNumero(e, ['vmpp', 'vmp', 'vmpp_v']),
-    isc: primeiroNumero(e, ['isc', 'isc_a']),
-    impp: primeiroNumero(e, ['impp', 'imp', 'impp_a', 'imp_a']),
-    potencia_w: potenciaDoModulo(equipamento),
-    coef_temp_voc: primeiroNumero(e, ['coef_temp_voc_pct_c', 'coef_temp_voc']),
-    temp_noct: primeiroNumero(e, ['noct_c', 'noct', 'temp_noct']),
+    voc: c.voc, vmpp: c.vmpp, isc: c.isc, impp: c.impp,
+    potencia_w: c.potencia_w,
+    coef_temp_voc: c.coef_temp_voc, temp_noct: c.temp_noct,
   }
 }
 
@@ -259,6 +263,46 @@ export function nMpptsDoInversor(equipamento) {
 export function entradasPorMppt(equipamento) {
   const v = canonico(equipamento)?.entradas_por_mppt
   return Array.isArray(v) && v.length ? v : null
+}
+
+// ─── Envelope do MICROINVERSOR — FV-DOM-031 ──────────────────────────────────
+//
+// A topologia do micro é `microinversor → entradas → módulos` (decisão 5). Estes
+// três campos são o envelope completo: quantas entradas, quantos módulos por
+// entrada e qual o limite CC/CA declarado. Vêm da SSOT, sem alias local, e sem
+// default: o que o catálogo não declarou é `null` e vira lacuna.
+
+/** Entradas CC independentes do microinversor. */
+export function entradasDoMicro(equipamento) {
+  return num(canonico(equipamento)?.entradas)
+}
+
+/** Módulos que cada entrada aceita. */
+export function modulosPorEntradaDoMicro(equipamento) {
+  return num(canonico(equipamento)?.modulos_por_entrada)
+}
+
+/** Limite CC/CA declarado pelo fabricante. Sem ele não há veredito (decisão 3). */
+export function oversizingMaxDoInversor(equipamento) {
+  return num(canonico(equipamento)?.oversizing_max)
+}
+
+/** O equipamento é um microinversor, pela classificação canônica única? */
+export function ehMicro(equipamento) {
+  return tipoDoInversor(equipamento) === 'micro'
+}
+
+/**
+ * Envelope de micro no formato que o motor canônico espera.
+ * Todos os campos podem ser `null` — o motor declara a lacuna.
+ */
+export function envelopeDoMicro(equipamento) {
+  return {
+    entradas: entradasDoMicro(equipamento),
+    modulos_por_entrada: modulosPorEntradaDoMicro(equipamento),
+    potencia_kw: potenciaDoInversor(equipamento),
+    oversizing_max: oversizingMaxDoInversor(equipamento),
+  }
 }
 
 /** Campos elétricos que o catálogo não declarou — viram lacuna, não default. */

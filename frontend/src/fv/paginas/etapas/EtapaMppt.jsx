@@ -10,6 +10,8 @@ import {
   mpptUtilizado, paraArranjoPersistido, daArranjoPersistido, arranjoParaValidacao,
   topologiaDesigual,
 } from '../../topologia'
+import { composicaoEhMicro, composicaoMista } from '../../microinversores'
+import EtapaMicroinversores from './EtapaMicroinversores'
 
 /**
  * EtapaMppt — topologia do arranjo — FV-UX-026.
@@ -59,9 +61,18 @@ export default function EtapaMppt() {
     return () => { vivo = false }
   }, [])
 
+  // FV-UX-029: a composição vive em `arranjos[]`; esta etapa consome a PROJEÇÃO
+  // `equipamentos.*`, que carrega o primeiro módulo e o primeiro inversor.
+  // Enquanto o validador canônico descrever um inversor por vez, é o que dá para
+  // topologizar — e a limitação é declarada, nunca silenciada.
   const equip = projeto?.equipamentos ?? {}
   const painelSel = equip.paineis?.[0] ?? null
   const inversorSel = equip.inversor ?? null
+  const arranjoPrincipal = (projeto?.arranjos ?? []).find((a) => a?.tipo === 'principal') ?? null
+  const modelosNaComposicao = arranjoPrincipal?.paineis?.length ?? 0
+  const inversoresNaComposicao = arranjoPrincipal?.inversores?.length ?? 0
+  const unidadesDeInversor = (arranjoPrincipal?.inversores ?? [])
+    .reduce((s, i) => s + (Number(i?.quantidade) > 0 ? Number(i.quantidade) : 0), 0)
 
   const moduloCat = useMemo(() => (catalogo?.modulos ?? [])
     .find((e) => String(e._id) === String(painelSel?.equipamento_id ?? painelSel?.id)) ?? null,
@@ -78,6 +89,14 @@ export default function EtapaMppt() {
     [eletricoMod, eletricoInv])
 
   const totalModulos = inteiro(projeto?.dimensionamento?.num_paineis ?? painelSel?.quantidade)
+
+  // FV-DOM-031: a topologia da composição decide QUAL editor abre.
+  const ehComposicaoMicro = useMemo(
+    () => composicaoEhMicro(arranjoPrincipal?.inversores ?? (inversorSel ? [inversorSel] : []), catalogo?.inversores),
+    [arranjoPrincipal, inversorSel, catalogo])
+  const composicaoEhMista = useMemo(
+    () => composicaoMista(arranjoPrincipal?.inversores ?? (inversorSel ? [inversorSel] : []), catalogo?.inversores),
+    [arranjoPrincipal, inversorSel, catalogo])
 
   /**
    * Clima de projeto — A2 (FV-UX-028).
@@ -206,6 +225,45 @@ export default function EtapaMppt() {
     }
   }
 
+  /**
+   * FV-DOM-031 (decisão 5): microinversor NÃO usa MPPT → strings → módulos.
+   * A auditoria mediu o defeito: um Hoymiles de 4 entradas era renderizado
+   * abaixo como "4 MPPTs" pedindo módulos em série. A composição de micro vai
+   * para a tela irmã, que tem o modelo certo — este editor não é adaptado.
+   *
+   * ── Por que esta bifurcação vem ANTES de `carregando` (FV-DOM-031E) ─────────
+   * `salvarEtapa` grava e RELÊ o servidor, e `recarregar()` liga `carregando`.
+   * Com o teste abaixo, o `return <p>Carregando…</p>` DESMONTAVA
+   * `EtapaMicroinversores` no meio do salvamento — e o estado local dela, com o
+   * "Topologia salva.", morria junto. A gravação sempre funcionou (o `micros[]`
+   * chegava ao banco); a confirmação é que nunca aparecia.
+   *
+   * `projeto` permanece populado durante a releitura (o provider só troca o
+   * objeto quando o GET volta), então renderizar com ele é correto. Na primeira
+   * carga `projeto` é `null` e o fluxo cai nos returns abaixo, como antes.
+   */
+  if (projeto && ehComposicaoMicro) {
+    return (
+      <>
+        {composicaoEhMista && (
+          <p role="alert" className="mx-auto mt-6 max-w-3xl rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+            A composição mistura microinversores com inversores de outra
+            topologia. Nenhum dos dois editores descreve essa mistura, e ela não
+            é resolvida por conta própria — separe em arranjos ou revise a
+            composição na etapa Equipamentos.
+          </p>
+        )}
+        <EtapaMicroinversores
+          catalogoInversores={catalogo?.inversores ?? []}
+          arranjoPrincipal={arranjoPrincipal}
+          totalModulos={totalModulos}
+          potenciaModuloW={eletricoMod?.potencia_w ?? null}
+        />
+      </>
+    )
+  }
+
+  // Caminho STRING — os mesmos guards de sempre, na mesma ordem.
   if (carregando) return <p className="p-6 text-sm text-slate-500">Carregando…</p>
   if (erro) return <p className="p-6 text-sm text-red-600">{erro}</p>
   if (!projeto) return <p className="p-6 text-sm text-slate-500">Projeto não encontrado.</p>
@@ -242,6 +300,20 @@ export default function EtapaMppt() {
           </div>
         ))}
       </dl>
+
+      {(modelosNaComposicao > 1 || inversoresNaComposicao > 1 || unidadesDeInversor > 1) && (
+        <p className="mt-3 rounded border border-slate-300 bg-slate-50 px-3 py-2 text-xs text-slate-600">
+          A composição tem
+          {modelosNaComposicao > 1 && ` ${modelosNaComposicao} modelos de módulo`}
+          {modelosNaComposicao > 1 && (inversoresNaComposicao > 1 || unidadesDeInversor > 1) && ' e'}
+          {inversoresNaComposicao > 1
+            ? ` ${inversoresNaComposicao} modelos de inversor`
+            : unidadesDeInversor > 1 && ` ${unidadesDeInversor} unidades do mesmo inversor`}
+          . Esta etapa topologiza <strong>um inversor e um modelo de módulo por vez</strong> —
+          os primeiros da composição. Distribuir entre vários inversores depende de
+          decisão de domínio ainda pendente e não é assumido aqui.
+        </p>
+      )}
 
       {lacunas.length > 0 && (
         <p className="mt-3 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800">

@@ -28,6 +28,17 @@ import {
   criarCompartilhamento,
   duplicarProjetoFV,           // S8.4 — ciclo de vida
   ampliarProjetoFV,            // P1-UX-CORE-EVOLUTION-01 (FASE 4)
+  criarOpcaoFV,                // FV-DOM-032 — opções concorrentes da proposta
+  enviarPropostaFV,            // FV-UX-035 — envio da proposta ao cliente
+  obterEnvioDaProposta,
+  registrarParecerFV,          // FV-DOM-042 — Parecer de Acesso
+  obterParecerFV,
+  confirmarParecerFV,
+  obterConexaoFV,              // FV-DOM-047 — conexão física da usina
+  registrarConexaoFV,
+  removerConexaoFV,
+  listarOpcoesFV,
+  aceitarOpcaoDaProposta,
   totaisProjetoFV,             // P1-MULTIINVERSOR (FASE 4)
   arquivarProjetoFV,
   restaurarProjetoFV,
@@ -74,6 +85,25 @@ router.post('/finalizar-com-fatura', finalizarComFatura)
 router.put('/:id/etapa',           salvarEtapaProjetoFV)
 
 // ── S3.5: Governança técnica (snapshots, revisões, divergência) ─────────────
+// FV-DOM-032 — opções concorrentes da MESMA proposta comercial.
+router.get('/:id/opcoes',              listarOpcoesFV)
+router.post('/:id/opcoes',             criarOpcaoFV)
+router.post('/:id/proposta/aceitar',   aceitarOpcaoDaProposta)
+// FV-UX-035 — o envio ao cliente precede o aceite.
+router.post('/:id/proposta/enviar',    enviarPropostaFV)
+router.get('/:id/proposta/envio',      obterEnvioDaProposta)
+
+// FV-DOM-042 — Parecer de Acesso. Pertence a um projeto que já existe (D2);
+// a confirmação humana é o portão antes de qualquer uso do dado.
+router.post('/:id/parecer',            registrarParecerFV)
+router.get('/:id/parecer',             obterParecerFV)
+router.post('/:id/parecer/confirmar',  confirmarParecerFV)
+
+// FV-DOM-047 — o FATO da conexão. Não altera Gate, Baseline nem projeto.status.
+router.get('/:id/conexao',             obterConexaoFV)
+router.put('/:id/conexao',             registrarConexaoFV)
+router.delete('/:id/conexao',          removerConexaoFV)
+
 router.post('/:id/governanca/congelar',    congelarProjetoFV)
 router.post('/:id/governanca/revisao',      criarRevisaoProjetoFV)
 router.put('/:id/governanca/status',        alterarStatusGovernanca)

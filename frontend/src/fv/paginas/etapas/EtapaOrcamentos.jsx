@@ -1,6 +1,7 @@
 import { useOrcamentos } from '../../providers/OrcamentosProvider'
 import CartaoOrcamento from '../../componentes/CartaoOrcamento'
 import FormNovoOrcamento from '../../componentes/FormNovoOrcamento'
+import ResumoOpcao from '../../componentes/ResumoOpcao'
 
 /**
  * EtapaOrcamentos — agregado `Orcamento` — FV-UX-011.
@@ -19,6 +20,8 @@ export default function EtapaOrcamentos() {
     return (
       <section className="mx-auto max-w-3xl p-6">
         <h2 className="text-lg font-semibold text-slate-900">Orçamentos</h2>
+        {/* FV-UX-030: identifica a opção que este orçamento vai precificar. */}
+        <ResumoOpcao className="mt-3 block" />
         <p className="mt-4 text-sm text-slate-500">
           Nenhum orçamento registrado. Ele deriva de uma cotação (M-1).
         </p>
@@ -38,6 +41,9 @@ export default function EtapaOrcamentos() {
         </div>
         <FormNovoOrcamento />
       </header>
+
+      {/* FV-UX-030: identifica a opção que estes orçamentos precificam. */}
+      <ResumoOpcao className="mt-3 block" />
 
       {vigente && (
         <>

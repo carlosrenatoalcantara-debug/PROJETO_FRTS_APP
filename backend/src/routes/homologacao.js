@@ -10,6 +10,9 @@ import {
   atualizarStatusHomologacao,
   obterStatusHomologacao,
   testarFreezimento,
+  // FV-UX-040: o MESMO guard usado pelos endpoints do controller. Estas duas
+  // rotas moram aqui e escaparam da FV-UX-034.
+  _exigirGateHomologacao,
 } from '../controllers/homologacaoController.js'
 import { ProjetoFV } from '../models/ProjetoFV.js'
 import { UnidadeBeneficiaria } from '../models/UnidadeBeneficiaria.js'
@@ -134,6 +137,9 @@ router.get('/assistida/pacote', async (req, res) => {
 router.patch('/assistida/status', async (req, res) => {
   try {
     if (mongoose.connection.readyState !== 1) return res.status(503).json({ erro: 'DB_OFFLINE' })
+    // Avançar a homologação assistida é AVANÇO: medido na FV-UX-040 que a opção
+    // não escolhida chegava a `homologado` por aqui.
+    if (!(await _exigirGateHomologacao(req, res))) return
     const { status, motivo = null } = req.body || {}
     if (!STATUS_HOMOLOGACAO.includes(status)) {
       return res.status(400).json({ erro: 'Status inválido', validos: STATUS_HOMOLOGACAO })
@@ -174,6 +180,9 @@ router.patch('/assistida/status', async (req, res) => {
 router.patch('/protocolo', async (req, res) => {
   try {
     if (mongoose.connection.readyState !== 1) return res.status(503).json({ erro: 'DB_OFFLINE' })
+    // Gravar protocolo é AVANÇO operacional: a opção não escolhida não protocola
+    // nada na concessionária (FV-DOM-032, regra 5).
+    if (!(await _exigirGateHomologacao(req, res))) return
     const { numero_protocolo } = req.body || {}
     const projeto = await ProjetoFV.findOne(aplicarEscopo({ _id: req.params.projetoId }, req, { contexto: 'homolog' }))
     if (!projeto) return res.status(404).json({ erro: 'Projeto não encontrado' })

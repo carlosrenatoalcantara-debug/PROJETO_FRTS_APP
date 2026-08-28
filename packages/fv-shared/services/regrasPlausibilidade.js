@@ -15,6 +15,7 @@
  *
  * NÃO modifica o input. NÃO depende de I/O.
  */
+import { classificarTopologiaInversor, TOPOLOGIA } from '../equipamentos/inversores/dicionarioInversor.js'
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -366,16 +367,33 @@ export const REGRAS_MODULO = [
 // Fonte ÚNICA de tecnologia do inversor (micro/string/otimizador/hibrido). Exportada para
 // reúso no adaptador de engenharia (P0-DIMENSIONAMENTO-ENGINEERING-RESTORE-01) — sem duplicar regras.
 // Nas regras de qualidade, só 'microinversor' altera faixas; 'otimizador' usa faixas de string (igual antes).
-export function tecnologiaInversor(specs) {
-  const nome = `${specs.fabricante || ''} ${specs.modelo || ''}`.toLowerCase()
-  if (/hibrid|hybrid|\bbess\b|storage|all-?in-?one|h1-|hb-|sun-?\d+k-?sg|-eu-sg/.test(nome)) return 'hibrido'
-  if (/solaredge|hd-?wave|\boptimi|otimizad/.test(nome)) return 'otimizador'
-  if (/micro|sun-?m\d|tsol-?m[xpps]|hms-|hmt-|\bm2-|bdm-|iq[78]|ds3|apsystem|ez1|qs1|yc[56]\d{2}|mi-?\d{3,4}/.test(nome)) return 'microinversor'
-  const voc = num(specs.voc_max_dc_v)
-  if (voc !== null && voc <= 100) return 'microinversor'
-  if (voc !== null && voc >= 200) return 'string'
-  if (num(specs.potencia_kw_ca) !== null && num(specs.potencia_kw_ca) <= 3.5 && (num(specs.n_mppts) || 0) >= 4) return 'microinversor'
-  return 'string'
+export function tecnologiaInversor(specs = {}) {
+  // FV-DOM-031 (decisão 4): esta função deixou de ter regra própria. A
+  // classificação vive em `classificarTopologiaInversor` (dicionário SSOT) —
+  // aqui resta apenas a tradução para o vocabulário que as regras de qualidade
+  // já usavam ('microinversor', não 'MICRO').
+  const topo = classificarTopologiaInversor(
+    {
+      tipo_topologia: specs.tipo_topologia ?? specs.topologia,
+      subtipo: specs.subtipo,
+      tensao_max_entrada: specs.voc_max_dc_v ?? specs.tensao_max_entrada,
+      potencia_kw: specs.potencia_kw_ca ?? specs.potencia_kw,
+      n_mppts: specs.n_mppts,
+      suporta_bateria: specs.suporta_bateria,
+      interface_bess: specs.interface_bess,
+      comunicacao: specs.comunicacao,
+    },
+    { fabricante: specs.fabricante, modelo: specs.modelo, subtipo: specs.subtipo },
+  )
+  return VOCABULARIO_QUALIDADE[topo]
+}
+
+/** Enum canônico → vocabulário histórico das regras de qualidade. */
+const VOCABULARIO_QUALIDADE = {
+  [TOPOLOGIA.MICRO]: 'microinversor',
+  [TOPOLOGIA.HYBRID]: 'hibrido',
+  [TOPOLOGIA.OTIMIZADOR]: 'otimizador',
+  [TOPOLOGIA.STRING]: 'string',
 }
 
 export const REGRAS_INVERSOR = [

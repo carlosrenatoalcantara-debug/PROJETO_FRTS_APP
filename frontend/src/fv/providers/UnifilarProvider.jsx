@@ -59,6 +59,12 @@ export function UnifilarProvider({ children }) {
     /** Campos que o projeto não forneceu. Nunca preenchidos no cliente. */
     lacunas: dados?.lacunas ?? [],
     especificacoes: dados?.especificacoes ?? null,
+    /**
+     * FV-DOM-056: por que o domínio RECUSOU desenhar. `null` quando desenhou.
+     * Não é erro de requisição — é o estado técnico do projeto, e a tela o
+     * apresenta no lugar do diagrama.
+     */
+    impedimento: dados?.impedimento ?? null,
 
     // ── Desenho congelado (M-2) ───────────────────────────────────────────────
     snapshot,

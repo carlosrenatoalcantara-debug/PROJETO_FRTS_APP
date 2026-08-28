@@ -222,3 +222,87 @@ export function montarArranjosAmpliacao(projetoOrigem) {
 
   return [...existentes, ampliacao]
 }
+
+/**
+ * Composição do projeto — FV-UX-038 (D1).
+ *
+ * ── A ambiguidade que isto encerra ──────────────────────────────────────────
+ * A auditoria FV-UX-037 mediu duas formas para o mesmo conceito:
+ *
+ *   `equipamentos.inversor`      objeto ÚNICO, sem `quantidade` persistida
+ *   `arranjos[].inversores[]`    lista, COM quantidade
+ *
+ * Consumidores que liam o primeiro descreviam a venda errado: a proposta e a
+ * listagem mostravam "HMS-2000-4T" onde havia OITO unidades, e nenhum sinal de
+ * que existia mais de um modelo.
+ *
+ * A decisão da sprint: `arranjos[].inversores[]` é a fonte canônica, e ninguém
+ * cria uma segunda quantidade em `equipamentos.inversor`. Esta função é o
+ * ADAPTADOR ÚNICO por onde os consumidores passam a ler — construída sobre
+ * `normalizarArranjos`, que já resolve o projeto legado derivando o arranjo a
+ * partir de `equipamentos`. Por isso a compatibilidade é preservada sem
+ * segunda fonte: quem só tem a forma antiga continua sendo lido, pelo mesmo
+ * caminho.
+ *
+ * NÃO deriva grandeza de engenharia: soma quantidade e potência declaradas,
+ * nada mais. Potência de string, corrente e tensão continuam com o motor
+ * elétrico.
+ *
+ * @param {object} projeto  Documento ProjetoFV (lean ou hidratado)
+ * @returns {{
+ *   modulos: Array<{marca,modelo,potencia_w,quantidade,equipamento_id}>,
+ *   inversores: Array<{marca,modelo,potencia_kw,tipo,fases,quantidade,equipamento_id}>,
+ *   total_modulos: number, total_inversores: number,
+ *   topologia: string|null, multi_modelo_modulo: boolean, multi_modelo_inversor: boolean
+ * }}
+ */
+export function composicaoDoProjeto(projeto) {
+  const arranjos = normalizarArranjos(projeto)
+
+  /** Agrupa por modelo somando quantidades — o mesmo modelo em dois arranjos é um item só. */
+  const agrupar = (itens, chaveExtra) => {
+    const mapa = new Map()
+    for (const it of itens) {
+      const chave = `${it?.marca ?? it?.fabricante ?? ''}|${it?.modelo ?? ''}`
+      if (chave === '|') continue
+      const atual = mapa.get(chave)
+      const qtd = Number(it?.quantidade) || (chaveExtra === 'inversor' ? 1 : 0)
+      if (atual) { atual.quantidade += qtd; continue }
+      mapa.set(chave, {
+        marca: it?.marca ?? it?.fabricante ?? null,
+        modelo: it?.modelo ?? null,
+        quantidade: qtd,
+        equipamento_id: it?.equipamento_id ?? null,
+        ...(chaveExtra === 'inversor'
+          ? { potencia_kw: it?.potencia_kw ?? it?.potenciaKW ?? null,
+            tipo: it?.tipo ?? null, fases: it?.fases ?? null }
+          : { potencia_w: it?.potencia_w ?? it?.pmpp ?? null }),
+      })
+    }
+    return [...mapa.values()]
+  }
+
+  const modulos = agrupar(arranjos.flatMap((a) => a.paineis ?? []), 'modulo')
+  const inversores = agrupar(arranjos.flatMap((a) => a.inversores ?? []), 'inversor')
+
+  // Topologia MICRO tem contagem própria em `configuracao_eletrica.micros[]`
+  // (FV-DOM-031). Quando ela existe, é ela que manda sobre a quantidade.
+  const micros = arranjos.flatMap((a) => a?.configuracao_eletrica?.micros ?? [])
+  if (micros.length > 0) {
+    for (const inv of inversores) {
+      const m = micros.find((x) => x.modelo === inv.modelo)
+      if (m && Number.isFinite(Number(m.quantidade))) inv.quantidade = Number(m.quantidade)
+    }
+  }
+
+  const topologia = arranjos.find((a) => a.topologia)?.topologia ?? null
+  return {
+    modulos,
+    inversores,
+    total_modulos: modulos.reduce((a, m) => a + (Number(m.quantidade) || 0), 0),
+    total_inversores: inversores.reduce((a, i) => a + (Number(i.quantidade) || 0), 0),
+    topologia,
+    multi_modelo_modulo: modulos.length > 1,
+    multi_modelo_inversor: inversores.length > 1,
+  }
+}

@@ -9,11 +9,32 @@ import { Tecnico } from '../models/Tecnico.js'
 import mongoose from 'mongoose'
 import { memoryStore } from '../config/memoryStorage.js'
 import { montarSnapshotRT } from '../utils/snapshotRT.js'
-import { montarArranjosAmpliacao } from '../services/arranjosService.js'
+import { montarArranjosAmpliacao, composicaoDoProjeto } from '../services/arranjosService.js'
 import { obterLocalProjeto } from '../dominio/local/index.js'
+// FV-UX-038 (D2): regra da estrutura no domínio, não só na interface.
+import { validarEstrutura } from '../dominio/estrutura/index.js'
 // FV-DOM-002: convergência do domínio comercial para Cotacao/Orcamento/Baseline.
 import { obterOrcamentoProjeto, totaisDeItens } from '../dominio/orcamento/obterOrcamentoProjeto.js'
 import { OrcamentoService } from '../services/OrcamentoService.js'
+// FV-UX-035 — envio da proposta e regra única de aceite (pública e interna).
+import { EnvioPropostaService } from '../services/EnvioPropostaService.js'
+import {
+  exigirAceitavel, montarEvidenciaAceite, avaliarEnvio, ehEnvioCanonico,
+  envioVigente, ErroProposta, MOTIVOS_PROPOSTA,
+} from '../dominio/proposta/index.js'
+// FV-DOM-042 — Parecer de Acesso: normalização, validação e conflito no domínio.
+import {
+  montarEnvelope, confirmar as confirmarParecer, compararComCanonico,
+  ErroParecer, MOTIVOS_PARECER,
+} from '../dominio/parecer/index.js'
+// FV-DOM-047 — lê o estado da opção pelo MESMO domínio que o Gate usa. Só
+// leitura: o Gate não é alterado nem passa a saber que conexão existe.
+import { estadoDaOpcao } from '../dominio/gate/index.js'
+// FV-DOM-047 — conexão física da usina: fato, não máquina de estado.
+import {
+  conexaoVazia, estaConectada, normalizarConexao, exigirRegistroValido,
+  avaliarDivergencia, exigirOpcaoEscolhida, lacunasDaConexao, ErroConexao,
+} from '../dominio/conexao/index.js'
 import { resolverCongelamento } from '../dominio/congelamento/resolverCongelamento.js'
 // S3: camada de acesso ÚNICA à topologia (Instalação → nova; senão → Arranjo).
 // Proibido ler projeto.arranjos direto fora deste adapter.
@@ -27,6 +48,8 @@ import {
   derivarStatusSeguro, paraModel, podeExcluirDefinitivo, avaliarLegacy, MOTIVOS_ARQUIVAMENTO, STATUS,
 } from '../utils/statusLifecycle.js'
 import { AuditLog } from '../models/AuditLog.js'
+// FV-INFRA-058: origem pública pela fonte única.
+import { urlPublica } from '../config/origens.js'
 
 // S8.4 — auditoria de ciclo de vida (reaproveita AuditLog; nunca quebra a request)
 async function auditarCiclo(req, acao, projetoId, detalhe = null) {
@@ -670,6 +693,19 @@ export const salvarEtapaProjetoFV = async (req, res) => {
       })
     }
 
+    // FV-UX-038 (D2): a regra da estrutura passa a valer na API, não só na
+    // tela. Medido na FV-UX-037: `{ tipo: 'Outro', descricao: '' }` entrava com
+    // HTTP 200. Ausência continua sendo LACUNA (não erro) — só `"Outro"` mudo e
+    // tipo desconhecido são recusados.
+    if (etapa === 'equipamentos' && dados?.estrutura !== undefined) {
+      const v = validarEstrutura(dados.estrutura)
+      if (!v.valida) {
+        return res.status(400).json({
+          erro: v.erros[0], erros: v.erros, codigo: 'ESTRUTURA_INVALIDA',
+        })
+      }
+    }
+
     // Monta $set para o subdoc principal + campos legados espelhados
     const $set = {}
 
@@ -925,10 +961,31 @@ export const gerarUnifilarProjeto = async (req, res) => {
       console.warn('⚠️ unifilar: ativos indisponíveis —', e.message)
     }
 
+    // FV-DOM-031D: o módulo do catálogo, para que o unifilar de MICROINVERSORES
+    // leia Voc/Vmpp/Isc/coef. térmico pela SSOT em vez de declarar lacuna. Mesmo
+    // padrão do carregamento de `ativos` acima: best-effort, nunca derruba o PDF
+    // nem o desenho. O caminho STRING não consome este dado.
+    let moduloCatalogo = null
+    try {
+      const refModulo = projeto?.equipamentos?.paineis?.[0]?.equipamento_id
+      if (refModulo && mongoose.Types.ObjectId.isValid(refModulo)) {
+        const { Equipamento } = await import('../models/Equipamento.js')
+        // SEM `aplicarEscopo`: o catálogo de equipamentos é GLOBAL — não tem
+        // `empresa_id` e nenhum outro caminho do sistema o escopa (ver
+        // `equipamentosController`). Escopar aqui faria `aplicarEscopo` lançar
+        // `TENANT_AUSENTE` (fail-closed), o `catch` engoliria, e o módulo
+        // voltaria `null` em silêncio — foi o que aconteceu na primeira versão.
+        moduloCatalogo = await Equipamento.findById(refModulo).lean()
+      }
+    } catch (e) {
+      console.warn('⚠️ unifilar: módulo do catálogo indisponível —', e.message)
+    }
+
     const { gerarUnifilarDoProjeto } = await import('../dominio/unifilar/index.js')
     const resultado = gerarUnifilarDoProjeto(projeto, {
       ativos,
       nomeCliente: projeto.clienteId?.nome ?? null,
+      moduloCatalogo,
     })
 
     res.json({
@@ -940,6 +997,9 @@ export const gerarUnifilarProjeto = async (req, res) => {
       proveniencia: resultado.proveniencia,
       lacunas: resultado.lacunas,
       especificacoes: resultado.especificacoes,
+      // FV-DOM-056: quando o domínio recusa desenhar, `svg` vem `null` e o
+      // motivo técnico vem aqui. Não é erro HTTP — é o estado do projeto.
+      impedimento: resultado.impedimento ?? null,
     })
   } catch (err) {
     console.error('❌ Erro ao gerar unifilar:', err)
@@ -2081,5 +2141,781 @@ export const obterPropostaPublica = async (req, res) => {
   } catch (err) {
     console.error('❌ Erro ao obter proposta pública:', err)
     res.status(err.status || 500).json({ erro: err.message, codigo: err.codigo })
+  }
+}
+
+// ─── FV-DOM-032 · Opções concorrentes da mesma proposta ──────────────────────
+//
+// A auditoria da sprint mediu o impedimento: duas opções não cabem num
+// ProjetoFV só. Oito campos são únicos no documento e os agregados travam por
+// projeto (`unico_aprovado_por_projeto`, `unico_baseline_por_projeto`). Cada
+// opção é, então, um ProjetoFV COMPLETO — mesmo padrão que `ampliarProjetoFV`
+// já usa em produção, com duas diferenças:
+//
+//   • o vínculo é `proposta_grupo_id` (PARES) e não `projeto_origem_id`
+//     (derivação), para que nenhuma opção seja privilegiada;
+//   • nada técnico é herdado: composição, dimensionamento, engenharia,
+//     estrutura e documentos nascem vazios e são próprios da opção.
+
+/** Campos que NENHUMA opção herda: são o estado técnico e contratual próprio. */
+const _NAO_HERDADOS_POR_OPCAO = [
+  '_id', 'createdAt', 'updatedAt', '__v',
+  'governanca', 'documentos', 'documentos_tecnicos',
+  'excluido', 'excluido_em', 'excluido_por',
+  'arquivado_em', 'arquivado_por', 'motivo_arquivamento',
+  'financeiro', 'equipamentos', 'arranjos', 'dimensionamento',
+  'engenharia_eletrica', 'unifilar', 'strings', 'layout_solar',
+  'homologacao', 'proposta', 'proposta_aceite', 'workflow',
+  'instalacao_ref', 'orcamento',
+]
+
+/** Rótulo estável da opção. "Opção 01", "Opção 02"… */
+const _rotuloDaOpcao = (n) => `Opção ${String(n).padStart(2, '0')}`
+
+/**
+ * POST /api/projetos-fv/:id/opcoes — cria uma opção irmã.
+ *
+ * A primeira chamada converte o projeto de origem na Opção 01 (carimba grupo,
+ * número e rótulo) e cria a Opção 02. As seguintes só acrescentam.
+ */
+export const criarOpcaoFV = async (req, res) => {
+  try {
+    if (!_exigirMongo(res)) return
+    const base = await ProjetoFV.findOne(
+      aplicarEscopo({ _id: req.params.id }, req, { contexto: 'projetoFV' }))
+    if (!base) return res.status(404).json({ mensagem: 'Projeto não encontrado' })
+    if (base.excluido) return res.status(400).json({ erro: 'Não é possível criar opção de projeto excluído.' })
+    if (base.tipo_projeto === 'ampliacao') {
+      return res.status(400).json({
+        erro: 'Ampliação não recebe opções concorrentes — são relações diferentes.',
+        codigo: 'AMPLIACAO_NAO_TEM_OPCOES',
+      })
+    }
+
+    // Grupo: o que já existe, ou um novo carimbado também no projeto de origem.
+    let grupo = base.proposta_grupo_id
+    if (!grupo) {
+      grupo = new mongoose.Types.ObjectId()
+      base.proposta_grupo_id = grupo
+      base.tipo_projeto = 'opcao'
+      base.opcao_numero = 1
+      base.opcao_rotulo = _rotuloDaOpcao(1)
+      await base.save()
+    }
+
+    const irmas = await ProjetoFV.find(
+      aplicarEscopo({ proposta_grupo_id: grupo, excluido: { $ne: true } }, req,
+        { contexto: 'projetoFV.opcoes' })).lean()
+    const numero = Math.max(0, ...irmas.map((p) => Number(p.opcao_numero) || 0)) + 1
+
+    const orig = base.toObject()
+    const heranca = { ...orig }
+    for (const campo of _NAO_HERDADOS_POR_OPCAO) delete heranca[campo]
+
+    const nomeBase = String(orig.nome || 'Projeto').replace(/\s*—\s*Opção \d+\s*$/i, '')
+    const nova = {
+      ...heranca,                       // cliente, fatura, consumo, concessionária, localização
+      nome: `${nomeBase} — ${_rotuloDaOpcao(numero)}`,
+      tipo_projeto: 'opcao',
+      proposta_grupo_id: grupo,
+      opcao_numero: numero,
+      opcao_rotulo: req.body?.rotulo || _rotuloDaOpcao(numero),
+      status: 'rascunho',
+      // Estado técnico e contratual NASCE VAZIO — nada é compartilhado.
+      equipamentos: { paineis: [], inversor: {}, estrutura: {} },
+      arranjos: [],
+      governanca: null,
+      financeiro: null,
+      proposta_aceite: { aceita: false, aceita_em: null, aceita_por: null, motivo: null },
+      excluido: false, excluido_em: null, excluido_por: null,
+      arquivado_em: null, arquivado_por: null, motivo_arquivamento: null,
+      legacy: false, necessita_revisao: false,
+    }
+
+    const criada = await ProjetoFV.create(
+      carimbarTenant(nova, req, { contexto: 'projetoFV.opcao' }))
+    auditarCiclo(req, 'PROJETO_OPCAO_CRIADA', criada._id, `grupo=${grupo} numero=${numero}`)
+
+    res.status(201).json({
+      sucesso: true,
+      item: enriquecer(criada),
+      proposta_grupo_id: grupo,
+      opcao_numero: numero,
+      total_opcoes: irmas.length + 1,
+    })
+  } catch (err) {
+    console.error('❌ Erro ao criar opção FV:', err)
+    res.status(err.status || 500).json({ erro: err.message, codigo: err.codigo })
+  }
+}
+
+/** GET /api/projetos-fv/:id/opcoes — as irmãs do grupo, na ordem. */
+export const listarOpcoesFV = async (req, res) => {
+  try {
+    if (!_exigirMongo(res)) return
+    const base = await ProjetoFV.findOne(
+      aplicarEscopo({ _id: req.params.id }, req, { contexto: 'projetoFV' })).lean()
+    if (!base) return res.status(404).json({ mensagem: 'Projeto não encontrado' })
+    if (!base.proposta_grupo_id) {
+      return res.json({ sucesso: true, proposta_grupo_id: null, opcoes: [], aceita: null })
+    }
+    const opcoes = await ProjetoFV.find(
+      aplicarEscopo({ proposta_grupo_id: base.proposta_grupo_id, excluido: { $ne: true } },
+        req, { contexto: 'projetoFV.opcoes' }))
+      .select('nome tipo_projeto opcao_numero opcao_rotulo proposta_aceite status '
+        + 'dimensionamento.potencia_kwp dimensionamento.num_paineis '
+        + 'equipamentos.inversor equipamentos.paineis equipamentos.estrutura '
+        + 'arranjos.topologia arranjos.paineis arranjos.inversores '
+        + 'arranjos.configuracao_eletrica.micros engenharia_eletrica.arranjo.mppts')
+      .sort({ opcao_numero: 1 }).lean()
+
+    /**
+     * FV-UX-033 (item 8) — orçamento, Baseline e Gate de CADA opção.
+     *
+     * Vem daqui, e não da listagem de projetos, por dois motivos: este endpoint
+     * já é o leitor canônico do grupo, e enriquecer `GET /api/projetos-fv`
+     * cobraria estas três consultas de TODO projeto, inclusive os que não são
+     * opção. Nenhum estado novo é derivado — cada campo é lido de quem já o
+     * possui, e o Gate é a MESMA decisão que bloqueia no domínio.
+     */
+    const { BaselineService } = await import('../services/BaselineService.js')
+    const tenant = tenantDoReq(req)
+    const detalhados = await Promise.all(opcoes.map(async (o) => {
+      const filtro = { projeto_ref: o._id, empresa_id: tenant }
+      const [orc, baseline, gEng] = await Promise.all([
+        OrcamentoService.vigenteDoProjeto(filtro).catch(() => null),
+        BaselineService.doProjeto(filtro).catch(() => null),
+        BaselineService.avaliarGate('engenharia', filtro).catch(() => null),
+      ])
+      const composicao = composicaoDoProjeto(o)
+      // Topologia: `micros[]` preenchido é o fato (FV-DOM-031C).
+      const arranjo = (o.arranjos ?? [])[0] ?? null
+      const topologia = arranjo?.configuracao_eletrica?.micros?.length ? 'micro'
+        : (arranjo?.topologia ?? (o.engenharia_eletrica?.arranjo?.mppts?.length ? 'string' : null))
+      return {
+        ...o,
+        topologia,
+        // FV-UX-038 (D1): a quantidade e a pluralidade vêm da composição
+        // canônica, não de `equipamentos.inversor` — que é objeto único e não
+        // persiste `quantidade`. `inversor` continua na resposta como resumo
+        // legível; quem precisa da verdade usa `inversores[]`.
+        inversores: composicao.inversores,
+        inversor: composicao.inversores.length === 1
+          ? composicao.inversores[0].modelo
+          : (composicao.inversores.length > 1
+            ? `${composicao.inversores.length} modelos`
+            : null),
+        estrutura: o.equipamentos?.estrutura?.tipo ?? null,
+        // FV-UX-035: `orc.totais` nunca existiu — totais são derivados a cada
+        // leitura (INV-58), e este read devolvia `null` desde a FV-UX-033.
+        orcamento: orc ? { estado: orc.estado, numero: orc.numero, versao: orc.versao,
+          total_venda_r: totaisDeItens(orc.itens).total_venda_r } : null,
+        baseline: baseline ? { hash: baseline.hash, congelado_em: baseline.congelado_em } : null,
+        gate: gEng ? { liberado: gEng.liberado, motivo: gEng.motivo ?? null } : null,
+      }
+    }))
+
+    res.json({
+      sucesso: true,
+      proposta_grupo_id: base.proposta_grupo_id,
+      opcoes: detalhados,
+      aceita: detalhados.find((o) => o.proposta_aceite?.aceita) ?? null,
+    })
+  } catch (err) {
+    console.error('❌ Erro ao listar opções FV:', err)
+    res.status(500).json({ erro: err.message })
+  }
+}
+
+/**
+ * POST /api/projetos-fv/:id/proposta/aceitar — regra 4.
+ *
+ * Ato SEPARADO da aprovação do orçamento (regra 3). Escolhe UMA opção do grupo;
+ * as demais continuam existindo, consultáveis, com Baseline intacta (regras 6 e
+ * 7) e bloqueadas apenas no Gate (regras 5 e 9).
+ */
+export const aceitarOpcaoDaProposta = async (req, res) => {
+  try {
+    if (!_exigirMongo(res)) return
+    const projeto = await ProjetoFV.findOne(
+      aplicarEscopo({ _id: req.params.id }, req, { contexto: 'projetoFV' }))
+    if (!projeto) return res.status(404).json({ mensagem: 'Projeto não encontrado' })
+
+    // FV-UX-035 — a decisão é do domínio, não deste controller. O caminho
+    // PÚBLICO (`aceitarPropostaPublica`) chama exatamente as mesmas funções:
+    // "não criar um segundo mecanismo de aceite".
+    const irmas = projeto.proposta_grupo_id
+      ? await ProjetoFV.find(aplicarEscopo({
+        proposta_grupo_id: projeto.proposta_grupo_id, excluido: { $ne: true },
+      }, req, { contexto: 'projetoFV.opcoes' })).select('_id nome opcao_rotulo proposta_aceite').lean()
+      : []
+    const envio = await EnvioPropostaService.estadoDeEnvio({
+      projeto, empresaId: tenantDoReq(req),
+    })
+
+    const { repetido } = exigirAceitavel({ opcao: projeto, irmas, envio, origem: 'interno' })
+    if (!repetido) {
+      projeto.proposta_aceite = montarEvidenciaAceite({
+        origem: 'interno',
+        usuario: req.auth?.id || req.auth?.email || req.body?.usuario || null,
+        motivo: req.body?.motivo || null,
+        ip: _ipReal(req).ip_real,
+        envio,
+      })
+      await projeto.save()
+      auditarCiclo(req, 'PROPOSTA_OPCAO_ACEITA', projeto._id,
+        `grupo=${projeto.proposta_grupo_id} opcao=${projeto.opcao_numero} origem=interno`)
+    }
+
+    res.json({
+      sucesso: true,
+      item: enriquecer(projeto),
+      aceita_em: projeto.proposta_aceite.aceita_em,
+      repetido,
+    })
+  } catch (err) {
+    if (err instanceof ErroProposta) {
+      return res.status(err.status).json({
+        erro: err.message, codigo: err.codigo,
+        ...(err.aceita_ref ? { aceita_ref: err.aceita_ref } : {}),
+      })
+    }
+    // O índice parcial `unica_opcao_aceita_por_proposta` é a última linha:
+    // duas requisições simultâneas passam pela leitura, só uma passa no banco.
+    if (err?.code === 11000) {
+      return res.status(409).json({
+        erro: 'A proposta já tem uma opção aceita.',
+        codigo: 'PROPOSTA_JA_ACEITA',
+      })
+    }
+    console.error('❌ Erro ao aceitar opção da proposta:', err)
+    res.status(err.status || 500).json({ erro: err.message, codigo: err.codigo })
+  }
+}
+
+/**
+ * POST /api/projetos-fv/:id/proposta/enviar — FV-UX-035.
+ *
+ * Disponibiliza a proposta INTEIRA (todas as opções do grupo) ao cliente, num
+ * único link. Depois disto — e só depois — o aceite é possível.
+ */
+export const enviarPropostaFV = async (req, res) => {
+  try {
+    if (!_exigirMongo(res)) return
+    const projeto = await ProjetoFV.findOne(
+      aplicarEscopo({ _id: req.params.id }, req, { contexto: 'projetoFV' }))
+      .populate('clienteId', 'nome email')
+    if (!projeto) return res.status(404).json({ mensagem: 'Projeto não encontrado' })
+
+    const resultado = await EnvioPropostaService.enviarProposta({
+      projeto,
+      empresaId: tenantDoReq(req),
+      cliente: projeto.clienteId ?? null,
+      validade_dias: req.body?.validade_dias,
+      destinatario: req.body?.destinatario ?? null,
+      usuario: req.auth?.id || req.auth?.email || null,
+    })
+    auditarCiclo(req, 'PROPOSTA_ENVIADA', projeto._id,
+      `grupo=${projeto.proposta_grupo_id} share=${resultado.share_id} `
+      + `opcoes=${resultado.opcoes} email=${resultado.email.enviado}`)
+
+    res.json({ sucesso: true, ...resultado })
+  } catch (err) {
+    if (err instanceof ErroProposta) {
+      return res.status(err.status).json({ erro: err.message, codigo: err.codigo })
+    }
+    console.error('❌ Erro ao enviar proposta:', err)
+    res.status(err.status || 500).json({ erro: err.message, codigo: err.codigo })
+  }
+}
+
+/**
+ * GET /api/projetos-fv/:id/proposta/envio — estado do envio (leitura interna).
+ */
+export const obterEnvioDaProposta = async (req, res) => {
+  try {
+    if (!_exigirMongo(res)) return
+    const projeto = await ProjetoFV.findOne(
+      aplicarEscopo({ _id: req.params.id }, req, { contexto: 'projetoFV' })).lean()
+    if (!projeto) return res.status(404).json({ mensagem: 'Projeto não encontrado' })
+
+    // FV-UX-038 (D4): o envio é do GRUPO — o tracking também. Lê-lo só desta
+    // irmã reportava 0 visualizações mesmo com o cliente tendo aberto o link.
+    const envio = avaliarEnvio({
+      grupoId: projeto.proposta_grupo_id,
+      compartilhamentos: await EnvioPropostaService.compartilhamentosDoGrupo({
+        projeto, empresaId: tenantDoReq(req),
+      }),
+    })
+    res.json({
+      sucesso: true,
+      enviada: envio.enviada,
+      vigente: envio.vigente,
+      envios: envio.envios,
+      // O link é devolvido para que o operador possa reenviá-lo por outro meio.
+      ultimo: envio.ultimo ? {
+        share_id: envio.ultimo.share_id,
+        token: envio.ultimo.token,
+        // FV-INFRA-058: mesma origem que gerou o link no envio, pela fonte única.
+        url: urlPublica(`/proposta/${envio.ultimo.token}`),
+        criado_em: envio.ultimo.criado_em,
+        validade: envio.ultimo.validade,
+        snapshot_hash: envio.ultimo.snapshot_hash,
+        visualizacoes: envio.ultimo.tracking?.visualizacoes ?? 0,
+        primeiro_acesso: envio.ultimo.tracking?.primeiro_acesso ?? null,
+        ultimo_acesso: envio.ultimo.tracking?.ultimo_acesso ?? null,
+      } : null,
+    })
+  } catch (err) {
+    console.error('❌ Erro ao ler envio da proposta:', err)
+    res.status(500).json({ erro: err.message })
+  }
+}
+
+/**
+ * GET /api/publico/proposta-fv/:token — página do cliente (SEM auth).
+ *
+ * EXCEÇÃO DELIBERADA A M-4, pelo mesmo motivo já documentado em
+ * `obterPropostaPublica`: o token É a credencial, e o cliente final não tem
+ * login. A rota é irmã daquela, não substituta — a legada continua servindo os
+ * compartilhamentos do wizard. Esta serve o envio canônico, que é por GRUPO.
+ *
+ * NUNCA recalcula: devolve o snapshot congelado no envio.
+ */
+export const obterPropostaFVPublica = async (req, res) => {
+  try {
+    if (!_exigirMongo(res)) return
+    const { token } = req.params
+    if (!token) return res.status(400).json({ erro: 'token ausente' })
+
+    const projeto = await ProjetoFV.findOne({
+      'governanca.comercial.compartilhamentos.token': token,
+    })
+    if (!projeto) return res.status(404).json({ erro: 'Proposta não encontrada ou link inválido.' })
+
+    const shares = projeto.governanca?.comercial?.compartilhamentos ?? []
+    const share = shares.find((s) => s.token === token)
+    if (!share || !ehEnvioCanonico(share, projeto.proposta_grupo_id)) {
+      return res.status(404).json({ erro: 'Compartilhamento não encontrado.' })
+    }
+    if (!envioVigente(share)) {
+      return res.status(410).json({
+        erro: 'Este link expirou.', codigo: MOTIVOS_PROPOSTA.ENVIO_EXPIRADO,
+        expirado_em: share.validade,
+      })
+    }
+
+    // Tracking leve — mesmo comportamento da rota pública legada.
+    const agora = new Date()
+    const ip = _ipReal(req).ip_real
+    share.tracking = share.tracking || { visualizacoes: 0, acessos: [] }
+    share.tracking.visualizacoes = (share.tracking.visualizacoes || 0) + 1
+    share.tracking.ultimo_acesso = agora
+    if (!share.tracking.primeiro_acesso) share.tracking.primeiro_acesso = agora
+    share.tracking.acessos = Array.isArray(share.tracking.acessos) ? share.tracking.acessos : []
+    if (share.tracking.acessos.length < 200) share.tracking.acessos.push({ timestamp: agora, ip })
+    projeto.markModified('governanca.comercial.compartilhamentos')
+    await projeto.save()
+
+    // Qual opção já foi aceita, se alguma — o cliente precisa ver a própria escolha.
+    const aceita = await ProjetoFV.findOne({
+      proposta_grupo_id: projeto.proposta_grupo_id,
+      'proposta_aceite.aceita': true, excluido: { $ne: true },
+    }).select('_id opcao_numero opcao_rotulo proposta_aceite').lean()
+
+    res.json({
+      sucesso: true,
+      somente_leitura: false,   // esta página aceita — decisão da FV-UX-035
+      empresa: projeto.governanca?.snapshot_empresa ?? null,
+      criado_em: share.criado_em,
+      validade: share.validade,
+      snapshot_hash: share.snapshot_hash,
+      snapshot: share.snapshot,     // proposta congelada — fonte única
+      aceita: aceita ? {
+        projeto_ref: String(aceita._id),
+        opcao_rotulo: aceita.opcao_rotulo,
+        aceita_em: aceita.proposta_aceite?.aceita_em ?? null,
+      } : null,
+    })
+  } catch (err) {
+    console.error('❌ Erro ao abrir proposta pública FV:', err)
+    res.status(500).json({ erro: err.message })
+  }
+}
+
+/**
+ * POST /api/publico/proposta-fv/:token/aceitar — o CLIENTE aceita (SEM auth).
+ *
+ * Converge para o MESMO domínio do aceite interno — `exigirAceitavel` e
+ * `montarEvidenciaAceite`. A decisão de negócio foi explícita: "não criar um
+ * segundo mecanismo de aceite". O que muda é só a evidência: aqui a origem é
+ * `cliente` e a credencial registrada é o token, não um usuário.
+ */
+export const aceitarPropostaFVPublica = async (req, res) => {
+  try {
+    if (!_exigirMongo(res)) return
+    const { token } = req.params
+    const { projeto_ref } = req.body || {}
+    if (!token) return res.status(400).json({ erro: 'token ausente' })
+    if (!mongoose.Types.ObjectId.isValid(projeto_ref ?? '')) {
+      return res.status(400).json({ erro: 'Informe a opção escolhida (`projeto_ref`).' })
+    }
+
+    // O token identifica o GRUPO; a opção escolhida tem de pertencer a ele.
+    const portador = await ProjetoFV.findOne({
+      'governanca.comercial.compartilhamentos.token': token,
+    }).select('proposta_grupo_id governanca.comercial.compartilhamentos empresa_id').lean()
+    if (!portador) return res.status(404).json({ erro: 'Proposta não encontrada ou link inválido.' })
+
+    const share = (portador.governanca?.comercial?.compartilhamentos ?? [])
+      .find((s) => s.token === token)
+    if (!share || !ehEnvioCanonico(share, portador.proposta_grupo_id)) {
+      return res.status(404).json({ erro: 'Compartilhamento não encontrado.' })
+    }
+
+    const escolhida = await ProjetoFV.findOne({
+      _id: projeto_ref,
+      proposta_grupo_id: portador.proposta_grupo_id,
+      excluido: { $ne: true },
+    })
+    if (!escolhida) {
+      return res.status(404).json({
+        erro: 'Opção não pertence a esta proposta.',
+        codigo: MOTIVOS_PROPOSTA.OPCAO_FORA_DO_ENVIO,
+      })
+    }
+
+    const irmas = await ProjetoFV.find({
+      proposta_grupo_id: portador.proposta_grupo_id, excluido: { $ne: true },
+    }).select('_id nome opcao_rotulo proposta_aceite').lean()
+    const envio = avaliarEnvio({
+      grupoId: portador.proposta_grupo_id,
+      compartilhamentos: await EnvioPropostaService.compartilhamentosDoGrupo({
+        projeto: portador, empresaId: portador.empresa_id ?? null,
+      }),
+    })
+
+    const { repetido } = exigirAceitavel({ opcao: escolhida, irmas, envio, origem: 'cliente' })
+    if (!repetido) {
+      escolhida.proposta_aceite = montarEvidenciaAceite({
+        origem: 'cliente',
+        token,
+        ip: _ipReal(req).ip_real,
+        motivo: req.body?.motivo ?? null,
+        envio,
+      })
+      await escolhida.save()
+    }
+
+    res.json({
+      sucesso: true,
+      repetido,
+      opcao: { projeto_ref: String(escolhida._id), opcao_rotulo: escolhida.opcao_rotulo },
+      aceita_em: escolhida.proposta_aceite.aceita_em,
+    })
+  } catch (err) {
+    if (err instanceof ErroProposta) {
+      return res.status(err.status).json({
+        erro: err.message, codigo: err.codigo,
+        ...(err.aceita_ref ? { aceita_ref: err.aceita_ref } : {}),
+      })
+    }
+    if (err?.code === 11000) {
+      return res.status(409).json({
+        erro: 'A proposta já tem uma opção aceita.', codigo: MOTIVOS_PROPOSTA.PROPOSTA_JA_ACEITA,
+      })
+    }
+    console.error('❌ Erro ao aceitar proposta pública FV:', err)
+    res.status(err.status || 500).json({ erro: err.message, codigo: err.codigo })
+  }
+}
+
+/**
+ * ═══ Parecer de Acesso — FV-DOM-042 ════════════════════════════════════════
+ *
+ * O parecer pertence a um ProjetoFV que JÁ EXISTE (D2). Estes endpoints não
+ * criam cliente nem projeto — foi exatamente esse contorno do fluxo que a
+ * FV-UX-041 apontou no extrator legado.
+ *
+ * Fronteiras do contrato, cada uma no seu lugar:
+ *   EXTRAÇÃO      fora daqui (nenhum provedor é chamado — D5)
+ *   NORMALIZAÇÃO  `dominio/parecer`
+ *   VALIDAÇÃO     `dominio/parecer`
+ *   CONFIRMAÇÃO   `POST /parecer/confirmar` — o portão humano
+ *   FLUXO         só depois da confirmação, e pelas etapas canônicas
+ */
+
+/**
+ * POST /api/projetos-fv/:id/parecer — registra uma extração no projeto.
+ *
+ * O corpo traz os dados JÁ extraídos e o `metodo` DECLARADO. Nenhuma credencial
+ * é descoberta nem usada automaticamente (D5): `llm_externo` só passa quando o
+ * provedor está explicitamente configurado, e sem isso a resposta declara a
+ * lacuna sem ter enviado documento nenhum para fora.
+ */
+export const registrarParecerFV = async (req, res) => {
+  try {
+    if (!_exigirMongo(res)) return
+    const projeto = await ProjetoFV.findOne(
+      aplicarEscopo({ _id: req.params.id }, req, { contexto: 'projetoFV' }))
+    if (!projeto) return res.status(404).json({ mensagem: 'Projeto não encontrado' })
+
+    // Já confirmado não é sobrescrito por uma extração nova (D4).
+    if (projeto.parecer_extracao?.confirmado_pelo_usuario === true) {
+      return res.status(409).json({
+        erro: 'Este projeto já tem um parecer confirmado. Registrar outro apagaria a origem do dado.',
+        codigo: MOTIVOS_PARECER.JA_CONFIRMADO,
+      })
+    }
+
+    const envelope = montarEnvelope({
+      bruto: req.body?.dados ?? req.body ?? {},
+      metodo: req.body?.metodo,
+      arquivo: req.body?.arquivo_original_nome ?? null,
+      confianca: req.body?.confianca ?? null,
+      // O provedor externo é uma capacidade DECLARADA pelo ambiente, nunca
+      // descoberta a partir de uma chave achada por aí (D5).
+      provedorConfigurado: process.env.PARECER_PROVEDOR_EXTERNO === 'habilitado',
+    })
+
+    projeto.parecer_extracao = envelope
+    projeto.markModified('parecer_extracao')
+    await projeto.save()
+    auditarCiclo(req, 'PARECER_REGISTRADO', projeto._id,
+      `metodo=${envelope.metodo} parecer=${envelope.numero_parecer ?? '—'}`)
+
+    res.json({
+      sucesso: true,
+      estado: envelope.estado,
+      numero_parecer: envelope.numero_parecer,
+      emitido_em: envelope.emitido_em,
+      dados: envelope.dados,
+      validacao: envelope.validacao,
+      // D4: o que o parecer diz × o que o projeto já afirma. Nada foi gravado
+      // fora do envelope; conflito é informação, não decisão tomada.
+      comparacao: compararComCanonico(envelope.dados, {
+        cliente: {
+          nome: projeto.fatura_extracao?.nome ?? null,
+          cpf_cnpj: projeto.fatura_extracao?.cpf_cnpj ?? null,
+        },
+        uc: {
+          numero_cliente: projeto.fatura_extracao?.numero_cliente ?? null,
+          tipo_ligacao: projeto.fatura_extracao?.tipo_ligacao ?? null,
+          tensao_v: projeto.fatura_extracao?.tensao_v ?? null,
+        },
+        concessionaria: projeto.fatura_extracao?.concessionaria ?? null,
+      }),
+    })
+  } catch (err) {
+    if (err instanceof ErroParecer) {
+      return res.status(err.status).json({ erro: err.message, codigo: err.codigo })
+    }
+    console.error('❌ Erro ao registrar parecer:', err)
+    res.status(500).json({ erro: err.message })
+  }
+}
+
+/** GET /api/projetos-fv/:id/parecer — leitura do envelope. */
+export const obterParecerFV = async (req, res) => {
+  try {
+    if (!_exigirMongo(res)) return
+    const projeto = await ProjetoFV.findOne(
+      aplicarEscopo({ _id: req.params.id }, req, { contexto: 'projetoFV' }))
+      .select('parecer_extracao fatura_extracao').lean()
+    if (!projeto) return res.status(404).json({ mensagem: 'Projeto não encontrado' })
+
+    const env = projeto.parecer_extracao ?? null
+    res.json({
+      sucesso: true,
+      registrado: !!env?.estado,
+      estado: env?.estado ?? null,
+      confirmado: env?.confirmado_pelo_usuario === true,
+      numero_parecer: env?.numero_parecer ?? null,
+      emitido_em: env?.emitido_em ?? null,
+      metodo: env?.metodo ?? null,
+      confianca: env?.confianca ?? null,
+      dados: env?.dados ?? null,
+      validacao: env?.validacao ?? null,
+    })
+  } catch (err) {
+    console.error('❌ Erro ao ler parecer:', err)
+    res.status(500).json({ erro: err.message })
+  }
+}
+
+/**
+ * POST /api/projetos-fv/:id/parecer/confirmar — o portão humano.
+ *
+ * Até aqui os dados do parecer são CANDIDATOS. A confirmação não copia nada
+ * para o projeto: ela declara que um humano conferiu. Levar o dado confirmado
+ * para `equipamentos`/`arranjos`/`fatura` continua sendo ato explícito, pelas
+ * etapas canônicas — nada é sobrescrito em silêncio (D4).
+ */
+export const confirmarParecerFV = async (req, res) => {
+  try {
+    if (!_exigirMongo(res)) return
+    const projeto = await ProjetoFV.findOne(
+      aplicarEscopo({ _id: req.params.id }, req, { contexto: 'projetoFV' }))
+    if (!projeto) return res.status(404).json({ mensagem: 'Projeto não encontrado' })
+
+    const envelope = confirmarParecer(projeto.parecer_extracao, {
+      usuario: req.auth?.id || req.auth?.email || req.body?.usuario || null,
+    })
+    projeto.parecer_extracao = envelope
+    projeto.markModified('parecer_extracao')
+    await projeto.save()
+    auditarCiclo(req, 'PARECER_CONFIRMADO', projeto._id,
+      `parecer=${envelope.numero_parecer ?? '—'} por=${envelope.confirmado_por ?? '—'}`)
+
+    res.json({
+      sucesso: true,
+      estado: envelope.estado,
+      confirmado_em: envelope.confirmado_em,
+      confirmado_por: envelope.confirmado_por,
+      // A confirmação NÃO move dado nenhum. Quem aplica é o operador, pelas etapas.
+      aplicado_ao_projeto: false,
+    })
+  } catch (err) {
+    if (err instanceof ErroParecer) {
+      return res.status(err.status).json({ erro: err.message, codigo: err.codigo })
+    }
+    console.error('❌ Erro ao confirmar parecer:', err)
+    res.status(500).json({ erro: err.message })
+  }
+}
+
+/**
+ * ═══ Conexão física da usina — FV-DOM-047 ══════════════════════════════════
+ *
+ * Registra o FATO de a usina estar ligada à rede. Não é homologação, não é
+ * máquina de estado, e não produz efeito colateral nenhum: Gate, Baseline e
+ * `projeto.status` seguem exatamente como estavam (FV-DOM-046/D2).
+ *
+ * ── Auditoria é obrigatória aqui ────────────────────────────────────────────
+ * A máquina legada `homologacao.status` grava sem auditar — e é por isso que a
+ * data e o autor de todo `conectado` existente se perderam para sempre
+ * (FV-DOM-045 §1.7). O contrato desta sprint não tem `registrada_por`
+ * justamente porque o autor passa a viver no `AuditLog`. Sem `auditarCiclo`
+ * abaixo, repetiríamos o defeito que a auditoria encontrou.
+ *
+ * Autorização: `editar` em `fv`, aplicado pelo router (`protegerModulo`).
+ * Nenhum controle novo — aprovar orçamento, que congela a Baseline e é
+ * irreversível, também exige apenas `editar` (FV-DOM-046/D1).
+ */
+
+/** GET /api/projetos-fv/:id/conexao — o fato, as lacunas e a divergência. */
+export const obterConexaoFV = async (req, res) => {
+  try {
+    if (!_exigirMongo(res)) return
+    const projeto = await ProjetoFV.findOne(
+      aplicarEscopo({ _id: req.params.id }, req, { contexto: 'projetoFV' }))
+      .select('conexao homologacao.status_homologacao homologacao.status').lean()
+    if (!projeto) return res.status(404).json({ mensagem: 'Projeto não encontrado' })
+
+    const conexao = projeto.conexao ?? conexaoVazia()
+    res.json({
+      sucesso: true,
+      conectada: estaConectada(conexao),
+      conexao,
+      lacunas: lacunasDaConexao(conexao),
+      // DERIVADA a cada leitura — nunca persistida (INV-58).
+      divergencia: avaliarDivergencia({
+        conexao, statusHomologacao: projeto.homologacao?.status_homologacao ?? null,
+      }),
+      // Registro histórico da máquina legada, exibido como veio. Não é migrado
+      // nem convertido: a data daquele valor nunca existiu (FV-DOM-045/D6).
+      legado_conectado: projeto.homologacao?.status === 'conectado',
+    })
+  } catch (err) {
+    console.error('❌ Erro ao ler conexão:', err)
+    res.status(500).json({ erro: err.message })
+  }
+}
+
+/**
+ * PUT /api/projetos-fv/:id/conexao — registra ou corrige a conexão.
+ *
+ * Idempotente por natureza: o fato é um só, e corrigir a data é corrigir o
+ * registro do mesmo fato — não é uma segunda conexão.
+ */
+export const registrarConexaoFV = async (req, res) => {
+  try {
+    if (!_exigirMongo(res)) return
+    const projeto = await ProjetoFV.findOne(
+      aplicarEscopo({ _id: req.params.id }, req, { contexto: 'projetoFV' }))
+    if (!projeto) return res.status(404).json({ mensagem: 'Projeto não encontrado' })
+
+    // Regra 5 da FV-DOM-032: a opção não escolhida nunca é construída. Lê o
+    // estado da opção pelo MESMO domínio que o Gate usa — sem alterá-lo.
+    const irmas = projeto.proposta_grupo_id
+      ? await ProjetoFV.find(aplicarEscopo({
+        proposta_grupo_id: projeto.proposta_grupo_id, excluido: { $ne: true },
+      }, req, { contexto: 'projetoFV.opcoes' }))
+        .select('_id proposta_grupo_id proposta_aceite opcao_rotulo').lean()
+      : []
+    exigirOpcaoEscolhida(estadoDaOpcao(projeto, irmas))
+
+    const entrada = normalizarConexao(req.body ?? {})
+    const data = exigirRegistroValido({ conectada_em: entrada.conectada_em })
+
+    const antes = projeto.conexao?.conectada_em ?? null
+    projeto.conexao = {
+      conectada_em: data,
+      numero_medidor: entrada.numero_medidor,
+      observacoes: entrada.observacoes,
+    }
+    projeto.markModified('conexao')
+    await projeto.save()
+
+    // OBRIGATÓRIA — ver o cabeçalho desta seção.
+    auditarCiclo(req, antes ? 'CONEXAO_CORRIGIDA' : 'CONEXAO_REGISTRADA', projeto._id,
+      `${antes ? `${new Date(antes).toISOString()} → ` : ''}${data.toISOString()}`
+      + `${entrada.numero_medidor ? ` medidor=${entrada.numero_medidor}` : ''}`)
+
+    res.json({
+      sucesso: true,
+      conectada: true,
+      conexao: projeto.conexao,
+      lacunas: lacunasDaConexao(projeto.conexao),
+      divergencia: avaliarDivergencia({
+        conexao: projeto.conexao,
+        statusHomologacao: projeto.homologacao?.status_homologacao ?? null,
+      }),
+      // O que esta operação deliberadamente NÃO fez.
+      efeitos: { projeto_status: 'inalterado', gate: 'inalterado', baseline: 'inalterada' },
+    })
+  } catch (err) {
+    if (err instanceof ErroConexao) {
+      return res.status(err.status).json({ erro: err.message, codigo: err.codigo })
+    }
+    console.error('❌ Erro ao registrar conexão:', err)
+    res.status(500).json({ erro: err.message })
+  }
+}
+
+/**
+ * DELETE /api/projetos-fv/:id/conexao — desfaz um registro equivocado.
+ *
+ * Não é "desconectar a usina" — é corrigir um lançamento errado. A remoção fica
+ * na auditoria, como fica a do protocolo da concessionária.
+ */
+export const removerConexaoFV = async (req, res) => {
+  try {
+    if (!_exigirMongo(res)) return
+    const projeto = await ProjetoFV.findOne(
+      aplicarEscopo({ _id: req.params.id }, req, { contexto: 'projetoFV' }))
+    if (!projeto) return res.status(404).json({ mensagem: 'Projeto não encontrado' })
+
+    const antes = projeto.conexao?.conectada_em ?? null
+    projeto.conexao = conexaoVazia()
+    projeto.markModified('conexao')
+    await projeto.save()
+    auditarCiclo(req, 'CONEXAO_REMOVIDA', projeto._id,
+      antes ? new Date(antes).toISOString() : '(não havia registro)')
+
+    res.json({ sucesso: true, conectada: false, conexao: projeto.conexao })
+  } catch (err) {
+    console.error('❌ Erro ao remover conexão:', err)
+    res.status(500).json({ erro: err.message })
   }
 }

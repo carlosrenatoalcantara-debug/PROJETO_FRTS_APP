@@ -62,7 +62,31 @@ const salvar = () => fireEvent.click(screen.getByText('Salvar equipamentos'))
 /** Dados enviados na etapa `equipamentos`. */
 const enviado = () => salvarEtapa.mock.calls.find(([e]) => e === 'equipamentos')?.[1]
 
-describe('FV-UX-019 · seleção por referência ao catálogo', () => {
+/**
+ * FV-UX-029 substituiu o contrato desta tela: a seleção ÚNICA (um módulo, um
+ * inversor) virou COMPOSIÇÃO (N modelos, cada um com quantidade), persistida em
+ * `ProjetoFV.arranjos[]`.
+ *
+ * Os testes de interação que existiam aqui descreviam a tela antiga. Cada uma
+ * das intenções que eles protegiam foi reescrita para o contrato novo em
+ * `composicaoEquipamentos.test.jsx`:
+ *
+ *   catálogo consumido por tipo          → teste 9  (a tela começa vazia)
+ *   item referencia o catálogo           → testes 22 e 23
+ *   especificação ausente vira null      → testes 4 e 18
+ *   `estrutura` sobrevive ao save        → teste 23
+ *   tecnologia pela regra do domínio     → testes 12 e 20
+ *   seleção persistida reabre            → testes 25 e 26
+ *   trocar não acumula                   → teste 13 (mesmo modelo SOMA)
+ *   sem alteração nada é enviado         → teste 28
+ *   erro do servidor propagado           → teste 27
+ *   catálogo indisponível declarado      → mantido abaixo
+ *   MPPT/dimensionamento fora da etapa   → mantido abaixo
+ *
+ * O bloco de verificação de CÓDIGO-FONTE segue aqui: ele não depende da forma da
+ * tela e continua valendo palavra por palavra.
+ */
+describe('FV-UX-019 · o que independe da forma da tela', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     projetoAtual = PROJETO
@@ -72,152 +96,10 @@ describe('FV-UX-019 · seleção por referência ao catálogo', () => {
   })
 
   it('1 · consome o catálogo canônico, por tipo', async () => {
-    await montar()
-    expect(listarCatalogo).toHaveBeenCalledWith('modulo')
+    render(<EtapaEquipamentos />)
+    await waitFor(() => expect(listarCatalogo).toHaveBeenCalledWith('modulo'))
     expect(listarCatalogo).toHaveBeenCalledWith('inversor')
     expect(listarCatalogo).toHaveBeenCalledTimes(2)
-  })
-
-  it('2 · grava pela etapa `equipamentos` — nenhuma etapa inventada', async () => {
-    await montar()
-    escolher('Módulo', 'm1')
-    salvar()
-    await waitFor(() => expect(salvarEtapa).toHaveBeenCalled())
-    expect(salvarEtapa.mock.calls.map(([e]) => e)).toEqual(['equipamentos'])
-  })
-
-  it('3 · o item gravado referencia o catálogo e copia o que o schema exige', async () => {
-    await montar()
-    escolher('Módulo', 'm1')
-    escolher('Quantidade de módulos', '26')
-    escolher('Inversor', 'i1')
-    salvar()
-    await waitFor(() => expect(salvarEtapa).toHaveBeenCalled())
-    const d = enviado()
-    expect(d.paineis).toEqual([{
-      id: 'm1', marca: 'DAH', modelo: 'DHN-550',
-      potencia_w: 550, quantidade: 26, equipamento_id: 'm1',
-    }])
-    expect(d.inversor).toEqual({
-      id: 'i1', marca: 'Deye', modelo: 'SUN-8K-G03',
-      potencia_kw: 8, tipo: 'string', fases: 3, equipamento_id: 'i1',
-    })
-  })
-
-  it('4 · especificação ausente vira null — nunca 0', async () => {
-    await montar()
-    escolher('Módulo', 'm3')
-    salvar()
-    await waitFor(() => expect(salvarEtapa).toHaveBeenCalled())
-    expect(enviado().paineis[0].potencia_w).toBe(null)
-    expect(enviado().paineis[0].potencia_w).not.toBe(0)
-  })
-
-  it('4b · e a tela avisa, em vez de exibir um número inventado', async () => {
-    await montar()
-    escolher('Módulo', 'm3')
-    expect(document.body.textContent).toContain('não declara a potência')
-    expect(screen.getByLabelText('Módulo').textContent).toContain('potência não informada')
-  })
-
-  it('5 · quantidade em branco é ausência, não zero', async () => {
-    await montar()
-    escolher('Módulo', 'm1')
-    salvar()
-    await waitFor(() => expect(salvarEtapa).toHaveBeenCalled())
-    expect(enviado().paineis[0].quantidade).toBe(null)
-  })
-
-  it('5b · quantidade zero digitada é preservada como zero', async () => {
-    await montar()
-    escolher('Módulo', 'm1')
-    escolher('Quantidade de módulos', '0')
-    salvar()
-    await waitFor(() => expect(salvarEtapa).toHaveBeenCalled())
-    expect(enviado().paineis[0].quantidade).toBe(0)
-  })
-
-  it('6 · `estrutura` sobrevive à substituição do subdocumento', async () => {
-    await montar()
-    escolher('Módulo', 'm1')
-    salvar()
-    await waitFor(() => expect(salvarEtapa).toHaveBeenCalled())
-    expect(enviado().estrutura).toEqual({ tipo: 'ceramico', descricao: 'telhado' })
-  })
-
-  it('7 · a tecnologia do inversor vem da regra única do domínio', async () => {
-    await montar()
-    // HMS-2000: o nome e o Voc de 60 V classificam como microinversor. Deixar o
-    // campo vazio faria o motor desenhá-lo como inversor central.
-    escolher('Inversor', 'i2')
-    salvar()
-    await waitFor(() => expect(salvarEtapa).toHaveBeenCalled())
-    expect(enviado().inversor.tipo).toBe('micro')
-  })
-
-  it('8 · a seleção persistida reabre carregada', async () => {
-    projetoAtual = {
-      ...PROJETO,
-      equipamentos: {
-        paineis: [{ id: 'm2', marca: 'JA Solar', modelo: 'JAM72S30', potencia_w: 545, quantidade: 30, equipamento_id: 'm2' }],
-        inversor: { id: 'i1', marca: 'Deye', modelo: 'SUN-8K-G03', potencia_kw: 8, equipamento_id: 'i1' },
-        estrutura: { tipo: 'ceramico', descricao: 'telhado' },
-      },
-    }
-    await montar()
-    expect(screen.getByLabelText('Módulo').value).toBe('m2')
-    expect(screen.getByLabelText('Quantidade de módulos').value).toBe('30')
-    expect(screen.getByLabelText('Inversor').value).toBe('i1')
-  })
-
-  it('9 · trocar a seleção substitui — não acumula', async () => {
-    projetoAtual = {
-      ...PROJETO,
-      equipamentos: {
-        paineis: [{ id: 'm1', marca: 'DAH', modelo: 'DHN-550', potencia_w: 550, quantidade: 26, equipamento_id: 'm1' }],
-        inversor: {}, estrutura: null,
-      },
-    }
-    await montar()
-    escolher('Módulo', 'm2')
-    salvar()
-    await waitFor(() => expect(salvarEtapa).toHaveBeenCalled())
-    expect(enviado().paineis).toHaveLength(1)
-    expect(enviado().paineis[0].equipamento_id).toBe('m2')
-  })
-
-  it('10 · limpar a seleção grava vazio, não o item anterior', async () => {
-    projetoAtual = {
-      ...PROJETO,
-      equipamentos: {
-        paineis: [{ id: 'm1', marca: 'DAH', modelo: 'DHN-550', potencia_w: 550, quantidade: 26, equipamento_id: 'm1' }],
-        inversor: {}, estrutura: null,
-      },
-    }
-    await montar()
-    escolher('Módulo', '')
-    salvar()
-    await waitFor(() => expect(salvarEtapa).toHaveBeenCalled())
-    expect(enviado().paineis).toEqual([])
-  })
-
-  it('11 · sem alteração, nada é enviado', async () => {
-    await montar()
-    expect(screen.getByText('Salvar equipamentos').disabled).toBe(true)
-    salvar()
-    expect(salvarEtapa).not.toHaveBeenCalled()
-  })
-
-  it('12 · erro do servidor é exibido sem reinterpretação', async () => {
-    const e = new Error('Projeto congelado — alteração de "equipamentos" bloqueada.')
-    e.codigo = 'PROJETO_CONGELADO'
-    salvarEtapa.mockRejectedValue(e)
-    await montar()
-    escolher('Módulo', 'm1')
-    salvar()
-    const alerta = await screen.findByRole('alert')
-    expect(alerta.textContent).toContain('Projeto congelado')
-    expect(alerta.textContent).toContain('PROJETO_CONGELADO')
   })
 
   it('13 · catálogo indisponível é declarado, não contornado', async () => {
@@ -225,23 +107,16 @@ describe('FV-UX-019 · seleção por referência ao catálogo', () => {
     render(<EtapaEquipamentos />)
     const alerta = await screen.findByRole('alert')
     expect(alerta.textContent).toContain('DB_OFFLINE')
-    // Sem catálogo não há lista local de reserva.
     expect(document.body.textContent).not.toContain('Canadian Solar')
   })
 
-  it('14 · MPPT e dimensionamento continuam pendentes, e a tela diz isso', async () => {
-    await montar()
-    escolher('Módulo', 'm1')
-    escolher('Inversor', 'i1')
-    salvar()
-    await waitFor(() => expect(salvarEtapa).toHaveBeenCalled())
-    const d = enviado()
-    expect(d.arranjo).toBeUndefined()
-    expect(d.mppts).toBeUndefined()
-    expect(d.num_strings).toBeUndefined()
+  it('14 · MPPT e dimensionamento continuam fora desta etapa', async () => {
+    render(<EtapaEquipamentos />)
+    await waitFor(() => expect(screen.getByLabelText('Módulo').disabled).toBe(false))
     expect(document.body.textContent).toContain('MPPT não são definidos aqui')
   })
 })
+
 
 describe('FV-UX-019 · nenhum catálogo paralelo, nenhum cálculo no cliente', () => {
   const ler = async (rel) => {
@@ -270,11 +145,32 @@ describe('FV-UX-019 · nenhum catálogo paralelo, nenhum cálculo no cliente', (
   })
 
   it('17 · nenhuma engenharia nem finança no cliente', async () => {
-    const fontes = await ler('../paginas/etapas/EtapaEquipamentos.jsx') + await ler('../catalogo.js')
+    const fontes = semComentarios(await ler('../paginas/etapas/EtapaEquipamentos.jsx'))
+      + semComentarios(await ler('../catalogo.js'))
     for (const p of ['Math.pow', 'Math.sqrt', 'Math.ceil', 'Math.floor',
       'engenhariaNormativa', 'unifilar-svg', 'calcularVPL', 'calcularTIR',
-      'oversizing', 'num_strings', 'modulos_por_string']) {
+      'num_strings', 'modulos_por_string']) {
       expect(fontes.includes(p), `encontrou \`${p}\``).toBe(false)
+    }
+  })
+
+  it('17b · `oversizing` é LIDO do catálogo, nunca calculado aqui', async () => {
+    // FV-DOM-031: `catalogo.js` passou a expor `oversizing_max`, que é um campo
+    // DECLARADO pelo fabricante — a leitura dele é o oposto de calcular. O guard
+    // continua valendo para o cálculo: nenhuma divisão CC/CA deste lado.
+    const fontes = semComentarios(await ler('../paginas/etapas/EtapaEquipamentos.jsx'))
+      + semComentarios(await ler('../catalogo.js'))
+    for (const p of ['dc_ac', 'dcAc', 'relacaoDcAc', 'oversizing >', 'oversizing <',
+      'oversizing_max *', 'oversizing_max /', '/ potencia_ca', '/ potenciaCa']) {
+      expect(fontes.includes(p), `encontrou cálculo \`${p}\``).toBe(false)
+    }
+    // Toda menção a oversizing em `catalogo.js` é leitura pela SSOT.
+    const cat = semComentarios(await ler('../catalogo.js'))
+    for (const linha of cat.split('\n').filter((l) => /oversizing/i.test(l))) {
+      expect(
+        /canonico\(equipamento\)\?\.oversizing_max|oversizingMaxDoInversor|oversizing_max:/.test(linha),
+        `linha computa em vez de ler: ${linha.trim()}`,
+      ).toBe(true)
     }
   })
 

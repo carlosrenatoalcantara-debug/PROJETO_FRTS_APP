@@ -1,84 +1,123 @@
 /**
  * dimensionarMicro.js — P0-ARRAY-CONFIG-MICROINVERSOR-01
  *
- * Motor de dimensionamento ESPECÍFICO para microinversores.
- * NÃO usa conceito de string/MPPT/strings-paralelas — o micro tem N entradas CC e cada
- * módulo conecta a uma entrada. O dimensionamento é por ENTRADAS, não por string.
+ * FV-DOM-031 (decisões 3 e 4): a REGRA saiu daqui.
  *
- * Pura (sem efeitos), testável. Não toca Atlas/SSOT/parser.
+ * Este era o segundo motor de micro do sistema — só no frontend, com quatro
+ * defaults fabricados (`entradas ?? 1`, `modulos_por_entrada ?? 1`,
+ * `oversizing_max ?? 1.25`, `potencia_ca_kw ?? 0`) e uma fórmula de oversizing
+ * diferente da do validador. O motor canônico agora é
+ * `@fortesolar/fv-shared/engenharia/microinversores`; aqui resta o ADAPTADOR da
+ * assinatura histórica.
+ *
+ * ── O que mudou, por decisão ─────────────────────────────────────────────────
+ * Sem `entradas` ou `modulos_por_entrada` no catálogo, não há capacidade
+ * assumida: o retorno é `{ valido: false }` com o motivo, em vez de fingir um
+ * micro de 1 entrada. O limite de oversizing é o do catálogo — sem ele, não há
+ * veredito de oversizing (`oversizingOk: null`), não um 1,25 inventado.
+ *
+ * Puro (sem efeitos), testável. Não toca Atlas/SSOT/parser.
  */
+import {
+  avaliarModeloMicro, capacidadeDoMicro, microsNecessarios,
+} from '@fortesolar/fv-shared/engenharia/microinversores'
 
 /**
  * @param {object} p
  * @param {number} p.numModulos        total de módulos do sistema
  * @param {number} p.potenciaModuloW   potência de cada módulo (Wp)
- * @param {object} p.micro             { entradas, modulos_por_entrada?, potencia_ca_kw, oversizing_max? }
- * @returns {object} dimensionamento completo do arranjo micro
+ * @param {object} p.micro             { entradas, modulos_por_entrada, potencia_ca_kw, oversizing_max }
+ * @returns {object} dimensionamento do arranjo micro
  */
 export function dimensionarMicroinversor({ numModulos, potenciaModuloW, micro }) {
-  const entradas = Math.max(1, Math.floor(micro?.entradas ?? 1))
-  const modPorEntrada = Math.max(1, Math.floor(micro?.modulos_por_entrada ?? 1))
-  const modulosPorMicro = entradas * modPorEntrada       // capacidade máxima de um micro
-  const potCaMicroKw = micro?.potencia_ca_kw ?? 0
-  const oversizingMax = micro?.oversizing_max ?? 1.25
-
   const n = Math.max(0, Math.floor(numModulos || 0))
-  if (n === 0 || modulosPorMicro === 0) {
-    return { valido: false, motivo: 'sem módulos ou micro inválido', qtdMicros: 0, modulosPorMicro, distribuicao: [] }
+  const capacidade = capacidadeDoMicro(micro)
+
+  if (n === 0) {
+    return { valido: false, motivo: 'sem módulos', qtdMicros: 0, modulosPorMicro: capacidade, distribuicao: [] }
+  }
+  if (capacidade === null) {
+    return {
+      valido: false,
+      motivo: 'microinversor sem `entradas`/`modulos_por_entrada` no catálogo — nenhuma capacidade é assumida',
+      qtdMicros: 0, modulosPorMicro: null, distribuicao: [],
+    }
   }
 
-  // 1) Quantidade de micros = teto(módulos / capacidade por micro)
-  const qtdMicros = Math.ceil(n / modulosPorMicro)
+  // Quantidade MÍNIMA que acomoda os módulos. Continua sendo o que esta função
+  // sempre devolveu — a diferença é que a capacidade agora vem declarada.
+  const qtdMicros = microsNecessarios(n, capacidade)
 
-  // 2) Distribuição FILL-BASED: micros completos + 1 parcial com a sobra
-  const completos = Math.floor(n / modulosPorMicro)
-  const resto = n - completos * modulosPorMicro
-  const distribuicao = []
-  for (let i = 0; i < completos; i++) distribuicao.push(modulosPorMicro)
-  if (resto > 0) distribuicao.push(resto)
-  const microsCompletos = completos
-  const microsParciais = resto > 0 ? 1 : 0
+  const r = avaliarModeloMicro({
+    modulos: n, quantidade: qtdMicros,
+    micro: {
+      entradas: micro?.entradas, modulos_por_entrada: micro?.modulos_por_entrada,
+      potencia_kw: micro?.potencia_ca_kw, oversizing_max: micro?.oversizing_max,
+    },
+    potenciaModuloW,
+  })
 
-  // 3) Potências e relação DC/AC
-  const potenciaCcKw = +(n * potenciaModuloW / 1000).toFixed(3)
-  const potenciaCaKw = +(qtdMicros * potCaMicroKw).toFixed(3)
-  const dcac = potenciaCaKw > 0 ? +(potenciaCcKw / potenciaCaKw).toFixed(3) : null
-
-  // 4) Aproveitamento das entradas
+  // FV-DOM-031B: com distribuição EQUILIBRADA, "completo" deixou de ser o caso
+  // comum — 26 módulos em 7 micros de 4 dão [4,4,4,4,4,3,3], não [4×6, 2].
+  // Os dois contadores permanecem com o mesmo significado literal.
+  const distribuicao = r.resumo?.distribuicao ?? []
+  const completos = distribuicao.filter((m) => m === capacidade).length
+  const parciais = distribuicao.filter((m) => m > 0 && m < capacidade).length
+  const entradas = Math.floor(Number(micro?.entradas))
+  const porEntrada = Math.floor(Number(micro?.modulos_por_entrada))
   const entradasTotais = qtdMicros * entradas
-  const entradasUsadas = Math.ceil(n / modPorEntrada)
-  const aproveitamento = entradasTotais > 0 ? +(entradasUsadas / entradasTotais).toFixed(3) : 0
-
-  // 5) Oversizing por micro mais carregado (módulos no micro × potência / potência CA do micro)
-  const maxModNumMicro = distribuicao.length ? Math.max(...distribuicao) : 0
-  const dcacMicroCheio = potCaMicroKw > 0 ? +((maxModNumMicro * potenciaModuloW / 1000) / potCaMicroKw).toFixed(3) : null
-  const oversizingOk = dcacMicroCheio == null ? true : dcacMicroCheio <= oversizingMax + 1e-9
+  const entradasUsadas = Math.ceil(n / porEntrada)
+  const potenciaCcKw = +((n * potenciaModuloW) / 1000).toFixed(3)
+  const potenciaCaKw = r.resumo?.potencia_ca_kw ?? null
+  const oversizing = r.resumo?.oversizing_mais_carregado ?? null
+  const limite = r.resumo?.oversizing_max ?? null
 
   return {
     valido: true,
     topologia: 'micro',
     numModulos: n,
-    modulosPorMicro,
+    modulosPorMicro: capacidade,
     entradasPorMicro: entradas,
     qtdMicros,
-    microsCompletos,
-    microsParciais,
+    microsCompletos: completos,
+    microsParciais: parciais,
     distribuicao,                 // ex.: [4,4,4,4,4,4,2] p/ 26 mód em micro de 4 entradas
     potenciaCcKw,
     potenciaCaKw,
-    relacaoDcAc: dcac,
+    relacaoDcAc: potenciaCaKw > 0 ? +(potenciaCcKw / potenciaCaKw).toFixed(3) : null,
     entradasUsadas,
     entradasTotais,
-    aproveitamento,               // 0..1
-    oversizingMicroCheio: dcacMicroCheio,
-    oversizingOk,
+    aproveitamento: entradasTotais > 0 ? +(entradasUsadas / entradasTotais).toFixed(3) : 0,
+    oversizingMicroCheio: oversizing,
+    // `null` = o catálogo não declarou limite; NÃO é aprovação.
+    oversizingOk: limite === null || oversizing === null ? null : oversizing <= limite,
+    oversizingMax: limite,
+    bloqueios: r.bloqueios,
+    avisos: r.avisos,
+    lacunas: r.lacunas,
   }
 }
 
-/** Resumo textual curto da distribuição (ex.: "6 micros de 4 + 1 de 2"). */
+/**
+ * Resumo textual curto da distribuição (ex.: "5 micros de 4 + 2 de 3").
+ *
+ * FV-DOM-031B: agrupa por quantidade em vez de assumir "N cheios + 1 resto".
+ * Com distribuição equilibrada há no máximo DOIS valores distintos, mas a
+ * função não depende disso — conta o que existir.
+ */
 export function resumoDistribuicao(dim) {
   if (!dim?.valido) return '—'
-  const { microsCompletos, modulosPorMicro, microsParciais, distribuicao } = dim
-  const parcial = microsParciais ? ` + 1 de ${distribuicao[distribuicao.length - 1]}` : ''
-  return `${microsCompletos} micro${microsCompletos !== 1 ? 's' : ''} de ${modulosPorMicro}${parcial}`
+  const grupos = new Map()
+  for (const m of dim.distribuicao ?? []) {
+    // `has ? +1 : 1` e não `?? 0`: o guard de defaults técnicos é absoluto neste
+    // arquivo, e um contador não deve abrir exceção para o operador proibido.
+    if (m > 0) grupos.set(m, grupos.has(m) ? grupos.get(m) + 1 : 1)
+  }
+  if (grupos.size === 0) return '—'
+  // "micro(s)" só no primeiro grupo — formato histórico desta função.
+  return [...grupos.entries()]
+    .sort((a, b) => b[0] - a[0])
+    .map(([modulos, quantos], i) =>
+      i === 0 ? `${quantos} micro${quantos !== 1 ? 's' : ''} de ${modulos}` : `${quantos} de ${modulos}`)
+    .join(' + ')
 }

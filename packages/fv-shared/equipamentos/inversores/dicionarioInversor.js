@@ -36,6 +36,13 @@ export const CAMPOS_INVERSOR = {
   // P1-INV-TOPOLOGY-01: representação canônica do lado CC.
   tipo_topologia:        { grupo: 'CC', tipo: 'enum',  aliases: ['tipo_topologia', 'topologia'] },
   entradas_por_mppt:     { grupo: 'CC', tipo: 'array', aliases: ['entradas_por_mppt'] },
+  // FV-DOM-031 (decisão 2) — lado CC do MICROINVERSOR. O catálogo elétrico já
+  // declarava `entradas`/`modulos_por_entrada` para os 13 micros, mas o
+  // dicionário não os conhecia: `lerInversor` devolvia `undefined` e um micro de
+  // 6 entradas chegava ao consumidor como 1. Sem `peso` — reconhecidos em
+  // leitura, não alteram a semântica de score existente.
+  entradas:              { grupo: 'CC', aliases: ['entradas', 'entradas_cc', 'total_entradas_cc', 'n_entradas', 'numero_entradas', 'entradas_dc'] },
+  modulos_por_entrada:   { grupo: 'CC', aliases: ['modulos_por_entrada', 'modulos_por_entrada_max', 'paineis_por_entrada', 'modulos_por_canal'] },
   tensao_max_entrada:    { grupo: 'CC', peso: 15, aliases: ['tensao_max_entrada', 'tensao_max_entrada_dc_v', 'voc_max_dc', 'voc_max_dc_v', 'tensao_max_dc', 'tensao_max_cc', 'vpv_max', 'voc_max'] },
   tensao_mppt_min:       { grupo: 'CC', peso: 10, aliases: ['tensao_mppt_min', 'tensao_mppt_min_v', 'mppt_min_v', 'faixa_mppt_min', 'mppt_min'] },
   tensao_mppt_max:       { grupo: 'CC', peso: 10, aliases: ['tensao_mppt_max', 'tensao_mppt_max_v', 'mppt_max_v', 'faixa_mppt_max', 'mppt_max'] },
@@ -106,23 +113,96 @@ function _inferirFases(esp) {
 
 // ── P1-INV-TOPOLOGY-01: lado CC canônico (entradas físicas por MPPT) ──────────
 
-export const TOPOLOGIA = { STRING: 'STRING', MICRO: 'MICRO', HYBRID: 'HYBRID' }
+export const TOPOLOGIA = { STRING: 'STRING', MICRO: 'MICRO', HYBRID: 'HYBRID', OTIMIZADOR: 'OTIMIZADOR' }
 
-const _FAB_MICRO = /hoymiles|apsystems|ap\s*systems|tsun|tsol|deye\s*micro|sun\s*micro|northern\s*ele|\bnep\b|enphase|sunna|hypontech\s*micro/i
-const _MODELO_MICRO = /\b(HM[ST]?-?\d|MX\d{3,4}|MH\d{3,4}|QT\d|DS3|YC\d{3}|IQ\d|EZ\d|NEP|MIN?V|BDM-?\d|micro)/i
+/**
+ * FV-DOM-031 (decisão 4) — CLASSIFICAÇÃO CANÔNICA ÚNICA.
+ *
+ * Antes desta sprint havia TRÊS classificadores independentes, e a auditoria
+ * mediu 10 divergências em 50 modelos do catálogo:
+ *
+ *   nova UX  → regrasPlausibilidade.tecnologiaInversor   'microinversor'|…
+ *   wizard   → frontend/utils/topologiaInversor          'micro'|'string'|'otimizador'
+ *   SSOT     → derivarTopologia (aqui)                   'MICRO'|'STRING'|'HYBRID'
+ *
+ * Um microinversor real (Deye SUN-M2000G4) era STRING para dois deles, e os três
+ * SolarEdge eram STRING para a SSOT. Agora existe UMA implementação — esta — e
+ * os outros dois pontos de entrada são adaptadores de vocabulário sobre ela.
+ *
+ * Precedência, na ordem:
+ *   1. campo explícito (`tipo_topologia`/`topologia`) — dado autorado vence;
+ *   2. `subtipo`;
+ *   3. padrões de fabricante/modelo — herdados de `tecnologiaInversor`, que era
+ *      o mais completo dos três (4 categorias, não 3);
+ *   4. indícios de bateria no próprio spec;
+ *   5. queda elétrica (Voc máx. baixa ⇒ micro), também de `tecnologiaInversor`;
+ *   6. STRING.
+ */
 
-/** Deriva o tipo de topologia (STRING|MICRO|HYBRID) sem schema novo. */
-export function derivarTopologia(esp = {}, ctx = {}) {
-  const t = String(esp.tipo_topologia || esp.topologia || '').toUpperCase()
-  if (t === 'STRING' || t === 'MICRO' || t === 'HYBRID') return t
+/** Vocabulários aceitos no campo explícito, todos apontando para o enum canônico. */
+const _EXPLICITO = {
+  STRING: TOPOLOGIA.STRING,
+  MICRO: TOPOLOGIA.MICRO, MICROINVERSOR: TOPOLOGIA.MICRO,
+  HYBRID: TOPOLOGIA.HYBRID, HIBRIDO: TOPOLOGIA.HYBRID, 'HÍBRIDO': TOPOLOGIA.HYBRID,
+  OTIMIZADOR: TOPOLOGIA.OTIMIZADOR, OPTIMIZER: TOPOLOGIA.OTIMIZADOR,
+}
+
+const _RE_HIBRIDO = /hibrid|híbrid|hybrid|\bbess\b|storage|all-?in-?one|h1-|hb-|sun-?\d+k-?sg|-eu-sg/i
+const _RE_OTIMIZADOR = /solaredge|solar\s?edge|hd-?wave|\boptimi|otimizad|power\s*optimizer/i
+const _RE_MICRO = /micro|sun-?m\d|tsol-?m[xpps]|hms-|hmt-|\bm2-|bdm-|iq[78]|ds3|apsystem|ap\s*systems|ez1|qs1|qt\d|yc[56]\d{2}|mi-?\d{3,4}|hoymiles|tsun|enphase|sunna|northern\s*ele|\bnep\b/i
+
+/**
+ * Classificação canônica da topologia do inversor.
+ * @param {Object} esp `especificacoes` persistido
+ * @param {Object} [ctx] { fabricante, modelo, subtipo }
+ * @returns {'STRING'|'MICRO'|'HYBRID'|'OTIMIZADOR'}
+ */
+export function classificarTopologiaInversor(esp = {}, ctx = {}) {
+  // 1) campo explícito — o que foi autorado manda
+  const bruto = String(esp.tipo_topologia || esp.topologia || '').trim().toUpperCase()
+  if (_EXPLICITO[bruto]) return _EXPLICITO[bruto]
+
+  // 2) subtipo
   const sub = String(esp.subtipo || ctx.subtipo || '').toLowerCase()
-  const fab = String(ctx.fabricante || '').toLowerCase()
-  const modelo = String(ctx.modelo || '').toLowerCase()
-  if (/micro/.test(sub) || _FAB_MICRO.test(fab) || _MODELO_MICRO.test(modelo)) return TOPOLOGIA.MICRO
-  // híbrido: indícios de bateria/EPS no spec ou subtipo
-  if (/h[íi]brid|hybrid/.test(sub) || esp.suporta_bateria || esp.interface_bess ||
-      /bateria|battery|backup|eps/i.test(JSON.stringify(esp.comunicacao || '') + sub)) return TOPOLOGIA.HYBRID
+  if (/micro/.test(sub)) return TOPOLOGIA.MICRO
+  if (/otimizad|optimi/.test(sub)) return TOPOLOGIA.OTIMIZADOR
+  if (/h[íi]brid|hybrid/.test(sub)) return TOPOLOGIA.HYBRID
+
+  // 3) padrões de nome — MESMA ordem de `tecnologiaInversor`: híbrido antes de
+  //    micro, senão "SUN-5K-SG" (híbrido Deye) casaria com o padrão de micro.
+  const nome = `${ctx.fabricante || ''} ${ctx.modelo || ''}`.trim()
+  if (nome) {
+    if (_RE_HIBRIDO.test(nome)) return TOPOLOGIA.HYBRID
+    if (_RE_OTIMIZADOR.test(nome)) return TOPOLOGIA.OTIMIZADOR
+    if (_RE_MICRO.test(nome)) return TOPOLOGIA.MICRO
+  }
+
+  // 4) indícios de bateria no próprio spec
+  if (esp.suporta_bateria || esp.interface_bess ||
+      /bateria|battery|backup|eps/i.test(JSON.stringify(esp.comunicacao || '') + sub)) {
+    return TOPOLOGIA.HYBRID
+  }
+
+  // 5) queda elétrica — micro opera em baixa tensão CC
+  const voc = _num(valorCampo(esp, 'tensao_max_entrada'))
+  if (voc !== null && voc <= 100) return TOPOLOGIA.MICRO
+  if (voc !== null && voc >= 200) return TOPOLOGIA.STRING
+  const pca = _num(valorCampo(esp, 'potencia_kw'))
+  const nm = _num(valorCampo(esp, 'n_mppts'))
+  if (pca !== null && pca <= 3.5 && (nm || 0) >= 4) return TOPOLOGIA.MICRO
+
   return TOPOLOGIA.STRING
+}
+
+/**
+ * Nome histórico, preservado para não quebrar os importadores.
+ * É a MESMA função — não uma segunda regra.
+ */
+export const derivarTopologia = classificarTopologiaInversor
+
+/** A topologia é de microinversor? Pergunta que meia dúzia de telas faz. */
+export function ehMicroinversor(esp = {}, ctx = {}) {
+  return classificarTopologiaInversor(esp, ctx) === TOPOLOGIA.MICRO
 }
 
 /**

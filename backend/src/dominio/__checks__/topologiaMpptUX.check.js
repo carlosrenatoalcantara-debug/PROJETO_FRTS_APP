@@ -172,7 +172,7 @@ const catSemCom = semComentarios(CATALOGO)
 secao('11 · A5b — `catalogo.js` consome o leitor SSOT')
 ok(catSemCom.includes('lerInversor('), 'usa `lerInversor` do dicionário canônico')
 ok(!catSemCom.includes('paraDimensionamento'),
-  '`paraDimensionamento` NÃO é usado — carrega ?? 2 / ?? 600 / ?? 550 / ?? 13')
+  '`paraDimensionamento` NÃO é usado — a nova UX lê o SSOT direto (FV-UX-028)')
 // Nenhuma lista de aliases de inversor sobrevivendo no arquivo.
 for (const alias of ["'voc_max_dc'", "'faixa_mppt_min'", "'corrente_max_por_mppt'", "'fases_saida'"]) {
   ok(!catSemCom.includes(alias), `sem leitor paralelo (${alias})`)

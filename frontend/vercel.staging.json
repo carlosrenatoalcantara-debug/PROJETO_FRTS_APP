@@ -1,0 +1,31 @@
+{
+  "$comentario": [
+    "FV-INFRA-058 — configuração de STAGING/QA, isolada da produção.",
+    "",
+    "O `vercel.json` de produção reescreve /api/* para o Railway de PRODUÇÃO.",
+    "Publicar staging com aquele arquivo faria o ambiente de teste escrever na",
+    "base real — o mesmo risco que a FV-QA-057 mediu no build.",
+    "",
+    "Aqui NÃO existe rewrite de /api: o build de staging define VITE_API_URL",
+    "absoluta e o frontend fala direto com a API de staging. Se um dia for",
+    "preciso proxy, aponte para o backend de staging, nunca para o de produção.",
+    "",
+    "Uso no projeto Vercel de staging: Build Command `npm run build:staging`,",
+    "e este arquivo copiado sobre `vercel.json` no passo de build, OU o projeto",
+    "configurado com este caminho.",
+    "",
+    "O rewrite abaixo é o SPA fallback: sem ele, abrir /fv/projetos/<id>/unifilar",
+    "ou /proposta/<token> direto na barra de endereço devolve 404 do host."
+  ],
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Robots-Tag", "value": "noindex, nofollow" }
+      ]
+    }
+  ]
+}

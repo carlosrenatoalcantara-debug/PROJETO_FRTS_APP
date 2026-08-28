@@ -127,6 +127,11 @@ export const DADOS_ELETRICOS_INVERSORES = {
   gw10t: { tensao_max_entrada: 1000, mppt_min: 100, mppt_max: 800, corrente_max_mppt: 25.0, potencia_ca_kw: 10.0, entradas_por_mppt: 2, oversizing_max: 1.30 },
 
   // ── Deye String ─────────────────────────────────────────────────────────────
+  // FV-DOM-031B (item 2): `dy8` e `dy12t` ficaram SEM `topologia` de propósito.
+  // O cabeçalho diz "String"; o classificador canônico diz HYBRID (o padrão
+  // `sun-\d+k-sg` casa com os dois). A contradição não se resolve com o que
+  // existe no repositório — resolvê-la exige o datasheet do fabricante.
+  // LACUNA DECLARADA: não preenchida, e o veredito do código não foi alterado.
   dy8:   { tensao_max_entrada:  500, mppt_min: 100, mppt_max: 450, corrente_max_mppt: 25.0, potencia_ca_kw:  8.0, entradas_por_mppt: 2, oversizing_max: 1.30 },
   dy12t: { tensao_max_entrada: 1000, mppt_min: 200, mppt_max: 850, corrente_max_mppt: 25.0, potencia_ca_kw: 12.0, entradas_por_mppt: 2, oversizing_max: 1.30 },
 
@@ -148,9 +153,13 @@ export const DADOS_ELETRICOS_INVERSORES = {
   sph8:  { tensao_max_entrada:  600, mppt_min:  80, mppt_max: 550, corrente_max_mppt: 20.0, potencia_ca_kw:  8.0, entradas_por_mppt: 2, oversizing_max: 1.30 },
 
   // ── Deye Híbrido ────────────────────────────────────────────────────────────
-  dh5:   { tensao_max_entrada:  500, mppt_min: 100, mppt_max: 450, corrente_max_mppt: 25.0, potencia_ca_kw:  5.0, entradas_por_mppt: 2, oversizing_max: 1.30 },
-  dh8:   { tensao_max_entrada:  500, mppt_min: 100, mppt_max: 450, corrente_max_mppt: 25.0, potencia_ca_kw:  8.0, entradas_por_mppt: 2, oversizing_max: 1.30 },
-  dh12t: { tensao_max_entrada:  800, mppt_min: 200, mppt_max: 700, corrente_max_mppt: 25.0, potencia_ca_kw: 12.0, entradas_por_mppt: 2, oversizing_max: 1.30 },
+  // FV-DOM-031B (item 2): `topologia` passou a ser EXPLÍCITA nestes três. Não é
+  // classificação nova — o cabeçalho desta seção já dizia "Híbrido" e o
+  // classificador canônico já chegava a HYBRID. Tornar explícito só remove a
+  // dependência da heurística de nome; nenhum veredito muda.
+  dh5:   { topologia: 'hibrido', tensao_max_entrada:  500, mppt_min: 100, mppt_max: 450, corrente_max_mppt: 25.0, potencia_ca_kw:  5.0, entradas_por_mppt: 2, oversizing_max: 1.30 },
+  dh8:   { topologia: 'hibrido', tensao_max_entrada:  500, mppt_min: 100, mppt_max: 450, corrente_max_mppt: 25.0, potencia_ca_kw:  8.0, entradas_por_mppt: 2, oversizing_max: 1.30 },
+  dh12t: { topologia: 'hibrido', tensao_max_entrada:  800, mppt_min: 200, mppt_max: 700, corrente_max_mppt: 25.0, potencia_ca_kw: 12.0, entradas_por_mppt: 2, oversizing_max: 1.30 },
 
   // ── Goodwe Híbrido ──────────────────────────────────────────────────────────
   gw5h:  { tensao_max_entrada:  600, mppt_min: 100, mppt_max: 550, corrente_max_mppt: 25.0, potencia_ca_kw:  5.0, entradas_por_mppt: 2, oversizing_max: 1.30 },
@@ -189,6 +198,10 @@ export const DADOS_ELETRICOS_INVERSORES = {
   ofg5:  { tensao_max_entrada: 500, mppt_min: 60, mppt_max: 450, corrente_max_mppt: 20.0, potencia_ca_kw: 5.0, entradas_por_mppt: 1, oversizing_max: 1.25 },
 
   // ── Off-Grid / Deye ─────────────────────────────────────────────────────────
+  // FV-DOM-031B (item 2): LACUNA DECLARADA. O cabeçalho diz "Off-Grid", que não
+  // existe no enum canônico TOPOLOGIA {STRING, MICRO, HYBRID, OTIMIZADOR}; o
+  // classificador diz HYBRID. Acrescentar OFF-GRID ao enum é decisão de domínio,
+  // fora do escopo deste item. Não preenchido.
   dof5:  { tensao_max_entrada: 500, mppt_min: 60, mppt_max: 450, corrente_max_mppt: 25.0, potencia_ca_kw: 5.0, entradas_por_mppt: 1, oversizing_max: 1.25 },
 }
 

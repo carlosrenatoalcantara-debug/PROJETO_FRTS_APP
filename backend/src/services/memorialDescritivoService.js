@@ -90,8 +90,72 @@ function _secaoBeneficiarias(beneficiarias = []) {
   return linhas.join('\n')
 }
 
+/**
+ * Seção "arranjo" do memorial, por TOPOLOGIA — FV-DOM-031C.
+ *
+ * Antes havia uma só, escrita em linguagem de string: "ARRANJO DAS STRINGS",
+ * "Módulos por String", "Strings em paralelo conectadas ao inversor". Num
+ * sistema com microinversores nada disso descreve o que foi instalado.
+ *
+ * `micros[]` preenchido é o fato que decide — a mesma regra que o unifilar usa.
+ * Sem ele, o texto de string continua PALAVRA POR PALAVRA o que era.
+ */
+function _secaoArranjo(strings, micros) {
+  if (!Array.isArray(micros) || micros.length === 0) {
+    return `5. ARRANJO DAS STRINGS
+────────────────────────────────────────────────────────────────────────────
+Número de Strings: ${strings?.totalStrings || 1}
+Módulos por String: ${strings?.modulosPorString || 'N/A'}
+Configuração DC: Strings em paralelo conectadas ao inversor`
+  }
+
+  const totalMicros = micros.reduce((s, m) => s + (Number(m?.quantidade) || 0), 0)
+  const linhas = micros.map((m, i) => {
+    const nome = [m?.marca, m?.modelo].filter(Boolean).join(' ') || 'N/A'
+    const dist = Array.isArray(m?.distribuicao) && m.distribuicao.length
+      ? m.distribuicao.join(' / ') : 'N/A'
+    return `  ${i + 1}. ${nome}: ${m?.quantidade ?? 'N/A'} un. × ` +
+      `${m?.entradas_por_micro ?? 'N/A'} entradas × ${m?.modulos_por_entrada ?? 'N/A'} módulo(s)/entrada` +
+      `\n     Módulos por microinversor: ${dist}`
+  }).join('\n')
+
+  return `5. ARRANJO DOS MICROINVERSORES
+────────────────────────────────────────────────────────────────────────────
+Topologia: microinversor → entradas CC → módulos (sem MPPT, sem strings)
+Total de Microinversores: ${totalMicros || 'N/A'}
+Modelos:
+${linhas}
+Configuração DC: cada módulo conectado a uma entrada independente do microinversor
+Configuração CA: microinversores em paralelo no barramento de corrente alternada`
+}
+
+/** Seção "inversor", por topologia. MPPT só existe no caminho string. */
+function _secaoInversor(inversor, micros, _fonteNota, eng) {
+  const ehMicro = Array.isArray(micros) && micros.length > 0
+  const rotuloTipo = ehMicro ? 'Microinversor' : (inversor?.tipo || 'String')
+  const linhaMppt = ehMicro
+    ? `Entradas CC por Microinversor: ${micros[0]?.entradas_por_micro ?? 'N/A'}`
+    : `Número de MPPT: ${inversor?.nMppts || 'N/A'}`
+  return `6. COMPONENTES - ${ehMicro ? 'MICROINVERSORES' : 'INVERSOR'}
+────────────────────────────────────────────────────────────────────────────
+Tipo: ${rotuloTipo}
+Marca: ${inversor?.marca || 'N/A'}
+Modelo: ${inversor?.modelo || 'N/A'}
+Potência Nominal: ${inversor?.potenciaKW || 'N/A'} kW
+Fases: ${inversor?.fases === 3 ? 'Trifásico' : 'Monofásico'} (${inversor?.fases || 1}F)
+Tensão de Saída: ${inversor?.fases === 3 ? '380V' : '220V'}
+${linhaMppt}
+Garantia: ${inversor?.garantia || 'N/A'} anos
+Eficiência: ≥ 97% (típico)
+Fonte dos dados: ${_fonteNota}${eng.tem_fallback ? `
+⚠ Valores inferidos (${eng.inferidos.join(', ')}): ${DISCLAIMER_FALLBACK}` : ''}`
+}
+
 export function gerarMemorialDescritivo(projeto, cliente, opts = {}) {
   const { equipamentos = [], beneficiarias = [] } = opts
+  // FV-DOM-031C: `micros[]` vem de `arranjos[].configuracao_eletrica.micros`,
+  // resolvido por quem monta o payload. Ausente ⇒ o memorial de string, intacto.
+  const micros = opts.micros ?? projeto.micros ?? null
   const {
     potencia_kwp = 0,
     strings = {},
@@ -158,24 +222,9 @@ Garantia de Produto: ${painel?.garantia_produto || 'N/A'} anos
 Garantia de Performance: ${painel?.garantia_performance || 'N/A'}% aos 25 anos
 Número de Módulos: ${strings?.totalModulos || 'N/A'}
 
-5. ARRANJO DAS STRINGS
-────────────────────────────────────────────────────────────────────────────
-Número de Strings: ${strings?.totalStrings || 1}
-Módulos por String: ${strings?.modulosPorString || 'N/A'}
-Configuração DC: Strings em paralelo conectadas ao inversor
+${_secaoArranjo(strings, micros)}
 
-6. COMPONENTES - INVERSOR
-────────────────────────────────────────────────────────────────────────────
-Tipo: ${inversor?.tipo || 'String'}
-Marca: ${inversor?.marca || 'N/A'}
-Modelo: ${inversor?.modelo || 'N/A'}
-Potência Nominal: ${inversor?.potenciaKW || 'N/A'} kW
-Fases: ${inversor?.fases === 3 ? 'Trifásico' : 'Monofásico'} (${inversor?.fases || 1}F)
-Tensão de Saída: ${inversor?.fases === 3 ? '380V' : '220V'}
-Número de MPPT: ${inversor?.nMppts || 'N/A'}
-Garantia: ${inversor?.garantia || 'N/A'} anos
-Eficiência: ≥ 97% (típico)
-Fonte dos dados: ${_fonteNota}${eng.tem_fallback ? `\n⚠ Valores inferidos (${eng.inferidos.join(', ')}): ${DISCLAIMER_FALLBACK}` : ''}
+${_secaoInversor(inversor, micros, _fonteNota, eng)}
 
 7. COMPONENTES - ESTRUTURA
 ────────────────────────────────────────────────────────────────────────────

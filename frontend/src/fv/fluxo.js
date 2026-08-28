@@ -28,6 +28,10 @@ export const ETAPAS_FLUXO = Object.freeze([
   // (`equipamentos.paineis[]` / `equipamentos.inversor`) e referencia o
   // catálogo por `equipamento_id`. Não tem agregado próprio.
   { chave: 'equipamentos',  rotulo: 'Equipamentos',   grupo: 'origem',    agregado: 'ProjetoFV' },
+  // FV-UX-030: a estrutura de fixação vive em `equipamentos.estrutura`, campo
+  // que já existia no schema. Vem depois de Equipamentos porque descreve como a
+  // composição recém-escolhida se fixa. Sem agregado próprio.
+  { chave: 'estrutura',     rotulo: 'Estrutura',      grupo: 'origem',    agregado: 'ProjetoFV' },
   // FV-UX-020: o dimensionamento é gravado em `ProjetoFV.dimensionamento` e
   // calculado pelo motor existente no servidor. Sem agregado próprio.
   { chave: 'dimensionamento', rotulo: 'Dimensionamento', grupo: 'origem', agregado: 'ProjetoFV' },
@@ -38,6 +42,11 @@ export const ETAPAS_FLUXO = Object.freeze([
   { chave: 'cotacao',    rotulo: 'Cotação',           grupo: 'comercial', agregado: 'Cotacao' },
   { chave: 'orcamentos', rotulo: 'Orçamentos',        grupo: 'comercial', agregado: 'Orcamento' },
   { chave: 'aprovacao',  rotulo: 'Aprovação',         grupo: 'comercial', agregado: 'Orcamento' },
+  // FV-DOM-032: opções concorrentes da MESMA proposta. Cada opção é um
+  // ProjetoFV completo, ligado às irmãs por `proposta_grupo_id` — a auditoria
+  // provou que duas não cabem num documento só. Vem depois da Aprovação porque
+  // aceitar a proposta é ato SEPARADO de aprovar orçamento.
+  { chave: 'proposta',   rotulo: 'Proposta',          grupo: 'comercial', agregado: 'ProjetoFV' },
   // FV-UX-017: o Financeiro é DERIVADO do projeto + orçamento vigente (INV-58),
   // não tem agregado próprio. Fica no comercial porque é o retorno da proposta.
   { chave: 'financeiro', rotulo: 'Financeiro',        grupo: 'comercial', agregado: 'Orcamento' },

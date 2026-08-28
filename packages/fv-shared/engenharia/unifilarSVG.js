@@ -53,10 +53,17 @@ const COR = {
 }
 
 // ─── UTILITÁRIOS SVG ──────────────────────────────────────────────────────────
+//
+// FV-DOM-031C: os símbolos abaixo passaram a ser EXPORTADOS para que o unifilar
+// de microinversores (`unifilarMicroSVG.js`) desenhe os mesmos módulos, o mesmo
+// disjuntor, o mesmo quadro, o mesmo medidor, a mesma rede e o mesmo
+// aterramento. Nenhuma função foi alterada — só a visibilidade. O desenho de
+// projetos string continua byte a byte idêntico, e o check de equivalência
+// prova isso.
 
-const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+export const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 
-function svgPainel(x, y, id, marca, pmpp) {
+export function svgPainel(x, y, id, marca, pmpp) {
   return `
   <rect x="${x}" y="${y}" width="46" height="68" fill="#fffbeb" stroke="${COR.painel}" stroke-width="1.5" rx="2"/>
   <line x1="${x+11}" y1="${y}" x2="${x+11}" y2="${y+68}" stroke="${COR.painel}" stroke-width="0.4" opacity="0.5"/>
@@ -117,7 +124,7 @@ function svgInversor(x, yTop, yBot, marca, modelo, potKW, nMPPT, mpptYs, tensaoA
   return s
 }
 
-function svgDjAC(x, y, amp, fases) {
+export function svgDjAC(x, y, amp, fases) {
   const label = fases === 1 ? '1P' : fases === 2 ? '2P' : '3P'
   return `
   <rect x="${x-19}" y="${y-26}" width="38" height="52" fill="#ecfdf5" stroke="${COR.disjuntor}" stroke-width="1.5" rx="3"/>
@@ -126,7 +133,7 @@ function svgDjAC(x, y, amp, fases) {
   <text x="${x}" y="${y+20}" text-anchor="middle" font-size="6.5" fill="${COR.cinza}">NBR 5361</text>`
 }
 
-function svgQuadroAC(x, y, bitola, faseLabel) {
+export function svgQuadroAC(x, y, bitola, faseLabel) {
   return `
   <rect x="${x-43}" y="${y-34}" width="86" height="68" fill="#f0fdfa" stroke="${COR.quadroAC}" stroke-width="2" rx="4"/>
   <text x="${x}" y="${y-18}" text-anchor="middle" font-size="9" font-weight="bold" fill="${COR.quadroAC}">QUADRO AC</text>
@@ -134,7 +141,7 @@ function svgQuadroAC(x, y, bitola, faseLabel) {
   <text x="${x}" y="${y+18}" text-anchor="middle" font-size="9" font-weight="bold" fill="${COR.quadroAC}">${faseLabel}</text>`
 }
 
-function svgMedidor(x, y, faseLabel) {
+export function svgMedidor(x, y, faseLabel) {
   return `
   <circle cx="${x}" cy="${y}" r="30" fill="white" stroke="${COR.rede}" stroke-width="2"/>
   <circle cx="${x}" cy="${y}" r="22" fill="none" stroke="${COR.rede}" stroke-width="1"/>
@@ -143,7 +150,7 @@ function svgMedidor(x, y, faseLabel) {
   <text x="${x}" y="${y+22}" text-anchor="middle" font-size="6.5" fill="${COR.cinza}">BIDIRECIONAL</text>`
 }
 
-function svgRede(x, y, distribuidora, faseLabel) {
+export function svgRede(x, y, distribuidora, faseLabel) {
   const abrev = esc((distribuidora || 'CONCESSIONÁRIA').substring(0, 10))
   return `
   <rect x="${x-48}" y="${y-34}" width="96" height="68" fill="#f0fdf4" stroke="${COR.rede}" stroke-width="2.5" rx="5"/>
@@ -152,7 +159,7 @@ function svgRede(x, y, distribuidora, faseLabel) {
   <text x="${x}" y="${y+20}" text-anchor="middle" font-size="9" fill="${COR.rede}">${faseLabel}</text>`
 }
 
-function svgAterramento(x, y) {
+export function svgAterramento(x, y) {
   return `
   <line x1="${x}" y1="${y}" x2="${x}" y2="${y+18}" stroke="${COR.gnd}" stroke-width="2"/>
   <line x1="${x-14}" y1="${y+18}" x2="${x+14}" y2="${y+18}" stroke="${COR.gnd}" stroke-width="2.5"/>
@@ -162,7 +169,7 @@ function svgAterramento(x, y) {
   <text x="${x}" y="${y+52}" text-anchor="middle" font-size="6.5" fill="${COR.cinza}">NBR 5419</text>`
 }
 
-function svgLinhaCabo(x1, y1, x2, y2, bitola, cor) {
+export function svgLinhaCabo(x1, y1, x2, y2, bitola, cor) {
   const mx = (x1 + x2) / 2
   const my = (y1 + y2) / 2
   return `

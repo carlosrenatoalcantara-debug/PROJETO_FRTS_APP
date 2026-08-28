@@ -70,8 +70,19 @@ ok(CATALOGO_UX.includes('return null'), 'especificação ausente devolve null')
 
 secao('6 · Nenhuma engenharia nem finança no cliente')
 for (const p of ['Math.pow', 'Math.sqrt', 'Math.ceil', 'engenhariaNormativa', 'unifilar-svg',
-  'calcularVPL', 'calcularTIR', 'oversizing', 'num_strings', 'modulos_por_string']) {
+  'calcularVPL', 'calcularTIR', 'num_strings', 'modulos_por_string']) {
   ok(!fontesUX.includes(p), `ausente: \`${p}\``)
+}
+// FV-DOM-031: `catalogo.js` passou a LER `oversizing_max`, campo declarado pelo
+// fabricante. Ler um limite é o oposto de calculá-lo — a proibição continua
+// valendo para o cálculo, que é o que esta seção sempre quis impedir.
+for (const p of ['dc_ac', 'dcAc', 'relacaoDcAc', 'oversizing >', 'oversizing <',
+  'oversizing_max *', 'oversizing_max /', '/ potencia_ca']) {
+  ok(!fontesUX.includes(p), `sem cálculo de oversizing: \`${p}\``)
+}
+for (const linha of fontesUX.split('\n').filter((l) => /oversizing/i.test(l))) {
+  ok(/canonico\(equipamento\)\?\.oversizing_max|oversizingMaxDoInversor|oversizing_max:/.test(linha),
+    `oversizing só é LIDO: ${linha.trim().slice(0, 60)}`)
 }
 // A única regra compartilhada é a classificação de tecnologia — reúso da fonte
 // única, não uma segunda opinião escrita no cliente.
@@ -85,7 +96,7 @@ ok(imports.length > 0 && imports.every((l) => l.includes('@fortesolar/fv-shared'
 ok(CATALOGO_UX.includes('tecnologiaInversor'), 'classificação pela regra do domínio')
 ok(CATALOGO_UX.includes('lerInversor'), 'leitura pelo dicionário SSOT')
 ok(!semComentarios(CATALOGO_UX).includes('paraDimensionamento'),
-  '`paraDimensionamento` fora — é ele que carrega os defaults')
+  '`paraDimensionamento` fora — a nova UX lê o SSOT direto (FV-UX-028)')
 
 secao('7 · Nenhuma cópia paralela do estado do projeto')
 for (const p of ['createContext', 'localStorage', 'sessionStorage', 'buscarProjeto']) {
@@ -147,7 +158,56 @@ const SEM_SPEC = {
 const semSpec = adaptarProjetoParaUnifilar(SEM_SPEC).entrada
 ok(semSpec.painel.potenciaW === null, 'potência nula não virou 0 nem 550 no adapter')
 
+// ═══ FV-UX-029 — composição em `arranjos[]` ═════════════════════════════════
+const COMPOSICAO_UX = ler('../../../../frontend/src/fv/composicao.js')
+const compSemCom = semComentarios(COMPOSICAO_UX)
+const ETAPA_EQ = ler('../../../../frontend/src/fv/paginas/etapas/EtapaEquipamentos.jsx')
+
+secao('12 · A composição vive em `arranjos[]`, que já existia')
+const trechoArranjos = MODELO.slice(MODELO.indexOf('  arranjos: ['), MODELO.indexOf('  arranjos: [') + 2200)
+for (const campo of ['paineis', 'inversores', 'quantidade', 'rotulo', 'somente_leitura']) {
+  ok(trechoArranjos.includes(campo), `\`arranjos[].${campo}\` já existia no schema`)
+}
+const trechoEtapas2 = CTRL.slice(CTRL.indexOf('ETAPAS_PERMITIDAS = ['), CTRL.indexOf('ETAPAS_PERMITIDAS = [') + 700)
+ok(trechoEtapas2.includes("'arranjos'"), 'a etapa `arranjos` já pertencia à lista fechada')
+const handlerArr = CTRL.slice(CTRL.indexOf("case 'arranjos'"), CTRL.indexOf("case 'instalacao_ref'"))
+ok(handlerArr.includes('$set.arranjos = Array.isArray(dados.lista)'),
+  'o handler recebe `{ lista: [...] }` e substitui o array')
+ok(ETAPA_EQ.includes("salvarEtapa('arranjos'"), 'a tela grava a composição em `arranjos`')
+
+secao('13 · `equipamentos` virou PROJEÇÃO, não segunda fonte')
+ok(COMPOSICAO_UX.includes('export function projecaoLegado'), 'a projeção é uma função declarada')
+ok(ETAPA_EQ.includes('projecaoLegado('), 'a tela deriva o legado da composição')
+// A projeção nunca é montada à mão na tela.
+ok(!/salvarEtapa\('equipamentos',\s*\{/.test(compSemCom + semComentarios(ETAPA_EQ)),
+  '`equipamentos` nunca é montado à mão — só pela projeção')
+ok(COMPOSICAO_UX.includes('PROJEÇÃO, não fonte'), 'a direção está declarada no código')
+// O backend continua sabendo derivar na direção inversa (projetos legados).
+const SERV = ler('../../services/arranjosService.js')
+ok(SERV.includes('Derivação do arranjo único legado'),
+  'o backend segue derivando `arranjos` do legado quando `arranjos` está vazio')
+
+secao('14 · Aritmética da composição — soma, nunca estimativa')
+ok(compSemCom.includes('export function potenciaCcKwp'), 'potência CC derivada da composição')
+for (const p of ['Math.pow', 'Math.ceil', 'Math.round', '1.25', 'oversizing', 'voc', 'isc']) {
+  ok(!compSemCom.includes(p), `sem regra elétrica no modelo (\`${p}\`)`)
+}
+for (const d of ['?? 0', '|| 0', '?? 1,', '?? 24', '?? 650']) {
+  ok(!compSemCom.includes(d), `sem default \`${d}\``)
+}
+ok(compSemCom.includes('n > 0 ? Math.trunc(n) : null'), 'quantidade é inteiro > 0 ou ausência')
+
+secao('15 · Coerência com o dimensionamento é INFORMADA, não imposta')
+ok(COMPOSICAO_UX.includes('export function coerenciaComDimensionamento'), 'função de comparação existe')
+ok(COMPOSICAO_UX.includes('NÃO decide quem manda'), 'declara que não arbitra a fonte')
+ok(!compSemCom.includes('num_paineis ='), 'a composição não sobrescreve o dimensionamento')
+
+secao('16 · Multi-modelo é declarado, não silenciado')
+ok(COMPOSICAO_UX.includes('export function multiModelo'), 'detecção de multi-modelo')
+ok(ETAPA_EQ.includes('usarão o primeiro da lista'),
+  'a tela avisa que a engenharia ainda usa um modelo por vez')
+
 console.log(falhas === 0
-  ? '\nOK — seleção por referência ao catálogo, pela operação existente; sem catálogo, rota ou campo novo.'
+  ? '\nOK — composição em arranjos[], projeção do legado derivada; sem rota, schema ou catálogo novo.'
   : `\n${falhas} FALHA(S).`)
 process.exit(falhas === 0 ? 0 : 1)

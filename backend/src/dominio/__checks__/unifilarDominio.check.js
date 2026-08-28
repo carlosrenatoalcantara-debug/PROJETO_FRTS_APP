@@ -81,7 +81,16 @@ function main() {
   ok(r.lacunas.includes('painel'), 'painel ausente declarado como lacuna')
   ok(r.lacunas.includes('inversor'), 'inversor ausente declarado como lacuna')
   ok(r.lacunas.includes('uf'), 'UF ausente declarada como lacuna')
-  ok(typeof r.svg === 'string' && r.svg.length > 1000, 'ainda assim gera diagrama (não quebra)')
+  /**
+   * FV-DOM-056 — contrato REVOGADO. Até esta sprint, um projeto vazio ainda
+   * produzia um diagrama: as lacunas eram declaradas, mas o desenho saía com os
+   * defaults do motor. A FV-QA-055 mostrou aonde isso leva (T07/T09: Voc de
+   * 3933 V num inversor de 1000 V), e agora a ausência de topologia recusa o
+   * desenho em vez de preenchê-lo. As lacunas acima continuam sendo declaradas.
+   */
+  ok(r.svg === null, 'projeto vazio NÃO gera diagrama (FV-DOM-056)')
+  ok(r.impedimento?.codigo === 'TOPOLOGIA_AUSENTE',
+    `e declara o motivo: ${r.impedimento?.codigo}`)
   const { proveniencia: pv } = adaptarProjetoParaUnifilar(VAZIO)
   ok(pv.inversor === null,
     'subdocumento `equipamentos.inversor` vazio NÃO conta como fonte')

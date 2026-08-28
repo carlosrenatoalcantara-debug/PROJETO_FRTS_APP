@@ -1,4 +1,5 @@
 import PDFDocument from 'pdfkit'
+import { composicaoDoProjeto } from './arranjosService.js'
 import { createWriteStream } from 'fs'
 import { join } from 'path'
 import { mkdirSync } from 'fs'
@@ -20,6 +21,148 @@ const EMPRESA = {
   email: process.env.EMPRESA_EMAIL || 'contato@fortesolar.com.br',
   website: process.env.EMPRESA_WEBSITE || 'www.fortesolar.com.br',
   cor: process.env.EMPRESA_COR || '#1e40af',
+}
+
+/** Marca de lacuna já usada por este documento para número financeiro ausente. */
+const LACUNA = '—'
+
+/**
+ * Exibe o valor dentro de `lerEquipamentos`, ou declara a lacuna.
+ *
+ * O corpo do documento tem o SEU próprio `ou(v, sufixo)`, local a
+ * `gerarPropostaComercial`. Nomear este igual sombreava aquele e concatenava o
+ * segundo argumento como texto — o PDF saiu com "650(v) => `${v}W`" impresso.
+ * Nomes distintos, um contrato cada.
+ */
+const exibir = (v, sufixo = '') => (v === null || v === undefined || v === '' ? LACUNA : `${v}${sufixo}`)
+
+/**
+ * Equipamentos da proposta — FV-UX-036.
+ *
+ * ── O defeito que isto corrige ──────────────────────────────────────────────
+ * A auditoria da FV-UX-036 extraiu o texto do PDF de duas opções reais e mediu:
+ * as duas traziam o MESMO bloco de equipamentos, e nenhum dado era verdadeiro.
+ *
+ *     • 10 módulos Marca Modelo        (real: 24 × Znshine ZXM7 650 W)
+ *     • Potência nominal: 400W
+ *     • Modelo - 5kW                   (real: Sungrow SG15RT 15 kW)
+ *     • Tipo: String · Fases: 3F       (a outra opção era MICRO, 8 × HMS-2000-4T)
+ *     • Tipo: Fibrocimento             (a outra opção era Laje)
+ *
+ * Causa: o gerador lia só a forma do WIZARD LEGADO — `projeto.painel`,
+ * `projeto.inversor`, `projeto.strings`, `projeto.estrutura` —, que é nula em
+ * projeto do fluxo canônico. Cada `|| 10`, `|| 400`, `|| 'Fibrocimento'`
+ * disparava, e o documento afirmava com confiança o que ninguém informou.
+ *
+ * ── O que passa a valer ─────────────────────────────────────────────────────
+ *   1. CANÔNICO primeiro: `equipamentos`, `dimensionamento`, `arranjos[]`;
+ *   2. LEGADO como fallback — o wizard continua produzindo o mesmo documento
+ *      de sempre, porque onde a forma antiga existe ela é lida;
+ *   3. quando NENHUMA das duas informa, o documento declara a lacuna ("—") em
+ *      vez de preencher. Mesma decisão da FV-DOM-029.
+ *
+ * Nada é calculado aqui: potência, quantidade e topologia são LIDAS de quem já
+ * as possui. O gerador de PDF não é lugar de derivar número.
+ */
+function lerEquipamentos(projeto = {}) {
+  const equip = projeto.equipamentos ?? {}
+
+  // ── Módulos ───────────────────────────────────────────────────────────────
+  // Canônico: `equipamentos.paineis[]`. Legado: `projeto.painel` + `strings`.
+  // FV-UX-038 (D1): idem para os módulos — a composição canônica soma o mesmo
+  // modelo em vários arranjos; ler `equipamentos.paineis[0]` mostrava só o
+  // primeiro. O fallback ao legado continua, pelo próprio adaptador.
+  const compModulos = composicaoDoProjeto(projeto).modulos
+  const p0 = compModulos[0] ?? (Array.isArray(equip.paineis) ? equip.paineis[0] : null) ?? null
+  const painelLegado = projeto.painel ?? null
+
+  const qtdModulos = p0?.quantidade
+    ?? projeto.dimensionamento?.num_paineis
+    ?? projeto.strings?.totalModulos
+    ?? null
+  const marcaModulo = p0?.marca ?? painelLegado?.marca ?? null
+  const modeloModulo = p0?.modelo ?? painelLegado?.modelo ?? null
+  const potModulo = p0?.potencia_w ?? painelLegado?.pmpp ?? null
+
+  const identidadeModulo = [marcaModulo, modeloModulo].filter(Boolean).join(' ')
+  const modulos = {
+    potencia_w: potModulo,
+    linha: qtdModulos === null && !identidadeModulo
+      ? LACUNA
+      : `${exibir(qtdModulos)} módulos ${identidadeModulo || LACUNA}`,
+    // Garantia é dado de catálogo; se ninguém informou, o documento não promete.
+    garantia: (() => {
+      const prod = p0?.garantia_produto ?? painelLegado?.garantia_produto ?? null
+      const perf = p0?.garantia_performance ?? painelLegado?.garantia_performance ?? null
+      if (prod === null && perf === null) return LACUNA
+      return `${exibir(prod, ' anos')} (produto), ${exibir(perf, ' anos')} (performance)`
+    })(),
+  }
+
+  // ── Inversor ou microinversores ───────────────────────────────────────────
+  // A topologia MICRO tem contagem, e chamar 8 microinversores de "o inversor"
+  // descreveria errado a venda. O título acompanha o que o projeto é.
+  //
+  // FV-UX-038 (D1): a quantidade vem do ADAPTADOR CANÔNICO
+  // (`composicaoDoProjeto`), não de uma leitura própria daqui. Este arquivo
+  // tinha a sua — somava `arranjos[].inversores[]` e `micros[]` por conta —, e
+  // manter isso significaria duas implementações da mesma regra. O adaptador
+  // também resolve o projeto legado, então o wizard segue lido.
+  const comp = composicaoDoProjeto(projeto)
+  const invLegado = projeto.inversor ?? null
+  const invComp = comp.inversores[0] ?? null
+  const inv = invComp ?? equip.inversor ?? invLegado ?? {}
+  const ehMicro = comp.topologia === 'micro'
+    || String(inv.tipo ?? equip.inversor?.tipo ?? '').toLowerCase().includes('micro')
+
+  const qtdInv = invComp?.quantidade ?? inv.quantidade ?? null
+  const potInv = inv.potencia_kw ?? inv.potenciaKW ?? equip.inversor?.potencia_kw ?? null
+  const identidadeInv = [inv.marca, inv.modelo].filter(Boolean).join(' ')
+  // Mais de um modelo é fato da venda: o documento diz, em vez de mostrar só o
+  // primeiro como se fosse o único.
+  const outrosModelos = comp.inversores.slice(1)
+
+  const inversor = {
+    titulo: ehMicro ? 'Microinversores' : 'Inversor',
+    tipo: inv.tipo ?? equip.inversor?.tipo ?? (ehMicro ? 'Microinversor' : null),
+    fases: inv.fases ?? equip.inversor?.fases ?? null,
+    garantia: inv.garantia ?? equip.inversor?.garantia ?? null,
+    outros: outrosModelos.map((o) => `${o.quantidade > 1 ? `${o.quantidade} × ` : ''}`
+      + `${[o.marca, o.modelo].filter(Boolean).join(' ')}`
+      + `${o.potencia_kw == null ? '' : ` - ${o.potencia_kw}kW`}`),
+    linha: !identidadeInv && potInv === null
+      ? LACUNA
+      : [
+        qtdInv !== null && qtdInv > 1 ? `${qtdInv} ×` : null,
+        identidadeInv || LACUNA,
+        potInv === null ? null : `- ${potInv}kW`,
+      ].filter(Boolean).join(' '),
+  }
+
+  // ── Estrutura ─────────────────────────────────────────────────────────────
+  const estCanon = equip.estrutura ?? null
+  const estLegado = projeto.estrutura ?? null
+  const est = estCanon ?? estLegado ?? {}
+  const estrutura = {
+    // "Outro" carrega a descrição livre — é ela que descreve a venda (FV-UX-030).
+    tipo: est.tipo === 'Outro' && est.descricao ? est.descricao : (est.tipo ?? null),
+    garantia: est.garantia ?? null,
+  }
+
+  return { modulos, inversor, estrutura }
+}
+
+/**
+ * Rótulo da opção — FV-UX-036 / FV-DOM-032.
+ *
+ * Uma proposta pode ter Opção 01 e Opção 02 concorrentes. O documento precisa
+ * dizer a qual pertence, ou dois PDFs abertos lado a lado ficam indistinguíveis
+ * — foi exatamente o que a auditoria mediu.
+ */
+function rotuloDaOpcao(projeto = {}) {
+  if (!projeto.proposta_grupo_id) return null
+  return projeto.opcao_rotulo
+    ?? (projeto.opcao_numero ? `Opção ${String(projeto.opcao_numero).padStart(2, '0')}` : null)
 }
 
 /**
@@ -53,6 +196,8 @@ export async function gerarPropostaComercial(projeto, cliente, contrato = null) 
   const altura = doc.page.height
   const dataProposal = new Date()
   const numeroProposal = `PROP-${projeto._id || 'DRAFT'}-${dataProposal.getFullYear()}`
+  // Rótulo da opção (FV-DOM-032). `null` em projeto que não é opção.
+  const rotuloOpcao = rotuloDaOpcao(projeto)
 
   const num = (v) => {
     if (v === null || v === undefined || v === '') return null
@@ -121,7 +266,14 @@ export async function gerarPropostaComercial(projeto, cliente, contrato = null) 
     0, 150, { align: 'center', width: largura }
   )
   doc.fontSize(32).text('Sistema Fotovoltaico', 0, 220, { align: 'center', width: largura })
-  doc.fontSize(14).text('', 0, 300, { align: 'center', width: largura })
+  // FV-UX-036: numa proposta com opções concorrentes, a capa diz QUAL é esta.
+  // Sem isso, dois PDFs abertos lado a lado são indistinguíveis.
+  if (rotuloOpcao) {
+    doc.fontSize(20).fillColor('#dbeafe').text(rotuloOpcao, 0, 268, {
+      align: 'center', width: largura,
+    })
+  }
+  doc.fillColor('white').fontSize(14).text('', 0, 300, { align: 'center', width: largura })
   doc.fontSize(18).font('Helvetica').text(cliente?.nome || 'Cliente', 0, 320, {
     align: 'center',
     width: largura,
@@ -223,24 +375,28 @@ export async function gerarPropostaComercial(projeto, cliente, contrato = null) 
   doc.fillColor(CORES.texto).fontSize(24).font('Helvetica-Bold').text('Especificação Técnica', 40, 80)
 
   let yTec = 150
+  const eq = lerEquipamentos(projeto)
   const secoes = [
     { titulo: 'Módulos Fotovoltaicos', conteudo: [
-      `${projeto.strings?.totalModulos || 10} módulos ${projeto.painel?.marca || 'Marca'} ${projeto.painel?.modelo || 'Modelo'}`,
-      `Potência nominal: ${projeto.painel?.pmpp || 400}W por módulo`,
+      eq.modulos.linha,
+      `Potência nominal: ${ou(eq.modulos.potencia_w, 'W por módulo')}`,
       `Tecnologia: Silício cristalino`,
-      `Garantia: ${projeto.painel?.garantia_produto || 12} anos (produto), ${projeto.painel?.garantia_performance || 25} anos (performance 80%)`,
+      `Garantia: ${eq.modulos.garantia}`,
     ]},
-    { titulo: 'Inversor', conteudo: [
-      `${projeto.inversor?.modelo || 'Modelo'} - ${projeto.inversor?.potenciaKW || 5}kW`,
-      `Tipo: ${projeto.inversor?.tipo || 'String'}`,
-      `Fases: ${projeto.inversor?.fases || 3}F`,
-      `Garantia: ${projeto.inversor?.garantia || 10} anos`,
+    { titulo: eq.inversor.titulo, conteudo: [
+      eq.inversor.linha,
+      // FV-UX-038 (D1): havendo mais de um modelo, todos aparecem. Mostrar só o
+      // primeiro descreveria a venda pela metade.
+      ...eq.inversor.outros,
+      `Tipo: ${ou(eq.inversor.tipo)}`,
+      `Fases: ${ou(eq.inversor.fases, 'F')}`,
+      `Garantia: ${ou(eq.inversor.garantia, ' anos')}`,
     ]},
     { titulo: 'Estrutura', conteudo: [
-      `Tipo: ${projeto.estrutura?.tipo || 'Fibrocimento'}`,
+      `Tipo: ${ou(eq.estrutura.tipo)}`,
       `Material: Alumínio anodizado`,
       `Inclinação: Otimizada para local`,
-      `Garantia: ${projeto.estrutura?.garantia || 10} anos`,
+      `Garantia: ${ou(eq.estrutura.garantia, ' anos')}`,
     ]},
     { titulo: 'Proteções e Cabeamento', conteudo: [
       'Disjuntor seccionadora DC 125A/1000V',
@@ -352,10 +508,13 @@ export async function gerarPropostaComercial(projeto, cliente, contrato = null) 
 
   let yGar = 150
   const garantias = [
+    // FV-UX-036: garantia é dado de catálogo. Prometer "12 anos produto" quando
+    // ninguém informou é assumir obrigação contratual inventada — o pior tipo
+    // de default num documento comercial. Sem dado, declara a lacuna.
     { titulo: '✓ Garantia dos Equipamentos', items: [
-      `Painéis: ${projeto.painel?.garantia_produto || 12} anos produto, ${projeto.painel?.garantia_performance || 25} anos performance`,
-      `Inversor: ${projeto.inversor?.garantia || 10} anos`,
-      'Estrutura: 10 anos',
+      `Painéis: ${eq.modulos.garantia}`,
+      `Inversor: ${ou(eq.inversor.garantia, ' anos')}`,
+      `Estrutura: ${ou(eq.estrutura.garantia, ' anos')}`,
     ]},
     { titulo: '✓ Garantia de Instalação', items: [
       'Execução conforme normas ABNT NBR 16690',

@@ -68,8 +68,15 @@ const MOTOR_CONSOLIDADO = [
   'packages/fv-shared/engenharia/engenhariaNormativa.js',
   'frontend/src/components/fv/ConfiguradorArranjoFV.jsx',
 ]
-/** Este continua fora: sem equivalência provada, não se mexe (FV-UX-021). */
-const MOTOR_INTOCADO = ['backend/src/services/compatibilidadeFV.js']
+/**
+ * `compatibilidadeFV` não foi consolidado (FV-UX-021: sem equivalência provada),
+ * mas a FV-DOM-029 alterou nele UMA coisa: a precondição de `montarStrings`.
+ * Sem os defaults de `paraDimensionamento`, o guard que só olhava `voc_max_dc`
+ * deixaria o cálculo correr contra `null`. As FÓRMULAS seguem intactas — é o que
+ * a seção verifica.
+ */
+const MOTOR_GUARD_REFORCADO = ['backend/src/services/compatibilidadeFV.js']
+const MOTOR_INTOCADO = []
 
 let git = null
 try {
@@ -80,6 +87,19 @@ if (git === null) {
 } else {
   for (const arquivo of MOTOR_INTOCADO) {
     ok(!git.includes(arquivo), `intacto (sem equivalência provada): ${arquivo}`)
+  }
+  // FV-DOM-029: as fórmulas de `montarStrings` continuam palavra por palavra —
+  // só a precondição mudou. Se alguma delas for tocada, este check acusa.
+  for (const arquivo of MOTOR_GUARD_REFORCADO) {
+    const fonte = ler(arquivo)
+    ok(fonte.includes('const voc_corrigido = modulo.voc * FATOR_TEMPERATURA_VOC'),
+      `${path.basename(arquivo)}: correção térmica intacta`)
+    ok(fonte.includes('const max_modulos_serie = Math.floor(inversor.voc_max_dc / voc_corrigido)'),
+      `${path.basename(arquivo)}: limite de série intacto`)
+    ok(fonte.includes('FATOR_TEMPERATURA_VOC = 1.15'),
+      `${path.basename(arquivo)}: fator 1,15 preservado (não equivalente, e não foi tocado)`)
+    ok(fonte.includes('campos_faltantes'),
+      `${path.basename(arquivo)}: guard passou a NOMEAR o que falta`)
   }
   const alterados = MOTOR_CONSOLIDADO.filter((a) => git.includes(a))
   if (alterados.length > 0) {
@@ -95,10 +115,50 @@ if (git === null) {
 
 secao('5 · Nenhum schema alterado')
 if (git !== null) {
-  for (const modelo of ['backend/src/models/ProjetoFV.js', 'backend/src/models/Equipamento.js',
-    'backend/src/models/Baseline.js']) {
+  for (const modelo of ['backend/src/models/Equipamento.js', 'backend/src/models/Baseline.js']) {
     ok(!git.includes(modelo), `intacto: ${modelo}`)
   }
+  /**
+   * `ProjetoFV.js` deixou de ser "intacto" na FV-DOM-031, POR AUTORIZAÇÃO
+   * (decisão 1: configuração de micro por modelo). Exigir intocado passaria a
+   * ser uma guarda falsa; a guarda que interessa é outra e é mais forte:
+   * a alteração é ADITIVA — nenhum campo existente foi removido ou retipado.
+   */
+  ok(schemaSomenteAditivo('backend/src/models/ProjetoFV.js'),
+    'ProjetoFV.js alterado apenas de forma ADITIVA (nenhum campo removido/retipado)')
+}
+
+/**
+ * Toda linha REMOVIDA do arquivo reaparece entre as ADICIONADAS quando se
+ * ignoram comentários e espaços. Se um campo tivesse sumido ou trocado de tipo,
+ * a linha original não teria correspondente e o check acusaria.
+ */
+function schemaSomenteAditivo(rel) {
+  let diff
+  try { diff = execSync(`git diff -U0 -- ${rel}`, { cwd: RAIZ, encoding: 'utf8' }) } catch { return false }
+  const limpar = (l) => l.slice(1).replace(/\/\/.*$/, '').replace(/\s+/g, '')
+  const linhas = diff.split('\n')
+  const removidas = linhas.filter((l) => l.startsWith('-') && !l.startsWith('---')).map(limpar).filter(Boolean)
+  const adicionadas = linhas.filter((l) => l.startsWith('+') && !l.startsWith('+++')).map(limpar).filter(Boolean)
+  const conjunto = new Set(adicionadas)
+
+  /**
+   * ALARGAR um enum é aditivo — `['novo','ampliacao']` → `['novo','ampliacao',
+   * 'opcao']` (FV-DOM-032). A comparação linha a linha não enxerga isso, então
+   * a linha antiga é aceita quando existe uma NOVA que contém todos os valores
+   * dela. Estreitar o enum removeria um valor, nenhuma linha nova o conteria, e
+   * o check acusaria — a guarda continua valendo no sentido que importa.
+   */
+  const alargamentoDeEnum = (antiga) => {
+    if (!antiga.startsWith('enum:[')) return false
+    const valores = antiga.slice(6).replace(/\],?$/, '').split(',').filter(Boolean)
+    return adicionadas.some((nova) =>
+      nova.startsWith('enum:[') && valores.every((v) => nova.includes(v)))
+  }
+
+  const perdidas = removidas.filter((l) => !conjunto.has(l) && !alargamentoDeEnum(l))
+  if (perdidas.length > 0) console.log(`   linhas perdidas: ${perdidas.join(' | ')}`)
+  return perdidas.length === 0
 }
 
 secao('6 · A sprint não escreve em banco algum')
@@ -120,11 +180,24 @@ secao('7 · Nenhum snapshot, diagnóstico ou Baseline recalculado')
 // conjunto — daí a lista explícita do que já vinha alterado e de qual sprint.
 const TOCADOS_POR_SPRINTS_ANTERIORES = new Map([
   ['backend/src/dominio/baseline/congelarOrcamento.js', 'FV-DOM-016A — congela inflacao_energia_aa_pct'],
+  // FV-DOM-032: o gate passou a considerar a OPÇÃO aceita antes da Baseline.
+  // Nenhuma baseline é lida de forma diferente, recalculada, apagada ou
+  // alterada — o service só acrescenta o estado da opção à decisão.
+  ['backend/src/services/BaselineService.js', 'FV-DOM-032 — gate ciente das opções da proposta'],
 ])
 if (git !== null) {
   const alterados = git.split('\n').filter(Boolean).map((l) => l.slice(3).trim())
+  /**
+   * FV-INFRA-058: `.md` fora do filtro. A regra existe para pegar CÓDIGO que
+   * mexa em baseline/snapshot/governança, e passou a acusar o documento
+   * `FV-QA-BASELINE-001.md` — que casa com `/baseline/` só pelo nome. Um
+   * arquivo de documentação não altera comportamento; mantê-lo aqui treinaria
+   * a equipe a ignorar a asserção, que é o oposto do que ela serve.
+   */
   const suspeitos = alterados.filter((a) =>
-    /baseline|snapshot|governanca/i.test(a) && !/__checks__|scripts/.test(a))
+    /baseline|snapshot|governanca/i.test(a)
+    && !/__checks__|scripts/.test(a)
+    && !/\.md$/i.test(a))
   const novos = suspeitos.filter((a) => !TOCADOS_POR_SPRINTS_ANTERIORES.has(a))
   ok(novos.length === 0,
     novos.length === 0 ? 'esta sprint não tocou baseline/snapshot'

@@ -13,7 +13,8 @@ import { gerarToken, enviarEmail, smtpConfigurado, verificarTransporte } from '.
 import { templateConvite, templateReset } from '../services/emailTemplates.js'
 import { podeDisparar, registrarDisparo } from '../services/mailRateLimit.js'
 
-const APP_URL = process.env.APP_URL || process.env.FRONTEND_URL || 'http://localhost:5173'
+// FV-INFRA-058: origem pública pela fonte única (resolvida na chamada).
+import { urlPublica } from '../config/origens.js'
 // Perfis autorizados a disparar reset/convite
 const PERFIS_GESTAO_ACESSO = ['admin', 'administrador', 'diretor']
 
@@ -183,7 +184,7 @@ router.post('/usuarios/:id/reset-password', async (req, res) => {
     user.reset_token_tipo   = tipo
     await user.save()   // não altera senha_hash (não foi modificado) → senha atual segue válida até a redefinição
 
-    const link = `${APP_URL}/redefinir-senha?token=${raw}`
+    const link = urlPublica(`/redefinir-senha?token=${raw}`)
     const tpl = tipo === 'convite'
       ? templateConvite({ nome: user.nome, link, validadeHoras: 24 })
       : templateReset({ nome: user.nome, link, validadeMinutos: 30 })

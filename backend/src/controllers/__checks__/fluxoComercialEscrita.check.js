@@ -254,6 +254,15 @@ async function main() {
   // `/api/projetos-fv/:id/beneficiarias` (server.js) — os caminhos declarados lá
   // são relativos a esse prefixo. FV-UX-015.
   const rotasBenefSrc = readFileSync(path.resolve(AQUI, '../../routes/beneficiarias.js'), 'utf8')
+  // Homologação idem, montada em `/api/projetos-fv/:projetoId/homologacao`
+  // (server.js). FV-UX-034 — antes desta sprint nenhuma rota dela era chamada
+  // pela UX, e por isso este router nunca havia sido lido aqui.
+  const rotasHomologSrc = readFileSync(path.resolve(AQUI, '../../routes/homologacao.js'), 'utf8')
+  // O PDF da proposta vive em router próprio, montado em
+  // `/api/projetos-fv/:projetoId/proposta` (server.js). FV-UX-036 — antes desta
+  // sprint a UX nova não chamava nenhuma rota dele, e por isso ele nunca havia
+  // sido lido aqui. Mesma lacuna que a homologação tinha na FV-UX-034.
+  const rotasPropostaSrc = readFileSync(path.resolve(AQUI, '../../routes/proposta.js'), 'utf8')
   const apiSrc = readFileSync(path.resolve(AQUI, '../../../../frontend/src/fv/api/agregadosFvApi.js'), 'utf8')
 
   // Caminhos que o cliente do frontend monta, normalizados para o padrão do router.
@@ -263,21 +272,31 @@ async function main() {
       .replace(/\$\{cotacaoId\}/g, ':cotacaoId')
       .replace(/\$\{beneficiariaId\}/g, ':beneficiariaId')
       .replace(/\$\{nome\}/g, ''))
+  // `gerarDocumentoHomologacao(id, tipo)` monta `/homologacao/${tipo}`; os três
+  // tipos concretos são acrescentados abaixo, mesmo tratamento dado a `acao`.
+  for (const t of ['memorial', 'carta', 'art']) {
+    doCliente.push(`/:id/homologacao/${t}`)
+  }
   // As ações compostas (`acao('emitir')`) não aparecem literalmente — acrescenta.
   for (const n of ['emitir', 'aprovar', 'rejeitar', 'cancelar']) {
     doCliente.push(`/:id/orcamentos/:orcamentoId/${n}`)
   }
 
   const registradas = new Set([
-    ...[...rotasSrc.matchAll(/router\.(get|post|put)\('([^']+)'/g)].map((m) => m[2]),
+    ...[...rotasSrc.matchAll(/router\.(get|post|put|patch|delete)\('([^']+)'/g)].map((m) => m[2]),
+    ...[...rotasHomologSrc.matchAll(/router\.(get|post|put|patch|delete)\('([^']+)'/g)]
+      .map((m) => `/:id/homologacao${m[2] === '/' ? '' : m[2]}`),
+    ...[...rotasPropostaSrc.matchAll(/router\.(get|post|put|patch|delete)\('([^']+)'/g)]
+      .map((m) => `/:id/proposta${m[2] === '/' ? '' : m[2]}`),
     // Reprefixadas para o caminho absoluto que o cliente monta.
-    ...[...rotasBenefSrc.matchAll(/router\.(get|post|put|delete)\('([^']+)'/g)]
+    ...[...rotasBenefSrc.matchAll(/router\.(get|post|put|patch|delete)\('([^']+)'/g)]
       .map((m) => `/:id/beneficiarias${m[2] === '/' ? '' : m[2]}`),
   ])
   // Descarta o template genérico de `acao(nome)` — as 4 ações concretas que ele
   // produz já foram acrescentadas acima.
   const orfas = [...new Set(doCliente)]
     .filter((c) => c && !c.endsWith('/'))
+    .filter((c) => !c.includes('${'))
     .filter((c) => !registradas.has(c))
   ok(orfas.length === 0, `todo caminho chamado pela UX existe no router (${orfas.join(', ') || 'nenhum órfão'})`)
 

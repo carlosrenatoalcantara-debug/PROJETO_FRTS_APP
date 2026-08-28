@@ -64,6 +64,8 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 import mongoose from './config/database.js'
 import { conectarBD } from './config/database.js'
+// FV-INFRA-058: fonte única da origem pública e da allowlist de CORS.
+import { opcoesCors, origemPermitida, resumoOrigens } from './config/origens.js'
 
 // 🔐 Security modules
 import { setupSecurityHeaders, secureErrorHandler } from './security/security-headers.js'
@@ -131,26 +133,18 @@ const PORT = process.env.PORT || 5001
 // Necessário para a trilha de auditoria de assinaturas comerciais.
 app.set('trust proxy', true)
 
-// Configuração CORS com mais detalhes
-const corsOptions = {
-  origin: (origin, callback) => {
-    // Permite localhost em qualquer porta (dev)
-    // e também produção se necessário
-    if (!origin ||
-        origin.includes('localhost') ||
-        origin.includes('127.0.0.1') ||
-        origin === 'https://projeto-frts-app.vercel.app') {
-      callback(null, true)
-    } else {
-      console.warn(`⚠️ CORS: Origem rejeitada: ${origin}`)
-      callback(null, false)
-    }
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  optionsSuccessStatus: 200,
-}
+/**
+ * FV-INFRA-058 — CORS por allowlist EXATA, vinda de `config/origens`.
+ *
+ * O que havia aqui aceitava qualquer origem cujo TEXTO contivesse `localhost`.
+ * Com `credentials: true`, `https://localhost.dominio-malicioso.com` passava e
+ * podia ler respostas autenticadas. A comparação agora é de origem canônica
+ * contra um conjunto; a origem de produção deixou de ser literal no código e
+ * passa a vir de `APP_URL`/`CORS_ORIGENS`.
+ */
+const corsOptions = opcoesCors({
+  aoRecusar: (origem) => console.warn(`⚠️ CORS: origem recusada: ${origem}`),
+})
 
 app.use(cors(corsOptions))
 
@@ -167,10 +161,17 @@ app.use(decodificarUsuario)
 // 📋 Audit logging for all requests (já enriquecido com req.auth quando presente)
 app.use(auditLogger)
 
-// Header CORS explícito como fallback
+/**
+ * Header CORS explícito, como reforço ao middleware `cors` acima.
+ *
+ * FV-INFRA-058: este bloco tinha a MESMA falha de substring do `corsOptions`
+ * (`origin?.includes('localhost')`) e, por escrever `Access-Control-Allow-Origin`
+ * diretamente, anulava qualquer fechamento feito no middleware. Agora usa a
+ * mesma allowlist exata — os dois caminhos não podem discordar.
+ */
 app.use((req, res, next) => {
   const origin = req.headers.origin
-  if (origin === 'https://projeto-frts-app.vercel.app' || origin?.includes('localhost')) {
+  if (origin && origemPermitida(origin)) {
     res.header('Access-Control-Allow-Origin', origin)
     res.header('Access-Control-Allow-Credentials', 'true')
     res.header('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS')

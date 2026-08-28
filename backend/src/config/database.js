@@ -32,6 +32,31 @@ const OPCOES = {
  * Conectar ao MongoDB com suporte a fallback para memory storage
  */
 export async function conectarBD(tentativas = 1, intervaloMs = 2000) {
+  /**
+   * FV-INFRA-059 — um ambiente que se declara `staging` não conecta em produção.
+   *
+   * A auditoria desta sprint encontrou o caminho: `backend/.env` carrega
+   * `MONGODB_URI` do Atlas de PRODUÇÃO, e `dotenv/config` a injeta no boot. Sem
+   * exportar uma URI por cima, um backend de staging escreveria na base real.
+   * `exigirBancoDeQa` (FV-INFRA-058) já protegia os scripts de seed; faltava o
+   * boot do servidor.
+   *
+   * A guarda só age quando o ambiente SE DECLARA staging — produção e
+   * desenvolvimento seguem exatamente como antes.
+   */
+  if ((process.env.APP_AMBIENTE || '').trim().toLowerCase() === 'staging') {
+    const { avaliarUriQa, mascararUri } = await import('./bancoQa.js')
+    const uri = process.env.MONGODB_URI || ''
+    const r = avaliarUriQa(uri)
+    if (!r.permitida) {
+      console.error('\n⛔ STAGING BLOQUEADO — a URI do banco não é de QA.')
+      console.error(`   ${r.motivo}`)
+      console.error(`   URI recebida: ${mascararUri(uri)}`)
+      console.error('   Exporte MONGODB_URI de QA, ou QA_URI_REMOTA_AUTORIZADA=sim se for mesmo de teste.\n')
+      throw new Error('BANCO_DE_PRODUCAO: staging recusado por isolamento (FV-INFRA-059)')
+    }
+  }
+
   // Se USE_MEMORY_STORAGE estiver ativado, pular MongoDB completamente
   if (USE_MEMORY_STORAGE) {
     console.log('🗄️ Modo Memory Storage ativado - Pulando MongoDB')

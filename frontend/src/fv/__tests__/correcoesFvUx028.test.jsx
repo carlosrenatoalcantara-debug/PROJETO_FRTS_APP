@@ -178,6 +178,8 @@ describe('A3 · seletor de inversores', () => {
   })
 
   it('10 · a seleção continua gravando o `equipamento_id` do catálogo', async () => {
+    // FV-UX-029: a tela virou composição — adicionar com quantidade, e a
+    // gravação passou a ser `arranjos` + a projeção `equipamentos`.
     render(<EtapaEquipamentos />)
     await waitFor(() => expect(screen.getByLabelText('Inversor').disabled).toBe(false))
     const put = (el, v) => {
@@ -185,12 +187,19 @@ describe('A3 · seletor de inversores', () => {
       p.call(el, v); el.dispatchEvent(new Event('change', { bubbles: true }))
     }
     put(screen.getByLabelText('Módulo'), 'm1')
+    fireEvent.change(screen.getByLabelText('Quantidade do novo módulo'), { target: { value: '24' } })
+    fireEvent.click(screen.getByText('Adicionar módulo'))
     put(screen.getByLabelText('Inversor'), 'i1')
-    fireEvent.click(screen.getByText('Salvar equipamentos'))
+    fireEvent.change(screen.getByLabelText('Quantidade do novo inversor'), { target: { value: '1' } })
+    fireEvent.click(screen.getByText('Adicionar inversor'))
+    fireEvent.click(screen.getByText('Salvar composição'))
     await waitFor(() => expect(salvarEtapa).toHaveBeenCalled())
-    const d = salvarEtapa.mock.calls[0][1]
-    expect(d.inversor.equipamento_id).toBe('i1')
-    expect(d.paineis[0].equipamento_id).toBe('m1')
+    const arranjos = salvarEtapa.mock.calls.find(([e]) => e === 'arranjos')[1]
+    expect(arranjos.lista[0].paineis[0].equipamento_id).toBe('m1')
+    expect(arranjos.lista[0].inversores[0].equipamento_id).toBe('i1')
+    const eq = salvarEtapa.mock.calls.find(([e]) => e === 'equipamentos')[1]
+    expect(eq.inversor.equipamento_id).toBe('i1')
+    expect(eq.paineis[0].equipamento_id).toBe('m1')
   })
 })
 
@@ -227,10 +236,13 @@ describe('A4 · aviso de fase', () => {
       const p = Object.getOwnPropertyDescriptor(el.constructor.prototype, 'value').set
       p.call(el, v); el.dispatchEvent(new Event('change', { bubbles: true }))
     }
+    // FV-UX-029: o aviso passou a depender do inversor ESTAR na composição.
     put(sel, 'i1')
+    fireEvent.change(screen.getByLabelText('Quantidade do novo inversor'), { target: { value: '1' } })
+    fireEvent.click(screen.getByText('Adicionar inversor'))
     expect(document.body.textContent).toContain('pode exigir adequação da entrada elétrica')
-    // Selecionável e salvável.
-    expect(screen.getByText('Salvar equipamentos').disabled).toBe(false)
+    // Adicionável e salvável — sem bloqueio.
+    expect(screen.getByText('Salvar composição').disabled).toBe(false)
   })
 
   it('16 · monofásico compatível não gera aviso na tela', async () => {
