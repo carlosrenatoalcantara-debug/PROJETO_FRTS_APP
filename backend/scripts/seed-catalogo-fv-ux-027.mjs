@@ -33,6 +33,21 @@ const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
  *
  * Precedência: `MONGODB_URI` do ambiente > `.ambiente-validacao.json` local.
  */
+/**
+ * FV-INFRA-059: resolvers DNS. Esta maquina nao resolve o SRV de `mongodb+srv://`
+ * pelo resolver do SO e devolve `querySrv ECONNREFUSED` — o mesmo defeito que
+ * `config/database.js` ja trata com MONGODB_DNS_SERVERS. O seed conecta direto,
+ * sem passar por aquele modulo, entao aplica a mesma correcao aqui.
+ * No-op quando a variavel nao esta definida.
+ */
+import dns from 'node:dns'
+const DNS_SERVERS = (process.env.MONGODB_DNS_SERVERS || '')
+  .split(',').map((x) => x.trim()).filter(Boolean)
+if (DNS_SERVERS.length) {
+  try { dns.setServers(DNS_SERVERS); console.log(`DNS: ${DNS_SERVERS.join(', ')}`) }
+  catch (e) { console.warn('falha ao aplicar MONGODB_DNS_SERVERS:', e.message) }
+}
+
 const { exigirBancoDeQa, mascararUri } = await import('../src/config/bancoQa.js')
 
 let uri = process.env.MONGODB_URI || ''

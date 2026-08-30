@@ -21,8 +21,13 @@ export default defineConfig({
     fs: { allow: ['..'] },   // permite servir packages/diagram-engine (fora de frontend/)
     proxy: {
       '/api': {
-        target: 'http://localhost:5001',
+        // FV-QA-REAL: alvo configuravel para apontar o dev server ao backend
+        // de QA publicado. O proxy e server-side, entao a chamada nao passa
+        // por CORS — o navegador so fala com o proprio dev server.
+        // Sem a variavel, o comportamento e exatamente o de antes.
+        target: process.env.VITE_PROXY_TARGET || 'http://localhost:5001',
         changeOrigin: true,
+        secure: true,
       },
     },
   },

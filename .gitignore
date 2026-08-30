@@ -67,3 +67,4 @@ backend/_pg_*.pdf
 # Ambiente de validação efêmero (mongodb-memory-server) — credenciais locais
 backend/.ambiente-validacao.json
 backend/.token-validacao
+.ferramentas/

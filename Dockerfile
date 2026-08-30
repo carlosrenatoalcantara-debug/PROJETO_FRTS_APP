@@ -9,6 +9,11 @@ WORKDIR /app
 # Copy only package files first (small, cacheable layer)
 COPY frontend/package*.json ./frontend/
 COPY backend/package*.json ./backend/
+# FV-INFRA-059: `backend/package.json` declara dependencias `file:vendor/*.tgz`
+# (@fortesolar/fv-shared e @fortesolar/diagram-engine). Sem copiar `vendor/`
+# antes do `npm ci`, o build quebra com ENOENT — foi o que derrubou o primeiro
+# deploy de QA. Correcao do MECANISMO de deploy; nenhuma logica alterada.
+COPY backend/vendor ./backend/vendor
 
 # Install dependencies
 WORKDIR /app/frontend
@@ -25,6 +30,9 @@ COPY frontend/src ./frontend/src
 COPY frontend/public ./frontend/public
 COPY frontend/index.html ./frontend/
 COPY frontend/vite.config.js ./frontend/
+COPY frontend/aliases.js ./frontend/
+# O Vite resolve `@fortesolar/*` e `@diagram-engine` para `packages/` via alias.
+COPY packages ./packages
 COPY frontend/tailwind.config.js ./frontend/
 COPY frontend/postcss.config.js ./frontend/
 COPY backend/src ./backend/src
@@ -40,6 +48,7 @@ WORKDIR /app/backend
 
 # Install only production dependencies
 COPY backend/package*.json ./
+COPY backend/vendor ./vendor
 RUN npm ci --production=true
 
 # Copy frontend build from builder
