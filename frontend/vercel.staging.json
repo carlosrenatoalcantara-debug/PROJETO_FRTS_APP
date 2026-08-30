@@ -6,9 +6,13 @@
     "Publicar staging com aquele arquivo faria o ambiente de teste escrever na",
     "base real — o mesmo risco que a FV-QA-057 mediu no build.",
     "",
-    "Aqui NÃO existe rewrite de /api: o build de staging define VITE_API_URL",
-    "absoluta e o frontend fala direto com a API de staging. Se um dia for",
-    "preciso proxy, aponte para o backend de staging, nunca para o de produção.",
+    "CORRIGIDO na FV-DOM-056/retomada: a versao anterior deste arquivo NAO",
+    "tinha rewrite de /api, na suposicao de que VITE_API_URL absoluta bastaria.",
+    "Medido no bundle de staging servido localmente: NAO basta. O frontend chama",
+    "sempre /api relativo (services/http.js usa VITE_API_URL apenas para decidir",
+    "se anexa o token, nunca para reescrever a URL). Sem rewrite, toda chamada",
+    "de API morre no host estatico. O rewrite abaixo aponta para o backend de",
+    "QA — nunca para o de producao.",
     "",
     "Uso no projeto Vercel de staging: Build Command `npm run build:staging`,",
     "e este arquivo copiado sobre `vercel.json` no passo de build, OU o projeto",
@@ -18,6 +22,10 @@
     "ou /proposta/<token> direto na barra de endereço devolve 404 do host."
   ],
   "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://backend-qa-staging.up.railway.app/api/:path*"
+    },
     { "source": "/(.*)", "destination": "/index.html" }
   ],
   "headers": [

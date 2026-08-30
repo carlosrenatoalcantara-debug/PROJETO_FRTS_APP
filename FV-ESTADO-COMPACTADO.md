@@ -1468,3 +1468,138 @@ Faixa de divergência aceitável entre necessidade e instalada · significado de
 `potenciaArredondada` nas duas UX · congelamento técnico na UX nova
 (`engineering_lock` só é alimentado pelo wizard) · propostas já enviadas quando
 a potência exibida mudar · envio com opção vazia · segunda fonte de consumo.
+
+---
+
+## §10 — FV-DOM-056 / RETOMADA FINAL: matriz T01–T09b no ambiente QA real
+
+Executada pela UX real (frontend Vite local com `/api` apontado ao backend de
+QA via `VITE_PROXY_TARGET`), contra `backend-qa-staging.up.railway.app` →
+Atlas `Forte-Solar-QA / ClusterQA / forte_solar_staging` (51 equipamentos).
+A publicação do frontend na Vercel permanece **BLOCKED** (device code, sem
+`VERCEL_TOKEN` e sem extensão do Chrome conectada) — o proxy local é o
+substituto declarado, não uma simulação: o backend, o banco e o catálogo são
+os reais do QA.
+
+| Cenário | Projeto | Topologia | Unifilar | necessidade · comprada · instalada | vs. baseline |
+|---|---|---|---|---|---|
+| T01 sem topologia | `6a949156565a361d6e525cbb` | ausente | **recusa** `TOPOLOGIA_AUSENTE` | 6,02 · 6,50 · — | igual |
+| T01 completo | idem | 2 MPPT | 6,50 kWp · 2 str · Voc 255,4 V | 6,02 · 6,50 · 6,50 | igual |
+| T02 mono micro 6 | `6a949b4b565a361d6e525dcd` | 3 micros | 6,50 kWp · CA 6 kW | 6,02 · 6,50 · 6,50 | igual · CC/CA 1,30× |
+| T03 sem topologia | `6a94a6237582fad7c3de9870` | ausente | **recusa** | 9,97 · 10,40 · — | igual |
+| T03 com topologia | idem | 2 MPPT × 8 | 10,4 kWp · 2 str · Voc 408,6 V | 9,97 · 10,40 · 10,40 | igual |
+| T04 mono micro 10 | `6a94a7027582fad7c3de990f` | 4 micros necessários | 10,4 kWp · CA 10 kW | 9,97 · 10,40 · 10,40 | igual · CC/CA 1,30× |
+| T05 tri string 14 | `6a94a7ba7582fad7c3de99ab` | 3 MPPT 8/7/7 | 14,3 kWp · 3 str · 3 MPPT · Voc 408,6 V | 14,02 · 14,30 · 14,30 | igual |
+| T06 tri micro 14 | `6a94a92b7582fad7c3de9a4f` | 7 micros | 14,3 kWp · CA 14 kW | 14,02 · 14,30 · 14,30 | igual |
+| T07 tri string 50 (2×25) | `6a9492cf565a361d6e525d42` | **bloqueada** — Vmpp frio 1017,85 V > 850 V | **recusa** | 49,87 · 50,05 · — | igual |
+| T08 tri micro 50 | `6a94aa2e7582fad7c3de9b13` | 25 micros | 50,05 kWp · CA 50 kW · 77 mód | 49,87 · 50,05 · 50,05 | igual |
+| T09 tri 2×25 (Symo+SG25RT) | `6a94aae67582fad7c3de9bc7` | **bloqueada** — 1017,85 V > 800 V | **recusa** `TOPOLOGIA_AUSENTE` | 49,87 · 50,05 · — | igual |
+| T09b dois inversores | `6a94abf07582fad7c3de9d0d` | 3 MPPT × 8 **salva** | **recusa** `MULTIPLOS_INVERSORES` | 15,48 · 15,60 · — | igual |
+
+`3933`, `817.3` e `817,3` não aparecem em nenhuma resposta. Doze execuções,
+doze iguais ao `FV-QA-BASELINE-001.md` — o baseline se reproduz em banco e
+backend reais, não só no ambiente efêmero em que foi levantado.
+
+### Observação registrada, não corrigida
+
+O T06 (micro monofásico em rede trifásica) **não emite aviso**. A busca no
+código não encontra nenhuma regra que compare a fase do inversor com a fase da
+ligação. O `FV-QA-BASELINE-001.md` também não exige esse aviso — a menção
+"micro 1Ø em 3Ø" na §9 desta nota descrevia a montagem do cenário, não uma
+saída esperada. Fica como **lacuna P2 nova**, não como regressão.
+
+### Suítes após a matriz
+
+30 checks de domínio OK · `infraOrigens` OK (63) · frontend 1234/1259, as 25
+falhas em `components/diagram/*` (EV), `alertCenter88` e `catalogoEngenharia` —
+nenhum arquivo tocado por esta sprint, que só alterou `frontend/vercel.staging.json`.
+
+---
+
+## §11 — FV-QA FASE FINAL: frontend publicado na Vercel
+
+O BLOCKED da Vercel caiu: a CLI está autenticada (`carlosrenatoalcantara-debug`).
+Publicado um projeto **novo e separado**, `projeto-frts-qa` — o de produção,
+`projeto-frts-app`, não foi tocado (última alteração continua em 14 d).
+
+| Item | Valor |
+|---|---|
+| Frontend QA | `https://projeto-frts-qa.vercel.app` |
+| Build | `npm run build:staging` — verificador do bundle 12/12 ✓ |
+| `/api/*` | rewrite → `https://backend-qa-staging.up.railway.app/api/*` |
+| Backend QA | `forte-solar-qa` `07ea3aa7…` / `staging` `51093c87…` / `backend-qa` `71242089…` |
+| Banco | `clusterqa.5ecbbya.mongodb.net/forte_solar_staging` |
+| `APP_URL` · `CORS_ORIGENS` | `https://projeto-frts-qa.vercel.app` |
+
+`.env.staging` foi preenchido apenas em memória de build e **restaurado aos
+placeholders** — nenhum segredo versionado. A chave do Google Maps ficou como
+`DESABILITADO_EM_QA` (o console do QA registra `InvalidKey`, esperado).
+
+### Isolamento provado
+
+- `/api/projetos-fv` pelo frontend publicado devolve **exatamente os 10 projetos
+  da matriz** — o banco alcançado é o de QA, não o de produção.
+- CORS: origem QA aceita; `projeto-frts-app.vercel.app`, `fortesolar.com.br`,
+  `localhost:5173` e a origem forjada por substring (`…vercel.app.evil.com`)
+  **todas recusadas** — sem cabeçalho `Access-Control-Allow-Origin`.
+- Sem token / token inválido / token assinado com segredo errado → `401
+  NAO_AUTENTICADO`. Token sem organização → `403 TENANT_AUSENTE` (M-4 fecha).
+- Nenhuma requisição do frontend publicado sai da origem `projeto-frts-qa`.
+
+### Matriz reexecutada no frontend PUBLICADO
+
+Os 10 cenários abrem, recalculam (`POST /unifilar/gerar`, `POST
+/financeiro/calcular`) e renderizam **valores idênticos ao baseline**;
+`3933`, `817.3` e `817,3` ausentes em todos. `TOPOLOGIA_AUSENTE` (T07, T09) e
+`MULTIPLOS_INVERSORES` (T09b) continuam recusando.
+
+Caminho de **escrita** exercido do zero pelo frontend publicado — `TWEB Ciclo
+completo publicado`: cadastro → 51 equipamentos do catálogo → estrutura →
+dimensionamento (6,02 kWp) → topologia 2 MPPT × 5 → unifilar 6,5 kWp · 2 str ·
+2 MPPT · Voc 255,4 V — igual ao T01. Reload em rota profunda preserva tudo
+(SPA fallback + persistência).
+
+Ciclo comercial: cotação → orçamento `ORC-QA-001` R$ 32.500,00 → emitido →
+aprovado e congelado → **Baseline íntegra** (`eea3bf10…`) → Gate libera
+Engenharia e Homologação → Opção 02 criada vazia (nada técnico copiado) →
+**PDF da proposta gerado** (28 007 B, `%PDF-1.3`, `contrato_versao 1.0.0`,
+lacunas `tarifa_kwh` e `inflacao_energia_aa_pct` declaradas, não fabricadas).
+
+### Aceite e ART — destravados e validados
+
+Autorizado explicitamente pelo usuário, restrito ao ambiente QA, sem SMTP e sem
+tocar produção.
+
+O primeiro `Enviar ao cliente` foi **recusado pelo domínio** com
+`SEM_ORCAMENTO_APROVADO` — a Opção 02 nascera vazia (P2 #7, já catalogado).
+Completada a Opção 02 pela UX publicada (fatura → 12 módulos + Fronius Primo
+5.0-1 → estrutura → dimensionamento 6,02 kWp → cotação → `ORC-QA-002`
+R$ 38.900,00 → emitido → aprovado, Baseline própria), o envio passou.
+
+| Passo | Evidência |
+|---|---|
+| Envio | link público `https://projeto-frts-qa.vercel.app/proposta/04cfedmtggc6bgb504d09f` — **origem de QA**, não `:5173`: o P3 #14 se resolve com `APP_URL` correto |
+| E-mail | nenhum despachado — sem `SMTP_*` no serviço, o envio é só o link |
+| Página pública | 2 opções comparáveis, R$ 32.500,00 × R$ 38.900,00, documento de referência `de8bd6d1c830` |
+| Aceite | Opção 01 escolhida em 30/08/2026 20:40:43; Opção 02 permanece íntegra e não escolhida |
+| Gate | `PROPOSTA_SEM_ACEITE` → **Engenharia e Homologação liberadas** |
+| Baseline | hash `eea3bf10…` **inalterado** após o aceite — M-2 confirmada |
+| ART | marcada na lista obrigatória → `Documentos 1/7` |
+| Protocolo | `PROT-QA-2026-0001` registrado, persistido e reexibido após reload |
+
+Nenhum BLOCKED funcional restante nesta sprint.
+
+### Defeitos encontrados (pré-existentes, NÃO corrigidos nesta sprint)
+
+| # | Defeito | Grav. | Evidência |
+|---|---|---|---|
+| A | `/api/auth/login` montado (`auth-security.js`) **não consulta o MongoDB** — a busca está comentada como TODO. Só aceita dois pares embutidos no fonte. O usuário real do banco é recusado. | **P0** | login com `qa@fortesolar.com.br` → `INVALID_CREDENTIALS` |
+| B | O token emitido por esse login traz `empresa_id: null` → **nenhum dado de negócio é acessível** por quem entra pela UI. | **P0** | `403 TENANT_AUSENTE` em `/api/projetos-fv` |
+| C | `Login.jsx` grava `localStorage.token = dados.token`, mas a resposta traz `accessToken` → o token salvo é `undefined`. | **P1** | contrato do endpoint vs. `Login.jsx:39` |
+| D | O verificador do bundle lista `https://fortesolar.com.br` mas não `https://www.fortesolar.com.br`, que passa. São links de marketing, não chamadas de API. | **P3** | 4 ocorrências no bundle publicado |
+| E | **P2 — micro monofásico em rede trifásica não gera aviso.** Lacuna futura: não pertence ao baseline atual. | **P2** | T06 |
+
+Por causa de A+B+C, **autenticação pela UI publicada = FAIL** — defeito
+pré-existente, fora do escopo desta sprint e NÃO corrigido aqui. A validação
+seguiu com a sessão de QA injetada em `localStorage` — o mesmo estado que um
+login correto produziria. Isso está declarado, não mascarado.
