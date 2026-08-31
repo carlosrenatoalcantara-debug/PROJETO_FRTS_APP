@@ -1603,3 +1603,61 @@ Por causa de A+B+C, **autenticação pela UI publicada = FAIL** — defeito
 pré-existente, fora do escopo desta sprint e NÃO corrigido aqui. A validação
 seguiu com a sessão de QA injetada em `localStorage` — o mesmo estado que um
 login correto produziria. Isso está declarado, não mascarado.
+
+---
+
+## §12 — Sincronização de autenticação com a `main`
+
+A auditoria de divergência mostrou que a FV estava atrás de `origin/main` em
+autenticação. Fork limpo a partir de `a4aa720`: `main` tinha 2 commits, a FV
+tinha 8, e nenhum lado reescreveu história.
+
+- `6e7ed22` (EmpresaContext depende do token) — **já presente byte a byte** na
+  FV, trazido pelo `2ee463d` (FV-DOM-025). Nada a fazer.
+- `5863bca` (login real com tenant) — **ausente**. Incorporado por cherry-pick
+  cirúrgico, não por merge da `main`.
+
+O cherry-pick não teve conflito e o diff produzido é **idêntico** ao original:
+`auth-security.js`, `Login.jsx` e `tests/auth/test_login_real.mjs`. Nenhum
+arquivo de domínio, engine, unifilar ou UX FV foi tocado. Zero dependências
+novas — `bcryptjs` e `jsonwebtoken` já estavam no `package.json`.
+
+### Os defeitos A, B e C — fechados e medidos no QA real
+
+Backend e frontend de QA republicados com o código novo. Provas contra
+`backend-qa-staging` + Atlas `forte_solar_staging`, sem nenhuma injeção de
+sessão:
+
+| Defeito | Antes | Depois |
+|---|---|---|
+| **A** — login não consultava o MongoDB | `qa@fortesolar.com.br` → `INVALID_CREDENTIALS` | login real → `success: true`, usuário vindo da coleção |
+| **B** — token sem tenant | `empresa_id: null` → `403 TENANT_AUSENTE` | claim `empresa_id: 000…009`; `/api/projetos-fv` → **200 com 12 projetos** |
+| **C** — token salvo como `undefined` | `localStorage.token = "undefined"` → `Bearer undefined` | grava `accessToken` + `refreshToken`; chave legada `token` **ausente**; redireciona para `/dashboard` |
+
+Garantias adicionais do commit, verificadas no ar:
+
+- credenciais demo (`demo@` e `admin@fortesolar.com.br`) **recusadas**;
+- senha errada e usuário inexistente devolvem resposta **idêntica** — sem
+  enumeração;
+- falha de login exibe mensagem na tela e **não grava nada** no `localStorage`;
+- o box que divulgava a credencial demo saiu da tela.
+
+### Fluxo FV revalidado com sessão real
+
+Com o login de verdade (sem token injetado), o fluxo validado continua
+idêntico: T01 desenha 6,5 kWp · 2 str · 2 MPPT · Voc 255,4 V; T09 recusa por
+`TOPOLOGIA_AUSENTE`; T09b recusa por `MULTIPLOS_INVERSORES`; `3933` e `817,3`
+seguem ausentes.
+
+### Suítes
+
+`tests/auth/test_login_real.mjs` **12/12** (requer
+`node --experimental-test-module-mocks` — `mock.module` ainda é experimental no
+Node 24; sem a flag o arquivo aborta com `mock.module is not a function`).
+Domínio 30/30 · infra 63/63 · frontend 1234/1259, as mesmas 25 falhas
+pré-existentes em `components/diagram/*`, `alertCenter88` e
+`catalogoEngenharia`.
+
+**Débitos remanescentes:** D (o verificador de bundle não cobre
+`https://www.fortesolar.com.br`) e E (micro 1Ø em rede 3Ø sem aviso). Nenhum
+dos dois é tocado pela `main`.
