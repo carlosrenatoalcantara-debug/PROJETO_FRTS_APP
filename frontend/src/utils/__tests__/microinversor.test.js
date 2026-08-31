@@ -5,12 +5,15 @@ import { classificarTopologia, TOPOLOGIAS } from '../topologiaInversor.js'
 const micro = (entradas, caKw, ovr = 1.25) => ({ entradas, modulos_por_entrada: 1, potencia_ca_kw: caKw, oversizing_max: ovr })
 
 describe('FASE 4 — motor de dimensionamento de microinversor (sem string/MPPT)', () => {
-  it('26 módulos / micro 4 entradas (HMS-2000) → 7 micros, 6 completos + 1 parcial', () => {
+  it('26 módulos / micro 4 entradas (HMS-2000) → 7 micros, distribuição EQUILIBRADA', () => {
+    // FV-DOM-031B: era [4,4,4,4,4,4,2] ("encher e sobrar"). A distribuição
+    // equilibrada reparte a sobra: nenhum micro fica com 2 enquanto outro leva 4.
     const d = dimensionarMicroinversor({ numModulos: 26, potenciaModuloW: 590, micro: micro(4, 2.0) })
     expect(d.qtdMicros).toBe(7)
-    expect(d.microsCompletos).toBe(6)
-    expect(d.microsParciais).toBe(1)
-    expect(d.distribuicao).toEqual([4, 4, 4, 4, 4, 4, 2])
+    expect(d.distribuicao).toEqual([4, 4, 4, 4, 4, 3, 3])
+    expect(d.distribuicao.reduce((a, b) => a + b, 0)).toBe(26)
+    expect(d.microsCompletos).toBe(5)
+    expect(d.microsParciais).toBe(2)
     expect(d.modulosPorMicro).toBe(4)
   })
   it('26 módulos / micro 2 entradas (HMS-500) → 13 micros, 2 módulos por micro', () => {
@@ -49,7 +52,7 @@ describe('FASE 4 — motor de dimensionamento de microinversor (sem string/MPPT)
   })
   it('resumoDistribuicao legível', () => {
     const d = dimensionarMicroinversor({ numModulos: 26, potenciaModuloW: 590, micro: micro(4, 2.0) })
-    expect(resumoDistribuicao(d)).toBe('6 micros de 4 + 1 de 2')
+    expect(resumoDistribuicao(d)).toBe('5 micros de 4 + 2 de 3')
   })
 })
 

@@ -13,6 +13,7 @@
  * mas pode ser sobrescrito manualmente pelo operador.
  */
 import { obterRegras } from './concessionariaProvider.js'
+import { projetoEstaCongelado } from '@fortesolar/fv-shared/estados/congelamento'
 
 // ── Statuses do ciclo de homologação ────────────────────────────────────────
 export const STATUS_HOMOLOGACAO = [
@@ -87,7 +88,8 @@ export function gerarChecklist({ projeto = {}, equipamentos = [], beneficiarias 
   })
 
   // 2) Snapshot RT (recomendado quando congelado)
-  const congelado = ['CONGELADO', 'HOMOLOGADO'].includes(projeto?.governanca?.freeze_status)
+  // FV-DOM-002A: contrato único de congelamento.
+  const congelado = projetoEstaCongelado(projeto)
   if (congelado) {
     itens.push({
       chave: 'snapshot_rt',

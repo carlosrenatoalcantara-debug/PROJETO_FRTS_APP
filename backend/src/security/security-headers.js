@@ -5,6 +5,8 @@
 
 import helmet from 'helmet';
 import cors from 'cors';
+// FV-INFRA-058: allowlist exata de origens (fonte única).
+import { origemPermitida } from '../config/origens.js';
 
 /**
  * Configuração Helmet.js (Headers de Segurança)
@@ -72,8 +74,14 @@ export const configureHelmet = () => {
  */
 export const configureCors = (options = {}) => {
   const defaultOptions = {
-    // Origem permitida (por padrão, frontend em produção)
-    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+    /**
+     * FV-INFRA-058: allowlist pela fonte única (`config/origens`), em vez de
+     * `FRONTEND_URL || 'http://localhost:5173'`. Este `configureCors` NÃO é o
+     * que roda hoje — `server.js` aplica o seu próprio (ver nota na linha 293) —
+     * mas deixá-lo com o padrão antigo manteria uma segunda regra de CORS,
+     * divergente, esperando por quem a chamasse.
+     */
+    origin(origem, callback) { callback(null, origemPermitida(origem)) },
 
     // Métodos HTTP permitidos
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],

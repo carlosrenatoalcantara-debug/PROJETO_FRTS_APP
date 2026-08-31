@@ -1,104 +1,27 @@
 /**
  * comercialStateMachine.js — Sprint 4.3
  *
- * Máquina de estados do workflow comercial. Define transições válidas,
- * estados terminais, mapeamento para status jurídico e políticas de margem.
+ * FV-UX-006 (F3.1): a máquina de estados comercial (estados, transições, status
+ * jurídico) deixou de ser definida aqui — vive em
+ * @fortesolar/fv-shared/estados/workflow-comercial, a mesma fonte que o backend
+ * usa para validar server-side. Antes eram duas cópias manuais "espelhadas".
  *
- * Substitui o "status solto" da S4.2 por um grafo de transições auditável.
- * Pura e determinística — espelhada no backend para validação server-side.
+ * Este arquivo reexporta sob os nomes históricos e guarda o que não é máquina de
+ * estados: política de margem e perfis comerciais.
  */
-
-// ─── Estados ──────────────────────────────────────────────────────────────────
-export const ESTADOS = {
-  RASCUNHO:           { label: 'RASCUNHO',           cor: 'cinza',    ordem: 1 },
-  EM_ANALISE:         { label: 'EM ANÁLISE',         cor: 'cinza',    ordem: 2 },
-  NEGOCIACAO:         { label: 'NEGOCIAÇÃO',         cor: 'amarelo',  ordem: 3 },
-  AGUARDANDO_CLIENTE: { label: 'AGUARDANDO CLIENTE', cor: 'azul',     ordem: 4 },
-  APROVADO:           { label: 'APROVADO',           cor: 'azul',     ordem: 5 },
-  ASSINADO:           { label: 'ASSINADO',           cor: 'verde',    ordem: 6 },
-  IMPLANTACAO:        { label: 'IMPLANTAÇÃO',        cor: 'verde',    ordem: 7 },
-  CONCLUIDO:          { label: 'CONCLUÍDO',          cor: 'verde',    ordem: 8 },
-  // Especiais (terminais ou de saída)
-  REPROVADO:          { label: 'REPROVADO',          cor: 'vermelho', ordem: 99 },
-  CANCELADO:          { label: 'CANCELADO',          cor: 'vermelho', ordem: 99 },
-  EXPIRADO:           { label: 'EXPIRADO',           cor: 'laranja',  ordem: 99 },
-}
-
-// ─── Transições permitidas ──────────────────────────────────────────────────────
-// Após ASSINADO, retroceder exige NOVA REVISÃO (não é transição direta).
-export const TRANSICOES = {
-  RASCUNHO:           ['EM_ANALISE', 'CANCELADO'],
-  EM_ANALISE:         ['NEGOCIACAO', 'AGUARDANDO_CLIENTE', 'REPROVADO', 'CANCELADO'],
-  NEGOCIACAO:         ['AGUARDANDO_CLIENTE', 'APROVADO', 'REPROVADO', 'CANCELADO'],
-  AGUARDANDO_CLIENTE: ['APROVADO', 'NEGOCIACAO', 'REPROVADO', 'EXPIRADO', 'CANCELADO'],
-  APROVADO:           ['ASSINADO', 'NEGOCIACAO', 'CANCELADO', 'EXPIRADO'],
-  ASSINADO:           ['IMPLANTACAO', 'CANCELADO'],          // sem regressão direta
-  IMPLANTACAO:        ['CONCLUIDO', 'CANCELADO'],
-  CONCLUIDO:          [],                                     // terminal
-  REPROVADO:          ['EM_ANALISE'],                         // reabre análise
-  CANCELADO:          [],                                     // terminal
-  EXPIRADO:           ['EM_ANALISE'],                         // re-cotação
-}
-
-export const ESTADOS_CONGELADOS = ['ASSINADO', 'IMPLANTACAO', 'CONCLUIDO']
-export const ESTADOS_TERMINAIS = ['CONCLUIDO', 'CANCELADO']
-
-export function getEstadoConfig(estado) {
-  return ESTADOS[estado] || ESTADOS.RASCUNHO
-}
-
-export function transicoesValidas(estado) {
-  return TRANSICOES[estado] || []
-}
-
-/**
- * Valida uma transição de estado.
- * @returns {{ ok: boolean, motivo?: string, requer_revisao?: boolean }}
- */
-export function validarTransicao(de, para) {
-  if (de === para) return { ok: false, motivo: 'Estado de origem e destino iguais.' }
-  if (!ESTADOS[para]) return { ok: false, motivo: `Estado destino "${para}" inválido.` }
-
-  const permitidas = transicoesValidas(de)
-  if (permitidas.includes(para)) return { ok: true }
-
-  // Regressão após congelamento exige revisão
-  if (ESTADOS_CONGELADOS.includes(de) && (ESTADOS[para]?.ordem ?? 0) < (ESTADOS[de]?.ordem ?? 0)) {
-    return { ok: false, requer_revisao: true, motivo: `Projeto ${de}: retroceder para ${para} exige nova revisão comercial.` }
-  }
-
-  return { ok: false, motivo: `Transição ${de} → ${para} não permitida.` }
-}
-
-export function estaCongelado(estado) {
-  return ESTADOS_CONGELADOS.includes(estado)
-}
-
-// ─── Status jurídico (separado do operacional) ───────────────────────────────────
-export const STATUS_JURIDICO = {
-  PENDENTE_ASSINATURA: { label: 'Pendente assinatura', cor: 'amarelo' },
-  ASSINADO:            { label: 'Assinado',            cor: 'verde' },
-  EXPIRADO:            { label: 'Expirado',            cor: 'laranja' },
-  CANCELADO:           { label: 'Cancelado',           cor: 'vermelho' },
-  EM_REVISAO:          { label: 'Em revisão',          cor: 'azul' },
-}
-
-export function getStatusJuridicoConfig(s) {
-  return STATUS_JURIDICO[s] || STATUS_JURIDICO.PENDENTE_ASSINATURA
-}
-
-/** Deriva o status jurídico a partir do estado operacional. */
-export function statusJuridicoDeEstado(estado) {
-  switch (estado) {
-    case 'ASSINADO':
-    case 'IMPLANTACAO':
-    case 'CONCLUIDO':  return 'ASSINADO'
-    case 'CANCELADO':  return 'CANCELADO'
-    case 'EXPIRADO':   return 'EXPIRADO'
-    case 'REPROVADO':  return 'EM_REVISAO'
-    default:           return 'PENDENTE_ASSINATURA'
-  }
-}
+export {
+  ESTADOS_COMERCIAIS as ESTADOS,
+  TRANSICOES_COMERCIAL as TRANSICOES,
+  ESTADOS_CONGELADOS,
+  ESTADOS_TERMINAIS,
+  STATUS_JURIDICO,
+  getEstadoConfig,
+  transicoesValidas,
+  validarTransicaoComercial as validarTransicao,
+  estaCongelado,
+  getStatusJuridicoConfig,
+  statusJuridicoDeEstado,
+} from '@fortesolar/fv-shared/estados/workflow-comercial'
 
 // ─── Proteção de margem ───────────────────────────────────────────────────────────
 /**

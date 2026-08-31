@@ -18,13 +18,35 @@
  */
 
 import { obterIrradianciaCity, obterIrradianciaFallback } from '../data/irradianciaRN.js'
+// FV-DOM-011: o bloco financeiro deste service foi extraído VERBATIM para o
+// pacote compartilhado. As constantes vêm de lá para não existirem duas
+// definições capazes de divergir; as funções são re-exportadas para preservar a
+// superfície pública do módulo.
+import {
+  ANOS_PROJETO,
+  DEGRADACAO_ANUAL_PCT,
+  DEFAULTS_FINANCEIROS,
+  calcularEconomiaAnual,
+  calcularCustoSistema,
+  calcularEconomia25Anos,
+  calcularPayback,
+  calcularVPL,
+  calcularTIR,
+} from '@fortesolar/fv-shared/financeiro/dimensionamento-retorno'
+
+export {
+  calcularEconomiaAnual,
+  calcularCustoSistema,
+  calcularEconomia25Anos,
+  calcularPayback,
+  calcularVPL,
+  calcularTIR,
+}
 
 // ─── Constantes de referência ────────────────────────────────────────────────
 const POT_MODULO_REF_W = 550          // potência típica em catálogos atuais (Wp)
 const AREA_MODULO_REF_M2 = 2.4        // 2278 × 1134 mm aproximado
 const DIAS_MES = 30
-const ANOS_PROJETO = 25
-const DEGRADACAO_ANUAL_PCT = 0.5      // 0.5%/ano (NBR + datasheet típico)
 const FATOR_OCUPACAO_TELHADO = 1.4    // área total incluindo afastamentos
 
 // Defaults sugeridos (podem ser sobrescritos pelo input)
@@ -32,10 +54,8 @@ export const DEFAULTS = {
   perdas_pct: 18,                // perdas totais: cabeamento + sujeira + temp + mismatch + inversor
   margem_pct: 10,                // sobre-dimensionamento de segurança
   fator_simultaneidade: 1.0,     // GD II: 1.0 (consumo = geração)
-  tarifa_kwh: 0.95,              // tarifa média BR (R$) — fallback se não vier da fatura
-  inflacao_energia_aa: 0.06,     // 6% a.a. inflação histórica COSERN
-  custo_kwp_instalado_r: 4500,   // R$/kWp instalado (turn-key, ref. mercado nacional 2025-2026)
-  taxa_desconto_aa: 0.10,        // 10% a.a. — custo de oportunidade (CDI ref)
+  // Financeiros: fonte única no pacote compartilhado (FV-DOM-011). Mesmos valores.
+  ...DEFAULTS_FINANCEIROS,
 }
 
 // ─── Helpers internos ────────────────────────────────────────────────────────
@@ -148,106 +168,12 @@ export function calcularAreaOcupacao(qtd_modulos, area_modulo_m2 = AREA_MODULO_R
 
 // ─── 4. Financeiro ───────────────────────────────────────────────────────────
 
-/**
- * Economia anual estimada (R$).
- *  - GD II/B: economia = geração × tarifa (compensação 1:1, descontando custo disponibilidade)
- *  - simplificado: ignora taxa fio B progressiva (Lei 14.300) nesta fase
- */
-export function calcularEconomiaAnual({ geracao_anual_kwh, tarifa_kwh }) {
-  const tarifa = tarifa_kwh || DEFAULTS.tarifa_kwh
-  return round(geracao_anual_kwh * tarifa)
-}
-
-/**
- * Custo total estimado do sistema (R$).
- */
-export function calcularCustoSistema(potencia_kwp, custo_kwp = DEFAULTS.custo_kwp_instalado_r) {
-  return round(potencia_kwp * custo_kwp)
-}
-
-/**
- * Economia acumulada em 25 anos considerando degradação e inflação tarifária.
- */
-export function calcularEconomia25Anos({
-  geracao_anual_y1,
-  tarifa_kwh = DEFAULTS.tarifa_kwh,
-  inflacao_aa = DEFAULTS.inflacao_energia_aa,
-}) {
-  let total = 0
-  for (let ano = 0; ano < ANOS_PROJETO; ano++) {
-    const geracao_ano = geracao_anual_y1 * Math.pow(1 - DEGRADACAO_ANUAL_PCT / 100, ano)
-    const tarifa_ano = tarifa_kwh * Math.pow(1 + inflacao_aa, ano)
-    total += geracao_ano * tarifa_ano
-  }
-  return round(total)
-}
-
-/**
- * Payback simples (anos): custo / economia_anual_média_real
- * Usa economia média considerando inflação da tarifa no horizonte de 25 anos.
- */
-export function calcularPayback({ custo_total, geracao_anual_y1, tarifa_kwh, inflacao_aa }) {
-  if (!custo_total || custo_total <= 0) return 0
-  const economia25 = calcularEconomia25Anos({ geracao_anual_y1, tarifa_kwh, inflacao_aa })
-  const economia_media = economia25 / ANOS_PROJETO
-  if (economia_media <= 0) return 0
-  return round(custo_total / economia_media, 1)
-}
-
-/**
- * Valor Presente Líquido (VPL/NPV) — fluxo descontado.
- */
-export function calcularVPL({
-  custo_total,
-  geracao_anual_y1,
-  tarifa_kwh = DEFAULTS.tarifa_kwh,
-  inflacao_aa = DEFAULTS.inflacao_energia_aa,
-  taxa_desconto_aa = DEFAULTS.taxa_desconto_aa,
-}) {
-  let vpl = -custo_total
-  for (let ano = 1; ano <= ANOS_PROJETO; ano++) {
-    const geracao = geracao_anual_y1 * Math.pow(1 - DEGRADACAO_ANUAL_PCT / 100, ano - 1)
-    const tarifa = tarifa_kwh * Math.pow(1 + inflacao_aa, ano - 1)
-    const fluxo = geracao * tarifa
-    vpl += fluxo / Math.pow(1 + taxa_desconto_aa, ano)
-  }
-  return round(vpl)
-}
-
-/**
- * TIR (Taxa Interna de Retorno) — aproximação por bisseção.
- * Retorna fração (0.15 = 15% a.a.) ou null se não convergir.
- */
-export function calcularTIR({
-  custo_total,
-  geracao_anual_y1,
-  tarifa_kwh = DEFAULTS.tarifa_kwh,
-  inflacao_aa = DEFAULTS.inflacao_energia_aa,
-}) {
-  if (!custo_total || custo_total <= 0) return null
-
-  const vplPara = (taxa) => {
-    let v = -custo_total
-    for (let ano = 1; ano <= ANOS_PROJETO; ano++) {
-      const g = geracao_anual_y1 * Math.pow(1 - DEGRADACAO_ANUAL_PCT / 100, ano - 1)
-      const t = tarifa_kwh * Math.pow(1 + inflacao_aa, ano - 1)
-      v += (g * t) / Math.pow(1 + taxa, ano)
-    }
-    return v
-  }
-
-  let lo = 0.0001, hi = 1.5
-  if (vplPara(lo) < 0) return null    // fluxo nunca positivo
-  if (vplPara(hi) > 0) return null    // TIR > 150% improvável (sanity)
-
-  for (let i = 0; i < 100; i++) {
-    const mid = (lo + hi) / 2
-    const v = vplPara(mid)
-    if (Math.abs(v) < 1) return round(mid, 4)
-    if (v > 0) lo = mid; else hi = mid
-  }
-  return round((lo + hi) / 2, 4)
-}
+// ── Bloco financeiro ─────────────────────────────────────────────────────────
+// `calcularEconomiaAnual`, `calcularCustoSistema`, `calcularEconomia25Anos`,
+// `calcularPayback`, `calcularVPL` e `calcularTIR` foram extraídas VERBATIM para
+// @fortesolar/fv-shared/financeiro/dimensionamento-retorno (FV-DOM-011) e são
+// re-exportadas no topo deste arquivo. Nenhuma fórmula, default ou arredondamento
+// mudou — inclusive o payback por economia média (R12), preservado até D1.
 
 // ─── 5. Orquestração — Dimensionamento completo ──────────────────────────────
 
@@ -378,7 +304,9 @@ export function dimensionarFV(input = {}) {
     },
     metadados: {
       versao_motor: '1.0.0',
-      calculado_em: new Date().toISOString(),
+      // FV-DOM-011C (E3): instante injetável via `input.agora` — metadado, nunca
+      // entra em cálculo. Default idêntico ao anterior.
+      calculado_em: (input.agora instanceof Date ? input.agora : new Date()).toISOString(),
       anos_projeto: ANOS_PROJETO,
       degradacao_anual_pct: DEGRADACAO_ANUAL_PCT,
     },

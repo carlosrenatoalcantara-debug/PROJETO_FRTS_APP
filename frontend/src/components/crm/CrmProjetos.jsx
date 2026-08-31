@@ -83,7 +83,7 @@ export default function CrmProjetos() {
       const listaEv = (Array.isArray(ev) ? ev : ev.projetos || ev.data || []).map(p => ({
         id: p._id, tipo: 'EV', nome: p.nome || 'Projeto EV', cliente: nomeCliente(p),
         cidade: (typeof p.clienteId === 'object' ? p.clienteId?.cidade : '') || '',
-        valor: p.financeiro?.custo_total_r ?? p.orcamento?.resumo?.preco_final ?? null,
+        valor: p.financeiro?.custo_total_r ?? null,   // FV-DOM-003: fallback legado removido (campo `resumo` nunca existiu no schema)
         coluna: IDS_VALIDOS.has(p.status) ? p.status : 'dimensionado',
         rota: `/projetos-ev/${p._id}`, arrastavel: true,
       }))
@@ -92,7 +92,7 @@ export default function CrmProjetos() {
         .map(p => ({
           id: p._id, tipo: 'FV', nome: p.nome || 'Projeto FV', cliente: nomeCliente(p),
           cidade: (typeof p.clienteId === 'object' ? p.clienteId?.cidade : '') || '',
-          valor: p.financeiro?.custo_total_r ?? p.orcamento?.resumo?.preco_final ?? null,
+          valor: p.financeiro?.custo_total_r ?? null,   // FV-DOM-003: fallback legado removido (campo `resumo` nunca existiu no schema)
           coluna: FV_PARA_COLUNA[p.status] || 'dimensionado',
           rota: `/projetos-fv/${p._id}`, arrastavel: false, // Passo 3: habilitar
           // Histórico importado (SolarMarket) — sem etapa/homologação confiável. Ver

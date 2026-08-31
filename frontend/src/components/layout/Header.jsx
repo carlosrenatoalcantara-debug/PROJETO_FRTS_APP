@@ -5,7 +5,8 @@ import { useEmpresa } from '../../contexts/EmpresaContext'
 const titulos = {
   '/dashboard':     'Dashboard',
   '/clientes':      'Clientes',
-  '/projetos-fv':   'Projetos Fotovoltaicos',
+  '/fv/projetos':   'Projetos Fotovoltaicos',
+  '/projetos-fv':   'Projetos Fotovoltaicos (clássico)',
   '/projetos-fv/novo': 'Novo Projeto FV',
   '/projetos-ev':   'Projetos Elétrico-Veicular',
   '/homologacao':   'Homologação',

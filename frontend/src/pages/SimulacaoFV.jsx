@@ -157,7 +157,11 @@ function ResultadoSimulacao({ resultado, form, datasheetPainel, onNova }) {
           cliente_id: form.cidadeEstado || 'Simulação',
           origem: 'simulacao',
           status: 'lead',
-          valor_proposta: financeiro?.vpl || 15000,
+          // FV-DOM-011B: havia aqui um valor fixo de fallback — um lead entrava no CRM com valor de
+          // proposta fabricado quando a simulação não produzia VPL. Ausente
+          // agora é `null`; o CRM registra o lead sem valor em vez de com um
+          // valor falso.
+          valor_proposta: financeiro?.vpl ?? null,
           notas: 'Gerado via simulação FV',
         }),
       })

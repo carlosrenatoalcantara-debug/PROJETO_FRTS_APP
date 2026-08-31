@@ -44,14 +44,50 @@ describe('P1-03 — validarMicroinversores (validação física)', () => {
     expect(r.bloqueios.join(' ')).toMatch(/limite do fabricante/i)
   })
 
-  it('BLOQUEIA oversizing CC/CA acima do limite duro', () => {
-    // 4 módulos de 550W por micro = 2200W CC; micro de 800W CA → 2.75× > 1.5×
+  it('BLOQUEIA oversizing CC/CA acima do limite DECLARADO', () => {
+    // 4 módulos de 550W por micro = 2200W CC; micro de 800W CA → 2.75×.
+    // FV-DOM-031 (decisão 3): o limite é o do CATÁLOGO. Antes esta asserção
+    // passava contra `?? 1.5`, um default fabricado — o mesmo defeito que a
+    // FV-DOM-029 removeu do lado string. Agora o limite é informado.
+    const r = validarMicroinversores({
+      numModulos: 4, numMicros: 1, entradasPorMicro: 4,
+      potenciaModuloW: 550, potenciaMicroCA_W: 800, oversizingMax: 1.25,
+    })
+    expect(r.valido).toBe(false)
+    expect(r.bloqueios.join(' ')).toMatch(/CC\/CA/i)
+  })
+
+  it('SEM limite declarado não há veredito de oversizing — avisa, não bloqueia', () => {
+    // FV-DOM-031 (decisão 3): "remover defaults artificiais". Ausência de
+    // `oversizing_max` no catálogo é lacuna, não aprovação nem reprovação.
     const r = validarMicroinversores({
       numModulos: 4, numMicros: 1, entradasPorMicro: 4,
       potenciaModuloW: 550, potenciaMicroCA_W: 800,
     })
-    expect(r.valido).toBe(false)
-    expect(r.bloqueios.join(' ')).toMatch(/oversizing/i)
+    expect(r.valido).toBe(true)
+    expect(r.bloqueios).toHaveLength(0)
+    expect(r.avisos.join(' ')).toMatch(/não declara `oversizing_max`/i)
+    expect(r.resumo.oversizing_mais_carregado).toBe(2.75)
+  })
+
+  it('mede o oversizing no micro MAIS CARREGADO, não na média', () => {
+    // 7 módulos de 550W em 2 micros de 2000W → [4,3].
+    // média = 3,5 → 1,93×  ·  mais carregado = 4 → 2,20×
+    // Com limite 2,0 a média passaria e o mais carregado reprova (decisão 3).
+    const r = validarMicroinversores({
+      numModulos: 7, numMicros: 2, entradasPorMicro: 4,
+      potenciaModuloW: 550, potenciaMicroCA_W: 2000, oversizingMax: 2.0,
+    })
+    expect(r.resumo.distribuicao).toEqual([4, 3])
+    expect(r.resumo.oversizing_mais_carregado).toBe(1.1)
+    expect(r.valido).toBe(true)
+
+    const apertado = validarMicroinversores({
+      numModulos: 7, numMicros: 2, entradasPorMicro: 4,
+      potenciaModuloW: 550, potenciaMicroCA_W: 1000, oversizingMax: 2.0,
+    })
+    expect(apertado.resumo.oversizing_mais_carregado).toBe(2.2)
+    expect(apertado.valido).toBe(false)
   })
 
   it('ACEITA oversizing saudável e calcula potência total', () => {

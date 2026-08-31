@@ -1,3 +1,4 @@
+import { calcularFluxoCaixa } from '@fortesolar/fv-shared/financeiro/fluxo-caixa'
 import { PAINEIS } from '../data/catalogoPaineis.js'
 import { analisarCompatibilidade } from '../services/compatibilidadeEletricaService.js'
 import { otimizarArranjoFV } from '../services/optimizerArranjoFVService.js'
@@ -22,69 +23,11 @@ async function buscarIrradiancia(lat, lon) {
 }
 
 // ── Simulação financeira avançada ─────────────────────────────────────────────
-
-function calcularTIR(fluxos) {
-  // fluxos[0] = investimento negativo, fluxos[1..n] = entradas
-  let low = -0.99, high = 10.0
-  for (let i = 0; i < 300; i++) {
-    const mid = (low + high) / 2
-    let npv = 0
-    for (let t = 0; t < fluxos.length; t++) {
-      npv += fluxos[t] / Math.pow(1 + mid, t)
-    }
-    if (Math.abs(npv) < 0.5) return mid
-    npv > 0 ? (low = mid) : (high = mid)
-  }
-  return (low + high) / 2
-}
-
-function calcularFluxoCaixa({
-  custoTotal, economiaAnualBase, inflacaoEnergia = 0.08,
-  taxaDesconto = 0.06, degradacaoAnual = 0.005, anos = 25,
-}) {
-  const fluxos          = [-custoTotal]
-  const fluxoAnual      = []
-  let saldoAcum         = -custoTotal
-  let saldoDescontado   = -custoTotal
-  let paybackSimples    = null
-  let paybackDescontado = null
-
-  for (let ano = 1; ano <= anos; ano++) {
-    const fatorInflacao   = Math.pow(1 + inflacaoEnergia, ano - 1)
-    const fatorDegradacao = Math.pow(1 - degradacaoAnual, ano - 1)
-    const economia        = economiaAnualBase * fatorInflacao * fatorDegradacao
-
-    saldoAcum += economia
-    if (saldoAcum >= 0 && !paybackSimples) paybackSimples = ano
-
-    const vp = economia / Math.pow(1 + taxaDesconto, ano)
-    saldoDescontado += vp
-    if (saldoDescontado >= 0 && !paybackDescontado) paybackDescontado = ano
-
-    fluxos.push(economia)
-    fluxoAnual.push({
-      ano,
-      economia:          +economia.toFixed(2),
-      saldoAcumulado:    +saldoAcum.toFixed(2),
-      valorPresente:     +vp.toFixed(2),
-      saldoDescontado:   +saldoDescontado.toFixed(2),
-    })
-  }
-
-  const tir  = calcularTIR(fluxos)
-  const vpl  = saldoDescontado
-  const roi25= ((fluxos.slice(1).reduce((a, b) => a + b, 0) - custoTotal) / custoTotal) * 100
-
-  return {
-    fluxoAnual,
-    tir:              +(tir * 100).toFixed(2),
-    vpl:              +vpl.toFixed(2),
-    paybackSimples:   paybackSimples ?? `> ${anos}`,
-    paybackDescontado:paybackDescontado ?? `> ${anos}`,
-    roi25Anos:        +roi25.toFixed(1),
-    economiaTotal25:  +fluxos.slice(1).reduce((a, b) => a + b, 0).toFixed(2),
-  }
-}
+//
+// FV-DOM-009: `calcularTIR` e `calcularFluxoCaixa` foram extraídas VERBATIM para
+// @fortesolar/fv-shared/financeiro/fluxo-caixa. Nenhuma fórmula, default ou nome
+// de campo mudou — o motor apenas deixou de ser anônimo dentro deste controller,
+// e `projetoController` parou de manter uma cópia literal da TIR.
 
 // ── calcularFV principal ──────────────────────────────────────────────────────
 

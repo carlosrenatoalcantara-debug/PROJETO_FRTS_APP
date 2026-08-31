@@ -443,34 +443,20 @@ export function construirTodosSnapshots({ state, orcamentoLocal, unifilarSVG, re
 
 // ─── Config de UI ───────────────────────────────────────────────────────────────
 
-export const FREEZE_STATUS_CONFIG = {
-  RASCUNHO:   { label: 'RASCUNHO',   cor: 'cinza',   corHex: '#64748b', descricao: 'Em edição — pode ser recalculado livremente.' },
-  EM_REVISAO: { label: 'EM REVISÃO', cor: 'azul',    corHex: '#3b82f6', descricao: 'Revisão aberta para ajustes de engenharia.' },
-  APROVADO:   { label: 'APROVADO',   cor: 'azul',    corHex: '#2563eb', descricao: 'Aprovado comercialmente — pronto para congelar a engenharia.' },
-  CONGELADO:  { label: 'CONGELADO',  cor: 'laranja', corHex: '#f97316', descricao: 'Snapshots travados — não recalcula automaticamente.' },
-  HOMOLOGADO: { label: 'HOMOLOGADO', cor: 'verde',   corHex: '#10b981', descricao: 'Aprovado e estável — documento técnico definitivo.' },
-}
-
-export function getFreezeStatusConfig(status) {
-  return FREEZE_STATUS_CONFIG[status] || FREEZE_STATUS_CONFIG.RASCUNHO
-}
-
-/**
- * P1-FV-FREEZE-TO-ENGINEERING-01: transições válidas do ciclo de vida.
- * Espelha o backend (alterarStatusGovernanca). CONGELADO/HOMOLOGADO são feitos
- * pelo endpoint de congelamento (capturam snapshot), mas constam aqui para a UI.
- */
-export const TRANSICOES_FREEZE = {
-  RASCUNHO:   ['APROVADO', 'EM_REVISAO'],
-  EM_REVISAO: ['APROVADO', 'RASCUNHO'],
-  APROVADO:   ['CONGELADO', 'RASCUNHO', 'EM_REVISAO'],
-  CONGELADO:  ['HOMOLOGADO', 'EM_REVISAO'],
-  HOMOLOGADO: ['EM_REVISAO'],
-}
+// FV-UX-006 (F3.1): metadados e transições de freeze_status vêm da fonte única
+// (@fortesolar/fv-shared/estados/governanca-freeze), a mesma usada pelo enum do
+// schema e pelos guards do controller. Antes esta era uma cópia manual que o
+// próprio comentário descrevia como "espelha o backend".
+export {
+  ESTADOS_FREEZE as FREEZE_STATUS_CONFIG,
+  TRANSICOES_FREEZE,
+  getFreezeStatusConfig,
+} from '@fortesolar/fv-shared/estados/governanca-freeze'
+import { transicoesFreezeValidas } from '@fortesolar/fv-shared/estados/governanca-freeze'
 
 export function transicaoFreezeValida(de, para) {
   if (de === para) return true
-  return (TRANSICOES_FREEZE[de || 'RASCUNHO'] || []).includes(para)
+  return transicoesFreezeValidas(de || 'RASCUNHO').includes(para)
 }
 
 /**
@@ -498,7 +484,15 @@ export function obterEquipamentosEngenharia(projeto) {
     origem: 'vivo',
     modulo:           projeto?.equipamentos?.painel ?? projeto?.dimensionamento?.painel ?? null,
     inversor:         projeto?.equipamentos?.inversor ?? projeto?.dimensionamento?.inversor ?? null,
-    itens_adicionais: Array.isArray(projeto?.orcamento?.itens_adicionais) ? projeto.orcamento.itens_adicionais : [],
+    // FV-DOM-003: itens vêm do agregado `Orcamento` (campo `orcamento_vigente`
+    // exposto por GET /api/projetos-fv/:id). O subdocumento legado deixou de ser
+    // lido — nenhuma escrita o alimenta desde esta sprint.
+    itens_adicionais: (projeto?.orcamento_vigente?.itens ?? []).map((i) => ({
+      descricao:  i.descricao ?? null,
+      quantidade: Number(i.quantidade) || 0,
+      valor:      Number(i.valor_unitario_r) || 0,
+      tipo:       i.tipo ?? 'material',
+    })),
     arranjos_extra:   Array.isArray(projeto?.arranjos) ? projeto.arranjos : [],
   }
 }

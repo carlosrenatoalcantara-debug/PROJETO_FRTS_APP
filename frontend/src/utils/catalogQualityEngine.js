@@ -15,7 +15,7 @@
 
 // P0-INV-SSOT-01: dicionário canônico ÚNICO (mesmo arquivo do backend, puro/sem
 // deps node — importável no bundle, igual fichaTecnicaMap em Catalogo.jsx).
-import { lerInversor } from '../../../backend/src/equipamentos/inversores/index.js'
+import { lerInversor } from '@fortesolar/fv-shared/inversores'
 
 // ─── Helpers numéricos ────────────────────────────────────────────────────────
 

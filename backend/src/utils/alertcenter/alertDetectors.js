@@ -1,3 +1,4 @@
+import { projetoEstaCongelado } from '@fortesolar/fv-shared/estados/congelamento'
 /**
  * alertDetectors.js — Sprint 8.8
  *
@@ -254,7 +255,8 @@ export function detectarAlertasProjetos(projetos, beneficiariasPorProjeto = new 
     }
 
     // Congelado/aprovado sem snapshot RT
-    const congelado = ['CONGELADO', 'HOMOLOGADO'].includes(p.governanca?.freeze_status)
+    // FV-DOM-002A: contrato único de congelamento.
+    const congelado = projetoEstaCongelado(p)
     if (congelado && !p.governanca?.snapshot_responsavel_tecnico) {
       alertas.push({
         id: _id('proj_sem_snap_rt', p._id),

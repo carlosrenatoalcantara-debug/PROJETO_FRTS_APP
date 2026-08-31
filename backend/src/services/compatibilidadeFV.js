@@ -97,6 +97,9 @@ export function extrairSpecsInversor(equipamento) {
     tipo_topologia: d.tipo_topologia,
     entradas_por_mppt: d.entradas_por_mppt,
     max_entradas_total: d.max_entradas_total,
+    // FV-DOM-029: a lista do que o catálogo NÃO declarou viaja junto. Sem ela,
+    // quem recebe estas specs não distingue ausência de valor.
+    lacunas: d.lacunas,
   }
 }
 
@@ -122,11 +125,31 @@ export function montarStrings({ modulo, inversor, qtd_modulos_total }) {
       alertas: [{ nivel: 'erro', codigo: 'MODULO_SEM_SPECS', mensagem: 'Módulo sem Voc/Isc — preencher especificações antes de montar strings.' }],
     }
   }
-  if (!inversor || !inversor.voc_max_dc) {
+  // FV-DOM-029: o guard checava só `voc_max_dc` porque `paraDimensionamento`
+  // preenchia os demais com defaults (100 / 550 / 13 / 2). Sem eles, cada limite
+  // ausente precisa aparecer — senão o cálculo seguiria contra `null` e produziria
+  // veredito sem base. A lista nomeia o que falta; nenhum valor é assumido.
+  const faltando = Array.isArray(inversor?.lacunas) && inversor.lacunas.length > 0
+    ? inversor.lacunas
+    : [
+        ['tensao_max_entrada', inversor?.voc_max_dc],
+        ['tensao_mppt_min', inversor?.mppt_min_v],
+        ['tensao_mppt_max', inversor?.mppt_max_v],
+        ['corrente_isc_max', inversor?.isc_max_mppt],
+        ['n_mppts', inversor?.n_mppts],
+      ].filter(([, v]) => v === null || v === undefined).map(([k]) => k)
+
+  if (!inversor || faltando.length > 0) {
     return {
       ok: false,
       configuracao: null,
-      alertas: [{ nivel: 'erro', codigo: 'INVERSOR_SEM_SPECS', mensagem: 'Inversor sem Voc max DC — preencher especificações antes de montar strings.' }],
+      alertas: [{
+        nivel: 'erro',
+        codigo: 'INVERSOR_SEM_SPECS',
+        mensagem: `Inversor sem especificação para: ${faltando.join(', ') || 'dados elétricos'}. ` +
+          'Preencher no catálogo antes de montar strings — nenhum limite é assumido.',
+        campos_faltantes: faltando,
+      }],
     }
   }
   if (!qtd_modulos_total || qtd_modulos_total <= 0) {

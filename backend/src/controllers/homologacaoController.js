@@ -8,6 +8,24 @@ import {
 import { ProjetoFV } from '../models/ProjetoFV.js'
 import { Equipamento } from '../models/Equipamento.js'
 import { UnidadeBeneficiaria } from '../models/UnidadeBeneficiaria.js'
+import { projetoEstaCongelado } from '@fortesolar/fv-shared/estados/congelamento'
+/**
+ * FV-UX-034 — `aplicarEscopo` era usado em SEIS lugares deste arquivo e não era
+ * importado em nenhum. Quatro endpoints respondiam HTTP 500
+ * (`ReferenceError: aplicarEscopo is not defined`): ler e gravar checklist, ler
+ * e gravar status de homologação.
+ *
+ * ── Por que isto NÃO reabre a dívida B7 ──────────────────────────────────────
+ * Os outros dois usos estão dentro de `_carregarDepsDocumento`, que referencia
+ * um `req` que também não é parâmetro dela. Importar `aplicarEscopo` não define
+ * `req`: aquela função continua lançando `ReferenceError`, continua caindo no
+ * próprio `catch` e continua devolvendo o objeto vazio. A dívida registrada na
+ * FV-DOM-031E segue exatamente como estava, e nenhum memorial muda — provado
+ * em `validacao-fv-ux-034.mjs`.
+ */
+import { aplicarEscopo } from '../dominio/tenancy/index.js'
+import { BaselineService } from '../services/BaselineService.js'
+import { ErroGate } from '../dominio/gate/index.js'
 
 // P1-NEW01-HOMOLOGACAO-PERSISTENCE-FIX-01: o Map() legado foi REMOVIDO.
 // Todo o estado de homologação (checklist + status legado) agora persiste no Mongo
@@ -18,10 +36,8 @@ import { UnidadeBeneficiaria } from '../models/UnidadeBeneficiaria.js'
  * Quando CONGELADO/HOMOLOGADO, a homologação DEVE usar o snapshot_catalogo
  * (equipamentos do orçamento aprovado), não o catálogo vivo.
  */
-function _estaCongelado(proj) {
-  const fs = proj?.governanca?.freeze_status
-  return fs === 'CONGELADO' || fs === 'HOMOLOGADO'
-}
+// FV-DOM-002A: decisão vem do contrato único, nunca de um booleano local.
+const _estaCongelado = projetoEstaCongelado
 
 /**
  * P1-HOMOLOGACAO-SNAPSHOT-01: converte o snapshot_catalogo congelado no formato
@@ -60,8 +76,20 @@ function _depsDoSnapshot(snapCat) {
  * Caso contrário, mantém o comportamento anterior (ATLAS VIVO por _id).
  * Retorna { equipamentos, beneficiarias, origem: 'snapshot'|'vivo', itens_adicionais }.
  */
+/**
+ * FV-DOM-031C — topologia de micro do arranjo principal, para o memorial.
+ * `null` quando o projeto não é micro; o memorial então segue o texto de string,
+ * intacto. Sem heurística: `micros[]` preenchido é o fato.
+ */
+function _microsDoProjeto(proj) {
+  const arranjos = Array.isArray(proj?.arranjos) ? proj.arranjos : []
+  const a = arranjos.find((x) => x?.tipo === 'principal') ?? arranjos[0] ?? null
+  const lista = a?.configuracao_eletrica?.micros
+  return Array.isArray(lista) && lista.length > 0 ? lista : null
+}
+
 async function _carregarDepsDocumento(projetoId, projetoBody) {
-  const out = { equipamentos: [], beneficiarias: [], origem: 'vivo', itens_adicionais: [] }
+  const out = { equipamentos: [], beneficiarias: [], origem: 'vivo', itens_adicionais: [], micros: null }
   try {
     if (mongoose.connection?.readyState !== 1) return out
     let proj = projetoBody
@@ -134,8 +162,56 @@ function _aplicarSnapshotEquip(projeto) {
   return { projeto: frozen, origem: 'snapshot' }
 }
 
+/**
+ * FV-UX-034 — o Gate deixa de ser CONSULTIVO na homologação.
+ *
+ * A auditoria mediu o buraco: a opção NÃO escolhida de uma proposta tinha
+ * `gate.homologacao.liberado = false` e mesmo assim gerava memorial com HTTP
+ * 200. Nenhum caminho deste controller chamava `exigirGate` — o Gate era lido
+ * pela tela e ignorado pela API.
+ *
+ * A regra já estava decidida na FV-DOM-032:
+ *   • regra 5 — só a opção aceita ultrapassa o Gate de execução/homologação;
+ *   • regra 9 — as não escolhidas ficam bloqueadas para AVANÇO OPERACIONAL,
+ *     mas continuam CONSULTÁVEIS para histórico/comercial.
+ *
+ * A linha entre as duas: gerar documento de homologação e mexer em
+ * status/checklist é avanço operacional — é o produto da fase. LER status e
+ * checklist é consulta, e continua aberto. Nenhuma regra nova foi inventada
+ * aqui; a decidida passou a valer também na API.
+ *
+ * O mesmo guard cobre projeto sem opções: aí `estadoDaOpcao` devolve `null` e
+ * a decisão é a de sempre — Baseline íntegra libera, ausência bloqueia.
+*
+ * FV-UX-040: EXPORTADO. A FV-UX-034 cobriu memorial, carta, ART, status e
+ * checklist — e deixou de fora `/protocolo` e `/assistida/status`, que moram no
+ * arquivo de rotas e também são AVANÇO. A auditoria desta sprint mediu a
+ * consequência: a opção NÃO escolhida gravava número de protocolo e chegava a
+ * `homologado` na homologação assistida. A regra já existia (FV-DOM-032, regra
+ * 5); faltava aplicá-la ali. Exportar o guard evita reescrevê-lo — uma decisão,
+ * um lugar.
+ */
+export async function _exigirGateHomologacao(req, res) {
+  const { projetoId } = req.params
+  if (!mongoose.Types.ObjectId.isValid(projetoId)) return true
+  try {
+    await BaselineService.exigirGate('homologacao', {
+      projeto_ref: projetoId,
+      empresa_id: req?.auth?.empresa_id ?? req?.auth?.empresaId ?? undefined,
+    })
+    return true
+  } catch (err) {
+    if (err instanceof ErroGate) {
+      res.status(err.status || 409).json({ erro: err.message, codigo: err.codigo })
+      return false
+    }
+    throw err
+  }
+}
+
 export async function gerarMemorial(req, res) {
   try {
+    if (!(await _exigirGateHomologacao(req, res))) return
     const { projetoId } = req.params
     const { projeto, cliente } = req.body
 
@@ -146,7 +222,14 @@ export async function gerarMemorial(req, res) {
     const deps = await _carregarDepsDocumento(projetoId, projeto)
     // P1-HOMOLOGACAO-SNAPSHOT-01: projeto congelado usa equipamentos do snapshot.
     const { projeto: projDoc } = _aplicarSnapshotEquip(projeto)
-    const memorial = gerarMemorialDescritivo(projDoc, cliente, deps)
+    // FV-DOM-031C: a topologia de micro sai do PRÓPRIO projeto recebido, e não
+    // de `_carregarDepsDocumento`. Aquele helper referencia um `req` que não é
+    // parâmetro dele — a exceção cai no `catch` e ele devolve o objeto vazio.
+    // Defeito PRÉ-EXISTENTE, relatado e não corrigido aqui: corrigi-lo
+    // reativaria o enriquecimento pelo Atlas vivo e mudaria o memorial de
+    // projetos string, que esta sprint tem de deixar intacto.
+    const micros = _microsDoProjeto(projDoc)
+    const memorial = gerarMemorialDescritivo(projDoc, cliente, { ...deps, micros })
 
     res.json({
       sucesso: true,
@@ -164,6 +247,7 @@ export async function gerarMemorial(req, res) {
 
 export async function gerarCarta(req, res) {
   try {
+    if (!(await _exigirGateHomologacao(req, res))) return
     const { projetoId } = req.params
     const { projeto, cliente } = req.body
 
@@ -191,6 +275,7 @@ export async function gerarCarta(req, res) {
 
 export async function obterDadosART(req, res) {
   try {
+    if (!(await _exigirGateHomologacao(req, res))) return
     const { projetoId } = req.params
     const { projeto } = req.body
 
@@ -224,7 +309,36 @@ export async function obterDadosART(req, res) {
 export async function obterChecklist(req, res) {
   try {
     const { projetoId } = req.params
-    const { estado, concessionaria } = req.query
+
+    /**
+     * FV-UX-038 (D3): a concessionária e a UF vêm do PROJETO quando a query não
+     * as informa.
+     *
+     * Medido na FV-UX-037: o projeto declarava Neoenergia/RN na fatura e na
+     * localização, e o checklist respondia `"Não informada"` / `"N/A"` — porque
+     * este endpoint só olhava `req.query`, e a UX nova não passava nada. O dado
+     * já existia; ninguém o lia.
+     *
+     * A query continua tendo precedência: quem informa explicitamente manda,
+     * e o comportamento de quem já chamava com parâmetros não muda.
+     */
+    let { estado, concessionaria } = req.query
+    if ((!estado || !concessionaria)
+      && mongoose.connection.readyState === 1
+      && mongoose.Types.ObjectId.isValid(projetoId)) {
+      const p = await ProjetoFV.findOne(
+        aplicarEscopo({ _id: projetoId }, req, { contexto: 'homolog.checklist.local' }))
+        .select('localizacao.estado fatura_extracao.concessionaria fatura.concessionaria uf')
+        .lean().catch(() => null)
+      estado = estado
+        || p?.localizacao?.estado
+        || p?.uf
+        || undefined
+      concessionaria = concessionaria
+        || p?.fatura_extracao?.concessionaria
+        || p?.fatura?.concessionaria
+        || undefined
+    }
 
     // Template determinístico (base / fallback quando nunca foi salvo)
     const template = gerarChecklistDocumentos(estado, concessionaria)
@@ -253,6 +367,7 @@ export async function obterChecklist(req, res) {
 
 export async function atualizarChecklist(req, res) {
   try {
+    if (!(await _exigirGateHomologacao(req, res))) return
     const { projetoId } = req.params
     const { documentos, observacoes, status } = req.body
 
@@ -305,6 +420,7 @@ export async function atualizarChecklist(req, res) {
 
 export async function atualizarStatusHomologacao(req, res) {
   try {
+    if (!(await _exigirGateHomologacao(req, res))) return
     const { projetoId } = req.params
     const { status, data_envio, data_aprovacao, art_numero, observacoes } = req.body
 

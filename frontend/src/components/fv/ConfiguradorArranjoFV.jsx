@@ -24,6 +24,10 @@ import {
 } from '../../data/catalogoEletrico'
 import { useCompatibilidadeEletrica } from '../../hooks/useCompatibilidadeEletrica'
 import PainelCompatibilidadeFV from '../engenharia/PainelCompatibilidadeFV'
+import {
+  coefParaFracao, fatorTermico, temperaturaCelula, correnteProjeto,
+  FATOR_ISC_NBR16690, NOCT_PADRAO_C,
+} from '@fortesolar/fv-shared/engenharia/normativa'
 import { classificarTopologia } from '../../utils/topologiaInversor'
 import { dimensionarMicroinversor, resumoDistribuicao } from '../../utils/dimensionarMicro'
 // P1-MPPT-TOPOLOGY-IMPLEMENTATION-01 — editor da topologia real (entradas/strings)
@@ -33,7 +37,18 @@ const VERSAO_MOTOR = '2.0.0-sprint2'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-/** Sugestão inicial de arranjo distribuído entre MPPTs */
+/**
+ * SUGESTÃO VISUAL de arranjo distribuído entre MPPTs — NÃO é engenharia.
+ *
+ * Modelo A (FV-DOM-023/024): `mppts[]` é topologia AUTORADA pelo projetista. O
+ * sistema valida; não distribui strings. Esta função só preenche o formulário
+ * com um ponto de partida editável.
+ *
+ * As constantes abaixo (14 máx. módulos/string, 6 mín., divisor 1,5) não têm
+ * origem normativa — são conveniência de UI. Nenhum resultado de engenharia
+ * pode derivar delas, e nenhum diagnóstico as consulta: quem valida é
+ * `validarArranjo` (regras canônicas) e o motor do backend.
+ */
 function sugerirMPPTs(numPaineis, nMppts) {
   if (!numPaineis || numPaineis <= 0 || !nMppts) return Array(1).fill({ numStrings: 1, modulosPorString: 8 })
   const modsPorStr = Math.min(14, Math.max(6, Math.ceil(numPaineis / Math.max(nMppts, 1) / 1.5)))
@@ -46,18 +61,32 @@ function sugerirMPPTs(numPaineis, nMppts) {
   }))
 }
 
-/** Coeficiente de temperatura de Vmpp ≈ 75% do coef de Voc (estimativa) */
-function coefVmpp(coefVoc) { return coefVoc * 0.75 }
+// ─── Regras elétricas: fonte única (FV-DOM-025) ──────────────────────────────
+//
+// `coefVmpp`, `vocFrio` e `vmppQuente` viviam aqui e eram a TERCEIRA
+// implementação das mesmas fórmulas. A FV-DOM-023 mediu o estrago:
+//
+//  • unidade (Q4) — o coeficiente vinha do catálogo Mongo em %/°C e era usado
+//    como fração. Voc frio de 565 V virava 2179 V, e o máximo de módulos em
+//    série caía de 11 para 3. Módulos do catálogo estático não sofriam, o que
+//    escondeu o defeito por completo;
+//  • coeficiente de Vmpp (Q2) — o `× 0,75` era declarado "estimativa", sem norma;
+//  • critério de Vmpp mínimo (Q3) — comparava STC, não a condição quente.
+//
+// As três agora vêm de `fv-shared/engenharia/normativa`. O que permanece local
+// é o que NÃO é regra de domínio: o laço por MPPT, o balanceamento entre
+// strings, a compatibilidade mono/trifásica e a área — avisos de edição que o
+// motor do backend não produz.
 
-/** Tensão Voc corrigida pela temperatura */
+/** Tensão Voc corrigida pelo frio — NBR 16690 §5.1, via primitiva canônica. */
 function vocFrio(voc, coef, tmin) {
-  return voc * (1 + coef * (tmin - 25))
+  return voc * fatorTermico(coefParaFracao(coef), tmin)
 }
 
-/** Tensão Vmpp corrigida pela temperatura de célula em operação (NOCT) */
-function vmppQuente(vmpp, coefVoc, tmax, tempNoct = 45) {
-  const tcelMax = tmax + (tempNoct - 20) * (1000 / 800)   // simplificado NBR 16690
-  return vmpp * (1 + coefVmpp(coefVoc) * (tcelMax - 25))
+/** Vmpp na temperatura de célula em operação — NBR 16690 §5.1. */
+function vmppQuente(vmpp, coefVoc, tmax, tempNoct = NOCT_PADRAO_C) {
+  const coef = coefParaFracao(coefVoc)   // Q2: o coeficiente de Voc vale para Vmpp
+  return vmpp * fatorTermico(coef, temperaturaCelula(tmax, tempNoct))
 }
 
 // ─── Validações elétricas locais ──────────────────────────────────────────────
@@ -89,27 +118,28 @@ function validarArranjo({ mppts, modulosPorString, eletricoMod, eletricoInv, cli
       )
     }
 
-    // 2. Vmpp abaixo do mínimo MPPT (subutilizado)
-    const vmppStr = eletricoMod.vmpp * mps
-    if (vmppStr < eletricoInv.mppt_min) {
+    // 2. Vmpp abaixo do mínimo MPPT — Q3: a comparação é na condição QUENTE.
+    // Antes usava Vmpp em STC, que é otimista: o Vmpp CAI com a temperatura, e
+    // é justamente no calor que a string corre risco de sair da janela.
+    const vmppQ = vmppQuente(eletricoMod.vmpp, eletricoMod.coef_temp_voc, tmax, eletricoMod.temp_noct) * mps
+    if (vmppQ < eletricoInv.mppt_min) {
       bloqueios.push(
-        `MPPT ${idx}: Vmpp da string (${vmppStr.toFixed(0)} V) abaixo do mínimo MPPT (${eletricoInv.mppt_min} V). Adicione módulos/string.`
+        `MPPT ${idx}: Vmpp no calor (${vmppQ.toFixed(0)} V) abaixo do mínimo MPPT (${eletricoInv.mppt_min} V). Adicione módulos/string.`
       )
     }
 
     // 3. Vmpp acima do máximo MPPT
-    const vmppQ = vmppQuente(eletricoMod.vmpp, eletricoMod.coef_temp_voc, tmax, eletricoMod.temp_noct) * mps
     if (vmppQ > eletricoInv.mppt_max) {
       avisos.push(
         `MPPT ${idx}: Vmpp quente (${vmppQ.toFixed(0)} V) pode exceder faixa MPPT máxima (${eletricoInv.mppt_max} V) em dias quentes.`
       )
     }
 
-    // 4. Isc excedida
-    const iscTotal = eletricoMod.isc * nStr * 1.25  // fator de segurança NBR 16274
+    // 4. Isc excedida — Q1, NBR 16690 §5.2, pela primitiva canônica.
+    const iscTotal = correnteProjeto(eletricoMod.isc, nStr)
     if (iscTotal > eletricoInv.corrente_max_mppt) {
       bloqueios.push(
-        `MPPT ${idx}: Isc total (${iscTotal.toFixed(1)} A com fs=1,25) excede corrente máxima do MPPT (${eletricoInv.corrente_max_mppt} A).`
+        `MPPT ${idx}: Isc de projeto (${iscTotal.toFixed(1)} A com fs=${FATOR_ISC_NBR16690}) excede corrente máxima do MPPT (${eletricoInv.corrente_max_mppt} A).`
       )
     }
   })
@@ -689,7 +719,7 @@ export default function ConfiguradorArranjoFV({
 
             const vocOk   = eletricoLocal ? eletricoLocal.vocStr <= eletricoInv.tensao_max_entrada : true
             const mpptOk  = eletricoLocal ? eletricoLocal.vmppF >= eletricoInv.mppt_min : true
-            const iscOk   = eletricoLocal ? eletricoLocal.iscT * 1.25 <= eletricoInv.corrente_max_mppt : true
+            const iscOk   = eletricoLocal ? correnteProjeto(eletricoLocal.iscT) <= eletricoInv.corrente_max_mppt : true
 
             return (
               <div key={i} className={`p-4 rounded-xl border-2 space-y-3 ${
@@ -770,7 +800,7 @@ export default function ConfiguradorArranjoFV({
 
             const vocOk   = eletricoInv ? parseFloat(vocStr) <= eletricoInv.tensao_max_entrada : true
             const mpptOk  = eletricoInv ? parseFloat(vmppF)  >= eletricoInv.mppt_min : true
-            const iscOk   = eletricoInv ? eletricoMod.isc * mppt.numStrings * 1.25 <= eletricoInv.corrente_max_mppt : true
+            const iscOk   = eletricoInv ? correnteProjeto(eletricoMod.isc, mppt.numStrings) <= eletricoInv.corrente_max_mppt : true
 
             const status  = (!vocOk || !mpptOk || !iscOk) ? '⛔' : '✓'
 

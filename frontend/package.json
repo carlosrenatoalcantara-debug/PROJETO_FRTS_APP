@@ -9,7 +9,10 @@
     "preview": "vite preview",
     "test": "vitest",
     "test:ui": "vitest --ui",
-    "test:coverage": "vitest --coverage"
+    "test:coverage": "vitest --coverage",
+    "build:staging": "vite build --mode staging && node scripts/verificar-bundle.mjs staging",
+    "build:producao": "vite build --mode production && node scripts/verificar-bundle.mjs production",
+    "verificar:bundle": "node scripts/verificar-bundle.mjs"
   },
   "dependencies": {
     "@react-google-maps/api": "^2.20.8",

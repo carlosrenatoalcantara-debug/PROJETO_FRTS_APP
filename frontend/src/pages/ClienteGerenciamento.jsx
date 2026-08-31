@@ -277,7 +277,7 @@ export default function ClienteGerenciamento() {
             <Button icone={Plus} tamanho="sm" onClick={(e) => {
               e.stopPropagation()
               // [AUDIT LOCAL] Apontando para wizard novo ProjetosFVNovo (era /propostas/nova - velho monolítico)
-              navigate(`/projetos-fv/novo?clienteId=${clienteId}`)
+              navigate('/fv/projetos')
             }}>
               Novo
             </Button>
@@ -305,8 +305,8 @@ export default function ClienteGerenciamento() {
                         className="border-b hover:bg-slate-50 cursor-pointer"
                         role="button"
                         tabIndex={0}
-                        onClick={() => navigate(`/projetos-fv/${p._id}`)}
-                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(`/projetos-fv/${p._id}`) } }}
+                        onClick={() => navigate(`/fv/projetos/${p._id}`)}
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(`/fv/projetos/${p._id}`) } }}
                       >
                         <td className="px-4 py-2 font-medium text-slate-900">{p.nome}</td>
                         <td className="px-4 py-2 text-slate-600">{new Date(p.createdAt).toLocaleDateString('pt-BR')}</td>

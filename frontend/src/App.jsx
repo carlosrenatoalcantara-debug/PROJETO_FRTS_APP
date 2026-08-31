@@ -27,6 +27,8 @@ import Login               from './pages/Login'
 import AdminCatalogoQualidade from './pages/AdminCatalogoQualidade'
 import RecomendacaoKits       from './pages/RecomendacaoKits'
 import PropostaPublica        from './pages/PropostaPublica'
+// FV-UX-035 — proposta do fluxo canônico: um link por grupo, todas as opções.
+import PropostaFVPublica      from './pages/PropostaFVPublica'
 import PainelExecutivo        from './pages/PainelExecutivo'
 import Auditoria              from './pages/Auditoria'
 import FaturaRevisao          from './pages/FaturaRevisao'
@@ -35,6 +37,7 @@ import AlertCenter            from './pages/AlertCenter'
 import RedefinirSenha         from './pages/RedefinirSenha'
 import AtivoQR                from './pages/AtivoQR'
 import Unifilar               from './pages/Unifilar'
+import { rotasFv } from './fv/rotas'
 
 export default function App() {
   return (
@@ -43,6 +46,7 @@ export default function App() {
       <Route path="/redefinir-senha" element={<RedefinirSenha />} />
       <Route path="/calculadora" element={<Calculadora />} />
       <Route path="/p/:token" element={<PropostaPublica />} />
+      <Route path="/proposta/:token" element={<PropostaFVPublica />} />
       <Route path="/ativo/:qr" element={<AtivoQR />} />   {/* P1-ASSET-QR-CODE-01 — pública (campo) */}
       <Route path="/unifilar/:projetoId" element={<Unifilar />} />   {/* P1-UNIFILAR-INTERATIVO-01 — pública (campo) */}
       <Route path="/" element={<Layout />}>
@@ -81,6 +85,10 @@ export default function App() {
         <Route path="equipamentos/baterias"        element={<Baterias />} />
         <Route path="admin/catalogo/qualidade"     element={<AdminCatalogoQualidade />} />
         <Route path="kits/recomendar"              element={<RecomendacaoKits />} />
+
+        {/* FV-UX-010 — nova UX FV (fluxo canônico). Convive com as rotas
+            clássicas acima, que permanecem inalteradas. */}
+        {rotasFv}
       </Route>
     </Routes>
   )

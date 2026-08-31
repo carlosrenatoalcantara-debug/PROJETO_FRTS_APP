@@ -1,18 +1,12 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
+import { criarAliases } from './aliases.js'
 
 export default defineConfig({
   plugins: [react()],
   resolve: {
-    alias: {
-      '@': path.resolve(__dirname, './src'),
-      // P3-EV-UNIFILAR-ENGINE-01: motor de diagramas compartilhado (neutro EV/FV/BESS)
-      // Subpaths primeiro (mais específicos): símbolos e geometria como módulos próprios.
-      '@diagram-engine/symbols': path.resolve(__dirname, '../packages/diagram-engine/src/symbols.js'),
-      '@diagram-engine/geometry': path.resolve(__dirname, '../packages/diagram-engine/src/geometry.js'),
-      '@diagram-engine': path.resolve(__dirname, '../packages/diagram-engine/index.js'),
-    },
+    alias: criarAliases(path, __dirname),
   },
   build: {
     rollupOptions: {
@@ -27,8 +21,13 @@ export default defineConfig({
     fs: { allow: ['..'] },   // permite servir packages/diagram-engine (fora de frontend/)
     proxy: {
       '/api': {
-        target: 'http://localhost:5001',
+        // FV-QA-REAL: alvo configuravel para apontar o dev server ao backend
+        // de QA publicado. O proxy e server-side, entao a chamada nao passa
+        // por CORS — o navegador so fala com o proprio dev server.
+        // Sem a variavel, o comportamento e exatamente o de antes.
+        target: process.env.VITE_PROXY_TARGET || 'http://localhost:5001',
         changeOrigin: true,
+        secure: true,
       },
     },
   },

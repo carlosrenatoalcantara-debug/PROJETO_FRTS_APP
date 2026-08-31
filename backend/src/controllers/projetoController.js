@@ -1,4 +1,5 @@
 // Orquestrador central que coordena a simulação completa de um projeto
+import { calcularTIR } from '@fortesolar/fv-shared/financeiro/fluxo-caixa'
 
 async function simularProjetoCompleto(req, res) {
   try {
@@ -306,19 +307,15 @@ function dimensionarBESSLocal(carga_kw, horas_backup) {
   }
 }
 
-function calcularTIRLocal(fluxos) {
-  let low = -0.99, high = 10.0
-  for (let i = 0; i < 300; i++) {
-    const mid = (low + high) / 2
-    let npv = 0
-    for (let t = 0; t < fluxos.length; t++) {
-      npv += fluxos[t] / Math.pow(1 + mid, t)
-    }
-    if (Math.abs(npv) < 0.5) return mid
-    npv > 0 ? (low = mid) : (high = mid)
-  }
-  return (low + high) / 2
-}
+// FV-DOM-009: `calcularTIRLocal` era CÓPIA LITERAL de `calcularTIR` do
+// `engenhariaController` — mesmo intervalo, mesmas 300 iterações, mesma
+// tolerância, mesmo retorno. Verificado caractere a caractere e por varredura de
+// valores antes de eliminar. Agora as duas chamam a mesma função compartilhada.
+//
+// `simularFinanceiroLocal` abaixo NÃO foi absorvido: ele não aplica degradação e
+// desconta a 10 % (contra 6 % do outro). É outro cálculo, não outra cópia —
+// unificá-lo mudaria resultados, o que depende das decisões D1/D2.
+const calcularTIRLocal = calcularTIR
 
 function simularFinanceiroLocal(investimento, economia_anual, inflacao_energia = 0.08, taxa_desconto = 0.10) {
   const inv = Number(investimento)

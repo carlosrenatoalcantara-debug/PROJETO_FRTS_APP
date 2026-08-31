@@ -40,18 +40,15 @@ export async function gerarAssinaturaSegura({ papel, nome, hashDocumento, hashSn
 }
 
 // ─── Workflow comercial ──────────────────────────────────────────────────────────
-export const WORKFLOW_COMERCIAL_CONFIG = {
-  EM_ANALISE:         { label: 'EM ANÁLISE',         cor: 'cinza',   ordem: 1 },
-  AGUARDANDO_CLIENTE: { label: 'AGUARDANDO CLIENTE', cor: 'azul',    ordem: 2 },
-  NEGOCIACAO:         { label: 'NEGOCIAÇÃO',         cor: 'amarelo', ordem: 3 },
-  APROVADO:           { label: 'APROVADO',           cor: 'verde',   ordem: 4 },
-  REPROVADO:          { label: 'REPROVADO',          cor: 'vermelho',ordem: 4 },
-  ASSINADO:           { label: 'ASSINADO',           cor: 'verde',   ordem: 5 },
-}
-
-export function getWorkflowConfig(status) {
-  return WORKFLOW_COMERCIAL_CONFIG[status] || WORKFLOW_COMERCIAL_CONFIG.EM_ANALISE
-}
+// FV-UX-006 (F3.1): esta era a TERCEIRA definição da máquina comercial e a única
+// DIVERGENTE — declarava 6 dos 11 estados, com `ordem` e cores próprias. Efeito:
+// projetos em RASCUNHO/IMPLANTACAO/CONCLUIDO/CANCELADO/EXPIRADO não apareciam no
+// funil do DashboardComercial e eram rotulados "EM ANÁLISE" pelo fallback.
+// Passa a projetar a fonte única.
+export {
+  ESTADOS_COMERCIAIS as WORKFLOW_COMERCIAL_CONFIG,
+  getEstadoConfig as getWorkflowConfig,
+} from '@fortesolar/fv-shared/estados/workflow-comercial'
 
 export const PAPEIS_ASSINATURA = [
   { papel: 'cliente',  label: 'Cliente' },

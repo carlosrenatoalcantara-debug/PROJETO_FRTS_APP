@@ -19,19 +19,30 @@ export const gerarPropostaPDF = (dados) => {
     telefone = '(00) 0000-0000',
   } = cliente
 
+  // FV-DOM-011B: estes campos tinham defaults FABRICADOS (15 kWp, 68 painéis,
+  // R$ 15.000 de economia, payback 8,5 anos, R$ 150.000 de total, R$ 10/Wp).
+  // Um projeto sem dados gerava uma proposta que descrevia um sistema que não
+  // existe — números plausíveis o bastante para ninguém desconfiar.
+  //
+  // Ausência agora é `null` e o PDF mostra "—". Nenhum substituto foi inventado.
   const {
-    potenciakWp = 15,
-    numPaineis = 68,
-    numInversores = 1,
-    economiaAnual = 15000,
-    payback = 8.5,
+    potenciakWp = null,
+    numPaineis = null,
+    numInversores = null,
+    economiaAnual = null,
+    payback = null,
   } = sistema
 
   const {
-    total = 150000,
-    precoWp = 10,
+    total = null,
+    precoWp = null,
     itens = [],
   } = orcamento
+
+  /** Ausente → "—". Zero é valor legítimo e continua sendo exibido. */
+  const ou = (v, sufixo = '') => (v == null ? '—' : `${v}${sufixo}`)
+  /** Milhares (R$ 15,0k). Ausente → "—". */
+  const milEmR$ = (v, casas = 1) => (v == null ? '—' : `R$ ${(v / 1000).toFixed(casas)}k`)
 
   // P1-FV-PDF-KIT-RESTORE-01: normaliza modo kit/detalhado (vivo ou persistido).
   const modoOrc       = orcamento.modo || 'detalhado'
@@ -338,13 +349,13 @@ export const gerarPropostaPDF = (dados) => {
         <div class="resumo">
           <div class="resumo-card">
             <div class="resumo-card-titulo">Potência do Sistema</div>
-            <div class="resumo-card-valor">${potenciakWp} kWp</div>
-            <div class="resumo-card-sub">${numPaineis} painéis de 550W</div>
+            <div class="resumo-card-valor">${ou(potenciakWp, ' kWp')}</div>
+            <div class="resumo-card-sub">${numPaineis == null ? '—' : `${numPaineis} painéis de 550W`}</div>
           </div>
           <div class="resumo-card">
             <div class="resumo-card-titulo">Economia Anual</div>
-            <div class="resumo-card-valor">R$ ${(economiaAnual / 1000).toFixed(1)}k</div>
-            <div class="resumo-card-sub">Payback: ${payback} anos</div>
+            <div class="resumo-card-valor">${milEmR$(economiaAnual)}</div>
+            <div class="resumo-card-sub">Payback: ${ou(payback, ' anos')}</div>
           </div>
         </div>
 
@@ -352,11 +363,15 @@ export const gerarPropostaPDF = (dados) => {
         <div class="especificacoes">
           <div class="especificacoes-item">
             <span class="especificacoes-label">Módulos Fotovoltaicos</span>
-            <span class="especificacoes-valor">${numPaineis} × 550W</span>
+            <span class="especificacoes-valor">${numPaineis == null ? '—' : `${numPaineis} × 550W`}</span>
           </div>
           <div class="especificacoes-item">
             <span class="especificacoes-label">Inversor(es)</span>
-            <span class="especificacoes-valor">${numInversores} inversor(es) de ${Math.round(potenciakWp / numInversores)} kW</span>
+            <span class="especificacoes-valor">${
+              numInversores == null || potenciakWp == null || numInversores === 0
+                ? '—'
+                : `${numInversores} inversor(es) de ${Math.round(potenciakWp / numInversores)} kW`
+            }</span>
           </div>
           <div class="especificacoes-item">
             <span class="especificacoes-label">Tipo de Sistema</span>
@@ -382,8 +397,8 @@ export const gerarPropostaPDF = (dados) => {
 
         <div class="total-box">
           <h3>INVESTIMENTO TOTAL</h3>
-          <div class="total-valor">R$ ${total.toLocaleString('pt-BR')}</div>
-          <div class="total-preco-wp">Preço por Wp: R$ ${precoWp}</div>
+          <div class="total-valor">${total == null ? '—' : `R$ ${total.toLocaleString('pt-BR')}`}</div>
+          <div class="total-preco-wp">Preço por Wp: ${precoWp == null ? '—' : `R$ ${precoWp}`}</div>
         </div>
 
         ${secaoPagamento}
@@ -392,15 +407,21 @@ export const gerarPropostaPDF = (dados) => {
         <div class="analise-financeira">
           <div class="analise-card">
             <div class="analise-card-titulo">Economia Anual</div>
-            <div class="analise-card-valor">R$ ${(economiaAnual / 1000).toFixed(1)}k</div>
+            <div class="analise-card-valor">${milEmR$(economiaAnual)}</div>
           </div>
           <div class="analise-card">
             <div class="analise-card-titulo">Payback</div>
-            <div class="analise-card-valor">${payback}a</div>
+            <div class="analise-card-valor">${ou(payback, 'a')}</div>
           </div>
           <div class="analise-card">
             <div class="analise-card-titulo">Economia em 25 anos</div>
-            <div class="analise-card-valor">R$ ${economia25 != null ? (economia25 / 1000).toFixed(0) : (economiaAnual * 25 / 1000).toFixed(0)}k</div>
+            <div class="analise-card-valor">${
+              // Sem economia de 25 anos calculada, extrapola a anual — comportamento
+              // PRESERVADO. Sem nenhuma das duas, "—" em vez de número inventado.
+              economia25 != null ? milEmR$(economia25, 0)
+                : economiaAnual != null ? milEmR$(economiaAnual * 25, 0)
+                : '—'
+            }</div>
           </div>
           ${roiPct != null ? `
           <div class="analise-card">

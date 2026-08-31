@@ -83,6 +83,37 @@ export function gerarPdfComercial({ resultado, cidadeEstado, empresa = {}, datas
   const doc  = new jsPDF({ unit: 'mm', format: 'a4' })
   const { entrada, irradiancia, sistema, geracao, financeiro } = resultado
 
+  // ── R6 (FV-DOM-011C): descasamento de nomes API × PDF ──────────────────────
+  // `POST /api/projeto/simular` devolve { payback, tir, vpl, fluxo_caixa }.
+  // Este PDF lia `paybackAnos`, `roi25Anos`, `economiaMensal`, `economiaTotal25`,
+  // `custoTotalEstimado`, `inflacaoEnergia` e `taxaDesconto` — nomes que a API
+  // NÃO produz. Resultado: nove campos imprimiam "undefined anos", "undefined%",
+  // "R$ undefined".
+  //
+  // Aqui só se corrige o MAPEAMENTO: o que a API devolve é lido pelo nome certo,
+  // e o que ela não devolve vira "—". Nenhuma fórmula mudou, nenhum número foi
+  // inventado e nenhum campo novo foi criado na API.
+  const fin = financeiro ?? {}
+  /** Ausente → "—". Zero é valor legítimo e continua sendo exibido. */
+  const ou = (v, sufixo = '', prefixo = '') => (v == null ? '—' : `${prefixo}${v}${sufixo}`)
+  const brlOu = (v) => (v == null ? '—' : brl(v))
+  /** Percentual guardado: sem valor não há multiplicação por 100. */
+  const pctOu = (v, casas = 0) => (v == null ? '—' : `${(v * 100).toFixed(casas)}%`)
+
+  // `payback` é o nome real; os demais a API não devolve hoje.
+  const paybackAnos       = fin.paybackAnos ?? fin.payback ?? null
+  const paybackDescontado = fin.paybackDescontado ?? null
+  const roi25Anos         = fin.roi25Anos ?? null
+  const economiaAnual     = fin.economiaAnual ?? null
+  const economiaMensal    = fin.economiaMensal ?? null
+  const economiaTotal25   = fin.economiaTotal25 ?? fin.economia_total_25anos ?? null
+  const custoTotalEst     = fin.custoTotalEstimado ?? null
+  const inflacaoEnergia   = fin.inflacaoEnergia ?? null
+  const taxaDesconto      = fin.taxaDesconto ?? null
+  const tirPct            = fin.tir ?? null
+  const vplValor          = fin.vpl ?? null
+  const tmaTexto          = taxaDesconto == null ? '' : ` (TMA ${(taxaDesconto * 100).toFixed(0)}%)`
+
   // ═══════════════════════════════════════════════════════
   // PÁG 1 — RESUMO EXECUTIVO
   // ═══════════════════════════════════════════════════════
@@ -104,10 +135,10 @@ export function gerarPdfComercial({ resultado, cidadeEstado, empresa = {}, datas
   const kpis = [
     { r: 'Potência instalada', v: `${sistema.potenciaRealKwp} kWp` },
     { r: 'Geração/mês',        v: `${geracao.geracaoMediaMensal} kWh` },
-    { r: 'Economia anual',     v: brl(financeiro.economiaAnual) },
-    { r: 'Payback',            v: `${financeiro.paybackAnos} anos` },
-    { r: 'TIR',                v: `${financeiro.tir}% a.a.` },
-    { r: 'ROI 25 anos',        v: `${financeiro.roi25Anos}%` },
+    { r: 'Economia anual',     v: brlOu(economiaAnual) },
+    { r: 'Payback',            v: ou(paybackAnos, ' anos') },
+    { r: 'TIR',                v: ou(tirPct, '% a.a.') },
+    { r: 'ROI 25 anos',        v: ou(roi25Anos, '%') },
   ]
 
   kpis.forEach(({ r, v }, i) => {
@@ -208,16 +239,16 @@ export function gerarPdfComercial({ resultado, cidadeEstado, empresa = {}, datas
   autoTable(doc, {
     startY: y, head: [],
     body: [
-      ['Investimento estimado',    brl(financeiro.custoTotalEstimado)],
-      ['Economia mensal',          brl(financeiro.economiaMensal)],
-      ['Economia anual (ano 1)',   brl(financeiro.economiaAnual)],
-      ['Payback simples',         `${financeiro.paybackAnos} anos`],
-      ['Payback descontado',      `${financeiro.paybackDescontado} anos (TMA ${(financeiro.taxaDesconto*100).toFixed(0)}%)`],
-      ['TIR',                     `${financeiro.tir}% a.a.`],
-      ['VPL (25 anos)',           `${brl(financeiro.vpl)} (TMA ${(financeiro.taxaDesconto*100).toFixed(0)}%)`],
-      ['ROI em 25 anos',          `${financeiro.roi25Anos}%`],
-      ['Economia total 25 anos',   brl(financeiro.economiaTotal25)],
-      ['Inflação energia (ref.)',  `${(financeiro.inflacaoEnergia*100).toFixed(0)}% a.a.`],
+      ['Investimento estimado',    brlOu(custoTotalEst)],
+      ['Economia mensal',          brlOu(economiaMensal)],
+      ['Economia anual (ano 1)',   brlOu(economiaAnual)],
+      ['Payback simples',         ou(paybackAnos, ' anos')],
+      ['Payback descontado',      paybackDescontado == null ? '—' : `${paybackDescontado} anos${tmaTexto}`],
+      ['TIR',                     ou(tirPct, '% a.a.')],
+      ['VPL (25 anos)',           vplValor == null ? '—' : `${brl(vplValor)}${tmaTexto}`],
+      ['ROI em 25 anos',          ou(roi25Anos, '%')],
+      ['Economia total 25 anos',   brlOu(economiaTotal25)],
+      ['Inflação energia (ref.)',  inflacaoEnergia == null ? '—' : `${pctOu(inflacaoEnergia)} a.a.`],
     ],
     theme: 'grid', styles: { fontSize: 8, cellPadding: 2 },
     columnStyles: { 0: { fontStyle: 'bold', fillColor: [248,250,252], cellWidth: 65, textColor: COR2 }, 1: { cellWidth: 117 } },

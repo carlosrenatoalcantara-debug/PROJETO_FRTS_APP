@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from 'react'
 import { User, MapPin, Zap, Plug, Building2, Copy, Check } from 'lucide-react'
 import { SecaoDados } from './CampoCopiavel'
 import { obterEquipamentosEngenharia } from '../../../utils/engenhariaGovernanca'
-import { obterLocalProjeto } from '../../../../../backend/src/dominio/local/index.js'
 
 const API_URL = '' /* URL relativa forçada — Vercel proxy → Railway */
 
@@ -58,7 +57,9 @@ export default function CentralDados({ projeto, cliente }) {
   useEffect(() => { carregarBeneficiarias() }, [carregarBeneficiarias])
 
   // S1.5: leitura de localização via adapter oficial (Local-first, fallback por campo).
-  const loc = obterLocalProjeto(projeto)
+  // FV-UX-003 (F2): Local resolvido chega pronto de GET /api/projetos-fv/:id
+  // (campo derivado local_resolvido). O adapter do Core permanece no backend.
+  const loc = projeto?.local_resolvido || {}
   const dim = projeto?.dimensionamento || {}
   const homol = projeto?.homologacao || {}
 

@@ -1,4 +1,6 @@
 import mongoose from 'mongoose'
+// FV-UX-006 (F3.1): vocabulário de freeze_status — fonte única compartilhada.
+import { FREEZE_STATUS } from '@fortesolar/fv-shared/estados/governanca-freeze'
 
 // ─── Subdoc schemas v3 ────────────────────────────────────────────────────────
 // Todos os subdocs abaixo são NOVOS (S2.7 additive).
@@ -464,6 +466,13 @@ const comercialV3Schema = new mongoose.Schema({
   compartilhamentos: [{
     share_id:      { type: String, default: null },
     token:         { type: String, default: null },
+    // FV-UX-035 — o envio canônico da proposta grava AQUI, no mesmo array, para
+    // reusar token, rota pública, página do cliente e tracking. Estas duas
+    // marcas juntas o distinguem de uma entrada do wizard legado, que é por
+    // cenário e não conhece grupo. Sem elas declaradas no schema o Mongoose
+    // descartaria a gravação em silêncio.
+    origem:             { type: String, default: null },  // 'canonico' | null (legado)
+    proposta_grupo_id:  { type: mongoose.Schema.Types.ObjectId, default: null },
     cenario_id:    { type: String, default: null },
     revisao:       { type: String, default: null },
     snapshot_hash: { type: String, default: null },
@@ -506,6 +515,16 @@ const comercialV3Schema = new mongoose.Schema({
   }],
 }, { _id: false })
 
+/**
+ * FV-UX-006 (F3.1): o vocabulário de `freeze_status` vem da fonte única em
+ * @fortesolar/fv-shared/estados/governanca-freeze — o mesmo módulo que alimenta
+ * os guards do controller e a UI. Reexportado aqui porque o enum do schema o
+ * consome e os consumidores históricos importam do model.
+ */
+export {
+  FREEZE_STATUS, FREEZE_STATUS_TRAVADOS, ehFreezeStatusValido,
+} from '@fortesolar/fv-shared/estados/governanca-freeze'
+
 const governancaV3Schema = new mongoose.Schema({
   /** Versão do motor de engenharia que gerou os snapshots (ex: 'ENG-2.0'). */
   engineering_version: { type: String, default: null },
@@ -517,7 +536,7 @@ const governancaV3Schema = new mongoose.Schema({
    */
   freeze_status: {
     type: String,
-    enum: ['RASCUNHO', 'EM_REVISAO', 'APROVADO', 'CONGELADO', 'HOMOLOGADO', null],
+    enum: [...FREEZE_STATUS, null],
     default: 'RASCUNHO',
   },
 
@@ -583,7 +602,10 @@ const projetoFVSchema = new mongoose.Schema({
   // herdando fatura/consumo/concessionária/localização e congelando o arranjo executado.
   tipo_projeto: {
     type: String,
-    enum: ['novo', 'ampliacao'],
+    // FV-DOM-032: `opcao` é ADITIVO — uma alternativa técnica concorrente dentro
+    // da mesma proposta comercial. Não confundir com `ampliacao`, que é
+    // derivação de um projeto executado.
+    enum: ['novo', 'ampliacao', 'opcao'],
     default: 'novo',
     index: true,
   },
@@ -592,6 +614,52 @@ const projetoFVSchema = new mongoose.Schema({
     ref: 'ProjetoFV',
     default: null,
     index: true,
+  },
+
+  // ── FV-DOM-032 · opções concorrentes da MESMA proposta ─────────────────────
+  //
+  // A auditoria da sprint provou que duas opções não cabem num `ProjetoFV` só:
+  // oito campos são únicos no documento (dimensionamento, engenharia_eletrica,
+  // unifilar, homologacao…) e os agregados travam por projeto —
+  // `unico_aprovado_por_projeto` no Orçamento e `unico_baseline_por_projeto` na
+  // Baseline. Cada opção é, portanto, um ProjetoFV COMPLETO.
+  //
+  // O vínculo é de PARES, não de pai e filho: `proposta_grupo_id` carrega o
+  // mesmo valor em todas as irmãs. `projeto_origem_id` NÃO é reusado aqui — ele
+  // significa "ampliação de", e sobrecarregá-lo criaria um campo com dois
+  // sentidos. Como o grupo não aponta para nenhuma das opções, excluir uma não
+  // desfaz o agrupamento das outras.
+  proposta_grupo_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    default: null,
+    index: true,
+  },
+  opcao_numero: { type: Number, default: null },   // 1, 2, 3…
+  opcao_rotulo: { type: String, default: null },   // "Opção 01"
+
+  /**
+   * Aceite da proposta — ato SEPARADO da aprovação do orçamento (regra 3).
+   *
+   * Aprovar orçamento congela a Baseline daquela opção; aceitar a proposta
+   * escolhe UMA opção do grupo. As duas coisas coexistem: várias opções podem
+   * ter Baseline íntegra e imutável (regra 7), e só a aceita ultrapassa o Gate
+   * de execução/homologação (regra 5).
+   */
+  proposta_aceite: {
+    aceita:    { type: Boolean, default: false },
+    aceita_em: { type: Date,   default: null },
+    aceita_por:{ type: String, default: null },
+    motivo:    { type: String, default: null },
+    // FV-UX-035 — evidência do aceite. A decisão de negócio pediu registro de
+    // qual opção, quando, por qual canal, quem (interno) ou qual token
+    // (público), e QUAL proposta estava à vista. `share_id`/`snapshot_hash`
+    // apontam para o envio congelado, então a evidência não depende de nada
+    // que possa mudar depois.
+    origem:        { type: String, default: null },  // 'cliente' | 'interno'
+    token_envio:   { type: String, default: null },  // só no aceite público
+    ip:            { type: String, default: null },
+    share_id:      { type: String, default: null },
+    snapshot_hash: { type: String, default: null },
   },
 
   endereco_completo: {
@@ -765,8 +833,31 @@ const projetoFVSchema = new mongoose.Schema({
       n_mppts:           { type: Number, default: null },  // string
       strings_por_mppt:  { type: Number, default: null },  // string
       tensao_string_v:   { type: Number, default: null },  // string
-      n_microinversores: { type: Number, default: null },  // micro
-      entradas_por_micro:{ type: Number, default: null },  // micro
+      n_microinversores: { type: Number, default: null },  // micro (legado: UM modelo)
+      entradas_por_micro:{ type: Number, default: null },  // micro (legado: UM modelo)
+      // FV-DOM-031 (decisão 1) — topologia de MICROINVERSOR por MODELO.
+      // Os dois campos acima são escalares por arranjo e só descrevem uma
+      // composição de um modelo só. `micros[]` é ADITIVO: cada modelo tem sua
+      // quantidade, seu envelope de entradas e sua distribuição de módulos.
+      //
+      // Modelo A: 4 un. × 4 entradas × 1 módulo/entrada → distribuicao [4,4,4,4]
+      // Modelo B: 2 un. × 2 entradas × 1 módulo/entrada → distribuicao [2,2]
+      //
+      // NÃO usa MPPT/strings (decisão 5): a topologia do micro é
+      // `microinversor → entradas → módulos`. Projetos legados leem undefined.
+      micros: {
+        type: [new mongoose.Schema({
+          equipamento_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Equipamento', default: null },
+          marca:          { type: String, default: null },
+          modelo:         { type: String, default: null },
+          quantidade:          { type: Number, default: null },
+          entradas_por_micro:  { type: Number, default: null },
+          modulos_por_entrada: { type: Number, default: null },
+          // Módulos em CADA micro, na ordem. Comprimento = `quantidade`.
+          distribuicao: { type: [Number], default: undefined },
+        }, { _id: false })],
+        default: undefined,
+      },
       // P0-ARRANJO-ELECTRICAL-ISOLATION-01 (ADITIVO) — TOPOLOGIA PRÓPRIA por arranjo.
       // Elimina a limitação de `engenharia_eletrica.arranjo` ser ÚNICO p/ o projeto:
       // cada arranjo passa a ter sua engenharia elétrica independente. Mesma forma do
@@ -887,6 +978,33 @@ const projetoFVSchema = new mongoose.Schema({
     data_aprovacao: { type: Date,   default: null },
   },
   observacoes: String,
+
+  // ─── FV-DOM-047 · Conexão física da usina ──────────────────────────────────
+  //
+  // O FATO de a usina estar ligada à rede. Não é máquina de estado, e não é
+  // homologação: homologação é a resposta da concessionária ao pedido de acesso;
+  // conexão é evento posterior, que depende de obra, vistoria e troca de medidor
+  // (FV-DOM-044 §3, FV-DOM-041 §2.1).
+  //
+  // `conectada_em` É a máquina inteira: `null` = não conectada, data = conectada.
+  // Sem enum, sem transição, sem estado intermediário — conexão não tem "em
+  // andamento".
+  //
+  // O que NÃO existe aqui, por decisão medida:
+  //   • `registrada_por` — o autor vive no AuditLog; o endpoint audita (FV-DOM-046);
+  //   • `sem_homologacao` — é DERIVÁVEL (conectada_em × status_homologacao), e
+  //     INV-58 proíbe persistir derivado. A divergência é calculada na leitura;
+  //   • estado/enum — conexão é fato, não processo.
+  //
+  // Aditivo: `null` em todo documento existente. Nenhum projeto muda de
+  // comportamento, e `homologacao.status = 'conectado'` permanece intocado como
+  // registro histórico (FV-DOM-045/D6) — não há backfill, porque a data daquele
+  // valor nunca foi gravada.
+  conexao: {
+    conectada_em:   { type: Date,   default: null },
+    numero_medidor: { type: String, default: null },
+    observacoes:    { type: String, default: null },
+  },
 
   // P5-PROJETO-DOCUMENTOS-EXTERNOS-01 (additive) — índice de pastas externas.
   // NÃO armazena arquivos. Apenas links (OneDrive, Google Drive, SharePoint, Dropbox...).
@@ -1073,6 +1191,52 @@ const projetoFVSchema = new mongoose.Schema({
     dados_brutos: { type: mongoose.Schema.Types.Mixed, default: null },
   },
 
+  // ─── FV-DOM-042 · Extração do Parecer de Acesso ────────────────────────────
+  //
+  // Envelope PRÓPRIO, irmão de `fatura_extracao` e nunca o mesmo campo (D7).
+  // Os dois documentos afirmam sobre os mesmos assuntos — nome, CPF, número de
+  // cliente, concessionária, ligação, tensão — e misturá-los apagaria a ORIGEM
+  // de cada afirmação, que é justamente o que a decisão D4 exige preservar:
+  // nada é sobrescrito em silêncio, e divergência vira conflito declarado.
+  //
+  // `confirmado_pelo_usuario` é o portão: até ser `true`, o conteúdo de `dados`
+  // é CANDIDATO e não alimenta o fluxo. Extração de LLM não é determinística
+  // (FV-UX-041), e por isso não entra no domínio sem um humano no meio.
+  //
+  // Nenhum campo aqui é escrito automaticamente a partir de um documento: o
+  // parecer pertence a um ProjetoFV que já existe (D2).
+  parecer_extracao: {
+    arquivo_original_nome: { type: String, default: null },
+    extraido_em:           { type: Date,   default: null },
+    metodo: {
+      type: String,
+      // `llm_externo` só é aceito com provedor explicitamente configurado (D5).
+      enum: ['manual', 'pdf_parse', 'llm_externo', null],
+      default: null,
+    },
+    confianca: { type: Number, min: 0, max: 1, default: null },
+
+    confirmado_pelo_usuario: { type: Boolean, default: false },
+    confirmado_em:           { type: Date,   default: null },
+    confirmado_por:          { type: String, default: null },
+
+    /** `extraido` = candidato · `confirmado` = conferido por humano (D1). */
+    estado: {
+      type: String,
+      enum: ['extraido', 'confirmado', null],
+      default: null,
+    },
+
+    // Identidade do documento (D1) — promovida do payload para consulta direta.
+    numero_parecer: { type: String, default: null, index: true },
+    emitido_em:     { type: Date,   default: null },
+
+    // Forma canônica de `dominio/parecer`. Mixed porque é o payload inteiro do
+    // contrato (documento/cliente/uc/geracao), com listas de tamanho variável.
+    dados:     { type: mongoose.Schema.Types.Mixed, default: null },
+    validacao: { type: mongoose.Schema.Types.Mixed, default: null },
+  },
+
   // ── Importação SolarMarket ───────────────────────────────────────────────────
   // Campos escritos pelo pipeline de migração SM via raw driver.
   // Declarados aqui para que o Mongoose strict mode não os stripe nas leituras.
@@ -1119,5 +1283,28 @@ const projetoFVSchema = new mongoose.Schema({
   timestamps: true,
   // strict permanece TRUE (default). Apenas dados_brutos e proposta_sm são Mixed.
 })
+
+/**
+ * FV-DOM-032 (regra 8) — no máximo UMA opção aceita por grupo de proposta.
+ *
+ * Índice PARCIAL: só indexa documentos que já foram aceitos, então as opções
+ * não escolhidas convivem sem colidir — exatamente o padrão que o `Orcamento`
+ * usa em `unico_aprovado_por_projeto`.
+ *
+ * A regra vive no BANCO, não só no serviço: duas requisições simultâneas de
+ * aceite em opções irmãs seriam ambas válidas na leitura e o índice é o que
+ * garante que só uma vence.
+ */
+projetoFVSchema.index(
+  { proposta_grupo_id: 1 },
+  {
+    unique: true,
+    name: 'unica_opcao_aceita_por_proposta',
+    partialFilterExpression: { 'proposta_aceite.aceita': true },
+  },
+)
+
+/** Listar as irmãs de um grupo, na ordem em que devem aparecer. */
+projetoFVSchema.index({ proposta_grupo_id: 1, opcao_numero: 1 })
 
 export const ProjetoFV = mongoose.model('ProjetoFV', projetoFVSchema)

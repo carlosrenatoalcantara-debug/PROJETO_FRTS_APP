@@ -168,25 +168,31 @@ export default function ProjetosFVDetalhes() {
 
   // GAP-02: deriva resultadoFinanceiro a partir dos dados persistidos no projeto
   function derivarResultadoFinanceiro(proj) {
+    // FV-DOM-003: os indicadores financeiros NÃO vivem no agregado `Orcamento`
+    // (são derivados — INV-58). As fontes são o snapshot congelado e o campo
+    // `financeiro` do próprio projeto; o preço, quando não há snapshot, vem dos
+    // totais do agregado. O subdocumento legado deixou de ser lido.
     const sf = proj?.governanca?.snapshot_financeiro
-    const orc = proj?.orcamento
-    if (!sf && !orc) return null
-    const preco_venda = sf?.proposta_final ?? orc?.preco_venda_r ?? null
+    const fin = proj?.financeiro
+    const totais = proj?.orcamento_vigente?.totais
+    if (!sf && !fin && !totais) return null
+    const preco_venda = sf?.proposta_final ?? totais?.total_venda_r ?? null
     if (!preco_venda) return null
     return {
       orcamento: {
         preco_venda,
-        custo_total: sf?.custo_total ?? orc?.custo_total_r ?? null,
+        custo_total: sf?.custo_total ?? fin?.custo_total_r ?? null,
       },
       margem: {
-        margem_liquida_pct: sf?.margem ?? orc?.margem_pct ?? null,
-        custo_total: sf?.custo_total ?? orc?.custo_total_r ?? null,
+        // `margem_pct` só existia no subdocumento legado; sem snapshot, fica nula.
+        margem_liquida_pct: sf?.margem ?? null,
+        custo_total: sf?.custo_total ?? fin?.custo_total_r ?? null,
       },
       tarifa: {
-        tarifa_kwh: sf?.tarifa ?? orc?.tarifa_kwh ?? 0.95,
+        tarifa_kwh: sf?.tarifa ?? 0.95,
       },
       retorno: {
-        payback_anos: sf?.retorno ?? orc?.payback_anos ?? null,
+        payback_anos: sf?.retorno ?? fin?.payback_anos ?? null,
       },
     }
   }

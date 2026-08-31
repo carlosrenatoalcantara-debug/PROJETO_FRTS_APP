@@ -26,7 +26,7 @@ import SugestaoTopologiaReferencia from '../SugestaoTopologiaReferencia'
 import { salvarArranjos } from '../../../services/projetoFVApi'
 import { consolidarPanos, dimensoesModulo } from '../../../utils/geoEngine'
 import { snapshotEquipamentoSelecao } from '../../../utils/catalogoEngenhariaAdapter'
-import { validarMicroinversores } from '../../../../../backend/src/utils/fv/validacaoMicroinversores.js'
+import { validarMicroinversores } from '@fortesolar/fv-shared/fv/validacao-microinversores'
 
 const TIPO_BADGE_COR = {
   string:     'azul',

@@ -47,16 +47,24 @@
  *   Vmpp_min → T_cel máxima via NOCT       (calor → Vmpp cai → risco MPPT_min)
  */
 
+// ─── Fonte única das regras elétricas (FV-DOM-025) ───────────────────────────
+//
+// As fórmulas normativas deixaram de viver aqui. Este service passou a ser
+// ADAPTER: resolve clima, valida entradas, compõe as primitivas canônicas e
+// traduz o resultado em diagnósticos. Nenhuma correção térmica é escrita neste
+// arquivo — a FV-DOM-023 mediu três implementações discordando entre si, e esta
+// era uma delas.
+import {
+  TEMP_STC_C,
+  NOCT_PADRAO_C,
+  FATOR_ISC_NBR16690,
+  coefParaFracao,
+  fatorTermico,
+  temperaturaCelula,
+  correnteProjeto,
+} from '@fortesolar/fv-shared/engenharia/normativa'
+
 // ─── Constantes normativas ────────────────────────────────────────────────────
-
-/** Temperatura STC (Standard Test Conditions) — °C */
-const TEMP_STC_C = 25
-
-/** Irradiância de referência NOCT — W/m² */
-const G_NOCT_REF = 800
-
-/** Irradiância STC — W/m² */
-const G_STC = 1000
 
 /** Limite oversizing CC/CA → WARNING */
 const OVERSIZING_LIMITE_WARNING = 1.30
@@ -101,32 +109,13 @@ function r(v, n = 3) {
   return Math.round(v * f) / f
 }
 
-/**
- * Normaliza coeficiente de temperatura para fração/°C.
- *
- * Datasheets reportam em duas formas:
- *  a) %/°C  → ex: -0.28  (−0.28% por grau) → dividir por 100
- *  b) 1/°C  → ex: -0.0028 (fração absoluta) → usar direto
- *
- * Heurística: |coef| > 0.1 → assumir %/°C.
- *
- * @param {number} coef
- * @returns {number} coef em 1/°C
- */
-function normalizarCoefTemp(coef) {
-  return Math.abs(coef) > 0.1 ? coef / 100 : coef
-}
-
-/**
- * Calcula temperatura de célula em campo pelo modelo NOCT.
- *
- * @param {number} t_amb   Temperatura ambiente (°C)
- * @param {number} noct    NOCT do módulo (°C), default 45
- * @returns {number}       Temperatura de célula (°C)
- */
-function tCelula(t_amb, noct = 45) {
-  return t_amb + (noct - 20) * (G_STC / G_NOCT_REF)
-}
+// FV-DOM-025 (Q4): `normalizarCoefTemp` e `tCelula` viviam aqui, duplicando o
+// que `fv-shared/engenharia/normativa` já fazia. Foram substituídas por
+// `coefParaFracao` e `temperaturaCelula`, importadas no topo. A heurística de
+// unidade é a MESMA (|coef| > 0,1 → %/°C), agora num ponto só do sistema.
+//
+// Única mudança de comportamento: o NOCT padrão passou de 45 para 44 °C — Q5,
+// alinhado ao canônico. Afeta apenas módulos que não declaram NOCT.
 
 // ─── Validação e normalização do clima ───────────────────────────────────────
 
@@ -343,7 +332,7 @@ export function analisarCompatibilidade({
     voc, vmpp, isc, impp, potencia_w,
     coef_temp_voc:  _coefVoc,
     coef_temp_vmpp: _coefVmpp,
-    temp_noct = 45,
+    temp_noct = NOCT_PADRAO_C,   // Q5 (FV-DOM-024): 44 °C canônico, era 45
   } = dados_eletricos_modulo
 
   const {
@@ -364,9 +353,10 @@ export function analisarCompatibilidade({
 
   const { temperatura_min_historica_c: t_min, temperatura_max_historica_c: t_max } = clima
 
-  // Normaliza coeficientes para fração/°C
-  const coefVoc  = normalizarCoefTemp(_coefVoc)
-  const coefVmpp = _coefVmpp !== undefined ? normalizarCoefTemp(_coefVmpp) : coefVoc
+  // Q4: conversão de unidade na FRONTEIRA, uma vez, pela primitiva canônica.
+  // Q2: sem `coef_temp_vmpp` no catálogo, o de Voc vale para Vmpp — provisório.
+  const coefVoc  = coefParaFracao(_coefVoc)
+  const coefVmpp = _coefVmpp !== undefined ? coefParaFracao(_coefVmpp) : coefVoc
 
   // Limites do inversor (para o output)
   const limiteOversizing = oversizing_max_fabricante ?? OVERSIZING_LIMITE_WARNING
@@ -407,7 +397,7 @@ export function analisarCompatibilidade({
   // Este é o pior caso de TENSÃO — determina se o inversor será destruído.
   //
   const deltaT_frio        = t_min - TEMP_STC_C
-  const voc_corrigido_frio = r(voc * (1 + coefVoc * deltaT_frio))
+  const voc_corrigido_frio = r(voc * fatorTermico(coefVoc, t_min))
   const voc_string_max     = r(voc_corrigido_frio * modulos_por_string, 2)
 
   // Warning: próximo ao limite (dentro da margem de 5%)
@@ -454,11 +444,11 @@ export function analisarCompatibilidade({
   //
   // Para (b), usa temperatura de célula real com modelo NOCT — mais conservador.
   //
-  const t_cel_max      = tCelula(t_max, temp_noct)
+  const t_cel_max      = temperaturaCelula(t_max, temp_noct)
   const deltaT_quente  = t_cel_max - TEMP_STC_C
 
-  const vmpp_corrigido_frio   = r(vmpp * (1 + coefVmpp * deltaT_frio))
-  const vmpp_corrigido_quente = r(vmpp * (1 + coefVmpp * deltaT_quente))
+  const vmpp_corrigido_frio   = r(vmpp * fatorTermico(coefVmpp, t_min))
+  const vmpp_corrigido_quente = r(vmpp * fatorTermico(coefVmpp, t_cel_max))
   const vmpp_string_frio      = r(vmpp_corrigido_frio   * modulos_por_string, 2)
   const vmpp_string_quente    = r(vmpp_corrigido_quente * modulos_por_string, 2)
 
@@ -513,7 +503,15 @@ export function analisarCompatibilidade({
   // Strings em paralelo: correntes se somam
   // corrente_max_mppt é o limite por MPPT — verificamos por MPPT (strings_paralelo)
   //
-  const isc_total  = r(isc  * strings_paralelo)
+  // Q1 (FV-DOM-023/024) — NBR 16690 §5.2: a corrente de PROJETO leva o fator de
+  // segurança 1,25. Este service era o único lugar do sistema que o omitia; o
+  // wizard e `fv-shared` já o aplicavam.
+  //
+  // É a ÚNICA mudança de resultado desta consolidação, e é deliberada. Arranjos
+  // cuja corrente já ocupava mais de 80 % do limite do MPPT passam de aprovados
+  // a reprovados. O histórico NÃO é recalculado (Q6): a regra vale para
+  // análises novas.
+  const isc_total  = r(correnteProjeto(isc, strings_paralelo))
   const impp_total = r(impp * strings_paralelo)
 
   if (isc_total > corrente_max_mppt) {
@@ -522,12 +520,14 @@ export function analisarCompatibilidade({
       codigo:           'CORRENTE_ISC_EXCEDIDA',
       severidade:       'critico',
       nivel:            'critico',
-      mensagem:         `CORRENTE EXCEDIDA: Isc total (${isc_total} A) excede ` +
+      mensagem:         `CORRENTE EXCEDIDA: Isc de projeto (${isc_total} A = ${isc} A × ` +
+                        `${strings_paralelo} string(s) × ${FATOR_ISC_NBR16690}, NBR 16690 §5.2) excede ` +
                         `a corrente máxima de entrada MPPT (${corrente_max_mppt} A) em ${excesso} A. ` +
                         `Risco de destruição do MPPT. Reduza strings em paralelo.`,
-      explicacao_curta: 'Corrente de curto-circuito total excede o limite do MPPT.',
+      explicacao_curta: 'Corrente de projeto excede o limite do MPPT.',
       valores:          { isc_total, corrente_max_mppt, excesso_a: excesso,
-                          strings_paralelo, isc_modulo: isc },
+                          strings_paralelo, isc_modulo: isc,
+                          fator_seguranca: FATOR_ISC_NBR16690, norma: 'NBR 16690 §5.2' },
     })
   } else if (impp_total > corrente_max_mppt) {
     warnings.push({
@@ -626,7 +626,10 @@ export function analisarCompatibilidade({
     delta_temp_quente_c:    r(deltaT_quente, 2),
 
     // Verificação 3 — Correntes
+    // `isc_total` é a corrente de PROJETO (já com o fator de 1,25 da Q1). O
+    // fator viaja junto para que quem lê saiba o que o número significa.
     isc_total,
+    isc_fator_seguranca: FATOR_ISC_NBR16690,
     impp_total,
 
     // Verificação 4 — Oversizing

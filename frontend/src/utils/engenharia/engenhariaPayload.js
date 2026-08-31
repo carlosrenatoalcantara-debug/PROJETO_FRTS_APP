@@ -10,8 +10,8 @@
  */
 import {
   montarPayloadEngenharia, badgeDe, BADGES, CAMPOS_EXIBICAO,
-} from '../../../../backend/src/services/engineeringPresentation.js'
-import { STATUS, podeSubstituir } from '../../../../backend/src/services/engineeringFallback.js'
+} from '@fortesolar/fv-shared/engenharia/presentation'
+import { STATUS, podeSubstituir } from '@fortesolar/fv-shared/engenharia/fallback'
 
 export { badgeDe, BADGES, STATUS, podeSubstituir, CAMPOS_EXIBICAO }
 

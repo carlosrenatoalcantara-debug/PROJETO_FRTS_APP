@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { Plus, Trash2, Pencil, Check, X, Upload, ClipboardList, AlertTriangle, CheckCircle, Clock, Users } from 'lucide-react'
 import Card, { CardHeader, CardBody } from '../ui/Card'
-import { parsearTextoExcel, validarRateio, normalizarParaCem, MODALIDADES_GD } from '../../../../backend/src/utils/beneficiarias/beneficiariaRateio.js'
+import { parsearTextoExcel, validarRateio, normalizarParaCem, MODALIDADES_GD } from '@fortesolar/fv-shared/beneficiarias/rateio'
 
 /**
  * BeneficiariasPainel — Sprint 8.7 (Lei 14.300/2022) + P1-BENEFICIARIAS-PRIORIDADE-01

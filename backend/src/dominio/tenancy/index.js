@@ -34,6 +34,7 @@
 export const TENANCY = {
   ESCOPO_TENANT: [
     'ProjetoFV', 'ProjetoEV', 'Cliente', 'Local', 'Instalacao',
+    'Cotacao', 'Orcamento', 'Baseline',   // FV-DOM-001 — fluxo canônico, fase 1
     'UnidadeBeneficiaria', 'Lead', 'CrmLead', 'CrmFunil', 'CrmColuna',
     'AtivoEquipamento', 'DocumentoTecnico', 'AlertaStatus', 'FaturaEnergia',
     'Material', 'CategoriaMaterial', 'Tecnico', 'Vendedor', 'User',

@@ -9,6 +9,7 @@
     "start": "node src/server.js",
     "start:backend": "npm run start",
     "seed": "node src/seeds/initial.js",
+    "vendor:fv-shared": "node scripts/vendor-fv-shared.mjs",
     "test:catalogo": "node tests/catalogo/test_material_fase1.mjs",
     "test:catalogo:e2e": "node tests/catalogo/test_fluxo_completo.mjs",
     "catalogo:seed-templates": "node scripts/seed-catalogo-templates.mjs",
@@ -24,6 +25,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.95.0",
     "@fortesolar/diagram-engine": "file:vendor/fortesolar-diagram-engine.tgz",
+    "@fortesolar/fv-shared": "file:vendor/fortesolar-fv-shared.tgz",
     "@google/generative-ai": "^0.24.1",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",

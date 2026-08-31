@@ -8,6 +8,8 @@ import { Vendedor } from '../models/Vendedor.js'
 import { Empresa } from '../models/Empresa.js'
 import User from '../models/User.js'
 import { AuditLog } from '../models/AuditLog.js'
+import { projetoEstaCongelado } from '@fortesolar/fv-shared/estados/congelamento'
+import { FREEZE_STATUS_TRAVADOS } from '@fortesolar/fv-shared/estados/governanca-freeze'
 
 /**
  * Painel executivo, health da plataforma e auditoria consultável (S7.3).
@@ -38,7 +40,8 @@ router.get('/executivo', async (req, res) => {
 
     // Projetos
     const total = projetos.length
-    const congelados = projetos.filter(p => ['CONGELADO', 'HOMOLOGADO'].includes(p.governanca?.freeze_status)).length
+    // FV-DOM-002A: contrato único de congelamento.
+    const congelados = projetos.filter(projetoEstaCongelado).length
     const homologados = projetos.filter(p => p.governanca?.freeze_status === 'HOMOLOGADO').length
     const emAndamento = total - congelados
 
@@ -59,7 +62,7 @@ router.get('/executivo', async (req, res) => {
     for (const p of projetos) {
       const kwp = num(p.dimensionamento?.potencia_kwp) || num(p.potencia_kwp)
       kwpVendidos += kwp
-      const congelado = ['CONGELADO', 'HOMOLOGADO'].includes(p.governanca?.freeze_status)
+      const congelado = projetoEstaCongelado(p)
       if (congelado) kwpInstalados += kwp
       geracaoAnual += num(p.governanca?.snapshot_tecnico?.geracao_anual_kwh) || (kwp * 1400) // fallback ~1400 kWh/kWp/ano
     }
@@ -71,7 +74,7 @@ router.get('/executivo', async (req, res) => {
       const f = p.governanca?.snapshot_financeiro
       const preco = num(f?.proposta_final)
       if (preco > 0) { precos.push(preco); valorTotalPropostas += preco }
-      if (preco > 0 && ['CONGELADO', 'HOMOLOGADO'].includes(p.governanca?.freeze_status)) valorVendido += preco
+      if (preco > 0 && projetoEstaCongelado(p)) valorVendido += preco
       if (f?.margem?.margem_liquida_pct != null) margens.push(num(f.margem.margem_liquida_pct))
       const roi = f?.retorno_realista?.roi_pct ?? f?.retorno?.roi_pct
       if (roi != null) rois.push(num(roi))
@@ -117,7 +120,10 @@ router.get('/health', async (req, res) => {
       Tecnico.countDocuments(aplicarEscopo({}, req, { contexto: 'painel.health' })), Equipamento.countDocuments(), ProjetoFV.countDocuments(aplicarEscopo({}, req, { contexto: 'painel.health' })),
     ])
     const comSnapshot = await ProjetoFV.countDocuments(aplicarEscopo({ 'governanca.snapshot_tecnico': { $ne: null } }, req, { contexto: 'painel.snapshot' }))
-    const congelados = await ProjetoFV.countDocuments(aplicarEscopo({ 'governanca.freeze_status': { $in: ['CONGELADO', 'HOMOLOGADO'] } }, req, { contexto: 'painel.congelados' }))
+    // FV-DOM-002A: esta é uma CONTAGEM NO BANCO — não passa pelo contrato puro
+    // (uma função JS não entra num $match). Enquanto o backfill de Baseline não
+    // ocorrer, a query legada é a aproximação disponível. Ver FV-DOM-003.
+    const congelados = await ProjetoFV.countDocuments(aplicarEscopo({ 'governanca.freeze_status': { $in: FREEZE_STATUS_TRAVADOS } }, req, { contexto: 'painel.congelados' }))
     // S7.3.1: métricas documentais (documento ≈ unifilar/proposta congelados)
     const docsGerados = await ProjetoFV.countDocuments(aplicarEscopo({ 'governanca.snapshot_unifilar': { $ne: null } }, req, { contexto: 'painel.docs' }))
     const docsCongelados = congelados

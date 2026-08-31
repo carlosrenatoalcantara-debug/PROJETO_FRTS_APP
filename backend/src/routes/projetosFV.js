@@ -28,6 +28,17 @@ import {
   criarCompartilhamento,
   duplicarProjetoFV,           // S8.4 — ciclo de vida
   ampliarProjetoFV,            // P1-UX-CORE-EVOLUTION-01 (FASE 4)
+  criarOpcaoFV,                // FV-DOM-032 — opções concorrentes da proposta
+  enviarPropostaFV,            // FV-UX-035 — envio da proposta ao cliente
+  obterEnvioDaProposta,
+  registrarParecerFV,          // FV-DOM-042 — Parecer de Acesso
+  obterParecerFV,
+  confirmarParecerFV,
+  obterConexaoFV,              // FV-DOM-047 — conexão física da usina
+  registrarConexaoFV,
+  removerConexaoFV,
+  listarOpcoesFV,
+  aceitarOpcaoDaProposta,
   totaisProjetoFV,             // P1-MULTIINVERSOR (FASE 4)
   arquivarProjetoFV,
   restaurarProjetoFV,
@@ -37,6 +48,24 @@ import {
   prepararComFatura,
   finalizarComFatura,
 } from '../controllers/projetoFVFunilController.js'
+import {
+  listarCotacoes,
+  obterCotacao,
+  listarOrcamentos,
+  obterOrcamento,
+  obterOrcamentoVigente,
+  calcularFinanceiro,
+  obterBaseline,
+  obterGate,
+  listarFases,
+  criarCotacao,
+  criarOrcamento,
+  atualizarOrcamento,
+  emitirOrcamento,
+  aprovarOrcamento,
+  rejeitarOrcamento,
+  cancelarOrcamento,
+} from '../controllers/agregadosFvController.js'
 
 const router = Router()
 
@@ -56,6 +85,25 @@ router.post('/finalizar-com-fatura', finalizarComFatura)
 router.put('/:id/etapa',           salvarEtapaProjetoFV)
 
 // ── S3.5: Governança técnica (snapshots, revisões, divergência) ─────────────
+// FV-DOM-032 — opções concorrentes da MESMA proposta comercial.
+router.get('/:id/opcoes',              listarOpcoesFV)
+router.post('/:id/opcoes',             criarOpcaoFV)
+router.post('/:id/proposta/aceitar',   aceitarOpcaoDaProposta)
+// FV-UX-035 — o envio ao cliente precede o aceite.
+router.post('/:id/proposta/enviar',    enviarPropostaFV)
+router.get('/:id/proposta/envio',      obterEnvioDaProposta)
+
+// FV-DOM-042 — Parecer de Acesso. Pertence a um projeto que já existe (D2);
+// a confirmação humana é o portão antes de qualquer uso do dado.
+router.post('/:id/parecer',            registrarParecerFV)
+router.get('/:id/parecer',             obterParecerFV)
+router.post('/:id/parecer/confirmar',  confirmarParecerFV)
+
+// FV-DOM-047 — o FATO da conexão. Não altera Gate, Baseline nem projeto.status.
+router.get('/:id/conexao',             obterConexaoFV)
+router.put('/:id/conexao',             registrarConexaoFV)
+router.delete('/:id/conexao',          removerConexaoFV)
+
 router.post('/:id/governanca/congelar',    congelarProjetoFV)
 router.post('/:id/governanca/revisao',      criarRevisaoProjetoFV)
 router.put('/:id/governanca/status',        alterarStatusGovernanca)
@@ -79,6 +127,34 @@ router.put('/:id/governanca/comercial/crm',           atualizarCrm)
 router.post('/:id/governanca/comercial/comunicacao',  registrarComunicacao)
 router.post('/:id/governanca/comercial/compartilhar', criarCompartilhamento)
 
+// ── FV-API-001 · API canônica dos agregados (SOMENTE LEITURA) ───────────────
+// Respondem direto por Cotacao/Orcamento/Baseline/Gate, sem adapters e sem
+// tocar no subdocumento legado. Nenhuma rota existente foi alterada.
+// `/orcamentos/vigente` vem antes de `/orcamentos` por clareza — os padrões têm
+// contagens de segmento diferentes, então não há ambiguidade de roteamento.
+// Leitura
+router.get('/:id/cotacoes',                 listarCotacoes)
+router.get('/:id/cotacoes/:cotacaoId',      obterCotacao)
+// `/vigente` ANTES de `/:orcamentoId` — senao o parametro captura a palavra.
+router.get('/:id/orcamentos/vigente',       obterOrcamentoVigente)
+router.get('/:id/orcamentos',               listarOrcamentos)
+router.get('/:id/orcamentos/:orcamentoId',  obterOrcamento)
+router.get('/:id/baseline',                 obterBaseline)
+router.get('/:id/gate',                     obterGate)
+router.get('/:id/fases',                    listarFases)
+
+// ── FV-API-002 · Escrita do fluxo comercial ─────────────────────────────────
+// Cada rota delega a UMA operacao de dominio. A Baseline NAO tem rota de
+// escrita: ela nasce exclusivamente de `/orcamentos/:id/aprovar` e e imutavel
+// (M-2) — nao existe PUT, PATCH nem DELETE para ela.
+router.post('/:id/cotacoes',                          criarCotacao)
+router.post('/:id/orcamentos',                        criarOrcamento)
+router.put('/:id/orcamentos/:orcamentoId',            atualizarOrcamento)
+router.post('/:id/orcamentos/:orcamentoId/emitir',    emitirOrcamento)
+router.post('/:id/orcamentos/:orcamentoId/aprovar',   aprovarOrcamento)
+router.post('/:id/orcamentos/:orcamentoId/rejeitar',  rejeitarOrcamento)
+router.post('/:id/orcamentos/:orcamentoId/cancelar',  cancelarOrcamento)
+
 // ── CRUD existente (preservado) ─────────────────────────────────────────────
 router.get('/',                    listarProjetosFV)
 router.get('/:id',                 buscarProjetoFV)
@@ -98,5 +174,8 @@ router.post('/:id/ampliar',   ampliarProjetoFV)
 router.post('/:id/arquivar',  arquivarProjetoFV)
 router.post('/:id/restaurar', restaurarProjetoFV)
 router.put('/:id/status',     alterarStatusCiclo)
+
+// FV-DOM-012 — contrato financeiro V1. POST porque executa o motor; não grava.
+router.post('/:id/financeiro/calcular', calcularFinanceiro)
 
 export default router
