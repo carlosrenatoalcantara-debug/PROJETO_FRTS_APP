@@ -10,9 +10,13 @@
  * a FV-DOM-008 provou caro.
  *
  * ── O que este arquivo é e não é ─────────────────────────────────────────────
- * É uma MUDANÇA DE LUGAR: os aliases abaixo são os mesmos que `eletricoDoModulo`
- * já usava, na mesma ordem. Nenhum foi acrescentado, removido ou reordenado, e
- * `catalogo.js` passou a delegar — o valor lido é o mesmo antes e depois.
+ * Nasceu como MUDANÇA DE LUGAR: os aliases eram os mesmos de `eletricoDoModulo`,
+ * na mesma ordem, e `catalogo.js` passou a delegar.
+ *
+ * Isso deixou de ser verdade: a lista de `potencia_w` ganhou `potencia_wp` (veja
+ * a nota em CAMPOS_MODULO). A lista herdada estava incompleta em relação ao que
+ * os caminhos de cadastro realmente gravam, e este arquivo é o lugar certo para
+ * corrigir — é o SSOT. Os demais campos permanecem como herdados.
  *
  * NÃO é um catálogo, não calcula nada e não completa ausência: o que o
  * `Equipamento.especificacoes` não declarar sai `null`, para virar lacuna em
@@ -21,9 +25,32 @@
  * Puro: sem I/O, sem React, sem dependência de node.
  */
 
-/** Alias por campo canônico, na ORDEM de precedência herdada de `eletricoDoModulo`. */
+/**
+ * Alias por campo canônico, na ORDEM de precedência.
+ *
+ * `potencia_wp` foi ACRESCENTADO, em primeiro lugar. A lista herdada de
+ * `eletricoDoModulo` não o continha, e o efeito foi medido em produção: os 54
+ * módulos do catálogo gravam `especificacoes.potencia_wp` — 100% deles — porque
+ * é o que o formulário de cadastro (`ModalNovoModulo.jsx`) e a extração por
+ * datasheet (`equipamentosController.js`) escrevem. Nenhum grava os três nomes
+ * antigos. O leitor devolvia `null` para o catálogo inteiro, e a tela dizia
+ * "potência não informada" para módulos que tinham a potência gravada.
+ *
+ * Primeiro na ordem por ser o mais específico: o sufixo `wp` declara a unidade,
+ * enquanto `potencia` sozinho é ambíguo entre tipos (W no módulo, kW no
+ * inversor). É a mesma precedência que `GerenciadorArranjos.jsx`,
+ * `agregarArranjosFV.js` e `derivadosTopologia.js` já usavam — esta lista passa
+ * a concordar com eles, não a inaugurar uma convenção.
+ *
+ * Medição prévia (T1, somente leitura, produção): zero documentos com mais de
+ * um alias preenchido, logo zero divergência possível. A mudança recupera
+ * valores `null` e NÃO reinterpreta nenhum número já em uso.
+ *
+ * `potencia_pico` entra como sinônimo que o importador SolarMarket grava ao
+ * lado de `potencia_w` (`integracoes/solarmarket/normalizer.js`).
+ */
 export const CAMPOS_MODULO = Object.freeze({
-  potencia_w:    ['potencia', 'potencia_w', 'potenciaW'],
+  potencia_w:    ['potencia_wp', 'potencia_w', 'potenciaW', 'potencia_pico', 'potencia'],
   voc:           ['voc', 'voc_v'],
   vmpp:          ['vmpp', 'vmp', 'vmpp_v'],
   isc:           ['isc', 'isc_a'],
