@@ -444,3 +444,21 @@ export function confirmarParecer(projetoId) {
   return enviar(`${base(projetoId)}/parecer/confirmar`,
     { method: 'POST', body: json({}) }, 'confirmarParecer')
 }
+
+/**
+ * Inversores compatíveis com a configuração preliminar — Sprint D2.
+ *
+ * `POST /api/engenharia/inversores-compativeis` (D1) orquestra o motor canônico
+ * `analisarCompatibilidade` sobre o catálogo do SSOT. O cliente NÃO conhece
+ * nenhuma regra elétrica: manda a configuração e o `modulo_id`, recebe a lista.
+ *
+ * Respostas: 200 com `{ok:true, compativeis[], incompativeis[], criterio}`;
+ * 422 quando falta dado para avaliar (`CONFIG_INCOMPLETA`, `MODULO_SEM_DADOS`);
+ * 404 quando o módulo não existe. Os três chegam aqui como `ErroHttp` com
+ * `codigo`, e a tela distingue "nenhum compatível" de "não deu para avaliar".
+ */
+export function consultarInversoresCompativeis({ modulo_id, configuracao, clima }) {
+  return enviar('/api/engenharia/inversores-compativeis',
+    { method: 'POST', body: json({ modulo_id, configuracao, clima }) },
+    'consultarInversoresCompativeis')
+}
