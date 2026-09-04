@@ -84,6 +84,23 @@ import {
   fasesDoInversor, tipoDoInversor, entradasPorMppt,
 } from '../catalogo'
 
+/**
+ * Sprint D2 — a seleção do inversor saiu de Equipamentos para Topologia. Os
+ * testes que precisam de um inversor NA COMPOSIÇÃO passam a semeá-lo pelo
+ * projeto, que é de onde a tela lê. O que verificam continua valendo.
+ */
+const semear = (inv, quantidade = 1) => {
+  projetoAtual = JSON.parse(JSON.stringify(PROJETO))
+  const linha = {
+    id: inv._id, marca: inv.fabricante, modelo: inv.modelo,
+    potencia_kw: inv.especificacoes.potencia ?? inv.especificacoes.potencia_kw ?? null,
+    tipo: 'string', fases: inv.especificacoes.fases ?? inv.especificacoes.fases_saida ?? null,
+    quantidade, equipamento_id: inv._id,
+  }
+  projetoAtual.arranjos = [{ id: 'principal', rotulo: 'Arranjo principal', tipo: 'principal',
+    paineis: [], inversores: [linha] }]
+}
+
 const OK = {
   compativel: true, erros: [], warnings: [],
   calculos: { voc_string_max: 561, vmpp_string_quente: 408, isc_total: 22.94 },
@@ -167,39 +184,44 @@ describe('A3 · seletor de inversores', () => {
     expect(tipoDoInversor(INV_HIB)).toBe('hibrido')
   })
 
-  it('9 · a lista é agrupada por tecnologia', async () => {
-    render(<EtapaEquipamentos />)
-    await waitFor(() => expect(screen.getByLabelText('Inversor').disabled).toBe(false))
-    const grupos = [...screen.getByLabelText('Inversor').querySelectorAll('optgroup')]
-      .map((g) => g.label.replace(/\s*\(\d+\)$/, ''))
-    expect(grupos).toContain('String')
-    expect(grupos).toContain('Microinversor')
-    expect(grupos).toContain('Híbrido')
+  // Sprint C: a seleção virou Marca → Modelo. O agrupamento por tecnologia
+  // sobreviveu, agora DENTRO da marca escolhida. As tecnologias do catálogo
+  // estão espalhadas entre fabricantes, então nenhuma marca sozinha exibe as
+  // três — o que este teste protege é que o agrupamento continua existindo e
+  // que uma marca não vaza modelos de outra.
+  // Sprint D2: não há mais lista de inversores em Equipamentos. A classificação
+  // por tecnologia, que este teste protegia, é do leitor canônico do catálogo —
+  // e continua verificada aqui, sem depender de tela alguma.
+  it('9 · a classificação por tecnologia é do leitor canônico', () => {
+    expect(tipoDoInversor(INV_TRI)).toBe('string')
+    expect(tipoDoInversor(INV_MONO)).toBe('string')
+    expect(tipoDoInversor(INV_MICRO)).toBe('micro')
+    expect(tipoDoInversor(INV_HIB)).toBe('hibrido')
+    const grupos = new Set(TODOS.map((e) => tipoDoInversor(e)).filter(Boolean))
+    expect(grupos.has('string')).toBe(true)
+    expect(grupos.has('micro')).toBe(true)
   })
 
-  it('10 · a seleção continua gravando o `equipamento_id` do catálogo', async () => {
-    // FV-UX-029: a tela virou composição — adicionar com quantidade, e a
-    // gravação passou a ser `arranjos` + a projeção `equipamentos`.
+  // Sprint D2: a seleção do inversor mudou de tela. O que este teste garante —
+  // que o `equipamento_id` do catálogo é o que chega ao projeto — passa a ser
+  // verificado ao salvar a composição de módulos sem perder o inversor.
+  it('10 · o `equipamento_id` do catálogo é preservado ao salvar', async () => {
+    semear(INV_TRI)
     render(<EtapaEquipamentos />)
-    await waitFor(() => expect(screen.getByLabelText('Inversor').disabled).toBe(false))
+    await waitFor(() => expect(screen.getByLabelText('Marca do módulo').disabled).toBe(false))
     const put = (el, v) => {
       const p = Object.getOwnPropertyDescriptor(el.constructor.prototype, 'value').set
       p.call(el, v); el.dispatchEvent(new Event('change', { bubbles: true }))
     }
+    put(screen.getByLabelText('Marca do módulo'), 'Znshine')
     put(screen.getByLabelText('Módulo'), 'm1')
     fireEvent.change(screen.getByLabelText('Quantidade do novo módulo'), { target: { value: '24' } })
     fireEvent.click(screen.getByText('Adicionar módulo'))
-    put(screen.getByLabelText('Inversor'), 'i1')
-    fireEvent.change(screen.getByLabelText('Quantidade do novo inversor'), { target: { value: '1' } })
-    fireEvent.click(screen.getByText('Adicionar inversor'))
     fireEvent.click(screen.getByText('Salvar composição'))
     await waitFor(() => expect(salvarEtapa).toHaveBeenCalled())
-    const arranjos = salvarEtapa.mock.calls.find(([e]) => e === 'arranjos')[1]
+    const arranjos = salvarEtapa.mock.calls.find(([e]) => e === 'arranjos')?.[1]
     expect(arranjos.lista[0].paineis[0].equipamento_id).toBe('m1')
     expect(arranjos.lista[0].inversores[0].equipamento_id).toBe('i1')
-    const eq = salvarEtapa.mock.calls.find(([e]) => e === 'equipamentos')[1]
-    expect(eq.inversor.equipamento_id).toBe('i1')
-    expect(eq.paineis[0].equipamento_id).toBe('m1')
   })
 })
 
@@ -226,33 +248,31 @@ describe('A4 · aviso de fase', () => {
     expect(avisoDeFase('', 3)).toBe(null)
   })
 
+  // Sprint D2: o inversor vem da composição (escolhido em Topologia). O que
+  // este teste protege continua: o trifásico NÃO é escondido nem bloqueado —
+  // a tela avisa e segue salvável.
   it('15 · a tela mostra o aviso e NÃO esconde nem bloqueia o trifásico', async () => {
+    semear(INV_TRI)
     render(<EtapaEquipamentos />)
-    await waitFor(() => expect(screen.getByLabelText('Inversor').disabled).toBe(false))
-    const sel = screen.getByLabelText('Inversor')
-    // O trifásico continua na lista.
-    expect([...sel.options].some((o) => o.text.includes('SG15RT'))).toBe(true)
+    await waitFor(() => expect(screen.getByLabelText('Marca do módulo').disabled).toBe(false))
+    expect(document.body.textContent).toContain('SG15RT')
+    expect(document.body.textContent).toContain('pode exigir adequação da entrada elétrica')
+    // O aviso não bloqueia: alterar a composição continua habilitando o salvar.
     const put = (el, v) => {
       const p = Object.getOwnPropertyDescriptor(el.constructor.prototype, 'value').set
       p.call(el, v); el.dispatchEvent(new Event('change', { bubbles: true }))
     }
-    // FV-UX-029: o aviso passou a depender do inversor ESTAR na composição.
-    put(sel, 'i1')
-    fireEvent.change(screen.getByLabelText('Quantidade do novo inversor'), { target: { value: '1' } })
-    fireEvent.click(screen.getByText('Adicionar inversor'))
-    expect(document.body.textContent).toContain('pode exigir adequação da entrada elétrica')
-    // Adicionável e salvável — sem bloqueio.
+    put(screen.getByLabelText('Marca do módulo'), 'Znshine')
+    put(screen.getByLabelText('Módulo'), 'm1')
+    fireEvent.change(screen.getByLabelText('Quantidade do novo módulo'), { target: { value: '24' } })
+    fireEvent.click(screen.getByText('Adicionar módulo'))
     expect(screen.getByText('Salvar composição').disabled).toBe(false)
   })
 
   it('16 · monofásico compatível não gera aviso na tela', async () => {
+    semear(INV_MONO)
     render(<EtapaEquipamentos />)
-    await waitFor(() => expect(screen.getByLabelText('Inversor').disabled).toBe(false))
-    const put = (el, v) => {
-      const p = Object.getOwnPropertyDescriptor(el.constructor.prototype, 'value').set
-      p.call(el, v); el.dispatchEvent(new Event('change', { bubbles: true }))
-    }
-    put(screen.getByLabelText('Inversor'), 'i2')
+    await waitFor(() => expect(screen.getByLabelText('Marca do módulo').disabled).toBe(false))
     expect(document.body.textContent).not.toContain('adequação da entrada elétrica')
   })
 })

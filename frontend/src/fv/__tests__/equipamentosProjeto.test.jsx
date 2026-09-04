@@ -55,7 +55,7 @@ import EtapaEquipamentos from '../paginas/etapas/EtapaEquipamentos'
 
 const montar = async () => {
   render(<EtapaEquipamentos />)
-  await waitFor(() => expect(screen.getByLabelText('Módulo').disabled).toBe(false))
+  await waitFor(() => expect(screen.getByLabelText('Marca do módulo').disabled).toBe(false))
 }
 const escolher = (rotulo, valor) => fireEvent.change(screen.getByLabelText(rotulo), { target: { value: valor } })
 const salvar = () => fireEvent.click(screen.getByText('Salvar equipamentos'))
@@ -112,7 +112,7 @@ describe('FV-UX-019 · o que independe da forma da tela', () => {
 
   it('14 · MPPT e dimensionamento continuam fora desta etapa', async () => {
     render(<EtapaEquipamentos />)
-    await waitFor(() => expect(screen.getByLabelText('Módulo').disabled).toBe(false))
+    await waitFor(() => expect(screen.getByLabelText('Marca do módulo').disabled).toBe(false))
     expect(document.body.textContent).toContain('MPPT não são definidos aqui')
   })
 })
