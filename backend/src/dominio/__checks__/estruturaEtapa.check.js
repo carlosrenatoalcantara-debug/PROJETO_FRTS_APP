@@ -212,7 +212,14 @@ const fluxo = ler(FLUXO)
 const ordem = [...fluxo.matchAll(/chave: '([a-z_]+)'/g)].map((m) => m[1])
 const i = (c) => ordem.indexOf(c)
 ok(i('estrutura') > i('equipamentos'), 'Estrutura vem depois de Equipamentos')
-ok(i('estrutura') < i('mppt'), 'Estrutura vem antes da Topologia MPPT')
+// Sprint A reordenou o grupo comercial: Equipamentos → Topologia → Estrutura →
+// Cotações. A asserção anterior (`estrutura` ANTES de `mppt`) fixava a ordem
+// que a sprint substitui — a Topologia descreve a composição, e a Estrutura
+// descreve como essa composição se fixa. O que a FV-UX-030 garante continua
+// verificado acima e abaixo: Estrutura depois de Equipamentos, antes do
+// Orçamento, e gravada em `equipamentos.estrutura`.
+ok(i('estrutura') > i('mppt'), 'Estrutura vem depois da Topologia')
+ok(i('dimensionamento') < i('equipamentos'), 'Dimensionamento vem ANTES de Equipamentos (Sprint A)')
 ok(i('estrutura') < i('orcamentos'), 'Estrutura vem antes do Orçamento')
 ok(ler('frontend/src/fv/rotas.jsx').includes('path="estrutura"'), 'rota registrada')
 
