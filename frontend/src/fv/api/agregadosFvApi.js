@@ -109,6 +109,24 @@ export function calcularDimensionamento(dados) {
 }
 
 /**
+ * Irradiância do local — Sprint B.
+ *
+ * `GET /api/irradiancia/local` já existia e já é servido: consulta a NASA POWER
+ * por latitude/longitude (`utils/nasaPowerAPI.js`) e, quando ela não responde,
+ * devolve o padrão com `fonte: 'padrão'`. Nenhuma rota nova foi criada aqui — a
+ * UX nova apenas passou a consumir o que o wizard antigo (`E4Irradiancia.jsx`)
+ * já consumia e que a migração havia deixado para trás.
+ *
+ * Resposta: `{ sucesso, hsp_dia, hsp_anual, latitude, longitude, fonte, kt_medio?, mensagem? }`.
+ * `fonte` é `'nasa-power'` ou `'padrão'` — o cliente NÃO reinterpreta: exibe o
+ * que o servidor declarou.
+ */
+export function consultarIrradiancia({ latitude, longitude }) {
+  const q = new URLSearchParams({ latitude: String(latitude), longitude: String(longitude) })
+  return enviar(`/api/irradiancia/local?${q}`, { method: 'GET' }, 'consultarIrradiancia')
+}
+
+/**
  * Validação elétrica canônica — FV-UX-026.
  *
  * `POST /api/engenharia/compatibilidade-eletrica` é o adapter do contrato

@@ -124,11 +124,27 @@ describe('FV-UX-020 · o cálculo é do servidor', () => {
     expect(calcularDimensionamento).not.toHaveBeenCalled()
   })
 
-  it('5 · entrada ausente de etapa anterior bloqueia e diz qual é', () => {
+  // Sprint A/B: Dimensionamento passou a vir ANTES de Equipamentos, então a
+  // potência do módulo NÃO pode mais bloquear — ela ainda não foi escolhida. O
+  // motor já tem referência de 550 W para estimar a quantidade mínima, e a tela
+  // declara que está usando referência em vez de travar o cálculo.
+  it('5 · sem módulo escolhido o cálculo segue, declarando a referência', () => {
     projetoAtual = { ...PROJETO, equipamentos: { paineis: [], inversor: {} } }
     render(<EtapaDimensionamento />)
     premissasPadrao()
     expect(document.body.textContent).toContain('Potência do módulo')
+    expect(document.body.textContent).toContain('550 W de referência')
+    expect(screen.getByText('Calcular dimensionamento').disabled).toBe(false)
+  })
+
+  // A intenção original do teste 5 — entrada obrigatória ausente bloqueia e diz
+  // qual é — continua verificada, agora sobre o consumo, que é de fato exigido.
+  it('5b · consumo ausente bloqueia e nomeia a etapa que o grava', () => {
+    projetoAtual = { ...PROJETO, fatura_extracao: {} }
+    render(<EtapaDimensionamento />)
+    premissasPadrao()
+    expect(document.body.textContent).toContain('Consumo (kWh/mês)')
+    expect(document.body.textContent).toContain('não informado')
     expect(screen.getByText('Calcular dimensionamento').disabled).toBe(true)
   })
 })
