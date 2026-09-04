@@ -67,6 +67,22 @@ import {
 // ─── Constantes normativas ────────────────────────────────────────────────────
 
 /** Limite oversizing CC/CA → WARNING */
+/**
+ * Vocabulário de classificação, único no sistema.
+ *
+ * `ok_parcial` existe para não empatar dois estados diferentes: um arranjo sem
+ * nenhuma ressalva e um arranjo que passou em tudo o que era avaliável mas teve
+ * critério sem dado. Chamar os dois de `ok` é como a ausência de limite de
+ * curto-circuito virava aprovação silenciosa.
+ */
+export const STATUS_CRITERIO = Object.freeze({
+  OK:           'ok',
+  OK_PARCIAL:   'ok_parcial',
+  ATENCAO:      'atencao',
+  INCOMPATIVEL: 'incompativel',
+  NAO_AVALIADO: 'nao_avaliado',
+})
+
 const OVERSIZING_LIMITE_WARNING = 1.30
 
 /** Limite oversizing CC/CA → ERRO CRÍTICO */
@@ -325,6 +341,12 @@ export function analisarCompatibilidade({
 
   const erros    = []
   const warnings = []
+  /**
+   * Critérios que NÃO puderam ser avaliados por falta de dado declarado.
+   * Terceiro estado, ao lado de erro e aviso: sem ele, "não sei" viraria "ok" —
+   * que é exatamente o que a ausência do limite de curto-circuito produzia.
+   */
+  const naoAvaliados = []
 
   // ── 3. Extrai parâmetros normalizados ───────────────────────────────────────
 
@@ -339,7 +361,21 @@ export function analisarCompatibilidade({
     tensao_max_entrada,
     mppt_min,
     mppt_max,
+    /**
+     * Limite de corrente de TRABALHO da entrada MPPT (`corrente_max_por_mppt`
+     * no SSOT). É o quanto a entrada opera continuamente — NÃO é o limite de
+     * curto-circuito, e a distinção é o objeto desta correção.
+     */
     corrente_max_mppt,
+    /**
+     * Limite de corrente de CURTO-CIRCUITO da entrada (`corrente_isc_max` no
+     * SSOT). Grandeza diferente da anterior e declarada separadamente pelo
+     * fabricante: dos 19 inversores do catálogo que declaram as duas, os 19
+     * têm valores diferentes (ex.: Kehua SP13000-B2 → trabalho 13 A, curto
+     * 16,9 A). Ausente ⇒ o critério de curto fica `nao_avaliado`; nunca se
+     * substitui um limite pelo outro.
+     */
+    corrente_isc_max_mppt,
     corrente_max_entrada,
     potencia_ca_kw,
     oversizing_max_fabricante,
@@ -366,6 +402,7 @@ export function analisarCompatibilidade({
     faixa_mppt_min:      mppt_min,
     faixa_mppt_max:      mppt_max,
     corrente_max_mppt,
+    corrente_isc_max_mppt: corrente_isc_max_mppt ?? null,
     oversizing_max:      limiteOversizing,
   }
 
@@ -503,41 +540,99 @@ export function analisarCompatibilidade({
   // Strings em paralelo: correntes se somam
   // corrente_max_mppt é o limite por MPPT — verificamos por MPPT (strings_paralelo)
   //
-  // Q1 (FV-DOM-023/024) — NBR 16690 §5.2: a corrente de PROJETO leva o fator de
-  // segurança 1,25. Este service era o único lugar do sistema que o omitia; o
-  // wizard e `fv-shared` já o aplicavam.
+  // ── QUATRO GRANDEZAS, QUATRO PAPÉIS ─────────────────────────────────────────
   //
-  // É a ÚNICA mudança de resultado desta consolidação, e é deliberada. Arranjos
-  // cuja corrente já ocupava mais de 80 % do limite do MPPT passam de aprovados
-  // a reprovados. O histórico NÃO é recalculado (Q6): a regra vale para
-  // análises novas.
-  const isc_total  = r(correnteProjeto(isc, strings_paralelo))
-  const impp_total = r(impp * strings_paralelo)
+  // A versão anterior comparava UMA corrente contra UM limite e reprovava:
+  //
+  //     Isc × 1,25 > corrente_max_mppt  →  CORRENTE_ISC_EXCEDIDA (crítico)
+  //
+  // Duas coisas diferentes estavam do mesmo lado dessa conta. `Isc × 1,25` é a
+  // corrente de PROJETO da NBR 16690 §5.2 — a que o CONDUTOR e a proteção têm
+  // de suportar. `corrente_max_mppt` é a corrente de TRABALHO da entrada. E o
+  // limite que de fato diz se a entrada aguenta o módulo é um terceiro campo,
+  // `corrente_isc_max`, que o fabricante declara à parte — dos 19 inversores do
+  // catálogo que declaram os dois, os 19 têm valores diferentes.
+  //
+  // Resultado: módulos eram reprovados por ultrapassar um limite que não é o
+  // limite deles. A separação abaixo é a correção, e cada comparação passou a
+  // ter o par certo:
+  //
+  //   isc_operacao  = Isc × strings          × corrente_isc_max_mppt   → ERRO
+  //   impp_total    = Impp × strings         × corrente_max_mppt       → ATENÇÃO
+  //   isc_total     = Isc × strings × 1,25   × corrente_max_mppt       → ATENÇÃO
+  //
+  // O fator 1,25 NÃO foi removido: ele continua sendo a corrente de projeto que
+  // dimensiona cabo e proteção (`selecionarCabo`, `correnteProjeto`) e continua
+  // reportado em `calculos.isc_total`. O que mudou é que ele deixou de ser o
+  // critério de reprovação contra o limite errado.
+  const isc_operacao = r(isc * strings_paralelo)
+  const isc_total    = r(correnteProjeto(isc, strings_paralelo))
+  const impp_total   = r(impp * strings_paralelo)
 
-  if (isc_total > corrente_max_mppt) {
-    const excesso = r(isc_total - corrente_max_mppt, 3)
+  const temLimiteCurto = corrente_isc_max_mppt != null && isFinite(corrente_isc_max_mppt)
+
+  // ── Limite ABSOLUTO: curto-circuito. Único critério de corrente que reprova ──
+  if (temLimiteCurto && isc_operacao > corrente_isc_max_mppt) {
+    const excesso = r(isc_operacao - corrente_isc_max_mppt, 3)
     erros.push({
       codigo:           'CORRENTE_ISC_EXCEDIDA',
       severidade:       'critico',
       nivel:            'critico',
-      mensagem:         `CORRENTE EXCEDIDA: Isc de projeto (${isc_total} A = ${isc} A × ` +
-                        `${strings_paralelo} string(s) × ${FATOR_ISC_NBR16690}, NBR 16690 §5.2) excede ` +
-                        `a corrente máxima de entrada MPPT (${corrente_max_mppt} A) em ${excesso} A. ` +
-                        `Risco de destruição do MPPT. Reduza strings em paralelo.`,
-      explicacao_curta: 'Corrente de projeto excede o limite do MPPT.',
-      valores:          { isc_total, corrente_max_mppt, excesso_a: excesso,
-                          strings_paralelo, isc_modulo: isc,
-                          fator_seguranca: FATOR_ISC_NBR16690, norma: 'NBR 16690 §5.2' },
+      mensagem:         `CORRENTE DE CURTO-CIRCUITO EXCEDIDA: Isc do arranjo (${isc_operacao} A = ` +
+                        `${isc} A × ${strings_paralelo} string(s)) excede a corrente máxima de ` +
+                        `curto-circuito declarada pelo fabricante (${corrente_isc_max_mppt} A) em ` +
+                        `${excesso} A. Limite absoluto da entrada — reduza strings em paralelo ` +
+                        `ou escolha outro módulo.`,
+      explicacao_curta: 'Isc do módulo excede o limite de curto-circuito do inversor.',
+      valores:          { isc_operacao, corrente_isc_max_mppt, excesso_a: excesso,
+                          strings_paralelo, isc_modulo: isc },
     })
-  } else if (impp_total > corrente_max_mppt) {
+  }
+
+  // ── Corrente de OPERAÇÃO acima do limite de trabalho: atenção, não bloqueio ──
+  if (corrente_max_mppt != null && isFinite(corrente_max_mppt) && impp_total > corrente_max_mppt) {
     warnings.push({
       codigo:           'CORRENTE_IMPP_ELEVADA',
       severidade:       'alerta',
       nivel:            'atencao',
-      mensagem:         `Impp total (${impp_total} A) excede a corrente máxima MPPT (${corrente_max_mppt} A). ` +
-                        `Isc (${isc_total} A) está no limite. Monitore temperatura dos condutores.`,
-      explicacao_curta: 'Corrente de operação próxima ao limite do MPPT — monitorar condutores.',
-      valores:          { impp_total, isc_total, corrente_max_mppt },
+      mensagem:         `A corrente de operação do módulo (Impp ${impp_total} A = ${impp} A × ` +
+                        `${strings_paralelo} string(s)) excede a corrente máxima de entrada ` +
+                        `declarada pelo fabricante para a entrada (${corrente_max_mppt} A). O inversor ` +
+                        `limitará a corrente e haverá perda de geração nos picos; não é ` +
+                        `impedimento elétrico. Monitore a temperatura dos condutores.`,
+      explicacao_curta: 'Corrente de operação acima da corrente máxima de trabalho.',
+      valores:          { impp_total, impp_modulo: impp, corrente_max_mppt,
+                          excesso_a: r(impp_total - corrente_max_mppt, 3), strings_paralelo },
+    })
+  }
+
+  // ── Corrente de PROJETO acima do limite de trabalho: informação normativa ────
+  // Era exatamente esta comparação que reprovava. Continua sendo feita e dita,
+  // porque dimensiona condutor e proteção — mas não decide compatibilidade.
+  if (corrente_max_mppt != null && isFinite(corrente_max_mppt) && isc_total > corrente_max_mppt) {
+    warnings.push({
+      codigo:           'CORRENTE_PROJETO_ACIMA_DO_TRABALHO',
+      severidade:       'alerta',
+      nivel:            'atencao',
+      mensagem:         `Corrente de projeto (${isc_total} A = ${isc} A × ${strings_paralelo} ` +
+                        `string(s) × ${FATOR_ISC_NBR16690}, NBR 16690 §5.2) acima da corrente ` +
+                        `máxima de trabalho da entrada (${corrente_max_mppt} A). É a corrente que ` +
+                        `o CONDUTOR e a proteção devem suportar, não um limite do inversor — ` +
+                        `dimensione cabo e proteção por ela.`,
+      explicacao_curta: 'Corrente de projeto normativa acima da corrente de trabalho.',
+      valores:          { isc_total, corrente_max_mppt, isc_modulo: isc,
+                          fator_seguranca: FATOR_ISC_NBR16690, norma: 'NBR 16690 §5.2' },
+    })
+  }
+
+  // ── Sem limite de curto declarado: o critério não é avaliado, e isso é dito ──
+  if (!temLimiteCurto) {
+    naoAvaliados.push({
+      criterio:  'corrente_curto_circuito',
+      motivo:    'O catálogo não declara `corrente_isc_max` para este inversor. ' +
+                 'Sem o limite de curto-circuito, o critério não é avaliado — a ' +
+                 'corrente de trabalho NÃO é usada no lugar dele.',
+      valores:   { isc_operacao, isc_modulo: isc, strings_paralelo },
     })
   }
 
@@ -625,9 +720,11 @@ export function analisarCompatibilidade({
     t_cel_max_c:            r(t_cel_max, 1),
     delta_temp_quente_c:    r(deltaT_quente, 2),
 
-    // Verificação 3 — Correntes
-    // `isc_total` é a corrente de PROJETO (já com o fator de 1,25 da Q1). O
-    // fator viaja junto para que quem lê saiba o que o número significa.
+    // Verificação 3 — Correntes. Três números distintos, nomeados:
+    //   `isc_operacao` Isc × strings          — comparado ao limite de CURTO
+    //   `isc_total`    Isc × strings × 1,25   — corrente de PROJETO (condutor)
+    //   `impp_total`   Impp × strings         — corrente de OPERAÇÃO
+    isc_operacao,
     isc_total,
     isc_fator_seguranca: FATOR_ISC_NBR16690,
     impp_total,
@@ -647,8 +744,53 @@ export function analisarCompatibilidade({
     margem_oversizing_percentual,
   }
 
+  /**
+   * Classificação de corrente, por critério e com os valores medidos à vista.
+   * A UX não precisa reconstruir nada nem interpretar códigos.
+   */
+  const avaliacao_corrente = {
+    operacao: corrente_max_mppt == null || !isFinite(corrente_max_mppt)
+      ? { status: STATUS_CRITERIO.NAO_AVALIADO, impp_total, limite_a: null,
+          motivo: 'O catálogo não declara a corrente máxima de trabalho da entrada.' }
+      : { status: impp_total > corrente_max_mppt ? STATUS_CRITERIO.ATENCAO : STATUS_CRITERIO.OK,
+          impp_total, limite_a: corrente_max_mppt,
+          margem_a: r(corrente_max_mppt - impp_total, 3), motivo: null },
+    curto_circuito: !temLimiteCurto
+      ? { status: STATUS_CRITERIO.NAO_AVALIADO, isc_operacao, limite_a: null,
+          motivo: 'O catálogo não declara `corrente_isc_max` para este inversor.' }
+      : { status: isc_operacao > corrente_isc_max_mppt
+            ? STATUS_CRITERIO.INCOMPATIVEL : STATUS_CRITERIO.OK,
+          isc_operacao, limite_a: corrente_isc_max_mppt,
+          margem_a: r(corrente_isc_max_mppt - isc_operacao, 3), motivo: null },
+    projeto_normativa: {
+      isc_total, fator: FATOR_ISC_NBR16690, norma: 'NBR 16690 §5.2',
+      limite_trabalho_a: corrente_max_mppt ?? null,
+      acima_do_trabalho: corrente_max_mppt != null && isFinite(corrente_max_mppt)
+        ? isc_total > corrente_max_mppt : null,
+      // Explicitamente NÃO é critério de compatibilidade.
+      decide_compatibilidade: false,
+    },
+  }
+
+  /**
+   * `status` é aditivo: `compativel` continua sendo `erros.length === 0`, e
+   * nenhum consumidor existente muda de comportamento. O que ele acrescenta é a
+   * distinção entre "passou limpo" e "passou com condição técnica relevante",
+   * que antes se perdia porque avisos e erros caíam no mesmo booleano.
+   */
+  const status = erros.length > 0
+    ? STATUS_CRITERIO.INCOMPATIVEL
+    : warnings.length > 0
+      ? STATUS_CRITERIO.ATENCAO
+      : naoAvaliados.length > 0
+        ? STATUS_CRITERIO.OK_PARCIAL
+        : STATUS_CRITERIO.OK
+
   return {
     compativel: erros.length === 0,
+    status,
+    avaliacao_corrente,
+    nao_avaliados: naoAvaliados,
     warnings,
     erros,
     limites,

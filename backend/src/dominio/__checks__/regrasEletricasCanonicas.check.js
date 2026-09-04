@@ -174,11 +174,37 @@ const umaString = analisarCompatibilidade({
   dados_climaticos_regiao: { temperatura_min_historica_c: 14, temperatura_max_historica_c: 38 },
 })
 ok(umaString.calculos.isc_total === 17.5, `Isc de projeto 17,5 A (era 14 A sem o fator)`)
-ok(umaString.erros.some((e) => e.codigo === 'CORRENTE_ISC_EXCEDIDA'),
-  '1 string × 14 A contra limite de 16 A agora REPROVA — mudança prevista')
-const diag = umaString.erros.find((e) => e.codigo === 'CORRENTE_ISC_EXCEDIDA')
+
+/**
+ * ── Ajuste de compatibilidade de corrente ─────────────────────────────────
+ * Até aqui esta seção afirmava que 17,5 A de PROJETO contra um limite de
+ * TRABALHO de 16 A reprovava o arranjo. A auditoria mostrou que as duas
+ * grandezas não se comparam: o limite que reprova é `corrente_isc_max`, que
+ * este fixture não declara. O fator 1,25 continua aplicado e continua citando
+ * a norma — o que mudou é que ele deixou de ser critério de reprovação.
+ */
+ok(!umaString.erros.some((e) => e.codigo === 'CORRENTE_ISC_EXCEDIDA'),
+  'sem limite de curto-circuito declarado, a corrente de projeto NÃO reprova')
+ok(umaString.status === 'atencao', 'o arranjo fica em ATENÇÃO, não incompatível')
+const diag = umaString.warnings.find((w) => w.codigo === 'CORRENTE_PROJETO_ACIMA_DO_TRABALHO')
+ok(!!diag, 'e o excesso sobre a corrente de trabalho é dito como aviso')
 ok(diag.valores.norma === 'NBR 16690 §5.2', 'o diagnóstico cita a norma que o originou')
 ok(diag.valores.fator_seguranca === 1.25, 'e declara o fator aplicado')
+ok(umaString.avaliacao_corrente.curto_circuito.status === 'nao_avaliado',
+  'o critério de curto-circuito é declarado NÃO AVALIADO, não aprovado por omissão')
+
+// Com o limite de curto declarado, a reprovação existe e é pelo par certo.
+const comLimiteCurto = analisarCompatibilidade({
+  dados_eletricos_modulo: { voc: 49.9, vmpp: 41.8, isc: 14, impp: 13.2, potencia_w: 550, coef_temp_voc: -0.27 },
+  dados_eletricos_inversor: { tensao_max_entrada: 600, mppt_min: 160, mppt_max: 550,
+    corrente_max_mppt: 16, corrente_isc_max_mppt: 12, potencia_ca_kw: 8 },
+  arranjo_proposto: { quantidade_modulos_por_string: 11, quantidade_strings_paralelo: 1 },
+  dados_climaticos_regiao: { temperatura_min_historica_c: 14, temperatura_max_historica_c: 38 },
+})
+ok(comLimiteCurto.erros.some((e) => e.codigo === 'CORRENTE_ISC_EXCEDIDA'),
+  'Isc 14 A contra limite de curto de 12 A REPROVA — limite absoluto')
+ok(comLimiteCurto.erros.find((e) => e.codigo === 'CORRENTE_ISC_EXCEDIDA')
+  .valores.corrente_isc_max_mppt === 12, 'e a reprovação cita o limite de CURTO, não o de trabalho')
 
 secao('12 · `/strings` NÃO foi consolidado — divergência conhecida')
 // `compatibilidadeFV.montarStrings` usa fator térmico FIXO de 1,15 e não produz
