@@ -19,6 +19,10 @@ import { aplicarRegras } from './regrasPlausibilidade.js'
 import { lerInversor } from '../equipamentos/inversores/index.js'
 // P0-CATALOG-QUALITY-HARDENING-01: gate de liberação por matriz mínima.
 import { avaliarUtilizavel } from './utilizavelProjeto.js'
+// A precedência de aliases do módulo vem do SSOT, não de uma cópia local: era a
+// cópia divergente que fazia os 54 módulos de produção — todos com
+// `potencia_wp` — contarem `potencia_w` como campo faltante.
+import { CAMPOS_MODULO } from '@fortesolar/fv-shared/modulos'
 
 const MOTOR_VERSAO = 'qualidade-1.1.0'
 
@@ -75,7 +79,7 @@ function normalizarSpecsModulo(equipamento) {
   const esp = equipamento.especificacoes || {}
   return {
     _versao: '1.0',
-    potencia_w: num(pick(esp, ['potencia_w','potencia','potenciaW'])) ?? num(equipamento.potencia_w),
+    potencia_w: num(pick(esp, CAMPOS_MODULO.potencia_w)) ?? num(equipamento.potencia_w),
     voc_v:    num(pick(esp, ['voc','voc_v','vocV'])),
     vmpp_v:   num(pick(esp, ['vmpp','vmp','vmpp_v','vmp_v'])),
     isc_a:    num(pick(esp, ['isc','isc_a','iscA'])),
