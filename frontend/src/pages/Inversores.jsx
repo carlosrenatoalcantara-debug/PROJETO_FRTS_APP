@@ -6,6 +6,9 @@ import ModalNovoInversor from '../components/equipamentos/ModalNovoInversor'
 import AssistenteImportacaoDatasheet from '../components/equipamentos/AssistenteImportacaoDatasheet'
 // P1-INV-UI-01: edição manual dirigida pelo MESMO esquema do SSOT (sem dialeto).
 import { obterCamposEditaveis, classificarCampos, STATUS } from '@fortesolar/fv-shared/ai/campos-equipamento'
+// Sprint E3 (§5/§6): a corrente acumulada do ramal vem do motor de micro — era
+// a única aritmética aqui que duplicava regra existente.
+import { correnteDoRamal } from '@fortesolar/fv-shared/engenharia/corrente-micro'
 import BadgeEngenharia from '../components/engenharia/BadgeEngenharia.jsx'
 import { payloadEngenharia } from '../utils/engenharia/engenhariaPayload.js'
 
@@ -61,10 +64,33 @@ function calcularDimensionamento(espec) {
 
   const result = { imax, iProj, polos, ...dim }
 
-  // Cabo tronco para micro-inversores (corrente acumulada de N unidades em série)
+  /**
+   * Cabo tronco para micro-inversores (corrente acumulada de N unidades).
+   *
+   * ── Sprint E3, §5/§6 — o que foi e o que NÃO foi unificado ────────────────
+   * A corrente acumulada do ramal (`imax × nMicros`) é a MESMA grandeza que
+   * `correnteDoRamal` calcula no motor de micro, e passou a vir de lá: a
+   * aritmética existia em dois lugares desde a E2, e agora existe em um.
+   *
+   * O que fica aqui, deliberadamente, é o dimensionamento — e ele NÃO é
+   * equivalente ao de `engenhariaNormativa`, apesar de os dois selecionarem
+   * cabo e disjuntor:
+   *
+   *   aqui                          engenhariaNormativa.selecionarCabo
+   *   fator de projeto 1,1 (CA)     fator 1,0 para CA (1,25 só em CC)
+   *   método B1, cobre 70 °C        Tabela 36, método B2
+   *   exige Ib ≤ In ≤ Iz            só o critério de aquecimento
+   *   disjuntor NBR IEC 60898-1     disjuntor tabelado junto ao cabo
+   *
+   * São critérios de norma diferentes sobre grandezas próximas. Substituir um
+   * pelo outro mudaria a seção recomendada em casos reais, então a E3 não
+   * substitui: documenta e registra como pendência de engenharia decidir qual
+   * é o critério oficial do sistema para o lado CA.
+   */
   if (espec.subtipo === 'microinversor' && espec.max_por_cabo_tronco) {
     const nMicros      = espec.max_por_cabo_tronco
-    const iTotal       = +(imax * nMicros).toFixed(1)
+    const iTotal       = correnteDoRamal({ correnteAcSaida: imax, micros: nMicros }).corrente_a
+    if (iTotal === null) return result
     const iProjTronco  = +(iTotal * 1.1).toFixed(1)
     const dimTronco    = dimensionar(iProjTronco)
     if (dimTronco) result.tronco = { nMicros, iTotal, iProj: iProjTronco, ...dimTronco }

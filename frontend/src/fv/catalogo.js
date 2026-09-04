@@ -31,6 +31,8 @@
 import { tecnologiaInversor } from '@fortesolar/fv-shared/engenharia/regras-plausibilidade'
 import { lerModulo, potenciaDoModulo } from '@fortesolar/fv-shared/modulos'
 import { lerInversor } from '@fortesolar/fv-shared/inversores'
+// Sprint E3 — cadastro contraditório não alimenta cálculo.
+import { detectarConflitos, valorConfiavel } from '@fortesolar/fv-shared/inversores/conflitos'
 
 /** Número finito ou `null`. Nunca 0 por omissão, nunca NaN. */
 const num = (v) => {
@@ -81,9 +83,16 @@ function canonico(equipamento) {
   })
 }
 
-/** Potência CA do inversor (kW). */
+/**
+ * Potência CA do inversor (kW).
+ *
+ * Sprint E3: quando o cadastro é CONTRADITÓRIO sobre a potência — máximo menor
+ * que o nominal, ou escala trocada entre W e kW — nenhum dos dois valores é
+ * eleito, e a leitura devolve `null`. Escolher em silêncio é o que o §3 proíbe;
+ * `detectarConflitos` diz qual é a contradição para a tela mostrar.
+ */
 export function potenciaDoInversor(equipamento) {
-  return num(canonico(equipamento)?.potencia_kw)
+  return num(valorConfiavel(equipamento, 'potencia_kw'))
 }
 
 /** Fases de saída. `null` quando o catálogo não declara — não se infere aqui. */
@@ -244,9 +253,20 @@ export function eletricoDoInversor(equipamento) {
     tensao_max_entrada: num(c.tensao_max_entrada),
     mppt_min: num(c.tensao_mppt_min),
     mppt_max: num(c.tensao_mppt_max),
-    // Precedência entre DOIS campos reais do catálogo — a mesma de
-    // `catalogoQualidade`. Não é default: se ambos faltarem, permanece `null`.
-    corrente_max_mppt: num(c.corrente_isc_max) ?? num(c.corrente_max_por_mppt),
+    /**
+     * ── Correção do falso bloqueio ────────────────────────────────────────
+     * Havia aqui uma PRECEDÊNCIA entre dois campos que não são a mesma coisa:
+     * `corrente_isc_max` (limite de curto-circuito) caía em `corrente_max_mppt`
+     * (limite de trabalho) quando existisse. O outro chamador do mesmo motor
+     * (`inversoresCompativeisService`) preenchia o mesmo parâmetro com
+     * `corrente_max_por_mppt`. Ou seja: o motor recebia GRANDEZAS DIFERENTES no
+     * mesmo campo conforme quem o chamasse.
+     *
+     * Agora cada limite viaja no seu próprio parâmetro. Ausência continua
+     * `null` — o motor declara `nao_avaliado` e não troca um pelo outro.
+     */
+    corrente_max_mppt: num(c.corrente_max_por_mppt),
+    corrente_isc_max_mppt: num(c.corrente_isc_max),
     potencia_ca_kw: num(c.potencia_kw),
   }
 }
@@ -282,6 +302,15 @@ export function modulosPorEntradaDoMicro(equipamento) {
   return num(canonico(equipamento)?.modulos_por_entrada)
 }
 
+/**
+ * Máximo de microinversores no mesmo ramal CA, quando o CATÁLOGO o declara.
+ * Sprint E: `null` aqui não vira default — cai para a tabela de regras por
+ * fabricante e, se ela também não tiver, a regra é declarada indisponível.
+ */
+export function maxMicrosPorArranjoDoCatalogo(equipamento) {
+  return num(canonico(equipamento)?.max_por_cabo_tronco)
+}
+
 /** Limite CC/CA declarado pelo fabricante. Sem ele não há veredito (decisão 3). */
 export function oversizingMaxDoInversor(equipamento) {
   return num(canonico(equipamento)?.oversizing_max)
@@ -302,6 +331,18 @@ export function envelopeDoMicro(equipamento) {
     modulos_por_entrada: modulosPorEntradaDoMicro(equipamento),
     potencia_kw: potenciaDoInversor(equipamento),
     oversizing_max: oversizingMaxDoInversor(equipamento),
+    // Sprint E — quem decide o agrupamento em ramais. `fabricante` entra no
+    // envelope porque a regra é DELE quando o modelo não a declara.
+    fabricante: equipamento?.fabricante ?? null,
+    max_por_cabo_tronco: maxMicrosPorArranjoDoCatalogo(equipamento),
+    // Sprint E2 — limites de corrente, para o motor `correnteMicro`. Ausentes
+    // viram `null` e o veredito é `nao_avaliado`; nunca um valor assumido.
+    corrente_max_por_mppt: num(canonico(equipamento)?.corrente_max_por_mppt),
+    corrente_ac_saida: num(canonico(equipamento)?.corrente_ac_saida),
+    // Sprint E3 — cadastro contraditório não vira número. `potencia_kw` acima
+    // vem de `potenciaDoInversor`, que já devolve `null` em conflito; a lista
+    // segue junto para a tela poder dizer POR QUE o valor sumiu.
+    conflitos: detectarConflitos(equipamento),
   }
 }
 
@@ -312,7 +353,14 @@ export function lacunasEletricas(eletricoMod, eletricoInv) {
     if (v === null && k !== 'temp_noct') faltando.push(`modulo.${k}`)
   }
   for (const [k, v] of Object.entries(eletricoInv ?? {})) {
-    if (v === null) faltando.push(`inversor.${k}`)
+    /**
+     * `corrente_isc_max_mppt` fica de fora, como `temp_noct` já ficava: a
+     * ausência dele NÃO impede a análise — o motor declara o critério de
+     * curto-circuito como `nao_avaliado` e segue. Tratá-lo como lacuna
+     * bloquearia 20 dos 39 inversores do catálogo, que declaram só o limite de
+     * trabalho, e trocaria um falso bloqueio por outro.
+     */
+    if (v === null && k !== 'corrente_isc_max_mppt') faltando.push(`inversor.${k}`)
   }
   return faltando
 }
