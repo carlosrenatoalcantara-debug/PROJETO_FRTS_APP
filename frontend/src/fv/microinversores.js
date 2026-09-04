@@ -24,6 +24,14 @@
 import {
   avaliarComposicaoMicro, capacidadeDoMicro, distribuirEntreMicros, microsNecessarios,
 } from '@fortesolar/fv-shared/engenharia/microinversores'
+// Sprint E — o nível ACIMA do micro (arranjos e fases) mora no motor canônico,
+// como o nível de baixo. Aqui só se monta o payload e se traduz o resultado.
+import {
+  planejarMicros, planejarComposicaoMicro, planoObsoleto,
+} from '@fortesolar/fv-shared/engenharia/arranjos-micro'
+// Sprint E2 — corrente é motor separado, com veredito próprio. Não se mistura
+// com a distribuição de módulos: um pode estar completo e o outro não.
+import { avaliarCorrenteMicro, VEREDITO } from '@fortesolar/fv-shared/engenharia/corrente-micro'
 import { envelopeDoMicro, ehMicro } from './catalogo'
 
 /** Inteiro > 0 ou `null`. Vazio e 0 são ausência. */
@@ -96,6 +104,21 @@ export function configDaComposicao(inversoresDaComposicao, catalogo, totalModulo
       // Campos só de leitura, do catálogo — nunca editados aqui.
       _potencia_kw: envelope.potencia_kw,
       _oversizing_max: envelope.oversizing_max,
+      _fabricante: envelope.fabricante,
+      _max_por_cabo_tronco: envelope.max_por_cabo_tronco,
+      // Sprint E2 — o que o CATÁLOGO declara, guardado ao lado do que está em
+      // uso, para que a procedência da capacidade seja derivável na tela.
+      _entradas_ssot: envelope.entradas,
+      _modulos_por_entrada_ssot: envelope.modulos_por_entrada,
+      _corrente_max_por_mppt: envelope.corrente_max_por_mppt,
+      _corrente_isc_max: envelope.corrente_isc_max,
+      _corrente_ac_saida: envelope.corrente_ac_saida,
+      // Sprint E3 — conflitos de cadastro do EQUIPAMENTO, para a tela dizer por
+      // que um valor sumiu. Vêm do catálogo e nunca são persistidos no projeto.
+      _conflitos: envelope.conflitos ?? [],
+      // Agrupamento salvo do projeto. Ausente numa composição nova — o plano
+      // vigente é a proposta, e é ele que a tela mostra.
+      arranjos: null,
     }
   })
 }
@@ -117,6 +140,121 @@ export function distribuicaoDoBloco(bloco) {
     modulos_por_entrada: bloco?.modulos_por_entrada,
   })
   return distribuirEntreMicros(bloco?.modulos, bloco?.quantidade, cap)
+}
+
+/**
+ * Envelope do bloco no formato que o motor de arranjos espera — Sprint E.
+ * `entradas`/`modulos_por_entrada` são editáveis na tela (o operador pode
+ * corrigir um catálogo incompleto); `fabricante` e o limite por arranjo vêm do
+ * catálogo e nunca são editados aqui, porque são do EQUIPAMENTO.
+ */
+function envelopeDoBloco(bloco) {
+  return {
+    entradas: bloco?.entradas_por_micro ?? null,
+    modulos_por_entrada: bloco?.modulos_por_entrada ?? null,
+    fabricante: bloco?._fabricante ?? bloco?.marca ?? null,
+    max_por_cabo_tronco: bloco?._max_por_cabo_tronco ?? null,
+    rotulo: [bloco?.marca, bloco?.modelo].filter(Boolean).join(' ') || null,
+    origem: procedenciaDaCapacidade(bloco),
+    corrente_max_por_mppt: bloco?._corrente_max_por_mppt ?? null,
+    // Limite de CURTO-CIRCUITO — grandeza distinta do limite de trabalho acima.
+    corrente_isc_max: bloco?._corrente_isc_max ?? null,
+    corrente_ac_saida: bloco?._corrente_ac_saida ?? null,
+  }
+}
+
+/**
+ * De onde vieram `entradas` e `modulos_por_entrada` — Sprint E2, §2.
+ *
+ * A auditoria mediu que NENHUM micro do catálogo declara os dois. O operador
+ * pode preenchê-los na tela, e o cálculo então roda — mas o resultado não pode
+ * se apresentar como dado de catálogo. A procedência é DERIVADA da comparação
+ * entre o que está no bloco e o que o catálogo declarou (`_entradas_ssot`,
+ * `_modulos_por_entrada_ssot`): não é campo novo, não é persistida, não é uma
+ * quarta fonte.
+ *
+ * @returns {'ssot'|'manual'|'ajustado'|null}
+ *   `ssot`     ambos vieram do catálogo e não foram tocados
+ *   `manual`   o catálogo não declara — o número é do operador
+ *   `ajustado` o catálogo declara, mas o operador mudou
+ */
+export function procedenciaDaCapacidade(bloco) {
+  const noBloco = [inteiro(bloco?.entradas_por_micro), inteiro(bloco?.modulos_por_entrada)]
+  if (noBloco.some((v) => v === null)) return null
+  const noCatalogo = [inteiro(bloco?._entradas_ssot), inteiro(bloco?._modulos_por_entrada_ssot)]
+  if (noCatalogo.some((v) => v === null)) return 'manual'
+  return noCatalogo[0] === noBloco[0] && noCatalogo[1] === noBloco[1] ? 'ssot' : 'ajustado'
+}
+
+/**
+ * Plano vigente do bloco: módulos por micro, arranjos e fases — Sprint E.
+ * Delegação pura ao motor canônico; nenhuma regra vive deste lado.
+ */
+export function planoDoBloco(bloco, fases) {
+  return planejarMicros({
+    modulos: bloco?.modulos,
+    quantidade: bloco?.quantidade,
+    micro: envelopeDoBloco(bloco),
+    fases,
+  })
+}
+
+/**
+ * Plano da COMPOSIÇÃO inteira — Sprint E2, §6.
+ *
+ * É este que a tela usa. `planoDoBloco` continua existindo para quem precisa de
+ * um modelo isolado, mas o balanceamento de fases só faz sentido olhando todos
+ * os arranjos juntos: dois modelos planejados separadamente empilhavam ambos em
+ * L1 e cada um se declarava equilibrado.
+ */
+export function planoDaComposicao(config, fases) {
+  return planejarComposicaoMicro({
+    modelos: (config ?? []).map((b) => ({
+      modulos: b?.modulos, quantidade: b?.quantidade, micro: envelopeDoBloco(b),
+    })),
+    fases,
+  })
+}
+
+/**
+ * Corrente de um bloco — Sprint E2, §3. Delegação pura; `null` quando não há
+ * plano de arranjos, porque a corrente de ramal depende de quantos micros há
+ * em cada um.
+ */
+export function correnteDoBloco(bloco, modulo, plano) {
+  // Aceita `{ isc, impp }`; a forma antiga (só Isc) continua legível para não
+  // quebrar chamador nenhum — mas sem Impp o critério de OPERAÇÃO fica
+  // `nao_avaliado`, e Isc jamais entra no lugar dele.
+  const eletrico = typeof modulo === 'object' && modulo !== null
+    ? modulo : { isc: modulo, impp: null }
+  return avaliarCorrenteMicro({
+    micro: envelopeDoBloco(bloco),
+    iscModulo: eletrico.isc ?? null,
+    imppModulo: eletrico.impp ?? null,
+    microsPorArranjo: plano?.arranjos ? plano.arranjos.map((a) => a.micros.length) : null,
+  })
+}
+
+export { VEREDITO }
+
+/**
+ * O agrupamento salvo ainda descreve a configuração atual? (§20 da Sprint E.)
+ * Nada é corrigido em silêncio: a tela mostra o plano vigente e DIZ o que mudou.
+ */
+export function obsolescenciaDoBloco(bloco, fases) {
+  return planoObsoleto(bloco?.arranjos, planoDoBloco(bloco, fases))
+}
+
+/**
+ * Obsolescência de cada bloco contra o plano da COMPOSIÇÃO — Sprint E2.
+ * Necessário porque a fase de um arranjo depende dos outros modelos: com dois
+ * modelos, comparar bloco a bloco acusaria divergência onde não há, e deixaria
+ * passar a que existe.
+ */
+export function obsolescenciaDaComposicao(config, fases) {
+  const composicao = planoDaComposicao(config, fases)
+  return (config ?? []).map((b, i) =>
+    planoObsoleto(b?.arranjos, composicao.por_modelo[i] ?? planoDoBloco(b, fases)))
 }
 
 /** Micros que ESTE bloco precisaria para os módulos que recebeu (decisão 7). */
@@ -198,16 +336,34 @@ export function avaliar(config, potenciaModuloW, totalModulos) {
  * A distribuição é gravada junto porque é o que o unifilar e o memorial leem —
  * derivada aqui uma vez, não recalculada por cada consumidor.
  */
-export function paraConfigPersistida(config) {
-  return (config ?? []).map((b) => ({
-    equipamento_id: b.equipamento_id ?? null,
-    marca: b.marca ?? null,
-    modelo: b.modelo ?? null,
-    quantidade: inteiro(b.quantidade),
-    entradas_por_micro: inteiro(b.entradas_por_micro),
-    modulos_por_entrada: inteiro(b.modulos_por_entrada),
-    distribuicao: distribuicaoDoBloco(b) ?? undefined,
-  }))
+export function paraConfigPersistida(config, fases = null) {
+  /**
+   * Sprint E2 — as fases vêm do plano da COMPOSIÇÃO, não do plano de cada bloco.
+   * Gravar por bloco reintroduziria o defeito do §6: dois modelos, ambos
+   * começando em L1. O que se grava é exatamente o que a tela mostrou.
+   */
+  const composicao = planoDaComposicao(config, fases)
+  return (config ?? []).map((b, i) => {
+    const plano = composicao.por_modelo[i] ?? planoDoBloco(b, fases)
+    return {
+      equipamento_id: b.equipamento_id ?? null,
+      marca: b.marca ?? null,
+      modelo: b.modelo ?? null,
+      quantidade: inteiro(b.quantidade),
+      entradas_por_micro: inteiro(b.entradas_por_micro),
+      modulos_por_entrada: inteiro(b.modulos_por_entrada),
+      distribuicao: distribuicaoDoBloco(b) ?? undefined,
+      /**
+       * Sprint E — agrupamento e fase. `undefined` (campo ausente) quando não há
+       * regra declarada: gravar `[]` afirmaria "nenhum arranjo", que é diferente
+       * de "não se sabe agrupar". O limite do fabricante NÃO é copiado para cá —
+       * ele é do catálogo, e persistir cópia criaria segunda fonte.
+       */
+      arranjos: plano.arranjos === null
+        ? undefined
+        : plano.arranjos.map((a) => ({ micros: a.micros, fase: a.fase })),
+    }
+  })
 }
 
 /**
@@ -232,6 +388,23 @@ export function daConfigPersistida(micros, catalogo) {
         .reduce((s, n) => s + n, 0) || null,
       _potencia_kw: envelope.potencia_kw,
       _oversizing_max: envelope.oversizing_max,
+      _fabricante: envelope.fabricante ?? m?.marca ?? null,
+      _max_por_cabo_tronco: envelope.max_por_cabo_tronco ?? null,
+      _entradas_ssot: envelope.entradas ?? null,
+      _modulos_por_entrada_ssot: envelope.modulos_por_entrada ?? null,
+      _corrente_max_por_mppt: envelope.corrente_max_por_mppt ?? null,
+      _corrente_isc_max: envelope.corrente_isc_max ?? null,
+      _corrente_ac_saida: envelope.corrente_ac_saida ?? null,
+      _conflitos: envelope.conflitos ?? [],
+      // Sprint E — agrupamento como está gravado, para poder ser CONFRONTADO
+      // com o plano vigente. Não é usado como verdade: é usado para detectar
+      // que a configuração mudou embaixo dele.
+      arranjos: Array.isArray(m?.arranjos) && m.arranjos.length > 0
+        ? m.arranjos.map((a) => ({
+            micros: (a?.micros ?? []).map((n) => Number(n)).filter(Number.isFinite),
+            fase: a?.fase ?? null,
+          }))
+        : null,
     }
   })
 }
@@ -241,13 +414,13 @@ export function daConfigPersistida(micros, catalogo) {
  * não edita — inclusive a composição da FV-UX-029 (decisão 8) e a topologia
  * string, que continua onde estava.
  */
-export function paraArranjoComMicros(arranjoExistente, config) {
+export function paraArranjoComMicros(arranjoExistente, config, fases = null) {
   return {
     ...(arranjoExistente ?? {}),
     topologia: 'micro',
     configuracao_eletrica: {
       ...(arranjoExistente?.configuracao_eletrica ?? {}),
-      micros: paraConfigPersistida(config),
+      micros: paraConfigPersistida(config, fases),
     },
   }
 }
