@@ -21,6 +21,7 @@ export function criarAliases(path, dirname) {
     // FV-UX-003 (F2): lógica pura compartilhada com o backend. Substitui os imports
     // relativos para ../backend/src, que quebravam a separação Vercel/Railway.
     // Os subpaths espelham o campo "exports" de packages/fv-shared/package.json.
+    '@fortesolar/fv-shared/inversores/conflitos':              path.resolve(dirname, '../packages/fv-shared/equipamentos/inversores/conflitosInversor.js'),
     '@fortesolar/fv-shared/inversores/dicionario':            path.resolve(dirname, '../packages/fv-shared/equipamentos/inversores/dicionarioInversor.js'),
     '@fortesolar/fv-shared/inversores':                       path.resolve(dirname, '../packages/fv-shared/equipamentos/inversores/index.js'),
     '@fortesolar/fv-shared/modulos':                          path.resolve(dirname, '../packages/fv-shared/equipamentos/modulos/index.js'),
@@ -47,6 +48,13 @@ export function criarAliases(path, dirname) {
     '@fortesolar/fv-shared/engenharia/unifilar-micro-svg': path.resolve(dirname, '../packages/fv-shared/engenharia/unifilarMicroSVG.js'),
     // FV-DOM-031: motor canônico de microinversores (entradas → módulos).
     '@fortesolar/fv-shared/engenharia/microinversores':       path.resolve(dirname, '../packages/fv-shared/engenharia/microinversores.js'),
+    // Sprint E: nível ACIMA do micro — arranjos (ramais CA) e balanceamento de
+    // fases, mais a tabela de regras por fabricante que os determina.
+    '@fortesolar/fv-shared/engenharia/arranjos-micro':        path.resolve(dirname, '../packages/fv-shared/engenharia/arranjosMicro.js'),
+    '@fortesolar/fv-shared/engenharia/regras-micro-fabricante': path.resolve(dirname, '../packages/fv-shared/engenharia/regrasMicroFabricante.js'),
+    // Sprint E2: corrente por entrada, por micro e por ramal — motor separado
+    // da distribuição, com veredito `nao_avaliado` próprio.
+    '@fortesolar/fv-shared/engenharia/corrente-micro':        path.resolve(dirname, '../packages/fv-shared/engenharia/correnteMicro.js'),
 
     '@fortesolar/fv-shared/engenharia/regras-plausibilidade': path.resolve(dirname, '../packages/fv-shared/services/regrasPlausibilidade.js'),
     '@fortesolar/fv-shared/engenharia/presentation':          path.resolve(dirname, '../packages/fv-shared/services/engineeringPresentation.js'),

@@ -855,6 +855,24 @@ const projetoFVSchema = new mongoose.Schema({
           modulos_por_entrada: { type: Number, default: null },
           // Módulos em CADA micro, na ordem. Comprimento = `quantidade`.
           distribuicao: { type: [Number], default: undefined },
+          // Sprint E — AGRUPAMENTO dos micros em ramais CA e a fase de cada um.
+          //
+          // Por que persiste, se INV-58 proíbe derivado em campo paralelo: isto
+          // NÃO é derivado de outro campo do projeto — é a configuração que o
+          // sistema propõe e o operador VALIDA, e a fase de cada ramal é uma
+          // decisão de instalação que nenhuma fórmula recupera depois. Mesmo
+          // estatuto de `distribuicao`, que já persistia pelo mesmo motivo.
+          //
+          // `micros` guarda ÍNDICES (1..N) dentro de `distribuicao`, não cópia
+          // dos dados do micro: duplicar ficha técnica criaria segunda fonte.
+          // Obsolescência é detectada na leitura (`planoObsoleto`), não escondida.
+          arranjos: {
+            type: [new mongoose.Schema({
+              micros: { type: [Number], default: undefined },
+              fase:   { type: String, enum: ['L1', 'L2', 'L3', null], default: null },
+            }, { _id: false })],
+            default: undefined,
+          },
         }, { _id: false })],
         default: undefined,
       },

@@ -43,6 +43,22 @@ export const CAMPOS_INVERSOR = {
   // leitura, não alteram a semântica de score existente.
   entradas:              { grupo: 'CC', aliases: ['entradas', 'entradas_cc', 'total_entradas_cc', 'n_entradas', 'numero_entradas', 'entradas_dc'] },
   modulos_por_entrada:   { grupo: 'CC', aliases: ['modulos_por_entrada', 'modulos_por_entrada_max', 'paineis_por_entrada', 'modulos_por_canal'] },
+  // Limite de fábrica de microinversores no MESMO ramal CA (cabo tronco).
+  // Quando o modelo o declara, VENCE a tabela de regras por fabricante
+  // (`regrasMicroFabricante`): dado do modelo é mais específico que do
+  // fabricante. Sem `peso`: reconhecido em leitura, não altera o score.
+  //
+  // ── Sprint E3: por que o nome canônico é este ─────────────────────────────
+  // `max_por_cabo_tronco` é o nome que o sistema JÁ usava: é o campo que o
+  // extrator de datasheet pede (`datasheetController`), que `normalizarMulti`
+  // grava e que a página de Inversores exibe como "Máx. por cabo tronco".
+  //
+  // A Sprint E cunhou `max_micros_por_arranjo` sem reconhecer o antigo; a E2
+  // corrigiu pela metade, deixando o nome novo como canônico e o antigo como
+  // alias — o que mantinha DOIS nomes para o dado, com o de baixa procedência
+  // em cima. A E3 inverte: o nome do cadastro é o canônico, e o inventado por
+  // mim vira apenas um alias de leitura, para não quebrar nada já gravado.
+  max_por_cabo_tronco:   { grupo: 'CC', aliases: ['max_por_cabo_tronco', 'max_micros_por_arranjo', 'max_micros_serie', 'max_micros_por_ramal', 'micros_por_ramal_max', 'max_unidades_por_ramal', 'maximo_micros_em_serie'] },
   tensao_max_entrada:    { grupo: 'CC', peso: 15, aliases: ['tensao_max_entrada', 'tensao_max_entrada_dc_v', 'voc_max_dc', 'voc_max_dc_v', 'tensao_max_dc', 'tensao_max_cc', 'vpv_max', 'voc_max'] },
   tensao_mppt_min:       { grupo: 'CC', peso: 10, aliases: ['tensao_mppt_min', 'tensao_mppt_min_v', 'mppt_min_v', 'faixa_mppt_min', 'mppt_min'] },
   tensao_mppt_max:       { grupo: 'CC', peso: 10, aliases: ['tensao_mppt_max', 'tensao_mppt_max_v', 'mppt_max_v', 'faixa_mppt_max', 'mppt_max'] },
