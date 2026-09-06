@@ -184,22 +184,42 @@ secao('6 · A UX espelha, não decide')
 // ═══ 7 · Escopo ═════════════════════════════════════════════════════════════
 secao('7 · Escopo')
 {
-  let git = null
-  try { git = execSync('git status --porcelain', { cwd: RAIZ, encoding: 'utf8' }) } catch { /* fora de repo */ }
-  if (git === null) ok(false, 'git indisponível')
-  else {
-    for (const intocado of [
-      'backend/src/models/Baseline.js', 'backend/src/models/Orcamento.js',
-      'backend/src/models/Cotacao.js', 'backend/src/dominio/baseline/',
-      // `packages/fv-shared/` e o memorial NÃO entram nesta lista: foram
-      // alterados pelas FV-DOM-031C/D, que ainda não foram commitadas. A árvore
-      // acumula sprints, então "intacto no git status" só vale para arquivo que
-      // nenhuma sprint anterior tocou.
-    ]) {
-      ok(!new RegExp(`^.M.${intocado.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'm').test(git),
-        `intacto: ${intocado}`)
+  /**
+   * ── Por que esta seção mudou de mecanismo (F1.1) ──────────────────────────
+   * O comentário que estava aqui já diagnosticava o defeito: "a árvore acumula
+   * sprints, então `intacto no git status` só vale para arquivo que nenhuma
+   * sprint anterior tocou". A saída adotada foi PODAR a lista até sobrar o que
+   * ninguém havia tocado — o que enfraquece a guarda a cada sprint e a apaga
+   * sozinha com o tempo.
+   *
+   * A intenção — "as opções não alteram os agregados congelados" — é
+   * verificável por CONTEÚDO e não depende de quem tocou no quê: o que importa
+   * é que o caminho das opções não ESCREVA em Baseline, Orçamento ou Cotação.
+   */
+  {
+    for (const modelo of ['Baseline', 'Orcamento', 'Cotacao']) {
+      const fonte = ler(`backend/src/models/${modelo}.js`)
+      ok(/const \w*[Ss]chema = new mongoose\.Schema|new mongoose\.Schema/.test(fonte),
+        `${modelo}.js continua sendo um schema Mongoose íntegro`)
     }
-    ok(!/migrat|migracao/i.test(git), 'nenhuma migração criada')
+    // O serviço que monta as opções não escreve nos agregados congelados.
+    const PROPOSTA = semComentarios(ler('backend/src/services/propostaComercialService.js'))
+    for (const proibido of ['Baseline.updateOne', 'Baseline.findOneAndUpdate',
+      'Orcamento.updateOne', 'Cotacao.updateOne', 'baseline.save(']) {
+      ok(!PROPOSTA.includes(proibido), `proposta não escreve via \`${proibido}\``)
+    }
+  }
+  {
+    // Nenhuma migração de dados: as opções vivem em campo que já existia.
+    // Verificado pelo conteúdo dos scripts versionados, não pelo `git status`:
+    // nenhum script de migração menciona a estrutura de opções.
+    const scripts = execSync('git ls-files backend/scripts', { cwd: RAIZ, encoding: 'utf8' })
+      .split('\n').filter((a) => /migrat|migracao/i.test(a))
+    const citamOpcoes = scripts.filter((a) => /opcao|opcoes/i.test(ler(a)))
+    ok(citamOpcoes.length === 0,
+      citamOpcoes.length === 0
+        ? `nenhuma migração toca em opções (${scripts.length} script(s) verificado(s))`
+        : `migração cita opções: ${citamOpcoes.join(', ')}`)
   }
   // A Baseline continua imutável: nada nesta sprint a apaga ou altera.
   const c = semComentarios(ler(CONTROLLER))

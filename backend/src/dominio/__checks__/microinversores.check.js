@@ -294,24 +294,45 @@ secao('9 · Nenhum segundo motor sobreviveu')
 }
 
 // ═══ 10 · Nada fora do escopo ═══════════════════════════════════════════════
-secao('10 · Escopo')
+secao('10 · Escopo — o motor de micro não invade os vizinhos')
+/**
+ * ── Por que esta seção mudou de mecanismo (F1.1) ────────────────────────────
+ * Ela afirmava "arquivo X não aparece modificado no `git status`", o que só vale
+ * enquanto a sprint que a escreveu está sem commit. Depois de commitada, a
+ * afirmação virou histórica e a guarda passou a acusar qualquer sprint posterior
+ * que tocasse legitimamente nos arquivos — foi o que a F1 fez ao alterar
+ * `compatibilidadeEletricaService.js`.
+ *
+ * A intenção — "o motor de microinversores não conhece financeiro, baseline,
+ * orçamento nem estrutura, e não reescreve o motor de string" — é verificável
+ * por CONTEÚDO em qualquer ponto do histórico, e acusa o acoplamento em vez da
+ * modificação.
+ */
 {
-  let git = null
-  try { git = execSync('git status --porcelain', { cwd: RAIZ, encoding: 'utf8' }) } catch { /* fora de repo */ }
-  if (git === null) ok(false, 'git indisponível')
-  else {
-    for (const intocado of [
-      'backend/src/dominio/baseline/', 'backend/src/models/Baseline.js',
-      'backend/src/models/Orcamento.js', 'packages/fv-shared/financeiro/',
-      'packages/fv-shared/engenharia/engenhariaNormativa.js',
-      'backend/src/services/compatibilidadeEletricaService.js',
-      'frontend/src/fv/estrutura.js',
-    ]) {
-      ok(!new RegExp(`^.M.${intocado.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'm').test(git),
-        `intacto: ${intocado}`)
+  const MOTORES_MICRO = [
+    'packages/fv-shared/engenharia/microinversores.js',
+    'packages/fv-shared/engenharia/arranjosMicro.js',
+    'packages/fv-shared/engenharia/regrasMicroFabricante.js',
+  ]
+  for (const arquivo of MOTORES_MICRO) {
+    const fonte = semComentarios(ler(arquivo))
+    const nome = path.basename(arquivo)
+    for (const proibido of ['Baseline', 'Orcamento', 'financeiro', 'preco', 'estrutura']) {
+      ok(!new RegExp(proibido, 'i').test(fonte), `${nome} não conhece \`${proibido}\``)
     }
-    ok(!/migrat|migracao/i.test(git), 'nenhuma migração criada')
+    ok(!/mongoose|save\(|updateOne/.test(fonte), `${nome} não persiste`)
   }
+
+  // O motor de STRING continua com as fórmulas dele — micro não as reescreveu.
+  const NORMATIVA = ler('packages/fv-shared/engenharia/engenhariaNormativa.js')
+  ok(NORMATIVA.includes('FATOR_ISC_NBR16690 = 1.25'), 'normativa: fator 1,25 intacto')
+  ok(NORMATIVA.includes('NOCT_PADRAO_C = 44'), 'normativa: NOCT 44 intacto')
+  ok(NORMATIVA.includes('export function calcularVocMaxString'), 'normativa: Voc de string intacta')
+
+  // E o motor elétrico de string não passou a conhecer micro.
+  const SERVICO = semComentarios(ler('backend/src/services/compatibilidadeEletricaService.js'))
+  ok(!/microinversor|arranjosMicro|correnteMicro/i.test(SERVICO),
+    'o motor de string não conhece micro')
 }
 
 console.log(falhas === 0
