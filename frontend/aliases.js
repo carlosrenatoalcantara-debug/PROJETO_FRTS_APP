@@ -56,6 +56,8 @@ export function criarAliases(path, dirname) {
     // da distribuição, com veredito `nao_avaliado` próprio.
     // F1: classificacao canonica de corrente CC — uma implementacao, consumida
     // pelo motor no backend e pelo wizard no navegador.
+    '@fortesolar/fv-shared/engenharia/classificacao-tensao-cc': path.resolve(dirname, '../packages/fv-shared/engenharia/classificacaoTensaoCC.js'),
+    '@fortesolar/fv-shared/engenharia/classificacao-oversizing': path.resolve(dirname, '../packages/fv-shared/engenharia/classificacaoOversizing.js'),
     '@fortesolar/fv-shared/engenharia/classificacao-corrente-cc': path.resolve(dirname, '../packages/fv-shared/engenharia/classificacaoCorrenteCC.js'),
     '@fortesolar/fv-shared/engenharia/corrente-micro':        path.resolve(dirname, '../packages/fv-shared/engenharia/correnteMicro.js'),
 

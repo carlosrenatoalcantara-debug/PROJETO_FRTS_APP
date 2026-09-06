@@ -59,7 +59,12 @@ describe('classificação de corrente', () => {
   it('1. Impp dentro do limite de trabalho → OK', () => {
     const r = analisar({ ...DEYE_REAL, corrente_max_mppt: 20, corrente_isc_max_mppt: 25 })
     expect(r.compativel).toBe(true)
-    expect(r.status).toBe(STATUS_CRITERIO.OK)
+    // F2: o status GLOBAL é `ok_parcial`, não `ok` — a fixture é um inversor
+    // real, e nenhum inversor real declara `oversizing_max`. O critério de
+    // oversizing do fabricante fica `nao_avaliado`, e o global reflete isso.
+    // Antes o motor assumia 1,30× e devolvia `ok` contra número inventado.
+    expect(r.status).toBe(STATUS_CRITERIO.OK_PARCIAL)
+    expect(r.nao_avaliados.map((n) => n.criterio)).toContain('oversizing_fabricante')
     expect(r.avaliacao_corrente.operacao.status).toBe(STATUS_CRITERIO.OK)
     expect(r.avaliacao_corrente.curto_circuito.status).toBe(STATUS_CRITERIO.OK)
     expect(r.warnings.map((w) => w.codigo)).not.toContain('CORRENTE_IMPP_ELEVADA')

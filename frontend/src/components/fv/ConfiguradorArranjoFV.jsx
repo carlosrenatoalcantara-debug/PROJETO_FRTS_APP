@@ -27,12 +27,14 @@ import {
 import { classificarCorrenteCC, STATUS_CORRENTE } from '@fortesolar/fv-shared/engenharia/classificacao-corrente-cc'
 import { useCompatibilidadeEletrica } from '../../hooks/useCompatibilidadeEletrica'
 import PainelCompatibilidadeFV from '../engenharia/PainelCompatibilidadeFV'
-// F1: `correnteProjeto` e `FATOR_ISC_NBR16690` saíram — quem os aplica agora é
-// `classificarCorrenteCC`. Mantê-los importados convidaria a comparação manual
-// de volta.
+// F2: tensão e oversizing seguem o mesmo caminho da corrente.
+import { classificarTensaoCC, STATUS_TENSAO } from '@fortesolar/fv-shared/engenharia/classificacao-tensao-cc'
 import {
-  coefParaFracao, fatorTermico, temperaturaCelula, NOCT_PADRAO_C,
-} from '@fortesolar/fv-shared/engenharia/normativa'
+  classificarOversizing, STATUS_OVERSIZING, LIMITE_CRITICO_CC_CA,
+} from '@fortesolar/fv-shared/engenharia/classificacao-oversizing'
+// F1/F2: `correnteProjeto`, `FATOR_ISC_NBR16690`, `fatorTermico`,
+// `temperaturaCelula` e `coefParaFracao` saíram — quem os aplica agora são os
+// classificadores. Mantê-los importados convidaria a comparação manual de volta.
 import { classificarTopologia } from '../../utils/topologiaInversor'
 import { dimensionarMicroinversor, resumoDistribuicao } from '../../utils/dimensionarMicro'
 // P1-MPPT-TOPOLOGY-IMPLEMENTATION-01 — editor da topologia real (entradas/strings)
@@ -83,15 +85,31 @@ function sugerirMPPTs(numPaineis, nMppts) {
 // strings, a compatibilidade mono/trifásica e a área — avisos de edição que o
 // motor do backend não produz.
 
-/** Tensão Voc corrigida pelo frio — NBR 16690 §5.1, via primitiva canônica. */
-function vocFrio(voc, coef, tmin) {
-  return voc * fatorTermico(coefParaFracao(coef), tmin)
-}
-
-/** Vmpp na temperatura de célula em operação — NBR 16690 §5.1. */
-function vmppQuente(vmpp, coefVoc, tmax, tempNoct = NOCT_PADRAO_C) {
-  const coef = coefParaFracao(coefVoc)   // Q2: o coeficiente de Voc vale para Vmpp
-  return vmpp * fatorTermico(coef, temperaturaCelula(tmax, tempNoct))
+/**
+ * F2 — tensão de UM MPPT pelo classificador canônico.
+ *
+ * `vocFrio` e `vmppQuente` viviam aqui e compunham as primitivas certas, mas as
+ * COMPARAÇÕES que as consumiam eram próprias desta tela, e divergiam do motor:
+ * o wizard media o Vmpp QUENTE contra o MPPT máximo, e o quente é o menor dos
+ * dois — o critério nunca disparava. Os cartões por MPPT iam além e comparavam
+ * o Vmpp em STC contra o MPPT mínimo, terceira leitura da mesma regra.
+ *
+ * Agora a tela não compara nada: pede o veredito e o exibe. Os números na tela
+ * são os mesmos que o motor usa, porque saem da mesma chamada.
+ */
+function tensaoDoMppt(eletricoMod, eletricoInv, modulosPorString, tmin, tmax) {
+  if (!eletricoMod || !eletricoInv) return null
+  return classificarTensaoCC({
+    voc:  eletricoMod.voc,
+    vmpp: eletricoMod.vmpp,
+    coefTempVoc: eletricoMod.coef_temp_voc,
+    tempNoct:    eletricoMod.temp_noct,
+    modulosPorString,
+    tensaoMaxEntrada: eletricoInv.tensao_max_entrada,
+    mpptMin: eletricoInv.mppt_min,
+    mpptMax: eletricoInv.mppt_max,
+    tMin: tmin, tMax: tmax,
+  })
 }
 
 // ─── Validações elétricas locais ──────────────────────────────────────────────
@@ -115,28 +133,49 @@ function validarArranjo({ mppts, modulosPorString, eletricoMod, eletricoInv, cli
     const mps    = mppt.modulosPorString
     const nStr   = mppt.numStrings
 
-    // 1. Voc frio excedido
-    const vocStr = vocFrio(eletricoMod.voc, eletricoMod.coef_temp_voc, tmin) * mps
-    if (vocStr > eletricoInv.tensao_max_entrada) {
-      bloqueios.push(
-        `MPPT ${idx}: Voc frio (${vocStr.toFixed(0)} V) excede Vmáx do inversor (${eletricoInv.tensao_max_entrada} V). Reduza módulos/string.`
-      )
-    }
+    /**
+     * 1–3. Tensão — F2: veredito do classificador canônico, como já era a
+     * corrente. A tela não recompara Voc frio, Vmpp frio nem Vmpp quente.
+     *
+     *   Voc frio    > tensão máxima de entrada → bloqueio (destrói o inversor)
+     *   Vmpp frio   > MPPT máximo              → bloqueio (string longa demais)
+     *   Vmpp quente < MPPT mínimo              → bloqueio (string curta demais)
+     *
+     * O teto de MPPT era AVISO aqui e ERRO no motor, e era medido no quente —
+     * nunca disparava. O motor sempre foi a referência; a tela passa a segui-lo.
+     */
+    const tensao = tensaoDoMppt(eletricoMod, eletricoInv, mps, tmin, tmax)
+    const { voc_string_max, vmpp_string_frio, vmpp_string_quente } = tensao.tensoes
 
-    // 2. Vmpp abaixo do mínimo MPPT — Q3: a comparação é na condição QUENTE.
-    // Antes usava Vmpp em STC, que é otimista: o Vmpp CAI com a temperatura, e
-    // é justamente no calor que a string corre risco de sair da janela.
-    const vmppQ = vmppQuente(eletricoMod.vmpp, eletricoMod.coef_temp_voc, tmax, eletricoMod.temp_noct) * mps
-    if (vmppQ < eletricoInv.mppt_min) {
+    if (tensao.voc.status === STATUS_TENSAO.INCOMPATIVEL) {
       bloqueios.push(
-        `MPPT ${idx}: Vmpp no calor (${vmppQ.toFixed(0)} V) abaixo do mínimo MPPT (${eletricoInv.mppt_min} V). Adicione módulos/string.`
+        `MPPT ${idx}: Voc frio (${voc_string_max.toFixed(0)} V) excede Vmáx do inversor (${eletricoInv.tensao_max_entrada} V). Reduza módulos/string.`
       )
-    }
-
-    // 3. Vmpp acima do máximo MPPT
-    if (vmppQ > eletricoInv.mppt_max) {
+    } else if (tensao.voc.status === STATUS_TENSAO.ATENCAO) {
       avisos.push(
-        `MPPT ${idx}: Vmpp quente (${vmppQ.toFixed(0)} V) pode exceder faixa MPPT máxima (${eletricoInv.mppt_max} V) em dias quentes.`
+        `MPPT ${idx}: Voc frio (${voc_string_max.toFixed(0)} V) a menos de 5% do Vmáx do inversor (${eletricoInv.tensao_max_entrada} V). Margem pequena para o pior inverno.`
+      )
+    }
+
+    if (tensao.mppt_min.status === STATUS_TENSAO.INCOMPATIVEL) {
+      bloqueios.push(
+        `MPPT ${idx}: Vmpp no calor (${vmpp_string_quente.toFixed(0)} V) abaixo do mínimo MPPT (${eletricoInv.mppt_min} V). Adicione módulos/string.`
+      )
+    }
+
+    if (tensao.mppt_max.status === STATUS_TENSAO.INCOMPATIVEL) {
+      bloqueios.push(
+        `MPPT ${idx}: Vmpp no frio (${vmpp_string_frio.toFixed(0)} V) excede a faixa MPPT máxima (${eletricoInv.mppt_max} V). Reduza módulos/string.`
+      )
+    } else if (tensao.mppt_max.status === STATUS_TENSAO.ATENCAO) {
+      avisos.push(
+        `MPPT ${idx}: Vmpp no frio (${vmpp_string_frio.toFixed(0)} V) a menos de 5% do teto da faixa MPPT (${eletricoInv.mppt_max} V).`
+      )
+    }
+
+    if (tensao.status === STATUS_TENSAO.NAO_AVALIADO) {
+      avisos.push(
+        `MPPT ${idx}: tensão não avaliada — faltam dados do módulo, do inversor ou do clima para fechar o critério.`
       )
     }
 
@@ -194,20 +233,38 @@ function validarArranjo({ mppts, modulosPorString, eletricoMod, eletricoInv, cli
     (s, m) => s + m.numStrings * m.modulosPorString * eletricoMod.potencia_w / 1000,
     0
   )
-  const oversizing = totalKwp / eletricoInv.potencia_ca_kw
-  const oversizingMax = eletricoInv.oversizing_max ?? 1.30
+  /**
+   * F2 — o `?? 1.30` saiu. Nenhum dos inversores do catálogo declara
+   * `oversizing_max`, então o default fabricava o limite do fabricante em todos
+   * os casos e o aviso saía contra número inventado. Sem o dado, o critério é
+   * declarado não avaliado. O teto de 1,50× é do SISTEMA e continua valendo.
+   */
+  const oversizing = classificarOversizing({
+    potenciaCcKwp: totalKwp,
+    potenciaCaKw:  eletricoInv.potencia_ca_kw,
+    limiteFabricante: eletricoInv.oversizing_max,
+  })
 
-  if (oversizing > 1.5) {
+  if (oversizing.status === STATUS_OVERSIZING.INCOMPATIVEL) {
     bloqueios.push(
-      `Oversizing DC/CA (${oversizing.toFixed(2)}×) muito acima do limite. Risco de clipping excessivo e dano ao inversor.`
+      `Oversizing DC/CA (${oversizing.fator.toFixed(2)}×) acima do limite de segurança de ` +
+      `${LIMITE_CRITICO_CC_CA.toFixed(2)}×. Risco de clipping excessivo e dano ao inversor.`
     )
-  } else if (oversizing > oversizingMax) {
+  } else if (oversizing.status === STATUS_OVERSIZING.ATENCAO) {
     avisos.push(
-      `Oversizing DC/CA (${oversizing.toFixed(2)}×) acima do recomendado pelo fabricante (${(oversizingMax * 100).toFixed(0)}%).`
+      `Oversizing DC/CA (${oversizing.fator.toFixed(2)}×) acima do recomendado pelo fabricante ` +
+      `(${(oversizing.limite_fabricante * 100).toFixed(0)}%).`
     )
-  } else if (oversizing < 1.0) {
+  } else if (oversizing.status === STATUS_OVERSIZING.NAO_AVALIADO && oversizing.fator !== null) {
     avisos.push(
-      `Oversizing DC/CA (${oversizing.toFixed(2)}×) abaixo de 1,0. O inversor está superdimensionado para este arranjo.`
+      `Oversizing DC/CA (${oversizing.fator.toFixed(2)}×) sem veredito: o catálogo não declara ` +
+      `o limite CC/CA deste inversor. Abaixo do teto de segurança, nada é assumido no lugar.`
+    )
+  }
+
+  if (oversizing.subdimensionado === true) {
+    avisos.push(
+      `Oversizing DC/CA (${oversizing.fator.toFixed(2)}×) abaixo de 1,0. O inversor está superdimensionado para este arranjo.`
     )
   }
 
@@ -528,8 +585,22 @@ export default function ConfiguradorArranjoFV({
       compatibilidade: {
         versao_motor:  VERSAO_MOTOR,
         compativel:    resultado.compativel,
+        /**
+         * F2 — `validacoes_locais: { bloqueios, avisos }` saiu daqui.
+         *
+         * O campo gravava o veredito PRÓPRIO do wizard ao lado do veredito do
+         * motor, com peso igual e nome de validação. Era escrito neste único
+         * ponto e lido em lugar nenhum do código — verdade persistida sem
+         * consumidor, e uma segunda verdade elétrica no mesmo documento.
+         *
+         * Depois da F2 a tela não tem mais veredito elétrico próprio: tensão,
+         * corrente e oversizing vêm dos classificadores canônicos, os mesmos
+         * que o motor usa, e o resultado do motor já está em `diagnosticos`.
+         * O que sobra em `avisos` é edição de tela — balanceamento entre MPPTs,
+         * mono/trifásico, área — que orienta enquanto se edita e não é estado
+         * do projeto. Documentos antigos que já têm o campo não são tocados.
+         */
         diagnosticos:  [...(erros ?? []), ...(warnings ?? [])],
-        validacoes_locais: { bloqueios, avisos },
         margens: calculos ? {
           margem_tensao_percentual:     calculos.margem_tensao_percentual,
           margem_mppt_max_percentual:   calculos.margem_mppt_max_percentual,
@@ -755,15 +826,20 @@ export default function ConfiguradorArranjoFV({
         {/* Strings por MPPT */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {mppts.map((mppt, i) => {
-            const eletricoLocal = eletricoMod && eletricoInv ? {
-              vocStr:    vocFrio(eletricoMod.voc, eletricoMod.coef_temp_voc, tmin) * mppt.modulosPorString,
-              vmppQ:     vmppQuente(eletricoMod.vmpp, eletricoMod.coef_temp_voc, tmax, eletricoMod.temp_noct) * mppt.modulosPorString,
-              vmppF:     eletricoMod.vmpp * mppt.modulosPorString,
-              iscT:      eletricoMod.isc * mppt.numStrings,
+            // F2: os números do cartão saem do mesmo veredito que valida o
+            // arranjo. `vmppF` era Vmpp em STC comparado ao MPPT mínimo —
+            // terceira leitura da regra; agora é o Vmpp frio do classificador.
+            const tensaoLocal = tensaoDoMppt(eletricoMod, eletricoInv, mppt.modulosPorString, tmin, tmax)
+            const eletricoLocal = tensaoLocal ? {
+              vocStr: tensaoLocal.tensoes.voc_string_max,
+              vmppQ:  tensaoLocal.tensoes.vmpp_string_quente,
+              vmppF:  tensaoLocal.tensoes.vmpp_string_frio,
+              iscT:   eletricoMod.isc * mppt.numStrings,
             } : null
 
-            const vocOk   = eletricoLocal ? eletricoLocal.vocStr <= eletricoInv.tensao_max_entrada : true
-            const mpptOk  = eletricoLocal ? eletricoLocal.vmppF >= eletricoInv.mppt_min : true
+            const vocOk   = tensaoLocal ? tensaoLocal.voc.status      !== STATUS_TENSAO.INCOMPATIVEL : true
+            const mpptOk  = tensaoLocal ? tensaoLocal.mppt_min.status !== STATUS_TENSAO.INCOMPATIVEL
+                                       && tensaoLocal.mppt_max.status !== STATUS_TENSAO.INCOMPATIVEL : true
             // F1: o cartao pinta pelo veredito canonico. So o limite ABSOLUTO
             // (curto-circuito) invalida; excesso de trabalho e atencao, nao erro.
             const iscOk   = eletricoLocal
@@ -845,14 +921,20 @@ export default function ConfiguradorArranjoFV({
           </div>
 
           {mppts.map((mppt, i) => {
-            const vocStr  = (vocFrio(eletricoMod.voc, eletricoMod.coef_temp_voc, tmin) * mppt.modulosPorString).toFixed(0)
-            const vmppF   = (eletricoMod.vmpp * mppt.modulosPorString).toFixed(0)
-            const vmppQ   = (vmppQuente(eletricoMod.vmpp, eletricoMod.coef_temp_voc, tmax, eletricoMod.temp_noct) * mppt.modulosPorString).toFixed(0)
+            // F2: mesmo veredito canônico dos cartões acima — nada é recomparado aqui.
+            const tensaoLocal = tensaoDoMppt(eletricoMod, eletricoInv, mppt.modulosPorString, tmin, tmax)
+            const vocStr  = (tensaoLocal?.tensoes.voc_string_max
+              ?? eletricoMod.voc * mppt.modulosPorString).toFixed(0)
+            const vmppF   = (tensaoLocal?.tensoes.vmpp_string_frio
+              ?? eletricoMod.vmpp * mppt.modulosPorString).toFixed(0)
+            const vmppQ   = (tensaoLocal?.tensoes.vmpp_string_quente
+              ?? eletricoMod.vmpp * mppt.modulosPorString).toFixed(0)
             const iscStr  = eletricoMod.isc.toFixed(2)
             const kWp     = ((mppt.numStrings * mppt.modulosPorString * eletricoMod.potencia_w) / 1000).toFixed(2)
 
-            const vocOk   = eletricoInv ? parseFloat(vocStr) <= eletricoInv.tensao_max_entrada : true
-            const mpptOk  = eletricoInv ? parseFloat(vmppF)  >= eletricoInv.mppt_min : true
+            const vocOk   = tensaoLocal ? tensaoLocal.voc.status      !== STATUS_TENSAO.INCOMPATIVEL : true
+            const mpptOk  = tensaoLocal ? tensaoLocal.mppt_min.status !== STATUS_TENSAO.INCOMPATIVEL
+                                       && tensaoLocal.mppt_max.status !== STATUS_TENSAO.INCOMPATIVEL : true
             // F1: mesmo veredito canonico do cartao acima.
             const iscOk   = eletricoInv
               ? classificarCorrenteCC({

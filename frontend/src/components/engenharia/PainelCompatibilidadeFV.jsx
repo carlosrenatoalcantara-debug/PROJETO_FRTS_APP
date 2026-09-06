@@ -192,6 +192,21 @@ function corBarra(pct) {
  * O preenchimento visual é limitado a 100 % mas o valor textual é o real.
  */
 function BarraProgresso({ label, valor, unidade = '%', icone }) {
+  // F2: a margem pode vir `null` quando o critério não foi avaliado — sem
+  // potência CA não há relação CC/CA a exibir. Barra vazia e "—", não zero:
+  // zero diria "0 % do limite", que é uma afirmação, e não temos nenhuma.
+  if (valor === null || valor === undefined || !Number.isFinite(valor)) {
+    return (
+      <div className="space-y-1">
+        <div className="flex items-center justify-between text-xs">
+          <span className="flex items-center gap-1 text-gray-600 font-medium">{icone}{label}</span>
+          <span className="font-mono font-bold text-gray-400" title="Critério não avaliado">—</span>
+        </div>
+        <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden" />
+      </div>
+    )
+  }
+
   const pctVisual = Math.min(valor, 100)   // segurança de layout
   const pctTexto  = valor.toFixed(2)       // valor real exibido ao usuário
   const cor       = corBarra(valor)

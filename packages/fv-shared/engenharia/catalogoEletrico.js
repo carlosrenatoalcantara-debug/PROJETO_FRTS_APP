@@ -270,7 +270,15 @@ export function dadosEletricosInversor(inversor) {
       corrente_isc_max_mppt: _n(inversor.correnteIscMaxA ?? e?.corrente_isc_max),
       potencia_ca_kw: _n(inversor.potenciaKW ?? inversor.potencia_ca_kw ?? e?.potencia_ca_kw),
       entradas_por_mppt: _n(inversor.entradasPorMppt ?? e?.entradas_por_mppt) ?? 1,
-      oversizing_max: _n(inversor.oversizingMax ?? e?.oversizing_max) ?? 1.30,
+      /**
+       * F2 — limite CC/CA DO FABRICANTE. Sem `?? 1.30`, pelo mesmo motivo do
+       * campo acima: dos 39 inversores do catálogo Mongo, ZERO o declaram, de
+       * modo que o default fabricava o limite do fabricante em 100 % dos casos
+       * e todo aviso `OVERSIZING_ELEVADO` já emitido foi contra número
+       * inventado. Ausente ⇒ `classificarOversizing` devolve `nao_avaliado`.
+       * O teto de segurança de 1,50× é do SISTEMA e continua valendo.
+       */
+      oversizing_max: _n(inversor.oversizingMax ?? e?.oversizing_max),
     }
   }
   return null

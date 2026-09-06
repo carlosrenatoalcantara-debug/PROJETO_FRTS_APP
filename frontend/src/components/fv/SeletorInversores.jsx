@@ -247,7 +247,8 @@ export default function SeletorInversores({ onSelecionar, selecionado }) {
       mpptMinV:      eletrico?.mppt_min           ?? null,
       mpptMaxV:      eletrico?.mppt_max           ?? null,
       correnteMaxA:  eletrico?.corrente_max_mppt  ?? null,
-      oversizingMax: eletrico?.oversizing_max     ?? 1.30,
+      // F2: sem default — o limite CC/CA é dado de fabricante, não presunção.
+      oversizingMax: eletrico?.oversizing_max     ?? null,
       entradasPorMppt: eletrico?.entradas_por_mppt ?? 1,
       // S8.1: proveniência (snapshot/unifilar/homologação futura)
       _fonte:            inv._fonte || 'local',
@@ -401,7 +402,10 @@ export default function SeletorInversores({ onSelecionar, selecionado }) {
                           <InvParam label="Imáx/MPPT"   valor={`${eletrico.corrente_max_mppt} A`} />
                           <InvParam label="Vmpp mín"    valor={`${eletrico.mppt_min} V`}          />
                           <InvParam label="Vmpp máx"    valor={`${eletrico.mppt_max} V`}          />
-                          <InvParam label="Oversizing"  valor={`${((eletrico.oversizing_max ?? 1.30) * 100).toFixed(0)}%`} />
+                          {/* F2: "—" quando o catálogo não declara. Exibir 130%
+                              era mostrar ao usuário um limite inventado. */}
+                          <InvParam label="Oversizing"  valor={eletrico.oversizing_max
+                            ? `${(eletrico.oversizing_max * 100).toFixed(0)}%` : '—'} />
                         </div>
                       ) : (
                         <div className="grid grid-cols-2 gap-2 mt-2 text-xs">

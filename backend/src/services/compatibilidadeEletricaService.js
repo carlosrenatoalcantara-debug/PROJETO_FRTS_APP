@@ -58,14 +58,15 @@ import {
   TEMP_STC_C,
   NOCT_PADRAO_C,
   FATOR_ISC_NBR16690,
-  coefParaFracao,
-  fatorTermico,
-  temperaturaCelula,
   correnteProjeto,
 } from '@fortesolar/fv-shared/engenharia/normativa'
 // F1: a classificação de corrente CC é uma implementação só, no domínio — este
 // service e o wizard legado a consomem, em vez de cada um ter a sua.
 import { classificarCorrenteCC } from '@fortesolar/fv-shared/engenharia/classificacao-corrente-cc'
+// F2: tensao e oversizing seguem o mesmo caminho da corrente — uma
+// implementacao no dominio, consumida pelo motor e pelo wizard legado.
+import { classificarTensaoCC, MARGEM_ATENCAO_TENSAO } from '@fortesolar/fv-shared/engenharia/classificacao-tensao-cc'
+import { classificarOversizing, LIMITE_CRITICO_CC_CA } from '@fortesolar/fv-shared/engenharia/classificacao-oversizing'
 
 // ─── Constantes normativas ────────────────────────────────────────────────────
 
@@ -86,16 +87,19 @@ export const STATUS_CRITERIO = Object.freeze({
   NAO_AVALIADO: 'nao_avaliado',
 })
 
-const OVERSIZING_LIMITE_WARNING = 1.30
+/**
+ * F2 — os limites deixaram de ser declarados aqui. Cada número passou a morar
+ * junto da regra que o usa, no domínio, e este módulo apenas o reexporta para
+ * quem já o consumia (`optimizerArranjoFVService`, painéis, testes).
+ *
+ * `OVERSIZING_LIMITE_WARNING` (1,30×) sumiu por não ter dono: era um default de
+ * fabricante que nenhum fabricante declarou. Ver `classificacaoOversizing`.
+ */
+const OVERSIZING_LIMITE_ERRO = LIMITE_CRITICO_CC_CA
 
-/** Limite oversizing CC/CA → ERRO CRÍTICO */
-const OVERSIZING_LIMITE_ERRO = 1.50
-
-/** Margem de atenção para Voc próximo do limite (5%) */
-const VOC_MARGEM_ATENCAO_PCT = 0.05
-
-/** Margem de atenção para Vmpp próximo do limite MPPT (5%) */
-const MPPT_MARGEM_ATENCAO_PCT = 0.05
+/** Margem de atenção para Voc e Vmpp próximos do limite (5 %) — do domínio. */
+const VOC_MARGEM_ATENCAO_PCT  = MARGEM_ATENCAO_TENSAO
+const MPPT_MARGEM_ATENCAO_PCT = MARGEM_ATENCAO_TENSAO
 
 // ─── Fallback climático conservador ──────────────────────────────────────────
 /**
@@ -392,13 +396,12 @@ export function analisarCompatibilidade({
 
   const { temperatura_min_historica_c: t_min, temperatura_max_historica_c: t_max } = clima
 
-  // Q4: conversão de unidade na FRONTEIRA, uma vez, pela primitiva canônica.
-  // Q2: sem `coef_temp_vmpp` no catálogo, o de Voc vale para Vmpp — provisório.
-  const coefVoc  = coefParaFracao(_coefVoc)
-  const coefVmpp = _coefVmpp !== undefined ? coefParaFracao(_coefVmpp) : coefVoc
+  // F2: a conversão de unidade (Q4) e o fallback de `coef_temp_vmpp` (Q2)
+  // passaram para `classificarTensaoCC`, que recebe os coeficientes crus.
 
-  // Limites do inversor (para o output)
-  const limiteOversizing = oversizing_max_fabricante ?? OVERSIZING_LIMITE_WARNING
+  // Limites do inversor (para o output). F2: `null` quando o catálogo não
+  // declara o limite do fabricante — sem default, o critério vira `nao_avaliado`.
+  const limiteOversizing = oversizing_max_fabricante ?? null
 
   const limites = {
     tensao_max_inversor: tensao_max_entrada,
@@ -429,20 +432,32 @@ export function analisarCompatibilidade({
   }
 
   // ════════════════════════════════════════════════════════════════════════════
-  // VERIFICAÇÃO 1 — Correção térmica do Voc
+  // VERIFICAÇÕES 1 e 2 — tensão CC (Voc no frio e janela MPPT)
   // ════════════════════════════════════════════════════════════════════════════
+  //
+  // F2: a REGRA de tensão mora em `classificarTensaoCC`, no domínio, e é a mesma
+  // função que o wizard consome no navegador. Aqui o service só decide qual
+  // mensagem emitir para cada veredito — não recompara limites.
   //
   // No frio, o Voc AUMENTA porque coef_temp_voc < 0 e ΔT < 0 → produto positivo.
   // T_cel_frio ≈ T_amb_min: no frio, sem sol, sem aquecimento por NOCT.
-  // Este é o pior caso de TENSÃO — determina se o inversor será destruído.
+  // No calor, Vmpp CAI, e o pior caso do piso do MPPT usa temperatura de célula.
   //
-  const deltaT_frio        = t_min - TEMP_STC_C
-  const voc_corrigido_frio = r(voc * fatorTermico(coefVoc, t_min))
-  const voc_string_max     = r(voc_corrigido_frio * modulos_por_string, 2)
+  const tensao = classificarTensaoCC({
+    voc, vmpp, coefTempVoc: _coefVoc, coefTempVmpp: _coefVmpp,
+    tempNoct: temp_noct, modulosPorString: modulos_por_string,
+    tensaoMaxEntrada: tensao_max_entrada, mpptMin: mppt_min, mpptMax: mppt_max,
+    tMin: t_min, tMax: t_max,
+  })
+
+  const {
+    voc_corrigido_frio, vmpp_corrigido_frio, vmpp_corrigido_quente,
+    voc_string_max, vmpp_string_frio, vmpp_string_quente,
+    t_cel_max, delta_frio: deltaT_frio, delta_quente: deltaT_quente,
+  } = tensao.tensoes
 
   // Warning: próximo ao limite (dentro da margem de 5%)
-  if (voc_string_max <= tensao_max_entrada &&
-      voc_string_max > tensao_max_entrada * (1 - VOC_MARGEM_ATENCAO_PCT)) {
+  if (tensao.voc.status === STATUS_CRITERIO.ATENCAO) {
     const margem_pct = r(((tensao_max_entrada - voc_string_max) / tensao_max_entrada) * 100, 1)
     warnings.push({
       codigo:           'VOC_PROXIMO_LIMITE',
@@ -457,7 +472,7 @@ export function analisarCompatibilidade({
   }
 
   // Erro crítico: ultrapassou o limite absoluto
-  if (voc_string_max > tensao_max_entrada) {
+  if (tensao.voc.status === STATUS_CRITERIO.INCOMPATIVEL) {
     const excesso = r(voc_string_max - tensao_max_entrada, 2)
     erros.push({
       codigo:           'SOBRETENSAO_VOC',
@@ -474,26 +489,12 @@ export function analisarCompatibilidade({
     })
   }
 
-  // ════════════════════════════════════════════════════════════════════════════
-  // VERIFICAÇÃO 2 — Janela MPPT
-  // ════════════════════════════════════════════════════════════════════════════
-  //
-  // Dois cenários independentes:
+  // Janela MPPT — dois cenários independentes, ambos já classificados acima:
   //  a) Frio → Vmpp alto → risco de ultrapassar MPPT_max (string longa demais)
   //  b) Quente → Vmpp baixo → risco de cair abaixo de MPPT_min (string curta)
   //
-  // Para (b), usa temperatura de célula real com modelo NOCT — mais conservador.
-  //
-  const t_cel_max      = temperaturaCelula(t_max, temp_noct)
-  const deltaT_quente  = t_cel_max - TEMP_STC_C
-
-  const vmpp_corrigido_frio   = r(vmpp * fatorTermico(coefVmpp, t_min))
-  const vmpp_corrigido_quente = r(vmpp * fatorTermico(coefVmpp, t_cel_max))
-  const vmpp_string_frio      = r(vmpp_corrigido_frio   * modulos_por_string, 2)
-  const vmpp_string_quente    = r(vmpp_corrigido_quente * modulos_por_string, 2)
-
   // a) String longa demais (Vmpp_frio > MPPT_max)
-  if (vmpp_string_frio > mppt_max) {
+  if (tensao.mppt_max.status === STATUS_CRITERIO.INCOMPATIVEL) {
     const excesso = r(vmpp_string_frio - mppt_max, 2)
     erros.push({
       codigo:           'MPPT_STRING_LONGA',
@@ -505,7 +506,7 @@ export function analisarCompatibilidade({
       explicacao_curta: 'String longa demais: Vmpp no frio ultrapassa o teto do MPPT.',
       valores:          { vmpp_string_frio, mppt_max, excesso_v: excesso, t_min, vmpp_corrigido_frio },
     })
-  } else if (vmpp_string_frio > mppt_max * (1 - MPPT_MARGEM_ATENCAO_PCT)) {
+  } else if (tensao.mppt_max.status === STATUS_CRITERIO.ATENCAO) {
     const margem_pct = r(((mppt_max - vmpp_string_frio) / mppt_max) * 100, 1)
     warnings.push({
       codigo:           'MPPT_MARGEM_FRIO_PEQUENA',
@@ -519,7 +520,7 @@ export function analisarCompatibilidade({
   }
 
   // b) String curta demais (Vmpp_quente < MPPT_min)
-  if (vmpp_string_quente < mppt_min) {
+  if (tensao.mppt_min.status === STATUS_CRITERIO.INCOMPATIVEL) {
     const deficit = r(mppt_min - vmpp_string_quente, 2)
     erros.push({
       codigo:           'MPPT_STRING_CURTA',
@@ -674,30 +675,46 @@ export function analisarCompatibilidade({
   const total_strings     = strings_paralelo * num_mppt_usados
   const total_modulos     = modulos_por_string * total_strings
   const potencia_cc_total = r((potencia_w * total_modulos) / 1000, 3)  // kWp
-  const fator_oversizing  = r(potencia_cc_total / potencia_ca_kw, 4)
 
-  if (fator_oversizing > OVERSIZING_LIMITE_ERRO) {
+  // F2: a regra mora em `classificarOversizing`, no domínio, e distingue o teto
+  // de SEGURANÇA do sistema (1,50×) do limite do FABRICANTE (`oversizing_max`).
+  // Sem o segundo, o critério fica `nao_avaliado` — nenhum limite é assumido.
+  const oversizing = classificarOversizing({
+    potenciaCcKwp: potencia_cc_total,
+    potenciaCaKw:  potencia_ca_kw,
+    limiteFabricante: limiteOversizing,
+  })
+  const fator_oversizing = oversizing.fator
+
+  if (oversizing.status === STATUS_CRITERIO.INCOMPATIVEL) {
     erros.push({
       codigo:           'OVERSIZING_CRITICO',
       severidade:       'critico',
       nivel:            'critico',
       mensagem:         `OVERSIZING EXCESSIVO: Fator CC/CA (${fator_oversizing.toFixed(2)}×) excede ` +
-                        `o limite crítico de ${OVERSIZING_LIMITE_ERRO.toFixed(2)}×. ` +
+                        `o limite crítico de ${LIMITE_CRITICO_CC_CA.toFixed(2)}×. ` +
                         `Risco de sobrecarga e dano ao inversor.`,
       explicacao_curta: 'Proporção CC/CA excessiva — risco de sobrecarga térmica no inversor.',
-      valores:          { fator_oversizing, limite_critico: OVERSIZING_LIMITE_ERRO,
+      valores:          { fator_oversizing, limite_critico: LIMITE_CRITICO_CC_CA,
                           potencia_cc_kwp: potencia_cc_total, potencia_ca_kw },
     })
-  } else if (fator_oversizing > limiteOversizing) {
+  } else if (oversizing.status === STATUS_CRITERIO.ATENCAO) {
     warnings.push({
       codigo:           'OVERSIZING_ELEVADO',
       severidade:       'alerta',
       nivel:            'atencao',
       mensagem:         `Oversizing CC/CA (${fator_oversizing.toFixed(2)}×) acima de ` +
-                        `${(limiteOversizing * 100).toFixed(0)}%. Verifique aceite do fabricante.`,
+                        `${(oversizing.limite_fabricante * 100).toFixed(0)}%. Verifique aceite do fabricante.`,
       explicacao_curta: 'Oversizing acima do recomendado — verificar aceite do fabricante.',
-      valores:          { fator_oversizing, limite_recomendado: limiteOversizing,
+      valores:          { fator_oversizing, limite_recomendado: oversizing.limite_fabricante,
                           potencia_cc_kwp: potencia_cc_total, potencia_ca_kw },
+    })
+  } else if (oversizing.status === STATUS_CRITERIO.NAO_AVALIADO) {
+    naoAvaliados.push({
+      criterio: 'oversizing_fabricante',
+      motivo:   oversizing.motivo,
+      valores:  { fator_oversizing, limite_critico: LIMITE_CRITICO_CC_CA,
+                  potencia_cc_kwp: potencia_cc_total, potencia_ca_kw },
     })
   }
 
@@ -714,7 +731,8 @@ export function analisarCompatibilidade({
   const margem_tensao_percentual     = r((voc_string_max / tensao_max_entrada) * 100, 2)
   const margem_mppt_max_percentual   = r((vmpp_string_frio / mppt_max) * 100, 2)
   const margem_mppt_min_percentual   = r((mppt_min / vmpp_string_quente) * 100, 2)
-  const margem_oversizing_percentual = r((fator_oversizing / OVERSIZING_LIMITE_ERRO) * 100, 2)
+  const margem_oversizing_percentual = fator_oversizing === null
+    ? null : r((fator_oversizing / OVERSIZING_LIMITE_ERRO) * 100, 2)
 
   // ── Resultado ───────────────────────────────────────────────────────────────
 
@@ -823,7 +841,6 @@ export function analisarCompatibilidade({
 
 export const CONSTANTES = Object.freeze({
   TEMP_STC_C,
-  OVERSIZING_LIMITE_WARNING,
   OVERSIZING_LIMITE_ERRO,
   MPPT_MARGEM_ATENCAO_PCT,
   VOC_MARGEM_ATENCAO_PCT,

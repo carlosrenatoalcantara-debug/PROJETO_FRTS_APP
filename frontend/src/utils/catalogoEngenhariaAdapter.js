@@ -87,7 +87,10 @@ export function adaptarInversor(eq) {
       corrente_max_mppt: pick(e, ['corrente_max_por_mppt', 'corrente_max_mppt', 'isc_max_mppt', 'ipv_max']),
       isc_max_mppt: pick(e, ['isc_max_mppt', 'corrente_curto_mppt', 'isc_max']),  // audit S8.1.1
       potencia_fv_max: pick(e, ['potencia_cc_max', 'potencia_dc_max', 'pdc_max']), // audit S8.1.1
-      oversizing_max: pick(e, ['oversizing_max']) ?? 1.30,
+      // F2: sem `?? 1.30`. Nenhum inversor do catálogo declara este campo, e o
+      // default fazia o adaptador AFIRMAR um limite de fabricante que ninguém
+      // publicou. Ausente ⇒ o critério de oversizing fica `nao_avaliado`.
+      oversizing_max: pick(e, ['oversizing_max']),
       entradas_por_mppt: pick(e, ['strings_por_mppt', 'entradas_por_mppt']) ?? 1,
     },
     registro_inmetro: eq.certificacao?.inmetro?.numero ?? null,
