@@ -83,11 +83,27 @@ ok(FATOR_ISC_NBR16690 === 1.25, `fator canônico ${FATOR_ISC_NBR16690}`)
 ok(correnteProjeto(14, 1) === 17.5, 'correnteProjeto(14, 1) = 17,5 A')
 ok(correnteProjeto(14, 2) === 35, 'correnteProjeto(14, 2) = 35 A')
 ok(calcularIscMax(13.9) === 17.38, 'calcularIscMax preservada (17,38 A)')
+/**
+ * F1: o fator normativo desceu mais um nível. O service e o wizard deixaram de
+ * chamar `correnteProjeto` diretamente e passaram a consumir
+ * `classificarCorrenteCC`, que é quem o aplica. A guarda NÃO foi afrouxada — ela
+ * passou a exigir a cadeia inteira: consumidor → classificador → primitiva.
+ * Afirmar `correnteProjeto(` no consumidor agora aceitaria de volta a fórmula
+ * escrita à mão em cada lado, que é justamente o que se quer impedir.
+ */
+const CLASSIFICADOR = ler('packages/fv-shared/engenharia/classificacaoCorrenteCC.js')
 for (const [nome, fonte] of [['backend', SERVICE], ['wizard', WIZARD]]) {
   const s = semComentarios(fonte)
   ok(!/\*\s*1\.25/.test(s), `${nome}: fator 1,25 não aparece solto`)
-  ok(s.includes('correnteProjeto('), `${nome}: usa \`correnteProjeto\``)
+  ok(s.includes('classificarCorrenteCC('),
+    `${nome}: consome o classificador canônico de corrente`)
+  ok(!/correnteProjeto\([^)]*\)\s*[<>]/.test(s),
+    `${nome}: não compara a corrente de projeto contra limite por conta própria`)
 }
+ok(semComentarios(CLASSIFICADOR).includes('correnteProjeto('),
+  'o classificador aplica a primitiva canônica — a cadeia fecha')
+ok(!/\*\s*1\.25/.test(semComentarios(CLASSIFICADOR)),
+  'e não reescreve o fator 1,25')
 
 secao('4 · Q5 — NOCT padrão 44 °C')
 ok(NOCT_PADRAO_C === 44, `canônico ${NOCT_PADRAO_C} °C`)

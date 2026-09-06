@@ -22,11 +22,16 @@ import {
   dadosEletricosInversor,
   CLIMA_PADRAO_UF,
 } from '../../data/catalogoEletrico'
+// F1: veredito de corrente vem do classificador canonico do dominio — a mesma
+// implementacao que `analisarCompatibilidade` usa no backend.
+import { classificarCorrenteCC, STATUS_CORRENTE } from '@fortesolar/fv-shared/engenharia/classificacao-corrente-cc'
 import { useCompatibilidadeEletrica } from '../../hooks/useCompatibilidadeEletrica'
 import PainelCompatibilidadeFV from '../engenharia/PainelCompatibilidadeFV'
+// F1: `correnteProjeto` e `FATOR_ISC_NBR16690` saíram — quem os aplica agora é
+// `classificarCorrenteCC`. Mantê-los importados convidaria a comparação manual
+// de volta.
 import {
-  coefParaFracao, fatorTermico, temperaturaCelula, correnteProjeto,
-  FATOR_ISC_NBR16690, NOCT_PADRAO_C,
+  coefParaFracao, fatorTermico, temperaturaCelula, NOCT_PADRAO_C,
 } from '@fortesolar/fv-shared/engenharia/normativa'
 import { classificarTopologia } from '../../utils/topologiaInversor'
 import { dimensionarMicroinversor, resumoDistribuicao } from '../../utils/dimensionarMicro'
@@ -135,11 +140,51 @@ function validarArranjo({ mppts, modulosPorString, eletricoMod, eletricoInv, cli
       )
     }
 
-    // 4. Isc excedida — Q1, NBR 16690 §5.2, pela primitiva canônica.
-    const iscTotal = correnteProjeto(eletricoMod.isc, nStr)
-    if (iscTotal > eletricoInv.corrente_max_mppt) {
+    /**
+     * 4. Corrente — F1: o veredito é do classificador canônico, não desta tela.
+     *
+     * Antes havia aqui `correnteProjeto(isc, nStr) > corrente_max_mppt →
+     * bloqueio`. Depois que o motor foi corrigido, essa comparação passou a
+     * discordar dele: o wizard reprovava o que o motor classificava como
+     * ATENÇÃO. Agora os dois consomem a mesma função.
+     *
+     *   Isc  > limite de CURTO     → bloqueio (limite absoluto)
+     *   Impp > limite de TRABALHO  → aviso (limita geração, não impede)
+     *   Isc × 1,25 acima do trab.  → aviso (dimensiona condutor)
+     *   sem limite de curto         → lacuna declarada, nunca aprovação muda
+     */
+    const corrente = classificarCorrenteCC({
+      isc: eletricoMod.isc,
+      impp: eletricoMod.impp,
+      strings: nStr,
+      limiteTrabalho: eletricoInv.corrente_max_mppt,
+      limiteCurto: eletricoInv.corrente_isc_max_mppt,
+    })
+
+    if (corrente.curto_circuito.status === STATUS_CORRENTE.INCOMPATIVEL) {
       bloqueios.push(
-        `MPPT ${idx}: Isc de projeto (${iscTotal.toFixed(1)} A com fs=${FATOR_ISC_NBR16690}) excede corrente máxima do MPPT (${eletricoInv.corrente_max_mppt} A).`
+        `MPPT ${idx}: Isc do arranjo (${corrente.curto_circuito.isc_operacao} A) excede a corrente ` +
+        `máxima de curto-circuito do inversor (${corrente.curto_circuito.limite_a} A). Limite absoluto.`
+      )
+    }
+    if (corrente.operacao.status === STATUS_CORRENTE.ATENCAO) {
+      avisos.push(
+        `MPPT ${idx}: corrente de operação (Impp ${corrente.operacao.impp_total} A) acima da corrente ` +
+        `máxima de trabalho da entrada (${corrente.operacao.limite_a} A). Haverá limitação nos picos; ` +
+        `não é impedimento elétrico.`
+      )
+    }
+    if (corrente.projeto_normativa.acima_do_trabalho === true) {
+      avisos.push(
+        `MPPT ${idx}: corrente de projeto (${corrente.projeto_normativa.isc_total} A, ` +
+        `NBR 16690 §5.2) acima da corrente de trabalho (${corrente.projeto_normativa.limite_trabalho_a} A). ` +
+        `Dimensione cabo e proteção por ela — não é limite do inversor.`
+      )
+    }
+    if (corrente.curto_circuito.status === STATUS_CORRENTE.NAO_AVALIADO) {
+      avisos.push(
+        `MPPT ${idx}: corrente de curto-circuito não avaliada — o catálogo não declara ` +
+        `\`corrente_isc_max\` para este inversor.`
       )
     }
   })
@@ -719,7 +764,15 @@ export default function ConfiguradorArranjoFV({
 
             const vocOk   = eletricoLocal ? eletricoLocal.vocStr <= eletricoInv.tensao_max_entrada : true
             const mpptOk  = eletricoLocal ? eletricoLocal.vmppF >= eletricoInv.mppt_min : true
-            const iscOk   = eletricoLocal ? correnteProjeto(eletricoLocal.iscT) <= eletricoInv.corrente_max_mppt : true
+            // F1: o cartao pinta pelo veredito canonico. So o limite ABSOLUTO
+            // (curto-circuito) invalida; excesso de trabalho e atencao, nao erro.
+            const iscOk   = eletricoLocal
+              ? classificarCorrenteCC({
+                  isc: eletricoMod.isc, impp: eletricoMod.impp, strings: mppt.numStrings,
+                  limiteTrabalho: eletricoInv.corrente_max_mppt,
+                  limiteCurto: eletricoInv.corrente_isc_max_mppt,
+                }).curto_circuito.status !== STATUS_CORRENTE.INCOMPATIVEL
+              : true
 
             return (
               <div key={i} className={`p-4 rounded-xl border-2 space-y-3 ${
@@ -800,7 +853,14 @@ export default function ConfiguradorArranjoFV({
 
             const vocOk   = eletricoInv ? parseFloat(vocStr) <= eletricoInv.tensao_max_entrada : true
             const mpptOk  = eletricoInv ? parseFloat(vmppF)  >= eletricoInv.mppt_min : true
-            const iscOk   = eletricoInv ? correnteProjeto(eletricoMod.isc, mppt.numStrings) <= eletricoInv.corrente_max_mppt : true
+            // F1: mesmo veredito canonico do cartao acima.
+            const iscOk   = eletricoInv
+              ? classificarCorrenteCC({
+                  isc: eletricoMod.isc, impp: eletricoMod.impp, strings: mppt.numStrings,
+                  limiteTrabalho: eletricoInv.corrente_max_mppt,
+                  limiteCurto: eletricoInv.corrente_isc_max_mppt,
+                }).curto_circuito.status !== STATUS_CORRENTE.INCOMPATIVEL
+              : true
 
             const status  = (!vocOk || !mpptOk || !iscOk) ? '⛔' : '✓'
 

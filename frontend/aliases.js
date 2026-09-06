@@ -54,6 +54,9 @@ export function criarAliases(path, dirname) {
     '@fortesolar/fv-shared/engenharia/regras-micro-fabricante': path.resolve(dirname, '../packages/fv-shared/engenharia/regrasMicroFabricante.js'),
     // Sprint E2: corrente por entrada, por micro e por ramal — motor separado
     // da distribuição, com veredito `nao_avaliado` próprio.
+    // F1: classificacao canonica de corrente CC — uma implementacao, consumida
+    // pelo motor no backend e pelo wizard no navegador.
+    '@fortesolar/fv-shared/engenharia/classificacao-corrente-cc': path.resolve(dirname, '../packages/fv-shared/engenharia/classificacaoCorrenteCC.js'),
     '@fortesolar/fv-shared/engenharia/corrente-micro':        path.resolve(dirname, '../packages/fv-shared/engenharia/correnteMicro.js'),
 
     '@fortesolar/fv-shared/engenharia/regras-plausibilidade': path.resolve(dirname, '../packages/fv-shared/services/regrasPlausibilidade.js'),

@@ -253,6 +253,21 @@ export function dadosEletricosInversor(inversor) {
       mppt_min: vmin,
       mppt_max: vmppMax,
       corrente_max_mppt: imax,
+      /**
+       * F1 — limite de CURTO-CIRCUITO, grandeza distinta da corrente de
+       * trabalho acima. É o único critério de corrente que reprova.
+       *
+       * Sem `??` de default, de propósito: 19 dos 39 inversores do catálogo
+       * Mongo o declaram, e nos 19 ele difere do limite de trabalho. Ausente,
+       * o classificador devolve `nao_avaliado` — o limite de trabalho NÃO
+       * entra no lugar dele.
+       *
+       * A tabela estática acima NÃO recebeu este campo: dos 50 registros dela,
+       * apenas 7 são identificáveis por modelo (via o seed) e nenhum dos 7
+       * existe no catálogo Mongo. Sem evidência, fica ausente — LACUNA
+       * DECLARADA, não preenchida por inferência.
+       */
+      corrente_isc_max_mppt: _n(inversor.correnteIscMaxA ?? e?.corrente_isc_max),
       potencia_ca_kw: _n(inversor.potenciaKW ?? inversor.potencia_ca_kw ?? e?.potencia_ca_kw),
       entradas_por_mppt: _n(inversor.entradasPorMppt ?? e?.entradas_por_mppt) ?? 1,
       oversizing_max: _n(inversor.oversizingMax ?? e?.oversizing_max) ?? 1.30,

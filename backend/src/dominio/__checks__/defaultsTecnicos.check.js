@@ -112,7 +112,18 @@ ok(NORMATIVA.includes('FATOR_ISC_NBR16690 = 1.25'), 'Isc × 1,25 intacto')
 ok(NORMATIVA.includes('NOCT_PADRAO_C = 44'), 'NOCT 44 intacto')
 ok(NORMATIVA.includes('export function coefParaFracao'), 'conversão de unidade intacta')
 const SERVICO = ler('backend/src/services/compatibilidadeEletricaService.js')
-ok(SERVICO.includes('correnteProjeto(isc, strings_paralelo)'), 'validador canônico intacto')
+/**
+ * F1: a aplicação do fator desceu um nível. O validador deixou de chamar
+ * `correnteProjeto` diretamente e passou a consumir `classificarCorrenteCC`,
+ * que é quem o aplica — o wizard legado precisava do mesmo veredito no
+ * navegador, e repetir a comparação lá era o que produzia divergência.
+ *
+ * A intenção da guarda é a mesma e continua verificada, agora na cadeia
+ * inteira: validador → classificador → primitiva canônica.
+ */
+const CLASSIFICADOR = ler('packages/fv-shared/engenharia/classificacaoCorrenteCC.js')
+ok(SERVICO.includes('classificarCorrenteCC({'), 'validador consome o classificador canônico')
+ok(CLASSIFICADOR.includes('correnteProjeto(vIsc, n)'), 'e o classificador aplica Isc × 1,25')
 
 secao('10 · `lerInversor` (SSOT) não ganhou alias nem default')
 const DIC = semComentarios(ler('packages/fv-shared/equipamentos/inversores/dicionarioInversor.js'))

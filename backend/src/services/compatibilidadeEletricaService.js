@@ -63,6 +63,9 @@ import {
   temperaturaCelula,
   correnteProjeto,
 } from '@fortesolar/fv-shared/engenharia/normativa'
+// F1: a classificação de corrente CC é uma implementação só, no domínio — este
+// service e o wizard legado a consomem, em vez de cada um ter a sua.
+import { classificarCorrenteCC } from '@fortesolar/fv-shared/engenharia/classificacao-corrente-cc'
 
 // ─── Constantes normativas ────────────────────────────────────────────────────
 
@@ -565,14 +568,23 @@ export function analisarCompatibilidade({
   // dimensiona cabo e proteção (`selecionarCabo`, `correnteProjeto`) e continua
   // reportado em `calculos.isc_total`. O que mudou é que ele deixou de ser o
   // critério de reprovação contra o limite errado.
-  const isc_operacao = r(isc * strings_paralelo)
-  const isc_total    = r(correnteProjeto(isc, strings_paralelo))
-  const impp_total   = r(impp * strings_paralelo)
+  //
+  // F1: a classificação em si saiu daqui e virou `classificarCorrenteCC`, no
+  // domínio — o wizard legado precisa do MESMO veredito por MPPT, no navegador,
+  // e repetir as comparações lá foi o que produziu dois vereditos divergentes.
+  // Este bloco continua sendo o dono das MENSAGENS; a decisão vem de lá.
+  const corrente = classificarCorrenteCC({
+    isc, impp, strings: strings_paralelo,
+    limiteTrabalho: corrente_max_mppt, limiteCurto: corrente_isc_max_mppt,
+  })
+  const isc_operacao = corrente.curto_circuito.isc_operacao
+  const isc_total    = corrente.projeto_normativa.isc_total
+  const impp_total   = corrente.operacao.impp_total
 
-  const temLimiteCurto = corrente_isc_max_mppt != null && isFinite(corrente_isc_max_mppt)
+  const temLimiteCurto = corrente.curto_circuito.limite_a !== null
 
   // ── Limite ABSOLUTO: curto-circuito. Único critério de corrente que reprova ──
-  if (temLimiteCurto && isc_operacao > corrente_isc_max_mppt) {
+  if (corrente.curto_circuito.status === STATUS_CRITERIO.INCOMPATIVEL) {
     const excesso = r(isc_operacao - corrente_isc_max_mppt, 3)
     erros.push({
       codigo:           'CORRENTE_ISC_EXCEDIDA',
@@ -590,7 +602,7 @@ export function analisarCompatibilidade({
   }
 
   // ── Corrente de OPERAÇÃO acima do limite de trabalho: atenção, não bloqueio ──
-  if (corrente_max_mppt != null && isFinite(corrente_max_mppt) && impp_total > corrente_max_mppt) {
+  if (corrente.operacao.status === STATUS_CRITERIO.ATENCAO) {
     warnings.push({
       codigo:           'CORRENTE_IMPP_ELEVADA',
       severidade:       'alerta',
@@ -609,7 +621,7 @@ export function analisarCompatibilidade({
   // ── Corrente de PROJETO acima do limite de trabalho: informação normativa ────
   // Era exatamente esta comparação que reprovava. Continua sendo feita e dita,
   // porque dimensiona condutor e proteção — mas não decide compatibilidade.
-  if (corrente_max_mppt != null && isFinite(corrente_max_mppt) && isc_total > corrente_max_mppt) {
+  if (corrente.projeto_normativa.acima_do_trabalho === true) {
     warnings.push({
       codigo:           'CORRENTE_PROJETO_ACIMA_DO_TRABALHO',
       severidade:       'alerta',
