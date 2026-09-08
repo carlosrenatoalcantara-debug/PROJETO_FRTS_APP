@@ -23,15 +23,38 @@ export function adaptarModulo(eq) {
     id: String(eq._id),
     marca: eq.fabricante || '—',
     modelo: eq.modelo || '—',
-    potenciaW: pick(e, ['potencia', 'potencia_w', 'potenciaW']) ?? 0,
+    /**
+     * F3 — os `?? 0` saíram das grandezas ELÉTRICAS.
+     *
+     * Zero não é ausência: é um número que o motor aceita e com o qual calcula.
+     * Um módulo com `voc: 0` passa em qualquer comparação contra a tensão
+     * máxima do inversor, e o resultado é uma APROVAÇÃO construída sobre um
+     * valor que o catálogo nunca afirmou — a mesma classe de defeito que a F2
+     * removeu do oversizing, um nível acima.
+     *
+     * `potencia_wp` entrou na lista porque é o nome que o SSOT realmente usa
+     * (54 de 54 módulos). Sem ele, os três aliases procurados não achavam nada
+     * e TODO módulo do catálogo chegava ao motor com `potenciaW = 0` — potência
+     * CC total zero, relação CC/CA zero, arranjo "subdimensionado". Acrescentar
+     * o alias é normalização de nome, que é o que cabe a um adapter fazer.
+     */
+    potenciaW: pick(e, ['potencia_wp', 'potencia', 'potencia_w', 'potenciaW']),
     tecnologia: pickStr(e, ['tecnologia', 'tipo_celula']) || 'N-type',
     bifacial: !!(e.bifacial),
-    eficiencia: pick(e, ['eficiencia', 'eficiencia_pct']) ?? 0,
-    voc: pick(e, ['voc', 'voc_v']) ?? 0,
-    vmpp: pick(e, ['vmpp', 'vmp', 'vmpp_v']) ?? 0,
-    isc: pick(e, ['isc', 'isc_a']) ?? 0,
-    coef_temp_voc: pick(e, ['coef_temp_voc', 'coef_temp_voc_pct_c']),  // engine usa este
-    temp_noct: pick(e, ['noct', 'noct_c']),
+    eficiencia: pick(e, ['eficiencia', 'eficiencia_pct']),
+    voc: pick(e, ['voc', 'voc_v']),
+    vmpp: pick(e, ['vmpp', 'vmp', 'vmpp_v']),
+    isc: pick(e, ['isc', 'isc_a']),
+    /**
+     * Coeficiente térmico de Voc, na unidade em que o SSOT o grava: %/°C
+     * (`-0.25` = −0,25 %/°C). A conversão para fração acontece num ponto só do
+     * sistema, em `coefParaFracao`, na entrada do classificador de tensão.
+     * O adapter NÃO converte: converter aqui criaria a segunda conversão que a
+     * FV-DOM-025 eliminou.
+     */
+    coef_temp_voc: pick(e, ['coef_temp_voc', 'coef_temp_voc_pct_c']),
+    /** NOCT em °C. Nenhum dos 54 módulos cadastrados o declara — lacuna real. */
+    temp_noct: pick(e, ['noct', 'noct_c', 'temp_noct']),
     imp: pick(e, ['imp', 'impp', 'imp_a']),                          // audit S8.1.1
     coef_temp_pmax: pick(e, ['coef_temp_pmax', 'coef_temp_potencia']), // audit S8.1.1
     dimensoes: {
@@ -65,12 +88,18 @@ export function agruparPaineis(equipamentos) {
 // ─── INVERSOR → tree tipo→marca→fase de SeletorInversores ─────────────────────────
 export function adaptarInversor(eq) {
   const e = eq.especificacoes || {}
+  // DEFAULT DE UI, e só isso: `_fases` agrupa a vitrine em tipo→marca→fase e
+  // não entra em nenhuma decisão elétrica. 33 dos 39 inversores declaram o
+  // campo; os 6 restantes caem no balde monofásico da tela. Nenhum motor lê
+  // este valor — quem precisa de fases para engenharia lê o SSOT.
   const fases = pick(e, ['fases', 'fases_saida']) ?? 1
   return {
     id: String(eq._id),
     modelo: eq.modelo || '—',
-    potenciaKW: pick(e, ['potencia', 'potencia_kw', 'potencia_ca']) ?? 0,
-    nMppts: pick(e, ['mppts', 'n_mppts', 'numero_mppt']) ?? 1,
+    // F3: sem `?? 0` / `?? 1` — potência CA decide oversizing e nº de MPPT
+    // decide a topologia. Ambos são 39/39 no SSOT; o default só mascarava.
+    potenciaKW: pick(e, ['potencia_kw', 'potencia', 'potencia_ca']),
+    nMppts: pick(e, ['mppts', 'n_mppts', 'numero_mppt']),
     garantia: anos(eq.garantia_produto) ?? pick(e, ['garantia']) ?? 5,
     precoUnitario: num(eq.preco_sugerido) ?? 0,
     utilizavel_em_projeto: eq.utilizavel_em_projeto !== false,
@@ -84,14 +113,37 @@ export function adaptarInversor(eq) {
       tensao_max_entrada: pick(e, ['tensao_max_entrada', 'voc_max', 'voc_max_dc', 'tensao_max_dc']),
       mppt_min: pick(e, ['tensao_mppt_min', 'faixa_mppt_min', 'mppt_min']),
       mppt_max: pick(e, ['tensao_mppt_max', 'faixa_mppt_max', 'mppt_max']),
-      corrente_max_mppt: pick(e, ['corrente_max_por_mppt', 'corrente_max_mppt', 'isc_max_mppt', 'ipv_max']),
-      isc_max_mppt: pick(e, ['isc_max_mppt', 'corrente_curto_mppt', 'isc_max']),  // audit S8.1.1
+      /**
+       * F3 — corrente de TRABALHO. `isc_max_mppt` saiu da lista de aliases:
+       * era o limite de CURTO entrando no lugar do de trabalho, a mesma
+       * substituição que a F1 proibiu no motor. As duas grandezas diferem em
+       * todos os 19 inversores que declaram ambas.
+       */
+      corrente_max_mppt: pick(e, ['corrente_max_por_mppt', 'corrente_max_mppt', 'ipv_max']),
+      /**
+       * F3 — corrente de CURTO, com o nome que o consumidor realmente lê
+       * (`dadosEletricosInversor` procura `corrente_isc_max`) e com o alias que
+       * o SSOT realmente grava. Antes o campo saía como `isc_max_mppt` e
+       * procurava `isc_max`: nenhum dos dois existe no catálogo, então os 19
+       * inversores que DECLARAM `corrente_isc_max` chegavam ao wizard como se
+       * não declarassem, e o critério de curto virava `nao_avaliado` à toa.
+       *
+       * `specs_canonicas.isc_max_por_mppt_a` NÃO entra aqui: a auditoria da F3
+       * mostrou que, nos 20 inversores sem `corrente_isc_max`, esse campo é
+       * numericamente idêntico à corrente de trabalho — é a substituição
+       * proibida, já materializada dentro do próprio SSOT. Ler dali seria
+       * importar o defeito. Fica registrado como saneamento documental.
+       */
+      corrente_isc_max: pick(e, ['corrente_isc_max', 'corrente_curto_mppt']),
       potencia_fv_max: pick(e, ['potencia_cc_max', 'potencia_dc_max', 'pdc_max']), // audit S8.1.1
       // F2: sem `?? 1.30`. Nenhum inversor do catálogo declara este campo, e o
       // default fazia o adaptador AFIRMAR um limite de fabricante que ninguém
       // publicou. Ausente ⇒ o critério de oversizing fica `nao_avaliado`.
       oversizing_max: pick(e, ['oversizing_max']),
-      entradas_por_mppt: pick(e, ['strings_por_mppt', 'entradas_por_mppt']) ?? 1,
+      // F3: sem `?? 1`. 6 dos 39 declaram `entradas_por_mppt` e 27 declaram
+      // `strings_por_mppt`; para os demais, "1" era presunção indistinguível
+      // do dado real. Ausente ⇒ `null` ⇒ lacuna visível.
+      entradas_por_mppt: pick(e, ['entradas_por_mppt', 'strings_por_mppt']),
     },
     registro_inmetro: eq.certificacao?.inmetro?.numero ?? null,
     _fases: fases,

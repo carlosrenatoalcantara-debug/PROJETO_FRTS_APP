@@ -128,6 +128,9 @@ export const CLIMA_FALLBACK_BRASIL = Object.freeze({
  * @param {number} [n=3]
  */
 function r(v, n = 3) {
+  // F3: `Math.round(null * f)` é 0. Arredondar ausência devolvia zero como se
+  // fosse medida — o mesmo defeito que o `_n` do catálogo tinha na fronteira.
+  if (v === null || v === undefined || !Number.isFinite(v)) return null
   const f = 10 ** n
   return Math.round(v * f) / f
 }
@@ -214,17 +217,30 @@ function validarInputsEletricos(modulo, inversor, arranjo) {
       }
     }
   }
-  const num = (obj, nome, campos) => {
+  /**
+   * F3 — AUSÊNCIA não é INVÁLIDO.
+   *
+   * Campo ausente é lacuna de cadastro: o critério que depende dele fica
+   * `nao_avaliado` e o resto da análise segue. Campo PRESENTE com lixo dentro
+   * (texto, NaN, Infinity) continua sendo entrada inválida, porque aí não há
+   * nada a avaliar nem a declarar — há um erro de dado.
+   *
+   * A distinção só apareceu agora porque, até a F2, `coef_temp_voc` chegava
+   * aqui preenchido pelo default `?? -0.0028` da fronteira do catálogo. Com o
+   * default removido, 49 dos 54 módulos cadastrados passam a chegar sem o
+   * coeficiente — e reprovar o arranjo por isso seria trocar uma aprovação
+   * fabricada por uma reprovação fabricada.
+   */
+  const opcional = (obj, nome, campos) => {
     for (const c of campos) {
       const v = obj?.[c]
-      if (v === undefined || v === null || !isFinite(v)) {
-        problemas.push(`${nome}.${c} deve ser número finito (recebido: ${v})`)
-      }
+      if (v === undefined || v === null || v === '') continue   // lacuna, não erro
+      if (!isFinite(v)) problemas.push(`${nome}.${c} deve ser número finito (recebido: ${v})`)
     }
   }
 
   pos(modulo,  'dados_eletricos_modulo',   ['voc', 'vmpp', 'isc', 'impp', 'potencia_w'])
-  num(modulo,  'dados_eletricos_modulo',   ['coef_temp_voc'])
+  opcional(modulo, 'dados_eletricos_modulo', ['coef_temp_voc', 'coef_temp_vmpp', 'temp_noct'])
   pos(inversor,'dados_eletricos_inversor', ['tensao_max_entrada', 'mppt_min', 'mppt_max',
                                              'corrente_max_mppt', 'potencia_ca_kw'])
   pos(arranjo, 'arranjo_proposto',         ['quantidade_modulos_por_string',
@@ -455,6 +471,19 @@ export function analisarCompatibilidade({
     voc_string_max, vmpp_string_frio, vmpp_string_quente,
     t_cel_max, delta_frio: deltaT_frio, delta_quente: deltaT_quente,
   } = tensao.tensoes
+
+  // F3: sem coeficiente térmico não há tensão corrigida, e portanto não há
+  // veredito de tensão. Isso é dito, uma vez, em vez de virar erro de entrada.
+  if (tensao.status === STATUS_CRITERIO.NAO_AVALIADO) {
+    naoAvaliados.push({
+      criterio: 'tensao_cc',
+      motivo:   'O catálogo não declara o coeficiente térmico de Voc deste módulo. ' +
+                'Sem ele não há como corrigir a tensão para o frio nem para o calor, ' +
+                'e os três critérios de tensão (Voc máximo, teto e piso da janela ' +
+                'MPPT) ficam sem avaliação — nenhum valor típico é assumido no lugar.',
+      valores:  { coef_temp_voc: _coefVoc ?? null, modulos_por_string, t_min, t_max },
+    })
+  }
 
   // Warning: próximo ao limite (dentro da margem de 5%)
   if (tensao.voc.status === STATUS_CRITERIO.ATENCAO) {
@@ -728,9 +757,12 @@ export function analisarCompatibilidade({
   //  mppt_min:    (mppt_min / Vmpp_string_quente) × 100  — > 100 → string curta
   //  oversizing:  (fator_oversizing / OVERSIZING_LIMITE_ERRO) × 100
   //
-  const margem_tensao_percentual     = r((voc_string_max / tensao_max_entrada) * 100, 2)
-  const margem_mppt_max_percentual   = r((vmpp_string_frio / mppt_max) * 100, 2)
-  const margem_mppt_min_percentual   = r((mppt_min / vmpp_string_quente) * 100, 2)
+  // F3: `null` quando a tensão não pôde ser corrigida. Zero seria "0% do
+  // limite utilizado", que é uma afirmação — e não temos nenhuma.
+  const pct = (a, b) => (a === null || b === null || !b ? null : r((a / b) * 100, 2))
+  const margem_tensao_percentual     = pct(voc_string_max, tensao_max_entrada)
+  const margem_mppt_max_percentual   = pct(vmpp_string_frio, mppt_max)
+  const margem_mppt_min_percentual   = pct(mppt_min, vmpp_string_quente)
   const margem_oversizing_percentual = fator_oversizing === null
     ? null : r((fator_oversizing / OVERSIZING_LIMITE_ERRO) * 100, 2)
 

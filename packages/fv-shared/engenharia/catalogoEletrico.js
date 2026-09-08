@@ -207,20 +207,61 @@ export const DADOS_ELETRICOS_INVERSORES = {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-// P0-E7-FINAL-UX-CONSOLIDATION-01 (RCA "Dados elétricos não mapeados"):
-// O mapa estático DADOS_ELETRICOS_* só tem chaves hardcoded do catálogo local.
-// Equipamentos do catálogo Mongo têm id = ObjectId (nunca casa o mapa) PORÉM já
-// carregam as specs elétricas inline (o seletor propaga voc/vmpp/isc no painel e
-// tensaoMaxV/mpptMinV/mpptMaxV/correnteMaxA no inversor). O fallback abaixo lê
-// essas specs inline em vez de retornar null — sem isso o configurador acusava
-// "não mapeados" para equipamento com cadastro completo. NÃO altera persistência.
-function _n(v) { const x = Number(v); return Number.isFinite(x) ? x : null }
+// ─── F3 · a fronteira entre SSOT e LEGACY ────────────────────────────────────
+//
+// As duas tabelas acima NÃO são fonte de verdade da engenharia atual. Elas são
+// o catálogo de CONTINGÊNCIA local, servido apenas quando o catálogo Mongo está
+// indisponível e a flag `ENABLE_INVERSORES_DATA` está ligada. A auditoria da F3
+// mediu por que elas não podem ser promovidas nem consultadas pelo Core:
+//
+//  • ZERO das 50 entradas tem correspondência inequívoca (fabricante + modelo)
+//    com algum dos 39 inversores cadastrados no Mongo. Não há o que reconciliar
+//    por valor, e não há evidência para promover nenhuma linha ao SSOT;
+//  • para os 7 ids que ela compartilha com `backend/src/data/catalogoInversores`
+//    — a OUTRA tabela estática — há 14 divergências de campo. O Deye `dy8` tem
+//    tensão máxima 500 V aqui e 1000 V lá; o Enphase `enph` diverge em 4 dos 5
+//    campos. O legado já discorda de si mesmo.
+//
+// Por isso a precedência abaixo é por ORIGEM, não por valor: equipamento vindo
+// do catálogo (`_fonte: 'catalogo'`, id = ObjectId) nunca consulta a tabela
+// histórica, mesmo que um id coincidisse. O legado continua atendido, isolado.
+const _ehLegado = (eq, tabela) =>
+  eq?._fonte !== 'catalogo' && Object.prototype.hasOwnProperty.call(tabela, eq?.id)
 
+/**
+ * F3 — `Number(null) === 0`, e a versão anterior desta função devolvia esse
+ * zero como se fosse dado. `temp_noct: null` no SSOT virava `temp_noct: 0`
+ * (célula a 0 °C, string curta nunca reprovava) e `oversizing_max: null`
+ * virava `0`, o que reintroduzia por este caminho o aviso de oversizing que a
+ * F2 tinha eliminado — desta vez contra o limite fabricado "zero".
+ *
+ * Ausência agora é `null` em todos os casos: `null`, `undefined` e `''`.
+ */
+function _n(v) {
+  if (v === null || v === undefined || v === '') return null
+  const x = Number(v)
+  return Number.isFinite(x) ? x : null
+}
+
+/**
+ * Envelope elétrico do MÓDULO.
+ *
+ * SSOT primeiro; a tabela histórica só atende o catálogo de contingência.
+ * Nenhum campo é preenchido por default: `coef_temp_voc ?? -0.0028` e
+ * `temp_noct ?? 43` eram especificação de fabricante FABRICADA, e o primeiro
+ * decide diretamente o Voc no frio — logo, decide `SOBRETENSAO_VOC`. Dos 54
+ * módulos cadastrados, 5 declaram o coeficiente e NENHUM declara NOCT: o
+ * default respondia por 49 e por 54 dos casos, respectivamente.
+ *
+ * Ausente ⇒ `null` ⇒ `classificarTensaoCC` devolve `nao_avaliado`. O NOCT tem
+ * tratamento próprio: `NOCT_PADRAO_C` é premissa NORMATIVA declarada da
+ * IEC 61215, aplicada pelo classificador e nomeada como tal — não é spec do
+ * fabricante e não é gravada como se fosse.
+ */
 export function dadosEletricosPainel(painel) {
   if (!painel?.id) return null
-  const estatico = DADOS_ELETRICOS_PAINEIS[painel.id]
-  if (estatico) return estatico
-  // Fallback: specs inline do equipamento do catálogo
+  if (_ehLegado(painel, DADOS_ELETRICOS_PAINEIS)) return DADOS_ELETRICOS_PAINEIS[painel.id]
+
   const voc  = _n(painel.voc)
   const vmpp = _n(painel.vmpp ?? painel.vmp)
   const isc  = _n(painel.isc)
@@ -229,18 +270,20 @@ export function dadosEletricosPainel(painel) {
       voc, vmpp, isc,
       impp: _n(painel.impp ?? painel.imp),
       potencia_w: _n(painel.potencia_w ?? painel.potenciaW ?? painel.pmpp),
-      coef_temp_voc: _n(painel.coef_temp_voc) ?? -0.0028,  // %/°C típico se ausente
-      temp_noct: _n(painel.temp_noct) ?? 43,
+      coef_temp_voc: _n(painel.coef_temp_voc),
+      temp_noct: _n(painel.temp_noct),
     }
   }
   return null
 }
 
+/**
+ * Envelope elétrico do INVERSOR. Mesma disciplina do módulo.
+ */
 export function dadosEletricosInversor(inversor) {
   if (!inversor?.id) return null
-  const estatico = DADOS_ELETRICOS_INVERSORES[inversor.id]
-  if (estatico) return estatico
-  // Fallback: specs inline do inversor selecionado (catálogo Mongo)
+  if (_ehLegado(inversor, DADOS_ELETRICOS_INVERSORES)) return DADOS_ELETRICOS_INVERSORES[inversor.id]
+
   const e    = inversor._eletrico ?? null
   const vmax = _n(inversor.tensaoMaxV ?? e?.tensao_max_entrada)
   const imax = _n(inversor.correnteMaxA ?? e?.corrente_max_mppt)
@@ -269,7 +312,14 @@ export function dadosEletricosInversor(inversor) {
        */
       corrente_isc_max_mppt: _n(inversor.correnteIscMaxA ?? e?.corrente_isc_max),
       potencia_ca_kw: _n(inversor.potenciaKW ?? inversor.potencia_ca_kw ?? e?.potencia_ca_kw),
-      entradas_por_mppt: _n(inversor.entradasPorMppt ?? e?.entradas_por_mppt) ?? 1,
+      /**
+       * F3 — sem `?? 1`. "Uma entrada por MPPT" é o caso mais comum, não uma
+       * verdade: dos 39 inversores cadastrados, 6 declaram `entradas_por_mppt`
+       * e 27 declaram `strings_por_mppt`. O default afirmava 1 para os demais,
+       * e quem consome o número não tinha como distinguir o declarado do
+       * presumido. Ausente ⇒ `null` ⇒ lacuna visível.
+       */
+      entradas_por_mppt: _n(inversor.entradasPorMppt ?? e?.entradas_por_mppt),
       /**
        * F2 — limite CC/CA DO FABRICANTE. Sem `?? 1.30`, pelo mesmo motivo do
        * campo acima: dos 39 inversores do catálogo Mongo, ZERO o declaram, de
