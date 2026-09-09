@@ -118,7 +118,7 @@ function tensaoDoMppt(eletricoMod, eletricoInv, modulosPorString, tmin, tmax) {
  * Retorna { avisos: string[], bloqueios: string[] }
  * Avisos = amarelo | Bloqueios = vermelho (impedem avanço seguro)
  */
-function validarArranjo({ mppts, modulosPorString, eletricoMod, eletricoInv, clima, tipoLigacao, fases, areaDisponivel }) {
+function validarArranjo({ mppts, modulosPorString, totalModulos = 0, eletricoMod, eletricoInv, clima, tipoLigacao, fases, areaDisponivel }) {
   const avisos   = []
   const bloqueios = []
 
@@ -229,10 +229,11 @@ function validarArranjo({ mppts, modulosPorString, eletricoMod, eletricoInv, cli
   })
 
   // ── Oversizing DC/CA ──────────────────────────────────────────────────────
-  const totalKwp = mppts.reduce(
-    (s, m) => s + m.numStrings * m.modulosPorString * eletricoMod.potencia_w / 1000,
-    0
-  )
+  // F-01: o total vem de fora, já derivado da topologia real. Somar `mppts`
+  // aqui era uma segunda contagem do mesmo arranjo — no modo detalhado ela
+  // divergia da soma exata por entrada/string, e a tela passava a discordar de
+  // si mesma sobre quantos módulos existem.
+  const totalKwp = (totalModulos * eletricoMod.potencia_w) / 1000
   /**
    * F2 — o `?? 1.30` saiu. Nenhum dos inversores do catálogo declara
    * `oversizing_max`, então o default fabricava o limite do fabricante em todos
@@ -287,7 +288,6 @@ function validarArranjo({ mppts, modulosPorString, eletricoMod, eletricoInv, cli
   }
 
   // ── Área insuficiente ─────────────────────────────────────────────────────
-  const totalModulos = mppts.reduce((s, m) => s + m.numStrings * m.modulosPorString, 0)
   const areaNecess   = totalModulos * 2.0   // 2 m² por módulo (estimativa)
   const areaNum      = parseFloat(areaDisponivel)
   if (areaNum > 0 && areaNecess > areaNum) {
@@ -482,11 +482,46 @@ export default function ConfiguradorArranjoFV({
     return mppts.reduce((max, m) => m.modulosPorString > max.modulosPorString ? m : max, mppts[0])
   }, [mppts])
 
+  /**
+   * F-01 — totais REAIS do arranjo, para os critérios de sistema.
+   *
+   * `totalModulosArranjo` já soma a topologia (exata no modo detalhado, e
+   * `strings × módulos` por MPPT no modo simples). Ele é a fonte do total nesta
+   * tela desde sempre — é o número que a tela mostra e o que se persiste em
+   * `engenharia_eletrica.arranjo.total_modulos`. Aqui ele passa a ser também o
+   * número que o motor usa, em vez de o motor reconstruir o seu próprio.
+   */
+  const totalStringsArranjo = useMemo(
+    () => (modoDetalhado && topologia2)
+      ? resumoTopologia(topologia2).totalStrings
+      : mppts.reduce((s, m) => s + (m.numStrings || 0), 0),
+    [mppts, modoDetalhado, topologia2]
+  )
+
+  /**
+   * MPPTs efetivamente OCUPADOS — não o número de MPPTs do inversor.
+   *
+   * Era `nMppts` aqui, e essa foi a metade do defeito: um inversor de 3 MPPTs
+   * com um único MPPT povoado declarava 3 ao motor, que replicava o pior caso
+   * nos três. A outra metade era o motor multiplicar; as duas foram corrigidas.
+   */
+  const mpptsOcupados = useMemo(() => {
+    if (modoDetalhado && topologia2) {
+      return topologia2.filter((m) => (m.entradas || []).some(
+        (e) => (e.strings || []).some((s) => (s.modulos || 0) > 0))).length || 1
+    }
+    return mppts.filter((m) => (m.numStrings || 0) > 0 && (m.modulosPorString || 0) > 0).length || 1
+  }, [mppts, modoDetalhado, topologia2])
+
   const arranjoApi = useMemo(() => ({
+    // Pior MPPT — decide tensão de string e corrente de entrada.
     quantidade_modulos_por_string: piorCaso?.modulosPorString ?? 0,
     quantidade_strings_paralelo:   piorCaso?.numStrings       ?? 0,
-    num_mppt_usados:               nMppts,
-  }), [piorCaso, nMppts])
+    num_mppt_usados:               mpptsOcupados,
+    // Arranjo inteiro — decide relação CC/CA e corrente total.
+    total_modulos_arranjo:         totalModulosArranjo || null,
+    total_strings_arranjo:         totalStringsArranjo || null,
+  }), [piorCaso, mpptsOcupados, totalModulosArranjo, totalStringsArranjo])
 
   const climaObj = useMemo(() => ({
     temperatura_min_historica_c: tmin,
@@ -504,13 +539,15 @@ export default function ConfiguradorArranjoFV({
   const { avisos, bloqueios } = useMemo(() => validarArranjo({
     mppts,
     modulosPorString: piorCaso?.modulosPorString ?? 0,
+    // F-01: fonte única do total, derivada da topologia real.
+    totalModulos: totalModulosArranjo,
     eletricoMod,
     eletricoInv,
     clima: climaObj,
     tipoLigacao,
     fases: inversor?.fases ?? 1,
     areaDisponivel,
-  }), [mppts, eletricoMod, eletricoInv, climaObj, tipoLigacao, inversor?.fases, areaDisponivel])
+  }), [mppts, totalModulosArranjo, eletricoMod, eletricoInv, climaObj, tipoLigacao, inversor?.fases, areaDisponivel])
 
   // ── Cálculos elétricos para exibição ─────────────────────────────────────
   const totalKwp = eletricoMod
@@ -547,8 +584,10 @@ export default function ConfiguradorArranjoFV({
         quantidade_modulos_por_string: piorCaso?.modulosPorString ?? 0,
         quantidade_strings_paralelo:   piorCaso?.numStrings       ?? 0,
         total_modulos:                 totalModulosArranjo,
-        // Multi-MPPT
-        num_mppts_usados: nMppts,
+        // Multi-MPPT. F-01: OCUPADOS, não o total do inversor — o campo se
+        // chama "usados" e passou a valer o que o nome diz. `mppts[]` abaixo
+        // continua sendo a composição real de onde tudo isto deriva.
+        num_mppts_usados: mpptsOcupados,
         // P1-MPPT-TOPOLOGY-IMPLEMENTATION-01: em modo detalhado persiste a
         // topologia REAL (entradas[].strings[].modulos) + resumo derivado por MPPT.
         // No modo simples mantém o resumo por MPPT como antes.
@@ -619,7 +658,7 @@ export default function ConfiguradorArranjoFV({
         analisado_em: new Date().toISOString(),
       },
     }
-  }, [resultado, mppts, piorCaso, totalModulosArranjo, nMppts, cidadeClima, uf, tmin, tmax, bloqueios, avisos, topologia, ehMicro, dimMicro, modoDetalhado, topologia2])
+  }, [resultado, mppts, piorCaso, totalModulosArranjo, mpptsOcupados, cidadeClima, uf, tmin, tmax, bloqueios, avisos, topologia, ehMicro, dimMicro, modoDetalhado, topologia2])
 
   const salvar = useCallback(async () => {
     if (!projetoId) {

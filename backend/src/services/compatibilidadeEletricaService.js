@@ -127,6 +127,17 @@ export const CLIMA_FALLBACK_BRASIL = Object.freeze({
  * @param {number} v
  * @param {number} [n=3]
  */
+/**
+ * F-01 — uma CONTAGEM declarada: inteiro positivo, ou ausência.
+ * Zero e negativo não são contagens de arranjo; viram ausência e o motor cai
+ * no fallback homogêneo em vez de calcular sobre um número impossível.
+ */
+function _contagem(v) {
+  if (v === null || v === undefined || v === '') return null
+  const n = Number(v)
+  return Number.isFinite(n) && n > 0 ? n : null
+}
+
 function r(v, n = 3) {
   // F3: `Math.round(null * f)` é 0. Arredondar ausência devolvia zero como se
   // fosse medida — o mesmo defeito que o `_n` do catálogo tinha na fronteira.
@@ -245,6 +256,15 @@ function validarInputsEletricos(modulo, inversor, arranjo) {
                                              'corrente_max_mppt', 'potencia_ca_kw'])
   pos(arranjo, 'arranjo_proposto',         ['quantidade_modulos_por_string',
                                              'quantidade_strings_paralelo'])
+  // F-01: os totais do arranjo são OPCIONAIS — ausentes ⇒ fallback homogêneo.
+  // Presentes, precisam ser contagens de verdade: número finito e positivo.
+  for (const c of ['total_modulos_arranjo', 'total_strings_arranjo', 'num_mppt_usados']) {
+    const v = arranjo?.[c]
+    if (v === undefined || v === null || v === '') continue
+    if (!isFinite(v) || v <= 0) {
+      problemas.push(`arranjo_proposto.${c} deve ser contagem positiva (recebido: ${v})`)
+    }
+  }
 
   if (modulo && modulo.vmpp >= modulo.voc) {
     problemas.push('dados_eletricos_modulo.vmpp deve ser menor que voc (relação física)')
@@ -297,9 +317,31 @@ function validarInputsEletricos(modulo, inversor, arranjo) {
  * @property {number}  [oversizing_max_fabricante] Oversizing máx. fabricante
  *
  * @typedef {object} ArranjoConfig
- * @property {number}  quantidade_modulos_por_string  Módulos em série por string
- * @property {number}  quantidade_strings_paralelo    Strings em paralelo (por MPPT)
- * @property {number}  [num_mppt_usados]              MPPTs utilizados — default: 1
+ *
+ * ── Dois níveis, e a distinção é o objeto da F-01 ───────────────────────────
+ * Os três primeiros campos descrevem UM MPPT — o pior caso do arranjo. São eles
+ * que decidem os critérios POR ENTRADA: tensão de string e corrente de MPPT.
+ *
+ * Os dois últimos descrevem o ARRANJO INTEIRO. São eles que decidem os
+ * critérios de SISTEMA: relação CC/CA e corrente total de entrada.
+ *
+ * Sem os dois últimos, o motor assume que o arranjo é HOMOGÊNEO e replica o
+ * pior caso em cada MPPT usado — `strings_paralelo × num_mppt_usados`. Essa
+ * suposição é o que produzia 42 módulos onde havia 14: o chamador mandava um
+ * pior caso que já agregava o arranjo todo (2 strings × 7 módulos) junto com o
+ * número de MPPTs do INVERSOR (3), e o motor multiplicava os dois.
+ *
+ * Layout heterogêneo não tem pior caso multiplicável. Quem conhece a topologia
+ * real informa os totais e o motor não infere nada.
+ *
+ * @property {number}  quantidade_modulos_por_string  Módulos em série por string (pior MPPT)
+ * @property {number}  quantidade_strings_paralelo    Strings em paralelo DESSE MPPT
+ * @property {number}  [num_mppt_usados]              MPPTs efetivamente OCUPADOS (≥1 módulo).
+ *                                                    NÃO é o número de MPPTs do inversor.
+ *                                                    Só replica o pior caso no fallback homogêneo. Default: 1
+ * @property {number}  [total_modulos_arranjo]        Total REAL de módulos do arranjo, somado da
+ *                                                    topologia. Quando presente, é a verdade.
+ * @property {number}  [total_strings_arranjo]        Total REAL de strings do arranjo. Idem.
  *
  * @typedef {object} ClimaRegiao
  * @property {number}  temperatura_min_historica_c
@@ -408,7 +450,24 @@ export function analisarCompatibilidade({
     quantidade_modulos_por_string: modulos_por_string,
     quantidade_strings_paralelo:   strings_paralelo,
     num_mppt_usados = 1,
+    total_modulos_arranjo = null,
+    total_strings_arranjo = null,
   } = arranjo_proposto
+
+  /**
+   * F-01 — quantidades do SISTEMA, separadas das quantidades POR MPPT.
+   *
+   * Informadas ⇒ são a verdade, vindas da topologia real. Ausentes ⇒ o motor
+   * cai no arranjo homogêneo, que é o contrato histórico e o que todos os
+   * chamadores que passam um MPPT só continuam exercitando.
+   *
+   * A derivação é feita UMA vez, aqui, e alimenta os dois critérios de sistema
+   * (corrente total de entrada e relação CC/CA). Nenhum deles remultiplica.
+   */
+  const total_strings = _contagem(total_strings_arranjo)
+    ?? (strings_paralelo * num_mppt_usados)
+  const total_modulos = _contagem(total_modulos_arranjo)
+    ?? (modulos_por_string * total_strings)
 
   const { temperatura_min_historica_c: t_min, temperatura_max_historica_c: t_max } = clima
 
@@ -680,7 +739,8 @@ export function analisarCompatibilidade({
 
   // Corrente total de entrada (se o inversor especificou)
   if (corrente_max_entrada != null && isFinite(corrente_max_entrada)) {
-    const isc_sistema = r(isc * strings_paralelo * num_mppt_usados)
+    // F-01: total REAL de strings do arranjo — não `por MPPT × nº de MPPTs`.
+    const isc_sistema = r(isc * total_strings)
     if (isc_sistema > corrente_max_entrada) {
       erros.push({
         codigo:           'CORRENTE_ENTRADA_TOTAL_EXCEDIDA',
@@ -701,8 +761,8 @@ export function analisarCompatibilidade({
   // Oversizing ideal: inversor opera mais horas próximo de Pnom.
   // Oversizing excessivo: clipping severo, sobrecarga térmica, dano ao conversor.
   //
-  const total_strings     = strings_paralelo * num_mppt_usados
-  const total_modulos     = modulos_por_string * total_strings
+  // F-01: `total_modulos` já foi derivado uma única vez, junto do contrato do
+  // arranjo. Recalculá-lo aqui era o ponto onde 14 módulos viravam 42.
   const potencia_cc_total = r((potencia_w * total_modulos) / 1000, 3)  // kWp
 
   // F2: a regra mora em `classificarOversizing`, no domínio, e distingue o teto
