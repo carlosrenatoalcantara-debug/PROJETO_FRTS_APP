@@ -27,7 +27,19 @@ const numK = (esp, ks) => { for (const k of ks) { const v = Number(esp?.[k]); if
 function mpptsParaEditor(mppts) {
   return (mppts || []).map(m => ({ entradas: (m.entradas || []).map(e => ({ strings: (e.strings || []).map(s => ({ modulos: s.modulos ?? 0 })) })) }))
 }
-// value do editor → schema configuracao_eletrica (topologia + resumo derivado)
+/**
+ * value do editor → `arranjos[].configuracao_eletrica` (LEGACY · F-04).
+ *
+ * Este é o ÚNICO escritor e o único leitor desta estrutura: ela guarda o que o
+ * projetista desenhou no editor de um arranjo secundário, para a tela reabrir
+ * no mesmo estado. Não alimenta dimensionamento, compatibilidade, unifilar nem
+ * orçamento — o Core lê topologia string de `engenharia_eletrica.arranjo`.
+ *
+ * F-01 · `num_mppts_usados` são os MPPTs OCUPADOS, não quantos o editor mostra.
+ * Gravava `mppts.length`, que conta também os vazios — a mesma confusão que
+ * produziu 42 módulos onde havia 14, aqui à espera de um consumidor. Corrigido
+ * antes que alguém a consuma.
+ */
 function editorParaConfig(value) {
   const mppts = (value || []).map((m, i) => {
     const strings = (m.entradas || []).flatMap(e => (e.strings || []).filter(s => (s.modulos || 0) > 0))
@@ -41,7 +53,8 @@ function editorParaConfig(value) {
     }
   })
   const total = mppts.reduce((s, m) => s + m.total_modulos, 0)
-  return { mppts, num_mppts_usados: mppts.length, total_modulos: total }
+  const ocupados = mppts.filter(m => m.total_modulos > 0).length
+  return { mppts, num_mppts_usados: ocupados, total_modulos: total }
 }
 
 // P0-E7-ARRANJO-WORKFLOW-REFACTOR-01 — arquitetura FV (Fase 2)
@@ -185,7 +198,12 @@ export default function GerenciadorArranjos() {
     const docMod = pnl && (catalogo.modulos.find(d => String(d._id) === String(pnl.equipamento_id)) || catalogo.modulos.find(d => d.modelo === pnl.modelo))
     const espMod = docMod?.especificacoes || {}
     return {
-      nMppts: numK(espInv, ['n_mppts', 'mppts', 'numero_mppt']) || a.configuracao_eletrica?.num_mppts_usados || 2,
+      // F-04/F-01: quantos MPPTs o editor DESENHA — não é `num_mppts_usados`,
+      // que passou a contar só os ocupados. O que já foi desenhado está em
+      // `mppts[]`, e o comprimento dele é a resposta certa para reabrir a tela.
+      nMppts: numK(espInv, ['n_mppts', 'mppts', 'numero_mppt'])
+        || (a.configuracao_eletrica?.mppts?.length || null)
+        || 2,
       entradasPorMppt: numK(espInv, ['entradas_por_mppt', 'strings_por_mppt']) || 2,
       eletricoMod: { voc: numK(espMod, ['voc', 'voc_v']), coef_temp_voc: numK(espMod, ['coef_temp_voc']) ?? -0.0028 },
       eletricoInv: { tensao_max_entrada: numK(espInv, ['tensao_max_entrada', 'voc_max', 'voc_max_dc']), corrente_max_mppt: numK(espInv, ['corrente_max_por_mppt', 'corrente_max_mppt']) },

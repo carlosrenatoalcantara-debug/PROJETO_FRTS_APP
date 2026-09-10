@@ -876,10 +876,33 @@ const projetoFVSchema = new mongoose.Schema({
         }, { _id: false })],
         default: undefined,
       },
-      // P0-ARRANJO-ELECTRICAL-ISOLATION-01 (ADITIVO) — TOPOLOGIA PRÓPRIA por arranjo.
-      // Elimina a limitação de `engenharia_eletrica.arranjo` ser ÚNICO p/ o projeto:
-      // cada arranjo passa a ter sua engenharia elétrica independente. Mesma forma do
-      // engenharia_eletrica.arranjo.mppts. Legado lê null/undefined (sem erro).
+      /**
+       * ── LEGACY · F-04 ──────────────────────────────────────────────────────
+       *
+       * Topologia STRING por arranjo. Nasceu na P0-ARRANJO-ELECTRICAL-ISOLATION-01
+       * para superar a limitação de `engenharia_eletrica.arranjo` ser único por
+       * projeto, e tem a mesma forma dele.
+       *
+       * NÃO É FONTE DE VERDADE DE ENGENHARIA. Não participa de dimensionamento,
+       * compatibilidade, unifilar nem orçamento. A auditoria da F-04 mediu:
+       * escrita e leitura acontecem SÓ na tela `GerenciadorArranjos`, num
+       * circuito fechado, e os 589 projetos do acervo têm estes campos vazios.
+       * O Core lê topologia string de `engenharia_eletrica.arranjo`, e apenas
+       * de lá — `dominio/potencia`, `dominio/unifilar` e o portão de
+       * integridade dizem isso por extenso.
+       *
+       * `micros[]` acima é OUTRA COISA: é a fonte canônica da topologia de
+       * MICROINVERSOR, consumida pelo domínio inteiro. Não confundir os dois
+       * blocos só porque moram no mesmo subdocumento.
+       *
+       * ── Direção arquitetural ───────────────────────────────────────────────
+       * Topologia PERTENCE ao arranjo, e o destino é justamente este campo. A
+       * migração dos consumidores do Core (potência, unifilar, integridade,
+       * EtapaMppt, ConfiguradorArranjoFV) é sprint própria, com testes de
+       * equivalência, e só então a escrita LEGACY para. Até lá, esta estrutura
+       * fica ISOLADA: a UX que já a usa continua funcionando, e nenhum
+       * consumidor novo do Core pode lê-la — há guard para isso.
+       */
       num_mppts_usados:              { type: Number, default: null },
       total_modulos:                 { type: Number, default: null },
       quantidade_modulos_por_string: { type: Number, default: null },
