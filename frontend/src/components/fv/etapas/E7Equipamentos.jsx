@@ -26,6 +26,8 @@ import SugestaoTopologiaReferencia from '../SugestaoTopologiaReferencia'
 import { salvarArranjos } from '../../../services/projetoFVApi'
 import { consolidarPanos, dimensoesModulo } from '../../../utils/geoEngine'
 import { snapshotEquipamentoSelecao } from '../../../utils/catalogoEngenhariaAdapter'
+// F-03: referencia canonica ao equipamento do SSOT — uma implementacao so.
+import { referenciaDoCatalogo } from '../../../fv/catalogo'
 import { validarMicroinversores } from '@fortesolar/fv-shared/fv/validacao-microinversores'
 
 const TIPO_BADGE_COR = {
@@ -150,7 +152,7 @@ export default function E7Equipamentos() {
       modelo: painel.modelo || null,
       potencia_w: painel.especificacoes?.potencia_wp || painel.potencia_w || painel.potenciaW || null,
       quantidade: b.quantidadeModulos ?? null,
-      equipamento_id: painel._id || null,
+      equipamento_id: referenciaDoCatalogo(painel),
     }] : (b.paineis || [])
     const inversores = b.inversor ? [{
       marca: inversor.fabricante || inversor.marca || null,
@@ -158,7 +160,7 @@ export default function E7Equipamentos() {
       modelo: inversor.modelo || null,
       potencia_kw: inversor.especificacoes?.potencia_kw || inversor.potencia_kw || inversor.potenciaKW || null,
       quantidade: 1,
-      equipamento_id: inversor._id || null,
+      equipamento_id: referenciaDoCatalogo(inversor),
     }] : (b.inversores || [])
     return {
       id: b.id, rotulo: b.rotulo || rotuloFallback, tipo: b.tipo || tipoFallback,

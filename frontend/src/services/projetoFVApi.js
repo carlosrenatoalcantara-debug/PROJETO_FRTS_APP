@@ -15,6 +15,10 @@
 // Mesmo padrão usado em ProjetosEV.jsx, ProjetosEVDetalhes.jsx, E1Upload.jsx.
 const API_URL = ''
 
+// F-03: referência canônica ao equipamento do SSOT — uma implementação só,
+// compartilhada com o wizard legado (`E7Equipamentos`).
+import { referenciaDoCatalogo } from '../fv/catalogo'
+
 // ─── Adapters camelCase → snake_case ─────────────────────────────────────────
 // Cada adapter recebe o slice do ProjetoFVContext e retorna o payload v3.
 
@@ -91,8 +95,13 @@ export function adaptarEquipamentos(equip, dim) {
       modelo:       painel.modelo               || null,
       potencia_w:   painel.potenciaW || painel.potencia_w || null,
       quantidade:   dim?.numPaineis             ?? null,
-      // equipamento_id preenchido em S2.9 com referência ao catálogo
-      equipamento_id: painel._id || null,
+      /**
+       * F-03 — a referência ao catálogo. Lia `painel._id`, chave que o objeto
+       * da tela nunca teve: o adapter de engenharia devolve `id` e guarda o
+       * documento em `_catalogo_original`. O resultado era `equipamento_id:
+       * null` em todo projeto, e sem ele o reload não reidrata o envelope.
+       */
+      equipamento_id: referenciaDoCatalogo(painel),
     }] : [],
     inversor: inversor ? {
       id:          inversor._id  || inversor.id  || null,
@@ -101,6 +110,9 @@ export function adaptarEquipamentos(equip, dim) {
       potencia_kw: inversor.potenciaKW || inversor.potencia_kw || null,
       tipo:        inversor.tipo || null,
       fases:       inversor.fases || null,
+      // F-03: o inversor não tinha sequer o campo no payload — o schema o
+      // declara desde a P1-PARECER-ATLAS-LINK-01 e ninguém o preenchia.
+      equipamento_id: referenciaDoCatalogo(inversor),
     } : undefined,
     estrutura: estrutura ? {
       tipo:      estrutura.tipo      || null,

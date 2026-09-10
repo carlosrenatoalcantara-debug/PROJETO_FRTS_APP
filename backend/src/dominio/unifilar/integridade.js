@@ -41,6 +41,9 @@ export const MOTIVOS_UNIFILAR = Object.freeze({
   TOPOLOGIA_INVALIDA:   'TOPOLOGIA_INVALIDA',
   TOPOLOGIA_DIVERGENTE: 'TOPOLOGIA_DIVERGENTE',
   MULTIPLOS_INVERSORES: 'MULTIPLOS_INVERSORES',
+  // F-02: topologia declarada e equipamento ausente — o caso em que o motor
+  // desenhava com os próprios defaults (550 W / 5 kW) sem avisar ninguém.
+  EQUIPAMENTO_AUSENTE:  'EQUIPAMENTO_AUSENTE',
 })
 
 const num = (v) => {
@@ -79,6 +82,30 @@ export function avaliarIntegridade(projeto, entrada, { instalacao = null, catalo
       detalhe: { campo: micro
         ? 'arranjos[].configuracao_eletrica.micros'
         : 'engenharia_eletrica.arranjo.mppts' },
+    }
+  }
+
+  // ── 1b · Equipamento ausente — F-02 ───────────────────────────────────────
+  //
+  // O portão cobria a topologia e não cobria o EQUIPAMENTO. Com uma topologia
+  // declarada e `equipamentos` vazio, `entrada.painel` e `entrada.inversor`
+  // chegam `null` e o motor cai nos seus defaults internos: módulo de 550 W,
+  // inversor de 5 kW. O desenho sai bonito e descreve outro sistema.
+  //
+  // A regra do domínio é a mesma dos limites elétricos: ausência é ausência.
+  // Sem o equipamento, recusa-se o desenho em vez de assumir um.
+  if (!micro) {
+    const faltando = []
+    if (!entrada?.painel?.modelo && !entrada?.painel?.marca) faltando.push('equipamentos.paineis[0]')
+    if (!entrada?.inversor?.modelo && !entrada?.inversor?.marca) faltando.push('equipamentos.inversor')
+    if (faltando.length > 0) {
+      return {
+        codigo: MOTIVOS_UNIFILAR.EQUIPAMENTO_AUSENTE,
+        motivo: 'O projeto não declara o módulo e/ou o inversor. Sem eles o diagrama '
+          + 'usaria os valores internos do motor (módulo de 550 W, inversor de 5 kW) '
+          + 'e representaria um sistema que não é o do projeto.',
+        detalhe: { campos: faltando },
+      }
     }
   }
 

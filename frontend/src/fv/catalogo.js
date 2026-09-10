@@ -370,3 +370,31 @@ export function idSelecionado(item) {
   const ref = item?.equipamento_id ?? item?.id ?? null
   return ref === null || ref === undefined ? '' : String(ref)
 }
+
+/** Um `_id` de catálogo, e não um id do catálogo local de contingência. */
+const EH_OBJECT_ID = /^[0-9a-f]{24}$/i
+
+/**
+ * F-03 — referência canônica ao equipamento do SSOT, a partir do objeto que a
+ * tela tem em mãos.
+ *
+ * Os dois caminhos de escrita do wizard legado gravavam `equipamento_id:
+ * item._id`, e esse campo nunca existe no objeto da tela:
+ * `catalogoEngenhariaAdapter` devolve `id` (o `_id` do catálogo, como texto) e
+ * guarda o documento original em `_catalogo_original`. O resultado era
+ * `equipamento_id: null` em todo projeto salvo pelo wizard — e sem a referência
+ * o reload não tem por onde buscar o envelope elétrico de volta.
+ *
+ * Procura a referência nas formas em que ela realmente aparece e exige que seja
+ * um ObjectId. O catálogo LOCAL de contingência usa ids próprios (`cs550`,
+ * `fr5`): não são referência ao SSOT e devolvem `null` — lacuna honesta, em vez
+ * de um id que o schema recusaria no cast.
+ */
+export function referenciaDoCatalogo(item) {
+  for (const c of [item?._catalogo_original?._id, item?.equipamento_id, item?._id, item?.id]) {
+    if (c === null || c === undefined) continue
+    const s = String(c)
+    if (EH_OBJECT_ID.test(s)) return s
+  }
+  return null
+}
