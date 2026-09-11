@@ -174,11 +174,41 @@ export const securityHeaders = (req, res, next) => {
 };
 
 /**
+ * Uma requisição TEM corpo? — RFC 9110 §8.6.
+ *
+ * `Content-Length` declara o tamanho; `Transfer-Encoding` declara que o corpo
+ * vem em pedaços. Sem nenhum dos dois não há corpo nenhum para descrever, e é
+ * por isso que a checagem de `Content-Type` abaixo não se aplica.
+ *
+ * `Content-Length: 0` conta como ausência de corpo — é o que agentes HTTP
+ * costumam mandar num POST vazio.
+ */
+function temCorpo(req) {
+  if (req.get('transfer-encoding')) return true
+  const tamanho = req.get('content-length')
+  if (tamanho === undefined || tamanho === null || tamanho === '') return false
+  const n = Number(tamanho)
+  return Number.isFinite(n) && n > 0
+}
+
+/**
  * Middleware: Validação de Content-Type
- * Força application/json para POST/PUT/PATCH
+ * Força application/json para POST/PUT/PATCH que TENHAM corpo.
+ *
+ * ── Por que a exceção do corpo vazio existe ─────────────────────────────────
+ * `Content-Type` descreve o CORPO da mensagem. Num POST sem corpo não há o que
+ * descrever, e exigir o cabeçalho assim mesmo obriga o cliente a inventar um:
+ * era o caso de `POST /projetos-fv/:id/unifilar/gerar`, que identifica tudo de
+ * que precisa pela URL e não recebe payload. O frontend passou a mandar `{}`
+ * com `application/json` só para satisfazer esta checagem — um corpo de
+ * mentira para um cabeçalho desnecessário.
+ *
+ * A exceção é estreita de propósito: vale só quando a própria mensagem declara
+ * que não tem corpo. Um POST com `Transfer-Encoding: chunked` e sem
+ * `Content-Type` continua recusado, como qualquer outro corpo sem tipo.
  */
 export const enforceJsonContentType = (req, res, next) => {
-  if (['POST', 'PUT', 'PATCH'].includes(req.method)) {
+  if (['POST', 'PUT', 'PATCH'].includes(req.method) && temCorpo(req)) {
     const contentType = req.get('content-type') || '';
 
     // Aceita JSON, multipart (uploads de PDF/imagem) e urlencoded (forms tradicionais)

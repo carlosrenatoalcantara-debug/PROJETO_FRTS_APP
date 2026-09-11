@@ -223,8 +223,8 @@ export function validarRateioBeneficiarias(projetoId, beneficiarias) {
  * usa esses campos como vieram: não recalcula nem reinterpreta nenhum deles.
  */
 export function gerarUnifilar(projetoId) {
-  return enviar(`${base(projetoId)}/unifilar/gerar`,
-    { method: 'POST', body: json({}) }, 'gerarUnifilar')
+  // Sem corpo: o projeto vem da URL e o endpoint não recebe parâmetro nenhum.
+  return enviar(`${base(projetoId)}/unifilar/gerar`, { method: 'POST' }, 'gerarUnifilar')
 }
 
 // ── Financeiro — FV-UX-017 ──────────────────────────────────────────────────

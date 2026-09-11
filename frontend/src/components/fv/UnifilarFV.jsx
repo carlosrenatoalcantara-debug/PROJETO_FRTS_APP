@@ -57,11 +57,11 @@ export default function UnifilarFV({ projeto }) {
       setCarregando(true)
       setErro(null)
       setImpedimento(null)
-      // Corpo vazio explícito: sem `Content-Type` o servidor responde 415.
+      // Sem corpo: o endpoint identifica tudo de que precisa pela URL. O `{}`
+      // com `Content-Type` que estava aqui existia só para satisfazer o
+      // middleware de Content-Type, que exigia o cabeçalho mesmo sem corpo.
       const resp = await apiFetch(`/api/projetos-fv/${projeto._id}/unifilar/gerar`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: '{}',
       })
       const dados = await resp.json().catch(() => null)
       if (!resp.ok) throw new Error(dados?.erro || 'Erro ao gerar unifilar')
