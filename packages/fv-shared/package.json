@@ -1,6 +1,6 @@
 {
   "name": "@fortesolar/fv-shared",
-  "version": "0.1.36",
+  "version": "0.1.37",
   "description": "Lógica pura compartilhada entre backend e frontend (catálogo, plausibilidade elétrica, rateio de beneficiárias, apresentação de engenharia). Sem I/O, sem Mongoose, sem Express — FV-UX-003 (F2).",
   "type": "module",
   "exports": {
@@ -31,6 +31,7 @@
     "./engenharia/presentation": "./services/engineeringPresentation.js",
     "./inversores": "./equipamentos/inversores/index.js",
     "./modulos": "./equipamentos/modulos/index.js",
+    "./utilizavel-projeto": "./equipamentos/utilizavelProjeto.js",
     "./estrutura": "./equipamentos/estrutura.js",
     "./inversores/conflitos": "./equipamentos/inversores/conflitosInversor.js",
     "./inversores/dicionario": "./equipamentos/inversores/dicionarioInversor.js",

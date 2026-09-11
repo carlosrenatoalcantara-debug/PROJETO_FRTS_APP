@@ -1,41 +1,21 @@
 /**
- * utilizavelProjeto.js (frontend) — Sprint 8.0.1
- * Espelho das regras de liberação para engenharia (backend service).
- * Usado para exibir "Liberado ✓ / Bloqueado — Falta: …" na lista do catálogo.
+ * utilizavelProjeto.js (frontend) — reexport da regra canônica — F-06.
  *
- * A precedência de aliases do MÓDULO vem do SSOT (`fv-shared/modulos`), não de
- * uma cópia local. A cópia anterior omitia `potencia_wp` — o único alias que os
- * 54 módulos de produção realmente usam — e por isso este espelho discordava do
- * backend (`services/utilizavelProjeto.js`, que já o aceitava) sobre o mesmo
- * equipamento. Importar o SSOT elimina a divergência na origem.
+ * Este arquivo era uma CÓPIA da matriz do backend e discordava dela: exigia
+ * corrente e tensão máxima, mas procurava `voc_max`/`voc_max_dc`/`tensao_max_dc`
+ * — nunca `tensao_max_entrada`, que é o nome que os 52 inversores do catálogo
+ * realmente usam. O mesmo equipamento aparecia "Bloqueado" aqui e "Liberado" no
+ * backend, sobre o mesmo documento.
+ *
+ * A regra passou a viver em `@fortesolar/fv-shared/utilizavel-projeto`, com os
+ * aliases do SSOT e com a matriz de STRING separada da de MICRO. Aqui fica só o
+ * reexport, para os importadores existentes (`Catalogo`, `FichaTecnicaModal`)
+ * continuarem funcionando.
+ *
+ * Quem avalia INVERSOR deve passar o terceiro argumento — `{ fabricante,
+ * modelo }` — para que a topologia seja classificada pelo SSOT. Sem ele, a
+ * classificação usa apenas `especificacoes`.
  */
-import { CAMPOS_MODULO } from '@fortesolar/fv-shared/modulos'
+export { avaliarUtilizavel } from '@fortesolar/fv-shared/utilizavel-projeto'
 
-const num = (v) => { if (v == null || v === '') return null; const n = Number(v); return Number.isFinite(n) ? n : null }
-const pick = (e, ks) => { for (const k of ks) { const v = num(e?.[k]); if (v !== null) return v } return null }
-
-const REGRAS = {
-  modulo: [
-    ['Potência', (e) => pick(e, CAMPOS_MODULO.potencia_w)],
-    ['Voc', (e) => pick(e, ['voc', 'voc_v'])],
-    ['Isc', (e) => pick(e, ['isc', 'isc_a'])],
-    ['Coef. temperatura', (e) => pick(e, ['coef_temp_voc', 'coef_temp_pmax', 'coef_temp'])],
-  ],
-  inversor: [
-    ['Potência', (e) => pick(e, ['potencia', 'potencia_kw', 'potencia_ca'])],
-    ['MPPT', (e) => pick(e, ['mppts', 'n_mppts', 'numero_mppt'])],
-    ['Corrente MPPT', (e) => pick(e, ['corrente_max_mppt', 'isc_max_mppt', 'ipv_max'])],
-    ['Tensão máx CC', (e) => pick(e, ['voc_max', 'voc_max_dc', 'tensao_max_dc'])],
-  ],
-  carregador_ev: [
-    ['Potência', (e) => pick(e, ['potencia', 'potencia_kw'])],
-    ['Tensão', (e) => pick(e, ['tensao', 'tensao_v'])],
-    ['Corrente', (e) => pick(e, ['corrente', 'corrente_a'])],
-  ],
-}
-
-export function avaliarUtilizavel(tipo, especificacoes) {
-  const regras = REGRAS[tipo] || REGRAS.modulo
-  const faltando = regras.filter(([, fn]) => fn(especificacoes || {}) === null).map(([r]) => r)
-  return { utilizavel: faltando.length === 0, faltando }
-}
+export { default } from '@fortesolar/fv-shared/utilizavel-projeto'

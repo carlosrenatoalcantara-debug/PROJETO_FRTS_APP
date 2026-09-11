@@ -570,7 +570,9 @@ router.patch('/equipamento/:id', async (req, res) => {
     eq.qualidade = resultado.qualidade
     eq.status_operacional = resultado.status_operacional
     // S8.0.1: liberação para engenharia
-    const av = avaliarUtilizavel(eq.tipo, eq.especificacoes)
+    // F-06: com o contexto, a regra classifica a topologia pelo SSOT.
+    const av = avaliarUtilizavel(eq.tipo, eq.especificacoes,
+      { fabricante: eq.fabricante, modelo: eq.modelo, subtipo: eq.subtipo })
     eq.utilizavel_em_projeto = av.utilizavel
     eq.bloqueio_engenharia = av.faltando
     await eq.save()

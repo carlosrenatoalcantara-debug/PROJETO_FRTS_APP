@@ -397,7 +397,13 @@ export function processarEquipamento(equipamento, options = {}) {
   // Equipamento sem os campos mínimos do tipo → utilizavel_em_projeto=false,
   // com os motivos em bloqueio_engenharia. Antes este campo nunca era setado
   // pelo motor (ficava no default true) → identity-only vazava para o seletor.
-  const { utilizavel, faltando } = avaliarUtilizavel(equipamento.tipo, equipamento.especificacoes)
+  // F-06: o contexto (fabricante/modelo) deixa a regra classificar a TOPOLOGIA
+  // pelo SSOT. Inversor string exige o envelope de tensão que o motor consome;
+  // micro tem motor próprio e matriz própria.
+  const { utilizavel, faltando } = avaliarUtilizavel(
+    equipamento.tipo, equipamento.especificacoes,
+    { fabricante: equipamento.fabricante, modelo: equipamento.modelo, subtipo: equipamento.subtipo },
+  )
 
   const qualidade = {
     completude_score,

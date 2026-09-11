@@ -252,8 +252,26 @@ function validarInputsEletricos(modulo, inversor, arranjo) {
 
   pos(modulo,  'dados_eletricos_modulo',   ['voc', 'vmpp', 'isc', 'impp', 'potencia_w'])
   opcional(modulo, 'dados_eletricos_modulo', ['coef_temp_voc', 'coef_temp_vmpp', 'temp_noct'])
-  pos(inversor,'dados_eletricos_inversor', ['tensao_max_entrada', 'mppt_min', 'mppt_max',
-                                             'corrente_max_mppt', 'potencia_ca_kw'])
+  /**
+   * F-06 — o envelope de TENSÃO do inversor virou lacuna, não erro de entrada.
+   *
+   * A F3 já tinha feito isso para o coeficiente térmico do módulo, e a razão é
+   * a mesma: ausência de dado não é dado inválido. Um inversor sem
+   * `tensao_max_entrada` ou sem faixa MPPT fazia o motor devolver
+   * `INPUT_INVALIDO` com `compativel: false` — ou seja, a falta de cadastro
+   * era apresentada como INCOMPATIBILIDADE, que é uma afirmação de engenharia
+   * que ninguém fez.
+   *
+   * Agora `classificarTensaoCC` recebe os nulos e declara `nao_avaliado` nos
+   * três critérios de tensão, como já fazia quando faltava o coeficiente. O
+   * arranjo segue avaliado no que for possível — corrente, oversizing — e o
+   * que não pôde ser verificado é dito por extenso.
+   *
+   * `corrente_max_mppt` e `potencia_ca_kw` permanecem obrigatórios: sem eles
+   * não sobra critério nenhum a avaliar, e o pedido é que não faz sentido.
+   */
+  pos(inversor,'dados_eletricos_inversor', ['corrente_max_mppt', 'potencia_ca_kw'])
+  opcional(inversor, 'dados_eletricos_inversor', ['tensao_max_entrada', 'mppt_min', 'mppt_max'])
   pos(arranjo, 'arranjo_proposto',         ['quantidade_modulos_por_string',
                                              'quantidade_strings_paralelo'])
   // F-01: os totais do arranjo são OPCIONAIS — ausentes ⇒ fallback homogêneo.
@@ -269,7 +287,10 @@ function validarInputsEletricos(modulo, inversor, arranjo) {
   if (modulo && modulo.vmpp >= modulo.voc) {
     problemas.push('dados_eletricos_modulo.vmpp deve ser menor que voc (relação física)')
   }
-  if (inversor && inversor.mppt_min >= inversor.mppt_max) {
+  // F-06: a relação física só se verifica quando os DOIS lados existem. Com um
+  // deles ausente não há relação a violar — há faixa a declarar como lacuna.
+  if (inversor && isFinite(inversor.mppt_min) && isFinite(inversor.mppt_max)
+      && inversor.mppt_min >= inversor.mppt_max) {
     problemas.push('dados_eletricos_inversor.mppt_min deve ser menor que mppt_max')
   }
 

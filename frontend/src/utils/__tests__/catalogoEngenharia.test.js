@@ -73,7 +73,11 @@ describe('bloqueio engenharia', () => {
   it('inversor sem MPPT é bloqueado', () => {
     const av = avaliarUtilizavel('inversor', inversorIncompleto.especificacoes)
     expect(av.utilizavel).toBe(false)
-    expect(av.faltando).toContain('MPPT')
+    // F-06: a regra é uma só agora, e os motivos usam os NOMES DE CAMPO do
+    // SSOT — `numero_mppt`, não o rótulo amigável `MPPT` da cópia que existia
+    // no frontend. É o mesmo vocabulário que o backend já gravava em
+    // `bloqueio_engenharia`, e o que permite localizar o campo que falta.
+    expect(av.faltando).toContain('numero_mppt')
   })
   it('módulo completo é liberado', () => {
     const av = avaliarUtilizavel('modulo', moduloMongo.especificacoes)

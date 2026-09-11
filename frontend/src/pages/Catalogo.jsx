@@ -141,7 +141,8 @@ function EquipamentoCard({ eq, onDeletar, onReprocessar, selecionado, onToggleSe
         {(() => {
           const av = eq.utilizavel_em_projeto != null
             ? { utilizavel: eq.utilizavel_em_projeto, faltando: eq.bloqueio_engenharia || [] }
-            : avaliarUtilizavel(eq.tipo, esp)
+            // F-06: contexto para a regra classificar a topologia pelo SSOT.
+            : avaliarUtilizavel(eq.tipo, esp, { fabricante: eq.fabricante, modelo: eq.modelo, subtipo: eq.subtipo })
           return av.utilizavel
             ? <div className="text-xs text-emerald-700 bg-emerald-50 rounded px-2 py-1">Engenharia: Liberado ✓</div>
             : <div className="text-xs text-red-700 bg-red-50 rounded px-2 py-1">Engenharia: Bloqueado — Falta: {av.faltando.join(', ')}</div>
