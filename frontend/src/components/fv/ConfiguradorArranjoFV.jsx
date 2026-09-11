@@ -449,9 +449,19 @@ export default function ConfiguradorArranjoFV({
     })))
   }
 
-  // ── Propagação ao contexto ──────────────────────────────────────────────
-  // Quando o total de módulos muda, atualiza numPaineis, potenciaRealKwp e
-  // numStrings (usado por gerarUnifilarSVG via dim.numStrings) no contexto
+  /**
+   * ── Propagação ao contexto ────────────────────────────────────────────────
+   *
+   * O total de módulos do arranjo viaja daqui para o resto do wizard. Continua
+   * escrevendo `numPaineis` e `potenciaRealKwp` porque as etapas seguintes
+   * (E7, E8) leem esses campos como a composição em edição.
+   *
+   * F-05: o que MUDOU é a persistência. `adaptarDimensionamento` gravava esses
+   * mesmos campos em `dimensionamento`, o subdocumento da NECESSIDADE, e assim
+   * a necessidade calculada pelo consumo era sobrescrita pela composição. Agora
+   * a persistência lê `potenciaKwp` e `numPaineisNecessidade` — os números do
+   * E5, que ninguém reescreve — e a composição vai para `arranjos[]`.
+   */
   useEffect(() => {
     if (!dispatch || !totalModulosArranjo || !painel?.potenciaW) return
     const potRealKwp    = +(totalModulosArranjo * painel.potenciaW / 1000).toFixed(3)

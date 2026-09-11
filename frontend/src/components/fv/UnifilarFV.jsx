@@ -8,6 +8,8 @@ import Button from '../ui/Button'
 // motor nesta tela foi o que permitiu chamá-lo com o documento na forma errada.
 import { baixarUnifilarSVG } from '@/utils/gerarUnifilarSVG'
 import { classificarTopologia } from '../../utils/topologiaInversor'
+// F-05: necessidade e composição lado a lado, cada uma com o seu nome.
+import ResumoNecessidadeComposicao from './ResumoNecessidadeComposicao'
 
 export default function UnifilarFV({ projeto }) {
   const topologia = projeto?.engenharia_eletrica?.topologia ?? projeto?.topologia
@@ -128,35 +130,17 @@ export default function UnifilarFV({ projeto }) {
         <Zap size={32} className="text-yellow-500" />
       </div>
 
-      {projeto.dimensionamento && (
-        <Card>
-          <CardHeader>Dados do Sistema</CardHeader>
-          <CardBody>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="text-center">
-                <p className="text-sm text-slate-600">Potência</p>
-                <p className="text-2xl font-bold text-blue-600">{projeto.dimensionamento.potenciaArredondada} kWp</p>
-              </div>
-              <div className="text-center">
-                <p className="text-sm text-slate-600">Painéis</p>
-                <p className="text-2xl font-bold text-blue-600">{projeto.dimensionamento.numPaineis}</p>
-              </div>
-              <div className="text-center">
-                <p className="text-sm text-slate-600">Inversores</p>
-                <p className="text-2xl font-bold text-blue-600">{projeto.dimensionamento.numInversores}</p>
-              </div>
-              <div className="text-center">
-                <p className="text-sm text-slate-600">{ehMicro ? 'Microinversores' : 'Strings'}</p>
-                <p className="text-2xl font-bold text-blue-600">
-                  {ehMicro
-                    ? (microCfg?.qtd_microinversores ?? projeto.dimensionamento.numInversores)
-                    : projeto.dimensionamento.numStrings}
-                </p>
-              </div>
-            </div>
-          </CardBody>
-        </Card>
-      )}
+      {/*
+        F-05: o diagrama descreve o sistema CONFIGURADO, e este bloco passou a
+        descrever o mesmo. Lia `dimensionamento`, que é a NECESSIDADE: um
+        projeto de 14 módulos aparecia como 10 ao lado do desenho de 14.
+      */}
+      <Card>
+        <CardHeader>Dados do Sistema</CardHeader>
+        <CardBody>
+          <ResumoNecessidadeComposicao projeto={projeto} ehMicro={ehMicro} />
+        </CardBody>
+      </Card>
 
       <div className="flex items-center gap-3 flex-wrap">
         <Button

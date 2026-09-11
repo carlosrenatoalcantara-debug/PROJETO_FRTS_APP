@@ -99,6 +99,15 @@ export default function E5Dimensionamento() {
         potenciaKwp,
         potenciaRealKwp:      potenciaKwp,       // sem arredondamento por painel
         numPaineis,                               // estimativa central — E7 recalculará
+        /**
+         * F-05 — a NECESSIDADE em módulos, preservada.
+         *
+         * `numPaineis` é sobrescrito pelo configurador com o total do arranjo, e
+         * era ele que chegava a `dimensionamento.num_paineis` na persistência —
+         * a necessidade calculada aqui desaparecia. Este campo guarda o número
+         * que o CONSUMO exige; a composição escolhida vive em `arranjos[]`.
+         */
+        numPaineisNecessidade: numPaineis,
         numInversores,                            // estimativa — E7 substitui com valor real
         energiaDiaria,
         energiaNecessaria:    +(consumoTotal / 30 / fatorEficiencia).toFixed(2),

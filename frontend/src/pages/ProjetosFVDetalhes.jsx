@@ -24,6 +24,8 @@ import { carregarDiagramaLocal, salvarDiagramaLocal, deletarDiagramaLocal } from
 import BeneficiariasPainel from '../components/fv/BeneficiariasPainel'
 import Homologacao from '../components/fv/homologacao/Homologacao'
 import DocumentosExternos from '../components/fv/DocumentosExternos'
+// F-05: necessidade e composição lado a lado — uma implementação só.
+import ResumoNecessidadeComposicao from '../components/fv/ResumoNecessidadeComposicao'
 
 export default function ProjetosFVDetalhes() {
   const { id } = useParams()
@@ -542,31 +544,17 @@ function AbaResumo({ projeto }) {
         </CardBody>
       </Card>
 
-      {projeto.dimensionamento && (
-        <Card>
-          <CardHeader>Dimensionamento</CardHeader>
-          <CardBody>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="text-center p-4 bg-blue-50 rounded">
-                <p className="text-sm text-slate-600">Potência</p>
-                <p className="text-2xl font-bold text-blue-600">{projeto.dimensionamento.potenciaArredondada} kWp</p>
-              </div>
-              <div className="text-center p-4 bg-blue-50 rounded">
-                <p className="text-sm text-slate-600">Painéis</p>
-                <p className="text-2xl font-bold text-blue-600">{projeto.dimensionamento.numPaineis}</p>
-              </div>
-              <div className="text-center p-4 bg-blue-50 rounded">
-                <p className="text-sm text-slate-600">Inversores</p>
-                <p className="text-2xl font-bold text-blue-600">{projeto.dimensionamento.numInversores}</p>
-              </div>
-              <div className="text-center p-4 bg-blue-50 rounded">
-                <p className="text-sm text-slate-600">Strings</p>
-                <p className="text-2xl font-bold text-blue-600">{projeto.dimensionamento.numStrings}</p>
-              </div>
-            </div>
-          </CardBody>
-        </Card>
-      )}
+      {/*
+        F-05: o card se chamava "Dimensionamento" mas exibia o que o leitor lê
+        como o sistema. Passa a mostrar as duas grandezas separadas — o que foi
+        configurado e o que o consumo exige — em vez de uma no lugar da outra.
+      */}
+      <Card>
+        <CardHeader>Sistema e dimensionamento</CardHeader>
+        <CardBody>
+          <ResumoNecessidadeComposicao projeto={projeto} />
+        </CardBody>
+      </Card>
     </div>
   )
 }
