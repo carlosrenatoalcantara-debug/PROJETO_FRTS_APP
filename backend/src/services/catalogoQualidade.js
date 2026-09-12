@@ -12,6 +12,30 @@
  *   }
  *
  * NUNCA modifica especificacoes (original). NUNCA faz I/O.
+ *
+ * ── F10 · O que `specs_canonicas` é, e o que não é ──────────────────────────
+ * A F8 tirou dela a última fabricação (`isc_max_por_mppt_a` recebia a corrente
+ * de trabalho quando o limite de curto faltava). Restava decidir se a projeção
+ * ainda tinha função — ou se era estrutura órfã a remover.
+ *
+ * A auditoria F10 mediu: está em 106/106 equipamentos e NÃO é órfã. Tem um
+ * consumidor legítimo e um só — `detectarConflitos` (fv-shared), que compara
+ * `especificacoes` com esta projeção e emite `so_em_specs_canonicas` quando um
+ * campo existe aqui e não lá. `EtapaMicroinversores` mostra esses conflitos ao
+ * usuário, separados dos demais. É uso de RELATO: serve para expor divergência,
+ * não para decidir engenharia.
+ *
+ * Decisão: MANTIDA COMO PROJEÇÃO, com três limites que o guard
+ * `fontesDerivadasF10.check.js` trava:
+ *
+ *   1. Origem explícita — todo valor sai de `lerInversor(especificacoes)`, o
+ *      mesmo SSOT do motor. Nenhum alias local, nenhum default.
+ *   2. Sem autoridade de engenharia — nenhum módulo do Core a lê. Compatibilidade
+ *      vem de `especificacoes → adapter → contrato canônico → motor`.
+ *   3. Ausência permanece ausência — campo sem origem sai `null`, nunca suprido
+ *      pelo campo vizinho.
+ *
+ * Não foi removida porque tem consumidor; não foi promovida porque é derivada.
  */
 
 import crypto from 'crypto'

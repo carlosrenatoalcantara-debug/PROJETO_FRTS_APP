@@ -267,6 +267,10 @@ export function eletricoDoInversor(equipamento) {
      */
     corrente_max_mppt: num(c.corrente_max_por_mppt),
     corrente_isc_max_mppt: num(c.corrente_isc_max),
+    // F10: limite TOTAL de entrada CC — terceira grandeza. Enviado pelos DOIS
+    // chamadores do motor para que o critério não dependa de qual deles montou
+    // o contrato, que foi exatamente o defeito descrito acima.
+    corrente_max_entrada: num(c.corrente_max_entrada),
     potencia_ca_kw: num(c.potencia_kw),
   }
 }
@@ -359,8 +363,15 @@ export function lacunasEletricas(eletricoMod, eletricoInv) {
      * curto-circuito como `nao_avaliado` e segue. Tratá-lo como lacuna
      * bloquearia 20 dos 39 inversores do catálogo, que declaram só o limite de
      * trabalho, e trocaria um falso bloqueio por outro.
+     *
+     * F10: `corrente_max_entrada` entra na MESMA exceção, e pela mesma razão —
+     * sua ausência deixa `CORRENTE_ENTRADA_TOTAL_EXCEDIDA` em `nao_avaliado`,
+     * não impede a análise. A cobertura hoje é 0/52: tratá-la como lacuna
+     * bloquearia o catálogo INTEIRO, que é o oposto do objetivo de ligar o
+     * caminho do campo.
      */
-    if (v === null && k !== 'corrente_isc_max_mppt') faltando.push(`inversor.${k}`)
+    const SEM_LACUNA = ['corrente_isc_max_mppt', 'corrente_max_entrada']
+    if (v === null && !SEM_LACUNA.includes(k)) faltando.push(`inversor.${k}`)
   }
   return faltando
 }

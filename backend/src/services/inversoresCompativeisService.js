@@ -239,6 +239,13 @@ export function avaliarCompatibilidade({ configuracao, modulo, candidatos, clima
         // motor o usava como se fosse o segundo.
         corrente_max_mppt: num(c?.corrente_max_por_mppt),
         corrente_isc_max_mppt: num(c?.corrente_isc_max),
+        // F10: TERCEIRA grandeza — limite total de entrada CC do equipamento.
+        // O motor já tinha o critério `CORRENTE_ENTRADA_TOTAL_EXCEDIDA`, mas o
+        // parâmetro nunca era enviado: a regra estava morta por construção.
+        // Cobertura atual 0/52, então na prática segue `nao_avaliado` — o
+        // critério só avalia quando o valor existe (`!= null`), e nada aqui o
+        // deriva das duas correntes acima.
+        corrente_max_entrada: num(c?.corrente_max_entrada),
         potencia_ca_kw: num(c?.potencia_kw),
       },
       arranjo_proposto: arranjo,

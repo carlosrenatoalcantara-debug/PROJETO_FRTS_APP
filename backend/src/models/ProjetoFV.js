@@ -902,6 +902,36 @@ const projetoFVSchema = new mongoose.Schema({
        * equivalência, e só então a escrita LEGACY para. Até lá, esta estrutura
        * fica ISOLADA: a UX que já a usa continua funcionando, e nenhum
        * consumidor novo do Core pode lê-la — há guard para isso.
+       *
+       * ── F10 · Evidência do requisito, medida no acervo ─────────────────────
+       * A F-04 registrou que os 589 projetos têm estes campos vazios, e isso
+       * continua verdade: `arranjos[].configuracao_eletrica.mppts` segue em
+       * 0/589. Mas a F10 mediu o que faltava — se o CASO DE USO existe:
+       *
+       *   projetos com mais de um arranjo .................... 5
+       *   destes, com modelos de inversor DIFERENTES por arranjo  4
+       *   destes, já persistindo `compatibilidade` por arranjo ... 2
+       *
+       * São propostas reais, não fixtures: "Mercado Avelino" (Huawei
+       * SUN2000-60KTL-M0 + Solplanet ASW50K-LT-G2), "Sistema FV 131.29 kWp"
+       * (Huawei 60K + 50K), "Sistema FV novo kWp" (3 arranjos), "Ampliação" e
+       * "Wagner Hoymiles + tcl".
+       *
+       * Leitura honesta disso: o requisito funcional de multiarranjo está
+       * COMPROVADO — o negócio já vende sistemas assim. O que NÃO está
+       * comprovado é que o domínio o suporta ponta a ponta. Por isso a F10
+       * decidiu manter esta estrutura como LEGACY isolado e não preparar
+       * adapter dormente: migrar agora misturaria arquitetura de persistência
+       * com implementação de multiarranjo, que é outro problema.
+       *
+       * `MULTIPLOS_INVERSORES` (dominio/unifilar/integridade.js) permanece —
+       * é proteção válida enquanto o desenho representar um inversor só, e
+       * removê-lo não "habilita" multiarranjo, apenas cala o aviso.
+       *
+       * O sprint de migração deve começar por uma auditoria de capacidade
+       * nesta ordem, não pela persistência:
+       *   persistência → engenharia → compatibilidade → potência → unifilar
+       *   → orçamento → homologação
        */
       num_mppts_usados:              { type: Number, default: null },
       total_modulos:                 { type: Number, default: null },

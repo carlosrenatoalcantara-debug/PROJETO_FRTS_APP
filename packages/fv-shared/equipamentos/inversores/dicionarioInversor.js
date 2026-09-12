@@ -64,6 +64,28 @@ export const CAMPOS_INVERSOR = {
   tensao_mppt_max:       { grupo: 'CC', peso: 10, aliases: ['tensao_mppt_max', 'tensao_mppt_max_v', 'mppt_max_v', 'faixa_mppt_max', 'mppt_max'] },
   corrente_max_por_mppt: { grupo: 'CC',           aliases: ['corrente_max_por_mppt', 'corrente_max_por_mppt_a', 'corrente_max_mppt', 'ipv_max'] },
   corrente_isc_max:      { grupo: 'CC', peso: 10, aliases: ['corrente_isc_max', 'corrente_isc_max_a', 'isc_max_mppt', 'isc_max_por_mppt_a', 'corrente_curto_mppt'] },
+  // ── F10 · Limite TOTAL de entrada CC do equipamento ────────────────────────
+  //
+  // Terceira grandeza de corrente, distinta das duas acima. Não confundir:
+  //
+  //   corrente_max_por_mppt  limite de OPERAÇÃO, por MPPT
+  //   corrente_isc_max       limite de CURTO-CIRCUITO, por MPPT
+  //   corrente_max_entrada   limite TOTAL de entrada CC do equipamento
+  //
+  // O motor já tinha o critério `CORRENTE_ENTRADA_TOTAL_EXCEDIDA`, mas o campo
+  // nunca chegava até ele: o extrator de datasheet GRAVA (`normalizarMulti`), o
+  // cadastro EXIBE (`Inversores.jsx`), e o dicionário não o conhecia — então
+  // `lerInversor` devolvia `undefined` e a regra ficava morta por CONSTRUÇÃO,
+  // não por falta de dado. A F10 ligou o caminho.
+  //
+  // Cobertura atual no catálogo: 0/52. É lacuna de CATÁLOGO, não de código:
+  // nenhum equipamento foi preenchido, e o critério segue `nao_avaliado` até
+  // que um datasheet declare o valor — aí ativa sozinho, sem novo código.
+  //
+  // Sem `peso`: reconhecido em leitura, não altera a semântica de score.
+  // Sem fallback: NUNCA derivado de `corrente_max_por_mppt`, nem sozinho nem
+  // multiplicado por `n_mppts` — seria a classe de erro que a F8 removeu.
+  corrente_max_entrada:  { grupo: 'CC',           aliases: ['corrente_max_entrada', 'corrente_max_entrada_dc_a', 'corrente_max_entrada_a'] },
   tensao_partida:        { grupo: 'CC',           aliases: ['tensao_partida', 'tensao_partida_v', 'start_voltage_v', 'tensao_inicializacao_dc'] },
   potencia_max_entrada_cc:{ grupo: 'CC',          aliases: ['potencia_max_entrada_cc', 'potencia_kw_cc_max', 'potencia_dc_max', 'pdc_max', 'potencia_max_entrada_dc_w'] },
   // S1-FV-DOMAIN-MIGRATION-01 — envelope de dimensionamento do domínio.

@@ -91,6 +91,13 @@ export function paraDimensionamento(especificacoes, equipamento = {}) {
     // `??`, agora sai com o próprio nome. Quem precisar dele tem acesso; quem
     // precisar do curto não o recebe por engano.
     corrente_max_por_mppt: _num(c.corrente_max_por_mppt),
+    // F10: limite TOTAL de entrada CC. Terceira grandeza, separada das outras
+    // duas. Ausente → `null`, e o critério `CORRENTE_ENTRADA_TOTAL_EXCEDIDA`
+    // permanece `nao_avaliado`. Não entra em `lacunas`: diferente dos cinco
+    // campos da FV-DOM-029, sua ausência não impede montar string — só deixa
+    // um critério sem avaliar. Bloquear por ela mudaria o veredito de
+    // `montarStrings` para os 52 inversores do catálogo.
+    corrente_max_entrada: _num(c.corrente_max_entrada),
     n_mppts,
     // P1-INV-TOPOLOGY-01: limite FÍSICO do equipamento (consumido, não altera regras).
     tipo_topologia:   c.tipo_topologia,
