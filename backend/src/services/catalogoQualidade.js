@@ -122,7 +122,16 @@ function normalizarSpecsInversor(equipamento) {
     tensao_inicializacao_dc_v: num(c.tensao_partida),
     mppt_min_v: num(c.tensao_mppt_min),
     mppt_max_v: num(c.tensao_mppt_max),
-    isc_max_por_mppt_a: num(c.corrente_isc_max ?? c.corrente_max_por_mppt),
+    // F8: a substituição `?? c.corrente_max_por_mppt` foi REMOVIDA. Escrevia a
+    // corrente de TRABALHO no campo do limite de CURTO, materializando o valor
+    // falso no banco — 24 dos 52 inversores tinham `isc_max_por_mppt_a` igual à
+    // corrente de trabalho sem nenhum `corrente_isc_max` de origem. A projeção
+    // ficava indistinguível de um dado declarado pelo fabricante.
+    //
+    // Consequência assumida: esses 24 perdem os 10 pontos de
+    // `isc_max_por_mppt_a` no score de completude. É o efeito correto — a
+    // lacuna existe e o score passa a medi-la.
+    isc_max_por_mppt_a: num(c.corrente_isc_max),
     n_mppts: num(c.n_mppts),
     strings_max_por_mppt: num(c.strings_por_mppt),
     eficiencia_max_pct: num(c.eficiencia_maxima),

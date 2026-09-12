@@ -66,11 +66,18 @@ for (const n of [600, 100, 550, 13]) {
   ok(!new RegExp(`:\\s*${n}\\b`).test(bruto), `o número ${n} não aparece na saída`)
 }
 
-secao('4 · Precedência entre campos REAIS continua — não é default')
-const porAlias = paraDimensionamento({ potencia_kw: 8, corrente_max_por_mppt: 16,
+secao('4 · Campos REAIS diferentes não se substituem (F8)')
+// Esta seção afirmava o contrário: que `corrente_max_por_mppt` "supria"
+// `corrente_isc_max` por serem "dois campos reais". Ser real não basta — são
+// grandezas DIFERENTES (trabalho × curto-circuito), e a substituição produzia
+// um limite de curto mais baixo do que o real, afrouxando a verificação de
+// string. A F8 removeu a substituição; este check agora trava a remoção.
+const soTrabalho = paraDimensionamento({ potencia_kw: 8, corrente_max_por_mppt: 16,
   tensao_max_entrada: 600, tensao_mppt_min: 80, tensao_mppt_max: 550, n_mppts: 2 }, {})
-ok(porAlias.isc_max_mppt === 16, '`corrente_max_por_mppt` supre `corrente_isc_max` (dois campos reais)')
-ok(porAlias.lacunas.length === 0, 'e não gera lacuna')
+ok(soTrabalho.isc_max_mppt === null, '`corrente_max_por_mppt` NÃO supre `corrente_isc_max`')
+ok(soTrabalho.corrente_max_por_mppt === 16, 'o limite de trabalho sai com o próprio nome')
+ok(soTrabalho.lacunas.length === 1 && soTrabalho.lacunas[0] === 'corrente_isc_max',
+  'e a ausência do limite de curto é a única lacuna — nomeada')
 
 secao('5 · Lacuna parcial é nomeada com precisão')
 const parcial = paraDimensionamento({ potencia_kw: 15, tensao_max_entrada: 1000,
