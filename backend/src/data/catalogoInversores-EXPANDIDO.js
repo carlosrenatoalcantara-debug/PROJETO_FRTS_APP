@@ -1,3 +1,15 @@
+// ┌──────────────────────────────────────────────────────────────────────────┐
+// │ DATASET COMERCIAL ÓRFÃO — DEPRECATED (F9)                                │
+// └──────────────────────────────────────────────────────────────────────────┘
+//
+// A auditoria F9 varreu `backend/src` e `frontend/src`: este arquivo tem ZERO
+// consumidores. `INVERSORES_EXPANDIDO` só é referenciado pelos próprios helpers
+// no rodapé deste arquivo. Não foi removido porque a decisão de F9 foi manter
+// `catalogoInversores*.js` como dataset comercial; fica marcado para que
+// ninguém o adote por engano achando que é fonte viva.
+//
+// Não importar. Não é o SSOT. Não alimenta engenharia.
+//
 // Catálogo expandido de inversores com todos os fabricantes principais
 // Inclui: Deye, Growatt, Kehua, Goodwe, Sungrow, Tsuness, Hoymiles, APsystem, Solplanet, Solax, Huawei, Nep
 

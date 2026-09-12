@@ -1,3 +1,12 @@
+// ┌──────────────────────────────────────────────────────────────────────────┐
+// │ DATASET COMERCIAL — NÃO É O SSOT DE ENGENHARIA                           │
+// └──────────────────────────────────────────────────────────────────────────┘
+//
+// F9: par comercial de `catalogoInversores.js`. Alimenta apenas candidatura e
+// ranking comercial. Nenhum valor daqui pode ser apresentado como especificação
+// validada nem alimentar decisão de engenharia — essa vem do SSOT Mongo via
+// adapter e motor canônico. Ver `procedenciaComercial.js`.
+//
 // Catálogo Unificado de Painéis Fotovoltaicos - Versão Completa (450W+)
 // Valores em STC (25°C, 1000 W/m², AM1.5)
 // Fabricantes: Canadian, OSDA, Ronma, ZNshine, Helius, Era Solar, Leapton, Pulling, Jinko, JA, Trina, Hanesun, Longi, Renesola, Tongwei

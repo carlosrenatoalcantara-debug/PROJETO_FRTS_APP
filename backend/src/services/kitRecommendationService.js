@@ -22,6 +22,7 @@
 
 import { PAINEIS }      from '../data/catalogoPaineis.js'
 import { INVERSORES }   from '../data/catalogoInversores.js'
+import { FONTE_COMERCIAL, COMPAT_NAO_AVALIADA } from '../data/procedenciaComercial.js'
 import { tokenizarBusca }  from './kitTokenizerService.js'
 import { calcularScore }   from './kitScoringEngineService.js'
 
@@ -59,35 +60,59 @@ function mediana(arr) {
 }
 
 /**
- * Validação elétrica rápida — runtime-only.
- * NÃO chama compatibilidadeEletricaService (evita overhead e dependência circular).
- * Só descarta combinações física/eletricamente impossíveis; casos borderline
- * são mantidos e penalizados pelo scoring engine.
+ * Pré-filtro de PLAUSIBILIDADE COMERCIAL — F9.
  *
- * Regras:
- *  1. Pelo menos 1 módulo necessário (trivial, mas guarda o fluxo)
- *  2. Tensão máxima: Voc_módulo × (módulos por string) < Voc_max_inversor × 1.05 (tolerância 5%)
- *  3. Tensão mínima MPPT: Vmpp_módulo × (módulos por string) ≥ mpptMin_inversor × 0.90 (tolerância 10%)
- *  4. Corrente: Isc_módulo × (strings paralelo) ≤ imaxMppt_inversor × nMppts × 1.10
+ * Antes da F9 esta função se chamava `validarEletricoRapido` e era, na prática,
+ * um quarto motor elétrico. Fazia três coisas que o motor canônico proíbe:
+ *
+ *   1. Tolerâncias: aceitava Voc até 5% ACIMA da tensão máxima declarada pelo
+ *      fabricante, Vmpp 10% ABAIXO do piso MPPT e corrente 10% acima do limite.
+ *      Uma tolerância que afrouxa um teto de segurança não é margem de erro —
+ *      é permissão para ultrapassá-lo.
+ *   2. Confusão de grandezas: comparava o Isc do módulo (curto-circuito) contra
+ *      `imaxMppt` (corrente de TRABALHO) — exatamente a substituição que a F8
+ *      eliminou do motor canônico.
+ *   3. Defaults fabricados: `?? 1000`, `?? 100`, `?? 20`, `?? 1` — os mesmos
+ *      limites de segurança inventados que a FV-DOM-029 removeu.
+ *
+ * O que sobrou é o que esta camada pode legitimamente fazer: descartar
+ * combinações grosseiramente implausíveis usando os atributos DECLARATIVOS do
+ * dataset comercial, sem margem e sem inventar valor ausente. O veredito
+ * técnico não é dado aqui — não é dado em lugar nenhum deste arquivo.
+ *
+ * Compatibilidade elétrica real: SSOT → adapter → motor canônico.
+ *
+ * @returns {boolean} candidato comercial plausível — NUNCA "compatível".
  */
-function validarEletricoRapido(painel, inversor, numModulosPorString, numStringsPar) {
+function plausivelComoCandidatoComercial(painel, inversor, numModulosPorString, numStringsPar) {
   if (numModulosPorString <= 0 || numStringsPar <= 0) return false
 
-  const vocArray    = painel.voc  * numModulosPorString
-  const vmppArray   = painel.vmpp * numModulosPorString
-  const iscTotal    = painel.isc  * numStringsPar
+  // Sem default: atributo ausente no dataset comercial não é suprido por um
+  // número inventado. Ausência descarta o candidato — não o aprova.
+  const vocMax   = _decl(inversor.vocMax)
+  const mpptMin  = _decl(inversor.mpptMin)
+  const imaxMppt = _decl(inversor.imaxMppt)
+  const nMppts   = _decl(inversor.nMppts)
+  if (vocMax === null || mpptMin === null || imaxMppt === null || nMppts === null) return false
 
-  // Tensão máxima (com tolerância de 5% — evitar falso-positivo por coeficiente temp)
-  if (vocArray > (inversor.vocMax ?? 1000) * 1.05) return false
+  const voc  = _decl(painel.voc)
+  const vmpp = _decl(painel.vmpp)
+  const isc  = _decl(painel.isc)
+  if (voc === null || vmpp === null || isc === null) return false
 
-  // Tensão mínima MPPT (com tolerância de 10%)
-  if (vmppArray < (inversor.mpptMin ?? 100) * 0.90) return false
-
-  // Corrente máxima MPPT total (com tolerância de 10%)
-  const imaxTotal = (inversor.imaxMppt ?? 20) * (inversor.nMppts ?? 1)
-  if (iscTotal > imaxTotal * 1.10) return false
+  // Sem tolerância: o limite declarado é o limite.
+  if (voc  * numModulosPorString > vocMax)  return false
+  if (vmpp * numModulosPorString < mpptMin) return false
+  if (isc  * numStringsPar > imaxMppt * nMppts) return false
 
   return true
+}
+
+/** Atributo declarativo do dataset comercial. Ausente/não-numérico → null. */
+function _decl(v) {
+  if (v === null || v === undefined || v === '') return null
+  const n = Number(v)
+  return Number.isFinite(n) ? n : null
 }
 
 /**
@@ -108,14 +133,29 @@ function isBifacial(painel) {
  * Returns null se nenhuma configuração válida for encontrada.
  */
 function calcularMelhorArranjo(painel, inversor, potenciaAlvoKwp) {
-  // Limites de módulos por string a varrer
-  const minStr = Math.max(1, Math.floor((inversor.mpptMin ?? 100) / painel.vmpp))
-  const maxStr = Math.min(30, Math.floor((inversor.vocMax ?? 1000) / painel.voc))
+  // F9: os defaults `?? 100`, `?? 1000` e `?? 5` foram removidos. Eram limites
+  // de segurança fabricados — um inversor sem `vocMax` no dataset comercial era
+  // varrido contra 1000 V inventados. Sem o atributo declarado, não há varredura.
+  const mpptMin  = _decl(inversor.mpptMin)
+  const vocMax   = _decl(inversor.vocMax)
+  const potKW    = _decl(inversor.potenciaKW)
+  const vmpp     = _decl(painel.vmpp)
+  const voc      = _decl(painel.voc)
+  const pmpp     = _decl(painel.pmpp)
+  // `potKW` é requisito mesmo quando há alvo informado: o oversizing divide por
+  // ele. Sem ele o resultado seria Infinity, não um número menos preciso.
+  if (mpptMin === null || vocMax === null || vmpp === null || voc === null ||
+      pmpp === null || potKW === null || potKW <= 0) return null
+  if (vmpp <= 0 || voc <= 0 || pmpp <= 0) return null
 
-  // Potência total alvo: usa alvo informado ou estima a partir do inversor
+  // Limites de módulos por string a varrer
+  const minStr = Math.max(1, Math.floor(mpptMin / vmpp))
+  const maxStr = Math.min(30, Math.floor(vocMax / voc))
+
+  // Potência total alvo: usa alvo informado ou estima a partir do inversor.
   const potAlvo = potenciaAlvoKwp
     ? potenciaAlvoKwp * 1000   // W
-    : (inversor.potenciaKW ?? 5) * 1000 * 1.20  // oversizing padrão 20%
+    : potKW * 1000 * 1.20      // referência comercial de oversizing, não limite técnico
 
   let melhor = null
   let melhorScore = -Infinity
@@ -127,11 +167,13 @@ function calcularMelhorArranjo(painel, inversor, potenciaAlvoKwp) {
     const stringsMax    = Math.min(20, stringsNeeded + 2)
 
     for (let sp = Math.max(1, stringsNeeded - 1); sp <= stringsMax; sp++) {
-      if (!validarEletricoRapido(painel, inversor, mps, sp)) continue
+      if (!plausivelComoCandidatoComercial(painel, inversor, mps, sp)) continue
 
       const potTotalW    = painel.pmpp * mps * sp
       const potTotalKwp  = potTotalW / 1000
-      const oversizing   = potTotalKwp / (inversor.potenciaKW ?? potTotalKwp)
+      // `potKW` já foi validado como não-null acima: sem ele o par foi descartado.
+      // O `?? potTotalKwp` anterior produzia oversizing 1.00 artificial.
+      const oversizing   = potTotalKwp / potKW
 
       // Score simples: favorece oversizing próximo de 1.20 e potência próxima do alvo
       const distOversizing = Math.abs(oversizing - 1.20)
@@ -282,7 +324,10 @@ export function recomendarKits({
       potencia_kwp:    candidato.arranjo.potencia_total_kwp,
       // ── campos consumidos por calcScoreTecnico ─────────────────────────
       potencia_cc_kwp: candidato.arranjo.potencia_total_kwp,
-      valido_eletrico: true,   // já filtrado em calcularMelhorArranjo
+      // Sinal INTERNO de scoring: "passou no pré-filtro comercial". Não é
+      // veredito de engenharia e não sai no payload com esse sentido — a saída
+      // declara `compatibilidade_eletrica: 'nao_avaliado'`.
+      valido_eletrico: true,
       erros_eletricos: [],
       // ── campos consumidos por calcScoreEngenharia ──────────────────────
       fator_oversizing: candidato.arranjo.oversizing_fator,
@@ -308,6 +353,11 @@ export function recomendarKits({
       tecnologias:         tokens.tecnologias,
       meta:                tokens.meta,
     },
+    // F9: proveniência no topo da resposta. Quem consumir este payload sabe, sem
+    // precisar perguntar, que os dados técnicos vêm do dataset comercial e que
+    // NENHUMA compatibilidade elétrica foi verificada aqui.
+    fonte:                     FONTE_COMERCIAL,
+    compatibilidade_eletrica:  COMPAT_NAO_AVALIADA,
     potencia_alvo_kwp:  potenciaAlvoKwp,
     consumo_kwh_mes:    consumoKwhMes,
     filtros_aplicados:  filtros,
@@ -337,6 +387,10 @@ export function recomendarKits({
         garantia:     kit.inversor.garantia,
         preco_unitario: kit.inversor.precoUnitario,
       },
+      // F9: proveniência POR CANDIDATO — o rótulo não pode se perder se o
+      // frontend iterar só o `top10`.
+      fonte:                     FONTE_COMERCIAL,
+      compatibilidade_eletrica:  COMPAT_NAO_AVALIADA,
       arranjo:              kit.arranjo,
       custo_total:          kit.custo_total,
       custo_por_kwp:        kit.custo_por_kwp,

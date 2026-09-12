@@ -1,5 +1,6 @@
 import { PAINEIS } from '../data/catalogoPaineis.js'
 import { INVERSORES } from '../data/catalogoInversores.js'
+import { FONTE_COMERCIAL, COMPAT_NAO_AVALIADA } from '../data/procedenciaComercial.js'
 
 function vocPorTemperatura(modulo, tempMin = -2) {
   const coef = modulo.tempCoefVoc ?? -0.28
@@ -125,6 +126,12 @@ export function recomendarSistema(req, res) {
     })
 
     res.json({
+      // F9: este recomendador ordena candidatos usando os atributos declarativos
+      // do dataset comercial — que não tem correspondência alguma com o SSOT
+      // (0 de 41 modelos). O ranking é comercial; o veredito elétrico não é dado
+      // aqui e não pode ser inferido da posição no ranking.
+      fonte:                    FONTE_COMERCIAL,
+      compatibilidade_eletrica: COMPAT_NAO_AVALIADA,
       melhor: formatarResposta(melhor),
       justificativa: `Melhor relação custo-benefício: ${melhor.potenciaKwp} kWp com ${melhor.numPaineis} painéis`,
       alternativas: alternativas.map(formatarResposta),
