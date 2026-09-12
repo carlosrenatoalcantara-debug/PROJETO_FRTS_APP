@@ -910,7 +910,13 @@ const projetoFVSchema = new mongoose.Schema({
        *
        *   projetos com mais de um arranjo .................... 5
        *   destes, com modelos de inversor DIFERENTES por arranjo  4
-       *   destes, já persistindo `compatibilidade` por arranjo ... 2
+       *   destes, já persistindo `compatibilidade` por arranjo ... 0
+       *
+       * CORREÇÃO (F11-AUDIT): a F10 registrou "2" nesta última linha. Estava
+       * errado. O que a F10 mediu foi a lista de CHAVES de `configuracao_eletrica`,
+       * e o Mongoose materializa os defaults — a chave `compatibilidade` existe
+       * em todos, com valor `null`. Inspecionado o VALOR, nenhum dos 5 projetos
+       * persiste compatibilidade por arranjo.
        *
        * São propostas reais, não fixtures: "Mercado Avelino" (Huawei
        * SUN2000-60KTL-M0 + Solplanet ASW50K-LT-G2), "Sistema FV 131.29 kWp"
