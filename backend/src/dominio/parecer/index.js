@@ -246,10 +246,25 @@ export function validarExtracao(dados) {
   }
 
   // Coerência interna: potência declarada × potência somada dos módulos.
+  //
+  // F12: a soma era `(m.potencia_w ?? 0) * (m.quantidade ?? 0)`. Um módulo sem
+  // `potencia_w` entrava valendo zero, e a comparação passava a confrontar a
+  // potência declarada contra uma soma PARCIAL — produzindo divergência falsa
+  // (ou, se todos faltassem, `somada = 0` e a checagem era pulada em silêncio).
+  // Agora a incompletude é dita: não dá para afirmar coerência sem a potência.
   const declarada = dados?.geracao?.potencia_instalada_kwp
-  const somada = modulos.reduce((a, m) => a
-    + ((m.potencia_w ?? 0) * (m.quantidade ?? 0)), 0) / 1000
-  if (declarada !== null && declarada !== undefined && somada > 0) {
+  const incompleto = modulos.find((m) => {
+    const w = Number(m?.potencia_w)
+    return !Number.isFinite(w) || w <= 0
+  })
+  if (incompleto) {
+    bloqueios.push('Potência do módulo ausente em '
+      + `"${[incompleto.marca, incompleto.modelo].filter(Boolean).join(' ') || 'módulo sem identificação'}"`
+      + ' — não é possível conferir a potência declarada contra a soma dos módulos.')
+  }
+  const somada = incompleto ? null : modulos.reduce((a, m) => a
+    + (Number(m.potencia_w) * (m.quantidade ?? 0)), 0) / 1000
+  if (declarada !== null && declarada !== undefined && somada !== null && somada > 0) {
     const div = Math.abs(somada - declarada) / declarada
     if (div > 0.01) {
       bloqueios.push(`Potência declarada (${declarada} kWp) diverge da soma dos `

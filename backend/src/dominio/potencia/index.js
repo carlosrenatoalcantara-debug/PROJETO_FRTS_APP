@@ -82,7 +82,18 @@ export function necessidadeDoProjeto(projeto) {
 export function compradaDoProjeto(projeto, { instalacao = null, catalogo = null } = {}) {
   const { origem, totais } = obterTopologiaProjeto(projeto, { instalacao, catalogo })
   const v = num(totais?.potencia_total_kwp)
-  if (v === null || v <= 0) return vazia(MOTIVOS_POTENCIA.SEM_COMPOSICAO)
+  if (v === null || v <= 0) {
+    // F12: duas ausências DIFERENTES chegavam aqui com o mesmo rótulo.
+    //   composição vazia   — não há módulos escolhidos ainda
+    //   composição incompleta — há módulos, mas algum não declara `potencia_w`
+    // A segunda é a que produzia a soma parcial silenciosa. Dizer
+    // "COMPOSICAO_VAZIA" para um projeto de 399 módulos seria trocar uma
+    // informação falsa por outra. O motivo já existia no contrato.
+    const temModulos = num(totais?.n_modulos_total) > 0
+    return vazia(temModulos
+      ? MOTIVOS_POTENCIA.SEM_POTENCIA_MODULO
+      : MOTIVOS_POTENCIA.SEM_COMPOSICAO)
+  }
   return presente(v, origem === 'instalacao'
     ? 'instalacao.geradores (totaisTopologia)'
     : 'arranjos[] (calcularTotaisProjeto)')

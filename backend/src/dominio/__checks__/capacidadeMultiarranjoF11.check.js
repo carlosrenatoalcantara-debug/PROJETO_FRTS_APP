@@ -80,18 +80,20 @@ const dupes = normalizarArranjos({ arranjos: [
 ok(dupes[0].id === dupes[1].id,
   'ACHADO: ids duplicados passam sem erro — identidade não é única (visto no acervo real)')
 
-secao('3 · POTÊNCIA — soma parcial silenciosa quando falta `potencia_w`')
-// É o defeito que produz `n_modulos_total=399` ao lado de `potencia_total_kwp=77,43`.
+secao('3 · POTÊNCIA — a soma parcial silenciosa foi CORRIGIDA pela F12')
+// Quando a F11 mediu, `potenciaPaineisKwp` fazia `Number(p.potencia_w) || 0` e
+// devolvia 77,43 kWp para 399 módulos — o total honesto seria 177,6. Este era o
+// primeiro bloqueio estrutural que a auditoria apontou, e a F12 o fechou.
+// As asserções abaixo travam a correção no lugar do achado.
 ok(potenciaPaineisKwp([painel(24, 550)]) === 13.2, 'com `potencia_w` presente, a soma está certa')
-ok(potenciaPaineisKwp([painel(225, null), painel(174, 445)]) === 77.43,
-  'ACHADO: painel sem `potencia_w` vira ZERO — 399 módulos viram 77,43 kWp')
-nota('o total honesto seria 177,6 kWp; a lacuna deveria ser declarada, não somada como 0')
+ok(potenciaPaineisKwp([painel(225, null), painel(174, 445)]) === null,
+  'painel sem `potencia_w` torna o total NÃO AVALIÁVEL (antes da F12: 77,43)')
 const parcial = calcularTotaisProjeto({ arranjos: [
   { id: 'a', paineis: [painel(225, null)], inversores: [] },
   { id: 'b', paineis: [painel(174, 445)], inversores: [] },
 ] })
-ok(parcial.n_modulos_total === 399 && parcial.potencia_total_kwp === 77.43,
-  'ACHADO: o mesmo objeto devolve 399 módulos E 77,43 kWp — números que se contradizem')
+ok(parcial.n_modulos_total === 399 && parcial.potencia_total_kwp === null,
+  'os 399 módulos continuam contados; a potência não é mais afirmada pela metade')
 
 secao('4 · TOPOLOGIA — singular por projeto, por construção')
 const modelo = readFileSync(path.resolve(RAIZ, 'backend/src/models/ProjetoFV.js'), 'utf8')

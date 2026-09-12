@@ -111,6 +111,19 @@ export default function ResumoNecessidadeComposicao({ projeto, ehMicro = false }
             <Numero rotulo={ehMicro ? 'Microinversores' : 'Strings'}
               valor={ehMicro ? composicao.inversores : strings} destaque />
           </div>
+          {/*
+            F12: há módulos escolhidos, mas a potência total não é calculável —
+            algum painel do arranjo não tem `potencia_w` cadastrada. O `Numero`
+            acima já mostra "—" em vez de um zero fabricado; esta linha diz POR
+            QUÊ, para que a ausência não seja lida como "ainda não calculou".
+          */}
+          {composicao.modulos > 0 && composicao.potencia_kwp === null && (
+            <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mt-3">
+              Potência CC não avaliável — a potência de pelo menos um módulo do
+              arranjo não está cadastrada. A quantidade de módulos está correta;
+              somar apenas os módulos conhecidos daria um total menor que o real.
+            </p>
+          )}
         </div>
       ) : (
         <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
