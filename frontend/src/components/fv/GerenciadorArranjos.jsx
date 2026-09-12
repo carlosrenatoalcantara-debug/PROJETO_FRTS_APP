@@ -20,6 +20,7 @@ import { useProjetoFV } from '../../contexts/ProjetoFVContext'
 import Button from '../ui/Button'
 import ResumoTecnicoArranjo from './ResumoTecnicoArranjo'
 import TopologiaMPPTEditor, { topologiaVazia } from './TopologiaMPPTEditor'
+import { novoIdArranjo } from '@fortesolar/fv-shared/projeto/identidade-arranjo'
 
 // P0-ARRANJO-ELECTRICAL-ISOLATION-01 — mapeamento editor ↔ schema por arranjo
 const numK = (esp, ks) => { for (const k of ks) { const v = Number(esp?.[k]); if (Number.isFinite(v) && v !== 0) return v } return null }
@@ -93,8 +94,10 @@ function linhaInversor(item, quantidade = 1) {
     modelo: item?.modelo || null, tipo: 'inversor', potencia_kw: potKW(item), quantidade: Number(quantidade) || 0 }
 }
 
-let _seq = 0
-const novoId = () => `arr_${Date.now()}_${_seq++}`
+// F13: era o segundo de quatro geradores de identidade. Agora delega ao SSOT —
+// `dupArranjo` e `arranjoVazio` continuam criando identidade NOVA, que é o
+// correto: duplicar cria outra entidade.
+const novoId = novoIdArranjo
 // Arranjos secundários começam em B (A é sempre o arranjo primário de E7)
 const proximaLetra = (lista) => {
   const usadas = new Set(lista.map(a => (a.rotulo || '').replace(/^Arranjo\s+/, '').charAt(0)))

@@ -180,8 +180,14 @@ for (const campo of ['paineis', 'inversores', 'quantidade', 'rotulo', 'somente_l
 const trechoEtapas2 = CTRL.slice(CTRL.indexOf('ETAPAS_PERMITIDAS = ['), CTRL.indexOf('ETAPAS_PERMITIDAS = [') + 700)
 ok(trechoEtapas2.includes("'arranjos'"), 'a etapa `arranjos` já pertencia à lista fechada')
 const handlerArr = CTRL.slice(CTRL.indexOf("case 'arranjos'"), CTRL.indexOf("case 'instalacao_ref'"))
-ok(handlerArr.includes('$set.arranjos = Array.isArray(dados.lista)'),
+// F13: a linha era `$set.arranjos = Array.isArray(dados.lista) ? ... : []`.
+// Continua recebendo `{ lista: [...] }` e substituindo o array inteiro — só
+// passou a garantir identidade única na gravação. A asserção olha as DUAS
+// partes em vez de fixar a linha inteira, que era o que a prendia à escrita.
+ok(/\$set\.arranjos\s*=/.test(handlerArr) && handlerArr.includes('Array.isArray(dados.lista)'),
   'o handler recebe `{ lista: [...] }` e substitui o array')
+ok(handlerArr.includes('garantirIdentidade('),
+  'e garante identidade única antes de persistir (F13)')
 ok(ETAPA_EQ.includes("salvarEtapa('arranjos'"), 'a tela grava a composição em `arranjos`')
 
 secao('13 · `equipamentos` virou PROJEÇÃO, não segunda fonte')

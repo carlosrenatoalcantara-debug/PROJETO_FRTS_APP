@@ -27,6 +27,8 @@ export function criarAliases(path, dirname) {
     '@fortesolar/fv-shared/modulos':                          path.resolve(dirname, '../packages/fv-shared/equipamentos/modulos/index.js'),
     // F-06: regra unica de liberacao para engenharia — backend e frontend.
     '@fortesolar/fv-shared/utilizavel-projeto':               path.resolve(dirname, '../packages/fv-shared/equipamentos/utilizavelProjeto.js'),
+    // F13: identidade do arranjo — um gerador só para backend e frontend.
+    '@fortesolar/fv-shared/projeto/identidade-arranjo':       path.resolve(dirname, '../packages/fv-shared/projeto/identidadeArranjo.js'),
     '@fortesolar/fv-shared/estrutura':                        path.resolve(dirname, '../packages/fv-shared/equipamentos/estrutura.js'),
     '@fortesolar/fv-shared/ai/campos-equipamento':            path.resolve(dirname, '../packages/fv-shared/ai/camposEquipamento.js'),
     '@fortesolar/fv-shared/ai/validacao-eletrica-inversor':   path.resolve(dirname, '../packages/fv-shared/ai/validacaoEletricaInversor.js'),

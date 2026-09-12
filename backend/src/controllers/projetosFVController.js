@@ -9,7 +9,7 @@ import { Tecnico } from '../models/Tecnico.js'
 import mongoose from 'mongoose'
 import { memoryStore } from '../config/memoryStorage.js'
 import { montarSnapshotRT } from '../utils/snapshotRT.js'
-import { montarArranjosAmpliacao, composicaoDoProjeto } from '../services/arranjosService.js'
+import { montarArranjosAmpliacao, composicaoDoProjeto, garantirIdentidade } from '../services/arranjosService.js'
 import { obterLocalProjeto } from '../dominio/local/index.js'
 // FV-UX-038 (D2): regra da estrutura no domínio, não só na interface.
 import { validarEstrutura } from '../dominio/estrutura/index.js'
@@ -800,7 +800,23 @@ export const salvarEtapaProjetoFV = async (req, res) => {
         // P1-UX-FRONT-CONNECT-01 — recebe { lista: [...] } (array embrulhado p/ passar
         // pela validação que rejeita `dados` array). Substitui o array inteiro de arranjos:
         // a remoção de um bloco no frontend já limpa o índice antes do envio.
-        $set.arranjos = Array.isArray(dados.lista) ? dados.lista : []
+        //
+        // F13 — identidade garantida na ESCRITA, nunca na leitura.
+        //
+        // O frontend chegava aqui com o id que cada bloco carregava, e um deles
+        // era o literal `'arr_primario'`: bastava um arranjo já persistido com
+        // esse id voltar na lista para o documento passar a ter dois. Daí em
+        // diante `find(tipo === 'principal')` escolhia o primeiro em silêncio,
+        // inclusive ao montar o documento de homologação.
+        //
+        // `garantirIdentidade` preenche id ausente e desempata repetido —
+        // mantendo a PRIMEIRA ocorrência, que é a única escolha que não troca a
+        // identidade de um arranjo já correto. Nenhum outro campo é tocado:
+        // equipamento, potência, quantidade e tipo passam intactos.
+        //
+        // Corrigir na leitura seria mais fácil e estaria errado: a identidade
+        // mudaria a cada GET e nada seria estável.
+        $set.arranjos = garantirIdentidade(Array.isArray(dados.lista) ? dados.lista : [])
         break
       }
 

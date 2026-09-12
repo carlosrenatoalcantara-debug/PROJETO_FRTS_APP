@@ -10,11 +10,14 @@
  * sem exigir migração destrutiva dos documentos existentes.
  */
 
-let _seq = 0
-function novoId(prefixo = 'arr') {
-  _seq = (_seq + 1) % 1e6
-  return `${prefixo}_${Date.now().toString(36)}_${_seq.toString(36)}`
-}
+import { novoIdArranjo, garantirIdentidade, idsDuplicados } from '@fortesolar/fv-shared/projeto/identidade-arranjo'
+
+export { garantirIdentidade, idsDuplicados }
+// F13: a geração de identidade saiu daqui para o SSOT. Era uma de QUATRO
+// implementações (duas no frontend, mais o literal `'arr_primario'` gravado por
+// `E7Equipamentos`), e foi esse literal que produziu dois arranjos com o mesmo
+// id no acervo. Um gerador só, compartilhado.
+const novoId = novoIdArranjo
 
 /**
  * Valor POSITIVO declarado. `null` para ausente, não-numérico ou ≤ 0.
