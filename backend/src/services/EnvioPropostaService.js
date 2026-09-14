@@ -33,6 +33,7 @@ import mongoose from 'mongoose'
 import { ProjetoFV } from '../models/ProjetoFV.js'
 import { OrcamentoService } from './OrcamentoService.js'
 import { composicaoDoProjeto } from './arranjosService.js'
+import { arranjosCanonicos } from '../dominio/topologia/arranjosCanonicos.js'
 import { BaselineService } from './BaselineService.js'
 import { enviarEmail, smtpConfigurado } from './mailService.js'
 import { calcularHash } from '../dominio/baseline/congelarOrcamento.js'
@@ -66,7 +67,7 @@ export async function lerOpcoesDoGrupo(grupoId, empresaId) {
     .select('nome opcao_numero opcao_rotulo proposta_aceite '
       + 'dimensionamento.potencia_kwp dimensionamento.num_paineis '
       + 'equipamentos.inversor equipamentos.paineis equipamentos.estrutura '
-      + 'arranjos.topologia arranjos.paineis arranjos.inversores '
+      + 'arranjos.id arranjos.tipo arranjos.topologia arranjos.paineis arranjos.inversores '
       + 'arranjos.configuracao_eletrica.micros engenharia_eletrica.arranjo.mppts')
     .sort({ opcao_numero: 1 }).lean()
 
@@ -77,10 +78,30 @@ export async function lerOpcoesDoGrupo(grupoId, empresaId) {
       BaselineService.doProjeto(filtro).catch(() => null),
     ])
     const composicao = composicaoDoProjeto(o)
-    // Topologia: `micros[]` preenchido é o fato (FV-DOM-031C).
-    const arranjo = (o.arranjos ?? [])[0] ?? null
-    const topologia = arranjo?.configuracao_eletrica?.micros?.length ? 'micro'
-      : (arranjo?.topologia ?? (o.engenharia_eletrica?.arranjo?.mppts?.length ? 'string' : null))
+    // ── F14-3B · topologia resolvida pelo ADAPTER ────────────────────────────
+    //
+    // Antes, aqui:
+    //
+    //   const arranjo = (o.arranjos ?? [])[0] ?? null
+    //   const topologia = arranjo?.configuracao_eletrica?.micros?.length ? 'micro'
+    //     : (arranjo?.topologia ?? (o.engenharia_eletrica?.arranjo?.mppts?.length ? 'string' : null))
+    //
+    // Três problemas num só lugar: pegava o PRIMEIRO arranjo e chamava a
+    // topologia dele de "a topologia do projeto"; reimplementava uma precedência
+    // que `projetosFVController` também tinha, copiada; e num projeto de
+    // `micro + string` devolvia o do primeiro sem dizer que havia outro.
+    //
+    // A precedência agora vive no adapter (F14-3A) e é a mesma para todos:
+    //   micros[] > arranjo.topologia > LEGADO atribuível > ausência.
+    //
+    // `topologiaProjeto.efetiva` é derivada de TODOS os arranjos: unânime entre
+    // os conhecidos devolve o valor; classificações diferentes devolvem `null`,
+    // que é o que a proposta já exibe quando não sabe — em vez de mostrar a do
+    // primeiro como se fosse a do sistema.
+    //
+    // Equivalência medida no acervo: 13 de 13 projetos com `arranjos[]` dão o
+    // mesmo rótulo de antes.
+    const topologia = arranjosCanonicos(o).topologiaProjeto.efetiva
     return {
       projeto_ref: String(o._id),
       opcao_numero: o.opcao_numero ?? null,

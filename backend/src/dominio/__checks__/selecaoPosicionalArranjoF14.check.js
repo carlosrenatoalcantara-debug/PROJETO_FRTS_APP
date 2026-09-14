@@ -155,8 +155,10 @@ for (const f of arquivos) {
   }
 }
 encontrados.forEach((e) => nota(`${e.arquivo}:${e.linha}  ${e.trecho}`))
-ok(encontrados.length === 7,
-  `${encontrados.length} seleção(ões) posicional(is) — 6 de produção + 1 deliberada; nenhuma nova`)
+// F14-3B · `EnvioPropostaService` foi MIGRADO para o adapter e saiu da lista.
+// O teto só desce quando a dependência some de verdade — nunca por ajuste.
+ok(encontrados.length === 6,
+  `${encontrados.length} seleção(ões) posicional(is) — 5 de produção + 1 deliberada; nenhuma nova`)
 
 // A lista é FECHADA: nomear os arquivos impede que uma seja trocada por outra
 // sem que ninguém perceba, mantendo a contagem igual.
@@ -171,9 +173,10 @@ const ESPERADOS = [
   'backend/src/controllers/projetosFVController.js',
   'backend/src/dominio/topologia/preservacaoArranjos.js',
   'backend/src/dominio/unifilar/adaptarProjeto.js',
-  'backend/src/services/EnvioPropostaService.js',
   'frontend/src/fv/composicao.js',
 ]
+// MIGRADOS — saíram da lista porque a dependência foi removida, um por sprint.
+//   F14-3B · backend/src/services/EnvioPropostaService.js
 const arquivosAchados = [...new Set(encontrados.map((e) => e.arquivo))].sort()
 ok(JSON.stringify(arquivosAchados) === JSON.stringify(ESPERADOS.sort()),
   'e são exatamente os arquivos que a auditoria registrou')

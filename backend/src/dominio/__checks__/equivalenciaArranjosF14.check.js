@@ -171,7 +171,7 @@ ok(/find\(\(x\) => x\.id === /.test(corpoComparador) || /x\.id === d\.id/.test(c
 ok(/arranjos\[0\]/.test(semComentarios.slice(semComentarios.indexOf('function visaoLegada'))),
   'sanidade — `visaoLegada` usa `[0]` de propósito, para simular o legado')
 
-secao('11 · Nenhum consumidor foi ligado ao adapter')
+secao('11 · Os consumidores ligados ao adapter são exatamente os MIGRADOS')
 const arquivos = []
 const anda = (d) => { for (const n of readdirSync(d)) { const q = path.join(d, n)
   if (statSync(q).isDirectory()) { if (n === '__checks__' || n === '__tests__' || n === 'node_modules') continue; anda(q) }
@@ -185,8 +185,16 @@ const NAO_CONSUMIDORES = /(?:arranjosCanonicos|preservacaoArranjos)\.js$/
 const consumidores = arquivos
   .filter((f) => !NAO_CONSUMIDORES.test(f))
   .filter((f) => /arranjosCanonicos/.test(readFileSync(f, 'utf8')))
-ok(consumidores.length === 0,
-  `nenhum consumidor de produção importa o adapter${consumidores.length ? ': ' + consumidores.map((x) => path.basename(x)).join(', ') : ''}`)
+// Lista FECHADA, que cresce de UM em UM — cada entrada teve sua sprint e sua
+// prova de equivalência. Um consumidor novo aqui, sem isso, reprova; e um que
+// suma reprova também, porque significaria que a migração foi revertida sem
+// atualizar o registro.
+//
+//   F14-3B · EnvioPropostaService — rótulo de topologia da proposta
+const MIGRADOS = ['EnvioPropostaService.js']
+const nomes = consumidores.map((x) => path.basename(x)).sort()
+ok(JSON.stringify(nomes) === JSON.stringify([...MIGRADOS].sort()),
+  `consumidores do adapter: [${nomes.join(', ') || '—'}] — esperado [${MIGRADOS.join(', ')}]`)
 ok(arquivos.length > 500, `sanidade — ${arquivos.length} arquivos varridos`)
 
 console.log(falhas === 0
