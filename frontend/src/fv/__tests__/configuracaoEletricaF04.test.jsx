@@ -204,13 +204,25 @@ describe('F-04 · guards', () => {
     expect(proibido.test('const x = a?.configuracao_eletrica?.mppts')).toBe(true)
     expect(proibido.test("select('arranjos.configuracao_eletrica.micros e.arranjo.mppts')")).toBe(false)
     expect(proibido.test('const m = a?.configuracao_eletrica?.micros')).toBe(false)
+    // F14-IMP: `arranjosCanonicos.js` é o adapter de migração — a função dele é
+    // ler os DOIS modelos e devolver um só, com a procedência declarada. Não é
+    // consumidor do Core: é a camada que os consumidores vão usar NO LUGAR de
+    // ler a estrutura crua. A exceção aperta a regra em vez de afrouxá-la —
+    // "exatamente um módulo lê, e é aquele cujo trabalho é esse".
+    const AUTORIZADOS = new Set(['arranjosCanonicos.js'])
     const infratores = []
     for (const arq of arquivosCore()) {
       if (arq.includes(`${path.sep}models${path.sep}`)) continue   // schema declara, não lê
+      if (AUTORIZADOS.has(path.basename(arq))) continue
       const src = semComentarios(readFileSync(arq, 'utf8'))
       if (proibido.test(src)) infratores.push(path.basename(arq))
     }
     expect(infratores, `leitores indevidos: ${infratores.join(', ')}`).toEqual([])
+    // A exceção só vale enquanto o autorizado existir e de fato ler — senão é
+    // letra morta escondendo uma regra que deixou de ser verificada.
+    const adapter = arquivosCore().find((f) => path.basename(f) === 'arranjosCanonicos.js')
+    expect(adapter, 'o adapter autorizado precisa existir').toBeTruthy()
+    expect(proibido.test(semComentarios(readFileSync(adapter, 'utf8')))).toBe(true)
   })
 
   it('10. GUARD 1 · o Core lê topologia string de UMA fonte', () => {

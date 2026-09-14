@@ -88,11 +88,27 @@ secao('5 · A topologia LEGACY por arranjo continua fora do Core')
 // por `dominio/potencia` e `dominio/unifilar`. Os dois blocos moram no mesmo
 // subdocumento, e um guard que não os separasse reprovaria código correto —
 // foi o que este aqui fez na primeira versão.
+//
+// ── F14-IMP · UM leitor autorizado ─────────────────────────────────────────
+// `arranjosCanonicos.js` é o adapter de migração: a função dele é justamente
+// ler os DOIS modelos e devolver um só, com a procedência declarada. Ele não é
+// consumidor do Core — é a camada que os consumidores vão passar a usar NO
+// LUGAR de ler a estrutura crua.
+//
+// A exceção não afrouxa a regra, aperta: em vez de "nenhum módulo lê", passa a
+// ser "exatamente um módulo lê, e é aquele cujo trabalho é esse". A seção 7 do
+// guard de equivalência prova que nenhum consumidor está ligado a ele ainda.
+const AUTORIZADOS = new Set(['arranjosCanonicos.js'])
 const LEGACY = /configuracao_eletrica\s*\??\s*\.\s*mppts|configuracao_eletrica\s*\??\s*\[\s*['"]mppts/
 const invasores = arquivos.filter((f) => /[\\/]dominio[\\/]/.test(f))
+  .filter((f) => !AUTORIZADOS.has(path.basename(f)))
   .filter((f) => LEGACY.test(semComentarios(readFileSync(f, 'utf8'))))
 ok(invasores.length === 0,
   `nenhum módulo de \`dominio/\` lê a topologia LEGACY por arranjo${invasores.length ? ': ' + invasores.map((p) => path.basename(p)).join(', ') : ''}`)
+// A exceção só vale enquanto o arquivo autorizado existir e de fato ler.
+const adapter = path.resolve(RAIZ, 'backend/src/dominio/topologia/arranjosCanonicos.js')
+ok(LEGACY.test(semComentarios(readFileSync(adapter, 'utf8'))),
+  'sanidade — o adapter autorizado realmente lê a estrutura LEGACY (senão a exceção é letra morta)')
 // Sanidade: o guard precisa reprovar de verdade quando o acesso existe.
 ok(LEGACY.test('const m = a?.configuracao_eletrica?.mppts'),
   'sanidade — o padrão reconhece o acesso que pretende proibir')
