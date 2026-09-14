@@ -209,7 +209,10 @@ describe('F-04 · guards', () => {
     // consumidor do Core: é a camada que os consumidores vão usar NO LUGAR de
     // ler a estrutura crua. A exceção aperta a regra em vez de afrouxá-la —
     // "exatamente um módulo lê, e é aquele cujo trabalho é esse".
-    const AUTORIZADOS = new Set(['arranjosCanonicos.js'])
+    // F14-2: `preservacaoArranjos.js` entra pelo mesmo motivo — compara o que o
+    // documento oferece com o que o adapter produz, e para isso precisa olhar a
+    // estrutura LEGACY. É o verificador do adapter, não consumidor do Core.
+    const AUTORIZADOS = new Set(['arranjosCanonicos.js', 'preservacaoArranjos.js'])
     const infratores = []
     for (const arq of arquivosCore()) {
       if (arq.includes(`${path.sep}models${path.sep}`)) continue   // schema declara, não lê

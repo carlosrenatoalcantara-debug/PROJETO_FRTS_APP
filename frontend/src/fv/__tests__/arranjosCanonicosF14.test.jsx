@@ -17,6 +17,7 @@ import {
   arranjosCanonicos, arranjoPorId, arranjoPrincipalUnico,
   ESTADO_PROJETO, ESTADO_DADO, FONTE,
 } from '../../../../backend/src/dominio/topologia/arranjosCanonicos.js'
+import { compararModelos } from '../../../../backend/src/dominio/topologia/preservacaoArranjos.js'
 
 const painel = (q, w = 445) => ({ marca: 'Talesun', modelo: 'TP6L72M(H)-445W', potencia_w: w, quantidade: q })
 const inv = (fab, modelo, kw, q = 1) => ({ fabricante: fab, marca: fab, modelo, potencia_kw: kw, quantidade: q })
@@ -248,6 +249,98 @@ describe('F14-IMP · Cenário G — arranjo sem inversor', () => {
     expect(c.arranjos[1].potencia.cc_kwp).toBeNull()
     // O arranjo vazio não contamina o total do que está completo (F12).
     expect(c.totais.n_modulos_total).toBe(8)
+  })
+})
+
+describe('F14-2 · os 5 projetos reais, todos preservados', () => {
+  // Os dois que os cenários B e C não cobrem, mais a Ampliação (cenário G/19).
+  const CASOS = [
+    ['Mercado Avelino', [
+      arr('arr_primario', [painel(225)], [inv('Huawei', 'SUN2000-60KTL-M0', 60)], { tipo: 'principal' }),
+      arr('arr_local_2', [painel(174)], [inv('Solplanet', 'ASW50K-LT-G2', 50)]),
+    ], 399, ['SUN2000-60KTL-M0', 'ASW50K-LT-G2']],
+    ['Sistema FV 131.29 kWp', [
+      arr('arr_primario', [painel(225)], [inv('Huawei', 'SUN2000-60KTL-M0', 60)], { tipo: 'principal' }),
+      arr('arr_1782152893176_0', [painel(160)], [inv('Huawei', 'SUN2000-50KTL-M0', 50)]),
+    ], 385, ['SUN2000-60KTL-M0', 'SUN2000-50KTL-M0']],
+    ['Sistema FV novo kWp', [
+      arr('arr_primario', [painel(211)], [inv('Huawei', 'SUN2000-60KTL-M0', 60)], { tipo: 'principal' }),
+      arr('arr_mtytx702_1', [painel(180)], [inv('Huawei', 'SUN2000-60KTL-M0', 60)]),
+      arr('arr_1782072327297_0', [painel(174)], [inv('Huawei', 'SUN2000-50KTL-M0', 50)]),
+    ], 565, ['SUN2000-60KTL-M0', 'SUN2000-60KTL-M0', 'SUN2000-50KTL-M0']],
+    ['Wagner Hoymiles + tcl', [
+      arr('arr_primario', [{ marca: 'TCL', modelo: 'HSM-ND66-GR615', potencia_w: 615, quantidade: 4 }],
+        [inv('Hoymiles', 'HMS-2250DW-4T', 2.25)], { tipo: 'principal' }),
+      arr('arr_1784311937843_0', [{ marca: 'TCL', modelo: 'HSM-ND66-GR615', potencia_w: 615, quantidade: 12 }],
+        [{ ...inv('Hoymiles', 'HMS-2250DW-4T', 2.25), quantidade: 3 }]),
+    ], 16, ['HMS-2250DW-4T', 'HMS-2250DW-4T']],
+  ]
+
+  it.each(CASOS)('%s — nenhum arranjo descartado, nenhum inversor perdido', (nome, arranjos, modulos, invs) => {
+    const c = arranjosCanonicos({ arranjos })
+    expect(c.arranjos).toHaveLength(arranjos.length)
+    expect(c.totais.n_modulos_total).toBe(modulos)
+    // Inversor POR ARRANJO, na ordem dos arranjos — nenhum colapsado no primeiro.
+    expect(c.arranjos.map((a) => a.inversor.itens[0]?.modelo)).toEqual(invs)
+    // Identidade preservada uma a uma.
+    expect(c.arranjos.map((a) => a.id)).toEqual(arranjos.map((a) => a.id))
+    // A soma por arranjo bate com o agregado — agregado é derivação.
+    expect(c.arranjos.reduce((s, a) => s + a.modulos.total, 0)).toBe(modulos)
+  })
+
+  it('23 · Ampliação — o arranjo vazio não recebe o inversor da raiz', () => {
+    const c = arranjosCanonicos({
+      arranjos: [
+        arr('exist_1', [{ marca: 'Jinko', modelo: 'JKM530M', potencia_w: 530, quantidade: 8 }],
+          [inv('Solis', '1P7K-5G', 7)], { tipo: 'existente' }),
+        arr('ampl_2', [], [], { tipo: 'ampliacao' }),
+      ],
+      equipamentos: { inversor: { marca: 'Huawei', modelo: 'SUN2000-60KTL-M0', potencia_kw: 60 } },
+    })
+    expect(c.arranjos).toHaveLength(2)
+    expect(c.arranjos[1].inversor.estado).toBe(ESTADO_DADO.AMBIGUO)
+    expect(c.arranjos[1].inversor.itens).toEqual([])
+    expect(c.totais.n_modulos_total).toBe(8)
+  })
+})
+
+describe('F14-2 · o comparador REPROVA perda — não só aprova acerto', () => {
+  // Um guard que só foi rodado contra a implementação correta nunca foi provado
+  // falhar. Aqui o adapter é injetado defeituoso de propósito.
+  const AVELINO = { arranjos: [
+    arr('A', [painel(225)], [inv('Huawei', 'SUN2000-60KTL-M0', 60)], { tipo: 'principal' }),
+    arr('B', [painel(174)], [inv('Solplanet', 'ASW50K-LT-G2', 50)]),
+  ] }
+  const quebrado = (mutar) => (p) => {
+    const c = arranjosCanonicos(p)
+    return { ...c, arranjos: mutar(c.arranjos.map((a) => ({ ...a }))) }
+  }
+
+  it.each([
+    ['segundo arranjo descartado', quebrado((as) => as.slice(0, 1))],
+    ['inversor secundário perdido', quebrado((as) => as.map((a) => a.id === 'B' ? { ...a, inversor: { ...a.inversor, itens: [] } } : a))],
+    ['inversor trocado por outro modelo', quebrado((as) => as.map((a) => a.id === 'B'
+      ? { ...a, inversor: { ...a.inversor, itens: [{ fabricante: 'Huawei', modelo: 'SUN2000-60KTL-M0', potencia_kw: 60, quantidade: 1 }] } } : a))],
+    ['identidade trocada', quebrado((as) => as.map((a) => a.id === 'B' ? { ...a, id: 'C' } : a))],
+    ['módulos trocados entre arranjos (soma intacta)', quebrado((as) => as.map((a) => a.id === 'A'
+      ? { ...a, modulos: { ...a.modulos, total: 174 } } : { ...a, modulos: { ...a.modulos, total: 225 } }))],
+  ])('24 · %s → acusa perda', (_nome, adapter) => {
+    expect(compararModelos(AVELINO, { adapter }).perdas.length).toBeGreaterThan(0)
+  })
+
+  it('25 · e o adapter real passa, com ganho sobre o legado', () => {
+    const r = compararModelos(AVELINO)
+    expect(r.perdas).toEqual([])
+    expect(r.ganhos.length).toBeGreaterThan(0)
+    expect(r.ganhos.some((g) => g.startsWith('174 '))).toBe(true)
+  })
+
+  it('26 · multiarranjo SEM ganho é reprovado — é o adapter descartando igual', () => {
+    // Um "adapter" que devolvesse só o primeiro empataria com o legado. Empate,
+    // aqui, é o defeito — não a aprovação.
+    const r = compararModelos(AVELINO, { adapter: quebrado((as) => as.slice(0, 1)) })
+    expect(r.ganhos).toEqual([])
+    expect(r.perdas.some((p) => p.includes('descarta como o legado'))).toBe(true)
   })
 })
 

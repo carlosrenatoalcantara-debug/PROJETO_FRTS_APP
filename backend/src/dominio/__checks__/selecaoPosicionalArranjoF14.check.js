@@ -155,14 +155,21 @@ for (const f of arquivos) {
   }
 }
 encontrados.forEach((e) => nota(`${e.arquivo}:${e.linha}  ${e.trecho}`))
-ok(encontrados.length === 6,
-  `${encontrados.length} seleção(ões) posicional(is) — a F14 mapeou 6; nenhuma nova, nenhuma sumiu`)
+ok(encontrados.length === 7,
+  `${encontrados.length} seleção(ões) posicional(is) — 6 de produção + 1 deliberada; nenhuma nova`)
 
 // A lista é FECHADA: nomear os arquivos impede que uma seja trocada por outra
 // sem que ninguém perceba, mantendo a contagem igual.
+//
+// F14-2 · `preservacaoArranjos.js` é a SÉTIMA, e é deliberada: `visaoLegada`
+// usa `arranjos[0]` para SIMULAR o que os consumidores de hoje enxergam. Sem
+// ela não há contra o que comparar. É o único uso de posição que este guard
+// aceita, e aceita porque o objetivo dela é justamente reproduzir o defeito
+// para medi-lo — não cometê-lo.
 const ESPERADOS = [
   'backend/src/controllers/homologacaoController.js',
   'backend/src/controllers/projetosFVController.js',
+  'backend/src/dominio/topologia/preservacaoArranjos.js',
   'backend/src/dominio/unifilar/adaptarProjeto.js',
   'backend/src/services/EnvioPropostaService.js',
   'frontend/src/fv/composicao.js',

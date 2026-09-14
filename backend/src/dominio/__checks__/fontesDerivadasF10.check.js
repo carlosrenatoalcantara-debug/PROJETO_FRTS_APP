@@ -98,7 +98,10 @@ secao('5 · A topologia LEGACY por arranjo continua fora do Core')
 // A exceção não afrouxa a regra, aperta: em vez de "nenhum módulo lê", passa a
 // ser "exatamente um módulo lê, e é aquele cujo trabalho é esse". A seção 7 do
 // guard de equivalência prova que nenhum consumidor está ligado a ele ainda.
-const AUTORIZADOS = new Set(['arranjosCanonicos.js'])
+// `preservacaoArranjos.js` entra pelo mesmo motivo: ele compara o que o
+// documento oferece com o que o adapter produz, e para isso precisa olhar a
+// estrutura LEGACY. É o verificador do adapter, não consumidor do Core.
+const AUTORIZADOS = new Set(['arranjosCanonicos.js', 'preservacaoArranjos.js'])
 const LEGACY = /configuracao_eletrica\s*\??\s*\.\s*mppts|configuracao_eletrica\s*\??\s*\[\s*['"]mppts/
 const invasores = arquivos.filter((f) => /[\\/]dominio[\\/]/.test(f))
   .filter((f) => !AUTORIZADOS.has(path.basename(f)))

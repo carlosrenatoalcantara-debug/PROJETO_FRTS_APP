@@ -13,7 +13,8 @@ Três coisas, todas sem consumidor ligado:
 | Arquivo | Papel |
 |---|---|
 | `backend/src/dominio/topologia/arranjosCanonicos.js` | adapter: contrato canônico por arranjo |
-| `backend/src/dominio/__checks__/equivalenciaArranjosF14.check.js` | guard de equivalência legado × adapter |
+| `backend/src/dominio/topologia/preservacaoArranjos.js` | comparador: preservação de informação (F14-2) |
+| `backend/src/dominio/__checks__/equivalenciaArranjosF14.check.js` | executor do comparador + casos adversariais |
 | `frontend/src/fv/__tests__/arranjosCanonicosF14.test.jsx` | cenários A–G + invariantes |
 
 O adapter é **infraestrutura de migração**. A troca da fonte canônica é etapa
@@ -146,6 +147,99 @@ O caso da Ampliação exercita `ambiguo`: o arranjo vazio não recebe o inversor
    `arranjos[].configuracao_eletrica.compatibilidade` continua sem escritor.
 5. **Nenhum consumidor usa o adapter.** Verificado por guard: 607 arquivos varridos,
    zero importações fora do próprio módulo.
+
+---
+
+## 8-bis. Guard de preservação — revisão F14-2
+
+### Preservação, não equivalência
+
+O arquivo executor manteve o nome `equivalencia` por continuidade com o commit
+`c238542`, mas o contrato **não é** `legado === adapter`. A lógica mora em
+`preservacaoArranjos.js`, e é isso que ela verifica:
+
+| | significado | veredito |
+|---|---|---|
+| **PERDA** | o adapter deixou de representar algo que o documento tem | **FALHA** |
+| **GANHO** | o adapter representa algo que o legado descarta | esperado |
+
+**Assimetria intencional:** em arranjo único, ganho é zero e os dois modelos
+coincidem. Em multiarranjo, ganho **zero** significa que o adapter está
+descartando igual ao legado — e isso reprova. *Empate, ali, é o defeito; não a
+aprovação.*
+
+### Definição de perda de informação
+
+Comparada **por identidade** (`arranjo.id`), nunca por posição:
+
+| Dimensão | Critério |
+|---|---|
+| Quantidade | `adapter.length ≠ doc.length` |
+| Identidade | id do documento ausente no adapter, **ou** id inventado pelo adapter |
+| Módulos | **por arranjo** e no total — a soma sozinha não basta |
+| Potência | por arranjo; `null` é resposta válida (F12) |
+| Inversor | por **assinatura** (fabricante, modelo, potência, quantidade), não por contagem |
+| Topologia | estado, contagem de itens e tipo, contra o que o documento oferece |
+| Origem | todo dado `disponivel` declara `fonte` |
+
+### Os quatro buracos corrigidos
+
+A primeira versão do guard estava verde e, ainda assim, insuficiente:
+
+1. **O comparador nunca foi provado falhar.** `compararModelos` chamava
+   `arranjosCanonicos` por dentro, então todos os cenários rodavam contra a
+   implementação correta. Se ele sempre devolvesse `{ perdas: [] }`, o guard
+   inteiro continuaria verde. *Um guard que nunca falhou não é um guard — é uma
+   afirmação.* O adapter passou a ser injetável.
+2. **Módulos só pela soma** — trocar 225 ↔ 174 entre dois arranjos mantém 399.
+3. **Inversor só pela contagem** — trocar Solplanet 50K por Huawei 60K mantém "1".
+4. **Topologia só por consistência interna** — nunca contra o documento.
+
+Um quinto apareceu ao escrever os testes adversariais: **`ganhos` media o
+documento, não o adapter**. Com isso, um adapter que descartasse tudo ainda
+"ganharia", e a checagem de *multiarranjo sem ganho* nunca dispararia. Corrigido
+para medir o que o adapter acrescenta.
+
+### Exemplos adversariais (todos REPROVAM)
+
+```
+segundo arranjo perdido              → adapter tem 1 arranjo, o documento tem 2
+três arranjos, só o primeiro         → adapter tem 1 arranjo, o documento tem 3
+inversor secundário sumiu            → inversores de `B`: adapter [—], documento [SOLPLANET|ASW50K-LT-G2|50|1]
+módulos do segundo zerados           → módulos de `B`: adapter 0, documento 174
+potência secundária perdida          → potência de `B`: adapter null, documento 77.43
+identidade trocada (B → C)           → `B` sumiu  +  adapter inventou `C`
+inversor trocado por outro modelo    → assinatura diverge
+topologia inventada onde não há      → adapter diz `disponivel`, esperado `ausente`
+módulos trocados entre arranjos      → módulos de `A`: adapter 174, documento 225   (soma intacta!)
+adapter vazio                        → reprova
+```
+
+### Tratamento de arranjo vazio e de ausência
+
+`Ampliação` — o arranjo vazio **aparece** (identidade existe), declara módulos
+`ausente`, e o inversor da raiz fica `ambiguo` em vez de ser atribuído a ele.
+Ambiguidade **declarada não é perda**; atribuição silenciosa é — e reprova.
+
+Ausência real em ambos os modelos não vira equivalência positiva: a topologia
+permanece `ausente`, sem `fonte`. *Ausente ≠ compatível.*
+
+### Falsos positivos verificados
+
+Arranjo único passa sem ganho · reordenação não gera divergência (comparação é
+por id) · `rotulo`, `ordem` e metadados não entram na comparação · ausência real
+não é contada como perda · `null` de potência é resposta válida, não lacuna.
+
+### Limitações conhecidas
+
+- O comparador confere `modulos.total` contra `dimensionamento.n_modulos` do
+  arranjo normalizado; não confere item a item dentro de `paineis[]`.
+- Topologia é comparada por **contagem de itens e tipo**, não pelo conteúdo de
+  cada MPPT/string.
+- O guard roda sobre fixtures que espelham os 5 projetos reais, não contra o
+  banco — por decisão de escopo (auditoria não toca produção).
+
+**Status: `GUARD SEGURO PARA PRÉ-MIGRAÇÃO`.**
 
 ---
 
