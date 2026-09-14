@@ -198,6 +198,19 @@ function enriquecerArranjo(a, idx = 0) {
       n_inversores,
     },
   }
+  // F14-3A · a DECLARAÇÃO do projetista, preservada antes de ser sobrescrita.
+  //
+  // A linha abaixo grava em `topologia` o resultado de `detectarTopologia`, que
+  // devolve o valor declarado quando existe e INFERE por heurística quando não
+  // existe. As duas coisas acabam no mesmo campo, e a partir daí ninguém
+  // consegue distingui-las — foi por isso que o adapter não conseguia
+  // reproduzir a precedência dos consumidores, que leem o documento cru.
+  //
+  // Campo ADITIVO: nenhum consumidor o lê, nada muda de comportamento. Ele
+  // existe para que a procedência sobreviva à normalização.
+  //   `null`  → o projetista não declarou; o que estiver em `topologia` é
+  //             inferência de `detectarTopologia`.
+  enriquecido.topologia_declarada = a.topologia ?? null
   enriquecido.topologia = detectarTopologia(enriquecido)
   return enriquecido
 }

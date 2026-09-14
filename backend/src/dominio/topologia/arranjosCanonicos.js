@@ -59,6 +59,31 @@ export const FONTE = Object.freeze({
   AUSENTE: null,
 })
 
+/**
+ * Qual REGRA produziu `topologia.efetiva` — F14-3A.
+ *
+ * Distinta de `FONTE`, que diz de qual ESTRUTURA o dado elétrico veio. Aqui a
+ * pergunta é outra: por que a classificação é esta.
+ */
+export const ORIGEM_TOPOLOGIA = Object.freeze({
+  /** `micros[]` preenchido — FV-DOM-031C, o fato estrutural. */
+  ESTRUTURAL_MICROS: 'estrutural_micros',
+  /** `arranjos[].topologia` escolhida pelo projetista. */
+  DECLARADA: 'declarada',
+  /** `engenharia_eletrica.arranjo`, só quando atribuível a UM arranjo. */
+  LEGADO: 'legacy_engenharia_eletrica_arranjo',
+  /** Nada classificou. A heurística NÃO preenche `efetiva`. */
+  AUSENTE: null,
+})
+
+/** Como a classificação do PROJETO foi obtida a partir dos arranjos. */
+export const ORIGEM_PROJETO = Object.freeze({
+  UNANIME: 'unanime',
+  /** Arranjos classificados de formas diferentes — não se escolhe uma. */
+  DIVERGENTE: 'divergente',
+  AUSENTE: 'ausente',
+})
+
 /** Disponibilidade de um dado do arranjo. */
 export const ESTADO_DADO = Object.freeze({
   DISPONIVEL: 'disponivel',
@@ -134,22 +159,94 @@ function resolverInversores(arranjo, projeto, multiarranjo) {
  */
 function resolverTopologia(arranjo, projeto, multiarranjo) {
   const micros = _lista(arranjo?.configuracao_eletrica?.micros)
-  if (micros.length > 0) {
-    return { estado: ESTADO_DADO.DISPONIVEL, fonte: FONTE.ARRANJO, tipo: 'micro', micros, mppts: [] }
-  }
   const mppts = _lista(arranjo?.configuracao_eletrica?.mppts)
-  if (mppts.length > 0) {
-    return { estado: ESTADO_DADO.DISPONIVEL, fonte: FONTE.ARRANJO, tipo: 'string', micros: [], mppts }
+  const legado = _lista(projeto?.engenharia_eletrica?.arranjo?.mppts)
+
+  // DECLARADA — a escolha do projetista, persistida (`arranjos[].topologia`,
+  // enum do schema). Vem de `topologia_declarada`, que `enriquecerArranjo`
+  // preserva ANTES de sobrescrever o campo com a heurística.
+  const declarada = arranjo?.topologia_declarada ?? null
+
+  // HEURÍSTICA — o que `detectarTopologia` inferiu do nome do inversor quando
+  // não havia declaração. Informativa, NUNCA entra em `efetiva` (Regra 4:
+  // ausência não se infere). Sai à parte para que `composicaoDoProjeto`, que
+  // hoje a consome, possa ser migrado depois com a diferença visível.
+  const heuristica = declarada === null ? (arranjo?.topologia ?? null) : null
+
+  // ESTRUTURAL — só `micros[]` classifica. `mppts[]` NÃO promove a `string`:
+  // nenhum consumidor o usa para isso e a cobertura é 0/589; promovê-lo mudaria
+  // o contrato sem evidência. Ele continua preservado abaixo, como DADO
+  // elétrico, separado da classificação.
+  const estrutural = micros.length > 0 ? 'micro' : null
+
+  const base = { declarada, estrutural, heuristica, micros, mppts }
+  // `conflito` é sobre a CLASSIFICAÇÃO, não sobre a estrutura: só existe quando
+  // o projetista declarou uma coisa e a estrutura diz outra.
+  const conflito = declarada !== null && estrutural !== null && declarada !== estrutural
+
+  // ── Regra 1 · estrutura de microinversores vence a declaração ─────────────
+  // FV-DOM-031C: `micros[]` preenchido é o fato. A declaração NÃO é descartada
+  // — continua em `declarada`, e a divergência sai marcada em `conflito`.
+  if (estrutural !== null) {
+    return { ...base, conflito, efetiva: estrutural, origem: ORIGEM_TOPOLOGIA.ESTRUTURAL_MICROS,
+      estado: ESTADO_DADO.DISPONIVEL, fonte: FONTE.ARRANJO, tipo: 'micro' }
   }
 
-  const legado = _lista(projeto?.engenharia_eletrica?.arranjo?.mppts)
-  if (legado.length > 0) {
-    if (multiarranjo) {
-      return { estado: ESTADO_DADO.AMBIGUO, fonte: FONTE.LEGACY_TOPOLOGIA, tipo: 'string', micros: [], mppts: [] }
-    }
-    return { estado: ESTADO_DADO.DISPONIVEL, fonte: FONTE.LEGACY_TOPOLOGIA, tipo: 'string', micros: [], mppts: legado }
+  // ── Regra 2 · topologia declarada pelo projetista ─────────────────────────
+  if (declarada !== null) {
+    return { ...base, conflito: false, efetiva: declarada, origem: ORIGEM_TOPOLOGIA.DECLARADA,
+      estado: ESTADO_DADO.DISPONIVEL, fonte: FONTE.ARRANJO,
+      tipo: declarada === 'micro' ? 'micro' : (mppts.length > 0 ? 'string' : null) }
   }
-  return { estado: ESTADO_DADO.AUSENTE, fonte: FONTE.AUSENTE, tipo: null, micros: [], mppts: [] }
+
+  // ── Regra 3 · LEGADO, só quando atribuível E sem estrutura própria ────────
+  // `mppts[]` do próprio arranjo não CLASSIFICA, mas é dado do arranjo e tem
+  // precedência de FONTE sobre a topologia do projeto: ler o legado quando o
+  // arranjo tem estrutura própria seria preferir o projeto ao arranjo, que é o
+  // contrário da direção desta migração.
+  if (mppts.length === 0 && legado.length > 0) {
+    if (multiarranjo) {
+      // A topologia do projeto é UMA e há vários arranjos: não tem dono.
+      // Escolher um seria o `[0]` implícito que este módulo existe para remover.
+      return { ...base, conflito: false, efetiva: null, origem: ORIGEM_TOPOLOGIA.AUSENTE,
+        estado: ESTADO_DADO.AMBIGUO, fonte: FONTE.LEGACY_TOPOLOGIA, tipo: 'string' }
+    }
+    return { ...base, conflito: false, efetiva: 'string', origem: ORIGEM_TOPOLOGIA.LEGADO,
+      estado: ESTADO_DADO.DISPONIVEL, fonte: FONTE.LEGACY_TOPOLOGIA, tipo: 'string',
+      mppts: legado }
+  }
+
+  // ── Regra 4 · ausência ────────────────────────────────────────────────────
+  // Sem estrutura, sem declaração e sem legado atribuível. A heurística existe
+  // e está exposta, mas não preenche `efetiva`: inferir aqui seria fabricar.
+  return { ...base, conflito: false, efetiva: null, origem: ORIGEM_TOPOLOGIA.AUSENTE,
+    estado: mppts.length > 0 ? ESTADO_DADO.DISPONIVEL : ESTADO_DADO.AUSENTE,
+    fonte: mppts.length > 0 ? FONTE.ARRANJO : FONTE.AUSENTE,
+    tipo: mppts.length > 0 ? 'string' : null }
+}
+
+/**
+ * Classificação do PROJETO, derivada dos arranjos — nunca de `[0]`.
+ *
+ * Unânime entre as classificações conhecidas → esse valor. Valores `null` não
+ * contam como discordância: desconhecido não é divergência. Se duas
+ * classificações conhecidas diferem, não se escolhe uma: `efetiva` fica `null`
+ * e `origem` diz `divergente`, para que quem consome saiba que havia mais de
+ * uma resposta em vez de receber a primeira.
+ */
+export function topologiaDoProjeto(canonico) {
+  const arranjos = _lista(canonico?.arranjos)
+  const conhecidas = [...new Set(arranjos.map((a) => a.topologia.efetiva).filter((v) => v !== null))]
+  const conflito = arranjos.some((a) => a.topologia.conflito)
+  const ambiguo = arranjos.some((a) => a.topologia.estado === ESTADO_DADO.AMBIGUO)
+
+  if (conhecidas.length === 1) {
+    return { efetiva: conhecidas[0], origem: ORIGEM_PROJETO.UNANIME, conflito, ambiguo, valores: conhecidas }
+  }
+  if (conhecidas.length > 1) {
+    return { efetiva: null, origem: ORIGEM_PROJETO.DIVERGENTE, conflito, ambiguo, valores: conhecidas }
+  }
+  return { efetiva: null, origem: ORIGEM_PROJETO.AUSENTE, conflito, ambiguo, valores: [] }
 }
 
 /**
@@ -211,7 +308,7 @@ export function arranjosCanonicos(projeto, opts = {}) {
     }
   })
 
-  return {
+  const resultado = {
     estado,
     origem,
     multiarranjo,
@@ -224,6 +321,9 @@ export function arranjosCanonicos(projeto, opts = {}) {
     },
     avisos,
   }
+  // Derivada dos arranjos já montados — por isso depois deles, e nunca de `[0]`.
+  resultado.topologiaProjeto = topologiaDoProjeto(resultado)
+  return resultado
 }
 
 /**
