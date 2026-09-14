@@ -113,18 +113,20 @@ const integridade = ler('backend/src/dominio/unifilar/integridade.js')
 ok(/MULTIPLOS_INVERSORES/.test(integridade) && /n_inversores_total/.test(integridade),
   '`MULTIPLOS_INVERSORES` segue existindo e armado')
 
-secao('11 · Consumidores que ainda dependem de posição — registrados, não corrigidos')
-const arquivos = []
-const anda = (d) => { for (const n of readdirSync(d)) { const q = path.join(d, n)
-  if (statSync(q).isDirectory()) { if (n === '__checks__' || n === '__tests__' || n === 'node_modules') continue; anda(q) }
-  else if (/\.jsx?$/.test(n)) arquivos.push(q) } }
-anda(path.resolve(RAIZ, 'backend/src'))
-const POSICAO = /arranjos\s*\[\s*0\s*\]/
-const posicionais = arquivos.filter((f) => POSICAO.test(semComentarios(readFileSync(f, 'utf8'))))
-ok(posicionais.length <= 2,
-  `${posicionais.length} consumidor(es) ainda usam \`arranjos[0]\` — teto de 2, nenhum novo`)
-posicionais.forEach((f) => nota(path.relative(RAIZ, f)))
-nota('ambos fazem `find(tipo === "principal") ?? arranjos[0]`; migrá-los é da fase multiarranjo')
+secao('11 · Seleção posicional — coberta por guard PRÓPRIO desde a F14')
+// Esta seção tinha um regex único (`arranjos\[\s*0\s*\]`) varrendo só
+// `backend/src`, e reportava "2 consumidores, teto de 2". Eram SEIS: o padrão
+// não via `(o.arranjos ?? [])[0]` nem `projeto.arranjos?.[0]`, e o frontend
+// ficava de fora. O teto passava por acaso.
+//
+// A detecção mudou para AST e mudou de arquivo —
+// `selecaoPosicionalArranjoF14.check.js` cobre backend e frontend, prova cada
+// forma que reconhece e declara o que não cobre. Aqui fica só o ponteiro, para
+// que ninguém releia o teto antigo como se ainda valesse.
+const guardF14 = path.resolve(RAIZ, 'backend/src/dominio/__checks__/selecaoPosicionalArranjoF14.check.js')
+ok(readFileSync(guardF14, 'utf8').includes('selecoesPosicionais'),
+  'o guard de seleção posicional existe e é o dono dessa regra')
+nota('rode `node backend/src/dominio/__checks__/selecaoPosicionalArranjoF14.check.js`')
 
 console.log(falhas === 0
   ? '\nOK — identidade única, estável e independente de posição; um gerador só.'
