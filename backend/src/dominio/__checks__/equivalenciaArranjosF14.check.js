@@ -195,7 +195,9 @@ const consumidores = arquivos
 //
 // Os dois tinham a MESMA expressão, copiada. Agora chamam a mesma função — que
 // é o ponto: a regra só para de divergir quando deixa de existir em duplicata.
-const MIGRADOS = ['EnvioPropostaService.js', 'projetosFVController.js']
+//   F14-4  · homologacaoController  — micros de TODOS os arranjos + recusa de
+//                                     emissão quando o documento não representa
+const MIGRADOS = ['EnvioPropostaService.js', 'projetosFVController.js', 'homologacaoController.js']
 const nomes = consumidores.map((x) => path.basename(x)).sort()
 ok(JSON.stringify(nomes) === JSON.stringify([...MIGRADOS].sort()),
   `consumidores do adapter: [${nomes.join(', ') || '—'}] — esperado [${MIGRADOS.join(', ')}]`)

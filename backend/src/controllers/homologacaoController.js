@@ -26,6 +26,7 @@ import { projetoEstaCongelado } from '@fortesolar/fv-shared/estados/congelamento
 import { aplicarEscopo } from '../dominio/tenancy/index.js'
 import { BaselineService } from '../services/BaselineService.js'
 import { ErroGate } from '../dominio/gate/index.js'
+import { arranjosCanonicos } from '../dominio/topologia/arranjosCanonicos.js'
 
 // P1-NEW01-HOMOLOGACAO-PERSISTENCE-FIX-01: o Map() legado foi REMOVIDO.
 // Todo o estado de homologação (checklist + status legado) agora persiste no Mongo
@@ -82,10 +83,87 @@ function _depsDoSnapshot(snapCat) {
  * intacto. Sem heurística: `micros[]` preenchido é o fato.
  */
 function _microsDoProjeto(proj) {
-  const arranjos = Array.isArray(proj?.arranjos) ? proj.arranjos : []
-  const a = arranjos.find((x) => x?.tipo === 'principal') ?? arranjos[0] ?? null
-  const lista = a?.configuracao_eletrica?.micros
-  return Array.isArray(lista) && lista.length > 0 ? lista : null
+  // F14-4: era `arranjos.find(principal) ?? arranjos[0]` — escolhia UM arranjo e
+  // descrevia os micros dele como se fossem os do sistema. Agora atravessa
+  // todos, pelo adapter, sem seleção por posição.
+  const lista = arranjosCanonicos(proj).arranjos.flatMap((a) => a.topologia.micros)
+  return lista.length > 0 ? lista : null
+}
+
+/**
+ * O documento de homologação consegue representar ESTE projeto? — F14-4.
+ *
+ * ── O que a auditoria realmente encontrou ───────────────────────────────────
+ * A F14 registrou que este controller "descarta até 354 de 565 módulos". A
+ * medição estava certa sobre a FORMA da seleção e errada sobre o alvo: os
+ * documentos não leem contagem de módulos de `arranjos[]`. O memorial recebe um
+ * modelo PLANO pelo corpo da requisição — `projeto.inversor`, `projeto.painel`,
+ * `projeto.potencia_kwp` — que nunca teve arranjos. `arranjos[]` entrava aqui
+ * só por `_microsDoProjeto`.
+ *
+ * O risco documental é real, mas é outro: o modelo plano descreve UM inversor e
+ * UM módulo. Num projeto cujos arranjos têm inversores diferentes — Mercado
+ * Avelino é Huawei 60K **e** Solplanet 50K — o documento enviado à
+ * distribuidora descreve metade da usina, e nada avisa.
+ *
+ * ── A decisão ───────────────────────────────────────────────────────────────
+ * O template é singular. Fingir suporte seria inventar um documento; emitir
+ * assim mesmo seria declarar usina parcial. Então: recusa a emissão, com motivo
+ * nomeado, só nos casos em que o modelo plano de fato não representa o projeto.
+ *
+ * Não bloqueia por ser multiarranjo. Bloqueia por ser IRREPRESENTÁVEL:
+ *   · mais de um MODELO de inversor entre os arranjos — o documento cita um;
+ *   · mais de um arranjo com topologia de micro — a seção mostra uma lista.
+ *
+ * Dois arranjos do mesmo inversor somam quantidade e continuam representáveis.
+ *
+ * @returns {{suportado: boolean, motivo?: string, detalhe?: object}}
+ */
+function _avaliarSuporteDocumental(proj) {
+  const canonico = arranjosCanonicos(proj)
+  if (!canonico.multiarranjo) return { suportado: true }
+
+  const modelos = [...new Set(canonico.arranjos
+    .flatMap((a) => a.inversor.itens.map((i) => i.modelo))
+    .filter(Boolean))]
+  if (modelos.length > 1) {
+    return {
+      suportado: false,
+      motivo: 'MULTIARRANJO_INVERSORES_DIFERENTES',
+      detalhe: {
+        arranjos: canonico.arranjos.length,
+        modelos_de_inversor: modelos,
+        explicacao: 'O documento descreve um inversor. Este projeto tem arranjos com '
+          + 'inversores diferentes — emiti-lo declararia uma usina menor que a projetada.',
+      },
+    }
+  }
+
+  const comMicros = canonico.arranjos.filter((a) => a.topologia.micros.length > 0)
+  if (comMicros.length > 1) {
+    return {
+      suportado: false,
+      motivo: 'MULTIARRANJO_MICROS_EM_VARIOS_ARRANJOS',
+      detalhe: {
+        arranjos_com_micros: comMicros.map((a) => a.id),
+        explicacao: 'A seção de arranjo do memorial mostra uma topologia de micro. '
+          + 'Este projeto tem micros em mais de um arranjo.',
+      },
+    }
+  }
+  return { suportado: true }
+}
+
+/** Recusa a emissão quando o documento não representa o projeto. */
+function _recusarSeNaoRepresentavel(projDoc, res) {
+  const suporte = _avaliarSuporteDocumental(projDoc)
+  if (suporte.suportado) return false
+  res.status(422).json({
+    erro: 'O documento de homologação não representa este projeto sem perda de informação.',
+    codigo: suporte.motivo,
+    detalhe: suporte.detalhe,
+  })
+  return true
 }
 
 async function _carregarDepsDocumento(projetoId, projetoBody) {
@@ -228,6 +306,7 @@ export async function gerarMemorial(req, res) {
     // Defeito PRÉ-EXISTENTE, relatado e não corrigido aqui: corrigi-lo
     // reativaria o enriquecimento pelo Atlas vivo e mudaria o memorial de
     // projetos string, que esta sprint tem de deixar intacto.
+    if (_recusarSeNaoRepresentavel(projDoc, res)) return
     const micros = _microsDoProjeto(projDoc)
     const memorial = gerarMemorialDescritivo(projDoc, cliente, { ...deps, micros })
 
@@ -257,6 +336,7 @@ export async function gerarCarta(req, res) {
 
     // P1-HOMOLOGACAO-SNAPSHOT-01: projeto congelado usa equipamentos do snapshot.
     const { projeto: projDoc, origem } = _aplicarSnapshotEquip(projeto)
+    if (_recusarSeNaoRepresentavel(projDoc, res)) return
     const carta = gerarCartaConcessionaria(projDoc, cliente)
 
     res.json({
@@ -285,6 +365,7 @@ export async function obterDadosART(req, res) {
 
     // P1-HOMOLOGACAO-SNAPSHOT-01: projeto congelado usa equipamentos do snapshot.
     const { projeto: projDoc, origem } = _aplicarSnapshotEquip(projeto)
+    if (_recusarSeNaoRepresentavel(projDoc, res)) return
     const dadosART = gerarDadosART(projDoc, {})
 
     res.json({
