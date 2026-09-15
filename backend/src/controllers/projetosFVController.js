@@ -39,6 +39,7 @@ import { resolverCongelamento } from '../dominio/congelamento/resolverCongelamen
 // S3: camada de acesso ÚNICA à topologia (Instalação → nova; senão → Arranjo).
 // Proibido ler projeto.arranjos direto fora deste adapter.
 import { obterTopologiaProjeto } from '../dominio/topologia/index.js'
+import { arranjosCanonicos } from '../dominio/topologia/arranjosCanonicos.js'
 // Fase 0.5 — M-4: escopo de organização (ponto único).
 // `carimbarTenant` faltava neste import: `criarProjetoFV`, `duplicarProjetoFV` e
 // `ampliarProjetoFV` já o usavam, e as três estouravam ReferenceError em runtime.
@@ -2304,10 +2305,27 @@ export const listarOpcoesFV = async (req, res) => {
         BaselineService.avaliarGate('engenharia', filtro).catch(() => null),
       ])
       const composicao = composicaoDoProjeto(o)
-      // Topologia: `micros[]` preenchido é o fato (FV-DOM-031C).
-      const arranjo = (o.arranjos ?? [])[0] ?? null
-      const topologia = arranjo?.configuracao_eletrica?.micros?.length ? 'micro'
-        : (arranjo?.topologia ?? (o.engenharia_eletrica?.arranjo?.mppts?.length ? 'string' : null))
+      // ── F14-3C · topologia resolvida pelo ADAPTER ──────────────────────────
+      //
+      // Antes, aqui:
+      //
+      //   const arranjo = (o.arranjos ?? [])[0] ?? null
+      //   const topologia = arranjo?.configuracao_eletrica?.micros?.length ? 'micro'
+      //     : (arranjo?.topologia ?? (o.engenharia_eletrica?.arranjo?.mppts?.length ? 'string' : null))
+      //
+      // Era a MESMA expressão de `EnvioPropostaService`, copiada — e o fato de
+      // existir duas vezes é o que fazia a regra divergir sozinha. Migrado na
+      // F14-3B lá, aqui agora; a precedência vive no adapter desde a F14-3A:
+      //   micros[] > arranjo.topologia > LEGADO atribuível > ausência.
+      //
+      // `topologiaProjeto.efetiva` deriva de TODOS os arranjos. Unânime entre os
+      // conhecidos devolve o valor; classificações diferentes devolvem `null`,
+      // em vez de mostrar a do primeiro como se fosse a do sistema.
+      //
+      // O `.select()` acima NÃO foi ampliado: o rótulo não depende de
+      // `arranjos.id` nem de `arranjos.tipo`, e este retorno faz `{ ...o }` —
+      // campo a mais no `select` viraria campo a mais na resposta.
+      const topologia = arranjosCanonicos(o).topologiaProjeto.efetiva
       return {
         ...o,
         topologia,

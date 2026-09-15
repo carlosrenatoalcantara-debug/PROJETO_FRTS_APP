@@ -190,8 +190,12 @@ const consumidores = arquivos
 // suma reprova também, porque significaria que a migração foi revertida sem
 // atualizar o registro.
 //
-//   F14-3B · EnvioPropostaService — rótulo de topologia da proposta
-const MIGRADOS = ['EnvioPropostaService.js']
+//   F14-3B · EnvioPropostaService   — rótulo de topologia da proposta
+//   F14-3C · projetosFVController   — rótulo de topologia em `listarOpcoesFV`
+//
+// Os dois tinham a MESMA expressão, copiada. Agora chamam a mesma função — que
+// é o ponto: a regra só para de divergir quando deixa de existir em duplicata.
+const MIGRADOS = ['EnvioPropostaService.js', 'projetosFVController.js']
 const nomes = consumidores.map((x) => path.basename(x)).sort()
 ok(JSON.stringify(nomes) === JSON.stringify([...MIGRADOS].sort()),
   `consumidores do adapter: [${nomes.join(', ') || '—'}] — esperado [${MIGRADOS.join(', ')}]`)
