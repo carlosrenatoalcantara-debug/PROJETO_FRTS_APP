@@ -147,7 +147,7 @@ Agregados canônicos: `Cotacao`, `Orcamento`, `Baseline`, `UnidadeBeneficiaria`.
 | B4 | Layout/telhado: `local_ref` nunca populado | backfill (LME) |
 | B5 | Documentos: `DocumentoTecnico` **não tem vínculo com projeto** — é biblioteca de equipamentos | decisão de modelagem |
 | B6 | `instalacaoRefEtapa.check.js` falha (`TENANT_AUSENTE`) | pré-existente ao HEAD |
-| B7 | **`_carregarDepsDocumento` com `req` fora de escopo** → dívida técnica registrada abaixo; NÃO corrigir sem sprint própria | decisão de negócio |
+| B7 | **`_carregarDepsDocumento` com `req` fora de escopo** → **QUITADO na F14-5**; ver §5B | resolvido |
 | B8 | Módulo do caminho **STRING** ainda lê Voc/Vmpp/Isc genéricos (49,5 / 41,2 / 13,9) | decisão de negócio |
 | B9 | **Não existe PDF do unifilar FV** — para topologia nenhuma | feature nova |
 | ~~B10~~ | **FECHADO na FV-UX-035** — envio canônico por grupo + aceite gateado. Ver §5E |  |
@@ -188,6 +188,23 @@ documentos já emitidos. Nenhum documento de topologia **string** foi alterado.
 **Como o micro contorna.** `gerarMemorial` deriva `micros[]` do próprio projeto
 recebido (`_microsDoProjeto`), sem depender de `deps` — implementado na
 FV-DOM-031C e mantido intocado.
+
+### ✅ QUITADA na F14-5 — a sprint própria aconteceu
+
+A F14-5 mediu o que a 031E não tinha medido: `projeto.inversor` e
+`projeto.painel` **não existem** no `ProjetoFV` (o schema tem `potencia_kwp` e
+`strings[]`, mais nada). Com `deps.equipamentos` sempre vazio, o memorial não
+tinha fonte de equipamento alguma e renderizava **`N/A` em todo campo** — para
+qualquer projeto FV, multiarranjo ou não. O "comportamento legado nunca
+validado" que a 031E temia reativar era, na prática, o único que existia.
+
+Corrigido: `req` virou parâmetro, os ids de equipamento passaram a ser lidos de
+`arranjos[]` (onde de fato vivem), e o memorial descreve um bloco por grupo de
+inversor. Os "2 de 3 memoriais que mudariam" mudaram de propósito — de `N/A`
+para o equipamento real.
+
+O guard `unifilarMicro.check.js §7` foi invertido: travava a não-correção,
+agora trava a correção.
 
 ---
 

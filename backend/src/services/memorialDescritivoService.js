@@ -151,8 +151,159 @@ Fonte dos dados: ${_fonteNota}${eng.tem_fallback ? `
 ⚠ Valores inferidos (${eng.inferidos.join(', ')}): ${DISCLAIMER_FALLBACK}` : ''}`
 }
 
+// ─── F14-5 · representação documental por arranjo ───────────────────────────
+
+const _n = (v) => (v === null || v === undefined || v === '' ? null : v)
+
+/** Potência CC: a do adapter quando existe; senão a do modelo plano. */
+function _potenciaInstalada(potenciaPlana, doc) {
+  const v = _n(doc?.potencia_cc_kwp)
+  return v ?? (potenciaPlana || 'N/A')
+}
+
+/**
+ * Potência CA: soma de TODOS os inversores, não a do primeiro.
+ *
+ * Sem a projeção, cai no inversor plano — e aí precisa do MESMO `_pick` de
+ * antes: a carta e a ART recebem o dialeto cru (`potencia_kw`/`potencia_ca`),
+ * enquanto o memorial recebe o já resolvido (`potenciaKW`). Ler só um deles
+ * quebrava o outro.
+ */
+function _potenciaCA(inversor, doc) {
+  const v = _n(doc?.potencia_ca_kw)
+  return v ?? _pick(inversor, ['potenciaKW', 'potencia_kw', 'potencia_ca'], 'N/A')
+}
+
+/** Modelos de inversor, um por grupo. `[]` quando não há projeção. */
+function _listaInversores(doc) {
+  return (doc?.grupos ?? [])
+    .filter((g) => g.inversor)
+    .map((g) => ({
+      fabricante: g.inversor_catalogo?.fabricante ?? g.inversor.fabricante ?? null,
+      modelo: g.inversor_catalogo?.modelo ?? g.inversor.modelo ?? null,
+      potencia_kw: g.inversor.potencia_kw ?? null,
+      quantidade: g.n_inversores,
+      arranjos: g.arranjos_ids,
+    }))
+}
+
+/**
+ * Linha de modelos para a CARTA — só quando há mais de um.
+ *
+ * A carta cita potência, não equipamento. Com dois modelos, calar seria deixar
+ * o leitor supor um só; listar resolve sem reescrever o documento.
+ */
+function _linhaInversores(doc) {
+  const lista = _listaInversores(doc)
+  if (lista.length <= 1) return ''
+  const txt = lista
+    .map((i) => `${[i.fabricante, i.modelo].filter(Boolean).join(' ')} (${i.quantidade}×)`)
+    .join(', ')
+  return `\nInversores: ${txt}`
+}
+
+/** Linha de resumo — só aparece quando há mais de um arranjo. */
+function _resumoArranjos(doc) {
+  if (!doc?.multiarranjo) return ''
+  const consolidacao = doc.consolidado
+    ? ` (${doc.grupos.length} grupo(s) de inversor — arranjos de mesmo modelo agrupados)`
+    : ''
+  return `\nArranjos: ${doc.n_arranjos}${consolidacao}`
+    + `\nTotal de Módulos: ${doc.n_modulos_total}`
+}
+
+/** Especificação do módulo — catálogo quando vinculado, senão a composição. */
+function _specModulo(g) {
+  const cat = g.modulo_catalogo?.especificacoes ?? {}
+  const m = g.modulo ?? {}
+  return {
+    marca: g.modulo_catalogo?.fabricante ?? m.fabricante ?? 'N/A',
+    modelo: g.modulo_catalogo?.modelo ?? m.modelo ?? 'N/A',
+    pmpp: cat.potencia ?? m.potencia_w ?? 'N/A',
+    voc: cat.voc ?? 'N/A',
+    isc: cat.isc ?? 'N/A',
+    eficiencia: cat.eficiencia ?? 'N/A',
+    garantia_produto: g.modulo_catalogo?.garantia_produto?.value ?? 'N/A',
+    garantia_performance: g.modulo_catalogo?.garantia_performance?.value ?? 'N/A',
+  }
+}
+
+/** Especificação do inversor — catálogo quando vinculado, senão a composição. */
+function _specInversor(g) {
+  const cat = g.inversor_catalogo?.especificacoes ?? {}
+  const i = g.inversor ?? {}
+  return {
+    marca: g.inversor_catalogo?.fabricante ?? i.fabricante ?? 'N/A',
+    modelo: g.inversor_catalogo?.modelo ?? i.modelo ?? 'N/A',
+    potencia_kw: cat.potencia_kw ?? cat.potencia ?? i.potencia_kw ?? 'N/A',
+    n_mppts: cat.n_mppts ?? cat.mppts ?? 'N/A',
+    tensao_max: cat.tensao_max_entrada ?? 'N/A',
+    garantia: g.inversor_catalogo?.garantia_produto?.value ?? 'N/A',
+  }
+}
+
+/**
+ * Seções 4/5/6, uma por GRUPO de inversor.
+ *
+ * Cada grupo nomeia os arranjos que o compõem — a associação arranjo ↔
+ * equipamento não se perde na consolidação. Grupos de modelos diferentes nunca
+ * são fundidos: é o que impede o documento de descrever uma usina que não é a
+ * projetada.
+ */
+function _secoesPorArranjo(doc, micros, fonteNota) {
+  const varios = doc.grupos.length > 1
+  const blocos = doc.grupos.map((g, idx) => {
+    const m = _specModulo(g)
+    const i = _specInversor(g)
+    const titulo = varios
+      ? `4.${idx + 1} ARRANJO ${g.rotulos.join(' + ')} — ${i.marca} ${i.modelo}`
+      : '4. COMPONENTES - MÓDULOS FOTOVOLTAICOS'
+    const microsDoGrupo = g.micros?.length > 0 ? g.micros : null
+    return `${titulo}
+────────────────────────────────────────────────────────────────────────────
+Arranjo(s): ${g.arranjos_ids.join(', ')}
+Módulos — Marca: ${m.marca}  |  Modelo: ${m.modelo}
+Potência Nominal: ${m.pmpp} W
+Tensão de Circuito Aberto (Voc): ${m.voc} V
+Corrente de Curto-circuito (Isc): ${m.isc} A
+Eficiência do Módulo: ${m.eficiencia}%
+Garantia de Produto: ${m.garantia_produto} anos
+Garantia de Performance: ${m.garantia_performance}% aos 25 anos
+Número de Módulos: ${g.n_modulos}
+
+Inversor — Marca: ${i.marca}  |  Modelo: ${i.modelo}
+Tipo: ${microsDoGrupo ? 'Microinversor' : 'String'}
+Potência Nominal (CA): ${i.potencia_kw} kW
+Quantidade: ${g.n_inversores}
+${microsDoGrupo
+      ? `Topologia: microinversor → entradas CC → módulos (sem MPPT, sem strings)
+Entradas CC por Microinversor: ${microsDoGrupo[0]?.entradas_por_micro ?? 'N/A'}`
+      : `Número de MPPTs: ${i.n_mppts}
+Tensão Máxima de Entrada: ${i.tensao_max} V`}
+Garantia: ${i.garantia} anos`
+  })
+
+  const cabecalho = varios
+    ? `4. COMPONENTES POR ARRANJO
+────────────────────────────────────────────────────────────────────────────
+O sistema tem ${doc.n_arranjos} arranjo(s), descritos individualmente abaixo.
+Cada bloco identifica os arranjos que o compõem e o equipamento respectivo.
+
+`
+    : ''
+  return cabecalho + blocos.join('\n\n') + `\n\n${fonteNota}`
+}
+
 export function gerarMemorialDescritivo(projeto, cliente, opts = {}) {
   const { equipamentos = [], beneficiarias = [] } = opts
+  /**
+   * F14-5 · projeção documental por arranjo, quando o chamador a fornece.
+   *
+   * Ausente ⇒ o memorial de sempre, intacto — é o caminho dos chamadores que
+   * ainda passam o modelo plano. Presente ⇒ uma seção de equipamentos por grupo
+   * de inversor, em vez de descrever o primeiro como se fosse o sistema.
+   */
+  const arranjosDoc = opts.arranjosDoc ?? null
   // FV-DOM-031C: `micros[]` vem de `arranjos[].configuracao_eletrica.micros`,
   // resolvido por quem monta o payload. Ausente ⇒ o memorial de string, intacto.
   const micros = opts.micros ?? projeto.micros ?? null
@@ -206,10 +357,12 @@ ${_secaoBeneficiarias(beneficiarias)}
 
 3. DADOS DO SISTEMA
 ────────────────────────────────────────────────────────────────────────────
-Potência Instalada: ${potencia_kwp} kWp
-Potência Máxima (CA): ${inversor?.potenciaKW || 'N/A'} kW
+Potência Instalada: ${_potenciaInstalada(potencia_kwp, arranjosDoc)} kWp
+Potência Máxima (CA): ${_potenciaCA(inversor, arranjosDoc)} kW${_resumoArranjos(arranjosDoc)}
 
-4. COMPONENTES - MÓDULOS FOTOVOLTAICOS
+${arranjosDoc
+    ? _secoesPorArranjo(arranjosDoc, micros, _fonteNota)
+    : `4. COMPONENTES - MÓDULOS FOTOVOLTAICOS
 ────────────────────────────────────────────────────────────────────────────
 Marca: ${painel?.marca || 'N/A'}
 Modelo: ${painel?.modelo || 'N/A'}
@@ -224,7 +377,7 @@ Número de Módulos: ${strings?.totalModulos || 'N/A'}
 
 ${_secaoArranjo(strings, micros)}
 
-${_secaoInversor(inversor, micros, _fonteNota, eng)}
+${_secaoInversor(inversor, micros, _fonteNota, eng)}`}
 
 7. COMPONENTES - ESTRUTURA
 ────────────────────────────────────────────────────────────────────────────
@@ -301,7 +454,10 @@ Válido como documento técnico de referência
   return memorial
 }
 
-export function gerarCartaConcessionaria(projeto, cliente) {
+export function gerarCartaConcessionaria(projeto, cliente, opts = {}) {
+  // F14-5: a carta cita a potência CA. Sem a projeção, ela vinha do PRIMEIRO
+  // inversor — 60 kW num sistema de 110. Com ela, é a soma de todos.
+  const arranjosDoc = opts.arranjosDoc ?? null
   const {
     potencia_kwp = 0,
     inversor = {},
@@ -351,8 +507,8 @@ Tensão: 127/220V ou 380V (conforme ligação existente)
 DADOS DO SISTEMA FOTOVOLTAICO
 ════════════════════════════════════════════════════════════════════════════
 
-Potência Instalada: ${potencia_kwp} kWp
-Potência CA: ${_pick(inversor, ['potencia_kw', 'potenciaKW', 'potencia_ca'], 'N/A')} kW
+Potência Instalada: ${_potenciaInstalada(potencia_kwp, arranjosDoc)} kWp
+Potência CA: ${_potenciaCA(inversor, arranjosDoc)} kW${_linhaInversores(arranjosDoc)}
 Modalidade: Autoconsumo com Compensação de Energia
 Geração Estimada: ${(potencia_kwp * 131.44).toFixed(0)} kWh/ano
 
@@ -416,7 +572,9 @@ Documento gerado em ${dataAtual}
   return carta
 }
 
-export function gerarDadosART(projeto, cliente) {
+export function gerarDadosART(projeto, cliente, opts = {}) {
+  // F14-5: mesma correção da carta — `potencia_ac` era a do primeiro inversor.
+  const arranjosDoc = opts.arranjosDoc ?? null
   const {
     potencia_kwp = 0,
     inversor = {},
@@ -435,8 +593,10 @@ export function gerarDadosART(projeto, cliente) {
     responsavel_tecnico: responsavelTecnico,
     crea_numero: creaNumero,
     tipo_atividade: 'Projeto e Execução de Sistema de Geração Fotovoltaica',
-    potencia_instalada: `${potencia_kwp} kWp`,
-    potencia_ac: `${_pick(inversor, ['potencia_kw', 'potenciaKW', 'potencia_ca'], 'N/A')} kW`,
+    potencia_instalada: `${_potenciaInstalada(potencia_kwp, arranjosDoc)} kWp`,
+    potencia_ac: `${_potenciaCA(inversor, arranjosDoc)} kW`,
+    // F14-5: quando há mais de um modelo, a ART lista todos em vez de citar um.
+    inversores: _listaInversores(arranjosDoc),
     endereco_obra: endereco_completo || 'N/A',
     tipo_obra: 'Instalação em Edificação Existente',
     data_inicio_prevista: dataAtual,

@@ -251,30 +251,35 @@ secao('6 · Contrato de `especificacoes`: a MESMA forma das duas topologias')
   ok(!/>null|>undefined|NaN/.test(r.svg), 'o SVG não contém `null`, `undefined` nem `NaN`')
 }
 
-// ═══ 7 · Dívida técnica registrada, não corrigida (FV-DOM-031E) ═════════════
-secao('7 · `_carregarDepsDocumento` — dívida REGISTRADA e INTOCADA')
+// ═══ 7 · Dívida PAGA — `req` corrigido na F14-5 ═════════════════════════════
+secao('7 · `_carregarDepsDocumento` — dívida QUITADA')
 {
   /**
-   * A FV-DOM-031E decidiu NÃO corrigir o `req` fora de escopo: a correção muda
-   * 2 de 3 memoriais string (medido em `auditoria-req-fv-dom-031d.mjs`). Esta
-   * guarda tem DUAS metades — o defeito continua onde estava, E a dívida está
-   * escrita no estado canônico. Sem a segunda, "não corrigir" vira "esquecer".
+   * Esta seção travava a NÃO-CORREÇÃO. A FV-DOM-031E decidiu não mexer no `req`
+   * fora de escopo, porque a correção mudaria 2 de 3 memoriais string — e o
+   * guard existia para que "não corrigir" não virasse "esquecer".
+   *
+   * A F14-5 pagou a dívida, de propósito. A medição que a justificou: sem o
+   * `req`, `_carregarDepsDocumento` devolvia `{equipamentos: []}` SEMPRE, e como
+   * `projeto.inversor`/`projeto.painel` não existem no `ProjetoFV`, o memorial
+   * renderizava `N/A` em todo campo de equipamento — para QUALQUER projeto FV.
+   * O documento não representava equipamento nenhum.
+   *
+   * O guard inverteu: agora trava a CORREÇÃO, para que ninguém a desfaça
+   * achando que está honrando a FV-DOM-031E.
    */
   const ctrl = ler('backend/src/controllers/homologacaoController.js')
-  ok(/async function _carregarDepsDocumento\(projetoId, projetoBody\)/.test(ctrl),
-    'a assinatura continua sem `req` — o defeito NÃO foi corrigido por engano')
+  ok(/async function _carregarDepsDocumento\(projetoId, projetoBody, req\)/.test(ctrl),
+    '`req` é PARÂMETRO — a dívida da FV-DOM-031E foi paga na F14-5')
+  ok(/_carregarDepsDocumento\(projetoId, projeto, req\)/.test(ctrl),
+    'e o chamador passa o `req` que tem em escopo')
   // Só DENTRO da função: os outros endpoints do controller têm `req` legítimo
   // em escopo, e contá-los daria 6 em vez de 2.
   const inicio = ctrl.indexOf('async function _carregarDepsDocumento')
-  // O corpo termina onde começa a PRÓXIMA declaração de topo. Procurar `\n}\n`
-  // não serve: o arquivo usa CRLF e a busca devolvia -1, levando `slice` a
-  // varrer o arquivo inteiro e contar 6 ocorrências em vez de 2.
   const fim = ctrl.slice(inicio + 1).search(/\r?\n(export |async function |function |\/\*\*)/)
   const corpo = ctrl.slice(inicio, fim > 0 ? inicio + 1 + fim : undefined)
   const comReq = (corpo.match(/aplicarEscopo\([^)]*,\s*req\s*,/g) ?? []).length
-  ok(comReq === 2, `as duas chamadas com \`req\` fora de escopo seguem lá (${comReq})`)
-  ok(/catch\s*\(?\w*\)?\s*\{[\s\S]{0,80}return out/.test(corpo) || /\} catch/.test(corpo),
-    'o `catch` que engole o ReferenceError continua no lugar')
+  ok(comReq === 2, `as duas chamadas de escopo seguem lá, agora com \`req\` válido (${comReq})`)
 
   // E o micro não depende disso.
   ok(/const micros = _microsDoProjeto\(projDoc\)/.test(ctrl),
