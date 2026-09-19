@@ -56,7 +56,7 @@ Desenvolver e deployar uma aplicação completa de sistema de propostas para ene
 **Incidente:**
 - 🚨 GitScan detectou credenciais MongoDB expostas públicamente
 - Usuários: `renato_db_user`, `forte-solar`
-- Senhas: `BbWX3FtZEBv2g36F`, `a5YLkF9kGmnhCd9p`
+- Senhas: `SENHA_REMOVIDA_ROTACIONE_NO_ATLAS`, `a5YLkF9kGmnhCd9p`
 
 **Remedição completa:**
 - ✅ Removidas credenciais de todos arquivos rastreados

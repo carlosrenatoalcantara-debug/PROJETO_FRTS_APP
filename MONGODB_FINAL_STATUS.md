@@ -9,14 +9,14 @@
 
 ### .env Atualizado ✅
 ```
-MONGODB_URI=mongodb+srv://renato_db_user:BbWX3FtZEBv2g36F@cluster0.iva0pph.mongodb.net/forte_solar?retryWrites=true&w=majority&appName=Cluster0
+MONGODB_URI=mongodb+srv://renato_db_user:SENHA_REMOVIDA_ROTACIONE_NO_ATLAS@cluster0.iva0pph.mongodb.net/forte_solar?retryWrites=true&w=majority&appName=Cluster0
 ```
 
 | Componente | Valor | Status |
 |-----------|-------|--------|
 | **Protocolo** | `mongodb+srv://` | ✅ Correto (+srv) |
 | **Usuário** | renato_db_user | ✅ Válido |
-| **Senha** | BbWX3FtZEBv2g36F | ✅ Válida |
+| **Senha** | SENHA_REMOVIDA_ROTACIONE_NO_ATLAS | ✅ Válida |
 | **Host** | cluster0.iva0pph.mongodb.net | ✅ Correto |
 | **Database** | forte_solar | ✅ Correto |
 | **Parâmetros** | retryWrites, appName | ✅ Corretos |

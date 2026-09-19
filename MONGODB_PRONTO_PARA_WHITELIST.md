@@ -11,12 +11,12 @@
 
 ### String de Conexão ✅
 ```
-MONGODB_URI=mongodb+srv://renato_db_user:BbWX3FtZEBv2g36F@cluster0.iva0pph.mongodb.net/forte_solar?retryWrites=true&w=majority&appName=Cluster0
+MONGODB_URI=mongodb+srv://renato_db_user:SENHA_REMOVIDA_ROTACIONE_NO_ATLAS@cluster0.iva0pph.mongodb.net/forte_solar?retryWrites=true&w=majority&appName=Cluster0
 ```
 
 ### Credenciais ✅
 - Usuário: `renato_db_user`
-- Senha: `BbWX3FtZEBv2g36F`
+- Senha: `SENHA_REMOVIDA_ROTACIONE_NO_ATLAS`
 - Cluster: `cluster0.iva0pph.mongodb.net`
 - Database: `forte_solar`
 

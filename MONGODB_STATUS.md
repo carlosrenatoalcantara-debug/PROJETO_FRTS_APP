@@ -57,7 +57,7 @@ mongodb+srv://renato_db_user:***@cluster0.iva0pph.mongodb.net/forte_solar
 ### Credenciais ✅
 ```
 Usuário: renato_db_user
-Senha: BbWX3FtZEBv2g36F
+Senha: SENHA_REMOVIDA_ROTACIONE_NO_ATLAS
 ```
 
 **Status:** ✅ Válidas (testado)
@@ -170,7 +170,7 @@ that isn't whitelisted.
 
 Testamos a validade das credenciais:
 - ✅ Usuário: `renato_db_user` (válido)
-- ✅ Senha: `BbWX3FtZEBv2g36F` (válida)
+- ✅ Senha: `SENHA_REMOVIDA_ROTACIONE_NO_ATLAS` (válida)
 - ✅ Cluster: `cluster0.iva0pph.mongodb.net` (existe)
 
 Apenas **IP Whitelist precisa ser configurado** no Atlas.
