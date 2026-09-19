@@ -182,9 +182,13 @@ anda(path.resolve(RAIZ, 'frontend/src'))
 // consumidor de produção. O que este check vigia é o Core passar a depender do
 // adapter antes da etapa de migração.
 const NAO_CONSUMIDORES = /(?:arranjosCanonicos|preservacaoArranjos)\.js$/
+// Consumir é IMPORTAR. A varredura por nome pegava também quem apenas cita o
+// adapter num comentário — `integridade.js` reprovou assim, sem depender dele.
+// Citação não é dependência; o que este check vigia é a dependência.
+const IMPORTA = /(?:from\s*['"][^'"]*arranjosCanonicos(?:\.js)?['"]|require\(\s*['"][^'"]*arranjosCanonicos)/
 const consumidores = arquivos
   .filter((f) => !NAO_CONSUMIDORES.test(f))
-  .filter((f) => /arranjosCanonicos/.test(readFileSync(f, 'utf8')))
+  .filter((f) => IMPORTA.test(readFileSync(f, 'utf8')))
 // Lista FECHADA, que cresce de UM em UM — cada entrada teve sua sprint e sua
 // prova de equivalência. Um consumidor novo aqui, sem isso, reprova; e um que
 // suma reprova também, porque significaria que a migração foi revertida sem
@@ -197,10 +201,18 @@ const consumidores = arquivos
 // é o ponto: a regra só para de divergir quando deixa de existir em duplicata.
 //   F14-4  · homologacaoController  — micros de TODOS os arranjos + recusa de
 //                                     emissão quando o documento não representa
-const MIGRADOS = ['EnvioPropostaService.js', 'projetosFVController.js', 'homologacaoController.js']
+//   F14-6B · composicaoUnifilar     — view-model do unifilar POR ARRANJO, a
+//                                     base do desenho multiarranjo
+const MIGRADOS = ['EnvioPropostaService.js', 'projetosFVController.js', 'homologacaoController.js',
+  'composicaoUnifilar.js']
 const nomes = consumidores.map((x) => path.basename(x)).sort()
 ok(JSON.stringify(nomes) === JSON.stringify([...MIGRADOS].sort()),
   `consumidores do adapter: [${nomes.join(', ') || '—'}] — esperado [${MIGRADOS.join(', ')}]`)
+// Sanidade: o padrão de import reconhece o que deve, e não reconhece citação.
+ok(IMPORTA.test("import { arranjosCanonicos } from '../topologia/arranjosCanonicos.js'"),
+  'o padrão reconhece o import real')
+ok(!IMPORTA.test('// construído sobre arranjosCanonicos, a camada canônica'),
+  'e não reconhece menção em comentário')
 ok(arquivos.length > 500, `sanidade — ${arquivos.length} arquivos varridos`)
 
 console.log(falhas === 0

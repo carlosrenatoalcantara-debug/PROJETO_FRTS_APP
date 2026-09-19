@@ -159,8 +159,9 @@ encontrados.forEach((e) => nota(`${e.arquivo}:${e.linha}  ${e.trecho}`))
 //   F14-3B · EnvioPropostaService   migrado   7 → 6
 //   F14-3C · projetosFVController   migrado   6 → 5
 //   F14-4  · homologacaoController  migrado   5 → 4
-ok(encontrados.length === 4,
-  `${encontrados.length} seleção(ões) posicional(is) — 3 de produção + 1 deliberada; nenhuma nova`)
+//   F14-6B · unifilar/index.js      deliberada   4 → 5
+ok(encontrados.length === 5,
+  `${encontrados.length} seleção(ões) posicional(is) — 3 de produção + 2 deliberadas; nenhuma nova`)
 
 // A lista é FECHADA: nomear os arquivos impede que uma seja trocada por outra
 // sem que ninguém perceba, mantendo a contagem igual.
@@ -170,9 +171,15 @@ ok(encontrados.length === 4,
 // ela não há contra o que comparar. É o único uso de posição que este guard
 // aceita, e aceita porque o objetivo dela é justamente reproduzir o defeito
 // para medi-lo — não cometê-lo.
+// F14-6B · `unifilar/index.js` é a segunda deliberada: o `[0]` está DENTRO do
+// ramo `modo === SINGLE`, onde a composição já garantiu que existe exatamente
+// um arranjo. Não é escolha entre arranjos — é o único que existe. A prova
+// dessa afirmação é verificada logo abaixo, senão a exceção seria só uma
+// permissão a mais.
 const ESPERADOS = [
   'backend/src/dominio/topologia/preservacaoArranjos.js',
   'backend/src/dominio/unifilar/adaptarProjeto.js',
+  'backend/src/dominio/unifilar/index.js',
   'frontend/src/fv/composicao.js',
 ]
 // MIGRADOS — saíram da lista porque a dependência foi removida, um por sprint.
@@ -182,6 +189,21 @@ const ESPERADOS = [
 const arquivosAchados = [...new Set(encontrados.map((e) => e.arquivo))].sort()
 ok(JSON.stringify(arquivosAchados) === JSON.stringify(ESPERADOS.sort()),
   'e são exatamente os arquivos que a auditoria registrou')
+
+// A prova da exceção F14-6B: toda ocorrência em `unifilar/index.js` está sob o
+// ramo de arranjo único. Sem isto, a exceção autorizaria o `[0]` em qualquer
+// lugar do arquivo — que é precisamente o defeito que este guard existe para
+// impedir.
+{
+  const alvo = path.resolve(RAIZ, 'backend/src/dominio/unifilar/index.js')
+  const linhas = readFileSync(alvo, 'utf8').split(/\r?\n/)
+  const ocorrencias = encontrados.filter((e) => e.arquivo === 'backend/src/dominio/unifilar/index.js')
+  ok(ocorrencias.length > 0, 'a exceção não é letra morta — a ocorrência existe')
+  const sobSingle = ocorrencias.every((e) => linhas
+    .slice(Math.max(0, e.linha - 6), e.linha)
+    .some((l) => /MODO\.SINGLE/.test(l)))
+  ok(sobSingle, 'toda seleção posicional do unifilar está sob `modo === SINGLE`')
+}
 
 secao('4 · A varredura cobre backend E frontend do Core')
 // O guard da F13 varria só `backend/src` — foi por isso que `composicao.js`

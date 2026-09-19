@@ -48,7 +48,7 @@ function primeiro(candidatos) {
  * (topologia real por entrada física) NÃO é usado aqui: o motor desenha por
  * string dentro do MPPT, não por entrada.
  */
-function adaptarMppts(arranjo) {
+export function adaptarMppts(arranjo) {
   const lista = Array.isArray(arranjo?.mppts) ? arranjo.mppts : []
   const uteis = lista
     .filter((m) => Number(m?.strings_paralelo) > 0 && Number(m?.modulos_por_string) > 0)
@@ -71,6 +71,16 @@ function adaptarMppts(arranjo) {
 function adaptarMicros(projeto) {
   const arranjos = Array.isArray(projeto?.arranjos) ? projeto.arranjos : []
   const a = arranjos.find((x) => x?.tipo === 'principal') ?? arranjos[0] ?? null
+  return microsDoArranjo(a)
+}
+
+/**
+ * A mesma leitura, para UM arranjo nomeado — F14-6B.
+ *
+ * `adaptarMicros` escolhe o arranjo e delega aqui. A composição multiarranjo
+ * chama esta função diretamente, uma vez por arranjo, sem escolher nenhum.
+ */
+export function microsDoArranjo(a) {
   const lista = a?.configuracao_eletrica?.micros
   if (!Array.isArray(lista) || lista.length === 0) return null
 
@@ -96,7 +106,11 @@ function adaptarMicros(projeto) {
 
 /** Painel do arranjo principal, com os dados elétricos que o catálogo guarda. */
 function adaptarPainel(projeto) {
-  const p = projeto?.equipamentos?.paineis?.[0]
+  return adaptarPainelDe(projeto?.equipamentos?.paineis?.[0])
+}
+
+/** A mesma tradução, para um painel já escolhido (F14-6B: um por arranjo). */
+export function adaptarPainelDe(p) {
   if (!p) return null
   const num = (v) => (v === null || v === undefined || v === '' || !Number.isFinite(Number(v)) ? null : Number(v))
   return {
@@ -168,7 +182,17 @@ function projetoEhMicro(projeto = {}) {
     ?? projeto.arranjos?.[0]?.inversores?.[0]
     ?? projeto.inversor
     ?? {}
-  if (!inv.modelo && !inv.marca && !inv.fabricante && !inv.tipo) return false
+  return ehMicroPorEquipamento(inv)
+}
+
+/**
+ * O EQUIPAMENTO é micro? Mesma pergunta, feita a um inversor nomeado — F14-6B.
+ *
+ * `projetoEhMicro` escolhe o inversor do projeto e delega aqui. A composição
+ * multiarranjo pergunta pelo inversor DE CADA arranjo, sem escolher nenhum.
+ */
+export function ehMicroPorEquipamento(inv = {}) {
+  if (!inv?.modelo && !inv?.marca && !inv?.fabricante && !inv?.tipo) return false
   return classificarTopologiaInversor(
     { topologia: inv.tipo ?? null },
     { fabricante: inv.marca ?? inv.fabricante ?? null,

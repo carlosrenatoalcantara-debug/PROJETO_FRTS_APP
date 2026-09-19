@@ -23,10 +23,13 @@ import { gerarUnifilarMicroSVG } from '@fortesolar/fv-shared/engenharia/unifilar
 import { montarModeloMicro } from '@fortesolar/fv-shared/engenharia/microinversores'
 import { montarModeloEletrico } from '@fortesolar/fv-shared/engenharia/normativa'
 import { adaptarProjetoParaUnifilar, lacunasDaProveniencia } from './adaptarProjeto.js'
-import { avaliarIntegridade, MOTIVOS_UNIFILAR } from './integridade.js'
+import { avaliarIntegridade, avaliarIntegridadeArranjo, MOTIVOS_UNIFILAR } from './integridade.js'
+import { composicaoUnifilarDoProjeto, entradaDoArranjo, MODO, MOTIVO_COMPOSICAO } from './composicaoUnifilar.js'
+import { comporUnifilarMultiarranjo } from './composicaoSVG.js'
 
 export { adaptarProjetoParaUnifilar, lacunasDaProveniencia }
-export { avaliarIntegridade, MOTIVOS_UNIFILAR }
+export { avaliarIntegridade, avaliarIntegridadeArranjo, MOTIVOS_UNIFILAR }
+export { composicaoUnifilarDoProjeto, entradaDoArranjo, MODO, MOTIVO_COMPOSICAO }
 
 /**
  * Recusa do desenho — FV-DOM-056. Mesmo formato de retorno do sucesso, com
@@ -55,29 +58,116 @@ function recusar(impedimento, proveniencia) {
  * @returns {{ svg, origem, proveniencia, lacunas, modelo, especificacoes }}
  */
 export function gerarUnifilarDoProjeto(projeto, { ativos = [], nomeCliente = null, moduloCatalogo = null, instalacao = null, catalogo = null } = {}) {
-  const { entrada, proveniencia } = adaptarProjetoParaUnifilar(projeto, { nomeCliente, moduloCatalogo })
+  const composicao = composicaoUnifilarDoProjeto(projeto, { nomeCliente, moduloCatalogo, instalacao, catalogo })
+  const { proveniencia } = composicao
 
-  /**
-   * FV-DOM-056 — o portão. Sem topologia que sustente o desenho, o domínio
-   * DECLARA o impedimento em vez de desenhar. Antes desta guarda,
-   * `montarModeloEletrico` caía no ramo de compatibilidade e produzia um
-   * sistema plausível e impossível (T07/T09: Voc 3933 V num inversor de 1000 V).
-   */
-  const impedimento = avaliarIntegridade(projeto, entrada, { instalacao, catalogo })
-  if (impedimento) return recusar(impedimento, proveniencia)
-
-  // FV-DOM-031C: microinversor tem desenho e modelo PRÓPRIOS. O caminho string
-  // abaixo continua palavra por palavra o que era — a bifurcação é aqui, no
-  // domínio, e não dentro dos motores.
-  if (entrada.topologia === 'micro') {
-    return gerarUnifilarMicro(entrada, proveniencia)
+  // ── Representabilidade — F14-6B ───────────────────────────────────────────
+  // Antes de qualquer cálculo: o documento consegue representar ESTE projeto?
+  // Topologia mista não é suportada, e a decisão da sprint é explícita — não se
+  // escolhe um arranjo nem se classifica o projeto inteiro por maioria.
+  if (composicao.modo === MODO.NAO_REPRESENTAVEL) {
+    return recusar(impedimentoDaComposicao(composicao), proveniencia)
   }
 
-  const svg = gerarUnifilarSVG(entrada, ativos)
+  if (composicao.modo === MODO.SINGLE) {
+    const arranjo = composicao.arranjos[0]
+    const entrada = entradaDoArranjo(composicao, arranjo)
 
-  // O mesmo modelo elétrico que o desenho usou, exposto como dado. A UX mostra
-  // números sem reextraí-los do SVG, e o memorial pode reusá-los sem recalcular.
-  const modelo = montarModeloEletrico({
+    /**
+     * FV-DOM-056 — o portão. Sem topologia que sustente o desenho, o domínio
+     * DECLARA o impedimento em vez de desenhar. Antes desta guarda,
+     * `montarModeloEletrico` caía no ramo de compatibilidade e produzia um
+     * sistema plausível e impossível (T07/T09: Voc 3933 V num inversor de 1000 V).
+     *
+     * Arranjo único continua avaliado pelo portão de PROJETO, campo a campo
+     * como sempre: é o mesmo escopo, e mudá-lo aqui mudaria o veredito de todo
+     * projeto que hoje desenha.
+     */
+    const impedimento = avaliarIntegridade(projeto, entrada, { instalacao, catalogo })
+    if (impedimento) return recusar(impedimento, proveniencia)
+
+    // FV-DOM-031C: microinversor tem desenho e modelo PRÓPRIOS. A bifurcação é
+    // aqui, no domínio, e não dentro dos motores.
+    if (entrada.topologia === 'micro') return gerarUnifilarMicro(entrada, proveniencia)
+    return gerarUnifilarString(entrada, ativos, proveniencia, arranjo.modeloEletrico)
+  }
+
+  // ── MULTI — um diagrama por arranjo, num documento só ─────────────────────
+  const blocos = []
+  const resultados = []
+  for (const arranjo of composicao.arranjos) {
+    const entrada = entradaDoArranjo(composicao, arranjo)
+    const canonico = composicao.canonico.arranjos.find((x) => x.id === arranjo.id) ?? null
+
+    // Regras 3 e 4 do portão passam a valer POR ARRANJO (ver integridade.js).
+    // Um arranjo irrepresentável recusa o DOCUMENTO inteiro: desenhar só a
+    // parte que fecha entregaria um unifilar que descreve menos do que existe,
+    // que é exatamente o defeito que esta sprint fecha.
+    const impedimento = avaliarIntegridadeArranjo(projeto, entrada, canonico)
+    if (impedimento) return recusar(impedimento, proveniencia)
+
+    const r = entrada.topologia === 'micro'
+      ? gerarUnifilarMicro(entrada, proveniencia)
+      : gerarUnifilarString(entrada, ativosDoArranjo(ativos, arranjo.id), proveniencia, arranjo.modeloEletrico)
+
+    resultados.push({ arranjo, resultado: r })
+    blocos.push({
+      titulo: arranjo.rotulo || arranjo.id || `Arranjo ${arranjo.ordem + 1}`,
+      subtitulo: [
+        r.especificacoes?.num_paineis != null ? `${r.especificacoes.num_paineis} módulos` : null,
+        entrada.inversor?.modelo ? `${entrada.inversor.marca ?? ''} ${entrada.inversor.modelo}`.trim() : null,
+      ].filter(Boolean).join(' · '),
+      svg: r.svg,
+    })
+  }
+
+  return {
+    svg: comporUnifilarMultiarranjo(blocos),
+    origem: 'dados_atuais',
+    proveniencia,
+    lacunas: [...new Set(resultados.flatMap(({ resultado }) => resultado.lacunas ?? []))],
+    // Não existe UM modelo elétrico do projeto: existem N. Devolver um agregado
+    // com a forma de modelo único seria fabricar um sistema que não é nenhum
+    // dos arranjos — por isso `modelo: null` e a coleção declarada à parte.
+    modelo: null,
+    modelos: resultados.map(({ arranjo, resultado }) => ({
+      arranjo_id: arranjo.id,
+      rotulo: arranjo.rotulo,
+      topologia: arranjo.topologia,
+      modelo: resultado.modelo,
+    })),
+    especificacoes: agregarEspecificacoes(resultados),
+  }
+}
+
+/** Ativos do gêmeo digital que pertencem a ESTE arranjo — nunca os dos outros. */
+function ativosDoArranjo(ativos, id) {
+  if (!Array.isArray(ativos) || !id) return []
+  return ativos.filter((x) => String(x?.arranjo_id ?? '') === String(id))
+}
+
+/** Recusa por não-representabilidade, no mesmo formato dos demais impedimentos. */
+function impedimentoDaComposicao(composicao) {
+  return {
+    codigo: MOTIVO_COMPOSICAO.TOPOLOGIA_MISTA_NAO_SUPORTADA,
+    motivo: 'O projeto tem arranjos de microinversor e de string no mesmo sistema. '
+      + 'O diagrama não representa as duas topologias no mesmo documento, e escolher '
+      + 'uma delas descreveria um sistema diferente do projeto.',
+    detalhe: {
+      topologias_por_arranjo: composicao.arranjos.map((a) => ({ arranjo_id: a.id, topologia: a.topologia })),
+    },
+  }
+}
+
+/**
+ * Unifilar de UM arranjo de strings.
+ *
+ * O `modelo` recebido é o que a composição já montou (F14-6B, Tarefa 3): o
+ * motor desenha COM ele em vez de remontar a mesma engenharia. Sem ele, monta
+ * aqui — é o caminho de quem chama esta função sem passar pela composição.
+ */
+function gerarUnifilarString(entrada, ativos, proveniencia, modeloPronto = null) {
+  const modelo = modeloPronto ?? montarModeloEletrico({
     painel: entrada.painel,
     inversor: entrada.inversor,
     arranjoMPPTs: entrada.arranjoMPPTs,
@@ -85,6 +175,8 @@ export function gerarUnifilarDoProjeto(projeto, { ativos = [], nomeCliente = nul
     dadosConsumo: { tipoLigacao: entrada.tipo_ligacao, tensao: entrada.tensao },
     uf: entrada.uf,
   })
+
+  const svg = gerarUnifilarSVG({ ...entrada, modeloEletrico: modelo }, ativos)
 
   return {
     svg,
@@ -108,6 +200,57 @@ export function gerarUnifilarDoProjeto(projeto, { ativos = [], nomeCliente = nul
       fases: modelo.sistema.fasesAC,
       tensao_ac_v: modelo.sistema.tensaoAC,
     },
+  }
+}
+
+/**
+ * Especificações do PROJETO a partir das de cada arranjo — F14-6B.
+ *
+ * Como cada grandeza compõe (Tarefa 1): tensão compõe por MÁXIMO, corrente e
+ * potência por SOMA. Cabo, disjuntor e DPS são dimensionados por trecho e não
+ * têm valor de projeto: ficam `null`, com o valor de cada arranjo em
+ * `por_arranjo`. Declarar um número único ali seria inventar um trecho que não
+ * existe.
+ */
+function agregarEspecificacoes(resultados) {
+  const specs = resultados.map(({ resultado }) => resultado.especificacoes ?? {})
+  const soma = (campo) => {
+    const vs = specs.map((s) => s?.[campo]).filter((v) => Number.isFinite(v))
+    return vs.length > 0 ? +vs.reduce((a, b) => a + b, 0).toFixed(2) : null
+  }
+  const maximo = (campo) => {
+    const vs = specs.map((s) => s?.[campo]).filter((v) => Number.isFinite(v))
+    return vs.length > 0 ? Math.max(...vs) : null
+  }
+  // Grandeza do PROJETO (ligação e tensão da rede): só se todos concordarem.
+  const unanime = (campo) => {
+    const vs = [...new Set(specs.map((s) => s?.[campo]).filter((v) => v !== null && v !== undefined))]
+    return vs.length === 1 ? vs[0] : null
+  }
+
+  return {
+    potencia_cc_kwp: soma('potencia_cc_kwp'),
+    potencia_ca_kw: soma('potencia_ca_kw'),
+    num_paineis: soma('num_paineis'),
+    num_strings: soma('num_strings'),
+    num_mppts: soma('num_mppts'),
+    num_microinversores: soma('num_microinversores'),
+    voc_max_v: maximo('voc_max_v'),
+    isc_total_a: soma('isc_total_a'),
+    corrente_ac_a: soma('corrente_ac_a'),
+    cabo_dc_mm2: null,
+    cabo_ac_mm2: null,
+    disjuntor_ac_a: null,
+    dps: null,
+    fases: unanime('fases'),
+    tensao_ac_v: unanime('tensao_ac_v'),
+    n_arranjos: resultados.length,
+    por_arranjo: resultados.map(({ arranjo, resultado }) => ({
+      arranjo_id: arranjo.id,
+      rotulo: arranjo.rotulo,
+      topologia: arranjo.topologia,
+      especificacoes: resultado.especificacoes,
+    })),
   }
 }
 

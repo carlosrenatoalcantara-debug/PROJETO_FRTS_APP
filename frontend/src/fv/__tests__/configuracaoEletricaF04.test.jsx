@@ -234,8 +234,19 @@ describe('F-04 · guards', () => {
     for (const src of [POTENCIA, ADAPTER]) {
       expect(src).toMatch(/engenharia_eletrica\?\.arranjo|engenharia_eletrica\.arranjo/)
     }
-    // e o adapter é o ponto único de tradução — o Core não relê o documento cru
-    expect(POTENCIA).toMatch(/adaptarProjetoParaUnifilar/)
+    /**
+     * E o adapter continua sendo o ponto único de tradução — o Core não relê o
+     * documento cru.
+     *
+     * F14-6B: `dominio/potencia` passou a entrar pela COMPOSIÇÃO, que é
+     * construída sobre o mesmo adapter (a entrada elétrica virou uma por
+     * arranjo). A regra não afrouxa: exige-se a cadeia inteira, e é por isso
+     * que a linha seguinte verifica que a composição de fato traduz pelo
+     * adapter em vez de ler o documento por conta própria.
+     */
+    const COMPOSICAO = semComentarios(fonte('../../../../backend/src/dominio/unifilar/composicaoUnifilar.js'))
+    expect(POTENCIA).toMatch(/adaptarProjetoParaUnifilar|composicaoUnifilarDoProjeto/)
+    expect(COMPOSICAO).toMatch(/adaptarProjetoParaUnifilar/)
   })
 
   it('11. GUARD 3 · a estrutura LEGACY está declarada como tal no schema', () => {

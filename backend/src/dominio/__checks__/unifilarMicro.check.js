@@ -16,6 +16,8 @@ import { fileURLToPath } from 'node:url'
 import { execSync } from 'node:child_process'
 import { montarModeloMicro } from '@fortesolar/fv-shared/engenharia/microinversores'
 import { gerarUnifilarMicroSVG } from '@fortesolar/fv-shared/engenharia/unifilar-micro-svg'
+import { gerarUnifilarSVG } from '@fortesolar/fv-shared/engenharia/unifilar-svg'
+import { montarModeloEletrico } from '@fortesolar/fv-shared/engenharia/normativa'
 import { adaptarProjetoParaUnifilar, lacunasDaProveniencia } from '../unifilar/index.js'
 
 const AQUI = path.dirname(fileURLToPath(import.meta.url))
@@ -174,16 +176,54 @@ secao('4 · Projetos string intactos')
 {
   const fonteString = semComentarios(ler(MOTOR_STRING))
   ok(!fonteString.includes('micros'), 'o motor de string não sabe o que é `micros[]`')
-  // A única mudança permitida em `unifilarSVG.js` é visibilidade de função.
+  /**
+   * Mudanças permitidas em `unifilarSVG.js`: visibilidade de função (sprint do
+   * micro) e a injeção OPCIONAL do modelo elétrico (F14-6B, Tarefa 3).
+   *
+   * A segunda não é cosmética, e por isso não basta permitir a linha: o que
+   * prende a regra é a medição logo abaixo — sem `modeloEletrico`, o desenho
+   * tem de sair idêntico ao que sairia montando por dentro. Permitir a linha
+   * sem medir o efeito transformaria este guard em carimbo.
+   */
   let diff = ''
   try { diff = execSync(`git diff -- ${MOTOR_STRING}`, { cwd: RAIZ, encoding: 'utf8' }) } catch { /* fora de repo */ }
   const mudadas = diff.split('\n')
     .filter((l) => (l.startsWith('+') || l.startsWith('-')) && !l.startsWith('+++') && !l.startsWith('---'))
     .map((l) => l.slice(1).trim())
     .filter((l) => l && !l.startsWith('//') && !l.startsWith('*'))
-  const soExport = mudadas.every((l) => /^(export )?(function svg|function esc|const esc)/.test(l))
-  ok(soExport, soExport ? 'só `export` foi acrescentado às funções de símbolo'
-    : `linhas alteradas além do export: ${mudadas.slice(0, 3).join(' | ')}`)
+  const PERMITIDO = [
+    /^(export )?(function svg|function esc|const esc)/,
+    /^modeloEletrico = null,$/,
+    /^const modelo = (modeloEletrico \?\? )?montarModeloEletrico\(\{$/,
+    /^if \(!modelo\?\.sistema/,
+    /^throw new Error\('MODELO_ELETRICO_INVALIDO'\)$/,
+    /^\}$/,
+  ]
+  const fora = mudadas.filter((l) => !PERMITIDO.some((re) => re.test(l)))
+  ok(fora.length === 0, fora.length === 0
+    ? 'só visibilidade de função e a injeção opcional do modelo (F14-6B)'
+    : `linhas alteradas fora do permitido: ${fora.slice(0, 3).join(' | ')}`)
+
+  // A medição que prende a permissão acima: injetar o modelo que o próprio
+  // motor montaria não pode mudar um byte do desenho.
+  const entradaStr = adaptarProjetoParaUnifilar({
+    nome: 'P',
+    equipamentos: { paineis: [{ marca: 'Z', modelo: 'M', potencia_w: 550 }],
+      inversor: { marca: 'X', modelo: 'Y', potencia_kw: 2 }, estrutura: { tipo: 'Laje' } },
+    dimensionamento: { num_paineis: 22 },
+    fatura_extracao: { tipo_ligacao: 'monofasico', tensao_v: 220, concessionaria: 'N' },
+    localizacao: { estado: 'RN' },
+    engenharia_eletrica: { arranjo: { mppts: [{ strings_paralelo: 2, modulos_por_string: 11 }] } },
+  }).entrada
+  const modeloStr = montarModeloEletrico({
+    painel: entradaStr.painel, inversor: entradaStr.inversor,
+    arranjoMPPTs: entradaStr.arranjoMPPTs, dimensionamento: entradaStr.dimensionamento,
+    dadosConsumo: { tipoLigacao: entradaStr.tipo_ligacao, tensao: entradaStr.tensao }, uf: entradaStr.uf,
+  })
+  const svgSem = gerarUnifilarSVG(entradaStr, [])
+  const svgCom = gerarUnifilarSVG({ ...entradaStr, modeloEletrico: modeloStr }, [])
+  ok(svgSem.length > 1000, 'o desenho de controle não é vazio')
+  ok(svgSem === svgCom, 'modelo injetado produz o MESMO SVG byte a byte')
 
   const memorial = ler(MEMORIAL)
   ok(memorial.includes('5. ARRANJO DAS STRINGS') && memorial.includes('Configuração DC: Strings em paralelo'),
