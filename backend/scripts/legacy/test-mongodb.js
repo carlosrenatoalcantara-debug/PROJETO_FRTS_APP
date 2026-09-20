@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 
 async function testConnection() {
   try {
-    const mongoUri = 'mongodb+srv://carlosrenatoalcantara_db_user:RenatoAlcantara@cluster0.8jrrytu.mongodb.net/forte-solar?retryWrites=true&w=majority&authSource=admin';
+    const mongoUri = 'mongodb+srv://carlosrenatoalcantara_db_user:SENHA_REMOVIDA_ROTACIONE_NO_ATLAS@cluster0.8jrrytu.mongodb.net/forte-solar?retryWrites=true&w=majority&authSource=admin';
     console.log('Tentando conectar a MongoDB Atlas...');
     
     const conn = await mongoose.connect(mongoUri, {
