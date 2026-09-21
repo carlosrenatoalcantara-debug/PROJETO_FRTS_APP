@@ -1661,3 +1661,18 @@ pré-existentes em `components/diagram/*`, `alertCenter88` e
 **Débitos remanescentes:** D (o verificador de bundle não cobre
 `https://www.fortesolar.com.br`) e E (micro 1Ø em rede 3Ø sem aviso). Nenhum
 dos dois é tocado pela `main`.
+
+---
+
+## §13 — Defeito D fechado (FV-INFRA-058b)
+
+`frontend/scripts/verificar-bundle.mjs` casava as origens de produção por
+igualdade literal, então `https://www.fortesolar.com.br` passava limpo num
+bundle de staging. A lista virou lista de **hosts** e cada host é casado por
+regex com `www.` opcional, porta opcional, sobre http ou https.
+
+Medido com `dist` sintético: `https://www.fortesolar.com.br/api` em alvo
+`staging` → **FALHA** (antes passava); `https://fortesolar.com.br:443/api` em
+alvo `production` → OK; bundle com `/api` relativo em `staging` → OK.
+
+Débito remanescente: **E** (micro 1Ø em rede 3Ø sem aviso, P2).

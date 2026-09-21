@@ -19,12 +19,30 @@ import { fileURLToPath } from 'node:url'
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const DIST = path.join(RAIZ, 'dist')
 
-/** Origens que NUNCA podem aparecer num bundle de staging. */
-const ORIGENS_PRODUCAO = [
-  'https://fortesolar.com.br',
-  'https://projeto-frts-app.vercel.app',
-  'https://projetofrtsapp-production.up.railway.app',
+/** Hosts de produção que NUNCA podem aparecer num bundle de staging. */
+const HOSTS_PRODUCAO = [
+  'fortesolar.com.br',
+  'projeto-frts-app.vercel.app',
+  'projetofrtsapp-production.up.railway.app',
 ]
+
+/**
+ * FV-INFRA-058b (defeito D): a lista antiga casava só a forma exata
+ * `https://fortesolar.com.br`. Um bundle com `https://www.fortesolar.com.br`
+ * passava limpo. Cada host passa a ser casado com `www.` opcional e porta
+ * opcional, sobre http ou https.
+ */
+const padraoOrigem = (host) =>
+  new RegExp(`https?://(?:www\\.)?${host.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?::\\d+)?`, 'g')
+
+/** Todas as formas do host encontradas no texto, sem repetição. */
+function origensEncontradas(texto) {
+  const achadas = new Set()
+  for (const host of HOSTS_PRODUCAO) {
+    for (const m of texto.matchAll(padraoOrigem(host))) achadas.add(m[0])
+  }
+  return [...achadas]
+}
 
 /** Placeholders que denunciam configuração não preenchida. */
 const PLACEHOLDERS = ['SUBSTITUA-API-STAGING', 'SUBSTITUA_CHAVE_STAGING', 'your_google_maps_api_key']
@@ -63,7 +81,7 @@ for (const p of PLACEHOLDERS) {
 }
 
 // ── 2 · Origens ─────────────────────────────────────────────────────────────
-const encontradas = ORIGENS_PRODUCAO.filter((o) => bundle.includes(o))
+const encontradas = origensEncontradas(bundle)
 
 if (alvo === 'staging') {
   ok(encontradas.length === 0,
