@@ -330,7 +330,33 @@ async function iniciarServidor() {
     // AI-ARCH-01: diagnóstico centralizado da camada de IA
     const { default: rotasAI } = await import('./routes/ai.js')
 
-    app.use('/api/equipamentos', rotasEquipamentos)
+    /**
+     * P0-CATALOGO-AUTH-01 — o catálogo era anônimo, inclusive para ESCREVER.
+     *
+     * Medido em ambiente isolado, sem nenhum token:
+     *   GET    /api/equipamentos      → 200
+     *   POST   /api/equipamentos      → 201   (criou um equipamento)
+     *   PUT    /api/equipamentos/:id  → 200
+     *   DELETE /api/equipamentos/:id  → 200
+     *
+     * O catálogo é a fonte das especificações que entram no cálculo elétrico e
+     * nos documentos enviados à distribuidora. Escrita anônima ali não é um
+     * furo de listagem: é a possibilidade de alterar o que o memorial afirma.
+     *
+     * `protegerModulo('catalogo')` é o MESMO middleware que já protege
+     * `/api/admin/catalogo` e `/api/materiais`, e a matriz RBAC já descreve a
+     * semântica certa por método (`services/rbac.js`):
+     *   GET      → visualizar   — todos os perfis
+     *   POST/PUT → editar       — administrador, diretor, engenheiro
+     *   DELETE   → administrar  — administrador
+     *
+     * Sem `exigirOrganizacao` de propósito: o catálogo é COMPARTILHADO (os
+     * equipamentos têm `empresa_id` nulo e o controller não filtra por
+     * empresa). Exigir tenant aqui não isolaria nada e recusaria tokens
+     * válidos. Isolar o catálogo, se virar requisito, é decisão de domínio com
+     * backfill — não um middleware a mais.
+     */
+    app.use('/api/equipamentos', protegerModulo('catalogo'), rotasEquipamentos)
     app.use('/api/datasheet',    rotasDatasheet)
     app.use('/api/fatura',       rotasFatura)
     app.use('/api/faturas',      rotasFaturasInteligente)
