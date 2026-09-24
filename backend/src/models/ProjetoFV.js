@@ -855,13 +855,90 @@ const projetoFVSchema = new mongoose.Schema({
           modulos_por_entrada: { type: Number, default: null },
           // Módulos em CADA micro, na ordem. Comprimento = `quantidade`.
           distribuicao: { type: [Number], default: undefined },
+          // Sprint E — AGRUPAMENTO dos micros em ramais CA e a fase de cada um.
+          //
+          // Por que persiste, se INV-58 proíbe derivado em campo paralelo: isto
+          // NÃO é derivado de outro campo do projeto — é a configuração que o
+          // sistema propõe e o operador VALIDA, e a fase de cada ramal é uma
+          // decisão de instalação que nenhuma fórmula recupera depois. Mesmo
+          // estatuto de `distribuicao`, que já persistia pelo mesmo motivo.
+          //
+          // `micros` guarda ÍNDICES (1..N) dentro de `distribuicao`, não cópia
+          // dos dados do micro: duplicar ficha técnica criaria segunda fonte.
+          // Obsolescência é detectada na leitura (`planoObsoleto`), não escondida.
+          arranjos: {
+            type: [new mongoose.Schema({
+              micros: { type: [Number], default: undefined },
+              fase:   { type: String, enum: ['L1', 'L2', 'L3', null], default: null },
+            }, { _id: false })],
+            default: undefined,
+          },
         }, { _id: false })],
         default: undefined,
       },
-      // P0-ARRANJO-ELECTRICAL-ISOLATION-01 (ADITIVO) — TOPOLOGIA PRÓPRIA por arranjo.
-      // Elimina a limitação de `engenharia_eletrica.arranjo` ser ÚNICO p/ o projeto:
-      // cada arranjo passa a ter sua engenharia elétrica independente. Mesma forma do
-      // engenharia_eletrica.arranjo.mppts. Legado lê null/undefined (sem erro).
+      /**
+       * ── LEGACY · F-04 ──────────────────────────────────────────────────────
+       *
+       * Topologia STRING por arranjo. Nasceu na P0-ARRANJO-ELECTRICAL-ISOLATION-01
+       * para superar a limitação de `engenharia_eletrica.arranjo` ser único por
+       * projeto, e tem a mesma forma dele.
+       *
+       * NÃO É FONTE DE VERDADE DE ENGENHARIA. Não participa de dimensionamento,
+       * compatibilidade, unifilar nem orçamento. A auditoria da F-04 mediu:
+       * escrita e leitura acontecem SÓ na tela `GerenciadorArranjos`, num
+       * circuito fechado, e os 589 projetos do acervo têm estes campos vazios.
+       * O Core lê topologia string de `engenharia_eletrica.arranjo`, e apenas
+       * de lá — `dominio/potencia`, `dominio/unifilar` e o portão de
+       * integridade dizem isso por extenso.
+       *
+       * `micros[]` acima é OUTRA COISA: é a fonte canônica da topologia de
+       * MICROINVERSOR, consumida pelo domínio inteiro. Não confundir os dois
+       * blocos só porque moram no mesmo subdocumento.
+       *
+       * ── Direção arquitetural ───────────────────────────────────────────────
+       * Topologia PERTENCE ao arranjo, e o destino é justamente este campo. A
+       * migração dos consumidores do Core (potência, unifilar, integridade,
+       * EtapaMppt, ConfiguradorArranjoFV) é sprint própria, com testes de
+       * equivalência, e só então a escrita LEGACY para. Até lá, esta estrutura
+       * fica ISOLADA: a UX que já a usa continua funcionando, e nenhum
+       * consumidor novo do Core pode lê-la — há guard para isso.
+       *
+       * ── F10 · Evidência do requisito, medida no acervo ─────────────────────
+       * A F-04 registrou que os 589 projetos têm estes campos vazios, e isso
+       * continua verdade: `arranjos[].configuracao_eletrica.mppts` segue em
+       * 0/589. Mas a F10 mediu o que faltava — se o CASO DE USO existe:
+       *
+       *   projetos com mais de um arranjo .................... 5
+       *   destes, com modelos de inversor DIFERENTES por arranjo  4
+       *   destes, já persistindo `compatibilidade` por arranjo ... 0
+       *
+       * CORREÇÃO (F11-AUDIT): a F10 registrou "2" nesta última linha. Estava
+       * errado. O que a F10 mediu foi a lista de CHAVES de `configuracao_eletrica`,
+       * e o Mongoose materializa os defaults — a chave `compatibilidade` existe
+       * em todos, com valor `null`. Inspecionado o VALOR, nenhum dos 5 projetos
+       * persiste compatibilidade por arranjo.
+       *
+       * São propostas reais, não fixtures: "Mercado Avelino" (Huawei
+       * SUN2000-60KTL-M0 + Solplanet ASW50K-LT-G2), "Sistema FV 131.29 kWp"
+       * (Huawei 60K + 50K), "Sistema FV novo kWp" (3 arranjos), "Ampliação" e
+       * "Wagner Hoymiles + tcl".
+       *
+       * Leitura honesta disso: o requisito funcional de multiarranjo está
+       * COMPROVADO — o negócio já vende sistemas assim. O que NÃO está
+       * comprovado é que o domínio o suporta ponta a ponta. Por isso a F10
+       * decidiu manter esta estrutura como LEGACY isolado e não preparar
+       * adapter dormente: migrar agora misturaria arquitetura de persistência
+       * com implementação de multiarranjo, que é outro problema.
+       *
+       * `MULTIPLOS_INVERSORES` (dominio/unifilar/integridade.js) permanece —
+       * é proteção válida enquanto o desenho representar um inversor só, e
+       * removê-lo não "habilita" multiarranjo, apenas cala o aviso.
+       *
+       * O sprint de migração deve começar por uma auditoria de capacidade
+       * nesta ordem, não pela persistência:
+       *   persistência → engenharia → compatibilidade → potência → unifilar
+       *   → orçamento → homologação
+       */
       num_mppts_usados:              { type: Number, default: null },
       total_modulos:                 { type: Number, default: null },
       quantidade_modulos_por_string: { type: Number, default: null },

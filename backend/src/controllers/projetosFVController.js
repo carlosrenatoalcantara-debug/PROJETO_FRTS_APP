@@ -9,7 +9,7 @@ import { Tecnico } from '../models/Tecnico.js'
 import mongoose from 'mongoose'
 import { memoryStore } from '../config/memoryStorage.js'
 import { montarSnapshotRT } from '../utils/snapshotRT.js'
-import { montarArranjosAmpliacao, composicaoDoProjeto } from '../services/arranjosService.js'
+import { montarArranjosAmpliacao, composicaoDoProjeto, garantirIdentidade } from '../services/arranjosService.js'
 import { obterLocalProjeto } from '../dominio/local/index.js'
 // FV-UX-038 (D2): regra da estrutura no domínio, não só na interface.
 import { validarEstrutura } from '../dominio/estrutura/index.js'
@@ -39,6 +39,7 @@ import { resolverCongelamento } from '../dominio/congelamento/resolverCongelamen
 // S3: camada de acesso ÚNICA à topologia (Instalação → nova; senão → Arranjo).
 // Proibido ler projeto.arranjos direto fora deste adapter.
 import { obterTopologiaProjeto } from '../dominio/topologia/index.js'
+import { arranjosCanonicos } from '../dominio/topologia/arranjosCanonicos.js'
 // Fase 0.5 — M-4: escopo de organização (ponto único).
 // `carimbarTenant` faltava neste import: `criarProjetoFV`, `duplicarProjetoFV` e
 // `ampliarProjetoFV` já o usavam, e as três estouravam ReferenceError em runtime.
@@ -800,7 +801,23 @@ export const salvarEtapaProjetoFV = async (req, res) => {
         // P1-UX-FRONT-CONNECT-01 — recebe { lista: [...] } (array embrulhado p/ passar
         // pela validação que rejeita `dados` array). Substitui o array inteiro de arranjos:
         // a remoção de um bloco no frontend já limpa o índice antes do envio.
-        $set.arranjos = Array.isArray(dados.lista) ? dados.lista : []
+        //
+        // F13 — identidade garantida na ESCRITA, nunca na leitura.
+        //
+        // O frontend chegava aqui com o id que cada bloco carregava, e um deles
+        // era o literal `'arr_primario'`: bastava um arranjo já persistido com
+        // esse id voltar na lista para o documento passar a ter dois. Daí em
+        // diante `find(tipo === 'principal')` escolhia o primeiro em silêncio,
+        // inclusive ao montar o documento de homologação.
+        //
+        // `garantirIdentidade` preenche id ausente e desempata repetido —
+        // mantendo a PRIMEIRA ocorrência, que é a única escolha que não troca a
+        // identidade de um arranjo já correto. Nenhum outro campo é tocado:
+        // equipamento, potência, quantidade e tipo passam intactos.
+        //
+        // Corrigir na leitura seria mais fácil e estaria errado: a identidade
+        // mudaria a cada GET e nada seria estável.
+        $set.arranjos = garantirIdentidade(Array.isArray(dados.lista) ? dados.lista : [])
         break
       }
 
@@ -2288,10 +2305,27 @@ export const listarOpcoesFV = async (req, res) => {
         BaselineService.avaliarGate('engenharia', filtro).catch(() => null),
       ])
       const composicao = composicaoDoProjeto(o)
-      // Topologia: `micros[]` preenchido é o fato (FV-DOM-031C).
-      const arranjo = (o.arranjos ?? [])[0] ?? null
-      const topologia = arranjo?.configuracao_eletrica?.micros?.length ? 'micro'
-        : (arranjo?.topologia ?? (o.engenharia_eletrica?.arranjo?.mppts?.length ? 'string' : null))
+      // ── F14-3C · topologia resolvida pelo ADAPTER ──────────────────────────
+      //
+      // Antes, aqui:
+      //
+      //   const arranjo = (o.arranjos ?? [])[0] ?? null
+      //   const topologia = arranjo?.configuracao_eletrica?.micros?.length ? 'micro'
+      //     : (arranjo?.topologia ?? (o.engenharia_eletrica?.arranjo?.mppts?.length ? 'string' : null))
+      //
+      // Era a MESMA expressão de `EnvioPropostaService`, copiada — e o fato de
+      // existir duas vezes é o que fazia a regra divergir sozinha. Migrado na
+      // F14-3B lá, aqui agora; a precedência vive no adapter desde a F14-3A:
+      //   micros[] > arranjo.topologia > LEGADO atribuível > ausência.
+      //
+      // `topologiaProjeto.efetiva` deriva de TODOS os arranjos. Unânime entre os
+      // conhecidos devolve o valor; classificações diferentes devolvem `null`,
+      // em vez de mostrar a do primeiro como se fosse a do sistema.
+      //
+      // O `.select()` acima NÃO foi ampliado: o rótulo não depende de
+      // `arranjos.id` nem de `arranjos.tipo`, e este retorno faz `{ ...o }` —
+      // campo a mais no `select` viraria campo a mais na resposta.
+      const topologia = arranjosCanonicos(o).topologiaProjeto.efetiva
       return {
         ...o,
         topologia,

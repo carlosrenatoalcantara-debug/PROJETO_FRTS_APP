@@ -5,6 +5,10 @@ import { ProjetoFVProvider, useProjetoFV } from '../contexts/ProjetoFVContext'
 import { buscarProjeto, salvarEtapa, criarProjeto, resolverClientePorNome,
          adaptarLocalizacao, adaptarDimensionamento, adaptarFatura,
          adaptarEquipamentos, adaptarLayoutSolar, adaptarWorkflow } from '../services/projetoFVApi'
+// F-03: envelope elétrico volta do SSOT pela referência, e passa pelo MESMO
+// adapter da seleção — reidratado e recém-escolhido viram o mesmo objeto.
+import { reidratarEquipamento } from '../services/catalogoEngenhariaApi'
+import { adaptarModulo, adaptarInversor } from '../utils/catalogoEngenhariaAdapter'
 
 const LS_KEY = 'forte_solar_wizard_fv_v3'
 
@@ -65,7 +69,7 @@ function WizardInterno() {
     if (idParam) {
       // Retomada via ?id=: carregar projeto do banco e hidratar todos os slices
       buscarProjeto(idParam)
-        .then(p => {
+        .then(async p => {
           // FV-01: hidratação completa (fatura, localização, dimensionamento, área, equipamentos)
           const fe  = p.fatura_extracao  || {}
           const loc = p.localizacao      || {}
@@ -82,21 +86,49 @@ function WizardInterno() {
             return 'monofasico'
           }
 
-          // Painel: paineis[0] → formato Context
+          /**
+           * F-03 — reidratação do equipamento pela referência ao SSOT.
+           *
+           * Do equipamento se persiste referência (`equipamento_id`) e uma cópia
+           * mínima: marca, modelo, potência. O ENVELOPE elétrico (Voc, Vmpp,
+           * Isc, coeficiente térmico, janela MPPT) fica no catálogo de
+           * propósito — é lá que ele se corrige, e copiá-lo criaria uma segunda
+           * verdade elétrica dentro do projeto.
+           *
+           * Antes, a reidratação montava um objeto só com a cópia mínima, e sem
+           * `id`. `dadosEletricosPainel` começa com `if (!painel?.id) return
+           * null`: a tela reabria dizendo "dados elétricos não mapeados" e a
+           * análise só voltava se o usuário reselecionasse o equipamento à mão.
+           *
+           * O envelope volta agora pelo MESMO adapter da seleção, o que torna o
+           * objeto reidratado indistinguível de um recém-escolhido — é o que faz
+           * o resultado pós-reload ser igual ao de antes.
+           *
+           * Catálogo fora do ar, projeto antigo sem referência ou equipamento
+           * removido: fica a cópia mínima, a lacuna aparece na tela, e nada é
+           * assumido no lugar do que falta.
+           */
           const painelDB = eq.paineis?.[0] || null
-          const painel   = painelDB ? {
+          const invDB    = eq.inversor || null
+          const [docPainel, docInversor] = await Promise.all([
+            reidratarEquipamento(painelDB?.equipamento_id || painelDB?.id),
+            reidratarEquipamento(invDB?.equipamento_id || invDB?.id),
+          ])
+
+          const painel = painelDB ? {
+            ...(docPainel ? adaptarModulo(docPainel) : {}),
             _id:       painelDB.equipamento_id || painelDB.id || null,
-            marca:     painelDB.marca          || '',
-            modelo:    painelDB.modelo         || '',
+            marca:     painelDB.marca          || docPainel?.fabricante || '',
+            modelo:    painelDB.modelo         || docPainel?.modelo     || '',
             potenciaW: painelDB.potencia_w     || null,
             quantidade: painelDB.quantidade    || null,
           } : null
 
-          // Inversor
-          const invDB   = eq.inversor || null
           const inversor = invDB ? {
-            marca:      invDB.marca       || '',
-            modelo:     invDB.modelo      || '',
+            ...(docInversor ? adaptarInversor(docInversor) : {}),
+            _id:        invDB.equipamento_id || invDB.id || null,
+            marca:      invDB.marca       || docInversor?.fabricante || '',
+            modelo:     invDB.modelo      || docInversor?.modelo     || '',
             potenciaKW: invDB.potencia_kw || null,
             tipo:       invDB.tipo        || null,
             fases:      invDB.fases       || null,

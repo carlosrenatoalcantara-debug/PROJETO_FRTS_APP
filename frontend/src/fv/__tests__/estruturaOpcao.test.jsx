@@ -181,13 +181,26 @@ describe('FV-UX-030 · modelo da estrutura', () => {
 
 // ═══ 2 · A etapa no fluxo ═══════════════════════════════════════════════════
 describe('FV-UX-030 · lugar no fluxo', () => {
-  it('13 · Equipamentos → Estrutura, e MPPT continua depois', () => {
-    expect(vizinhas('equipamentos').proxima).toBe('estrutura')
-    expect(etapaPorChave('estrutura')).toMatchObject({ rotulo: 'Estrutura', agregado: 'ProjetoFV' })
+  // Sprint A reordenou o grupo comercial: Equipamentos → Topologia → Estrutura
+  // → Cotações. A asserção anterior (`equipamentos.proxima === 'estrutura'`,
+  // estrutura ANTES de mppt) fixava a ordem que esta sprint substitui — não é
+  // regressão, é o contrato novo.
+  //
+  // O que a FV-UX-030 garante permanece testado: a Estrutura vive em
+  // `equipamentos.estrutura`, vem depois de Equipamentos e antes do Orçamento.
+  // Mudou apenas que a Topologia se interpõe — ela descreve a composição, e a
+  // Estrutura descreve como essa composição se fixa.
+  it('13 · Estrutura é configuração de Equipamentos, antes do Orçamento', () => {
+    expect(etapaPorChave('estrutura')).toMatchObject({
+      rotulo: 'Estrutura', agregado: 'ProjetoFV', subDe: 'equipamentos',
+    })
     const chaves = ETAPAS_FLUXO.map((e) => e.chave)
     expect(chaves.indexOf('estrutura')).toBeGreaterThan(chaves.indexOf('equipamentos'))
-    expect(chaves.indexOf('estrutura')).toBeLessThan(chaves.indexOf('mppt'))
+    expect(chaves.indexOf('estrutura')).toBeGreaterThan(chaves.indexOf('mppt'))
     expect(chaves.indexOf('estrutura')).toBeLessThan(chaves.indexOf('orcamentos'))
+    // A inversão central da sprint: dimensionar ANTES de escolher equipamento.
+    expect(chaves.indexOf('dimensionamento')).toBeLessThan(chaves.indexOf('equipamentos'))
+    expect(vizinhas('equipamentos').proxima).toBe('mppt')
   })
 })
 
@@ -321,7 +334,7 @@ describe('FV-UX-030 · a composição não apaga a estrutura', () => {
       equipamentos: { ...clone(COMPOSTO.equipamentos), estrutura: { tipo: 'Fibrocimento', descricao: 'gancho' } },
     }
     render(<EtapaEquipamentos />)
-    await waitFor(() => expect(screen.getByLabelText('Módulo').disabled).toBe(false))
+    await waitFor(() => expect(screen.getByLabelText('Marca do módulo').disabled).toBe(false))
 
     fireEvent.change(screen.getByLabelText('Quantidade do módulo 1'), { target: { value: '30' } })
     fireEvent.click(screen.getByText('Salvar composição'))

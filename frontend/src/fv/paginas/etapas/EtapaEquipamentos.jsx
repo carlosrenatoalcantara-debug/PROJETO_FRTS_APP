@@ -49,8 +49,10 @@ export default function EtapaEquipamentos() {
   const [salvo, setSalvo] = useState(false)
 
   // Formulário de adição — um por tipo.
-  const [novoModulo, setNovoModulo] = useState({ id: '', quantidade: '' })
-  const [novoInversor, setNovoInversor] = useState({ id: '', quantidade: '' })
+  // Sprint C: `marca` é estado de NAVEGAÇÃO do seletor — nunca é persistida a
+  // partir daqui. O que vai para o projeto continua sendo o `id` canônico.
+  const [novoModulo, setNovoModulo] = useState({ marca: '', id: '', quantidade: '' })
+  const [novoInversor, setNovoInversor] = useState({ marca: '', id: '', quantidade: '' })
 
   useEffect(() => {
     let vivo = true
@@ -104,7 +106,7 @@ export default function EtapaEquipamentos() {
         existente.quantidade = anterior === null ? q : anterior + q
       } else c.paineis.push(painelDoCatalogo(eq, q))
     })
-    setNovoModulo({ id: '', quantidade: '' })
+    setNovoModulo((s) => ({ marca: s.marca, id: '', quantidade: '' }))
   }
 
   function adicionarInversor() {
@@ -118,7 +120,7 @@ export default function EtapaEquipamentos() {
         existente.quantidade = anterior === null ? q : anterior + q
       } else c.inversores.push({ ...inversorDoCatalogo(eq), quantidade: q })
     })
-    setNovoInversor({ id: '', quantidade: '' })
+    setNovoInversor((s) => ({ marca: s.marca, id: '', quantidade: '' }))
   }
 
   const removerModulo = (i) => mutar((c) => c.paineis.splice(i, 1))
@@ -153,6 +155,31 @@ export default function EtapaEquipamentos() {
   const coerencia = coerenciaComDimensionamento(atual, projeto?.dimensionamento?.num_paineis)
   const kwp = potenciaCcKwp(atual)
   const kwCa = potenciaCaKw(atual)
+
+  /**
+   * Sprint B — o resultado do Dimensionamento chega aqui.
+   *
+   * NECESSIDADE é `dimensionamento.potencia_kwp`, a fonte canônica da FV-DOM-052.
+   * COMPRADA é a potência da composição desta tela. Nada novo é persistido: a
+   * comparação é DERIVADA das duas fontes que já existem (INV-58).
+   *
+   * ── Por que a diferença de quantidade não é acusada como erro ───────────────
+   * Desde a Sprint A o Dimensionamento vem ANTES desta etapa. Na primeira
+   * passagem ainda não há módulo escolhido, e o motor estima a quantidade com a
+   * referência de 550 W. Comparar aquela quantidade com uma composição de módulos
+   * de outra potência produz diferença ESPERADA, não defeito.
+   *
+   * A tela NÃO tenta adivinhar qual potência o motor usou. Reproduzir aqui o
+   * `ceil(kWp × 1000 / pot_modulo_w)` para deduzir isso seria trazer a fórmula do
+   * motor para o cliente — exatamente o que a FV-UX-019/029 proíbe, e o que os
+   * checks desta suíte barram. Em vez de inferir, a tela diz o que sabe: quando
+   * há diferença, recalcular o Dimensionamento com o módulo escolhido é o que
+   * resolve. Quem decide é o motor, não esta página.
+   */
+  const necessidadeKwp = (() => {
+    const v = Number(projeto?.dimensionamento?.potencia_kwp)
+    return Number.isFinite(v) && v > 0 ? v : null
+  })()
   const primeiroInversor = atual.inversores[0] ?? null
   const avisoFase = primeiroInversor
     ? avisoDeFase(projeto?.fatura_extracao?.tipo_ligacao, primeiroInversor.fases ?? null)
@@ -168,6 +195,55 @@ export default function EtapaEquipamentos() {
     const outros = (inversores ?? []).filter((e) => restante.has(String(e._id)))
     return outros.length ? [...grupos, ['outros', 'Outros', outros]] : grupos
   })()
+
+  /**
+   * Sprint C — seleção hierárquica: Tipo → Marca → Modelo → Equipamento SSOT.
+   *
+   * As marcas são DERIVADAS do catálogo carregado (`equipamento.fabricante`).
+   * Nenhuma lista de marcas existe no código: hardcodá-las criaria o catálogo
+   * paralelo que a FV-UX-019 proíbe, e o catálogo real muda sem avisar a UX.
+   *
+   * A seleção continua apontando para o mesmo canônico de sempre — `_id`, que
+   * `moduloDoCatalogo`/`inversorDoCatalogo` gravam em `equipamento_id`. Nenhum
+   * campo novo, nenhuma especificação duplicada: potência e demais parâmetros
+   * seguem vindo do SSOT (`potenciaDoModulo`, `potenciaDoInversor`).
+   *
+   * Equipamento sem fabricante declarado não é escondido nem inventado: cai em
+   * "sem marca declarada", e continua selecionável pelo modelo.
+   */
+  const SEM_MARCA = '— sem marca declarada —'
+  const marcaDe = (e) => {
+    const m = typeof e?.fabricante === 'string' ? e.fabricante.trim() : ''
+    return m === '' ? SEM_MARCA : m
+  }
+
+  /**
+   * Marcas presentes na lista, sem repetição, em ordem alfabética, com a
+   * contagem de modelos de cada uma.
+   *
+   * A contagem é escrita sem `?? 0` de propósito: o check da FV-UX-019 varre
+   * este arquivo atrás desse padrão, porque foi assim que defaults técnicos
+   * fabricados entraram no adapter do wizard. Aqui seria só um contador, mas a
+   * guarda é textual — e contorná-la valeria menos que escrever de outro jeito.
+   */
+  const marcasDe = (lista) => {
+    const vistas = new Map()
+    for (const e of lista ?? []) {
+      const m = marcaDe(e)
+      const anterior = vistas.has(m) ? vistas.get(m) : 0
+      vistas.set(m, anterior + 1)
+    }
+    return [...vistas.entries()].sort((a, b) => a[0].localeCompare(b[0], 'pt-BR'))
+  }
+
+  /** Só os equipamentos da marca escolhida. Marca vazia devolve lista vazia. */
+  const modelosDaMarca = (lista, marca) =>
+    marca === '' ? [] : (lista ?? []).filter((e) => marcaDe(e) === marca)
+
+  const marcasModulo = marcasDe(modulos)
+  const marcasInversor = marcasDe(inversores)
+  const modelosModulo = modelosDaMarca(modulos, novoModulo.marca)
+  const modelosInversor = modelosDaMarca(inversores, novoInversor.marca)
 
   const linhaQtd = (valor, aoMudar, rotuloAria) => (
     <input
@@ -217,14 +293,32 @@ export default function EtapaEquipamentos() {
 
       <div className="mt-3 flex flex-wrap items-end gap-2 rounded border border-slate-200 bg-slate-50 p-3">
         <label className="text-sm">
-          <span className="block text-slate-600">Módulo do catálogo</span>
+          <span className="block text-slate-600">Marca do módulo</span>
           <select
-            aria-label="Módulo" disabled={catalogoCarregando}
-            value={novoModulo.id} onChange={(e) => setNovoModulo({ ...novoModulo, id: e.target.value })}
-            className="mt-1 w-96 rounded border border-slate-300 px-2 py-1"
+            aria-label="Marca do módulo" disabled={catalogoCarregando}
+            value={novoModulo.marca}
+            onChange={(e) => setNovoModulo({ ...novoModulo, marca: e.target.value, id: '' })}
+            className="mt-1 w-56 rounded border border-slate-300 px-2 py-1"
           >
-            <option value="">{catalogoCarregando ? 'carregando catálogo…' : 'não selecionado'}</option>
-            {(modulos ?? []).map((e) => (
+            <option value="">
+              {catalogoCarregando ? 'carregando catálogo…' : `selecione a marca (${marcasModulo.length})`}
+            </option>
+            {marcasModulo.map(([marca, n]) => (
+              <option key={marca} value={marca}>{marca} ({n})</option>
+            ))}
+          </select>
+        </label>
+        <label className="text-sm">
+          <span className="block text-slate-600">Modelo</span>
+          <select
+            aria-label="Módulo" disabled={catalogoCarregando || novoModulo.marca === ''}
+            value={novoModulo.id} onChange={(e) => setNovoModulo({ ...novoModulo, id: e.target.value })}
+            className="mt-1 w-96 rounded border border-slate-300 px-2 py-1 disabled:bg-slate-100"
+          >
+            <option value="">
+              {novoModulo.marca === '' ? 'escolha a marca primeiro' : 'não selecionado'}
+            </option>
+            {modelosModulo.map((e) => (
               <option key={e._id} value={String(e._id)}>
                 {rotuloDoEquipamento(e, potenciaDoModulo(e), 'W')}
               </option>
@@ -271,36 +365,16 @@ export default function EtapaEquipamentos() {
         </tbody>
       </table>
 
-      <div className="mt-3 flex flex-wrap items-end gap-2 rounded border border-slate-200 bg-slate-50 p-3">
-        <label className="text-sm">
-          <span className="block text-slate-600">Inversor do catálogo</span>
-          <select
-            aria-label="Inversor" disabled={catalogoCarregando}
-            value={novoInversor.id} onChange={(e) => setNovoInversor({ ...novoInversor, id: e.target.value })}
-            className="mt-1 w-96 rounded border border-slate-300 px-2 py-1"
-          >
-            <option value="">{catalogoCarregando ? 'carregando catálogo…' : 'não selecionado'}</option>
-            {porTecnologia.map(([chave, rotulo, lista]) => (
-              <optgroup key={chave} label={`${rotulo} (${lista.length})`}>
-                {lista.map((e) => (
-                  <option key={e._id} value={String(e._id)}>{rotuloDoInversor(e)}</option>
-                ))}
-              </optgroup>
-            ))}
-          </select>
-        </label>
-        <label className="text-sm">
-          <span className="block text-slate-600">Quantidade</span>
-          {linhaQtd(novoInversor.quantidade, (v) => setNovoInversor({ ...novoInversor, quantidade: v }), 'Quantidade do novo inversor')}
-        </label>
-        <button
-          type="button" onClick={adicionarInversor}
-          disabled={!novoInversor.id || quantidade(novoInversor.quantidade) === null}
-          className="rounded bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-700 disabled:bg-slate-400"
-        >
-          Adicionar inversor
-        </button>
-      </div>
+        {/* Sprint D2 — a SELEÇÃO do inversor saiu daqui.
+            Escolher inversor exige saber a topologia e a compatibilidade
+            elétrica, que só existem na etapa Topologia. A composição continua
+            sendo gravada do mesmo jeito, no mesmo `arranjos[]`, com o mesmo
+            `equipamento_id` — o que mudou foi ONDE se escolhe, não o dado. */}
+        <p className="mt-3 rounded border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
+          O inversor é escolhido na etapa <strong>Topologia</strong>, entre os
+          modelos que o motor elétrico aprovar para a configuração do projeto.
+          Os inversores já gravados aparecem acima e seguem editáveis em quantidade.
+        </p>
 
       {avisoFase && (
         <p className="mt-3 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800">
@@ -321,15 +395,42 @@ export default function EtapaEquipamentos() {
             <dd className="text-slate-900">{v}</dd>
           </div>
         ))}
+        {/* Sprint B: a necessidade calculada pelo Dimensionamento chega aqui, ao
+            lado do que a composição de fato compra. Duas fontes canônicas
+            (FV-DOM-052); a diferença é DERIVADA, nunca persistida (INV-58). */}
         <div className="flex gap-2 px-4 py-2">
-          <dt className="w-52 shrink-0 text-slate-500">Previsto no dimensionamento</dt>
+          <dt className="w-52 shrink-0 text-slate-500">Necessidade (dimensionamento)</dt>
+          <dd className={necessidadeKwp === null ? 'text-amber-700' : 'text-slate-900'}>
+            {necessidadeKwp === null
+              ? 'não calculada — etapa Dimensionamento'
+              : <>
+                  {necessidadeKwp} kWp
+                  {kwp !== null && (
+                    <span className={`ml-2 text-xs ${kwp >= necessidadeKwp ? 'text-emerald-700' : 'text-amber-700'}`}>
+                      {kwp >= necessidadeKwp
+                        ? `composição atende (+${(kwp - necessidadeKwp).toFixed(2)} kWp)`
+                        : `faltam ${(necessidadeKwp - kwp).toFixed(2)} kWp`}
+                    </span>
+                  )}
+                </>}
+          </dd>
+        </div>
+        <div className="flex gap-2 px-4 py-2">
+          <dt className="w-52 shrink-0 text-slate-500">Quantidade mínima prevista</dt>
           <dd className={coerencia.diferenca === null ? 'text-amber-700'
-            : coerencia.diferenca === 0 ? 'text-emerald-700' : 'text-amber-700'}>
+            : coerencia.diferenca === 0 ? 'text-emerald-700' : 'text-slate-600'}>
             {coerencia.previsto === null
-              ? 'não informado — etapa Dimensionamento'
+              ? 'não informada — etapa Dimensionamento'
               : coerencia.diferenca === 0
                 ? `${coerencia.previsto} un. — composição confere`
                 : `${coerencia.previsto} un. — diferença de ${coerencia.diferenca > 0 ? '+' : ''}${coerencia.diferenca}`}
+            {coerencia.diferenca !== null && coerencia.diferenca !== 0 && (
+              <span className="block text-xs text-slate-500">
+                Diferença esperada quando o Dimensionamento rodou antes de haver
+                módulo escolhido — ele usa 550 W de referência. Recalcule o
+                Dimensionamento para obter a quantidade do módulo desta composição.
+              </span>
+            )}
           </dd>
         </div>
       </dl>

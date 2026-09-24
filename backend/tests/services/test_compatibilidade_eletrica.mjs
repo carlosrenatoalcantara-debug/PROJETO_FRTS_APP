@@ -628,17 +628,39 @@ ok('Input original não é mutado pela função',
            climaCopy.temperatura_min_historica_c === CLIMA_NATAL.temperatura_min_historica_c
   })())
 
-ok('Warning oversizing entre 1.30 e 1.50 (sem erro)',
+// F2 — o aviso de oversizing depende do limite DO FABRICANTE. Com o limite
+// declarado, avisa; sem ele, o critério fica `nao_avaliado` e nenhum número é
+// assumido no lugar. Antes o motor usava `?? 1.30`, e como ZERO inversores do
+// catálogo declaram `oversizing_max`, todo aviso saía contra valor inventado.
+const _ovr = (potencia_ca_kw, oversizing_max_fabricante) => analisarCompatibilidade({
+  dados_eletricos_modulo:   MODULO,
+  dados_eletricos_inversor: { ...INVERSOR, potencia_ca_kw, oversizing_max_fabricante },
+  arranjo_proposto:         { quantidade_modulos_por_string: 18, quantidade_strings_paralelo: 1 },
+  dados_climaticos_regiao:  CLIMA_NATAL,
+})
+
+ok('Oversizing 1.40× com limite de fabricante 1.30× → warning, sem erro',
   (() => {
-    const rw = analisarCompatibilidade({
-      dados_eletricos_modulo:   MODULO,
-      dados_eletricos_inversor: { ...INVERSOR, potencia_ca_kw: 7 },   // 9.81/7=1.40×
-      arranjo_proposto:         { quantidade_modulos_por_string: 18, quantidade_strings_paralelo: 1 },
-      dados_climaticos_regiao:  CLIMA_NATAL,
-    })
+    const rw = _ovr(7, 1.30)                                          // 9.81/7 = 1.40×
     return temWarning(rw, 'OVERSIZING_ELEVADO') && naoTemErro(rw, 'OVERSIZING_CRITICO')
   })(),
-  '9.81 kWp / 7 kW = 1.40× → warning, não erro')
+  '9.81 kWp / 7 kW = 1.40× acima de 1.30× declarado → warning, não erro')
+
+ok('Oversizing 1.40× SEM limite de fabricante → nao_avaliado, sem warning',
+  (() => {
+    const rw = _ovr(7, undefined)
+    return naoTemErro(rw, 'OVERSIZING_CRITICO') &&
+           !temWarning(rw, 'OVERSIZING_ELEVADO') &&
+           (rw.nao_avaliados ?? []).some((n) => n.criterio === 'oversizing_fabricante')
+  })(),
+  'Sem `oversizing_max` no catálogo, nenhum limite é assumido')
+
+ok('Teto de segurança 1,50× reprova mesmo sem limite de fabricante',
+  (() => {
+    const rw = _ovr(6, undefined)                                     // 9.81/6 = 1.635×
+    return !naoTemErro(rw, 'OVERSIZING_CRITICO')
+  })(),
+  '9.81 kWp / 6 kW = 1.64× → erro pelo teto do SISTEMA, que não depende de cadastro')
 
 // ─── RESULTADO FINAL ──────────────────────────────────────────────────────────
 

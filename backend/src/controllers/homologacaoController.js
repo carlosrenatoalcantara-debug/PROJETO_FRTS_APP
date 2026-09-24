@@ -26,6 +26,7 @@ import { projetoEstaCongelado } from '@fortesolar/fv-shared/estados/congelamento
 import { aplicarEscopo } from '../dominio/tenancy/index.js'
 import { BaselineService } from '../services/BaselineService.js'
 import { ErroGate } from '../dominio/gate/index.js'
+import { arranjosCanonicos } from '../dominio/topologia/arranjosCanonicos.js'
 
 // P1-NEW01-HOMOLOGACAO-PERSISTENCE-FIX-01: o Map() legado foi REMOVIDO.
 // Todo o estado de homologação (checklist + status legado) agora persiste no Mongo
@@ -82,13 +83,171 @@ function _depsDoSnapshot(snapCat) {
  * intacto. Sem heurística: `micros[]` preenchido é o fato.
  */
 function _microsDoProjeto(proj) {
-  const arranjos = Array.isArray(proj?.arranjos) ? proj.arranjos : []
-  const a = arranjos.find((x) => x?.tipo === 'principal') ?? arranjos[0] ?? null
-  const lista = a?.configuracao_eletrica?.micros
-  return Array.isArray(lista) && lista.length > 0 ? lista : null
+  // F14-4: era `arranjos.find(principal) ?? arranjos[0]` — escolhia UM arranjo e
+  // descrevia os micros dele como se fossem os do sistema. Agora atravessa
+  // todos, pelo adapter, sem seleção por posição.
+  const lista = arranjosCanonicos(proj).arranjos.flatMap((a) => a.topologia.micros)
+  return lista.length > 0 ? lista : null
 }
 
-async function _carregarDepsDocumento(projetoId, projetoBody) {
+/**
+ * O documento de homologação consegue representar ESTE projeto? — F14-4.
+ *
+ * ── O que a auditoria realmente encontrou ───────────────────────────────────
+ * A F14 registrou que este controller "descarta até 354 de 565 módulos". A
+ * medição estava certa sobre a FORMA da seleção e errada sobre o alvo: os
+ * documentos não leem contagem de módulos de `arranjos[]`. O memorial recebe um
+ * modelo PLANO pelo corpo da requisição — `projeto.inversor`, `projeto.painel`,
+ * `projeto.potencia_kwp` — que nunca teve arranjos. `arranjos[]` entrava aqui
+ * só por `_microsDoProjeto`.
+ *
+ * O risco documental é real, mas é outro: o modelo plano descreve UM inversor e
+ * UM módulo. Num projeto cujos arranjos têm inversores diferentes — Mercado
+ * Avelino é Huawei 60K **e** Solplanet 50K — o documento enviado à
+ * distribuidora descreve metade da usina, e nada avisa.
+ *
+ * ── A decisão ───────────────────────────────────────────────────────────────
+ * O template é singular. Fingir suporte seria inventar um documento; emitir
+ * assim mesmo seria declarar usina parcial. Então: recusa a emissão, com motivo
+ * nomeado, só nos casos em que o modelo plano de fato não representa o projeto.
+ *
+ * Não bloqueia por ser multiarranjo. Bloqueia por ser IRREPRESENTÁVEL:
+ *   · mais de um MODELO de inversor entre os arranjos — o documento cita um;
+ *   · mais de um arranjo com topologia de micro — a seção mostra uma lista.
+ *
+ * Dois arranjos do mesmo inversor somam quantidade e continuam representáveis.
+ *
+ * @returns {{suportado: boolean, motivo?: string, detalhe?: object}}
+ */
+function _avaliarSuporteDocumental(proj) {
+  // F14-5 · o gate foi REAVALIADO por capacidade efetiva do documento.
+  //
+  // A F14-4 bloqueava `MULTIARRANJO_INVERSORES_DIFERENTES` porque o memorial
+  // descrevia UM inversor. Agora ele descreve um bloco por grupo de inversor,
+  // então Huawei 60K + Solplanet 50K passou a ser representável — e bloquear
+  // seria recusar um documento que o sistema sabe emitir corretamente.
+  //
+  // O mesmo vale para micros em vários arranjos: cada grupo traz os seus.
+  //
+  // Sobra um caso genuinamente irrepresentável, e ele é bloqueado: arranjo COM
+  // módulos e SEM inversor. Não há como descrever o sistema daquele arranjo —
+  // e inventar o inversor de outro grupo seria a fabricação que a F14 removeu.
+  const doc = _arranjosDocumentais(proj)
+  const orfaos = doc.grupos.filter((g) => g.n_modulos > 0 && !g.inversor)
+  if (orfaos.length > 0) {
+    return {
+      suportado: false,
+      motivo: 'ARRANJO_COM_MODULOS_SEM_INVERSOR',
+      detalhe: {
+        arranjos: orfaos.flatMap((g) => g.arranjos_ids),
+        modulos_sem_inversor: orfaos.reduce((s, g) => s + g.n_modulos, 0),
+        explicacao: 'Há arranjo com módulos e sem inversor declarado. O documento '
+          + 'não consegue descrever esse sistema, e atribuir o inversor de outro '
+          + 'arranjo seria inventar equipamento.',
+      },
+    }
+  }
+  return { suportado: true }
+}
+
+/**
+ * Projeção DOCUMENTAL dos arranjos — F14-5.
+ *
+ * Derivada do adapter, nunca uma segunda fonte. Leva só o que os documentos
+ * usam: identidade, equipamento e quantidade por arranjo.
+ *
+ * ── Consolidação ────────────────────────────────────────────────────────────
+ * Arranjos com o MESMO modelo de inversor são agrupados — somam quantidade de
+ * módulos e de inversores, e a lista de ids de origem viaja junto, para que a
+ * associação não se perca. É o caso de "Sistema FV novo kWp", que tem dois
+ * Huawei 60K e um 50K: vira duas entradas, não três, sem perder nada.
+ *
+ * Modelos DIFERENTES nunca são consolidados. Consolidar Huawei 60K com
+ * Solplanet 50K produziria um inversor que não existe.
+ *
+ * A consolidação é por MODELO, não por total: dois arranjos cuja soma de
+ * módulos coincide continuam separados se os inversores diferem.
+ */
+function _arranjosDocumentais(proj, equipamentos = []) {
+  const canonico = arranjosCanonicos(proj)
+  const porModelo = new Map()
+
+  for (const a of canonico.arranjos) {
+    const inv = a.inversor.itens[0] ?? null
+    const chave = inv ? `${inv.fabricante ?? ''}|${inv.modelo ?? ''}` : `__sem_inversor__${a.id}`
+    const atual = porModelo.get(chave)
+    const modulos = a.modulos.itens
+    const nModulos = a.modulos.total
+    const nInversores = a.inversor.itens.reduce((s, i) => s + (Number(i.quantidade) || 1), 0)
+
+    if (atual) {
+      atual.arranjos_ids.push(a.id)
+      atual.rotulos.push(a.rotulo ?? a.id)
+      atual.n_modulos += nModulos
+      atual.n_inversores += nInversores
+      if (!atual.modulo && modulos[0]) atual.modulo = modulos[0]
+      continue
+    }
+    porModelo.set(chave, {
+      arranjos_ids: [a.id],
+      rotulos: [a.rotulo ?? a.id],
+      inversor: inv,
+      modulo: modulos[0] ?? null,
+      n_modulos: nModulos,
+      n_inversores: nInversores,
+      topologia: a.topologia.efetiva,
+      micros: a.topologia.micros,
+    })
+  }
+
+  // Specs do Atlas, quando o vínculo existir — o documento cita o catálogo.
+  const porId = new Map((equipamentos || []).map((e) => [String(e._id), e]))
+  const grupos = [...porModelo.values()].map((g) => ({
+    ...g,
+    inversor_catalogo: g.inversor?.equipamento_id ? porId.get(String(g.inversor.equipamento_id)) ?? null : null,
+    modulo_catalogo: g.modulo?.equipamento_id ? porId.get(String(g.modulo.equipamento_id)) ?? null : null,
+  }))
+
+  return {
+    grupos,
+    multiarranjo: canonico.multiarranjo,
+    /** Consolidou de fato? Mais arranjos que grupos significa agrupamento. */
+    consolidado: canonico.arranjos.length > grupos.length,
+    n_arranjos: canonico.arranjos.length,
+    n_modulos_total: canonico.totais.n_modulos_total,
+    potencia_cc_kwp: canonico.totais.potencia_total_kwp,
+    potencia_ca_kw: canonico.totais.potencia_inversor_total_kw,
+  }
+}
+
+/** Recusa a emissão quando o documento não representa o projeto. */
+function _recusarSeNaoRepresentavel(projDoc, res) {
+  const suporte = _avaliarSuporteDocumental(projDoc)
+  if (suporte.suportado) return false
+  res.status(422).json({
+    erro: 'O documento de homologação não representa este projeto sem perda de informação.',
+    codigo: suporte.motivo,
+    detalhe: suporte.detalhe,
+  })
+  return true
+}
+
+/**
+ * F14-5 — `req` virou PARÂMETRO.
+ *
+ * Esta função usava `req` em dois `aplicarEscopo` sem recebê-lo. O
+ * `ReferenceError` caía no próprio `catch` e ela devolvia `{equipamentos: []}`
+ * sempre. A FV-UX-034 registrou o defeito e não o corrigiu de propósito, porque
+ * corrigi-lo mudaria o memorial — e mudava mesmo: ele passa a ter equipamento.
+ *
+ * Sem esta correção não há fonte de equipamento nenhuma: `projeto.inversor` e
+ * `projeto.painel` não existem no `ProjetoFV` (só `potencia_kwp` e `strings[]`),
+ * então o memorial renderizava `N/A` em todo campo de equipamento, para
+ * QUALQUER projeto FV — multiarranjo ou não. Medido contra Mercado Avelino.
+ *
+ * É o que a F14-4 previu como "corrigir só se bloquear diretamente": bloqueia.
+ */
+async function _carregarDepsDocumento(projetoId, projetoBody, req) {
   const out = { equipamentos: [], beneficiarias: [], origem: 'vivo', itens_adicionais: [], micros: null }
   try {
     if (mongoose.connection?.readyState !== 1) return out
@@ -117,7 +276,17 @@ async function _carregarDepsDocumento(projetoId, projetoBody) {
     const inv = proj?.equipamentos?.inversor || {}
     const invId = refValida(inv.equipamento_id) || refValida(inv.id)
     if (invId) ids.push(invId)
-    if (ids.length) out.equipamentos = await Equipamento.find({ _id: { $in: ids } }).lean().catch(() => [])
+    // F14-5: o equipamento REAL vive em `arranjos[]`. Nos 5 projetos
+    // multiarranjo medidos, `equipamentos.inversores` está vazio — o vínculo com
+    // o Atlas está em `arranjos[].inversores[].equipamento_id`. Sem ler daqui, a
+    // busca acima volta vazia e o memorial renderiza `N/A`.
+    for (const a of arranjosCanonicos(proj).arranjos) {
+      for (const m of a.modulos.itens) { const id = refValida(m?.equipamento_id); if (id) ids.push(id) }
+      for (const i of a.inversor.itens) { const id = refValida(i?.equipamento_id); if (id) ids.push(id) }
+    }
+    if (ids.length) {
+      out.equipamentos = await Equipamento.find({ _id: { $in: [...new Set(ids.map(String))] } }).lean().catch(() => [])
+    }
   } catch { /* fallback: snapshot do projeto */ }
   return out
 }
@@ -219,7 +388,7 @@ export async function gerarMemorial(req, res) {
       return res.status(400).json({ erro: 'Dados do projeto e cliente obrigatórios' })
     }
 
-    const deps = await _carregarDepsDocumento(projetoId, projeto)
+    const deps = await _carregarDepsDocumento(projetoId, projeto, req)
     // P1-HOMOLOGACAO-SNAPSHOT-01: projeto congelado usa equipamentos do snapshot.
     const { projeto: projDoc } = _aplicarSnapshotEquip(projeto)
     // FV-DOM-031C: a topologia de micro sai do PRÓPRIO projeto recebido, e não
@@ -228,8 +397,13 @@ export async function gerarMemorial(req, res) {
     // Defeito PRÉ-EXISTENTE, relatado e não corrigido aqui: corrigi-lo
     // reativaria o enriquecimento pelo Atlas vivo e mudaria o memorial de
     // projetos string, que esta sprint tem de deixar intacto.
+    if (_recusarSeNaoRepresentavel(projDoc, res)) return
     const micros = _microsDoProjeto(projDoc)
-    const memorial = gerarMemorialDescritivo(projDoc, cliente, { ...deps, micros })
+    // F14-5: a projeção documental por arranjo. O memorial passa a descrever um
+    // bloco por grupo de inversor, em vez de descrever o primeiro como se fosse
+    // o sistema inteiro.
+    const arranjosDoc = _arranjosDocumentais(projDoc, deps.equipamentos)
+    const memorial = gerarMemorialDescritivo(projDoc, cliente, { ...deps, micros, arranjosDoc })
 
     res.json({
       sucesso: true,
@@ -257,7 +431,9 @@ export async function gerarCarta(req, res) {
 
     // P1-HOMOLOGACAO-SNAPSHOT-01: projeto congelado usa equipamentos do snapshot.
     const { projeto: projDoc, origem } = _aplicarSnapshotEquip(projeto)
-    const carta = gerarCartaConcessionaria(projDoc, cliente)
+    if (_recusarSeNaoRepresentavel(projDoc, res)) return
+    const arranjosDoc = _arranjosDocumentais(projDoc)
+    const carta = gerarCartaConcessionaria(projDoc, cliente, { arranjosDoc })
 
     res.json({
       sucesso: true,
@@ -285,7 +461,9 @@ export async function obterDadosART(req, res) {
 
     // P1-HOMOLOGACAO-SNAPSHOT-01: projeto congelado usa equipamentos do snapshot.
     const { projeto: projDoc, origem } = _aplicarSnapshotEquip(projeto)
-    const dadosART = gerarDadosART(projDoc, {})
+    if (_recusarSeNaoRepresentavel(projDoc, res)) return
+    const arranjosDoc = _arranjosDocumentais(projDoc)
+    const dadosART = gerarDadosART(projDoc, {}, { arranjosDoc })
 
     res.json({
       sucesso: true,

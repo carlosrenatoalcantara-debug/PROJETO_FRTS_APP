@@ -42,9 +42,21 @@ export function paraDimensionamento(especificacoes, equipamento = {}) {
   const voc_max_dc = _num(c.tensao_max_entrada)
   const mppt_min_v = _num(c.tensao_mppt_min)
   const mppt_max_v = _num(c.tensao_mppt_max)
-  // Precedência entre DOIS campos reais do catálogo, não default: se ambos
-  // faltarem, permanece `null`.
-  const isc_max_mppt = _num(c.corrente_isc_max) ?? _num(c.corrente_max_por_mppt)
+  // F8: a precedência `corrente_isc_max ?? corrente_max_por_mppt` foi REMOVIDA.
+  //
+  // Os dois campos eram reais, mas são GRANDEZAS DIFERENTES. `corrente_isc_max`
+  // é o limite de CURTO-CIRCUITO da entrada (Isc, IEC 62109-1);
+  // `corrente_max_por_mppt` é o limite de CORRENTE DE TRABALHO (Impp). Um
+  // inversor de 32 A de trabalho não suporta 32 A de curto — o curto é sempre o
+  // limite maior, e substituir um pelo outro produzia uma verificação
+  // SISTEMATICAMENTE mais permissiva do que o fabricante declarou, exatamente
+  // no ponto em que `montarStrings` decide se a string cabe na entrada.
+  //
+  // Não há substituto numérico: sem o limite de curto declarado, a verificação
+  // não pode ser feita. Ausência vira `null` e viaja em `lacunas`, como a
+  // FV-DOM-029 já fazia com os outros cinco. O limite de TRABALHO continua
+  // disponível em `corrente_max_por_mppt` — separado, com seu próprio nome.
+  const isc_max_mppt = _num(c.corrente_isc_max)
   const n_mppts = _num(c.n_mppts)
 
   // FV-DOM-031: o lado CC do micro tem lacunas PRÓPRIAS. Ficam num array
@@ -75,6 +87,17 @@ export function paraDimensionamento(especificacoes, equipamento = {}) {
     mppt_min_v,
     mppt_max_v,
     isc_max_mppt,
+    // F8: o limite de TRABALHO, que antes se disfarçava de limite de curto no
+    // `??`, agora sai com o próprio nome. Quem precisar dele tem acesso; quem
+    // precisar do curto não o recebe por engano.
+    corrente_max_por_mppt: _num(c.corrente_max_por_mppt),
+    // F10: limite TOTAL de entrada CC. Terceira grandeza, separada das outras
+    // duas. Ausente → `null`, e o critério `CORRENTE_ENTRADA_TOTAL_EXCEDIDA`
+    // permanece `nao_avaliado`. Não entra em `lacunas`: diferente dos cinco
+    // campos da FV-DOM-029, sua ausência não impede montar string — só deixa
+    // um critério sem avaliar. Bloquear por ela mudaria o veredito de
+    // `montarStrings` para os 52 inversores do catálogo.
+    corrente_max_entrada: _num(c.corrente_max_entrada),
     n_mppts,
     // P1-INV-TOPOLOGY-01: limite FÍSICO do equipamento (consumido, não altera regras).
     tipo_topologia:   c.tipo_topologia,

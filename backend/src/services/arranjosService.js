@@ -10,29 +10,80 @@
  * sem exigir migração destrutiva dos documentos existentes.
  */
 
-let _seq = 0
-function novoId(prefixo = 'arr') {
-  _seq = (_seq + 1) % 1e6
-  return `${prefixo}_${Date.now().toString(36)}_${_seq.toString(36)}`
+import { novoIdArranjo, garantirIdentidade, idsDuplicados } from '@fortesolar/fv-shared/projeto/identidade-arranjo'
+
+export { garantirIdentidade, idsDuplicados }
+// F13: a geração de identidade saiu daqui para o SSOT. Era uma de QUATRO
+// implementações (duas no frontend, mais o literal `'arr_primario'` gravado por
+// `E7Equipamentos`), e foi esse literal que produziu dois arranjos com o mesmo
+// id no acervo. Um gerador só, compartilhado.
+const novoId = novoIdArranjo
+
+/**
+ * Valor POSITIVO declarado. `null` para ausente, não-numérico ou ≤ 0.
+ *
+ * F12: antes cada agregador fazia `Number(x) || 0`, que colapsa TRÊS estados
+ * distintos num só — ausência, valor inválido e zero real viravam `0` e eram
+ * somados. Aqui os três continuam distintos: quem chama decide o que fazer com
+ * a ausência, em vez de recebê-la já convertida em número.
+ */
+function _decl(v) {
+  if (v === null || v === undefined || v === '') return null
+  const n = Number(v)
+  if (!Number.isFinite(n) || n <= 0) return null
+  return n
 }
 
-/** Potência DC (kWp) somando potencia_w × quantidade de cada painel. */
+/**
+ * Potência DC (kWp) somando potencia_w × quantidade de cada painel.
+ *
+ * ── F12 · Por que `null` e não a soma parcial ───────────────────────────────
+ * Esta função fazia `Number(p.potencia_w) || 0`. Um painel sem `potencia_w`
+ * entrava na soma valendo ZERO e o total saía numericamente plausível, porém
+ * falso. No projeto real "Mercado Avelino" isso produzia, no MESMO objeto,
+ * `n_modulos_total = 399` ao lado de `potencia_total_kwp = 77,43` — quando
+ * 399 × 445 W = 177,6 kWp. Os dois números se contradiziam, e nada sinalizava
+ * que um deles era parcial.
+ *
+ * A regra agora é a mesma do resto do Core desde a FV-DOM-029: a agregação é
+ * COMPLETA ou EXPLICITAMENTE INCOMPLETA. Um único painel sem potência válida
+ * torna o total não avaliável — somar os demais e apresentar o resultado como
+ * total seria inventar a diferença.
+ *
+ * @returns {number|null} kWp, ou `null` se QUALQUER painel estiver incompleto.
+ */
 export function potenciaPaineisKwp(paineis = []) {
-  const wp = (paineis || []).reduce((acc, p) => {
-    const w = Number(p?.potencia_w) || 0
-    const q = Number(p?.quantidade) || 0
-    return acc + w * q
-  }, 0)
+  const lista = paineis || []
+  if (lista.length === 0) return null
+  let wp = 0
+  for (const p of lista) {
+    const w = _decl(p?.potencia_w)
+    const q = _decl(p?.quantidade)
+    // Ausência de qualquer um dos dois fatores contamina o total inteiro.
+    if (w === null || q === null) return null
+    wp += w * q
+  }
   return wp > 0 ? Number((wp / 1000).toFixed(3)) : null
 }
 
-/** Potência AC (kW) somando potencia_kw × quantidade de cada inversor. */
+/**
+ * Potência AC (kW) somando potencia_kw × quantidade de cada inversor.
+ *
+ * F12: mesma disciplina da potência DC acima — mesma causa, mesma correção.
+ * `quantidade` ausente continua valendo 1 (é o default do schema e significa
+ * "um inversor", não "quantidade desconhecida"); `potencia_kw` ausente, não.
+ *
+ * @returns {number|null} kW, ou `null` se algum inversor não declarar potência.
+ */
 export function potenciaInversoresKw(inversores = []) {
-  const kw = (inversores || []).reduce((acc, i) => {
-    const k = Number(i?.potencia_kw) || 0
-    const q = Number(i?.quantidade) || 1
-    return acc + k * q
-  }, 0)
+  const lista = inversores || []
+  if (lista.length === 0) return null
+  let kw = 0
+  for (const i of lista) {
+    const k = _decl(i?.potencia_kw)
+    if (k === null) return null
+    kw += k * (_decl(i?.quantidade) ?? 1)
+  }
   return kw > 0 ? Number(kw.toFixed(3)) : null
 }
 
@@ -147,6 +198,19 @@ function enriquecerArranjo(a, idx = 0) {
       n_inversores,
     },
   }
+  // F14-3A · a DECLARAÇÃO do projetista, preservada antes de ser sobrescrita.
+  //
+  // A linha abaixo grava em `topologia` o resultado de `detectarTopologia`, que
+  // devolve o valor declarado quando existe e INFERE por heurística quando não
+  // existe. As duas coisas acabam no mesmo campo, e a partir daí ninguém
+  // consegue distingui-las — foi por isso que o adapter não conseguia
+  // reproduzir a precedência dos consumidores, que leem o documento cru.
+  //
+  // Campo ADITIVO: nenhum consumidor o lê, nada muda de comportamento. Ele
+  // existe para que a procedência sobreviva à normalização.
+  //   `null`  → o projetista não declarou; o que estiver em `topologia` é
+  //             inferência de `detectarTopologia`.
+  enriquecido.topologia_declarada = a.topologia ?? null
   enriquecido.topologia = detectarTopologia(enriquecido)
   return enriquecido
 }
@@ -167,27 +231,54 @@ export function calcularTotaisProjeto(projeto) {
     capacidade_bateria_total_kwh: 0,
     geracao_mensal_total_kwh: 0,
   }
+  // F12: a CONTAGEM continua somando (F-01 intacta) — um arranjo sem módulos
+  // contribui zero módulos, o que é verdade. A POTÊNCIA não: um arranjo cuja
+  // potência é desconhecida não contribui zero kWp, contribui incógnita. Somar
+  // `null` como 0 era o que transformava lacuna em total plausível.
+  let potenciaIncompleta = false
+  let potenciaInversorIncompleta = false
   for (const a of arranjos) {
     t.n_modulos_total            += a.dimensionamento?.n_modulos || 0
     t.n_inversores_total         += a.dimensionamento?.n_inversores || 0
-    t.potencia_total_kwp         += Number(a.potencia_kwp) || 0
-    t.potencia_inversor_total_kw += Number(a.potencia_inversor_kw) || 0
     t.capacidade_bateria_total_kwh += Number(a.capacidade_bateria_kwh) || 0
     t.geracao_mensal_total_kwh   += Number(a.dimensionamento?.geracao_mensal_kwh) || 0
+
+    // Um arranjo SEM painéis não torna o total incompleto — ele simplesmente não
+    // tem potência CC a somar (é o caso do arranjo de ampliação ainda vazio).
+    // O que contamina é ter painéis e não saber a potência deles.
+    // `_decl` e não `Number()`: `Number(null)` é 0 e `Number.isFinite(0)` é
+    // true — usar `Number` aqui reintroduziria o defeito que este sprint remove.
+    const temPaineis = (a.paineis?.length ?? 0) > 0
+    const pcc = _decl(a.potencia_kwp)
+    if (pcc !== null) t.potencia_total_kwp += pcc
+    else if (temPaineis) potenciaIncompleta = true
+
+    const temInversores = (a.inversores?.length ?? 0) > 0
+    const pca = _decl(a.potencia_inversor_kw)
+    if (pca !== null) t.potencia_inversor_total_kw += pca
+    else if (temInversores) potenciaInversorIncompleta = true
   }
   // arredonda os flutuantes
-  t.potencia_total_kwp = Number(t.potencia_total_kwp.toFixed(3))
-  t.potencia_inversor_total_kw = Number(t.potencia_inversor_total_kw.toFixed(3))
+  t.potencia_total_kwp = potenciaIncompleta
+    ? null : Number(t.potencia_total_kwp.toFixed(3))
+  t.potencia_inversor_total_kw = potenciaInversorIncompleta
+    ? null : Number(t.potencia_inversor_total_kw.toFixed(3))
   t.capacidade_bateria_total_kwh = Number(t.capacidade_bateria_total_kwh.toFixed(3))
   t.geracao_mensal_total_kwh = Number(t.geracao_mensal_total_kwh.toFixed(1))
   return t
 }
 
-/** Soma a potência DC (kWp) de todos os arranjos. */
+/**
+ * Soma a potência DC (kWp) de todos os arranjos.
+ *
+ * F12: delega a `calcularTotaisProjeto` em vez de repetir a soma. Eram DUAS
+ * implementações da mesma agregação, e a daqui tinha o mesmo `|| 0` — corrigir
+ * só uma deixaria a outra mentindo. Uma fonte, uma regra.
+ *
+ * @returns {number|null} `null` quando algum arranjo com painéis não declara potência.
+ */
 export function potenciaTotalKwp(projeto) {
-  const arr = normalizarArranjos(projeto)
-  const total = arr.reduce((acc, a) => acc + (Number(a.potencia_kwp) || 0), 0)
-  return total > 0 ? Number(total.toFixed(3)) : null
+  return calcularTotaisProjeto(projeto).potencia_total_kwp
 }
 
 /**

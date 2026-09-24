@@ -1,6 +1,7 @@
 import { createContext, useContext, useReducer, useEffect } from 'react'
 // FASE 1 (P1-UX-CORE-EVOLUTION-01): fonte única de verdade do funil + macro-etapas
 import { ETAPAS } from '../config/etapasFunilFV'
+import { novoIdArranjo } from '@fortesolar/fv-shared/projeto/identidade-arranjo'
 
 // Chave de storage para resiliência ao refresh (S2.8)
 const LS_KEY = 'forte_solar_wizard_fv_v3'
@@ -84,7 +85,10 @@ let _arrSeq = 0
 function novoArranjoVazio() {
   _arrSeq += 1
   return {
-    id: `arr_local_${Date.now().toString(36)}_${_arrSeq}`,
+    // F13: era o terceiro de quatro geradores de identidade (prefixo
+    // `arr_local_`). O `_arrSeq` continua servindo à letra do rótulo (B, C, D…),
+    // que é outra coisa — rótulo é apresentação, id é identidade.
+    id: novoIdArranjo(),
     rotulo: `Arranjo ${String.fromCharCode(66 + _arrSeq)}`, // B, C, D… (A = primário)
     tipo: 'secundario',
     somente_leitura: false,

@@ -15,6 +15,10 @@
 // Mesmo padrão usado em ProjetosEV.jsx, ProjetosEVDetalhes.jsx, E1Upload.jsx.
 const API_URL = ''
 
+// F-03: referência canônica ao equipamento do SSOT — uma implementação só,
+// compartilhada com o wizard legado (`E7Equipamentos`).
+import { referenciaDoCatalogo } from '../fv/catalogo'
+
 // ─── Adapters camelCase → snake_case ─────────────────────────────────────────
 // Cada adapter recebe o slice do ProjetoFVContext e retorna o payload v3.
 
@@ -52,9 +56,23 @@ export function adaptarLocalizacao(loc, irrad) {
  * v3:      { potencia_kwp, geracao_mensal_kwh, num_paineis, num_inversores,
  *            performance_ratio, area_total_m2, metodo, calculado_em }
  */
+/**
+ * F-05 — `dimensionamento` guarda a NECESSIDADE, não a composição.
+ *
+ * Gravava `potenciaRealKwp ?? potenciaKwp`, e `potenciaRealKwp` é reescrito pelo
+ * configurador com a potência do ARRANJO. O resultado é que a necessidade
+ * calculada pelo consumo era destruída: um projeto que precisava de 5,78 kWp /
+ * 10 módulos e foi montado com 14 módulos ficava persistido como necessidade de
+ * 8,19 kWp / 14 — e ninguém mais sabia quanto o consumo realmente exigia.
+ *
+ * As duas grandezas coexistem por desenho (FV-DOM-052): comprar 8,19 kWp para
+ * uma necessidade de 5,78 kWp é decisão de projeto, não inconsistência. A
+ * composição vive em `arranjos[]` e em `engenharia_eletrica.arranjo`; aqui fica
+ * só o que o consumo pede.
+ */
 export function adaptarDimensionamento(dim, irrad) {
   if (!dim || !dim.potenciaKwp) return null
-  const kwp   = dim.potenciaRealKwp ?? dim.potenciaKwp ?? null
+  const kwp   = dim.potenciaKwp ?? null
   const irr   = irrad?.mediaAnual ?? null
   // Estimativa de geração: potência × irradiância × 30d × PR=0.80
   const gMes  = kwp && irr ? parseFloat((kwp * irr * 30 * 0.80).toFixed(1)) : null
@@ -63,7 +81,9 @@ export function adaptarDimensionamento(dim, irrad) {
     potencia_kwp:        kwp,
     geracao_mensal_kwh:  gMes,
     geracao_anual_kwh:   gMes ? parseFloat((gMes * 12).toFixed(1)) : null,
-    num_paineis:         dim.numPaineis      ?? null,
+    // F-05: painéis da NECESSIDADE — a estimativa do dimensionamento. Os
+    // módulos efetivamente escolhidos ficam em `arranjos[].paineis[].quantidade`.
+    num_paineis:         dim.numPaineisNecessidade ?? dim.numPaineis ?? null,
     num_strings:         null,               // calculado em S2.9 com stringing
     num_inversores:      dim.numInversores   ?? null,
     performance_ratio:   0.80,               // fixo no calcDimensionamento atual
@@ -91,8 +111,13 @@ export function adaptarEquipamentos(equip, dim) {
       modelo:       painel.modelo               || null,
       potencia_w:   painel.potenciaW || painel.potencia_w || null,
       quantidade:   dim?.numPaineis             ?? null,
-      // equipamento_id preenchido em S2.9 com referência ao catálogo
-      equipamento_id: painel._id || null,
+      /**
+       * F-03 — a referência ao catálogo. Lia `painel._id`, chave que o objeto
+       * da tela nunca teve: o adapter de engenharia devolve `id` e guarda o
+       * documento em `_catalogo_original`. O resultado era `equipamento_id:
+       * null` em todo projeto, e sem ele o reload não reidrata o envelope.
+       */
+      equipamento_id: referenciaDoCatalogo(painel),
     }] : [],
     inversor: inversor ? {
       id:          inversor._id  || inversor.id  || null,
@@ -101,6 +126,9 @@ export function adaptarEquipamentos(equip, dim) {
       potencia_kw: inversor.potenciaKW || inversor.potencia_kw || null,
       tipo:        inversor.tipo || null,
       fases:       inversor.fases || null,
+      // F-03: o inversor não tinha sequer o campo no payload — o schema o
+      // declara desde a P1-PARECER-ATLAS-LINK-01 e ninguém o preenchia.
+      equipamento_id: referenciaDoCatalogo(inversor),
     } : undefined,
     estrutura: estrutura ? {
       tipo:      estrutura.tipo      || null,

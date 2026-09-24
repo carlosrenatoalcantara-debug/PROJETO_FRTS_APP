@@ -117,7 +117,9 @@ secao('7 · Validação por MPPT — grandezas por MPPT batem')
 const MOD = { voc: 49.9, vmpp: 41.8, isc: 14, impp: 13.2, potencia_w: 550,
   coef_temp_voc: -0.27, temp_noct: 44 }
 const INV = { tensao_max_entrada: 1000, mppt_min: 200, mppt_max: 850,
-  corrente_max_mppt: 25, potencia_ca_kw: 20 }
+  // Ajuste de corrente: o limite que REPROVA é o de curto-circuito, e o
+  // fixture passou a declarar os dois — o de trabalho não decide mais.
+  corrente_max_mppt: 25, corrente_isc_max_mppt: 25, potencia_ca_kw: 20 }
 const CLIMA = { temperatura_min_historica_c: 14, temperatura_max_historica_c: 38 }
 const porMppt = PROJETO.engenharia_eletrica.arranjo.mppts.map((m) => analisarCompatibilidade({
   dados_eletricos_modulo: MOD, dados_eletricos_inversor: INV,
@@ -135,7 +137,7 @@ ok(porMppt[1].calculos.isc_total === 17.5, `MPPT 2 — Isc 14 × 1 × 1,25 = ${p
 ok(porMppt[0].calculos.isc_total !== porMppt[1].calculos.isc_total,
   'MPPTs desiguais produzem diagnósticos diferentes — é o ponto do Modelo A')
 ok(porMppt[0].erros.some((e) => e.codigo === 'CORRENTE_ISC_EXCEDIDA'),
-  'MPPT 1 excede 25 A e é reprovado')
+  'MPPT 1 excede o limite de CURTO de 25 A e é reprovado')
 ok(!porMppt[1].erros.some((e) => e.codigo === 'CORRENTE_ISC_EXCEDIDA'),
   'MPPT 2 passa — a reprovação é local, não global')
 
@@ -185,7 +187,16 @@ secao('12 · A3 — seletor enriquecido, sem classificação nova')
 ok(CATALOGO.includes('export function rotuloDoInversor'), 'rótulo dedicado ao inversor')
 ok(CATALOGO.includes('TECNOLOGIAS_INVERSOR'), 'lista FECHADA de tecnologias')
 ok(catSemCom.includes('tecnologiaInversor('), 'classificação vem da regra do domínio')
-ok(EQUIP.includes('optgroup'), 'a lista é agrupada por tecnologia')
+// Sprint D2: a seleção do inversor saiu de Equipamentos para Topologia, e lá a
+// lista já vem FILTRADA por tecnologia — o tipo (string ou micro) é declarado
+// antes, na configuração preliminar. Agrupar por tecnologia dentro de uma lista
+// que só tem uma tecnologia não informa nada; o agrupamento passou a ser por
+// MARCA. O que esta seção protege — a classificação vir da regra do domínio, e
+// não de opinião da tela — continua verificado na linha acima.
+ok(!EQUIP.includes('aria-label="Inversor"'),
+  'Equipamentos não tem mais o seletor final de inversor (D2)')
+ok(EQUIP.includes('escolhido na etapa'),
+  'e diz ao usuário onde o inversor passou a ser escolhido')
 ok(EQUIP.includes('rotuloDoInversor'), 'a tela usa o rótulo enriquecido')
 
 secao('13 · A4 — aviso de fase, sem bloqueio')

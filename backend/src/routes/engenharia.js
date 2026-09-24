@@ -19,7 +19,12 @@ import {
   calcularFV,
   analisarCompatibilidadeEletrica,
   otimizarArranjoHandler,
+  listarInversoresCompativeis,
 } from '../controllers/engenhariaController.js'
+// Sprint D1: a rota nova lê o catálogo de equipamentos, então exige sessão —
+// como as demais rotas que tocam dados de negócio. As rotas antigas deste
+// arquivo permanecem exatamente como estavam; alterá-las é outra tarefa.
+import { authenticateToken } from '../security/auth-middleware.js'
 
 // ── Serviços S2.15-B.3A ───────────────────────────────────────────────────────
 import { EquipamentoMatcherService, VERSAO_MATCHER }      from '../services/equipamentoMatcherService.js'
@@ -68,6 +73,9 @@ const _ok = val => typeof val === 'string' && val.trim().length > 0
 router.post('/fv', calcularFV)
 router.post('/compatibilidade-eletrica', analisarCompatibilidadeEletrica)
 router.post('/optimizer-arranjo', otimizarArranjoHandler)
+// Sprint D1 — inversores compatíveis com a configuração preliminar (D0).
+// Orquestra o motor canônico; nenhuma regra elétrica nova.
+router.post('/inversores-compativeis', authenticateToken, listarInversoresCompativeis)
 
 // ══════════════════════════════════════════════════════════════════════════════
 // GET /api/engenharia/info

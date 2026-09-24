@@ -41,6 +41,9 @@ export const MOTIVOS_UNIFILAR = Object.freeze({
   TOPOLOGIA_INVALIDA:   'TOPOLOGIA_INVALIDA',
   TOPOLOGIA_DIVERGENTE: 'TOPOLOGIA_DIVERGENTE',
   MULTIPLOS_INVERSORES: 'MULTIPLOS_INVERSORES',
+  // F-02: topologia declarada e equipamento ausente — o caso em que o motor
+  // desenhava com os próprios defaults (550 W / 5 kW) sem avisar ninguém.
+  EQUIPAMENTO_AUSENTE:  'EQUIPAMENTO_AUSENTE',
 })
 
 const num = (v) => {
@@ -79,6 +82,30 @@ export function avaliarIntegridade(projeto, entrada, { instalacao = null, catalo
       detalhe: { campo: micro
         ? 'arranjos[].configuracao_eletrica.micros'
         : 'engenharia_eletrica.arranjo.mppts' },
+    }
+  }
+
+  // ── 1b · Equipamento ausente — F-02 ───────────────────────────────────────
+  //
+  // O portão cobria a topologia e não cobria o EQUIPAMENTO. Com uma topologia
+  // declarada e `equipamentos` vazio, `entrada.painel` e `entrada.inversor`
+  // chegam `null` e o motor cai nos seus defaults internos: módulo de 550 W,
+  // inversor de 5 kW. O desenho sai bonito e descreve outro sistema.
+  //
+  // A regra do domínio é a mesma dos limites elétricos: ausência é ausência.
+  // Sem o equipamento, recusa-se o desenho em vez de assumir um.
+  if (!micro) {
+    const faltando = []
+    if (!entrada?.painel?.modelo && !entrada?.painel?.marca) faltando.push('equipamentos.paineis[0]')
+    if (!entrada?.inversor?.modelo && !entrada?.inversor?.marca) faltando.push('equipamentos.inversor')
+    if (faltando.length > 0) {
+      return {
+        codigo: MOTIVOS_UNIFILAR.EQUIPAMENTO_AUSENTE,
+        motivo: 'O projeto não declara o módulo e/ou o inversor. Sem eles o diagrama '
+          + 'usaria os valores internos do motor (módulo de 550 W, inversor de 5 kW) '
+          + 'e representaria um sistema que não é o do projeto.',
+        detalhe: { campos: faltando },
+      }
     }
   }
 
@@ -136,4 +163,96 @@ export function avaliarIntegridade(projeto, entrada, { instalacao = null, catalo
   return null
 }
 
-export default { avaliarIntegridade, modulosDaTopologia, MOTIVOS_UNIFILAR }
+/**
+ * O mesmo portão, aplicado a UM ARRANJO — F14-6B.
+ *
+ * As regras são as mesmas; o que muda é o ESCOPO em que cada uma é medida.
+ * Regras 3 e 4 liam totais do PROJETO — é por isso que hoje nenhum projeto
+ * multiarranjo desenha: dois arranjos de um inversor cada somam dois inversores
+ * e caem em `MULTIPLOS_INVERSORES`, mesmo com cada arranjo perfeitamente
+ * representável. Medidas POR ARRANJO, as duas regras continuam valendo com o
+ * mesmo rigor: um arranjo com dois inversores segue recusado, e a divergência
+ * entre topologia e composição segue bloqueando.
+ *
+ * A regra 2 (veredito do validador elétrico) continua sendo do PROJETO: é o
+ * documento que está reprovado, não um arranjo em particular.
+ *
+ * @param {object} projeto
+ * @param {object} entrada  entrada do motor para ESTE arranjo
+ * @param {object} arranjo  arranjo do contrato canônico (`arranjosCanonicos`)
+ */
+export function avaliarIntegridadeArranjo(projeto, entrada, arranjo) {
+  const micro = entrada?.topologia === 'micro'
+
+  const contagem = micro ? entrada?.micros : entrada?.arranjoMPPTs
+  if (!Array.isArray(contagem) || contagem.length === 0) {
+    return {
+      codigo: MOTIVOS_UNIFILAR.TOPOLOGIA_AUSENTE,
+      motivo: micro
+        ? `O arranjo ${arranjo?.rotulo ?? arranjo?.id} não define a distribuição por microinversor.`
+        : `O arranjo ${arranjo?.rotulo ?? arranjo?.id} não define a topologia por MPPT. Sem ela, o diagrama usaria o número ESTIMADO de módulos como uma única string.`,
+      // `campo`/`chave` saem separados de propósito: o guard F-04 (2/3) proíbe o
+      // Core de TOCAR a topologia string legada, e escrever o caminho inteiro
+      // numa mensagem seria indistinguível de lê-lo. O dado aqui vem do adapter
+      // canônico; o que se declara é onde o projetista preenche.
+      detalhe: { arranjo_id: arranjo?.id ?? null, campo: 'arranjos[].configuracao_eletrica',
+        chave: micro ? 'micros' : 'mppts' },
+    }
+  }
+
+  if (!micro) {
+    const faltando = []
+    if (!entrada?.painel?.modelo && !entrada?.painel?.marca) faltando.push('arranjos[].paineis[0]')
+    if (!entrada?.inversor?.modelo && !entrada?.inversor?.marca) faltando.push('arranjos[].inversores[0]')
+    if (faltando.length > 0) {
+      return {
+        codigo: MOTIVOS_UNIFILAR.EQUIPAMENTO_AUSENTE,
+        motivo: `O arranjo ${arranjo?.rotulo ?? arranjo?.id} não declara módulo e/ou inversor. Sem eles o diagrama usaria os valores internos do motor.`,
+        detalhe: { arranjo_id: arranjo?.id ?? null, campos: faltando },
+      }
+    }
+  }
+
+  const compat = projeto?.engenharia_eletrica?.compatibilidade ?? null
+  if (compat && compat.compativel === false) {
+    const bloqueios = (compat.diagnosticos ?? [])
+      .filter((d) => d?.severidade === 'erro' || d?.bloqueante === true)
+      .map((d) => d?.mensagem ?? d?.codigo)
+      .filter(Boolean)
+    return {
+      codigo: MOTIVOS_UNIFILAR.TOPOLOGIA_INVALIDA,
+      motivo: 'A topologia registrada foi REPROVADA pela análise elétrica. O diagrama não representa arranjo reprovado.',
+      detalhe: { diagnosticos: bloqueios.length > 0 ? bloqueios : null },
+    }
+  }
+
+  if (micro) return null
+
+  // Regra 3 · POR ARRANJO. `MULTIPLOS_INVERSORES` permanece — o desenho de um
+  // arranjo representa UM inversor, e dois num mesmo arranjo continuam sem
+  // distribuição definida.
+  const nInversores = (arranjo?.inversor?.itens ?? []).reduce((s, i) => s + num(i?.quantidade ?? 1), 0)
+  if (nInversores > 1) {
+    return {
+      codigo: MOTIVOS_UNIFILAR.MULTIPLOS_INVERSORES,
+      motivo: `O arranjo ${arranjo?.rotulo ?? arranjo?.id} tem ${nInversores} inversores e o diagrama representa um só.`,
+      detalhe: { arranjo_id: arranjo?.id ?? null, inversores_no_arranjo: nInversores, inversores_no_desenho: 1 },
+    }
+  }
+
+  // Regra 4 · POR ARRANJO. `modulos.total` vem de `calcularTotaisProjeto` pela
+  // via canônica — não é contagem nova.
+  const naTopologia = modulosDaTopologia(entrada.arranjoMPPTs)
+  const naComposicao = num(arranjo?.modulos?.total)
+  if (naComposicao > 0 && naTopologia !== naComposicao) {
+    return {
+      codigo: MOTIVOS_UNIFILAR.TOPOLOGIA_DIVERGENTE,
+      motivo: `O arranjo ${arranjo?.rotulo ?? arranjo?.id} liga ${naTopologia} módulo(s) e a composição declara ${naComposicao}.`,
+      detalhe: { arranjo_id: arranjo?.id ?? null, modulos_na_topologia: naTopologia, modulos_na_composicao: naComposicao },
+    }
+  }
+
+  return null
+}
+
+export default { avaliarIntegridade, avaliarIntegridadeArranjo, modulosDaTopologia, MOTIVOS_UNIFILAR }

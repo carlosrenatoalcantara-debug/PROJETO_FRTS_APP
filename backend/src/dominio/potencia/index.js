@@ -33,7 +33,9 @@
  */
 
 import { obterTopologiaProjeto } from '../topologia/obterTopologiaProjeto.js'
-import { adaptarProjetoParaUnifilar } from '../unifilar/adaptarProjeto.js'
+// F14-6B: a entrada elétrica passa a vir POR ARRANJO. O adapter legado continua
+// sendo a base — `composicaoUnifilarDoProjeto` é construído sobre ele.
+import { composicaoUnifilarDoProjeto, entradaDoArranjo } from '../unifilar/composicaoUnifilar.js'
 import { montarModeloEletrico } from '@fortesolar/fv-shared/engenharia/normativa'
 import { montarModeloMicro } from '@fortesolar/fv-shared/engenharia/microinversores'
 
@@ -82,7 +84,18 @@ export function necessidadeDoProjeto(projeto) {
 export function compradaDoProjeto(projeto, { instalacao = null, catalogo = null } = {}) {
   const { origem, totais } = obterTopologiaProjeto(projeto, { instalacao, catalogo })
   const v = num(totais?.potencia_total_kwp)
-  if (v === null || v <= 0) return vazia(MOTIVOS_POTENCIA.SEM_COMPOSICAO)
+  if (v === null || v <= 0) {
+    // F12: duas ausências DIFERENTES chegavam aqui com o mesmo rótulo.
+    //   composição vazia   — não há módulos escolhidos ainda
+    //   composição incompleta — há módulos, mas algum não declara `potencia_w`
+    // A segunda é a que produzia a soma parcial silenciosa. Dizer
+    // "COMPOSICAO_VAZIA" para um projeto de 399 módulos seria trocar uma
+    // informação falsa por outra. O motivo já existia no contrato.
+    const temModulos = num(totais?.n_modulos_total) > 0
+    return vazia(temModulos
+      ? MOTIVOS_POTENCIA.SEM_POTENCIA_MODULO
+      : MOTIVOS_POTENCIA.SEM_COMPOSICAO)
+  }
   return presente(v, origem === 'instalacao'
     ? 'instalacao.geradores (totaisTopologia)'
     : 'arranjos[] (calcularTotaisProjeto)')
@@ -132,58 +145,108 @@ export function topologiaSuficiente(entrada) {
  * unifilar desenha, byte a byte.
  */
 export function instaladaDoProjeto(projeto, { moduloCatalogo = null } = {}) {
-  let entrada
+  let composicao
   try {
-    ({ entrada } = adaptarProjetoParaUnifilar(projeto, { moduloCatalogo }))
+    composicao = composicaoUnifilarDoProjeto(projeto, { moduloCatalogo })
   } catch {
     return { ...vazia(MOTIVOS_POTENCIA.SEM_TOPOLOGIA), lacunas: ['engenharia_eletrica.arranjo.mppts'] }
   }
 
-  const porta = topologiaSuficiente(entrada)
-  if (!porta.suficiente) {
-    const soFaltaPmpp = porta.lacunas.length === 1
-      && porta.lacunas[0] === 'equipamentos.paineis[0].potencia_w'
-    return {
-      ...vazia(soFaltaPmpp ? MOTIVOS_POTENCIA.SEM_POTENCIA_MODULO : MOTIVOS_POTENCIA.SEM_TOPOLOGIA),
-      lacunas: porta.lacunas, topologia: porta.topologia,
+  /**
+   * F14-6B · a potência INSTALADA deixa de depender de um objeto elétrico
+   * singular.
+   *
+   * Antes, esta função lia a entrada do unifilar — que é UMA: o arranjo
+   * escolhido por posição mais `engenharia_eletrica.arranjo`. Num projeto de
+   * dois arranjos isso informava a potência de um só, sem dizer que informava.
+   *
+   * A fórmula não muda e não é duplicada: continua sendo `montarModeloEletrico`
+   * / `montarModeloMicro` quem calcula, um por arranjo, e aqui só se SOMA — que
+   * é como potência compõe (Tarefa 1). Com um arranjo, a entrada é a mesma de
+   * antes, campo a campo, e portanto o número também.
+   *
+   * Topologia mista NÃO impede a soma: ela impede o DESENHO, que é outra
+   * pergunta. A soma de potência é válida em qualquer composição.
+   */
+  const parciais = []
+  let modulos = 0
+  let algumModulo = false
+  const topologias = new Set()
+
+  for (const a of composicao.arranjos) {
+    const entrada = entradaDoArranjo(composicao, a)
+    const porta = topologiaSuficiente(entrada)
+    if (!porta.suficiente) {
+      // Um arranjo sem topologia torna a SOMA incapaz de afirmar o total.
+      // Devolver a soma dos que fecham seria informar menos potência do que a
+      // instalada, em silêncio — o defeito que esta sprint fecha.
+      const soFaltaPmpp = porta.lacunas.length === 1
+        && porta.lacunas[0] === 'equipamentos.paineis[0].potencia_w'
+      return {
+        ...vazia(soFaltaPmpp ? MOTIVOS_POTENCIA.SEM_POTENCIA_MODULO : MOTIVOS_POTENCIA.SEM_TOPOLOGIA),
+        lacunas: porta.lacunas, topologia: porta.topologia,
+      }
     }
+    topologias.add(porta.topologia)
+
+    const modelo = porta.topologia === 'micro'
+      ? montarModeloMicro({
+        // Mesma composição que `gerarUnifilarMicro` monta: os elétricos vêm do
+        // catálogo, marca/modelo/potência do projeto. Um objeto diferente daria
+        // um número diferente do que o unifilar desenha.
+        painel: { ...entrada.painel, ...(entrada.painelMicro ?? {}) },
+        micros: entrada.micros,
+        dadosConsumo: { tipoLigacao: entrada.tipo_ligacao, tensao: entrada.tensao }, uf: entrada.uf,
+      })
+      // O modelo que a composição já montou para o desenho — o mesmo objeto,
+      // não um recálculo equivalente.
+      : (a.modeloEletrico ?? montarModeloEletrico({
+        painel: entrada.painel, inversor: entrada.inversor,
+        arranjoMPPTs: entrada.arranjoMPPTs, dimensionamento: entrada.dimensionamento,
+        dadosConsumo: { tipoLigacao: entrada.tipo_ligacao, tensao: entrada.tensao }, uf: entrada.uf,
+      }))
+
+    const v = num(modelo?.sistema?.potenciaCC)
+    if (v === null || v <= 0) {
+      // O caminho micro declara as próprias lacunas; o string não declara nenhuma.
+      return {
+        ...vazia(MOTIVOS_POTENCIA.MODELO_SEM_POTENCIA),
+        lacunas: Array.isArray(modelo?.lacunas) && modelo.lacunas.length > 0
+          ? modelo.lacunas : ['modulo.potencia_w'],
+        topologia: porta.topologia,
+      }
+    }
+    parciais.push(v)
+    const n = num(porta.topologia === 'micro' ? modelo?.sistema?.numModulos : modelo?.resumo?.numPaineis)
+    if (n !== null) { modulos += n; algumModulo = true }
   }
 
-  const modelo = porta.topologia === 'micro'
-    ? montarModeloMicro({
-      // Mesma composição que `gerarUnifilarMicro` monta: os elétricos vêm do
-      // catálogo, marca/modelo/potência do projeto. Um objeto diferente daria
-      // um número diferente do que o unifilar desenha.
-      painel: { ...entrada.painel, ...(entrada.painelMicro ?? {}) },
-      micros: entrada.micros,
-      dadosConsumo: { tipoLigacao: entrada.tipo_ligacao, tensao: entrada.tensao }, uf: entrada.uf,
-    })
-    : montarModeloEletrico({
-      painel: entrada.painel, inversor: entrada.inversor,
-      arranjoMPPTs: entrada.arranjoMPPTs, dimensionamento: entrada.dimensionamento,
-      dadosConsumo: { tipoLigacao: entrada.tipo_ligacao, tensao: entrada.tensao }, uf: entrada.uf,
-    })
-
-  const v = num(modelo?.sistema?.potenciaCC)
-  if (v === null || v <= 0) {
-    // O caminho micro declara as próprias lacunas; o string não declara nenhuma.
-    return {
-      ...vazia(MOTIVOS_POTENCIA.MODELO_SEM_POTENCIA),
-      lacunas: Array.isArray(modelo?.lacunas) && modelo.lacunas.length > 0
-        ? modelo.lacunas : ['modulo.potencia_w'],
-      topologia: porta.topologia,
-    }
+  if (topologias.size === 0) {
+    return { ...vazia(MOTIVOS_POTENCIA.SEM_TOPOLOGIA), lacunas: ['arranjos'] }
   }
+
+  // Uma só topologia mantém o rótulo de fonte que os consumidores já recebem.
+  // Com mais de uma, dizer qualquer um dos dois seria falso.
+  const topologia = topologias.size === 1 ? [...topologias][0] : 'mista'
+  // Com mais de um arranjo a procedência é a COMPOSIÇÃO, não a topologia de
+  // projeto: declarar `engenharia_eletrica.arranjo` ali seria apontar uma fonte
+  // que não foi lida. Os rótulos de arranjo único seguem inalterados.
+  const fonte = composicao.arranjos.length > 1
+    ? `arranjos[] × Pmpp (${composicao.arranjos.length} arranjos${topologia === 'mista' ? ', topologias distintas' : ''})`
+    : topologia === 'micro' ? 'arranjos[].configuracao_eletrica.micros[] × Pmpp'
+      : 'engenharia_eletrica.arranjo.mppts[] × Pmpp'
+
+  // Com UM arranjo o valor é o do motor, sem passar por arredondamento novo:
+  // o número devolvido tem de ser o mesmo de antes desta sprint, bit a bit.
+  const total = parciais.length === 1
+    ? parciais[0]
+    : +parciais.reduce((s, x) => s + x, 0).toFixed(2)
 
   return {
-    ...presente(v, porta.topologia === 'micro'
-      ? 'arranjos[].configuracao_eletrica.micros[] × Pmpp'
-      : 'engenharia_eletrica.arranjo.mppts[] × Pmpp'),
+    ...presente(total, fonte),
     lacunas: [],
-    topologia: porta.topologia,
-    modulos: num(porta.topologia === 'micro'
-      ? modelo?.sistema?.numModulos
-      : modelo?.resumo?.numPaineis),
+    topologia,
+    modulos: algumModulo ? modulos : null,
   }
 }
 

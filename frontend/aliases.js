@@ -21,9 +21,14 @@ export function criarAliases(path, dirname) {
     // FV-UX-003 (F2): lógica pura compartilhada com o backend. Substitui os imports
     // relativos para ../backend/src, que quebravam a separação Vercel/Railway.
     // Os subpaths espelham o campo "exports" de packages/fv-shared/package.json.
+    '@fortesolar/fv-shared/inversores/conflitos':              path.resolve(dirname, '../packages/fv-shared/equipamentos/inversores/conflitosInversor.js'),
     '@fortesolar/fv-shared/inversores/dicionario':            path.resolve(dirname, '../packages/fv-shared/equipamentos/inversores/dicionarioInversor.js'),
     '@fortesolar/fv-shared/inversores':                       path.resolve(dirname, '../packages/fv-shared/equipamentos/inversores/index.js'),
     '@fortesolar/fv-shared/modulos':                          path.resolve(dirname, '../packages/fv-shared/equipamentos/modulos/index.js'),
+    // F-06: regra unica de liberacao para engenharia — backend e frontend.
+    '@fortesolar/fv-shared/utilizavel-projeto':               path.resolve(dirname, '../packages/fv-shared/equipamentos/utilizavelProjeto.js'),
+    // F13: identidade do arranjo — um gerador só para backend e frontend.
+    '@fortesolar/fv-shared/projeto/identidade-arranjo':       path.resolve(dirname, '../packages/fv-shared/projeto/identidadeArranjo.js'),
     '@fortesolar/fv-shared/estrutura':                        path.resolve(dirname, '../packages/fv-shared/equipamentos/estrutura.js'),
     '@fortesolar/fv-shared/ai/campos-equipamento':            path.resolve(dirname, '../packages/fv-shared/ai/camposEquipamento.js'),
     '@fortesolar/fv-shared/ai/validacao-eletrica-inversor':   path.resolve(dirname, '../packages/fv-shared/ai/validacaoEletricaInversor.js'),
@@ -47,6 +52,18 @@ export function criarAliases(path, dirname) {
     '@fortesolar/fv-shared/engenharia/unifilar-micro-svg': path.resolve(dirname, '../packages/fv-shared/engenharia/unifilarMicroSVG.js'),
     // FV-DOM-031: motor canônico de microinversores (entradas → módulos).
     '@fortesolar/fv-shared/engenharia/microinversores':       path.resolve(dirname, '../packages/fv-shared/engenharia/microinversores.js'),
+    // Sprint E: nível ACIMA do micro — arranjos (ramais CA) e balanceamento de
+    // fases, mais a tabela de regras por fabricante que os determina.
+    '@fortesolar/fv-shared/engenharia/arranjos-micro':        path.resolve(dirname, '../packages/fv-shared/engenharia/arranjosMicro.js'),
+    '@fortesolar/fv-shared/engenharia/regras-micro-fabricante': path.resolve(dirname, '../packages/fv-shared/engenharia/regrasMicroFabricante.js'),
+    // Sprint E2: corrente por entrada, por micro e por ramal — motor separado
+    // da distribuição, com veredito `nao_avaliado` próprio.
+    // F1: classificacao canonica de corrente CC — uma implementacao, consumida
+    // pelo motor no backend e pelo wizard no navegador.
+    '@fortesolar/fv-shared/engenharia/classificacao-tensao-cc': path.resolve(dirname, '../packages/fv-shared/engenharia/classificacaoTensaoCC.js'),
+    '@fortesolar/fv-shared/engenharia/classificacao-oversizing': path.resolve(dirname, '../packages/fv-shared/engenharia/classificacaoOversizing.js'),
+    '@fortesolar/fv-shared/engenharia/classificacao-corrente-cc': path.resolve(dirname, '../packages/fv-shared/engenharia/classificacaoCorrenteCC.js'),
+    '@fortesolar/fv-shared/engenharia/corrente-micro':        path.resolve(dirname, '../packages/fv-shared/engenharia/correnteMicro.js'),
 
     '@fortesolar/fv-shared/engenharia/regras-plausibilidade': path.resolve(dirname, '../packages/fv-shared/services/regrasPlausibilidade.js'),
     '@fortesolar/fv-shared/engenharia/presentation':          path.resolve(dirname, '../packages/fv-shared/services/engineeringPresentation.js'),

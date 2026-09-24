@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useProjeto } from '../../providers/ProjetoProvider'
-import { listarCatalogo, validarCompatibilidadeEletrica } from '../../api/agregadosFvApi'
+import {
+  listarCatalogo, validarCompatibilidadeEletrica, consultarInversoresCompativeis,
+} from '../../api/agregadosFvApi'
 import { calcularTemperaturas } from '@fortesolar/fv-shared/engenharia/normativa'
 import {
   eletricoDoModulo, eletricoDoInversor, nMpptsDoInversor, lacunasEletricas,
@@ -11,6 +13,14 @@ import {
   topologiaDesigual,
 } from '../../topologia'
 import { composicaoEhMicro, composicaoMista } from '../../microinversores'
+import { inversorDoCatalogo } from '../../catalogo'
+import { paraArranjos, daArranjos, projecaoLegado } from '../../composicao'
+// Sprint D0 — configuração elétrica anterior ao inversor. Fonte única do nível
+// preliminar; nunca toca em mppts[]/micros[], que são pós-inversor.
+import {
+  TIPOS_TOPOLOGIA, inteiroPositivo, lerPreliminar, lacunasPreliminar,
+  preliminarCompleta, coerenciaDeModulos, paraArranjoPreliminar,
+} from '../../topologiaPreliminar'
 import EtapaMicroinversores from './EtapaMicroinversores'
 
 /**
@@ -36,8 +46,55 @@ import EtapaMicroinversores from './EtapaMicroinversores'
 const CODIGOS_POR_MPPT = new Set([
   'VOC_EXCEDIDA_CRITICA', 'VOC_PROXIMO_LIMITE', 'MPPT_STRING_LONGA',
   'MPPT_STRING_CURTA', 'MPPT_PROXIMO_LIMITE', 'CORRENTE_ISC_EXCEDIDA',
+  // Ajuste de corrente: os dois avisos novos também são por MPPT — a corrente
+  // de operação e a de projeto valem para a entrada, não para o inversor todo.
+  'CORRENTE_IMPP_ELEVADA', 'CORRENTE_PROJETO_ACIMA_DO_TRABALHO',
   'CORRENTE_PROXIMA_LIMITE', 'INPUT_INVALIDO', 'CLIMA_FALLBACK_APLICADO',
 ])
+
+/**
+ * Corrente de um candidato, com os valores medidos à vista — §10 do ajuste.
+ *
+ * A tela não recalcula nem reinterpreta: lê `avaliacao_corrente`, que o motor
+ * canônico devolve por critério. Excesso de corrente de OPERAÇÃO aparece como
+ * atenção; só o curto-circuito aparece como impedimento.
+ */
+function CorrenteDoCandidato({ avaliacao }) {
+  if (!avaliacao) return null
+  const { operacao, curto_circuito: curto, projeto_normativa: projeto } = avaliacao
+  const linha = (rotulo, valor, limite, status, motivo) => (
+    <li className={
+      status === 'incompativel' ? 'text-red-700'
+        : status === 'atencao' ? 'text-amber-700'
+          : status === 'nao_avaliado' ? 'text-slate-500' : 'text-emerald-700'}
+    >
+      <span className="font-medium">
+        {status === 'incompativel' ? '❌' : status === 'atencao' ? '⚠' : status === 'nao_avaliado' ? '—' : '✓'}
+        {' '}{rotulo}:
+      </span>{' '}
+      {valor === null || valor === undefined ? 'não declarado' : `${valor} A`}
+      {limite === null || limite === undefined
+        ? ' · limite não cadastrado'
+        : ` · limite ${limite} A`}
+      {motivo ? ` — ${motivo}` : ''}
+    </li>
+  )
+  return (
+    <ul className="mt-1 space-y-0.5 text-xs" aria-label="Avaliação de corrente">
+      {linha('Corrente de operação (Impp)', operacao.impp_total, operacao.limite_a,
+        operacao.status, operacao.motivo)}
+      {linha('Corrente de curto-circuito (Isc)', curto.isc_operacao, curto.limite_a,
+        curto.status, curto.motivo)}
+      <li className="text-slate-500">
+        <span className="font-medium">Corrente de projeto (NBR 16690 §5.2):</span>{' '}
+        {projeto.isc_total} A = Isc × {projeto.fator}
+        {projeto.acima_do_trabalho
+          ? ' · acima da corrente de trabalho — dimensiona cabo e proteção, não decide compatibilidade'
+          : ''}
+      </li>
+    </ul>
+  )
+}
 
 const bloqueante = (d) => d?.severidade === 'critico' || d?.nivel === 'critico'
 
@@ -52,6 +109,18 @@ export default function EtapaMppt() {
   const [salvando, setSalvando] = useState(false)
   const [erroAcao, setErroAcao] = useState(null)
   const [salvo, setSalvo] = useState(false)
+  // Configuração preliminar em edição. `null` = mostra o que está persistido.
+  const [prelim, setPrelim] = useState(null)
+  const [salvandoPrelim, setSalvandoPrelim] = useState(false)
+  const [prelimSalva, setPrelimSalva] = useState(false)
+  // Sprint D2 — candidatos vindos do endpoint da D1. `null` = ainda não consultado.
+  const [compat, setCompat] = useState(null)
+  const [consultando, setConsultando] = useState(false)
+  const [erroCompat, setErroCompat] = useState(null)
+  const [marcaInv, setMarcaInv] = useState('')
+  const [modeloInv, setModeloInv] = useState('')
+  const [salvandoInv, setSalvandoInv] = useState(false)
+  const [invSalvo, setInvSalvo] = useState(false)
 
   useEffect(() => {
     let vivo = true
@@ -90,10 +159,35 @@ export default function EtapaMppt() {
 
   const totalModulos = inteiro(projeto?.dimensionamento?.num_paineis ?? painelSel?.quantidade)
 
-  // FV-DOM-031: a topologia da composição decide QUAL editor abre.
-  const ehComposicaoMicro = useMemo(
+  /**
+   * Sprint D0 — configuração elétrica PRELIMINAR, anterior ao inversor.
+   *
+   * Tudo o que ela guarda já tinha campo no schema: o tipo em
+   * `arranjos[].topologia`, as fases em `fatura_extracao.tipo_ligacao`, o total
+   * de módulos na composição, e o agrupamento série/paralelo em
+   * `configuracao_eletrica`. Nenhum campo novo foi criado.
+   *
+   * `topologiaPreliminar` é o único lugar que lê e escreve esse nível. A
+   * topologia DETALHADA (`n_mppts`, `mppts[]`, `micros[]`) continua exclusiva
+   * desta tela, depois do inversor — a separação estrutural é essa.
+   */
+  const preliminar = useMemo(() => lerPreliminar(projeto), [projeto])
+  const prelimEditada = prelim ?? preliminar
+  const lacunasPrelim = lacunasPreliminar(prelimEditada)
+  const coerenciaPrelim = coerenciaDeModulos(prelimEditada)
+
+  /**
+   * A FV-DOM-031 decidia o editor pela composição — ou seja, pelo inversor já
+   * escolhido. A D0 inverte a dependência: quando o projetista DECLARA o tipo na
+   * configuração preliminar, é a declaração que manda.
+   *
+   * A inferência pela composição permanece como fallback e atende os projetos
+   * legados, que não têm `topologia` gravada. Nada foi migrado.
+   */
+  const microInferido = useMemo(
     () => composicaoEhMicro(arranjoPrincipal?.inversores ?? (inversorSel ? [inversorSel] : []), catalogo?.inversores),
     [arranjoPrincipal, inversorSel, catalogo])
+  const ehComposicaoMicro = preliminar.tipo === null ? microInferido : preliminar.tipo === 'micro'
   const composicaoEhMista = useMemo(
     () => composicaoMista(arranjoPrincipal?.inversores ?? (inversorSel ? [inversorSel] : []), catalogo?.inversores),
     [arranjoPrincipal, inversorSel, catalogo])
@@ -188,6 +282,131 @@ export default function EtapaMppt() {
   const temBloqueio = (resultados ?? []).some((r) => diagnosticos(r).some(bloqueante))
   const validado = Array.isArray(resultados) && resultados.some(Boolean)
 
+  /** Edita a configuração preliminar. Trocar o tipo limpa o que é só de string. */
+  function editarPrelim(campo, valor) {
+    const base = prelim ?? preliminar
+    const proximo = campo === 'tipo' && valor !== 'string'
+      ? { ...base, tipo: valor, modulos_por_string: null, quantidade_strings: null }
+      : { ...base, [campo]: campo === 'tipo' ? valor : inteiroPositivo(valor) }
+    setPrelim(proximo)
+    setPrelimSalva(false)
+  }
+
+  /**
+   * Grava só o nível preliminar, pela etapa `arranjos` que já existe.
+   * `paraArranjoPreliminar` preserva composição, fornecedor, rótulo e toda a
+   * topologia detalhada — esta gravação não pode apagar `mppts[]`/`micros[]`.
+   */
+  async function salvarPreliminar() {
+    setSalvandoPrelim(true)
+    setErroAcao(null)
+    try {
+      const outros = (projeto?.arranjos ?? []).filter((a) => a?.tipo !== 'principal')
+      const atualizado = paraArranjoPreliminar(prelimEditada, arranjoPrincipal)
+      await acoes.salvarEtapa('arranjos', { lista: [...outros, atualizado] })
+      setPrelim(null)
+      setPrelimSalva(true)
+    } catch (e) {
+      setErroAcao(e.codigo ? `${e.message} (${e.codigo})` : e.message)
+    } finally {
+      setSalvandoPrelim(false)
+    }
+  }
+
+
+  /**
+   * Sprint D2 — assinatura da configuração que influencia a compatibilidade.
+   *
+   * Muda o tipo, a fase, o agrupamento ou o MÓDULO, muda a resposta do motor.
+   * Guardar a assinatura junto do resultado permite detectar que a consulta
+   * envelheceu sem reproduzir aqui nenhuma regra elétrica: a comparação é de
+   * entradas, não de critérios.
+   */
+  const assinaturaCompat = [
+    prelimEditada.tipo, prelimEditada.fases,
+    prelimEditada.modulos_por_string, prelimEditada.quantidade_strings,
+    String(painelSel?.equipamento_id ?? painelSel?.id ?? ''),
+  ].join('|')
+
+  const podeConsultar = preliminarCompleta(prelimEditada) && !!(painelSel?.equipamento_id ?? painelSel?.id)
+  const compatAtual = compat && compat.assinatura === assinaturaCompat ? compat : null
+
+  /** Consulta o endpoint da D1. Nunca chama com configuração incompleta. */
+  async function consultarCompativeis() {
+    if (!podeConsultar) return
+    setConsultando(true); setErroCompat(null); setInvSalvo(false)
+    try {
+      const r = await consultarInversoresCompativeis({
+        modulo_id: String(painelSel.equipamento_id ?? painelSel.id),
+        configuracao: {
+          tipo: prelimEditada.tipo,
+          fases: prelimEditada.fases,
+          modulos_por_string: prelimEditada.modulos_por_string,
+          quantidade_strings: prelimEditada.quantidade_strings,
+        },
+      })
+      setCompat({ ...r, assinatura: assinaturaCompat })
+      setMarcaInv(''); setModeloInv('')
+    } catch (e) {
+      setErroCompat({ mensagem: e.message, codigo: e.codigo ?? null })
+      setCompat(null)
+    } finally {
+      setConsultando(false)
+    }
+  }
+
+  /**
+   * O inversor persistido continua compatível com a configuração atual?
+   * Só responde quando há consulta VÁLIDA para a configuração de agora — sem
+   * consulta não afirma nada, porque ausência de informação não é incompatibilidade.
+   */
+  const inversorAindaCompativel = (() => {
+    if (!inversorSel?.equipamento_id) return null
+    if (!compatAtual?.ok) return null
+    return compatAtual.compativeis.some(
+      (c) => String(c.equipamento_id) === String(inversorSel.equipamento_id))
+  })()
+
+  const marcasCompativeis = (() => {
+    const vistas = new Map()
+    for (const c of compatAtual?.compativeis ?? []) {
+      const m = (c.fabricante ?? '').trim() || '— sem marca declarada —'
+      vistas.set(m, vistas.has(m) ? vistas.get(m) + 1 : 1)
+    }
+    return [...vistas.entries()].sort((a, b) => a[0].localeCompare(b[0], 'pt-BR'))
+  })()
+  const modelosCompativeis = marcaInv === '' ? []
+    : (compatAtual?.compativeis ?? []).filter(
+      (c) => ((c.fabricante ?? '').trim() || '— sem marca declarada —') === marcaInv)
+
+  /**
+   * Grava o inversor escolhido na composição — mesma forma e mesmo
+   * `equipamento_id` que a etapa Equipamentos usava. Nenhum identificador novo.
+   */
+  async function salvarInversor() {
+    if (!modeloInv) return
+    const eq = (catalogo?.inversores ?? []).find((e) => String(e._id) === modeloInv)
+    if (!eq) return
+    setSalvandoInv(true); setErroAcao(null)
+    try {
+      const daComposicao = daArranjos(projeto?.arranjos)
+      const atualComp = daComposicao ?? { paineis: equip.paineis ?? [], inversores: [] }
+      const composicao = {
+        paineis: atualComp.paineis,
+        inversores: [{ ...inversorDoCatalogo(eq), quantidade: 1 }],
+      }
+      const outros = (projeto?.arranjos ?? []).filter((a) => a?.tipo !== 'principal')
+      const principal = paraArranjos(composicao, arranjoPrincipal)[0]
+      await acoes.salvarEtapa('arranjos', { lista: [...outros, principal] })
+      await acoes.salvarEtapa('equipamentos', projecaoLegado(composicao, projeto?.equipamentos))
+      setInvSalvo(true)
+    } catch (e) {
+      setErroAcao(e.codigo ? `${e.message} (${e.codigo})` : e.message)
+    } finally {
+      setSalvandoInv(false)
+    }
+  }
+
   async function salvar() {
     if (!validado || temBloqueio) return
     setSalvando(true)
@@ -242,9 +461,239 @@ export default function EtapaMppt() {
    * objeto quando o GET volta), então renderizar com ele é correto. Na primeira
    * carga `projeto` é `null` e o fluxo cai nos returns abaixo, como antes.
    */
+  /**
+   * Configuração elétrica preliminar — Sprint D0.
+   *
+   * Aparece nos DOIS caminhos (string e micro), antes de qualquer coisa que
+   * dependa do inversor, porque é ela que declara qual dos dois vale. Não valida
+   * compatibilidade: isso é do motor canônico, na Sprint D.
+   */
+  // `topo` só quando a seção é o elemento de primeiro nível (caminho micro).
+  // No caminho string ela já vive dentro de um <section> com a mesma largura.
+  const secaoPreliminar = ({ topo = false } = {}) => (
+    <section className={topo ? 'mx-auto max-w-3xl px-6 pt-6' : 'mt-6'}>
+      <h3 className="text-sm font-semibold text-slate-900">Configuração elétrica preliminar</h3>
+      <p className="mt-1 text-xs text-slate-500">
+        Definida antes do inversor — é ela que dirá, na próxima etapa, quais
+        inversores são compatíveis. Não descreve MPPT nem entradas: isso depende
+        do inversor e continua abaixo.
+      </p>
+
+      <div className="mt-3 flex flex-wrap items-end gap-3 rounded border border-slate-200 bg-slate-50 p-3">
+        <label className="text-sm">
+          <span className="block text-slate-600">Tipo de topologia</span>
+          <select
+            aria-label="Tipo de topologia" value={prelimEditada.tipo ?? ''}
+            onChange={(e) => editarPrelim('tipo', e.target.value === '' ? null : e.target.value)}
+            className="mt-1 w-48 rounded border border-slate-300 px-2 py-1"
+          >
+            <option value="">não definido</option>
+            {TIPOS_TOPOLOGIA.map(([v, r]) => <option key={v} value={v}>{r}</option>)}
+          </select>
+        </label>
+
+        {prelimEditada.tipo === 'string' && (
+          <>
+            <label className="text-sm">
+              <span className="block text-slate-600">Módulos por string</span>
+              <input
+                aria-label="Módulos por string" type="number" min="1"
+                value={prelimEditada.modulos_por_string ?? ''}
+                onChange={(e) => editarPrelim('modulos_por_string', e.target.value)}
+                className="mt-1 w-32 rounded border border-slate-300 px-2 py-1"
+              />
+            </label>
+            <label className="text-sm">
+              <span className="block text-slate-600">Quantidade de strings</span>
+              <input
+                aria-label="Quantidade de strings" type="number" min="1"
+                value={prelimEditada.quantidade_strings ?? ''}
+                onChange={(e) => editarPrelim('quantidade_strings', e.target.value)}
+                className="mt-1 w-32 rounded border border-slate-300 px-2 py-1"
+              />
+            </label>
+          </>
+        )}
+
+        <button
+          type="button" onClick={salvarPreliminar} disabled={salvandoPrelim}
+          className="rounded bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-700 disabled:bg-slate-400"
+        >
+          {salvandoPrelim ? 'Salvando…' : 'Salvar configuração'}
+        </button>
+        {prelimSalva && <span className="text-xs text-emerald-700">Configuração salva.</span>}
+      </div>
+
+      <dl className="mt-3 divide-y divide-slate-200 rounded border border-slate-200 bg-white text-sm">
+        <div className="flex gap-2 px-4 py-2">
+          <dt className="w-48 shrink-0 text-slate-500">Fases da instalação</dt>
+          <dd className="flex-1 text-slate-900">
+            {prelimEditada.fases ?? <span className="text-amber-700">não informada — etapa Projeto</span>}
+          </dd>
+        </div>
+        <div className="flex gap-2 px-4 py-2">
+          <dt className="w-48 shrink-0 text-slate-500">Módulos na composição</dt>
+          <dd className="flex-1 text-slate-900">
+            {prelimEditada.total_modulos ?? <span className="text-amber-700">nenhum — etapa Equipamentos</span>}
+            {coerenciaPrelim.declarado !== null && (
+              <span className={`ml-2 text-xs ${coerenciaPrelim.diferenca === 0 ? 'text-emerald-700' : 'text-amber-700'}`}>
+                {coerenciaPrelim.diferenca === 0
+                  ? `confere com ${coerenciaPrelim.declarado} declarados`
+                  : `agrupamento declara ${coerenciaPrelim.declarado}`}
+              </span>
+            )}
+          </dd>
+        </div>
+      </dl>
+
+      {lacunasPrelim.length > 0 && (
+        <p className="mt-2 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+          Falta para pedir os inversores compatíveis: {lacunasPrelim.join('; ')}.
+        </p>
+      )}
+      {preliminarCompleta(prelimEditada) && (
+        <p className="mt-2 text-xs text-slate-500">
+          Configuração completa. O filtro de inversores compatíveis entra na
+          próxima etapa — hoje o inversor ainda é escolhido em Equipamentos.
+        </p>
+      )}
+    </section>
+  )
+
+
+  /**
+   * Sprint D2 — inversores compatíveis → Marca → Modelo.
+   *
+   * A lista vem EXCLUSIVAMENTE do endpoint da D1, que roda o motor canônico.
+   * Não há fallback para o catálogo completo: sem consulta válida, não há o que
+   * escolher. Nenhuma regra elétrica é avaliada aqui — a tela só agrupa e exibe.
+   */
+  const secaoInversor = () => (
+    <section className="mt-6">
+      <h3 className="text-sm font-semibold text-slate-900">Inversor</h3>
+      <p className="mt-1 text-xs text-slate-500">
+        Os modelos abaixo são os que o motor elétrico aprovou para a configuração
+        acima. Trocar a configuração exige consultar de novo.
+      </p>
+
+      {inversorSel?.modelo && (
+        <p className={`mt-2 rounded border px-3 py-2 text-xs ${
+          inversorAindaCompativel === false
+            ? 'border-red-300 bg-red-50 text-red-800'
+            : 'border-slate-200 bg-slate-50 text-slate-700'}`}>
+          Inversor no projeto: <strong>{inversorSel.marca} {inversorSel.modelo}</strong>
+          {inversorAindaCompativel === false && ' — NÃO é compatível com a configuração atual. Escolha outro abaixo.'}
+          {inversorAindaCompativel === true && ' — compatível com a configuração atual.'}
+          {inversorAindaCompativel === null && ' — compatibilidade não verificada para a configuração atual.'}
+        </p>
+      )}
+
+      <div className="mt-3 flex flex-wrap items-end gap-3 rounded border border-slate-200 bg-slate-50 p-3">
+        <button
+          type="button" onClick={consultarCompativeis} disabled={!podeConsultar || consultando}
+          className="rounded bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-700 disabled:bg-slate-400"
+        >
+          {consultando ? 'Consultando…' : 'Consultar inversores compatíveis'}
+        </button>
+        {!podeConsultar && (
+          <span className="text-xs text-amber-700">
+            Complete a configuração preliminar e escolha o módulo em Equipamentos.
+          </span>
+        )}
+      </div>
+
+      {erroCompat && (
+        <p role="alert" className="mt-2 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+          Não foi possível avaliar: {erroCompat.mensagem}
+          {erroCompat.codigo ? ` (${erroCompat.codigo})` : ''}
+        </p>
+      )}
+
+      {compatAtual?.ok && compatAtual.compativeis.length === 0 && (
+        <p role="alert" className="mt-2 rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800">
+          Nenhum inversor compatível encontrado para esta configuração.
+          <span className="mt-1 block text-xs">
+            {compatAtual.avaliados} avaliados. Nenhum modelo é oferecido — revise a
+            configuração preliminar ou o módulo.
+          </span>
+        </p>
+      )}
+
+      {compatAtual?.ok && compatAtual.compativeis.length > 0 && (
+        <>
+          <p className="mt-2 text-xs text-slate-500">
+            {compatAtual.compativeis.length} de {compatAtual.avaliados} inversores do
+            catálogo atendem. Critério: {compatAtual.criterio === 'tecnologia_e_fase'
+              ? 'tecnologia e fase — o envelope elétrico do microinversor é avaliado na distribuição por entradas'
+              : 'avaliação elétrica preliminar pelo motor canônico'}.
+          </p>
+          <div className="mt-2 flex flex-wrap items-end gap-3 rounded border border-slate-200 bg-slate-50 p-3">
+            <label className="text-sm">
+              <span className="block text-slate-600">Marca do inversor</span>
+              <select
+                aria-label="Marca do inversor compatível" value={marcaInv}
+                onChange={(e) => { setMarcaInv(e.target.value); setModeloInv(''); setInvSalvo(false) }}
+                className="mt-1 w-56 rounded border border-slate-300 px-2 py-1"
+              >
+                <option value="">selecione a marca ({marcasCompativeis.length})</option>
+                {marcasCompativeis.map(([m, n]) => <option key={m} value={m}>{m} ({n})</option>)}
+              </select>
+            </label>
+            <label className="text-sm">
+              <span className="block text-slate-600">Modelo</span>
+              <select
+                aria-label="Modelo do inversor compatível" value={modeloInv}
+                disabled={marcaInv === ''}
+                onChange={(e) => { setModeloInv(e.target.value); setInvSalvo(false) }}
+                className="mt-1 w-80 rounded border border-slate-300 px-2 py-1 disabled:bg-slate-100"
+              >
+                <option value="">{marcaInv === '' ? 'escolha a marca primeiro' : 'não selecionado'}</option>
+                {modelosCompativeis.map((c) => (
+                  <option key={c.equipamento_id} value={c.equipamento_id}>{c.modelo}</option>
+                ))}
+              </select>
+            </label>
+            <button
+              type="button" onClick={salvarInversor} disabled={!modeloInv || salvandoInv}
+              className="rounded bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-700 disabled:bg-slate-400"
+            >
+              {salvandoInv ? 'Salvando…' : 'Usar este inversor'}
+            </button>
+            {invSalvo && <span className="text-xs text-emerald-700">Inversor salvo.</span>}
+          </div>
+
+          {/* ── Corrente do modelo escolhido, com os números à vista ────── */}
+          {(() => {
+            const escolhido = (compatAtual.compativeis ?? [])
+              .find((c) => String(c.equipamento_id) === String(modeloInv)) ?? null
+            if (!escolhido) return null
+            return (
+              <div
+                aria-label="Classificação de corrente do candidato"
+                className={`mt-2 rounded border px-3 py-2 ${
+                  escolhido.status === 'atencao'
+                    ? 'border-amber-300 bg-amber-50' : 'border-slate-200 bg-white'}`}
+              >
+                <p className="text-xs font-medium text-slate-700">
+                  {escolhido.status === 'atencao' ? '⚠ Atenção' : '✓ Dentro dos limites avaliáveis'}
+                </p>
+                <CorrenteDoCandidato avaliacao={escolhido.avaliacao_corrente} />
+                {(escolhido.avisos_detalhados ?? []).map((a) => (
+                  <p key={a.codigo} className="mt-1 text-xs text-amber-800">{a.mensagem}</p>
+                ))}
+              </div>
+            )
+          })()}
+        </>
+      )}
+    </section>
+  )
+
   if (projeto && ehComposicaoMicro) {
     return (
       <>
+        {secaoPreliminar({ topo: true })}
+        <div className="mx-auto max-w-3xl px-6">{secaoInversor()}</div>
         {composicaoEhMista && (
           <p role="alert" className="mx-auto mt-6 max-w-3xl rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800">
             A composição mistura microinversores com inversores de outra
@@ -253,11 +702,23 @@ export default function EtapaMppt() {
             composição na etapa Equipamentos.
           </p>
         )}
+        {/*
+          Sprint E — as fases vêm da configuração PRELIMINAR (D0), que por sua
+          vez as lê de `fatura_extracao.tipo_ligacao`. Não são relidas do
+          inversor: o tipo de ligação é da instalação, não do equipamento.
+        */}
         <EtapaMicroinversores
           catalogoInversores={catalogo?.inversores ?? []}
           arranjoPrincipal={arranjoPrincipal}
           totalModulos={totalModulos}
           potenciaModuloW={eletricoMod?.potencia_w ?? null}
+          fases={prelimEditada.fases}
+          /* Sprint E2 — Isc do módulo alimenta a avaliação de corrente da
+             entrada CC. Ausente ⇒ `nao_avaliado`, nunca um valor assumido. */
+          iscModuloA={eletricoMod?.isc ?? null}
+          /* Impp: corrente de OPERAÇÃO do módulo. Sem ela o critério fica
+             `nao_avaliado` — Isc NUNCA a substitui. */
+          imppModuloA={eletricoMod?.impp ?? null}
         />
       </>
     )
@@ -277,6 +738,9 @@ export default function EtapaMppt() {
         A distribuição das strings é sua. O sistema valida contra os limites do
         inversor — não decide o arranjo.
       </p>
+
+      {secaoPreliminar()}
+      {secaoInversor()}
 
       {erroCatalogo && <p role="alert" className="mt-4 text-sm text-red-600">Catálogo indisponível: {erroCatalogo}</p>}
 

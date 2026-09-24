@@ -43,11 +43,49 @@ export const CAMPOS_INVERSOR = {
   // leitura, não alteram a semântica de score existente.
   entradas:              { grupo: 'CC', aliases: ['entradas', 'entradas_cc', 'total_entradas_cc', 'n_entradas', 'numero_entradas', 'entradas_dc'] },
   modulos_por_entrada:   { grupo: 'CC', aliases: ['modulos_por_entrada', 'modulos_por_entrada_max', 'paineis_por_entrada', 'modulos_por_canal'] },
+  // Limite de fábrica de microinversores no MESMO ramal CA (cabo tronco).
+  // Quando o modelo o declara, VENCE a tabela de regras por fabricante
+  // (`regrasMicroFabricante`): dado do modelo é mais específico que do
+  // fabricante. Sem `peso`: reconhecido em leitura, não altera o score.
+  //
+  // ── Sprint E3: por que o nome canônico é este ─────────────────────────────
+  // `max_por_cabo_tronco` é o nome que o sistema JÁ usava: é o campo que o
+  // extrator de datasheet pede (`datasheetController`), que `normalizarMulti`
+  // grava e que a página de Inversores exibe como "Máx. por cabo tronco".
+  //
+  // A Sprint E cunhou `max_micros_por_arranjo` sem reconhecer o antigo; a E2
+  // corrigiu pela metade, deixando o nome novo como canônico e o antigo como
+  // alias — o que mantinha DOIS nomes para o dado, com o de baixa procedência
+  // em cima. A E3 inverte: o nome do cadastro é o canônico, e o inventado por
+  // mim vira apenas um alias de leitura, para não quebrar nada já gravado.
+  max_por_cabo_tronco:   { grupo: 'CC', aliases: ['max_por_cabo_tronco', 'max_micros_por_arranjo', 'max_micros_serie', 'max_micros_por_ramal', 'micros_por_ramal_max', 'max_unidades_por_ramal', 'maximo_micros_em_serie'] },
   tensao_max_entrada:    { grupo: 'CC', peso: 15, aliases: ['tensao_max_entrada', 'tensao_max_entrada_dc_v', 'voc_max_dc', 'voc_max_dc_v', 'tensao_max_dc', 'tensao_max_cc', 'vpv_max', 'voc_max'] },
   tensao_mppt_min:       { grupo: 'CC', peso: 10, aliases: ['tensao_mppt_min', 'tensao_mppt_min_v', 'mppt_min_v', 'faixa_mppt_min', 'mppt_min'] },
   tensao_mppt_max:       { grupo: 'CC', peso: 10, aliases: ['tensao_mppt_max', 'tensao_mppt_max_v', 'mppt_max_v', 'faixa_mppt_max', 'mppt_max'] },
   corrente_max_por_mppt: { grupo: 'CC',           aliases: ['corrente_max_por_mppt', 'corrente_max_por_mppt_a', 'corrente_max_mppt', 'ipv_max'] },
   corrente_isc_max:      { grupo: 'CC', peso: 10, aliases: ['corrente_isc_max', 'corrente_isc_max_a', 'isc_max_mppt', 'isc_max_por_mppt_a', 'corrente_curto_mppt'] },
+  // ── F10 · Limite TOTAL de entrada CC do equipamento ────────────────────────
+  //
+  // Terceira grandeza de corrente, distinta das duas acima. Não confundir:
+  //
+  //   corrente_max_por_mppt  limite de OPERAÇÃO, por MPPT
+  //   corrente_isc_max       limite de CURTO-CIRCUITO, por MPPT
+  //   corrente_max_entrada   limite TOTAL de entrada CC do equipamento
+  //
+  // O motor já tinha o critério `CORRENTE_ENTRADA_TOTAL_EXCEDIDA`, mas o campo
+  // nunca chegava até ele: o extrator de datasheet GRAVA (`normalizarMulti`), o
+  // cadastro EXIBE (`Inversores.jsx`), e o dicionário não o conhecia — então
+  // `lerInversor` devolvia `undefined` e a regra ficava morta por CONSTRUÇÃO,
+  // não por falta de dado. A F10 ligou o caminho.
+  //
+  // Cobertura atual no catálogo: 0/52. É lacuna de CATÁLOGO, não de código:
+  // nenhum equipamento foi preenchido, e o critério segue `nao_avaliado` até
+  // que um datasheet declare o valor — aí ativa sozinho, sem novo código.
+  //
+  // Sem `peso`: reconhecido em leitura, não altera a semântica de score.
+  // Sem fallback: NUNCA derivado de `corrente_max_por_mppt`, nem sozinho nem
+  // multiplicado por `n_mppts` — seria a classe de erro que a F8 removeu.
+  corrente_max_entrada:  { grupo: 'CC',           aliases: ['corrente_max_entrada', 'corrente_max_entrada_dc_a', 'corrente_max_entrada_a'] },
   tensao_partida:        { grupo: 'CC',           aliases: ['tensao_partida', 'tensao_partida_v', 'start_voltage_v', 'tensao_inicializacao_dc'] },
   potencia_max_entrada_cc:{ grupo: 'CC',          aliases: ['potencia_max_entrada_cc', 'potencia_kw_cc_max', 'potencia_dc_max', 'pdc_max', 'potencia_max_entrada_dc_w'] },
   // S1-FV-DOMAIN-MIGRATION-01 — envelope de dimensionamento do domínio.

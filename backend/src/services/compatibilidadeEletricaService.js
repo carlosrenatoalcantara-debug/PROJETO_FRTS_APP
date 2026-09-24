@@ -58,25 +58,48 @@ import {
   TEMP_STC_C,
   NOCT_PADRAO_C,
   FATOR_ISC_NBR16690,
-  coefParaFracao,
-  fatorTermico,
-  temperaturaCelula,
   correnteProjeto,
 } from '@fortesolar/fv-shared/engenharia/normativa'
+// F1: a classificação de corrente CC é uma implementação só, no domínio — este
+// service e o wizard legado a consomem, em vez de cada um ter a sua.
+import { classificarCorrenteCC } from '@fortesolar/fv-shared/engenharia/classificacao-corrente-cc'
+// F2: tensao e oversizing seguem o mesmo caminho da corrente — uma
+// implementacao no dominio, consumida pelo motor e pelo wizard legado.
+import { classificarTensaoCC, MARGEM_ATENCAO_TENSAO } from '@fortesolar/fv-shared/engenharia/classificacao-tensao-cc'
+import { classificarOversizing, LIMITE_CRITICO_CC_CA } from '@fortesolar/fv-shared/engenharia/classificacao-oversizing'
 
 // ─── Constantes normativas ────────────────────────────────────────────────────
 
 /** Limite oversizing CC/CA → WARNING */
-const OVERSIZING_LIMITE_WARNING = 1.30
+/**
+ * Vocabulário de classificação, único no sistema.
+ *
+ * `ok_parcial` existe para não empatar dois estados diferentes: um arranjo sem
+ * nenhuma ressalva e um arranjo que passou em tudo o que era avaliável mas teve
+ * critério sem dado. Chamar os dois de `ok` é como a ausência de limite de
+ * curto-circuito virava aprovação silenciosa.
+ */
+export const STATUS_CRITERIO = Object.freeze({
+  OK:           'ok',
+  OK_PARCIAL:   'ok_parcial',
+  ATENCAO:      'atencao',
+  INCOMPATIVEL: 'incompativel',
+  NAO_AVALIADO: 'nao_avaliado',
+})
 
-/** Limite oversizing CC/CA → ERRO CRÍTICO */
-const OVERSIZING_LIMITE_ERRO = 1.50
+/**
+ * F2 — os limites deixaram de ser declarados aqui. Cada número passou a morar
+ * junto da regra que o usa, no domínio, e este módulo apenas o reexporta para
+ * quem já o consumia (`optimizerArranjoFVService`, painéis, testes).
+ *
+ * `OVERSIZING_LIMITE_WARNING` (1,30×) sumiu por não ter dono: era um default de
+ * fabricante que nenhum fabricante declarou. Ver `classificacaoOversizing`.
+ */
+const OVERSIZING_LIMITE_ERRO = LIMITE_CRITICO_CC_CA
 
-/** Margem de atenção para Voc próximo do limite (5%) */
-const VOC_MARGEM_ATENCAO_PCT = 0.05
-
-/** Margem de atenção para Vmpp próximo do limite MPPT (5%) */
-const MPPT_MARGEM_ATENCAO_PCT = 0.05
+/** Margem de atenção para Voc e Vmpp próximos do limite (5 %) — do domínio. */
+const VOC_MARGEM_ATENCAO_PCT  = MARGEM_ATENCAO_TENSAO
+const MPPT_MARGEM_ATENCAO_PCT = MARGEM_ATENCAO_TENSAO
 
 // ─── Fallback climático conservador ──────────────────────────────────────────
 /**
@@ -104,7 +127,21 @@ export const CLIMA_FALLBACK_BRASIL = Object.freeze({
  * @param {number} v
  * @param {number} [n=3]
  */
+/**
+ * F-01 — uma CONTAGEM declarada: inteiro positivo, ou ausência.
+ * Zero e negativo não são contagens de arranjo; viram ausência e o motor cai
+ * no fallback homogêneo em vez de calcular sobre um número impossível.
+ */
+function _contagem(v) {
+  if (v === null || v === undefined || v === '') return null
+  const n = Number(v)
+  return Number.isFinite(n) && n > 0 ? n : null
+}
+
 function r(v, n = 3) {
+  // F3: `Math.round(null * f)` é 0. Arredondar ausência devolvia zero como se
+  // fosse medida — o mesmo defeito que o `_n` do catálogo tinha na fronteira.
+  if (v === null || v === undefined || !Number.isFinite(v)) return null
   const f = 10 ** n
   return Math.round(v * f) / f
 }
@@ -191,26 +228,69 @@ function validarInputsEletricos(modulo, inversor, arranjo) {
       }
     }
   }
-  const num = (obj, nome, campos) => {
+  /**
+   * F3 — AUSÊNCIA não é INVÁLIDO.
+   *
+   * Campo ausente é lacuna de cadastro: o critério que depende dele fica
+   * `nao_avaliado` e o resto da análise segue. Campo PRESENTE com lixo dentro
+   * (texto, NaN, Infinity) continua sendo entrada inválida, porque aí não há
+   * nada a avaliar nem a declarar — há um erro de dado.
+   *
+   * A distinção só apareceu agora porque, até a F2, `coef_temp_voc` chegava
+   * aqui preenchido pelo default `?? -0.0028` da fronteira do catálogo. Com o
+   * default removido, 49 dos 54 módulos cadastrados passam a chegar sem o
+   * coeficiente — e reprovar o arranjo por isso seria trocar uma aprovação
+   * fabricada por uma reprovação fabricada.
+   */
+  const opcional = (obj, nome, campos) => {
     for (const c of campos) {
       const v = obj?.[c]
-      if (v === undefined || v === null || !isFinite(v)) {
-        problemas.push(`${nome}.${c} deve ser número finito (recebido: ${v})`)
-      }
+      if (v === undefined || v === null || v === '') continue   // lacuna, não erro
+      if (!isFinite(v)) problemas.push(`${nome}.${c} deve ser número finito (recebido: ${v})`)
     }
   }
 
   pos(modulo,  'dados_eletricos_modulo',   ['voc', 'vmpp', 'isc', 'impp', 'potencia_w'])
-  num(modulo,  'dados_eletricos_modulo',   ['coef_temp_voc'])
-  pos(inversor,'dados_eletricos_inversor', ['tensao_max_entrada', 'mppt_min', 'mppt_max',
-                                             'corrente_max_mppt', 'potencia_ca_kw'])
+  opcional(modulo, 'dados_eletricos_modulo', ['coef_temp_voc', 'coef_temp_vmpp', 'temp_noct'])
+  /**
+   * F-06 — o envelope de TENSÃO do inversor virou lacuna, não erro de entrada.
+   *
+   * A F3 já tinha feito isso para o coeficiente térmico do módulo, e a razão é
+   * a mesma: ausência de dado não é dado inválido. Um inversor sem
+   * `tensao_max_entrada` ou sem faixa MPPT fazia o motor devolver
+   * `INPUT_INVALIDO` com `compativel: false` — ou seja, a falta de cadastro
+   * era apresentada como INCOMPATIBILIDADE, que é uma afirmação de engenharia
+   * que ninguém fez.
+   *
+   * Agora `classificarTensaoCC` recebe os nulos e declara `nao_avaliado` nos
+   * três critérios de tensão, como já fazia quando faltava o coeficiente. O
+   * arranjo segue avaliado no que for possível — corrente, oversizing — e o
+   * que não pôde ser verificado é dito por extenso.
+   *
+   * `corrente_max_mppt` e `potencia_ca_kw` permanecem obrigatórios: sem eles
+   * não sobra critério nenhum a avaliar, e o pedido é que não faz sentido.
+   */
+  pos(inversor,'dados_eletricos_inversor', ['corrente_max_mppt', 'potencia_ca_kw'])
+  opcional(inversor, 'dados_eletricos_inversor', ['tensao_max_entrada', 'mppt_min', 'mppt_max'])
   pos(arranjo, 'arranjo_proposto',         ['quantidade_modulos_por_string',
                                              'quantidade_strings_paralelo'])
+  // F-01: os totais do arranjo são OPCIONAIS — ausentes ⇒ fallback homogêneo.
+  // Presentes, precisam ser contagens de verdade: número finito e positivo.
+  for (const c of ['total_modulos_arranjo', 'total_strings_arranjo', 'num_mppt_usados']) {
+    const v = arranjo?.[c]
+    if (v === undefined || v === null || v === '') continue
+    if (!isFinite(v) || v <= 0) {
+      problemas.push(`arranjo_proposto.${c} deve ser contagem positiva (recebido: ${v})`)
+    }
+  }
 
   if (modulo && modulo.vmpp >= modulo.voc) {
     problemas.push('dados_eletricos_modulo.vmpp deve ser menor que voc (relação física)')
   }
-  if (inversor && inversor.mppt_min >= inversor.mppt_max) {
+  // F-06: a relação física só se verifica quando os DOIS lados existem. Com um
+  // deles ausente não há relação a violar — há faixa a declarar como lacuna.
+  if (inversor && isFinite(inversor.mppt_min) && isFinite(inversor.mppt_max)
+      && inversor.mppt_min >= inversor.mppt_max) {
     problemas.push('dados_eletricos_inversor.mppt_min deve ser menor que mppt_max')
   }
 
@@ -258,9 +338,31 @@ function validarInputsEletricos(modulo, inversor, arranjo) {
  * @property {number}  [oversizing_max_fabricante] Oversizing máx. fabricante
  *
  * @typedef {object} ArranjoConfig
- * @property {number}  quantidade_modulos_por_string  Módulos em série por string
- * @property {number}  quantidade_strings_paralelo    Strings em paralelo (por MPPT)
- * @property {number}  [num_mppt_usados]              MPPTs utilizados — default: 1
+ *
+ * ── Dois níveis, e a distinção é o objeto da F-01 ───────────────────────────
+ * Os três primeiros campos descrevem UM MPPT — o pior caso do arranjo. São eles
+ * que decidem os critérios POR ENTRADA: tensão de string e corrente de MPPT.
+ *
+ * Os dois últimos descrevem o ARRANJO INTEIRO. São eles que decidem os
+ * critérios de SISTEMA: relação CC/CA e corrente total de entrada.
+ *
+ * Sem os dois últimos, o motor assume que o arranjo é HOMOGÊNEO e replica o
+ * pior caso em cada MPPT usado — `strings_paralelo × num_mppt_usados`. Essa
+ * suposição é o que produzia 42 módulos onde havia 14: o chamador mandava um
+ * pior caso que já agregava o arranjo todo (2 strings × 7 módulos) junto com o
+ * número de MPPTs do INVERSOR (3), e o motor multiplicava os dois.
+ *
+ * Layout heterogêneo não tem pior caso multiplicável. Quem conhece a topologia
+ * real informa os totais e o motor não infere nada.
+ *
+ * @property {number}  quantidade_modulos_por_string  Módulos em série por string (pior MPPT)
+ * @property {number}  quantidade_strings_paralelo    Strings em paralelo DESSE MPPT
+ * @property {number}  [num_mppt_usados]              MPPTs efetivamente OCUPADOS (≥1 módulo).
+ *                                                    NÃO é o número de MPPTs do inversor.
+ *                                                    Só replica o pior caso no fallback homogêneo. Default: 1
+ * @property {number}  [total_modulos_arranjo]        Total REAL de módulos do arranjo, somado da
+ *                                                    topologia. Quando presente, é a verdade.
+ * @property {number}  [total_strings_arranjo]        Total REAL de strings do arranjo. Idem.
  *
  * @typedef {object} ClimaRegiao
  * @property {number}  temperatura_min_historica_c
@@ -325,6 +427,12 @@ export function analisarCompatibilidade({
 
   const erros    = []
   const warnings = []
+  /**
+   * Critérios que NÃO puderam ser avaliados por falta de dado declarado.
+   * Terceiro estado, ao lado de erro e aviso: sem ele, "não sei" viraria "ok" —
+   * que é exatamente o que a ausência do limite de curto-circuito produzia.
+   */
+  const naoAvaliados = []
 
   // ── 3. Extrai parâmetros normalizados ───────────────────────────────────────
 
@@ -339,7 +447,21 @@ export function analisarCompatibilidade({
     tensao_max_entrada,
     mppt_min,
     mppt_max,
+    /**
+     * Limite de corrente de TRABALHO da entrada MPPT (`corrente_max_por_mppt`
+     * no SSOT). É o quanto a entrada opera continuamente — NÃO é o limite de
+     * curto-circuito, e a distinção é o objeto desta correção.
+     */
     corrente_max_mppt,
+    /**
+     * Limite de corrente de CURTO-CIRCUITO da entrada (`corrente_isc_max` no
+     * SSOT). Grandeza diferente da anterior e declarada separadamente pelo
+     * fabricante: dos 19 inversores do catálogo que declaram as duas, os 19
+     * têm valores diferentes (ex.: Kehua SP13000-B2 → trabalho 13 A, curto
+     * 16,9 A). Ausente ⇒ o critério de curto fica `nao_avaliado`; nunca se
+     * substitui um limite pelo outro.
+     */
+    corrente_isc_max_mppt,
     corrente_max_entrada,
     potencia_ca_kw,
     oversizing_max_fabricante,
@@ -349,23 +471,40 @@ export function analisarCompatibilidade({
     quantidade_modulos_por_string: modulos_por_string,
     quantidade_strings_paralelo:   strings_paralelo,
     num_mppt_usados = 1,
+    total_modulos_arranjo = null,
+    total_strings_arranjo = null,
   } = arranjo_proposto
+
+  /**
+   * F-01 — quantidades do SISTEMA, separadas das quantidades POR MPPT.
+   *
+   * Informadas ⇒ são a verdade, vindas da topologia real. Ausentes ⇒ o motor
+   * cai no arranjo homogêneo, que é o contrato histórico e o que todos os
+   * chamadores que passam um MPPT só continuam exercitando.
+   *
+   * A derivação é feita UMA vez, aqui, e alimenta os dois critérios de sistema
+   * (corrente total de entrada e relação CC/CA). Nenhum deles remultiplica.
+   */
+  const total_strings = _contagem(total_strings_arranjo)
+    ?? (strings_paralelo * num_mppt_usados)
+  const total_modulos = _contagem(total_modulos_arranjo)
+    ?? (modulos_por_string * total_strings)
 
   const { temperatura_min_historica_c: t_min, temperatura_max_historica_c: t_max } = clima
 
-  // Q4: conversão de unidade na FRONTEIRA, uma vez, pela primitiva canônica.
-  // Q2: sem `coef_temp_vmpp` no catálogo, o de Voc vale para Vmpp — provisório.
-  const coefVoc  = coefParaFracao(_coefVoc)
-  const coefVmpp = _coefVmpp !== undefined ? coefParaFracao(_coefVmpp) : coefVoc
+  // F2: a conversão de unidade (Q4) e o fallback de `coef_temp_vmpp` (Q2)
+  // passaram para `classificarTensaoCC`, que recebe os coeficientes crus.
 
-  // Limites do inversor (para o output)
-  const limiteOversizing = oversizing_max_fabricante ?? OVERSIZING_LIMITE_WARNING
+  // Limites do inversor (para o output). F2: `null` quando o catálogo não
+  // declara o limite do fabricante — sem default, o critério vira `nao_avaliado`.
+  const limiteOversizing = oversizing_max_fabricante ?? null
 
   const limites = {
     tensao_max_inversor: tensao_max_entrada,
     faixa_mppt_min:      mppt_min,
     faixa_mppt_max:      mppt_max,
     corrente_max_mppt,
+    corrente_isc_max_mppt: corrente_isc_max_mppt ?? null,
     oversizing_max:      limiteOversizing,
   }
 
@@ -389,20 +528,45 @@ export function analisarCompatibilidade({
   }
 
   // ════════════════════════════════════════════════════════════════════════════
-  // VERIFICAÇÃO 1 — Correção térmica do Voc
+  // VERIFICAÇÕES 1 e 2 — tensão CC (Voc no frio e janela MPPT)
   // ════════════════════════════════════════════════════════════════════════════
+  //
+  // F2: a REGRA de tensão mora em `classificarTensaoCC`, no domínio, e é a mesma
+  // função que o wizard consome no navegador. Aqui o service só decide qual
+  // mensagem emitir para cada veredito — não recompara limites.
   //
   // No frio, o Voc AUMENTA porque coef_temp_voc < 0 e ΔT < 0 → produto positivo.
   // T_cel_frio ≈ T_amb_min: no frio, sem sol, sem aquecimento por NOCT.
-  // Este é o pior caso de TENSÃO — determina se o inversor será destruído.
+  // No calor, Vmpp CAI, e o pior caso do piso do MPPT usa temperatura de célula.
   //
-  const deltaT_frio        = t_min - TEMP_STC_C
-  const voc_corrigido_frio = r(voc * fatorTermico(coefVoc, t_min))
-  const voc_string_max     = r(voc_corrigido_frio * modulos_por_string, 2)
+  const tensao = classificarTensaoCC({
+    voc, vmpp, coefTempVoc: _coefVoc, coefTempVmpp: _coefVmpp,
+    tempNoct: temp_noct, modulosPorString: modulos_por_string,
+    tensaoMaxEntrada: tensao_max_entrada, mpptMin: mppt_min, mpptMax: mppt_max,
+    tMin: t_min, tMax: t_max,
+  })
+
+  const {
+    voc_corrigido_frio, vmpp_corrigido_frio, vmpp_corrigido_quente,
+    voc_string_max, vmpp_string_frio, vmpp_string_quente,
+    t_cel_max, delta_frio: deltaT_frio, delta_quente: deltaT_quente,
+  } = tensao.tensoes
+
+  // F3: sem coeficiente térmico não há tensão corrigida, e portanto não há
+  // veredito de tensão. Isso é dito, uma vez, em vez de virar erro de entrada.
+  if (tensao.status === STATUS_CRITERIO.NAO_AVALIADO) {
+    naoAvaliados.push({
+      criterio: 'tensao_cc',
+      motivo:   'O catálogo não declara o coeficiente térmico de Voc deste módulo. ' +
+                'Sem ele não há como corrigir a tensão para o frio nem para o calor, ' +
+                'e os três critérios de tensão (Voc máximo, teto e piso da janela ' +
+                'MPPT) ficam sem avaliação — nenhum valor típico é assumido no lugar.',
+      valores:  { coef_temp_voc: _coefVoc ?? null, modulos_por_string, t_min, t_max },
+    })
+  }
 
   // Warning: próximo ao limite (dentro da margem de 5%)
-  if (voc_string_max <= tensao_max_entrada &&
-      voc_string_max > tensao_max_entrada * (1 - VOC_MARGEM_ATENCAO_PCT)) {
+  if (tensao.voc.status === STATUS_CRITERIO.ATENCAO) {
     const margem_pct = r(((tensao_max_entrada - voc_string_max) / tensao_max_entrada) * 100, 1)
     warnings.push({
       codigo:           'VOC_PROXIMO_LIMITE',
@@ -417,7 +581,7 @@ export function analisarCompatibilidade({
   }
 
   // Erro crítico: ultrapassou o limite absoluto
-  if (voc_string_max > tensao_max_entrada) {
+  if (tensao.voc.status === STATUS_CRITERIO.INCOMPATIVEL) {
     const excesso = r(voc_string_max - tensao_max_entrada, 2)
     erros.push({
       codigo:           'SOBRETENSAO_VOC',
@@ -434,26 +598,12 @@ export function analisarCompatibilidade({
     })
   }
 
-  // ════════════════════════════════════════════════════════════════════════════
-  // VERIFICAÇÃO 2 — Janela MPPT
-  // ════════════════════════════════════════════════════════════════════════════
-  //
-  // Dois cenários independentes:
+  // Janela MPPT — dois cenários independentes, ambos já classificados acima:
   //  a) Frio → Vmpp alto → risco de ultrapassar MPPT_max (string longa demais)
   //  b) Quente → Vmpp baixo → risco de cair abaixo de MPPT_min (string curta)
   //
-  // Para (b), usa temperatura de célula real com modelo NOCT — mais conservador.
-  //
-  const t_cel_max      = temperaturaCelula(t_max, temp_noct)
-  const deltaT_quente  = t_cel_max - TEMP_STC_C
-
-  const vmpp_corrigido_frio   = r(vmpp * fatorTermico(coefVmpp, t_min))
-  const vmpp_corrigido_quente = r(vmpp * fatorTermico(coefVmpp, t_cel_max))
-  const vmpp_string_frio      = r(vmpp_corrigido_frio   * modulos_por_string, 2)
-  const vmpp_string_quente    = r(vmpp_corrigido_quente * modulos_por_string, 2)
-
   // a) String longa demais (Vmpp_frio > MPPT_max)
-  if (vmpp_string_frio > mppt_max) {
+  if (tensao.mppt_max.status === STATUS_CRITERIO.INCOMPATIVEL) {
     const excesso = r(vmpp_string_frio - mppt_max, 2)
     erros.push({
       codigo:           'MPPT_STRING_LONGA',
@@ -465,7 +615,7 @@ export function analisarCompatibilidade({
       explicacao_curta: 'String longa demais: Vmpp no frio ultrapassa o teto do MPPT.',
       valores:          { vmpp_string_frio, mppt_max, excesso_v: excesso, t_min, vmpp_corrigido_frio },
     })
-  } else if (vmpp_string_frio > mppt_max * (1 - MPPT_MARGEM_ATENCAO_PCT)) {
+  } else if (tensao.mppt_max.status === STATUS_CRITERIO.ATENCAO) {
     const margem_pct = r(((mppt_max - vmpp_string_frio) / mppt_max) * 100, 1)
     warnings.push({
       codigo:           'MPPT_MARGEM_FRIO_PEQUENA',
@@ -479,7 +629,7 @@ export function analisarCompatibilidade({
   }
 
   // b) String curta demais (Vmpp_quente < MPPT_min)
-  if (vmpp_string_quente < mppt_min) {
+  if (tensao.mppt_min.status === STATUS_CRITERIO.INCOMPATIVEL) {
     const deficit = r(mppt_min - vmpp_string_quente, 2)
     erros.push({
       codigo:           'MPPT_STRING_CURTA',
@@ -503,47 +653,115 @@ export function analisarCompatibilidade({
   // Strings em paralelo: correntes se somam
   // corrente_max_mppt é o limite por MPPT — verificamos por MPPT (strings_paralelo)
   //
-  // Q1 (FV-DOM-023/024) — NBR 16690 §5.2: a corrente de PROJETO leva o fator de
-  // segurança 1,25. Este service era o único lugar do sistema que o omitia; o
-  // wizard e `fv-shared` já o aplicavam.
+  // ── QUATRO GRANDEZAS, QUATRO PAPÉIS ─────────────────────────────────────────
   //
-  // É a ÚNICA mudança de resultado desta consolidação, e é deliberada. Arranjos
-  // cuja corrente já ocupava mais de 80 % do limite do MPPT passam de aprovados
-  // a reprovados. O histórico NÃO é recalculado (Q6): a regra vale para
-  // análises novas.
-  const isc_total  = r(correnteProjeto(isc, strings_paralelo))
-  const impp_total = r(impp * strings_paralelo)
+  // A versão anterior comparava UMA corrente contra UM limite e reprovava:
+  //
+  //     Isc × 1,25 > corrente_max_mppt  →  CORRENTE_ISC_EXCEDIDA (crítico)
+  //
+  // Duas coisas diferentes estavam do mesmo lado dessa conta. `Isc × 1,25` é a
+  // corrente de PROJETO da NBR 16690 §5.2 — a que o CONDUTOR e a proteção têm
+  // de suportar. `corrente_max_mppt` é a corrente de TRABALHO da entrada. E o
+  // limite que de fato diz se a entrada aguenta o módulo é um terceiro campo,
+  // `corrente_isc_max`, que o fabricante declara à parte — dos 19 inversores do
+  // catálogo que declaram os dois, os 19 têm valores diferentes.
+  //
+  // Resultado: módulos eram reprovados por ultrapassar um limite que não é o
+  // limite deles. A separação abaixo é a correção, e cada comparação passou a
+  // ter o par certo:
+  //
+  //   isc_operacao  = Isc × strings          × corrente_isc_max_mppt   → ERRO
+  //   impp_total    = Impp × strings         × corrente_max_mppt       → ATENÇÃO
+  //   isc_total     = Isc × strings × 1,25   × corrente_max_mppt       → ATENÇÃO
+  //
+  // O fator 1,25 NÃO foi removido: ele continua sendo a corrente de projeto que
+  // dimensiona cabo e proteção (`selecionarCabo`, `correnteProjeto`) e continua
+  // reportado em `calculos.isc_total`. O que mudou é que ele deixou de ser o
+  // critério de reprovação contra o limite errado.
+  //
+  // F1: a classificação em si saiu daqui e virou `classificarCorrenteCC`, no
+  // domínio — o wizard legado precisa do MESMO veredito por MPPT, no navegador,
+  // e repetir as comparações lá foi o que produziu dois vereditos divergentes.
+  // Este bloco continua sendo o dono das MENSAGENS; a decisão vem de lá.
+  const corrente = classificarCorrenteCC({
+    isc, impp, strings: strings_paralelo,
+    limiteTrabalho: corrente_max_mppt, limiteCurto: corrente_isc_max_mppt,
+  })
+  const isc_operacao = corrente.curto_circuito.isc_operacao
+  const isc_total    = corrente.projeto_normativa.isc_total
+  const impp_total   = corrente.operacao.impp_total
 
-  if (isc_total > corrente_max_mppt) {
-    const excesso = r(isc_total - corrente_max_mppt, 3)
+  const temLimiteCurto = corrente.curto_circuito.limite_a !== null
+
+  // ── Limite ABSOLUTO: curto-circuito. Único critério de corrente que reprova ──
+  if (corrente.curto_circuito.status === STATUS_CRITERIO.INCOMPATIVEL) {
+    const excesso = r(isc_operacao - corrente_isc_max_mppt, 3)
     erros.push({
       codigo:           'CORRENTE_ISC_EXCEDIDA',
       severidade:       'critico',
       nivel:            'critico',
-      mensagem:         `CORRENTE EXCEDIDA: Isc de projeto (${isc_total} A = ${isc} A × ` +
-                        `${strings_paralelo} string(s) × ${FATOR_ISC_NBR16690}, NBR 16690 §5.2) excede ` +
-                        `a corrente máxima de entrada MPPT (${corrente_max_mppt} A) em ${excesso} A. ` +
-                        `Risco de destruição do MPPT. Reduza strings em paralelo.`,
-      explicacao_curta: 'Corrente de projeto excede o limite do MPPT.',
-      valores:          { isc_total, corrente_max_mppt, excesso_a: excesso,
-                          strings_paralelo, isc_modulo: isc,
-                          fator_seguranca: FATOR_ISC_NBR16690, norma: 'NBR 16690 §5.2' },
+      mensagem:         `CORRENTE DE CURTO-CIRCUITO EXCEDIDA: Isc do arranjo (${isc_operacao} A = ` +
+                        `${isc} A × ${strings_paralelo} string(s)) excede a corrente máxima de ` +
+                        `curto-circuito declarada pelo fabricante (${corrente_isc_max_mppt} A) em ` +
+                        `${excesso} A. Limite absoluto da entrada — reduza strings em paralelo ` +
+                        `ou escolha outro módulo.`,
+      explicacao_curta: 'Isc do módulo excede o limite de curto-circuito do inversor.',
+      valores:          { isc_operacao, corrente_isc_max_mppt, excesso_a: excesso,
+                          strings_paralelo, isc_modulo: isc },
     })
-  } else if (impp_total > corrente_max_mppt) {
+  }
+
+  // ── Corrente de OPERAÇÃO acima do limite de trabalho: atenção, não bloqueio ──
+  if (corrente.operacao.status === STATUS_CRITERIO.ATENCAO) {
     warnings.push({
       codigo:           'CORRENTE_IMPP_ELEVADA',
       severidade:       'alerta',
       nivel:            'atencao',
-      mensagem:         `Impp total (${impp_total} A) excede a corrente máxima MPPT (${corrente_max_mppt} A). ` +
-                        `Isc (${isc_total} A) está no limite. Monitore temperatura dos condutores.`,
-      explicacao_curta: 'Corrente de operação próxima ao limite do MPPT — monitorar condutores.',
-      valores:          { impp_total, isc_total, corrente_max_mppt },
+      mensagem:         `A corrente de operação do módulo (Impp ${impp_total} A = ${impp} A × ` +
+                        `${strings_paralelo} string(s)) excede a corrente máxima de entrada ` +
+                        `declarada pelo fabricante para a entrada (${corrente_max_mppt} A). O inversor ` +
+                        `limitará a corrente e haverá perda de geração nos picos; não é ` +
+                        `impedimento elétrico. Monitore a temperatura dos condutores.`,
+      explicacao_curta: 'Corrente de operação acima da corrente máxima de trabalho.',
+      valores:          { impp_total, impp_modulo: impp, corrente_max_mppt,
+                          excesso_a: r(impp_total - corrente_max_mppt, 3), strings_paralelo },
+    })
+  }
+
+  // ── Corrente de PROJETO acima do limite de trabalho: informação normativa ────
+  // Era exatamente esta comparação que reprovava. Continua sendo feita e dita,
+  // porque dimensiona condutor e proteção — mas não decide compatibilidade.
+  if (corrente.projeto_normativa.acima_do_trabalho === true) {
+    warnings.push({
+      codigo:           'CORRENTE_PROJETO_ACIMA_DO_TRABALHO',
+      severidade:       'alerta',
+      nivel:            'atencao',
+      mensagem:         `Corrente de projeto (${isc_total} A = ${isc} A × ${strings_paralelo} ` +
+                        `string(s) × ${FATOR_ISC_NBR16690}, NBR 16690 §5.2) acima da corrente ` +
+                        `máxima de trabalho da entrada (${corrente_max_mppt} A). É a corrente que ` +
+                        `o CONDUTOR e a proteção devem suportar, não um limite do inversor — ` +
+                        `dimensione cabo e proteção por ela.`,
+      explicacao_curta: 'Corrente de projeto normativa acima da corrente de trabalho.',
+      valores:          { isc_total, corrente_max_mppt, isc_modulo: isc,
+                          fator_seguranca: FATOR_ISC_NBR16690, norma: 'NBR 16690 §5.2' },
+    })
+  }
+
+  // ── Sem limite de curto declarado: o critério não é avaliado, e isso é dito ──
+  if (!temLimiteCurto) {
+    naoAvaliados.push({
+      criterio:  'corrente_curto_circuito',
+      motivo:    'O catálogo não declara `corrente_isc_max` para este inversor. ' +
+                 'Sem o limite de curto-circuito, o critério não é avaliado — a ' +
+                 'corrente de trabalho NÃO é usada no lugar dele.',
+      valores:   { isc_operacao, isc_modulo: isc, strings_paralelo },
     })
   }
 
   // Corrente total de entrada (se o inversor especificou)
   if (corrente_max_entrada != null && isFinite(corrente_max_entrada)) {
-    const isc_sistema = r(isc * strings_paralelo * num_mppt_usados)
+    // F-01: total REAL de strings do arranjo — não `por MPPT × nº de MPPTs`.
+    const isc_sistema = r(isc * total_strings)
     if (isc_sistema > corrente_max_entrada) {
       erros.push({
         codigo:           'CORRENTE_ENTRADA_TOTAL_EXCEDIDA',
@@ -564,33 +782,49 @@ export function analisarCompatibilidade({
   // Oversizing ideal: inversor opera mais horas próximo de Pnom.
   // Oversizing excessivo: clipping severo, sobrecarga térmica, dano ao conversor.
   //
-  const total_strings     = strings_paralelo * num_mppt_usados
-  const total_modulos     = modulos_por_string * total_strings
+  // F-01: `total_modulos` já foi derivado uma única vez, junto do contrato do
+  // arranjo. Recalculá-lo aqui era o ponto onde 14 módulos viravam 42.
   const potencia_cc_total = r((potencia_w * total_modulos) / 1000, 3)  // kWp
-  const fator_oversizing  = r(potencia_cc_total / potencia_ca_kw, 4)
 
-  if (fator_oversizing > OVERSIZING_LIMITE_ERRO) {
+  // F2: a regra mora em `classificarOversizing`, no domínio, e distingue o teto
+  // de SEGURANÇA do sistema (1,50×) do limite do FABRICANTE (`oversizing_max`).
+  // Sem o segundo, o critério fica `nao_avaliado` — nenhum limite é assumido.
+  const oversizing = classificarOversizing({
+    potenciaCcKwp: potencia_cc_total,
+    potenciaCaKw:  potencia_ca_kw,
+    limiteFabricante: limiteOversizing,
+  })
+  const fator_oversizing = oversizing.fator
+
+  if (oversizing.status === STATUS_CRITERIO.INCOMPATIVEL) {
     erros.push({
       codigo:           'OVERSIZING_CRITICO',
       severidade:       'critico',
       nivel:            'critico',
       mensagem:         `OVERSIZING EXCESSIVO: Fator CC/CA (${fator_oversizing.toFixed(2)}×) excede ` +
-                        `o limite crítico de ${OVERSIZING_LIMITE_ERRO.toFixed(2)}×. ` +
+                        `o limite crítico de ${LIMITE_CRITICO_CC_CA.toFixed(2)}×. ` +
                         `Risco de sobrecarga e dano ao inversor.`,
       explicacao_curta: 'Proporção CC/CA excessiva — risco de sobrecarga térmica no inversor.',
-      valores:          { fator_oversizing, limite_critico: OVERSIZING_LIMITE_ERRO,
+      valores:          { fator_oversizing, limite_critico: LIMITE_CRITICO_CC_CA,
                           potencia_cc_kwp: potencia_cc_total, potencia_ca_kw },
     })
-  } else if (fator_oversizing > limiteOversizing) {
+  } else if (oversizing.status === STATUS_CRITERIO.ATENCAO) {
     warnings.push({
       codigo:           'OVERSIZING_ELEVADO',
       severidade:       'alerta',
       nivel:            'atencao',
       mensagem:         `Oversizing CC/CA (${fator_oversizing.toFixed(2)}×) acima de ` +
-                        `${(limiteOversizing * 100).toFixed(0)}%. Verifique aceite do fabricante.`,
+                        `${(oversizing.limite_fabricante * 100).toFixed(0)}%. Verifique aceite do fabricante.`,
       explicacao_curta: 'Oversizing acima do recomendado — verificar aceite do fabricante.',
-      valores:          { fator_oversizing, limite_recomendado: limiteOversizing,
+      valores:          { fator_oversizing, limite_recomendado: oversizing.limite_fabricante,
                           potencia_cc_kwp: potencia_cc_total, potencia_ca_kw },
+    })
+  } else if (oversizing.status === STATUS_CRITERIO.NAO_AVALIADO) {
+    naoAvaliados.push({
+      criterio: 'oversizing_fabricante',
+      motivo:   oversizing.motivo,
+      valores:  { fator_oversizing, limite_critico: LIMITE_CRITICO_CC_CA,
+                  potencia_cc_kwp: potencia_cc_total, potencia_ca_kw },
     })
   }
 
@@ -604,10 +838,14 @@ export function analisarCompatibilidade({
   //  mppt_min:    (mppt_min / Vmpp_string_quente) × 100  — > 100 → string curta
   //  oversizing:  (fator_oversizing / OVERSIZING_LIMITE_ERRO) × 100
   //
-  const margem_tensao_percentual     = r((voc_string_max / tensao_max_entrada) * 100, 2)
-  const margem_mppt_max_percentual   = r((vmpp_string_frio / mppt_max) * 100, 2)
-  const margem_mppt_min_percentual   = r((mppt_min / vmpp_string_quente) * 100, 2)
-  const margem_oversizing_percentual = r((fator_oversizing / OVERSIZING_LIMITE_ERRO) * 100, 2)
+  // F3: `null` quando a tensão não pôde ser corrigida. Zero seria "0% do
+  // limite utilizado", que é uma afirmação — e não temos nenhuma.
+  const pct = (a, b) => (a === null || b === null || !b ? null : r((a / b) * 100, 2))
+  const margem_tensao_percentual     = pct(voc_string_max, tensao_max_entrada)
+  const margem_mppt_max_percentual   = pct(vmpp_string_frio, mppt_max)
+  const margem_mppt_min_percentual   = pct(mppt_min, vmpp_string_quente)
+  const margem_oversizing_percentual = fator_oversizing === null
+    ? null : r((fator_oversizing / OVERSIZING_LIMITE_ERRO) * 100, 2)
 
   // ── Resultado ───────────────────────────────────────────────────────────────
 
@@ -625,9 +863,11 @@ export function analisarCompatibilidade({
     t_cel_max_c:            r(t_cel_max, 1),
     delta_temp_quente_c:    r(deltaT_quente, 2),
 
-    // Verificação 3 — Correntes
-    // `isc_total` é a corrente de PROJETO (já com o fator de 1,25 da Q1). O
-    // fator viaja junto para que quem lê saiba o que o número significa.
+    // Verificação 3 — Correntes. Três números distintos, nomeados:
+    //   `isc_operacao` Isc × strings          — comparado ao limite de CURTO
+    //   `isc_total`    Isc × strings × 1,25   — corrente de PROJETO (condutor)
+    //   `impp_total`   Impp × strings         — corrente de OPERAÇÃO
+    isc_operacao,
     isc_total,
     isc_fator_seguranca: FATOR_ISC_NBR16690,
     impp_total,
@@ -647,8 +887,53 @@ export function analisarCompatibilidade({
     margem_oversizing_percentual,
   }
 
+  /**
+   * Classificação de corrente, por critério e com os valores medidos à vista.
+   * A UX não precisa reconstruir nada nem interpretar códigos.
+   */
+  const avaliacao_corrente = {
+    operacao: corrente_max_mppt == null || !isFinite(corrente_max_mppt)
+      ? { status: STATUS_CRITERIO.NAO_AVALIADO, impp_total, limite_a: null,
+          motivo: 'O catálogo não declara a corrente máxima de trabalho da entrada.' }
+      : { status: impp_total > corrente_max_mppt ? STATUS_CRITERIO.ATENCAO : STATUS_CRITERIO.OK,
+          impp_total, limite_a: corrente_max_mppt,
+          margem_a: r(corrente_max_mppt - impp_total, 3), motivo: null },
+    curto_circuito: !temLimiteCurto
+      ? { status: STATUS_CRITERIO.NAO_AVALIADO, isc_operacao, limite_a: null,
+          motivo: 'O catálogo não declara `corrente_isc_max` para este inversor.' }
+      : { status: isc_operacao > corrente_isc_max_mppt
+            ? STATUS_CRITERIO.INCOMPATIVEL : STATUS_CRITERIO.OK,
+          isc_operacao, limite_a: corrente_isc_max_mppt,
+          margem_a: r(corrente_isc_max_mppt - isc_operacao, 3), motivo: null },
+    projeto_normativa: {
+      isc_total, fator: FATOR_ISC_NBR16690, norma: 'NBR 16690 §5.2',
+      limite_trabalho_a: corrente_max_mppt ?? null,
+      acima_do_trabalho: corrente_max_mppt != null && isFinite(corrente_max_mppt)
+        ? isc_total > corrente_max_mppt : null,
+      // Explicitamente NÃO é critério de compatibilidade.
+      decide_compatibilidade: false,
+    },
+  }
+
+  /**
+   * `status` é aditivo: `compativel` continua sendo `erros.length === 0`, e
+   * nenhum consumidor existente muda de comportamento. O que ele acrescenta é a
+   * distinção entre "passou limpo" e "passou com condição técnica relevante",
+   * que antes se perdia porque avisos e erros caíam no mesmo booleano.
+   */
+  const status = erros.length > 0
+    ? STATUS_CRITERIO.INCOMPATIVEL
+    : warnings.length > 0
+      ? STATUS_CRITERIO.ATENCAO
+      : naoAvaliados.length > 0
+        ? STATUS_CRITERIO.OK_PARCIAL
+        : STATUS_CRITERIO.OK
+
   return {
     compativel: erros.length === 0,
+    status,
+    avaliacao_corrente,
+    nao_avaliados: naoAvaliados,
     warnings,
     erros,
     limites,
@@ -669,7 +954,6 @@ export function analisarCompatibilidade({
 
 export const CONSTANTES = Object.freeze({
   TEMP_STC_C,
-  OVERSIZING_LIMITE_WARNING,
   OVERSIZING_LIMITE_ERRO,
   MPPT_MARGEM_ATENCAO_PCT,
   VOC_MARGEM_ATENCAO_PCT,

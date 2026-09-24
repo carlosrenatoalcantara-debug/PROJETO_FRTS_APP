@@ -4,8 +4,12 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Download, ExternalLink, RefreshCw, Zap } from 'lucide-react'
 import Card, { CardHeader, CardBody } from '../ui/Card'
 import Button from '../ui/Button'
-import { gerarUnifilarSVG, baixarUnifilarSVG } from '@/utils/gerarUnifilarSVG'
+// F-02: só o DOWNLOAD vem daqui. A geração é do domínio, via API — importar o
+// motor nesta tela foi o que permitiu chamá-lo com o documento na forma errada.
+import { baixarUnifilarSVG } from '@/utils/gerarUnifilarSVG'
 import { classificarTopologia } from '../../utils/topologiaInversor'
+// F-05: necessidade e composição lado a lado, cada uma com o seu nome.
+import ResumoNecessidadeComposicao from './ResumoNecessidadeComposicao'
 
 export default function UnifilarFV({ projeto }) {
   const topologia = projeto?.engenharia_eletrica?.topologia ?? projeto?.topologia
@@ -18,6 +22,9 @@ export default function UnifilarFV({ projeto }) {
   const [origem, setOrigem] = useState(svgCongelado ? 'snapshot' : null)
   const [carregando, setCarregando] = useState(false)
   const [erro, setErro] = useState(null)
+  // F-02: recusa técnica do domínio (FV-DOM-056) e o que ele teve de assumir.
+  const [impedimento, setImpedimento] = useState(null)
+  const [lacunas, setLacunas] = useState([])
   const navigate = useNavigate()
   const [ativos, setAtivos] = useState([])
 
@@ -29,15 +36,48 @@ export default function UnifilarFV({ projeto }) {
       .catch(() => {})
   }, [projeto?._id])
 
+  /**
+   * F-02 — o desenho passa a vir do domínio, não do motor chamado direto aqui.
+   *
+   * `gerarUnifilarSVG` espera o formato do CONTEXTO do wizard — `projeto.painel`,
+   * `projeto.inversor` no topo. O documento persistido tem outra forma:
+   * `equipamentos.paineis[]` e `equipamentos.inversor`. Chamado com o documento
+   * cru, ele não achava nem módulo nem inversor e caía nos defaults internos:
+   * módulo de 550 W, inversor de 5 kW, 6 módulos, 3,3 kWp. Um projeto real de
+   * Ronma 585 W + Solplanet 9,1 kW + 14 módulos era desenhado como outro
+   * sistema, sem aviso nenhum.
+   *
+   * `POST /:id/unifilar/gerar` é o caminho canônico e já existia: adapta o
+   * documento (`adaptarProjetoParaUnifilar`), hidrata o módulo pelo
+   * `equipamento_id`, aplica o portão de integridade da FV-DOM-056 — que RECUSA
+   * desenhar em vez de inventar — e devolve proveniência e lacunas junto.
+   */
   async function handleGerarUnifilar() {
     try {
       setCarregando(true)
       setErro(null)
-      // S8.1.1: gera a partir dos dados ATUAIS do projeto (origem declarada)
-      const svg = gerarUnifilarSVG(projeto, ativos)
-      if (!svg) throw new Error('Não foi possível gerar o unifilar com os dados disponíveis')
-      setUnifilar(svg)
-      setOrigem('dados_atuais')
+      setImpedimento(null)
+      // Sem corpo: o endpoint identifica tudo de que precisa pela URL. O `{}`
+      // com `Content-Type` que estava aqui existia só para satisfazer o
+      // middleware de Content-Type, que exigia o cabeçalho mesmo sem corpo.
+      const resp = await apiFetch(`/api/projetos-fv/${projeto._id}/unifilar/gerar`, {
+        method: 'POST',
+      })
+      const dados = await resp.json().catch(() => null)
+      if (!resp.ok) throw new Error(dados?.erro || 'Erro ao gerar unifilar')
+
+      // Recusa do domínio: não é falha, é o estado do projeto. Sem desenho.
+      if (!dados?.svg) {
+        setUnifilar(null)
+        setImpedimento(dados?.impedimento ?? {
+          codigo: 'DADOS_INSUFICIENTES',
+          mensagem: 'O projeto não tem dados suficientes para o diagrama.',
+        })
+        return
+      }
+      setUnifilar(dados.svg)
+      setOrigem(dados.origem ?? 'dados_atuais')
+      setLacunas(Array.isArray(dados.lacunas) ? dados.lacunas : [])
     } catch (err) {
       setErro(err.message || 'Erro ao gerar unifilar')
     } finally {
@@ -90,35 +130,17 @@ export default function UnifilarFV({ projeto }) {
         <Zap size={32} className="text-yellow-500" />
       </div>
 
-      {projeto.dimensionamento && (
-        <Card>
-          <CardHeader>Dados do Sistema</CardHeader>
-          <CardBody>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="text-center">
-                <p className="text-sm text-slate-600">Potência</p>
-                <p className="text-2xl font-bold text-blue-600">{projeto.dimensionamento.potenciaArredondada} kWp</p>
-              </div>
-              <div className="text-center">
-                <p className="text-sm text-slate-600">Painéis</p>
-                <p className="text-2xl font-bold text-blue-600">{projeto.dimensionamento.numPaineis}</p>
-              </div>
-              <div className="text-center">
-                <p className="text-sm text-slate-600">Inversores</p>
-                <p className="text-2xl font-bold text-blue-600">{projeto.dimensionamento.numInversores}</p>
-              </div>
-              <div className="text-center">
-                <p className="text-sm text-slate-600">{ehMicro ? 'Microinversores' : 'Strings'}</p>
-                <p className="text-2xl font-bold text-blue-600">
-                  {ehMicro
-                    ? (microCfg?.qtd_microinversores ?? projeto.dimensionamento.numInversores)
-                    : projeto.dimensionamento.numStrings}
-                </p>
-              </div>
-            </div>
-          </CardBody>
-        </Card>
-      )}
+      {/*
+        F-05: o diagrama descreve o sistema CONFIGURADO, e este bloco passou a
+        descrever o mesmo. Lia `dimensionamento`, que é a NECESSIDADE: um
+        projeto de 14 módulos aparecia como 10 ao lado do desenho de 14.
+      */}
+      <Card>
+        <CardHeader>Dados do Sistema</CardHeader>
+        <CardBody>
+          <ResumoNecessidadeComposicao projeto={projeto} ehMicro={ehMicro} />
+        </CardBody>
+      </Card>
 
       <div className="flex items-center gap-3 flex-wrap">
         <Button
@@ -148,6 +170,35 @@ export default function UnifilarFV({ projeto }) {
         <Card className="bg-red-50 border border-red-200">
           <CardBody>
             <p className="text-red-700">⚠️ {erro}</p>
+          </CardBody>
+        </Card>
+      )}
+
+      {/* F-02: recusa declarada em vez de diagrama fictício. */}
+      {impedimento && (
+        <Card className="bg-amber-50 border border-amber-300">
+          <CardBody className="space-y-1">
+            <p className="font-semibold text-amber-900">Diagrama não gerado</p>
+            <p className="text-sm text-amber-800">{impedimento.mensagem ?? 'Dados insuficientes.'}</p>
+            {impedimento.codigo && (
+              <p className="text-[11px] font-mono text-amber-700">{impedimento.codigo}</p>
+            )}
+            <p className="text-xs text-amber-700 pt-1">
+              Nenhum equipamento foi assumido no lugar dos que faltam — complete o
+              arranjo e gere novamente.
+            </p>
+          </CardBody>
+        </Card>
+      )}
+
+      {/* O que o motor teve de assumir, dito por extenso. */}
+      {unifilar && lacunas.length > 0 && (
+        <Card className="bg-slate-50 border border-slate-300">
+          <CardBody>
+            <p className="text-xs text-slate-700">
+              <span className="font-semibold">Assumido pelo motor:</span>{' '}
+              {lacunas.map((l) => (typeof l === 'string' ? l : l?.campo ?? '')).filter(Boolean).join(' · ')}
+            </p>
           </CardBody>
         </Card>
       )}

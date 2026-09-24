@@ -60,7 +60,9 @@ export default function FichaTecnicaModal({ equipamento, onFechar, onSalvo }) {
   const espAtual = { ...(equipamento.especificacoes || {}), ...form }
   // P1-ENGINEERING-CONSUME-01: payload de engenharia (badges/justificativa runtime).
   const payloadEng = payloadEngenharia({ ...equipamento, especificacoes: espAtual })
-  const eng = avaliarUtilizavel(tipo, espAtual)
+  // F-06: contexto para a regra classificar a topologia pelo SSOT.
+  const eng = avaliarUtilizavel(tipo, espAtual,
+    { fabricante: equipamento.fabricante, modelo: equipamento.modelo, subtipo: equipamento.subtipo })
   const nivel = equipamento.qualidade?.nivel
   const nivelCfg = getNivelConfig(nivel)
 

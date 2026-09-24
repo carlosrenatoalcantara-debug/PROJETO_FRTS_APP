@@ -2,7 +2,7 @@ import 'dotenv/config'
 import mongoose from 'mongoose'
 
 // Versão direta (sem SRV)
-const MONGODB_URI_DIRECT = 'mongodb://renato_db_user:BbWX3FtZEBv2g36F@cluster0.iva0pph.mongodb.net:27017/forte_solar?retryWrites=true&w=majority&ssl=true'
+const MONGODB_URI_DIRECT = 'mongodb://renato_db_user:SENHA_REMOVIDA_ROTACIONE_NO_ATLAS@cluster0.iva0pph.mongodb.net:27017/forte_solar?retryWrites=true&w=majority&ssl=true'
 
 console.log('🔍 Testando conexão MongoDB (modo direto)...')
 console.log('📍 URI:', MONGODB_URI_DIRECT.replace(/:[^:/@]+@/, ':***@'))

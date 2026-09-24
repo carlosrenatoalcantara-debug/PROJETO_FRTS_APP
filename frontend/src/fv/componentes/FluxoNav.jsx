@@ -1,5 +1,30 @@
 import { NavLink } from 'react-router-dom'
-import { ETAPAS_FLUXO, GRUPOS_FLUXO, etapasDoGrupo, progressoDosGrupos } from '../fluxo'
+import { ETAPAS_FLUXO, GRUPOS_FLUXO, etapasRaizDoGrupo, subEtapasDe, progressoDosGrupos } from '../fluxo'
+
+/**
+ * Um item de navegação. Extraído para que etapa e sub-etapa compartilhem
+ * exatamente o mesmo comportamento — inclusive o bloqueio por agregado ausente.
+ */
+function ItemEtapa({ etapa, projetoId, miuda = false }) {
+  const indisponivel = etapa.agregado == null
+  return (
+    <NavLink
+      to={`/fv/projetos/${projetoId}/${etapa.chave}`}
+      aria-disabled={indisponivel}
+      title={indisponivel ? 'Agregado ainda não implementado no domínio' : etapa.rotulo}
+      className={({ isActive }) => [
+        'rounded px-2 py-1 transition',
+        miuda ? 'text-xs' : 'text-sm',
+        indisponivel ? 'cursor-not-allowed text-slate-300' : 'text-slate-700 hover:bg-slate-100',
+        isActive && !indisponivel ? 'bg-slate-900 text-white hover:bg-slate-900' : '',
+      ].join(' ')}
+      onClick={(ev) => { if (indisponivel) ev.preventDefault() }}
+    >
+      {etapa.rotulo}
+      {etapa.paralela && <span className="ml-1 text-[10px] text-slate-400">∥</span>}
+    </NavLink>
+  )
+}
 import { useOrcamentos } from '../providers/OrcamentosProvider'
 import { useContrato } from '../providers/ContratoProvider'
 
@@ -34,24 +59,23 @@ export default function FluxoNav({ projetoId }) {
               {g.rotulo}
             </p>
             <ul className="mt-1 flex flex-wrap gap-2">
-              {etapasDoGrupo(g.chave).map((e) => {
-                const indisponivel = e.agregado == null
+              {etapasRaizDoGrupo(g.chave).map((e) => {
+                const subs = subEtapasDe(e.chave)
                 return (
                   <li key={e.chave}>
-                    <NavLink
-                      to={`/fv/projetos/${projetoId}/${e.chave}`}
-                      aria-disabled={indisponivel}
-                      title={indisponivel ? 'Agregado ainda não implementado no domínio' : e.rotulo}
-                      className={({ isActive }) => [
-                        'rounded px-2 py-1 text-sm transition',
-                        indisponivel ? 'cursor-not-allowed text-slate-300' : 'text-slate-700 hover:bg-slate-100',
-                        isActive && !indisponivel ? 'bg-slate-900 text-white hover:bg-slate-900' : '',
-                      ].join(' ')}
-                      onClick={(ev) => { if (indisponivel) ev.preventDefault() }}
-                    >
-                      {e.rotulo}
-                      {e.paralela && <span className="ml-1 text-[10px] text-slate-400">∥</span>}
-                    </NavLink>
+                    <ItemEtapa etapa={e} projetoId={projetoId} />
+                    {/* Sub-etapas de Equipamentos: mesma rota de sempre, apenas
+                        aninhadas sob o pai — configuração da composição, não
+                        etapa independente do fluxo. */}
+                    {subs.length > 0 && (
+                      <ul className="ml-3 mt-1 flex flex-wrap gap-1 border-l border-slate-200 pl-2">
+                        {subs.map((s) => (
+                          <li key={s.chave}>
+                            <ItemEtapa etapa={s} projetoId={projetoId} miuda />
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                   </li>
                 )
               })}

@@ -109,6 +109,24 @@ export function calcularDimensionamento(dados) {
 }
 
 /**
+ * Irradiância do local — Sprint B.
+ *
+ * `GET /api/irradiancia/local` já existia e já é servido: consulta a NASA POWER
+ * por latitude/longitude (`utils/nasaPowerAPI.js`) e, quando ela não responde,
+ * devolve o padrão com `fonte: 'padrão'`. Nenhuma rota nova foi criada aqui — a
+ * UX nova apenas passou a consumir o que o wizard antigo (`E4Irradiancia.jsx`)
+ * já consumia e que a migração havia deixado para trás.
+ *
+ * Resposta: `{ sucesso, hsp_dia, hsp_anual, latitude, longitude, fonte, kt_medio?, mensagem? }`.
+ * `fonte` é `'nasa-power'` ou `'padrão'` — o cliente NÃO reinterpreta: exibe o
+ * que o servidor declarou.
+ */
+export function consultarIrradiancia({ latitude, longitude }) {
+  const q = new URLSearchParams({ latitude: String(latitude), longitude: String(longitude) })
+  return enviar(`/api/irradiancia/local?${q}`, { method: 'GET' }, 'consultarIrradiancia')
+}
+
+/**
  * Validação elétrica canônica — FV-UX-026.
  *
  * `POST /api/engenharia/compatibilidade-eletrica` é o adapter do contrato
@@ -205,8 +223,8 @@ export function validarRateioBeneficiarias(projetoId, beneficiarias) {
  * usa esses campos como vieram: não recalcula nem reinterpreta nenhum deles.
  */
 export function gerarUnifilar(projetoId) {
-  return enviar(`${base(projetoId)}/unifilar/gerar`,
-    { method: 'POST', body: json({}) }, 'gerarUnifilar')
+  // Sem corpo: o projeto vem da URL e o endpoint não recebe parâmetro nenhum.
+  return enviar(`${base(projetoId)}/unifilar/gerar`, { method: 'POST' }, 'gerarUnifilar')
 }
 
 // ── Financeiro — FV-UX-017 ──────────────────────────────────────────────────
@@ -425,4 +443,22 @@ export function obterParecer(projetoId) {
 export function confirmarParecer(projetoId) {
   return enviar(`${base(projetoId)}/parecer/confirmar`,
     { method: 'POST', body: json({}) }, 'confirmarParecer')
+}
+
+/**
+ * Inversores compatíveis com a configuração preliminar — Sprint D2.
+ *
+ * `POST /api/engenharia/inversores-compativeis` (D1) orquestra o motor canônico
+ * `analisarCompatibilidade` sobre o catálogo do SSOT. O cliente NÃO conhece
+ * nenhuma regra elétrica: manda a configuração e o `modulo_id`, recebe a lista.
+ *
+ * Respostas: 200 com `{ok:true, compativeis[], incompativeis[], criterio}`;
+ * 422 quando falta dado para avaliar (`CONFIG_INCOMPLETA`, `MODULO_SEM_DADOS`);
+ * 404 quando o módulo não existe. Os três chegam aqui como `ErroHttp` com
+ * `codigo`, e a tela distingue "nenhum compatível" de "não deu para avaliar".
+ */
+export function consultarInversoresCompativeis({ modulo_id, configuracao, clima }) {
+  return enviar('/api/engenharia/inversores-compativeis',
+    { method: 'POST', body: json({ modulo_id, configuracao, clima }) },
+    'consultarInversoresCompativeis')
 }

@@ -1,56 +1,24 @@
 /**
- * utilizavelProjeto.js — Sprint 8.0.1
+ * utilizavelProjeto.js — reexport da regra canônica — F-06.
  *
- * Regras de LIBERAÇÃO PARA ENGENHARIA (uso seguro no orçamento).
- * Equipamento incompleto fica no catálogo, mas não deve ser selecionável.
- * Função pura; espelhada no frontend (utils/utilizavelProjeto.js).
+ * A matriz de liberação para engenharia MUDOU DE LUGAR: vive em
+ * `@fortesolar/fv-shared/utilizavel-projeto` e é consumida pelo backend e pelo
+ * frontend a partir de lá.
+ *
+ * ── Por que mudou ───────────────────────────────────────────────────────────
+ * Havia duas matrizes para a mesma pergunta — esta e uma cópia no frontend — e
+ * elas discordavam. A daqui exigia `potencia_kw` e `numero_mppt`; a de lá
+ * exigia também corrente e tensão, procurando `voc_max`/`voc_max_dc`, aliases
+ * que o SSOT não usa (o nome real é `tensao_max_entrada`). O mesmo inversor era
+ * "liberado" de um lado e "bloqueado" do outro.
+ *
+ * Além da divergência, a matriz daqui não pedia envelope de tensão nenhum: 6
+ * inversores STRING sem `tensao_max_entrada` e sem faixa MPPT passavam como
+ * utilizáveis, com `bloqueio_engenharia: []`, para uma etapa que não tem como
+ * verificar sobretensão nem janela de MPPT neles.
+ *
+ * Este arquivo permanece para não quebrar quem já o importava.
  */
+export { avaliarUtilizavel } from '@fortesolar/fv-shared/utilizavel-projeto'
 
-const num = (v) => {
-  if (v === null || v === undefined || v === '') return null
-  const n = Number(v)
-  return Number.isFinite(n) ? n : null
-}
-const pick = (esp, chaves) => {
-  for (const k of chaves) { const v = num(esp?.[k]); if (v !== null) return v }
-  return null
-}
-
-// Campos MÍNIMOS por tipo (rótulo amigável → presença em especificacoes).
-// P0-CATALOG-QUALITY-HARDENING-01: a matriz mínima é a do sprint — barra
-// identity-only (sem specs do núcleo) sem super-bloquear registros parciais.
-// fabricante/modelo são exigidos pelo schema (required) → sempre presentes.
-const REGRAS = {
-  modulo: [
-    ['potencia_wp', (e) => pick(e, ['potencia', 'potencia_w', 'potenciaW', 'potencia_wp'])],
-    ['voc', (e) => pick(e, ['voc', 'voc_v'])],
-    ['isc', (e) => pick(e, ['isc', 'isc_a'])],
-  ],
-  inversor: [
-    ['potencia_kw', (e) => pick(e, ['potencia', 'potencia_kw', 'potencia_ca'])],
-    ['numero_mppt', (e) => pick(e, ['mppts', 'n_mppts', 'numero_mppt'])],
-  ],
-  bateria: [
-    ['capacidade_kwh', (e) => pick(e, ['capacidade_kwh', 'capacidade', 'capacidade_kWh'])],
-  ],
-  // Estrutura: fabricante + modelo (topo) bastam — sem especificacoes mínimas.
-  estrutura: [],
-  // carregador_ev FORA do escopo desta sprint (P0-CATALOG-QUALITY-HARDENING-01
-  // cobre FV: modulo/inversor/estrutura/bateria) e o domínio EV não deve ser
-  // alterado. Sem regras → não-gateado (preserva o comportamento anterior).
-  carregador_ev: [],
-}
-
-/**
- * Avalia se o equipamento cumpre a matriz mínima para uso em projeto.
- * Tipos conhecidos sem regras (estrutura) → utilizável. Tipo desconhecido →
- * não cai mais em REGRAS.modulo (evita bloqueio falso por specs de módulo).
- * @returns {{ utilizavel:boolean, faltando:string[] }}
- */
-export function avaliarUtilizavel(tipo, especificacoes) {
-  const regras = REGRAS[tipo] ?? []
-  const faltando = regras.filter(([, fn]) => fn(especificacoes || {}) === null).map(([rotulo]) => rotulo)
-  return { utilizavel: faltando.length === 0, faltando }
-}
-
-export default { avaliarUtilizavel }
+export { default } from '@fortesolar/fv-shared/utilizavel-projeto'

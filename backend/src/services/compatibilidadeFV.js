@@ -16,6 +16,7 @@
  */
 
 import { lerInversor, paraDimensionamento } from '../equipamentos/inversores/index.js'
+import { lerModulo } from '../equipamentos/modulos/index.js'
 
 // ─── Constantes elétricas e de segurança ─────────────────────────────────────
 const FATOR_TEMPERATURA_VOC = 1.15      // Voc cresce ~15% a -10°C (cidades RN, p.ex. Caicó madrugada)
@@ -47,27 +48,67 @@ const TABELA_BITOLA_NBR_5410 = [
 
 function round(n, casas = 2) { return Number(n.toFixed(casas)) }
 
+/** Número finito ou `null`. Nunca 0 por omissão, nunca NaN. */
+function _num(v) {
+  if (v === null || v === undefined || v === '') return null
+  const n = Number(v)
+  return Number.isFinite(n) ? n : null
+}
+
+/** Campos do módulo sem os quais `montarStrings` não tem o que calcular. */
+const CAMPOS_MODULO_EXIGIDOS = ['potencia_w', 'voc', 'vmpp', 'isc']
+
 /**
- * Extrai specs de um módulo de forma defensiva — schema heterogêneo (Mixed).
- * Aceita variações comuns: { potencia_w, voc, isc, vmpp, impp, eficiencia }
- *                      ou: especificacoes.{potencia, voc, isc, vmp, imp, eficiencia}
+ * Extrai specs de um módulo — leitura pela SSOT (`fv-shared/modulos`).
+ *
+ * ── P0-MOD-SSOT-01: por que esta função deixou de traduzir nomes ─────────────
+ * Havia aqui um leitor PARALELO ao dicionário canônico, com a sua própria lista
+ * de aliases, e ela estava incompleta no campo mais importante:
+ *
+ *     potencia_w: equipamento.potencia_w || esp.potencia_w || esp.potencia || 0
+ *
+ * Os 54 módulos do catálogo gravam `especificacoes.potencia_wp` — 100% deles,
+ * porque é o que `ModalNovoModulo` e a extração por datasheet escrevem. Nenhum
+ * grava as três grafias acima. Medido em produção: `potencia_w === 0` em 54/54,
+ * e `potencia_array_w = n_serie × n_paralelo × 0` zerava a potência do arranjo e
+ * o DC/AC ratio de TODO projeto que passasse por aqui — o sintoma "24 módulos →
+ * Potência CC real: 0 kWp".
+ *
+ * `CAMPOS_MODULO.potencia_w` (SSOT) já lista `potencia_wp` em primeiro lugar,
+ * junto com `potenciaW` e `potencia_pico`, que esta lista também não conhecia.
+ * A correção não é acrescentar mais um alias local: é parar de ter lista local.
+ * Mesma disciplina que a P0-INV-SSOT-01 aplicou ao inversor.
+ *
+ * ── Os três defaults FABRICADOS também saíram ───────────────────────────────
+ * `coef_temp_voc ?? -0.27` cobria 50 dos 54 módulos e o valor nem chegava a ser
+ * usado (`montarStrings` aplica a constante `FATOR_TEMPERATURA_VOC`);
+ * `largura_mm ?? 1134` e `altura_mm ?? 2278` cobriam 54 de 54 — um módulo
+ * imaginário, em 100% dos casos, sem aviso. Ausência agora é `null` e viaja
+ * declarada em `lacunas`, como a FV-DOM-029 já fazia do lado do inversor.
+ *
+ * `eficiencia_pct` perdeu o `|| 0` pelo mesmo motivo: nenhum consumidor o lê, e
+ * um zero é indistinguível de um módulo de 0% de eficiência.
  */
 export function extrairSpecsModulo(equipamento) {
   if (!equipamento) return null
   const esp = equipamento.especificacoes || {}
-  return {
+  const c = lerModulo(equipamento)
+  const specs = {
     fabricante: equipamento.fabricante || null,
     modelo: equipamento.modelo || null,
-    potencia_w: equipamento.potencia_w || esp.potencia_w || esp.potencia || 0,
-    voc: esp.voc || esp.voc_v || equipamento.voc || 0,
-    isc: esp.isc || esp.isc_a || equipamento.isc || 0,
-    vmpp: esp.vmp || esp.vmpp || esp.vmpp_v || 0,
-    impp: esp.imp || esp.impp || esp.impp_a || 0,
-    eficiencia_pct: esp.eficiencia || esp.eficiencia_pct || 0,
-    coef_temp_voc: esp.coef_temp_voc || esp.coef_temp_voc_pct_c || -0.27,  // %/°C típico
-    largura_mm: esp.largura_mm || esp.dimensoes_largura_mm || 1134,
-    altura_mm: esp.altura_mm || esp.dimensoes_altura_mm || 2278,
+    potencia_w: c.potencia_w,
+    voc: c.voc,
+    isc: c.isc,
+    vmpp: c.vmpp,
+    impp: c.impp,
+    eficiencia_pct: _num(esp.eficiencia ?? esp.eficiencia_pct),
+    coef_temp_voc: c.coef_temp_voc,
+    largura_mm: _num(esp.largura_mm ?? esp.dimensoes_largura_mm),
+    altura_mm: _num(esp.altura_mm ?? esp.dimensoes_altura_mm),
   }
+  /** Campos exigidos que o catálogo não declarou. Vazio = pode calcular. */
+  specs.lacunas = CAMPOS_MODULO_EXIGIDOS.filter((k) => specs[k] === null)
+  return specs
 }
 
 /**
@@ -118,11 +159,30 @@ export function extrairSpecsInversor(equipamento) {
 export function montarStrings({ modulo, inversor, qtd_modulos_total }) {
   const alertas = []
 
-  if (!modulo || !modulo.voc || !modulo.isc) {
+  // P0-MOD-SSOT-01: o guard checava só `voc` e `isc` porque os outros dois campos
+  // eram fechados com `|| 0` no extrator — `potencia_w` ausente virava zero e o
+  // cálculo seguia, produzindo `potencia_array_kw = 0` e `dc_ac_ratio = 0` como
+  // se fossem resultado. `vmpp` ausente era pior: `mppt_min_v / null` dá
+  // Infinity, e o veredito saía como INCOMPATIVEL — culpando a combinação por
+  // uma falta de cadastro.
+  //
+  // Agora cada campo exigido é nomeado, na mesma disciplina do lado do inversor
+  // (FV-DOM-029): ausência bloqueia e diz o que falta; nenhum valor é assumido.
+  const faltandoModulo = Array.isArray(modulo?.lacunas)
+    ? modulo.lacunas
+    : CAMPOS_MODULO_EXIGIDOS.filter((k) => modulo?.[k] === null || modulo?.[k] === undefined || modulo?.[k] === 0)
+
+  if (!modulo || faltandoModulo.length > 0) {
     return {
       ok: false,
       configuracao: null,
-      alertas: [{ nivel: 'erro', codigo: 'MODULO_SEM_SPECS', mensagem: 'Módulo sem Voc/Isc — preencher especificações antes de montar strings.' }],
+      alertas: [{
+        nivel: 'erro',
+        codigo: 'MODULO_SEM_SPECS',
+        mensagem: `Módulo sem especificação para: ${faltandoModulo.join(', ') || 'dados elétricos'}. ` +
+          'Preencher no catálogo antes de montar strings — nenhum valor é assumido.',
+        campos_faltantes: faltandoModulo,
+      }],
     }
   }
   // FV-DOM-029: o guard checava só `voc_max_dc` porque `paraDimensionamento`

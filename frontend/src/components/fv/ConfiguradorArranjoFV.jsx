@@ -22,12 +22,19 @@ import {
   dadosEletricosInversor,
   CLIMA_PADRAO_UF,
 } from '../../data/catalogoEletrico'
+// F1: veredito de corrente vem do classificador canonico do dominio — a mesma
+// implementacao que `analisarCompatibilidade` usa no backend.
+import { classificarCorrenteCC, STATUS_CORRENTE } from '@fortesolar/fv-shared/engenharia/classificacao-corrente-cc'
 import { useCompatibilidadeEletrica } from '../../hooks/useCompatibilidadeEletrica'
 import PainelCompatibilidadeFV from '../engenharia/PainelCompatibilidadeFV'
+// F2: tensão e oversizing seguem o mesmo caminho da corrente.
+import { classificarTensaoCC, STATUS_TENSAO } from '@fortesolar/fv-shared/engenharia/classificacao-tensao-cc'
 import {
-  coefParaFracao, fatorTermico, temperaturaCelula, correnteProjeto,
-  FATOR_ISC_NBR16690, NOCT_PADRAO_C,
-} from '@fortesolar/fv-shared/engenharia/normativa'
+  classificarOversizing, STATUS_OVERSIZING, LIMITE_CRITICO_CC_CA,
+} from '@fortesolar/fv-shared/engenharia/classificacao-oversizing'
+// F1/F2: `correnteProjeto`, `FATOR_ISC_NBR16690`, `fatorTermico`,
+// `temperaturaCelula` e `coefParaFracao` saíram — quem os aplica agora são os
+// classificadores. Mantê-los importados convidaria a comparação manual de volta.
 import { classificarTopologia } from '../../utils/topologiaInversor'
 import { dimensionarMicroinversor, resumoDistribuicao } from '../../utils/dimensionarMicro'
 // P1-MPPT-TOPOLOGY-IMPLEMENTATION-01 — editor da topologia real (entradas/strings)
@@ -78,15 +85,31 @@ function sugerirMPPTs(numPaineis, nMppts) {
 // strings, a compatibilidade mono/trifásica e a área — avisos de edição que o
 // motor do backend não produz.
 
-/** Tensão Voc corrigida pelo frio — NBR 16690 §5.1, via primitiva canônica. */
-function vocFrio(voc, coef, tmin) {
-  return voc * fatorTermico(coefParaFracao(coef), tmin)
-}
-
-/** Vmpp na temperatura de célula em operação — NBR 16690 §5.1. */
-function vmppQuente(vmpp, coefVoc, tmax, tempNoct = NOCT_PADRAO_C) {
-  const coef = coefParaFracao(coefVoc)   // Q2: o coeficiente de Voc vale para Vmpp
-  return vmpp * fatorTermico(coef, temperaturaCelula(tmax, tempNoct))
+/**
+ * F2 — tensão de UM MPPT pelo classificador canônico.
+ *
+ * `vocFrio` e `vmppQuente` viviam aqui e compunham as primitivas certas, mas as
+ * COMPARAÇÕES que as consumiam eram próprias desta tela, e divergiam do motor:
+ * o wizard media o Vmpp QUENTE contra o MPPT máximo, e o quente é o menor dos
+ * dois — o critério nunca disparava. Os cartões por MPPT iam além e comparavam
+ * o Vmpp em STC contra o MPPT mínimo, terceira leitura da mesma regra.
+ *
+ * Agora a tela não compara nada: pede o veredito e o exibe. Os números na tela
+ * são os mesmos que o motor usa, porque saem da mesma chamada.
+ */
+function tensaoDoMppt(eletricoMod, eletricoInv, modulosPorString, tmin, tmax) {
+  if (!eletricoMod || !eletricoInv) return null
+  return classificarTensaoCC({
+    voc:  eletricoMod.voc,
+    vmpp: eletricoMod.vmpp,
+    coefTempVoc: eletricoMod.coef_temp_voc,
+    tempNoct:    eletricoMod.temp_noct,
+    modulosPorString,
+    tensaoMaxEntrada: eletricoInv.tensao_max_entrada,
+    mpptMin: eletricoInv.mppt_min,
+    mpptMax: eletricoInv.mppt_max,
+    tMin: tmin, tMax: tmax,
+  })
 }
 
 // ─── Validações elétricas locais ──────────────────────────────────────────────
@@ -95,7 +118,7 @@ function vmppQuente(vmpp, coefVoc, tmax, tempNoct = NOCT_PADRAO_C) {
  * Retorna { avisos: string[], bloqueios: string[] }
  * Avisos = amarelo | Bloqueios = vermelho (impedem avanço seguro)
  */
-function validarArranjo({ mppts, modulosPorString, eletricoMod, eletricoInv, clima, tipoLigacao, fases, areaDisponivel }) {
+function validarArranjo({ mppts, modulosPorString, totalModulos = 0, eletricoMod, eletricoInv, clima, tipoLigacao, fases, areaDisponivel }) {
   const avisos   = []
   const bloqueios = []
 
@@ -110,59 +133,139 @@ function validarArranjo({ mppts, modulosPorString, eletricoMod, eletricoInv, cli
     const mps    = mppt.modulosPorString
     const nStr   = mppt.numStrings
 
-    // 1. Voc frio excedido
-    const vocStr = vocFrio(eletricoMod.voc, eletricoMod.coef_temp_voc, tmin) * mps
-    if (vocStr > eletricoInv.tensao_max_entrada) {
-      bloqueios.push(
-        `MPPT ${idx}: Voc frio (${vocStr.toFixed(0)} V) excede Vmáx do inversor (${eletricoInv.tensao_max_entrada} V). Reduza módulos/string.`
-      )
-    }
+    /**
+     * 1–3. Tensão — F2: veredito do classificador canônico, como já era a
+     * corrente. A tela não recompara Voc frio, Vmpp frio nem Vmpp quente.
+     *
+     *   Voc frio    > tensão máxima de entrada → bloqueio (destrói o inversor)
+     *   Vmpp frio   > MPPT máximo              → bloqueio (string longa demais)
+     *   Vmpp quente < MPPT mínimo              → bloqueio (string curta demais)
+     *
+     * O teto de MPPT era AVISO aqui e ERRO no motor, e era medido no quente —
+     * nunca disparava. O motor sempre foi a referência; a tela passa a segui-lo.
+     */
+    const tensao = tensaoDoMppt(eletricoMod, eletricoInv, mps, tmin, tmax)
+    const { voc_string_max, vmpp_string_frio, vmpp_string_quente } = tensao.tensoes
 
-    // 2. Vmpp abaixo do mínimo MPPT — Q3: a comparação é na condição QUENTE.
-    // Antes usava Vmpp em STC, que é otimista: o Vmpp CAI com a temperatura, e
-    // é justamente no calor que a string corre risco de sair da janela.
-    const vmppQ = vmppQuente(eletricoMod.vmpp, eletricoMod.coef_temp_voc, tmax, eletricoMod.temp_noct) * mps
-    if (vmppQ < eletricoInv.mppt_min) {
+    if (tensao.voc.status === STATUS_TENSAO.INCOMPATIVEL) {
       bloqueios.push(
-        `MPPT ${idx}: Vmpp no calor (${vmppQ.toFixed(0)} V) abaixo do mínimo MPPT (${eletricoInv.mppt_min} V). Adicione módulos/string.`
+        `MPPT ${idx}: Voc frio (${voc_string_max.toFixed(0)} V) excede Vmáx do inversor (${eletricoInv.tensao_max_entrada} V). Reduza módulos/string.`
       )
-    }
-
-    // 3. Vmpp acima do máximo MPPT
-    if (vmppQ > eletricoInv.mppt_max) {
+    } else if (tensao.voc.status === STATUS_TENSAO.ATENCAO) {
       avisos.push(
-        `MPPT ${idx}: Vmpp quente (${vmppQ.toFixed(0)} V) pode exceder faixa MPPT máxima (${eletricoInv.mppt_max} V) em dias quentes.`
+        `MPPT ${idx}: Voc frio (${voc_string_max.toFixed(0)} V) a menos de 5% do Vmáx do inversor (${eletricoInv.tensao_max_entrada} V). Margem pequena para o pior inverno.`
       )
     }
 
-    // 4. Isc excedida — Q1, NBR 16690 §5.2, pela primitiva canônica.
-    const iscTotal = correnteProjeto(eletricoMod.isc, nStr)
-    if (iscTotal > eletricoInv.corrente_max_mppt) {
+    if (tensao.mppt_min.status === STATUS_TENSAO.INCOMPATIVEL) {
       bloqueios.push(
-        `MPPT ${idx}: Isc de projeto (${iscTotal.toFixed(1)} A com fs=${FATOR_ISC_NBR16690}) excede corrente máxima do MPPT (${eletricoInv.corrente_max_mppt} A).`
+        `MPPT ${idx}: Vmpp no calor (${vmpp_string_quente.toFixed(0)} V) abaixo do mínimo MPPT (${eletricoInv.mppt_min} V). Adicione módulos/string.`
+      )
+    }
+
+    if (tensao.mppt_max.status === STATUS_TENSAO.INCOMPATIVEL) {
+      bloqueios.push(
+        `MPPT ${idx}: Vmpp no frio (${vmpp_string_frio.toFixed(0)} V) excede a faixa MPPT máxima (${eletricoInv.mppt_max} V). Reduza módulos/string.`
+      )
+    } else if (tensao.mppt_max.status === STATUS_TENSAO.ATENCAO) {
+      avisos.push(
+        `MPPT ${idx}: Vmpp no frio (${vmpp_string_frio.toFixed(0)} V) a menos de 5% do teto da faixa MPPT (${eletricoInv.mppt_max} V).`
+      )
+    }
+
+    if (tensao.status === STATUS_TENSAO.NAO_AVALIADO) {
+      avisos.push(
+        `MPPT ${idx}: tensão não avaliada — faltam dados do módulo, do inversor ou do clima para fechar o critério.`
+      )
+    }
+
+    /**
+     * 4. Corrente — F1: o veredito é do classificador canônico, não desta tela.
+     *
+     * Antes havia aqui `correnteProjeto(isc, nStr) > corrente_max_mppt →
+     * bloqueio`. Depois que o motor foi corrigido, essa comparação passou a
+     * discordar dele: o wizard reprovava o que o motor classificava como
+     * ATENÇÃO. Agora os dois consomem a mesma função.
+     *
+     *   Isc  > limite de CURTO     → bloqueio (limite absoluto)
+     *   Impp > limite de TRABALHO  → aviso (limita geração, não impede)
+     *   Isc × 1,25 acima do trab.  → aviso (dimensiona condutor)
+     *   sem limite de curto         → lacuna declarada, nunca aprovação muda
+     */
+    const corrente = classificarCorrenteCC({
+      isc: eletricoMod.isc,
+      impp: eletricoMod.impp,
+      strings: nStr,
+      limiteTrabalho: eletricoInv.corrente_max_mppt,
+      limiteCurto: eletricoInv.corrente_isc_max_mppt,
+    })
+
+    if (corrente.curto_circuito.status === STATUS_CORRENTE.INCOMPATIVEL) {
+      bloqueios.push(
+        `MPPT ${idx}: Isc do arranjo (${corrente.curto_circuito.isc_operacao} A) excede a corrente ` +
+        `máxima de curto-circuito do inversor (${corrente.curto_circuito.limite_a} A). Limite absoluto.`
+      )
+    }
+    if (corrente.operacao.status === STATUS_CORRENTE.ATENCAO) {
+      avisos.push(
+        `MPPT ${idx}: corrente de operação (Impp ${corrente.operacao.impp_total} A) acima da corrente ` +
+        `máxima de trabalho da entrada (${corrente.operacao.limite_a} A). Haverá limitação nos picos; ` +
+        `não é impedimento elétrico.`
+      )
+    }
+    if (corrente.projeto_normativa.acima_do_trabalho === true) {
+      avisos.push(
+        `MPPT ${idx}: corrente de projeto (${corrente.projeto_normativa.isc_total} A, ` +
+        `NBR 16690 §5.2) acima da corrente de trabalho (${corrente.projeto_normativa.limite_trabalho_a} A). ` +
+        `Dimensione cabo e proteção por ela — não é limite do inversor.`
+      )
+    }
+    if (corrente.curto_circuito.status === STATUS_CORRENTE.NAO_AVALIADO) {
+      avisos.push(
+        `MPPT ${idx}: corrente de curto-circuito não avaliada — o catálogo não declara ` +
+        `\`corrente_isc_max\` para este inversor.`
       )
     }
   })
 
   // ── Oversizing DC/CA ──────────────────────────────────────────────────────
-  const totalKwp = mppts.reduce(
-    (s, m) => s + m.numStrings * m.modulosPorString * eletricoMod.potencia_w / 1000,
-    0
-  )
-  const oversizing = totalKwp / eletricoInv.potencia_ca_kw
-  const oversizingMax = eletricoInv.oversizing_max ?? 1.30
+  // F-01: o total vem de fora, já derivado da topologia real. Somar `mppts`
+  // aqui era uma segunda contagem do mesmo arranjo — no modo detalhado ela
+  // divergia da soma exata por entrada/string, e a tela passava a discordar de
+  // si mesma sobre quantos módulos existem.
+  const totalKwp = (totalModulos * eletricoMod.potencia_w) / 1000
+  /**
+   * F2 — o `?? 1.30` saiu. Nenhum dos inversores do catálogo declara
+   * `oversizing_max`, então o default fabricava o limite do fabricante em todos
+   * os casos e o aviso saía contra número inventado. Sem o dado, o critério é
+   * declarado não avaliado. O teto de 1,50× é do SISTEMA e continua valendo.
+   */
+  const oversizing = classificarOversizing({
+    potenciaCcKwp: totalKwp,
+    potenciaCaKw:  eletricoInv.potencia_ca_kw,
+    limiteFabricante: eletricoInv.oversizing_max,
+  })
 
-  if (oversizing > 1.5) {
+  if (oversizing.status === STATUS_OVERSIZING.INCOMPATIVEL) {
     bloqueios.push(
-      `Oversizing DC/CA (${oversizing.toFixed(2)}×) muito acima do limite. Risco de clipping excessivo e dano ao inversor.`
+      `Oversizing DC/CA (${oversizing.fator.toFixed(2)}×) acima do limite de segurança de ` +
+      `${LIMITE_CRITICO_CC_CA.toFixed(2)}×. Risco de clipping excessivo e dano ao inversor.`
     )
-  } else if (oversizing > oversizingMax) {
+  } else if (oversizing.status === STATUS_OVERSIZING.ATENCAO) {
     avisos.push(
-      `Oversizing DC/CA (${oversizing.toFixed(2)}×) acima do recomendado pelo fabricante (${(oversizingMax * 100).toFixed(0)}%).`
+      `Oversizing DC/CA (${oversizing.fator.toFixed(2)}×) acima do recomendado pelo fabricante ` +
+      `(${(oversizing.limite_fabricante * 100).toFixed(0)}%).`
     )
-  } else if (oversizing < 1.0) {
+  } else if (oversizing.status === STATUS_OVERSIZING.NAO_AVALIADO && oversizing.fator !== null) {
     avisos.push(
-      `Oversizing DC/CA (${oversizing.toFixed(2)}×) abaixo de 1,0. O inversor está superdimensionado para este arranjo.`
+      `Oversizing DC/CA (${oversizing.fator.toFixed(2)}×) sem veredito: o catálogo não declara ` +
+      `o limite CC/CA deste inversor. Abaixo do teto de segurança, nada é assumido no lugar.`
+    )
+  }
+
+  if (oversizing.subdimensionado === true) {
+    avisos.push(
+      `Oversizing DC/CA (${oversizing.fator.toFixed(2)}×) abaixo de 1,0. O inversor está superdimensionado para este arranjo.`
     )
   }
 
@@ -185,7 +288,6 @@ function validarArranjo({ mppts, modulosPorString, eletricoMod, eletricoInv, cli
   }
 
   // ── Área insuficiente ─────────────────────────────────────────────────────
-  const totalModulos = mppts.reduce((s, m) => s + m.numStrings * m.modulosPorString, 0)
   const areaNecess   = totalModulos * 2.0   // 2 m² por módulo (estimativa)
   const areaNum      = parseFloat(areaDisponivel)
   if (areaNum > 0 && areaNecess > areaNum) {
@@ -347,9 +449,19 @@ export default function ConfiguradorArranjoFV({
     })))
   }
 
-  // ── Propagação ao contexto ──────────────────────────────────────────────
-  // Quando o total de módulos muda, atualiza numPaineis, potenciaRealKwp e
-  // numStrings (usado por gerarUnifilarSVG via dim.numStrings) no contexto
+  /**
+   * ── Propagação ao contexto ────────────────────────────────────────────────
+   *
+   * O total de módulos do arranjo viaja daqui para o resto do wizard. Continua
+   * escrevendo `numPaineis` e `potenciaRealKwp` porque as etapas seguintes
+   * (E7, E8) leem esses campos como a composição em edição.
+   *
+   * F-05: o que MUDOU é a persistência. `adaptarDimensionamento` gravava esses
+   * mesmos campos em `dimensionamento`, o subdocumento da NECESSIDADE, e assim
+   * a necessidade calculada pelo consumo era sobrescrita pela composição. Agora
+   * a persistência lê `potenciaKwp` e `numPaineisNecessidade` — os números do
+   * E5, que ninguém reescreve — e a composição vai para `arranjos[]`.
+   */
   useEffect(() => {
     if (!dispatch || !totalModulosArranjo || !painel?.potenciaW) return
     const potRealKwp    = +(totalModulosArranjo * painel.potenciaW / 1000).toFixed(3)
@@ -380,11 +492,46 @@ export default function ConfiguradorArranjoFV({
     return mppts.reduce((max, m) => m.modulosPorString > max.modulosPorString ? m : max, mppts[0])
   }, [mppts])
 
+  /**
+   * F-01 — totais REAIS do arranjo, para os critérios de sistema.
+   *
+   * `totalModulosArranjo` já soma a topologia (exata no modo detalhado, e
+   * `strings × módulos` por MPPT no modo simples). Ele é a fonte do total nesta
+   * tela desde sempre — é o número que a tela mostra e o que se persiste em
+   * `engenharia_eletrica.arranjo.total_modulos`. Aqui ele passa a ser também o
+   * número que o motor usa, em vez de o motor reconstruir o seu próprio.
+   */
+  const totalStringsArranjo = useMemo(
+    () => (modoDetalhado && topologia2)
+      ? resumoTopologia(topologia2).totalStrings
+      : mppts.reduce((s, m) => s + (m.numStrings || 0), 0),
+    [mppts, modoDetalhado, topologia2]
+  )
+
+  /**
+   * MPPTs efetivamente OCUPADOS — não o número de MPPTs do inversor.
+   *
+   * Era `nMppts` aqui, e essa foi a metade do defeito: um inversor de 3 MPPTs
+   * com um único MPPT povoado declarava 3 ao motor, que replicava o pior caso
+   * nos três. A outra metade era o motor multiplicar; as duas foram corrigidas.
+   */
+  const mpptsOcupados = useMemo(() => {
+    if (modoDetalhado && topologia2) {
+      return topologia2.filter((m) => (m.entradas || []).some(
+        (e) => (e.strings || []).some((s) => (s.modulos || 0) > 0))).length || 1
+    }
+    return mppts.filter((m) => (m.numStrings || 0) > 0 && (m.modulosPorString || 0) > 0).length || 1
+  }, [mppts, modoDetalhado, topologia2])
+
   const arranjoApi = useMemo(() => ({
+    // Pior MPPT — decide tensão de string e corrente de entrada.
     quantidade_modulos_por_string: piorCaso?.modulosPorString ?? 0,
     quantidade_strings_paralelo:   piorCaso?.numStrings       ?? 0,
-    num_mppt_usados:               nMppts,
-  }), [piorCaso, nMppts])
+    num_mppt_usados:               mpptsOcupados,
+    // Arranjo inteiro — decide relação CC/CA e corrente total.
+    total_modulos_arranjo:         totalModulosArranjo || null,
+    total_strings_arranjo:         totalStringsArranjo || null,
+  }), [piorCaso, mpptsOcupados, totalModulosArranjo, totalStringsArranjo])
 
   const climaObj = useMemo(() => ({
     temperatura_min_historica_c: tmin,
@@ -402,13 +549,15 @@ export default function ConfiguradorArranjoFV({
   const { avisos, bloqueios } = useMemo(() => validarArranjo({
     mppts,
     modulosPorString: piorCaso?.modulosPorString ?? 0,
+    // F-01: fonte única do total, derivada da topologia real.
+    totalModulos: totalModulosArranjo,
     eletricoMod,
     eletricoInv,
     clima: climaObj,
     tipoLigacao,
     fases: inversor?.fases ?? 1,
     areaDisponivel,
-  }), [mppts, eletricoMod, eletricoInv, climaObj, tipoLigacao, inversor?.fases, areaDisponivel])
+  }), [mppts, totalModulosArranjo, eletricoMod, eletricoInv, climaObj, tipoLigacao, inversor?.fases, areaDisponivel])
 
   // ── Cálculos elétricos para exibição ─────────────────────────────────────
   const totalKwp = eletricoMod
@@ -445,8 +594,10 @@ export default function ConfiguradorArranjoFV({
         quantidade_modulos_por_string: piorCaso?.modulosPorString ?? 0,
         quantidade_strings_paralelo:   piorCaso?.numStrings       ?? 0,
         total_modulos:                 totalModulosArranjo,
-        // Multi-MPPT
-        num_mppts_usados: nMppts,
+        // Multi-MPPT. F-01: OCUPADOS, não o total do inversor — o campo se
+        // chama "usados" e passou a valer o que o nome diz. `mppts[]` abaixo
+        // continua sendo a composição real de onde tudo isto deriva.
+        num_mppts_usados: mpptsOcupados,
         // P1-MPPT-TOPOLOGY-IMPLEMENTATION-01: em modo detalhado persiste a
         // topologia REAL (entradas[].strings[].modulos) + resumo derivado por MPPT.
         // No modo simples mantém o resumo por MPPT como antes.
@@ -483,8 +634,22 @@ export default function ConfiguradorArranjoFV({
       compatibilidade: {
         versao_motor:  VERSAO_MOTOR,
         compativel:    resultado.compativel,
+        /**
+         * F2 — `validacoes_locais: { bloqueios, avisos }` saiu daqui.
+         *
+         * O campo gravava o veredito PRÓPRIO do wizard ao lado do veredito do
+         * motor, com peso igual e nome de validação. Era escrito neste único
+         * ponto e lido em lugar nenhum do código — verdade persistida sem
+         * consumidor, e uma segunda verdade elétrica no mesmo documento.
+         *
+         * Depois da F2 a tela não tem mais veredito elétrico próprio: tensão,
+         * corrente e oversizing vêm dos classificadores canônicos, os mesmos
+         * que o motor usa, e o resultado do motor já está em `diagnosticos`.
+         * O que sobra em `avisos` é edição de tela — balanceamento entre MPPTs,
+         * mono/trifásico, área — que orienta enquanto se edita e não é estado
+         * do projeto. Documentos antigos que já têm o campo não são tocados.
+         */
         diagnosticos:  [...(erros ?? []), ...(warnings ?? [])],
-        validacoes_locais: { bloqueios, avisos },
         margens: calculos ? {
           margem_tensao_percentual:     calculos.margem_tensao_percentual,
           margem_mppt_max_percentual:   calculos.margem_mppt_max_percentual,
@@ -503,7 +668,7 @@ export default function ConfiguradorArranjoFV({
         analisado_em: new Date().toISOString(),
       },
     }
-  }, [resultado, mppts, piorCaso, totalModulosArranjo, nMppts, cidadeClima, uf, tmin, tmax, bloqueios, avisos, topologia, ehMicro, dimMicro, modoDetalhado, topologia2])
+  }, [resultado, mppts, piorCaso, totalModulosArranjo, mpptsOcupados, cidadeClima, uf, tmin, tmax, bloqueios, avisos, topologia, ehMicro, dimMicro, modoDetalhado, topologia2])
 
   const salvar = useCallback(async () => {
     if (!projetoId) {
@@ -710,16 +875,29 @@ export default function ConfiguradorArranjoFV({
         {/* Strings por MPPT */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {mppts.map((mppt, i) => {
-            const eletricoLocal = eletricoMod && eletricoInv ? {
-              vocStr:    vocFrio(eletricoMod.voc, eletricoMod.coef_temp_voc, tmin) * mppt.modulosPorString,
-              vmppQ:     vmppQuente(eletricoMod.vmpp, eletricoMod.coef_temp_voc, tmax, eletricoMod.temp_noct) * mppt.modulosPorString,
-              vmppF:     eletricoMod.vmpp * mppt.modulosPorString,
-              iscT:      eletricoMod.isc * mppt.numStrings,
+            // F2: os números do cartão saem do mesmo veredito que valida o
+            // arranjo. `vmppF` era Vmpp em STC comparado ao MPPT mínimo —
+            // terceira leitura da regra; agora é o Vmpp frio do classificador.
+            const tensaoLocal = tensaoDoMppt(eletricoMod, eletricoInv, mppt.modulosPorString, tmin, tmax)
+            const eletricoLocal = tensaoLocal ? {
+              vocStr: tensaoLocal.tensoes.voc_string_max,
+              vmppQ:  tensaoLocal.tensoes.vmpp_string_quente,
+              vmppF:  tensaoLocal.tensoes.vmpp_string_frio,
+              iscT:   eletricoMod.isc * mppt.numStrings,
             } : null
 
-            const vocOk   = eletricoLocal ? eletricoLocal.vocStr <= eletricoInv.tensao_max_entrada : true
-            const mpptOk  = eletricoLocal ? eletricoLocal.vmppF >= eletricoInv.mppt_min : true
-            const iscOk   = eletricoLocal ? correnteProjeto(eletricoLocal.iscT) <= eletricoInv.corrente_max_mppt : true
+            const vocOk   = tensaoLocal ? tensaoLocal.voc.status      !== STATUS_TENSAO.INCOMPATIVEL : true
+            const mpptOk  = tensaoLocal ? tensaoLocal.mppt_min.status !== STATUS_TENSAO.INCOMPATIVEL
+                                       && tensaoLocal.mppt_max.status !== STATUS_TENSAO.INCOMPATIVEL : true
+            // F1: o cartao pinta pelo veredito canonico. So o limite ABSOLUTO
+            // (curto-circuito) invalida; excesso de trabalho e atencao, nao erro.
+            const iscOk   = eletricoLocal
+              ? classificarCorrenteCC({
+                  isc: eletricoMod.isc, impp: eletricoMod.impp, strings: mppt.numStrings,
+                  limiteTrabalho: eletricoInv.corrente_max_mppt,
+                  limiteCurto: eletricoInv.corrente_isc_max_mppt,
+                }).curto_circuito.status !== STATUS_CORRENTE.INCOMPATIVEL
+              : true
 
             return (
               <div key={i} className={`p-4 rounded-xl border-2 space-y-3 ${
@@ -792,15 +970,28 @@ export default function ConfiguradorArranjoFV({
           </div>
 
           {mppts.map((mppt, i) => {
-            const vocStr  = (vocFrio(eletricoMod.voc, eletricoMod.coef_temp_voc, tmin) * mppt.modulosPorString).toFixed(0)
-            const vmppF   = (eletricoMod.vmpp * mppt.modulosPorString).toFixed(0)
-            const vmppQ   = (vmppQuente(eletricoMod.vmpp, eletricoMod.coef_temp_voc, tmax, eletricoMod.temp_noct) * mppt.modulosPorString).toFixed(0)
+            // F2: mesmo veredito canônico dos cartões acima — nada é recomparado aqui.
+            const tensaoLocal = tensaoDoMppt(eletricoMod, eletricoInv, mppt.modulosPorString, tmin, tmax)
+            const vocStr  = (tensaoLocal?.tensoes.voc_string_max
+              ?? eletricoMod.voc * mppt.modulosPorString).toFixed(0)
+            const vmppF   = (tensaoLocal?.tensoes.vmpp_string_frio
+              ?? eletricoMod.vmpp * mppt.modulosPorString).toFixed(0)
+            const vmppQ   = (tensaoLocal?.tensoes.vmpp_string_quente
+              ?? eletricoMod.vmpp * mppt.modulosPorString).toFixed(0)
             const iscStr  = eletricoMod.isc.toFixed(2)
             const kWp     = ((mppt.numStrings * mppt.modulosPorString * eletricoMod.potencia_w) / 1000).toFixed(2)
 
-            const vocOk   = eletricoInv ? parseFloat(vocStr) <= eletricoInv.tensao_max_entrada : true
-            const mpptOk  = eletricoInv ? parseFloat(vmppF)  >= eletricoInv.mppt_min : true
-            const iscOk   = eletricoInv ? correnteProjeto(eletricoMod.isc, mppt.numStrings) <= eletricoInv.corrente_max_mppt : true
+            const vocOk   = tensaoLocal ? tensaoLocal.voc.status      !== STATUS_TENSAO.INCOMPATIVEL : true
+            const mpptOk  = tensaoLocal ? tensaoLocal.mppt_min.status !== STATUS_TENSAO.INCOMPATIVEL
+                                       && tensaoLocal.mppt_max.status !== STATUS_TENSAO.INCOMPATIVEL : true
+            // F1: mesmo veredito canonico do cartao acima.
+            const iscOk   = eletricoInv
+              ? classificarCorrenteCC({
+                  isc: eletricoMod.isc, impp: eletricoMod.impp, strings: mppt.numStrings,
+                  limiteTrabalho: eletricoInv.corrente_max_mppt,
+                  limiteCurto: eletricoInv.corrente_isc_max_mppt,
+                }).curto_circuito.status !== STATUS_CORRENTE.INCOMPATIVEL
+              : true
 
             const status  = (!vocOk || !mpptOk || !iscOk) ? '⛔' : '✓'
 

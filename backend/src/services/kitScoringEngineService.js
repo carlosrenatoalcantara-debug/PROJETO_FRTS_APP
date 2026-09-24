@@ -56,7 +56,7 @@ const fmtBRL = v =>
     maximumFractionDigits: 0,
   }).format(v)
 
-// ─── score_tecnico (potência match + validade elétrica) ──────────────────────
+// ─── score_tecnico (potência match + pré-filtro comercial) ──────────────────
 
 /**
  * Mede quão próxima é a potência CC do kit ao alvo solicitado.
@@ -89,12 +89,18 @@ function calcScoreTecnico(kit, tokens) {
     explicacoes.push(`◯ Sem alvo de potência definido — score neutro (${potencia_cc_kwp.toFixed(2)} kWp gerado)`)
   }
 
-  // Penalidade elétrica: invalidade reduz 70% do score
+  // Penalidade: reprovação no pré-filtro reduz 70% do score. A aritmética é a
+  // mesma de antes da F9 — mudou o que a explicação AFIRMA.
   if (!valido_eletrico) {
     score = score * 0.30
-    erros_eletricos.forEach(e => explicacoes.push(`✗ Erro elétrico: ${e}`))
+    erros_eletricos.forEach(e => explicacoes.push(`✗ Descartado no pré-filtro: ${e}`))
   } else {
-    explicacoes.push('✓ Validação elétrica OK (Voc, Vmpp, Isc dentro dos limites)')
+    // F9: esta linha dizia "✓ Validação elétrica OK (Voc, Vmpp, Isc dentro dos
+    // limites)". Era falsa em dois níveis: o pré-filtro que a produzia usava
+    // tolerâncias que afrouxavam os limites do fabricante, e o dataset comercial
+    // não é o SSOT de engenharia. O usuário lia "validado" onde havia apenas
+    // "plausível". Compatibilidade elétrica só existe pelo motor canônico.
+    explicacoes.push('◯ Pré-filtro comercial atendido — compatibilidade elétrica NÃO avaliada')
   }
 
   return { score: r2(clamp(score, 0, 100)), explicacoes }
@@ -338,7 +344,9 @@ export function calcularScore(kit, tokens, custoMediano) {
       tecnico: {
         score:    r2(tec.score),
         peso:     35,
-        descricao: 'Proximidade da potência alvo + validade elétrica',
+        // F9: dizia "+ validade elétrica". Este critério nunca validou nada —
+        // só reflete o pré-filtro comercial.
+        descricao: 'Proximidade da potência alvo + pré-filtro comercial',
       },
       comercial: {
         score:    r2(com.score),

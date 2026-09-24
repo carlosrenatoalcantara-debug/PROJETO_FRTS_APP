@@ -12,6 +12,30 @@
  *   }
  *
  * NUNCA modifica especificacoes (original). NUNCA faz I/O.
+ *
+ * ── F10 · O que `specs_canonicas` é, e o que não é ──────────────────────────
+ * A F8 tirou dela a última fabricação (`isc_max_por_mppt_a` recebia a corrente
+ * de trabalho quando o limite de curto faltava). Restava decidir se a projeção
+ * ainda tinha função — ou se era estrutura órfã a remover.
+ *
+ * A auditoria F10 mediu: está em 106/106 equipamentos e NÃO é órfã. Tem um
+ * consumidor legítimo e um só — `detectarConflitos` (fv-shared), que compara
+ * `especificacoes` com esta projeção e emite `so_em_specs_canonicas` quando um
+ * campo existe aqui e não lá. `EtapaMicroinversores` mostra esses conflitos ao
+ * usuário, separados dos demais. É uso de RELATO: serve para expor divergência,
+ * não para decidir engenharia.
+ *
+ * Decisão: MANTIDA COMO PROJEÇÃO, com três limites que o guard
+ * `fontesDerivadasF10.check.js` trava:
+ *
+ *   1. Origem explícita — todo valor sai de `lerInversor(especificacoes)`, o
+ *      mesmo SSOT do motor. Nenhum alias local, nenhum default.
+ *   2. Sem autoridade de engenharia — nenhum módulo do Core a lê. Compatibilidade
+ *      vem de `especificacoes → adapter → contrato canônico → motor`.
+ *   3. Ausência permanece ausência — campo sem origem sai `null`, nunca suprido
+ *      pelo campo vizinho.
+ *
+ * Não foi removida porque tem consumidor; não foi promovida porque é derivada.
  */
 
 import crypto from 'crypto'
@@ -19,6 +43,10 @@ import { aplicarRegras } from './regrasPlausibilidade.js'
 import { lerInversor } from '../equipamentos/inversores/index.js'
 // P0-CATALOG-QUALITY-HARDENING-01: gate de liberação por matriz mínima.
 import { avaliarUtilizavel } from './utilizavelProjeto.js'
+// A precedência de aliases do módulo vem do SSOT, não de uma cópia local: era a
+// cópia divergente que fazia os 54 módulos de produção — todos com
+// `potencia_wp` — contarem `potencia_w` como campo faltante.
+import { CAMPOS_MODULO } from '@fortesolar/fv-shared/modulos'
 
 const MOTOR_VERSAO = 'qualidade-1.1.0'
 
@@ -75,7 +103,7 @@ function normalizarSpecsModulo(equipamento) {
   const esp = equipamento.especificacoes || {}
   return {
     _versao: '1.0',
-    potencia_w: num(pick(esp, ['potencia_w','potencia','potenciaW'])) ?? num(equipamento.potencia_w),
+    potencia_w: num(pick(esp, CAMPOS_MODULO.potencia_w)) ?? num(equipamento.potencia_w),
     voc_v:    num(pick(esp, ['voc','voc_v','vocV'])),
     vmpp_v:   num(pick(esp, ['vmpp','vmp','vmpp_v','vmp_v'])),
     isc_a:    num(pick(esp, ['isc','isc_a','iscA'])),
@@ -118,7 +146,16 @@ function normalizarSpecsInversor(equipamento) {
     tensao_inicializacao_dc_v: num(c.tensao_partida),
     mppt_min_v: num(c.tensao_mppt_min),
     mppt_max_v: num(c.tensao_mppt_max),
-    isc_max_por_mppt_a: num(c.corrente_isc_max ?? c.corrente_max_por_mppt),
+    // F8: a substituição `?? c.corrente_max_por_mppt` foi REMOVIDA. Escrevia a
+    // corrente de TRABALHO no campo do limite de CURTO, materializando o valor
+    // falso no banco — 24 dos 52 inversores tinham `isc_max_por_mppt_a` igual à
+    // corrente de trabalho sem nenhum `corrente_isc_max` de origem. A projeção
+    // ficava indistinguível de um dado declarado pelo fabricante.
+    //
+    // Consequência assumida: esses 24 perdem os 10 pontos de
+    // `isc_max_por_mppt_a` no score de completude. É o efeito correto — a
+    // lacuna existe e o score passa a medi-la.
+    isc_max_por_mppt_a: num(c.corrente_isc_max),
     n_mppts: num(c.n_mppts),
     strings_max_por_mppt: num(c.strings_por_mppt),
     eficiencia_max_pct: num(c.eficiencia_maxima),
@@ -393,7 +430,13 @@ export function processarEquipamento(equipamento, options = {}) {
   // Equipamento sem os campos mínimos do tipo → utilizavel_em_projeto=false,
   // com os motivos em bloqueio_engenharia. Antes este campo nunca era setado
   // pelo motor (ficava no default true) → identity-only vazava para o seletor.
-  const { utilizavel, faltando } = avaliarUtilizavel(equipamento.tipo, equipamento.especificacoes)
+  // F-06: o contexto (fabricante/modelo) deixa a regra classificar a TOPOLOGIA
+  // pelo SSOT. Inversor string exige o envelope de tensão que o motor consome;
+  // micro tem motor próprio e matriz própria.
+  const { utilizavel, faltando } = avaliarUtilizavel(
+    equipamento.tipo, equipamento.especificacoes,
+    { fabricante: equipamento.fabricante, modelo: equipamento.modelo, subtipo: equipamento.subtipo },
+  )
 
   const qualidade = {
     completude_score,

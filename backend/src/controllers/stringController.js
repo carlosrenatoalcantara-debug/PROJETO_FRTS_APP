@@ -1,5 +1,6 @@
 import { PAINEIS, getPainelById } from '../data/catalogoPaineis.js'
 import { INVERSORES, getInversorById } from '../data/catalogoInversores.js'
+import { FONTE_COMERCIAL, COMPAT_NAO_AVALIADA } from '../data/procedenciaComercial.js'
 
 // ── helpers internos ──────────────────────────────────────────────────────────
 
@@ -456,17 +457,32 @@ export function recomendarSistema(req, res) {
 
     const top = recos.sort((a, b) => b.score - a.score).slice(0, 3)
     if (!top.length) return res.status(422).json({ erro: 'Nenhuma combinação válida encontrada. Tente ajustar os parâmetros.' })
-    res.json({ recomendacoes: top, potenciaAlvo: potenciaKwp })
+    // F9: ranking sobre o dataset comercial, sem correspondência com o SSOT.
+    res.json({
+      fonte:                    FONTE_COMERCIAL,
+      compatibilidade_eletrica: COMPAT_NAO_AVALIADA,
+      recomendacoes: top,
+      potenciaAlvo: potenciaKwp,
+    })
   } catch (e) {
     res.status(500).json({ erro: e.message })
   }
 }
 
 export function listarCatalogo(req, res) {
+  // F9: o catálogo servido aqui é o dataset COMERCIAL, disjunto do SSOT (0 de 41
+  // modelos têm correspondência). Envelopado com proveniência para que nenhum
+  // consumidor o confunda com o catálogo de engenharia — antes saía como array
+  // nu, sem nada que dissesse de onde vinha.
   const { tipo } = req.query
-  if (tipo === 'paineis')    return res.json(PAINEIS)
-  if (tipo === 'inversores') return res.json(INVERSORES)
-  res.json({ paineis: PAINEIS, inversores: INVERSORES })
+  const envelope = (dados) => ({
+    fonte:                    FONTE_COMERCIAL,
+    compatibilidade_eletrica: COMPAT_NAO_AVALIADA,
+    dados,
+  })
+  if (tipo === 'paineis')    return res.json(envelope(PAINEIS))
+  if (tipo === 'inversores') return res.json(envelope(INVERSORES))
+  res.json(envelope({ paineis: PAINEIS, inversores: INVERSORES }))
 }
 
 // ── auxiliares pontuação/justificativa ────────────────────────────────────────

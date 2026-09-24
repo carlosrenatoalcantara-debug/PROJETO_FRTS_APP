@@ -1,3 +1,11 @@
+// ┌──────────────────────────────────────────────────────────────────────────┐
+// │ DATASET COMERCIAL ÓRFÃO — DEPRECATED (F9)                                │
+// └──────────────────────────────────────────────────────────────────────────┘
+//
+// Zero consumidores em `backend/src` e `frontend/src` (auditoria F9). Mesmo
+// status do par `catalogoInversores-EXPANDIDO.js`: marcado, não removido.
+// Não importar. Não é o SSOT. Não alimenta engenharia.
+//
 // Catálogo expandido de painéis fotovoltaicos 450W+
 // Fabricantes: Canadian, OSDA, Ronma, ZNshine, Helius, Era Solar, Leapton, Pulling, Jinko, JA, Trina, Hanesun, Longi, Renesola, Tongwei
 // Valores em STC (25°C, 1000 W/m², AM1.5)

@@ -26,7 +26,10 @@ import SugestaoTopologiaReferencia from '../SugestaoTopologiaReferencia'
 import { salvarArranjos } from '../../../services/projetoFVApi'
 import { consolidarPanos, dimensoesModulo } from '../../../utils/geoEngine'
 import { snapshotEquipamentoSelecao } from '../../../utils/catalogoEngenhariaAdapter'
+// F-03: referencia canonica ao equipamento do SSOT — uma implementacao so.
+import { referenciaDoCatalogo } from '../../../fv/catalogo'
 import { validarMicroinversores } from '@fortesolar/fv-shared/fv/validacao-microinversores'
+import { novoIdArranjo } from '@fortesolar/fv-shared/projeto/identidade-arranjo'
 
 const TIPO_BADGE_COR = {
   string:     'azul',
@@ -150,7 +153,7 @@ export default function E7Equipamentos() {
       modelo: painel.modelo || null,
       potencia_w: painel.especificacoes?.potencia_wp || painel.potencia_w || painel.potenciaW || null,
       quantidade: b.quantidadeModulos ?? null,
-      equipamento_id: painel._id || null,
+      equipamento_id: referenciaDoCatalogo(painel),
     }] : (b.paineis || [])
     const inversores = b.inversor ? [{
       marca: inversor.fabricante || inversor.marca || null,
@@ -158,13 +161,26 @@ export default function E7Equipamentos() {
       modelo: inversor.modelo || null,
       potencia_kw: inversor.especificacoes?.potencia_kw || inversor.potencia_kw || inversor.potenciaKW || null,
       quantidade: 1,
-      equipamento_id: inversor._id || null,
+      equipamento_id: referenciaDoCatalogo(inversor),
     }] : (b.inversores || [])
     return {
       id: b.id, rotulo: b.rotulo || rotuloFallback, tipo: b.tipo || tipoFallback,
       somente_leitura: !!b.somente_leitura, paineis, inversores,
       estrutura: b.estrutura || null,  // P2-FV-MULTIARRANJO-UX-01: estrutura por arranjo
     }
+  }
+
+  /**
+   * Id do arranjo primário: o que já está persistido, se houver, senão um novo.
+   *
+   * F13: `state.arranjos` guarda os arranjos SECUNDÁRIOS da tela. O primário
+   * vive em `equipamentos` e não tinha id próprio — por isso o literal. Se um
+   * bloco de `state.arranjos` já carrega a identidade do primário (documento
+   * salvo antes), ela é reaproveitada em vez de duplicada.
+   */
+  function idDoPrimario() {
+    const jaPersistido = (state.arranjos || []).find((b) => b?.tipo === 'principal' && b?.id)
+    return jaPersistido?.id ?? novoIdArranjo()
   }
 
   function montarArranjosPayload() {
@@ -174,15 +190,29 @@ export default function E7Equipamentos() {
     }
     const lista = []
     if (equipamentos.painel || equipamentos.inversor) {
+      // F13: este bloco gravava o LITERAL `'arr_primario'`. Como
+      // `blocoParaBackend` devolve o id que o bloco carrega, bastava um arranjo
+      // já persistido com esse id voltar na lista abaixo para o documento ficar
+      // com dois — foi o que aconteceu em "Sistema FV novo kWp".
+      //
+      // O id do bloco primário JÁ persistido é preservado (identidade é estável);
+      // só quando não existe é que se gera um novo, pelo gerador canônico.
       lista.push(blocoParaBackend(
-        { id: 'arr_primario', rotulo: 'Arranjo A', tipo: 'principal',
+        { id: idDoPrimario(), rotulo: 'Arranjo A', tipo: 'principal',
           painel: equipamentos.painel, inversor: equipamentos.inversor,
           quantidadeModulos: equipamentos.quantidadeModulos ?? dim.numPaineis ?? null,
           estrutura: equipamentos.estrutura?.id || null },  // P2-FV-MULTIARRANJO-UX-01
         'Arranjo A', 'principal',
       ))
     }
-    state.arranjos.forEach((b, i) => lista.push(blocoParaBackend(b, `Arranjo ${String.fromCharCode(66 + i)}`, 'secundario')))
+    // F13: por contrato, `state.arranjos` guarda só os SECUNDÁRIOS — o primário
+    // é montado acima, a partir de `equipamentos`. Se um bloco `principal`
+    // aparecer aqui (documento salvo por uma versão anterior), ele já doou sua
+    // identidade ao bloco primário em `idDoPrimario()`; reemiti-lo recriaria a
+    // duplicata que este sprint remove.
+    state.arranjos
+      .filter((b) => b?.tipo !== 'principal')
+      .forEach((b, i) => lista.push(blocoParaBackend(b, `Arranjo ${String.fromCharCode(66 + i)}`, 'secundario')))
     return lista
   }
 

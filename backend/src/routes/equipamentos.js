@@ -77,6 +77,38 @@ router.get('/engenharia', async (req, res) => {
       for (const cg of carregadores) equipamentos.push(carregadorParaEquipamentoComQualidade(cg, processarEquipamento))
     }
 
+    /**
+     * F-06 — a liberação para engenharia é REAVALIADA na leitura.
+     *
+     * `utilizavel_em_projeto` é gravado quando o equipamento passa pelo motor
+     * de qualidade, e a matriz mínima mudou: inversor STRING agora precisa do
+     * envelope de tensão que o motor elétrico consome. Documentos processados
+     * antes disso carregam o veredito antigo — 6 inversores string sem
+     * `tensao_max_entrada` e sem faixa MPPT estão gravados como liberados.
+     *
+     * Reavaliar aqui é derivação, não persistência (INV-58): o documento não é
+     * tocado, e o consumidor recebe o estado que a regra vigente produz. Isso
+     * evita depender de um reprocessamento em massa do catálogo — que seria
+     * escrita, e escrita sem necessidade.
+     *
+     * Só ENDURECE: o que a regra bloqueia é bloqueado aqui. Um equipamento que
+     * um humano bloqueou à mão (`utilizavel_em_projeto: false` no banco) segue
+     * bloqueado, porque a decisão manual não é revogada por cálculo.
+     */
+    const { avaliarUtilizavel } = await import('@fortesolar/fv-shared/utilizavel-projeto')
+    equipamentos = equipamentos.map((eq) => {
+      if (eq?.tipo === 'carregador_ev') return eq
+      const av = avaliarUtilizavel(eq?.tipo, eq?.especificacoes,
+        { fabricante: eq?.fabricante, modelo: eq?.modelo, subtipo: eq?.subtipo })
+      if (av.utilizavel) return eq        // a regra não libera o que foi bloqueado à mão
+      return {
+        ...eq,
+        utilizavel_em_projeto: false,
+        bloqueio_engenharia: [...new Set([...(eq.bloqueio_engenharia ?? []), ...av.faltando])],
+      }
+    })
+    if (!incluirBloqueados) equipamentos = equipamentos.filter((eq) => eq.utilizavel_em_projeto !== false)
+
     res.json({ fonte: 'catalogo_mongo', total: equipamentos.length, incluir_bloqueados: incluirBloqueados, equipamentos })
   } catch (err) {
     console.error('[equipamentos/engenharia]', err)

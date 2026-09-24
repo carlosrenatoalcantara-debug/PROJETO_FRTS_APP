@@ -15,6 +15,9 @@
  */
 
 import { lerInversor } from '../../equipamentos/inversores/index.js'
+// F12: a MESMA agregação dos dois caminhos (`arranjos[]` e `instalacao`) vem de
+// uma função só. Duas cópias da soma já produziram duas regras divergentes.
+import { potenciaPaineisKwp, potenciaInversoresKw } from '../../services/arranjosService.js'
 
 const num = (v) => { const n = Number(v); return Number.isFinite(n) ? n : 0 }
 
@@ -64,9 +67,13 @@ export function mapearGerador(gerador, catalogo, idx = 0) {
     ? [{ modelo: invDoc?.modelo ?? String(gerador.inversor_ref), potencia_kw: kwDoInversor(invDoc), quantidade: 1 }]
     : []
 
+  // F12: `num()` devolve 0 para ausente/não-numérico, e essa soma colapsava
+  // lacuna em zero exatamente como `potenciaPaineisKwp` fazia no caminho
+  // `arranjos[]`. Este é o caminho `instalacao` — mesma agregação, mesmo
+  // defeito. A contagem de módulos continua somando; a potência, não.
   const n_modulos = paineis.reduce((s, p) => s + num(p.quantidade), 0)
-  const potencia_kwp = paineis.reduce((s, p) => s + num(p.quantidade) * num(p.potencia_w), 0) / 1000
-  const potencia_inversor_kw = inversores.reduce((s, i) => s + num(i.potencia_kw) * num(i.quantidade), 0)
+  const potencia_kwp = potenciaPaineisKwp(paineis)
+  const potencia_inversor_kw = potenciaInversoresKw(inversores)
 
   return {
     id: gerador?._id != null ? String(gerador._id) : `gerador_${idx + 1}`,
@@ -77,13 +84,18 @@ export function mapearGerador(gerador, catalogo, idx = 0) {
     paineis,
     inversores,
     baterias: [],
-    potencia_kwp: potencia_kwp > 0 ? Number(potencia_kwp.toFixed(3)) : null,
-    potencia_inversor_kw: potencia_inversor_kw > 0 ? Number(potencia_inversor_kw.toFixed(3)) : null,
+    // Já vêm arredondados e com `null` para ausente das funções canônicas.
+    potencia_kwp,
+    potencia_inversor_kw,
     capacidade_bateria_kwh: null,
     // oversizing DC/AC calculado em leitura (nunca persistido).
-    oversizing: potencia_inversor_kw > 0 ? Number((potencia_kwp / potencia_inversor_kw).toFixed(3)) : null,
+    // F12: exige AS DUAS potências. Antes, com CC nula, `null / x` dava 0 e o
+    // oversizing saía 0,000 — um número fabricado a partir de uma lacuna.
+    oversizing: (potencia_kwp !== null && potencia_inversor_kw !== null && potencia_inversor_kw > 0)
+      ? Number((potencia_kwp / potencia_inversor_kw).toFixed(3))
+      : null,
     dimensionamento: {
-      potencia_kwp: potencia_kwp > 0 ? Number(potencia_kwp.toFixed(3)) : null,
+      potencia_kwp,
       geracao_mensal_kwh: null,   // geração não deriva da estrutura da topologia
       n_modulos,
       n_inversores: inversores.length,
@@ -111,16 +123,30 @@ export function totaisTopologia(geradoresCanonicos = []) {
     capacidade_bateria_total_kwh: 0,
     geracao_mensal_total_kwh: 0,
   }
+  // F12: mesma regra do caminho `arranjos[]` — gerador com painéis mas sem
+  // potência conhecida torna o total NÃO AVALIÁVEL, em vez de contribuir zero.
+  let potenciaIncompleta = false
+  let potenciaInversorIncompleta = false
   for (const g of geradoresCanonicos) {
     t.n_modulos_total            += num(g.dimensionamento?.n_modulos)
     t.n_inversores_total         += num(g.dimensionamento?.n_inversores)
-    t.potencia_total_kwp         += num(g.potencia_kwp)
-    t.potencia_inversor_total_kw += num(g.potencia_inversor_kw)
     t.capacidade_bateria_total_kwh += num(g.capacidade_bateria_kwh)
     t.geracao_mensal_total_kwh   += num(g.dimensionamento?.geracao_mensal_kwh)
+
+    // `num()` deste arquivo devolve 0 para ausente, e `Number(null)` também é 0:
+    // qualquer um dos dois recriaria o defeito. A presença é testada direto.
+    const pcc = g.potencia_kwp
+    if (pcc !== null && pcc !== undefined && Number.isFinite(Number(pcc))) t.potencia_total_kwp += Number(pcc)
+    else if ((g.paineis?.length ?? 0) > 0) potenciaIncompleta = true
+
+    const pca = g.potencia_inversor_kw
+    if (pca !== null && pca !== undefined && Number.isFinite(Number(pca))) t.potencia_inversor_total_kw += Number(pca)
+    else if ((g.inversores?.length ?? 0) > 0) potenciaInversorIncompleta = true
   }
-  t.potencia_total_kwp = Number(t.potencia_total_kwp.toFixed(3))
-  t.potencia_inversor_total_kw = Number(t.potencia_inversor_total_kw.toFixed(3))
+  t.potencia_total_kwp = potenciaIncompleta
+    ? null : Number(t.potencia_total_kwp.toFixed(3))
+  t.potencia_inversor_total_kw = potenciaInversorIncompleta
+    ? null : Number(t.potencia_inversor_total_kw.toFixed(3))
   t.capacidade_bateria_total_kwh = Number(t.capacidade_bateria_total_kwh.toFixed(3))
   t.geracao_mensal_total_kwh = Number(t.geracao_mensal_total_kwh.toFixed(1))
   return t

@@ -194,6 +194,8 @@ export function svgLinhaCabo(x1, y1, x2, y2, bitola, cor) {
  * @param {object}  projeto.inversor       - objeto inversor selecionado
  * @param {Array}   [projeto.arranjoMPPTs] - [{numStrings, modulosPorString}] (Sprint 2.5)
  * @param {string}  [projeto.uf]           - sigla da UF para temp. de projeto
+ * @param {Object}  [projeto.modeloEletrico] - modelo já montado (F14-6B). Quando
+ *        ausente, é montado internamente a partir de painel/inversor/arranjoMPPTs.
  * @returns {string} SVG como string
  */
 export const gerarUnifilarSVG = (projeto, ativos = []) => {
@@ -208,6 +210,7 @@ export const gerarUnifilarSVG = (projeto, ativos = []) => {
     inversor       = null,
     arranjoMPPTs   = null,
     uf             = null,
+    modeloEletrico = null,
   } = projeto
 
   // P4-GEMEO-DIGITAL-UNIFILAR-ATIVO-01: Digital Twin linkage
@@ -218,8 +221,11 @@ export const gerarUnifilarSVG = (projeto, ativos = []) => {
     return ` data-ativo-id="${ativo._id}" data-qr="${esc(ativo.qr_code || '')}" data-arranjo-id="${esc(String(ativo.arranjo_id || ''))}" data-tipo="${ativo.tipo}" data-status="${ativo.status || ''}"`
   }
 
-  // ── Monta modelo elétrico normalizado ──────────────────────────────────────
-  const modelo = montarModeloEletrico({
+  // ── Modelo elétrico normalizado ────────────────────────────────────────────
+  // F14-6B: o modelo pode chegar pronto (composição por arranjo monta um modelo
+  // por arranjo antes de desenhar). Sem `modeloEletrico`, o caminho legado
+  // `gerarUnifilarSVG(entrada, ativos)` monta aqui dentro, como sempre.
+  const modelo = modeloEletrico ?? montarModeloEletrico({
     painel,
     inversor,
     arranjoMPPTs,
@@ -227,6 +233,9 @@ export const gerarUnifilarSVG = (projeto, ativos = []) => {
     dadosConsumo: { tipoLigacao: tipo_ligacao, tensao },
     uf,
   })
+  if (!modelo?.sistema || !modelo?.modulos || !Array.isArray(modelo?.mppts)) {
+    throw new Error('MODELO_ELETRICO_INVALIDO')
+  }
 
   const { temperatura, sistema, modulos, mppts: mpptCalc, resumo, cabos, protecoes, fasesLabel, disjLabel, iac } = modelo
 

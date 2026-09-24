@@ -16,6 +16,8 @@ import { fileURLToPath } from 'node:url'
 import { execSync } from 'node:child_process'
 import { montarModeloMicro } from '@fortesolar/fv-shared/engenharia/microinversores'
 import { gerarUnifilarMicroSVG } from '@fortesolar/fv-shared/engenharia/unifilar-micro-svg'
+import { gerarUnifilarSVG } from '@fortesolar/fv-shared/engenharia/unifilar-svg'
+import { montarModeloEletrico } from '@fortesolar/fv-shared/engenharia/normativa'
 import { adaptarProjetoParaUnifilar, lacunasDaProveniencia } from '../unifilar/index.js'
 
 const AQUI = path.dirname(fileURLToPath(import.meta.url))
@@ -174,16 +176,54 @@ secao('4 · Projetos string intactos')
 {
   const fonteString = semComentarios(ler(MOTOR_STRING))
   ok(!fonteString.includes('micros'), 'o motor de string não sabe o que é `micros[]`')
-  // A única mudança permitida em `unifilarSVG.js` é visibilidade de função.
+  /**
+   * Mudanças permitidas em `unifilarSVG.js`: visibilidade de função (sprint do
+   * micro) e a injeção OPCIONAL do modelo elétrico (F14-6B, Tarefa 3).
+   *
+   * A segunda não é cosmética, e por isso não basta permitir a linha: o que
+   * prende a regra é a medição logo abaixo — sem `modeloEletrico`, o desenho
+   * tem de sair idêntico ao que sairia montando por dentro. Permitir a linha
+   * sem medir o efeito transformaria este guard em carimbo.
+   */
   let diff = ''
   try { diff = execSync(`git diff -- ${MOTOR_STRING}`, { cwd: RAIZ, encoding: 'utf8' }) } catch { /* fora de repo */ }
   const mudadas = diff.split('\n')
     .filter((l) => (l.startsWith('+') || l.startsWith('-')) && !l.startsWith('+++') && !l.startsWith('---'))
     .map((l) => l.slice(1).trim())
     .filter((l) => l && !l.startsWith('//') && !l.startsWith('*'))
-  const soExport = mudadas.every((l) => /^(export )?(function svg|function esc|const esc)/.test(l))
-  ok(soExport, soExport ? 'só `export` foi acrescentado às funções de símbolo'
-    : `linhas alteradas além do export: ${mudadas.slice(0, 3).join(' | ')}`)
+  const PERMITIDO = [
+    /^(export )?(function svg|function esc|const esc)/,
+    /^modeloEletrico = null,$/,
+    /^const modelo = (modeloEletrico \?\? )?montarModeloEletrico\(\{$/,
+    /^if \(!modelo\?\.sistema/,
+    /^throw new Error\('MODELO_ELETRICO_INVALIDO'\)$/,
+    /^\}$/,
+  ]
+  const fora = mudadas.filter((l) => !PERMITIDO.some((re) => re.test(l)))
+  ok(fora.length === 0, fora.length === 0
+    ? 'só visibilidade de função e a injeção opcional do modelo (F14-6B)'
+    : `linhas alteradas fora do permitido: ${fora.slice(0, 3).join(' | ')}`)
+
+  // A medição que prende a permissão acima: injetar o modelo que o próprio
+  // motor montaria não pode mudar um byte do desenho.
+  const entradaStr = adaptarProjetoParaUnifilar({
+    nome: 'P',
+    equipamentos: { paineis: [{ marca: 'Z', modelo: 'M', potencia_w: 550 }],
+      inversor: { marca: 'X', modelo: 'Y', potencia_kw: 2 }, estrutura: { tipo: 'Laje' } },
+    dimensionamento: { num_paineis: 22 },
+    fatura_extracao: { tipo_ligacao: 'monofasico', tensao_v: 220, concessionaria: 'N' },
+    localizacao: { estado: 'RN' },
+    engenharia_eletrica: { arranjo: { mppts: [{ strings_paralelo: 2, modulos_por_string: 11 }] } },
+  }).entrada
+  const modeloStr = montarModeloEletrico({
+    painel: entradaStr.painel, inversor: entradaStr.inversor,
+    arranjoMPPTs: entradaStr.arranjoMPPTs, dimensionamento: entradaStr.dimensionamento,
+    dadosConsumo: { tipoLigacao: entradaStr.tipo_ligacao, tensao: entradaStr.tensao }, uf: entradaStr.uf,
+  })
+  const svgSem = gerarUnifilarSVG(entradaStr, [])
+  const svgCom = gerarUnifilarSVG({ ...entradaStr, modeloEletrico: modeloStr }, [])
+  ok(svgSem.length > 1000, 'o desenho de controle não é vazio')
+  ok(svgSem === svgCom, 'modelo injetado produz o MESMO SVG byte a byte')
 
   const memorial = ler(MEMORIAL)
   ok(memorial.includes('5. ARRANJO DAS STRINGS') && memorial.includes('Configuração DC: Strings em paralelo'),
@@ -251,30 +291,35 @@ secao('6 · Contrato de `especificacoes`: a MESMA forma das duas topologias')
   ok(!/>null|>undefined|NaN/.test(r.svg), 'o SVG não contém `null`, `undefined` nem `NaN`')
 }
 
-// ═══ 7 · Dívida técnica registrada, não corrigida (FV-DOM-031E) ═════════════
-secao('7 · `_carregarDepsDocumento` — dívida REGISTRADA e INTOCADA')
+// ═══ 7 · Dívida PAGA — `req` corrigido na F14-5 ═════════════════════════════
+secao('7 · `_carregarDepsDocumento` — dívida QUITADA')
 {
   /**
-   * A FV-DOM-031E decidiu NÃO corrigir o `req` fora de escopo: a correção muda
-   * 2 de 3 memoriais string (medido em `auditoria-req-fv-dom-031d.mjs`). Esta
-   * guarda tem DUAS metades — o defeito continua onde estava, E a dívida está
-   * escrita no estado canônico. Sem a segunda, "não corrigir" vira "esquecer".
+   * Esta seção travava a NÃO-CORREÇÃO. A FV-DOM-031E decidiu não mexer no `req`
+   * fora de escopo, porque a correção mudaria 2 de 3 memoriais string — e o
+   * guard existia para que "não corrigir" não virasse "esquecer".
+   *
+   * A F14-5 pagou a dívida, de propósito. A medição que a justificou: sem o
+   * `req`, `_carregarDepsDocumento` devolvia `{equipamentos: []}` SEMPRE, e como
+   * `projeto.inversor`/`projeto.painel` não existem no `ProjetoFV`, o memorial
+   * renderizava `N/A` em todo campo de equipamento — para QUALQUER projeto FV.
+   * O documento não representava equipamento nenhum.
+   *
+   * O guard inverteu: agora trava a CORREÇÃO, para que ninguém a desfaça
+   * achando que está honrando a FV-DOM-031E.
    */
   const ctrl = ler('backend/src/controllers/homologacaoController.js')
-  ok(/async function _carregarDepsDocumento\(projetoId, projetoBody\)/.test(ctrl),
-    'a assinatura continua sem `req` — o defeito NÃO foi corrigido por engano')
+  ok(/async function _carregarDepsDocumento\(projetoId, projetoBody, req\)/.test(ctrl),
+    '`req` é PARÂMETRO — a dívida da FV-DOM-031E foi paga na F14-5')
+  ok(/_carregarDepsDocumento\(projetoId, projeto, req\)/.test(ctrl),
+    'e o chamador passa o `req` que tem em escopo')
   // Só DENTRO da função: os outros endpoints do controller têm `req` legítimo
   // em escopo, e contá-los daria 6 em vez de 2.
   const inicio = ctrl.indexOf('async function _carregarDepsDocumento')
-  // O corpo termina onde começa a PRÓXIMA declaração de topo. Procurar `\n}\n`
-  // não serve: o arquivo usa CRLF e a busca devolvia -1, levando `slice` a
-  // varrer o arquivo inteiro e contar 6 ocorrências em vez de 2.
   const fim = ctrl.slice(inicio + 1).search(/\r?\n(export |async function |function |\/\*\*)/)
   const corpo = ctrl.slice(inicio, fim > 0 ? inicio + 1 + fim : undefined)
   const comReq = (corpo.match(/aplicarEscopo\([^)]*,\s*req\s*,/g) ?? []).length
-  ok(comReq === 2, `as duas chamadas com \`req\` fora de escopo seguem lá (${comReq})`)
-  ok(/catch\s*\(?\w*\)?\s*\{[\s\S]{0,80}return out/.test(corpo) || /\} catch/.test(corpo),
-    'o `catch` que engole o ReferenceError continua no lugar')
+  ok(comReq === 2, `as duas chamadas de escopo seguem lá, agora com \`req\` válido (${comReq})`)
 
   // E o micro não depende disso.
   ok(/const micros = _microsDoProjeto\(projDoc\)/.test(ctrl),

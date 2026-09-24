@@ -38,6 +38,19 @@ const semComentarios = (s) => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/
 const SERVICE = ler('backend/src/services/compatibilidadeEletricaService.js')
 const WIZARD = ler('frontend/src/components/fv/ConfiguradorArranjoFV.jsx')
 const CANONICO = ler('packages/fv-shared/engenharia/engenhariaNormativa.js')
+/**
+ * F2 — a COMPOSIÇÃO das primitivas mudou de casa.
+ *
+ * Até a F1, `fatorTermico` e `temperaturaCelula` eram compostas dentro do
+ * service e dentro do wizard, cada um montando as suas tensões de string. As
+ * fórmulas coincidiam, mas as COMPARAÇÕES não: o wizard media o Vmpp quente
+ * contra o teto do MPPT, critério que nunca disparava.
+ *
+ * A F2 moveu composição e comparação para `classificacaoTensaoCC`, no domínio.
+ * Os invariantes abaixo passaram a exigir isso: quem compõe é o classificador,
+ * e os dois consumidores o CHAMAM em vez de recompor.
+ */
+const CLASSIF_TENSAO = ler('packages/fv-shared/engenharia/classificacaoTensaoCC.js')
 
 secao('1 · Q4 — a conversão de unidade vive num ponto só')
 const defs = (CANONICO.match(/export function coefParaFracao/g) ?? []).length
@@ -47,8 +60,11 @@ for (const [nome, fonte] of [['backend', SERVICE], ['wizard', WIZARD]]) {
   const s = semComentarios(fonte)
   ok(!/Math\.abs\([^)]*\)\s*>\s*0\.1/.test(s), `${nome}: sem cópia da heurística de unidade`)
   ok(!s.includes('normalizarCoefTemp'), `${nome}: \`normalizarCoefTemp\` local removida`)
-  ok(fonte.includes('coefParaFracao'), `${nome}: usa a primitiva canônica`)
+  // F2: nenhum dos dois converte mais — quem converte é o classificador.
+  ok(!/coefParaFracao\s*\(/.test(s), `${nome}: não converte unidade por conta própria`)
 }
+ok(semComentarios(CLASSIF_TENSAO).includes('coefParaFracao('),
+  'classificador de tensão usa a primitiva canônica de unidade')
 ok(coefParaFracao(-0.27) === -0.0027, '%/°C → fração')
 ok(coefParaFracao(-0.0027) === -0.0027, 'fração já normalizada permanece')
 // A heurística é IDEMPOTENTE: aplicá-la duas vezes devolve o mesmo valor. É o
@@ -73,21 +89,44 @@ for (const [nome, fonte] of [['backend', SERVICE], ['wizard', WIZARD]]) {
   ok(!s.includes('1000 / 800') && !s.includes('1.25 * (noct'),
     `${nome}: sem constante de irradiância local`)
 }
-ok(semComentarios(WIZARD).includes('fatorTermico('), 'wizard compõe `fatorTermico`')
-ok(semComentarios(SERVICE).includes('fatorTermico('), 'backend compõe `fatorTermico`')
-ok(semComentarios(WIZARD).includes('temperaturaCelula('), 'wizard compõe `temperaturaCelula`')
-ok(semComentarios(SERVICE).includes('temperaturaCelula('), 'backend compõe `temperaturaCelula`')
+// F2: a composição é do classificador; os consumidores delegam a ele.
+ok(semComentarios(CLASSIF_TENSAO).includes('fatorTermico('),
+  'classificador de tensão compõe `fatorTermico`')
+ok(semComentarios(CLASSIF_TENSAO).includes('temperaturaCelula('),
+  'classificador de tensão compõe `temperaturaCelula`')
+for (const [nome, fonte] of [['backend', SERVICE], ['wizard', WIZARD]]) {
+  const s = semComentarios(fonte)
+  ok(!/fatorTermico\s*\(/.test(s) && !/temperaturaCelula\s*\(/.test(s),
+    `${nome}: não recompõe as primitivas térmicas`)
+  ok(/classificarTensaoCC\s*\(/.test(s), `${nome}: chama \`classificarTensaoCC\``)
+}
 
 secao('3 · Q1 — Isc × 1,25 em todos os caminhos')
 ok(FATOR_ISC_NBR16690 === 1.25, `fator canônico ${FATOR_ISC_NBR16690}`)
 ok(correnteProjeto(14, 1) === 17.5, 'correnteProjeto(14, 1) = 17,5 A')
 ok(correnteProjeto(14, 2) === 35, 'correnteProjeto(14, 2) = 35 A')
 ok(calcularIscMax(13.9) === 17.38, 'calcularIscMax preservada (17,38 A)')
+/**
+ * F1: o fator normativo desceu mais um nível. O service e o wizard deixaram de
+ * chamar `correnteProjeto` diretamente e passaram a consumir
+ * `classificarCorrenteCC`, que é quem o aplica. A guarda NÃO foi afrouxada — ela
+ * passou a exigir a cadeia inteira: consumidor → classificador → primitiva.
+ * Afirmar `correnteProjeto(` no consumidor agora aceitaria de volta a fórmula
+ * escrita à mão em cada lado, que é justamente o que se quer impedir.
+ */
+const CLASSIFICADOR = ler('packages/fv-shared/engenharia/classificacaoCorrenteCC.js')
 for (const [nome, fonte] of [['backend', SERVICE], ['wizard', WIZARD]]) {
   const s = semComentarios(fonte)
   ok(!/\*\s*1\.25/.test(s), `${nome}: fator 1,25 não aparece solto`)
-  ok(s.includes('correnteProjeto('), `${nome}: usa \`correnteProjeto\``)
+  ok(s.includes('classificarCorrenteCC('),
+    `${nome}: consome o classificador canônico de corrente`)
+  ok(!/correnteProjeto\([^)]*\)\s*[<>]/.test(s),
+    `${nome}: não compara a corrente de projeto contra limite por conta própria`)
 }
+ok(semComentarios(CLASSIFICADOR).includes('correnteProjeto('),
+  'o classificador aplica a primitiva canônica — a cadeia fecha')
+ok(!/\*\s*1\.25/.test(semComentarios(CLASSIFICADOR)),
+  'e não reescreve o fator 1,25')
 
 secao('4 · Q5 — NOCT padrão 44 °C')
 ok(NOCT_PADRAO_C === 44, `canônico ${NOCT_PADRAO_C} °C`)
@@ -96,16 +135,40 @@ ok(!/tempNoct\s*=\s*45/.test(WIZARD), 'wizard não usa mais 45')
 ok(temperaturaCelula(38) === temperaturaCelula(38, 44), 'default do canônico é 44')
 
 secao('5 · Q3 — Vmpp mínimo comparado a QUENTE')
-const trechoVmpp = WIZARD.slice(WIZARD.indexOf('2. Vmpp abaixo do mínimo'),
-  WIZARD.indexOf('4. Isc excedida'))
-ok(trechoVmpp.includes('vmppQ < eletricoInv.mppt_min'), 'wizard compara o Vmpp quente')
-ok(!/vmppStr\s*<\s*eletricoInv\.mppt_min/.test(WIZARD), 'comparação por STC removida')
-ok(SERVICE.includes('vmpp_string_quente < mppt_min'), 'backend já comparava quente')
+// F2: a comparação saiu dos dois consumidores e virou UMA no classificador —
+// piso contra o QUENTE, teto contra o FRIO. O wizard media o teto no quente,
+// que é o menor dos dois, e por isso o critério jamais reprovava.
+// Proíbe a COMPARAÇÃO, não a menção: o wizard ainda PASSA `mppt_min` ao
+// classificador e o CITA na mensagem, e as duas coisas são corretas.
+ok(!/[<>]=?\s*eletricoInv\.mppt_(min|max)/.test(semComentarios(WIZARD)) &&
+   !/eletricoInv\.mppt_(min|max)\s*[<>]=?/.test(semComentarios(WIZARD)),
+  'wizard não compara mais contra a janela MPPT por conta própria')
+ok(!/vmpp_string_quente\s*<\s*mppt_min/.test(SERVICE),
+  'backend não compara mais contra o piso do MPPT por conta própria')
+ok(CLASSIF_TENSAO.includes('vmpp_string_quente, _num(mpptMin)'),
+  'o piso do MPPT é medido no QUENTE, no classificador')
+ok(CLASSIF_TENSAO.includes('vmpp_string_frio, _num(mpptMax)'),
+  'o teto do MPPT é medido no FRIO, no classificador')
+{
+  // Prova numérica, não textual: com a mesma string, o quente é menor que o
+  // frio. Medir o teto no quente aprovaria o que o frio reprova.
+  const { classificarTensaoCC } =
+    await import('@fortesolar/fv-shared/engenharia/classificacao-tensao-cc')
+  const t = classificarTensaoCC({
+    voc: 53.26, vmpp: 45.06, coefTempVoc: -0.25, modulosPorString: 11,
+    tensaoMaxEntrada: 1000, mpptMin: 80, mpptMax: 480, tMin: 10, tMax: 35,
+  })
+  ok(t.tensoes.vmpp_string_frio > t.tensoes.vmpp_string_quente,
+    'Vmpp frio > Vmpp quente na mesma string')
+  ok(t.mppt_max.status === 'incompativel',
+    'e o teto medido no frio reprova a string longa (no quente, passaria)')
+}
 
 secao('6 · Q2 — coeficiente de Vmpp = coeficiente de Voc (provisório)')
 ok(!semComentarios(WIZARD).includes('* 0.75'), 'o `× 0,75` sem norma foi removido do wizard')
-ok(SERVICE.includes('coefParaFracao(_coefVmpp) : coefVoc'),
-  'backend usa o coef de Voc quando o de Vmpp não existe')
+// F2: o fallback de Q2 mudou de casa junto com a composição.
+ok(CLASSIF_TENSAO.includes('coefParaFracao(coefTempVmpp) : coefVoc'),
+  'o classificador usa o coef de Voc quando o de Vmpp não existe')
 
 secao('7 · Modelo A — `mppts[]` continua autoral')
 ok(WIZARD.includes('SUGESTÃO VISUAL'), '`sugerirMPPTs` marcada como sugestão')
@@ -174,11 +237,37 @@ const umaString = analisarCompatibilidade({
   dados_climaticos_regiao: { temperatura_min_historica_c: 14, temperatura_max_historica_c: 38 },
 })
 ok(umaString.calculos.isc_total === 17.5, `Isc de projeto 17,5 A (era 14 A sem o fator)`)
-ok(umaString.erros.some((e) => e.codigo === 'CORRENTE_ISC_EXCEDIDA'),
-  '1 string × 14 A contra limite de 16 A agora REPROVA — mudança prevista')
-const diag = umaString.erros.find((e) => e.codigo === 'CORRENTE_ISC_EXCEDIDA')
+
+/**
+ * ── Ajuste de compatibilidade de corrente ─────────────────────────────────
+ * Até aqui esta seção afirmava que 17,5 A de PROJETO contra um limite de
+ * TRABALHO de 16 A reprovava o arranjo. A auditoria mostrou que as duas
+ * grandezas não se comparam: o limite que reprova é `corrente_isc_max`, que
+ * este fixture não declara. O fator 1,25 continua aplicado e continua citando
+ * a norma — o que mudou é que ele deixou de ser critério de reprovação.
+ */
+ok(!umaString.erros.some((e) => e.codigo === 'CORRENTE_ISC_EXCEDIDA'),
+  'sem limite de curto-circuito declarado, a corrente de projeto NÃO reprova')
+ok(umaString.status === 'atencao', 'o arranjo fica em ATENÇÃO, não incompatível')
+const diag = umaString.warnings.find((w) => w.codigo === 'CORRENTE_PROJETO_ACIMA_DO_TRABALHO')
+ok(!!diag, 'e o excesso sobre a corrente de trabalho é dito como aviso')
 ok(diag.valores.norma === 'NBR 16690 §5.2', 'o diagnóstico cita a norma que o originou')
 ok(diag.valores.fator_seguranca === 1.25, 'e declara o fator aplicado')
+ok(umaString.avaliacao_corrente.curto_circuito.status === 'nao_avaliado',
+  'o critério de curto-circuito é declarado NÃO AVALIADO, não aprovado por omissão')
+
+// Com o limite de curto declarado, a reprovação existe e é pelo par certo.
+const comLimiteCurto = analisarCompatibilidade({
+  dados_eletricos_modulo: { voc: 49.9, vmpp: 41.8, isc: 14, impp: 13.2, potencia_w: 550, coef_temp_voc: -0.27 },
+  dados_eletricos_inversor: { tensao_max_entrada: 600, mppt_min: 160, mppt_max: 550,
+    corrente_max_mppt: 16, corrente_isc_max_mppt: 12, potencia_ca_kw: 8 },
+  arranjo_proposto: { quantidade_modulos_por_string: 11, quantidade_strings_paralelo: 1 },
+  dados_climaticos_regiao: { temperatura_min_historica_c: 14, temperatura_max_historica_c: 38 },
+})
+ok(comLimiteCurto.erros.some((e) => e.codigo === 'CORRENTE_ISC_EXCEDIDA'),
+  'Isc 14 A contra limite de curto de 12 A REPROVA — limite absoluto')
+ok(comLimiteCurto.erros.find((e) => e.codigo === 'CORRENTE_ISC_EXCEDIDA')
+  .valores.corrente_isc_max_mppt === 12, 'e a reprovação cita o limite de CURTO, não o de trabalho')
 
 secao('12 · `/strings` NÃO foi consolidado — divergência conhecida')
 // `compatibilidadeFV.montarStrings` usa fator térmico FIXO de 1,15 e não produz

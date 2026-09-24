@@ -1,5 +1,22 @@
+// ┌──────────────────────────────────────────────────────────────────────────┐
+// │ DATASET COMERCIAL — NÃO É O SSOT DE ENGENHARIA                           │
+// └──────────────────────────────────────────────────────────────────────────┘
+//
+// F9: cruzado contra os 52 inversores do SSOT Mongo — 0 de 41 registros têm
+// correspondência. 10 dos 14 fabricantes coincidem, NENHUM modelo. Esta tabela
+// descreve equipamento residencial de demonstração (Fronius Primo, Sungrow
+// SG5.0RS); o SSOT descreve o estoque real (Kehua SPI, SolaX X3-ULT, SAJ DE).
+//
+// Uso PERMITIDO: candidatura e ranking comercial.
+// Uso PROIBIDO:  qualquer decisão de engenharia, qualquer valor apresentado ao
+//                usuário como especificação validada.
+//
+// Compatibilidade elétrica tem um caminho só:
+//     SSOT (`especificacoes`) → adapter → contrato canônico → motor
+//
+// Ver `procedenciaComercial.js` e o guard `catalogoComercialF9.check.js`.
+//
 // Catálogo Unificado de Inversores - Versão Completa
-// Inclui todos os fabricantes: Deye, Growatt, Kehua, Goodwe, Sungrow, Tsuness, Hoymiles, APsystem, Solplanet, Solax, Huawei, Nep, Fronius, Enphase
 // Data de atualização: 2026-05-14
 
 export const INVERSORES = [

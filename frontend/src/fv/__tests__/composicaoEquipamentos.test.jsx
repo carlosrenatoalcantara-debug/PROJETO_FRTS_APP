@@ -76,17 +76,42 @@ const put = (el, v) => {
 }
 const montar = async () => {
   render(<EtapaEquipamentos />)
-  await waitFor(() => expect(screen.getByLabelText('Módulo').disabled).toBe(false))
+  await waitFor(() => expect(screen.getByLabelText('Marca do módulo').disabled).toBe(false))
 }
+
+/**
+ * Sprint C: a seleção passou a ser Marca → Modelo. Os auxiliares mantêm a
+ * assinatura de sempre — `addModulo(id, qtd)` — e resolvem a marca a partir das
+ * próprias fixtures, para que os testes existentes continuem descrevendo o que
+ * descreviam, agora pelo caminho hierárquico.
+ */
+const CATALOGO_FIXTURES = [M650, M550, MSEMPOT, INV15, INV10]
+const marcaDoId = (id) => CATALOGO_FIXTURES.find((e) => e._id === id)?.fabricante ?? ''
+
 const addModulo = (id, qtd) => {
+  put(screen.getByLabelText('Marca do módulo'), marcaDoId(id))
   put(screen.getByLabelText('Módulo'), id)
   fireEvent.change(screen.getByLabelText('Quantidade do novo módulo'), { target: { value: String(qtd) } })
   fireEvent.click(screen.getByText('Adicionar módulo'))
 }
-const addInversor = (id, qtd) => {
-  put(screen.getByLabelText('Inversor'), id)
-  fireEvent.change(screen.getByLabelText('Quantidade do novo inversor'), { target: { value: String(qtd) } })
-  fireEvent.click(screen.getByText('Adicionar inversor'))
+/**
+ * Sprint D2 — a SELEÇÃO do inversor saiu de Equipamentos para Topologia, onde a
+ * compatibilidade é conhecida. Este auxiliar deixou de operar a tela: semeia o
+ * inversor na composição do PROJETO, que é de onde Equipamentos lê. Os testes
+ * seguem descrevendo uma composição COM inversor — só não afirmam mais que ele
+ * é escolhido aqui.
+ */
+const semearInversor = (id, qtd) => {
+  const eq = CATALOGO_FIXTURES.find((e) => e._id === id)
+  const inv = {
+    id, marca: eq.fabricante, modelo: eq.modelo,
+    potencia_kw: eq.especificacoes.potencia ?? null,
+    tipo: 'string', fases: eq.especificacoes.fases ?? null,
+    quantidade: qtd, equipamento_id: id,
+  }
+  const a = projetoAtual.arranjos?.find((x) => x.tipo === 'principal')
+  if (a) a.inversores = [...(a.inversores ?? []), inv]
+  else projetoAtual.arranjos = [{ id: 'principal', rotulo: 'Arranjo principal', tipo: 'principal', paineis: [], inversores: [inv] }]
 }
 const etapa = (nome) => salvarEtapa.mock.calls.find(([e]) => e === nome)?.[1]
 
@@ -198,10 +223,14 @@ describe('FV-UX-029 · a tela compõe', () => {
     expect(document.body.textContent).toContain('15.2 kWp')   // 20×650 + 4×550
   })
 
-  it('12 · adiciona inversores, inclusive mais de um modelo', async () => {
+  // Sprint D2: os inversores chegam da composição (escolhidos em Topologia).
+  // Esta tela continua exibindo-os e somando a potência CA — o que mudou é a
+  // origem da seleção, não a leitura.
+  it('12 · exibe inversores da composição, inclusive mais de um modelo', async () => {
+    projetoAtual = JSON.parse(JSON.stringify(PROJETO))
+    semearInversor('i1', 2)
+    semearInversor('i2', 1)
     await montar()
-    addInversor('i1', 2)
-    addInversor('i2', 1)
     expect(document.body.textContent).toContain('SG15RT')
     expect(document.body.textContent).toContain('SG10RS')
     expect(document.body.textContent).toContain('40 kW')      // 2×15 + 1×10
@@ -260,8 +289,9 @@ describe('FV-UX-029 · a tela compõe', () => {
   })
 
   it('20 · aviso de fase continua funcionando (A4 da FV-UX-028)', async () => {
+    projetoAtual = JSON.parse(JSON.stringify(PROJETO))
+    semearInversor('i1', 1)   // trifásico em instalação monofásica
     await montar()
-    addInversor('i1', 1)   // trifásico em instalação monofásica
     expect(document.body.textContent).toContain('adequação da entrada elétrica')
   })
 })
@@ -269,9 +299,10 @@ describe('FV-UX-029 · a tela compõe', () => {
 // ═══ Persistência ═══════════════════════════════════════════════════════════
 describe('FV-UX-029 · persistência em `arranjos[]`', () => {
   const compor = async () => {
+    projetoAtual = JSON.parse(JSON.stringify(PROJETO))
+    semearInversor('i1', 2)
     await montar()
     addModulo('m1', 24)
-    addInversor('i1', 2)
     fireEvent.click(screen.getByText('Salvar composição'))
     await waitFor(() => expect(salvarEtapa).toHaveBeenCalled())
   }
@@ -381,5 +412,121 @@ describe('FV-UX-029 · nenhuma regra nova no cliente', () => {
       expect(tela.includes(p), `encontrou \`${p}\``).toBe(false)
     }
     expect(tela.includes('acoes.salvarEtapa')).toBe(true)
+  })
+})
+
+// ═══ Sprint C · seleção hierárquica Marca → Modelo → SSOT ═══════════════════
+//
+// O que estes testes protegem: o usuário nunca recebe a lista inteira do
+// catálogo; as marcas vêm do catálogo real (nada hardcoded); escolher uma marca
+// mostra só os modelos dela; e a seleção continua resolvendo o equipamento
+// canônico do SSOT, com a potência vinda de lá — nenhuma especificação nova.
+describe('Sprint C · seleção hierárquica de equipamentos', () => {
+  const put = (el, v) => {
+    const p = Object.getOwnPropertyDescriptor(el.constructor.prototype, 'value').set
+    p.call(el, v); el.dispatchEvent(new Event('change', { bubbles: true }))
+  }
+  const opcoes = (rotulo) => [...screen.getByLabelText(rotulo).options].map((o) => o.text)
+
+  it('31 · marcas de módulo vêm do catálogo real, sem repetição', async () => {
+    await montar()
+    const marcas = opcoes('Marca do módulo').slice(1).map((t) => t.replace(/\s*\(\d+\)$/, ''))
+    expect(marcas).toEqual(['DAH', 'Genérico', 'Znshine'])   // ordenadas, únicas
+    expect(new Set(marcas).size).toBe(marcas.length)
+  })
+
+  it('32 · modelo só lista após escolher a marca, e só os daquela marca', async () => {
+    await montar()
+    // Sem marca: o seletor de modelo está desabilitado e não oferece modelo algum.
+    expect(screen.getByLabelText('Módulo').disabled).toBe(true)
+    expect(opcoes('Módulo')).toEqual(['escolha a marca primeiro'])
+
+    put(screen.getByLabelText('Marca do módulo'), 'Znshine')
+    expect(screen.getByLabelText('Módulo').disabled).toBe(false)
+    const modelos = opcoes('Módulo').slice(1)
+    expect(modelos.some((t) => t.includes('ZXM7-UHLD144-650/M'))).toBe(true)
+    expect(modelos.some((t) => t.includes('DHN-550'))).toBe(false)   // não vaza outra marca
+    expect(modelos.length).toBe(1)
+  })
+
+  it('33 · trocar de marca limpa o modelo escolhido', async () => {
+    await montar()
+    put(screen.getByLabelText('Marca do módulo'), 'Znshine')
+    put(screen.getByLabelText('Módulo'), 'm1')
+    expect(screen.getByLabelText('Módulo').value).toBe('m1')
+    put(screen.getByLabelText('Marca do módulo'), 'DAH')
+    expect(screen.getByLabelText('Módulo').value).toBe('')
+  })
+
+  it('34 · a seleção resolve o equipamento do SSOT, com a potência de lá', async () => {
+    await montar()
+    addModulo('m1', 24)
+    fireEvent.click(screen.getByText('Salvar composição'))
+    await waitFor(() => expect(salvarEtapa).toHaveBeenCalled())
+    const arranjos = etapa('arranjos')
+    const painel = arranjos.lista[0].paineis[0]
+    expect(painel.equipamento_id).toBe('m1')       // canônico do catálogo
+    expect(painel.marca).toBe('Znshine')
+    expect(painel.modelo).toBe('ZXM7-UHLD144-650/M')
+    expect(painel.potencia_w).toBe(650)            // do SSOT, não digitada
+  })
+
+  // Sprint D2 substituiu este teste: a seleção do inversor saiu de Equipamentos
+  // e passou a Topologia, filtrada pela compatibilidade. O contrato novo é a
+  // AUSÊNCIA do seletor aqui — e a tela dizer onde ele foi parar.
+  it('35 · Equipamentos NÃO tem mais seleção final de inversor', async () => {
+    await montar()
+    expect(screen.queryByLabelText('Marca do inversor')).toBe(null)
+    expect(screen.queryByLabelText('Inversor')).toBe(null)
+    expect(screen.queryByText('Adicionar inversor')).toBe(null)
+    expect(document.body.textContent).toContain('escolhido na etapa')
+    // E a hierarquia do MÓDULO continua intacta.
+    expect(screen.getByLabelText('Marca do módulo')).toBeTruthy()
+  })
+
+  // Sprint D2: o inversor vem da composição gravada em Topologia. O que este
+  // teste garante é que Equipamentos NÃO o perde ao salvar os módulos.
+  it('36 · salvar módulos preserva o inversor da composição, com o SSOT', async () => {
+    projetoAtual = JSON.parse(JSON.stringify(PROJETO))
+    semearInversor('i1', 1)
+    await montar()
+    addModulo('m1', 24)
+    fireEvent.click(screen.getByText('Salvar composição'))
+    await waitFor(() => expect(salvarEtapa).toHaveBeenCalled())
+    const inv = etapa('arranjos').lista[0].inversores[0]
+    expect(inv.equipamento_id).toBe('i1')
+    expect(inv.marca).toBe('Sungrow')
+    expect(inv.modelo).toBe('SG15RT')
+  })
+
+  it('37 · marca ausente no catálogo não quebra nem inventa', async () => {
+    await montar()
+    // Marca inexistente: nenhum modelo, e nada é fabricado.
+    put(screen.getByLabelText('Marca do módulo'), 'MarcaQueNaoExiste')
+    expect(opcoes('Módulo').slice(1)).toEqual([])
+    expect(screen.getByText('Adicionar módulo').disabled).toBe(true)
+  })
+
+  it('38 · equipamento inexistente não é adicionado', async () => {
+    await montar()
+    put(screen.getByLabelText('Marca do módulo'), 'Znshine')
+    put(screen.getByLabelText('Módulo'), 'nao-existe')
+    fireEvent.change(screen.getByLabelText('Quantidade do novo módulo'), { target: { value: '10' } })
+    fireEvent.click(screen.getByText('Adicionar módulo'))
+    expect(document.body.textContent).toContain('nenhum módulo na composição')
+  })
+
+  it('39 · nenhuma marca é hardcoded na tela', async () => {
+    const fs = await import('node:fs/promises')
+    const path = await import('node:path')
+    const url = await import('node:url')
+    const aqui = path.dirname(url.fileURLToPath(import.meta.url))
+    const bruto = await fs.readFile(path.resolve(aqui, '../paginas/etapas/EtapaEquipamentos.jsx'), 'utf8')
+    // Comentários citam marcas legitimamente (ex.: exemplos). O que a sprint
+    // proíbe é marca no CÓDIGO — daí a remoção dos comentários antes da busca.
+    const tela = bruto.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '')
+    for (const marca of ['Znshine', 'DAH', 'Sungrow', 'Deye', 'Hoymiles', 'Fronius', 'Growatt']) {
+      expect(tela.includes(marca), `marca hardcoded: ${marca}`).toBe(false)
+    }
   })
 })

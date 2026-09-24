@@ -66,11 +66,18 @@ for (const n of [600, 100, 550, 13]) {
   ok(!new RegExp(`:\\s*${n}\\b`).test(bruto), `o número ${n} não aparece na saída`)
 }
 
-secao('4 · Precedência entre campos REAIS continua — não é default')
-const porAlias = paraDimensionamento({ potencia_kw: 8, corrente_max_por_mppt: 16,
+secao('4 · Campos REAIS diferentes não se substituem (F8)')
+// Esta seção afirmava o contrário: que `corrente_max_por_mppt` "supria"
+// `corrente_isc_max` por serem "dois campos reais". Ser real não basta — são
+// grandezas DIFERENTES (trabalho × curto-circuito), e a substituição produzia
+// um limite de curto mais baixo do que o real, afrouxando a verificação de
+// string. A F8 removeu a substituição; este check agora trava a remoção.
+const soTrabalho = paraDimensionamento({ potencia_kw: 8, corrente_max_por_mppt: 16,
   tensao_max_entrada: 600, tensao_mppt_min: 80, tensao_mppt_max: 550, n_mppts: 2 }, {})
-ok(porAlias.isc_max_mppt === 16, '`corrente_max_por_mppt` supre `corrente_isc_max` (dois campos reais)')
-ok(porAlias.lacunas.length === 0, 'e não gera lacuna')
+ok(soTrabalho.isc_max_mppt === null, '`corrente_max_por_mppt` NÃO supre `corrente_isc_max`')
+ok(soTrabalho.corrente_max_por_mppt === 16, 'o limite de trabalho sai com o próprio nome')
+ok(soTrabalho.lacunas.length === 1 && soTrabalho.lacunas[0] === 'corrente_isc_max',
+  'e a ausência do limite de curto é a única lacuna — nomeada')
 
 secao('5 · Lacuna parcial é nomeada com precisão')
 const parcial = paraDimensionamento({ potencia_kw: 15, tensao_max_entrada: 1000,
@@ -112,7 +119,18 @@ ok(NORMATIVA.includes('FATOR_ISC_NBR16690 = 1.25'), 'Isc × 1,25 intacto')
 ok(NORMATIVA.includes('NOCT_PADRAO_C = 44'), 'NOCT 44 intacto')
 ok(NORMATIVA.includes('export function coefParaFracao'), 'conversão de unidade intacta')
 const SERVICO = ler('backend/src/services/compatibilidadeEletricaService.js')
-ok(SERVICO.includes('correnteProjeto(isc, strings_paralelo)'), 'validador canônico intacto')
+/**
+ * F1: a aplicação do fator desceu um nível. O validador deixou de chamar
+ * `correnteProjeto` diretamente e passou a consumir `classificarCorrenteCC`,
+ * que é quem o aplica — o wizard legado precisava do mesmo veredito no
+ * navegador, e repetir a comparação lá era o que produzia divergência.
+ *
+ * A intenção da guarda é a mesma e continua verificada, agora na cadeia
+ * inteira: validador → classificador → primitiva canônica.
+ */
+const CLASSIFICADOR = ler('packages/fv-shared/engenharia/classificacaoCorrenteCC.js')
+ok(SERVICO.includes('classificarCorrenteCC({'), 'validador consome o classificador canônico')
+ok(CLASSIFICADOR.includes('correnteProjeto(vIsc, n)'), 'e o classificador aplica Isc × 1,25')
 
 secao('10 · `lerInversor` (SSOT) não ganhou alias nem default')
 const DIC = semComentarios(ler('packages/fv-shared/equipamentos/inversores/dicionarioInversor.js'))

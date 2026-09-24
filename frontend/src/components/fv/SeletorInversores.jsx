@@ -247,8 +247,18 @@ export default function SeletorInversores({ onSelecionar, selecionado }) {
       mpptMinV:      eletrico?.mppt_min           ?? null,
       mpptMaxV:      eletrico?.mppt_max           ?? null,
       correnteMaxA:  eletrico?.corrente_max_mppt  ?? null,
-      oversizingMax: eletrico?.oversizing_max     ?? 1.30,
-      entradasPorMppt: eletrico?.entradas_por_mppt ?? 1,
+      /**
+       * F3 — o limite de CURTO passou a ser propagado. Ele existia no SSOT
+       * (19 dos 39 inversores o declaram), o adapter agora o lê, e aqui ele
+       * simplesmente não era repassado: o wizard recebia o envelope sem o
+       * campo e o critério de curto ficava `nao_avaliado` mesmo com o dado
+       * cadastrado. Grandeza distinta da corrente de trabalho acima.
+       */
+      correnteIscMaxA: eletrico?.corrente_isc_max ?? null,
+      // F2: sem default — o limite CC/CA é dado de fabricante, não presunção.
+      oversizingMax: eletrico?.oversizing_max     ?? null,
+      // F3: idem para entradas por MPPT — ausência é ausência, não "1".
+      entradasPorMppt: eletrico?.entradas_por_mppt ?? null,
       // S8.1: proveniência (snapshot/unifilar/homologação futura)
       _fonte:            inv._fonte || 'local',
       _catalogo_original: inv._catalogo_original || null,
@@ -401,7 +411,10 @@ export default function SeletorInversores({ onSelecionar, selecionado }) {
                           <InvParam label="Imáx/MPPT"   valor={`${eletrico.corrente_max_mppt} A`} />
                           <InvParam label="Vmpp mín"    valor={`${eletrico.mppt_min} V`}          />
                           <InvParam label="Vmpp máx"    valor={`${eletrico.mppt_max} V`}          />
-                          <InvParam label="Oversizing"  valor={`${((eletrico.oversizing_max ?? 1.30) * 100).toFixed(0)}%`} />
+                          {/* F2: "—" quando o catálogo não declara. Exibir 130%
+                              era mostrar ao usuário um limite inventado. */}
+                          <InvParam label="Oversizing"  valor={eletrico.oversizing_max
+                            ? `${(eletrico.oversizing_max * 100).toFixed(0)}%` : '—'} />
                         </div>
                       ) : (
                         <div className="grid grid-cols-2 gap-2 mt-2 text-xs">

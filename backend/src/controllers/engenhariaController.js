@@ -1,3 +1,4 @@
+import mongoose from 'mongoose'
 import { calcularFluxoCaixa } from '@fortesolar/fv-shared/financeiro/fluxo-caixa'
 import { PAINEIS } from '../data/catalogoPaineis.js'
 import { analisarCompatibilidade } from '../services/compatibilidadeEletricaService.js'
@@ -261,5 +262,75 @@ export async function otimizarArranjoHandler(req, res) {
       erro:    'Erro interno ao executar optimizer de arranjo FV.',
       detalhe: process.env.NODE_ENV !== 'production' ? err.message : undefined,
     })
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// POST /api/engenharia/inversores-compativeis — Sprint D1
+//
+// Orquestra: configuração preliminar (D0) + módulo do SSOT + catálogo de
+// inversores do SSOT → motor canônico → apenas os compatíveis.
+//
+// A regra elétrica NÃO vive aqui nem no service que este handler chama: os dois
+// apenas repassam ao `analisarCompatibilidade`. Este controller resolve I/O —
+// carregar o módulo e os candidatos — e nada mais.
+// ══════════════════════════════════════════════════════════════════════════════
+export async function listarInversoresCompativeis(req, res) {
+  try {
+    const { configuracao, modulo_id, clima } = req.body || {}
+
+    if (!configuracao || typeof configuracao !== 'object') {
+      return res.status(400).json({
+        ok: false, codigo: 'CONFIG_AUSENTE',
+        mensagem: 'configuracao é obrigatória (tipo, fases e, para string, o agrupamento).',
+      })
+    }
+    if (!modulo_id) {
+      return res.status(400).json({
+        ok: false, codigo: 'MODULO_AUSENTE',
+        mensagem: 'modulo_id é obrigatório — os dados elétricos vêm do catálogo, não do corpo.',
+      })
+    }
+    if (!mongoose.Types.ObjectId.isValid(String(modulo_id))) {
+      return res.status(400).json({
+        ok: false, codigo: 'MODULO_ID_INVALIDO', mensagem: 'modulo_id não é um identificador válido.',
+      })
+    }
+
+    const { Equipamento } = await import('../models/Equipamento.js')
+
+    // Projeção mínima: só o que o motor consome. Nada de ficha técnica inteira.
+    const modulo = await Equipamento.findOne(
+      { _id: modulo_id, tipo: 'modulo' },
+      { fabricante: 1, modelo: 1, especificacoes: 1 },
+    ).lean()
+
+    if (!modulo) {
+      return res.status(404).json({
+        ok: false, codigo: 'MODULO_NAO_ENCONTRADO',
+        mensagem: 'Módulo não existe no catálogo.',
+      })
+    }
+
+    // UMA consulta para todos os candidatos — o motor roda em memória sobre eles.
+    const candidatos = await Equipamento.find(
+      { tipo: 'inversor', utilizavel_em_projeto: { $ne: false } },
+      { fabricante: 1, modelo: 1, especificacoes: 1 },
+    ).lean()
+
+    const { avaliarCompatibilidade } = await import('../services/inversoresCompativeisService.js')
+    const resultado = avaliarCompatibilidade({ configuracao, modulo, candidatos, clima })
+
+    // Configuração incompleta ou módulo sem dados: 422 — a requisição é válida,
+    // o que falta é dado. Distingue-se de "nenhum compatível", que é 200.
+    if (resultado.ok === false) return res.status(422).json(resultado)
+
+    return res.json({
+      ...resultado,
+      modulo: { equipamento_id: String(modulo._id), fabricante: modulo.fabricante, modelo: modulo.modelo },
+    })
+  } catch (err) {
+    console.error('[INVERSORES-COMPATIVEIS] Erro:', err)
+    return res.status(500).json({ ok: false, codigo: 'ERRO_INTERNO', mensagem: err.message })
   }
 }

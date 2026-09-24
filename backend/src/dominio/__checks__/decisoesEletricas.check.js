@@ -25,6 +25,8 @@ const ok = (c, m) => { console.log((c ? '✓' : '✗ FALHOU') + ' ' + m); if (!c
 const secao = (t) => console.log(`\n── ${t}`)
 
 const ler = (rel) => readFileSync(path.resolve(RAIZ, rel), 'utf8')
+/** Comentário citando um identificador não é uso dele — F1.1. */
+const semComentarios = (s) => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '')
 const ESTADO = ler('FV-ESTADO-COMPACTADO.md')
 
 secao('1 · As seis decisões estão registradas')
@@ -78,16 +80,21 @@ const MOTOR_CONSOLIDADO = [
 const MOTOR_GUARD_REFORCADO = ['backend/src/services/compatibilidadeFV.js']
 const MOTOR_INTOCADO = []
 
-let git = null
-try {
-  git = execSync('git status --porcelain', { cwd: RAIZ, encoding: 'utf8' })
-} catch { /* fora de repositório */ }
-if (git === null) {
-  ok(false, 'git indisponível — não foi possível inspecionar o estado dos motores')
-} else {
-  for (const arquivo of MOTOR_INTOCADO) {
-    ok(!git.includes(arquivo), `intacto (sem equivalência provada): ${arquivo}`)
-  }
+/**
+ * ── Por que esta seção mudou de mecanismo (F1.1) ────────────────────────────
+ * O bloco lia o `git status` para decidir QUAIS asserções rodar: se um motor
+ * consolidado aparecesse modificado, exigia a prova de equivalência; senão,
+ * afirmava "nenhum motor alterado". Isso torna o check NÃO DETERMINÍSTICO —
+ * a mesma árvore commitada e não commitada roda conjuntos diferentes de
+ * asserções — e `MOTOR_INTOCADO` era uma lista vazia, ou seja, não protegia nada.
+ *
+ * O que realmente importa não depende do `git status`: os motores consolidados
+ * exigem prova de equivalência SEMPRE, e o motor não consolidado
+ * (`compatibilidadeFV`) tem de manter as fórmulas palavra por palavra — porque
+ * a FV-UX-021 mediu que ele NÃO é equivalente ao canônico. As duas coisas são
+ * verificáveis por conteúdo, em qualquer ponto do histórico.
+ */
+{
   // FV-DOM-029: as fórmulas de `montarStrings` continuam palavra por palavra —
   // só a precondição mudou. Se alguma delas for tocada, este check acusa.
   for (const arquivo of MOTOR_GUARD_REFORCADO) {
@@ -101,65 +108,79 @@ if (git === null) {
     ok(fonte.includes('campos_faltantes'),
       `${path.basename(arquivo)}: guard passou a NOMEAR o que falta`)
   }
-  const alterados = MOTOR_CONSOLIDADO.filter((a) => git.includes(a))
-  if (alterados.length > 0) {
-    ok(existsSync(path.resolve(RAIZ, 'backend/scripts/equivalencia-fv-dom-025.mjs')),
-      `${alterados.length} motor(es) consolidado(s) — prova de equivalência presente`)
-    ok(existsSync(path.resolve(RAIZ, 'backend/src/dominio/__checks__/regrasEletricasCanonicas.check.js')),
-      'check de fonte única presente')
-    for (const a of alterados) console.log(`   (FV-DOM-025) ${a}`)
-  } else {
-    ok(true, 'nenhum motor alterado — estado da FV-DOM-024')
+
+  // Os motores consolidados exigem a prova — sempre, não só quando aparecem
+  // modificados na árvore. É a condição que autoriza a consolidação a existir.
+  ok(existsSync(path.resolve(RAIZ, 'backend/scripts/equivalencia-fv-dom-025.mjs')),
+    'prova de equivalência da FV-DOM-025 presente')
+  ok(existsSync(path.resolve(RAIZ, 'backend/src/dominio/__checks__/regrasEletricasCanonicas.check.js')),
+    'check de fonte única presente')
+  const CANONICO = 'packages/fv-shared/engenharia/engenhariaNormativa.js'
+  for (const arquivo of MOTOR_CONSOLIDADO) {
+    const fonte = semComentarios(ler(arquivo))
+    const nome = path.basename(arquivo)
+    if (arquivo === CANONICO) {
+      // É a CASA da conversão, não um consumidor: aqui a heurística deve existir.
+      ok(/Math\.abs\([^)]*\)\s*>\s*0\.1/.test(fonte), `${nome}: define a conversão de unidade`)
+      ok(fonte.includes('export function coefParaFracao'), `${nome}: exporta a primitiva`)
+      continue
+    }
+    ok(/coefParaFracao|classificarCorrenteCC/.test(fonte),
+      `${nome}: consome as primitivas canônicas`)
+    ok(!/Math\.abs\([^)]*\)\s*>\s*0\.1/.test(fonte),
+      `${nome}: sem cópia da conversão de unidade`)
   }
 }
 
-secao('5 · Nenhum schema alterado')
-if (git !== null) {
-  for (const modelo of ['backend/src/models/Equipamento.js', 'backend/src/models/Baseline.js']) {
-    ok(!git.includes(modelo), `intacto: ${modelo}`)
+secao('5 · Nenhum campo de schema foi removido')
+/**
+ * ── Por que esta seção mudou de mecanismo (F1.1) ────────────────────────────
+ * Ela exigia que `Equipamento.js` e `Baseline.js` não aparecessem no
+ * `git status`, e media a aditividade de `ProjetoFV.js` por `git diff` da
+ * ÁRVORE. Depois do commit, o diff fica vazio: a guarda da aditividade passava
+ * por não ter o que comparar — verde por ausência de evidência, não por prova.
+ *
+ * O comentário original já apontava o caminho certo ao tratar `ProjetoFV.js`:
+ * o que importa não é "intocado", é "ADITIVO — nenhum campo existente foi
+ * removido ou retipado". Isso se verifica por CONTEÚDO, e é o que está abaixo:
+ * os campos que carregam o modelo continuam declarados. Retirar qualquer um
+ * derruba a asserção em qualquer ponto do histórico, commitado ou não.
+ */
+{
+  const CAMPOS_QUE_NAO_PODEM_SUMIR = {
+    'backend/src/models/Equipamento.js': ['especificacoes', 'fabricante', 'modelo', 'tipo'],
+    'backend/src/models/Baseline.js':    ['congelado'],
+    'backend/src/models/ProjetoFV.js':   [
+      'arranjos', 'configuracao_eletrica', 'n_mppts', 'mppts', 'micros',
+      'potencia_kwp', 'congelado',
+    ],
   }
-  /**
-   * `ProjetoFV.js` deixou de ser "intacto" na FV-DOM-031, POR AUTORIZAÇÃO
-   * (decisão 1: configuração de micro por modelo). Exigir intocado passaria a
-   * ser uma guarda falsa; a guarda que interessa é outra e é mais forte:
-   * a alteração é ADITIVA — nenhum campo existente foi removido ou retipado.
-   */
-  ok(schemaSomenteAditivo('backend/src/models/ProjetoFV.js'),
-    'ProjetoFV.js alterado apenas de forma ADITIVA (nenhum campo removido/retipado)')
+  for (const [arquivo, campos] of Object.entries(CAMPOS_QUE_NAO_PODEM_SUMIR)) {
+    const fonte = ler(arquivo)
+    const nome = path.basename(arquivo)
+    for (const campo of campos) {
+      ok(new RegExp(`\\b${campo}\\b`).test(fonte), `${nome}: \`${campo}\` continua declarado`)
+    }
+  }
+  // `micros[]` e `micros[].arranjos[]` nasceram ADITIVOS: `default: undefined`,
+  // para que projeto legado leia ausência em vez de array vazio.
+  const PROJETO = ler('backend/src/models/ProjetoFV.js')
+  const blocoMicros = PROJETO.slice(PROJETO.indexOf('micros: {'),
+    PROJETO.indexOf('num_mppts_usados', PROJETO.indexOf('micros: {')))
+  ok(/default: undefined/.test(blocoMicros),
+    'ProjetoFV.js: a adição de micro é aditiva (ausência ≠ vazio)')
 }
 
 /**
- * Toda linha REMOVIDA do arquivo reaparece entre as ADICIONADAS quando se
- * ignoram comentários e espaços. Se um campo tivesse sumido ou trocado de tipo,
- * a linha original não teria correspondente e o check acusaria.
+ * F1.1 — `schemaSomenteAditivo` foi REMOVIDA. Ela media a aditividade pelo
+ * `git diff` da árvore de trabalho: depois do commit o diff fica vazio, as
+ * listas de linhas removidas e adicionadas ficam vazias, e a função retornava
+ * `true` por não ter o que comparar. Era verde por ausência de evidência.
+ *
+ * A garantia que ela pretendia dar está na seção 5, por conteúdo: os campos que
+ * carregam cada schema continuam declarados, e a adição de micro é aditiva
+ * (`default: undefined`). Isso vale commitado ou não.
  */
-function schemaSomenteAditivo(rel) {
-  let diff
-  try { diff = execSync(`git diff -U0 -- ${rel}`, { cwd: RAIZ, encoding: 'utf8' }) } catch { return false }
-  const limpar = (l) => l.slice(1).replace(/\/\/.*$/, '').replace(/\s+/g, '')
-  const linhas = diff.split('\n')
-  const removidas = linhas.filter((l) => l.startsWith('-') && !l.startsWith('---')).map(limpar).filter(Boolean)
-  const adicionadas = linhas.filter((l) => l.startsWith('+') && !l.startsWith('+++')).map(limpar).filter(Boolean)
-  const conjunto = new Set(adicionadas)
-
-  /**
-   * ALARGAR um enum é aditivo — `['novo','ampliacao']` → `['novo','ampliacao',
-   * 'opcao']` (FV-DOM-032). A comparação linha a linha não enxerga isso, então
-   * a linha antiga é aceita quando existe uma NOVA que contém todos os valores
-   * dela. Estreitar o enum removeria um valor, nenhuma linha nova o conteria, e
-   * o check acusaria — a guarda continua valendo no sentido que importa.
-   */
-  const alargamentoDeEnum = (antiga) => {
-    if (!antiga.startsWith('enum:[')) return false
-    const valores = antiga.slice(6).replace(/\],?$/, '').split(',').filter(Boolean)
-    return adicionadas.some((nova) =>
-      nova.startsWith('enum:[') && valores.every((v) => nova.includes(v)))
-  }
-
-  const perdidas = removidas.filter((l) => !conjunto.has(l) && !alargamentoDeEnum(l))
-  if (perdidas.length > 0) console.log(`   linhas perdidas: ${perdidas.join(' | ')}`)
-  return perdidas.length === 0
-}
 
 secao('6 · A sprint não escreve em banco algum')
 const SCRIPTS = ['backend/scripts/impacto-isc-fv-dom-024.mjs']
@@ -185,27 +206,39 @@ const TOCADOS_POR_SPRINTS_ANTERIORES = new Map([
   // alterada — o service só acrescenta o estado da opção à decisão.
   ['backend/src/services/BaselineService.js', 'FV-DOM-032 — gate ciente das opções da proposta'],
 ])
-if (git !== null) {
-  const alterados = git.split('\n').filter(Boolean).map((l) => l.slice(3).trim())
-  /**
-   * FV-INFRA-058: `.md` fora do filtro. A regra existe para pegar CÓDIGO que
-   * mexa em baseline/snapshot/governança, e passou a acusar o documento
-   * `FV-QA-BASELINE-001.md` — que casa com `/baseline/` só pelo nome. Um
-   * arquivo de documentação não altera comportamento; mantê-lo aqui treinaria
-   * a equipe a ignorar a asserção, que é o oposto do que ela serve.
-   */
-  const suspeitos = alterados.filter((a) =>
-    /baseline|snapshot|governanca/i.test(a)
-    && !/__checks__|scripts/.test(a)
-    && !/\.md$/i.test(a))
-  const novos = suspeitos.filter((a) => !TOCADOS_POR_SPRINTS_ANTERIORES.has(a))
-  ok(novos.length === 0,
-    novos.length === 0 ? 'esta sprint não tocou baseline/snapshot'
-      : `tocou: ${novos.join(', ')}`)
-  for (const a of suspeitos.filter((x) => TOCADOS_POR_SPRINTS_ANTERIORES.has(x))) {
-    console.log(`   (pré-existente) ${a} — ${TOCADOS_POR_SPRINTS_ANTERIORES.get(a)}`)
+/**
+ * ── Por que esta seção mudou de mecanismo (F1.1) ────────────────────────────
+ * Ela listava, à mão, quais arquivos de baseline/snapshot já vinham alterados
+ * por sprints anteriores, para conseguir afirmar "ESTA sprint não acrescentou
+ * nada". A lista precisa crescer a cada sprint e a guarda se apaga sozinha.
+ *
+ * O que ela protege de verdade — "os motores de engenharia não recalculam nem
+ * tocam Baseline/snapshot/governança" — é verificável por CONTEÚDO. Quem PODE
+ * mexer em baseline continua sendo só o caminho autorizado, e está nomeado.
+ */
+{
+  const MOTORES_QUE_NAO_TOCAM_BASELINE = [
+    'backend/src/services/compatibilidadeEletricaService.js',
+    'packages/fv-shared/engenharia/engenhariaNormativa.js',
+    'packages/fv-shared/engenharia/classificacaoCorrenteCC.js',
+    'packages/fv-shared/engenharia/microinversores.js',
+    'packages/fv-shared/engenharia/arranjosMicro.js',
+    'packages/fv-shared/engenharia/correnteMicro.js',
+  ]
+  for (const arquivo of MOTORES_QUE_NAO_TOCAM_BASELINE) {
+    const fonte = semComentarios(ler(arquivo))
+    const nome = path.basename(arquivo)
+    ok(!/baseline|snapshot|governanca|governança/i.test(fonte),
+      `${nome}: não conhece baseline/snapshot/governança`)
   }
+  for (const [arquivo, motivo] of TOCADOS_POR_SPRINTS_ANTERIORES) {
+    console.log(`   (autorizado) ${path.basename(arquivo)} — ${motivo}`)
+  }
+  // O congelamento continua existindo e continua sendo o único caminho.
+  ok(ler('backend/src/dominio/baseline/congelarOrcamento.js').includes('congelar'),
+    'o congelamento da Baseline continua no caminho autorizado')
 }
+
 // O entregável da FV-DOM-024 é o registro das decisões no estado canônico. Isso
 // se verifica pelo CONTEÚDO do documento (§1–§3), não pelo `git status`: depois
 // do commit a árvore fica limpa e uma asserção baseada em "arquivo modificado"

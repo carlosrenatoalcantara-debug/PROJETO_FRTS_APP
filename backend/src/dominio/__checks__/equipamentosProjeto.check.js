@@ -32,9 +32,18 @@ secao('1 · Nenhuma rota nova')
 ok(ROTAS_FV.includes("router.put('/:id/etapa'"), 'a escrita continua em PUT /:id/etapa')
 ok(ROTAS_EQUIP.includes("router.get('/engenharia'"), 'o catálogo continua em GET /api/equipamentos/engenharia')
 ok(API_UX.includes('/api/equipamentos/engenharia?tipo='), 'a UX consome a rota oficial do catálogo')
-for (const inventada of ['/api/catalogo', '/equipamentos/fv', '/modulos', '/inversores']) {
+// A guarda protege contra um CATÁLOGO paralelo — não contra qualquer rota que
+// mencione inversor. A Sprint D1 acrescentou `/api/engenharia/inversores-compativeis`,
+// que não serve catálogo: orquestra o motor canônico `analisarCompatibilidade`
+// sobre o catálogo oficial e devolve um subconjunto. Manter `/inversores` na
+// lista literal reprovaria essa rota pelo nome, não pelo que ela faz.
+for (const inventada of ['/api/catalogo', '/equipamentos/fv', '/api/modulos', '/api/inversores']) {
   ok(!API_UX.includes(inventada), `nenhuma rota \`${inventada}\` foi criada`)
 }
+// E o catálogo continua vindo de uma fonte só.
+ok((API_UX.match(/\/api\/equipamentos\//g) ?? []).length >= 1
+  && !API_UX.includes('/api/equipamentos/modulos'),
+  'o catálogo continua sendo servido por uma rota única')
 
 secao('2 · Nenhum campo novo — o subdocumento já existia')
 const bloco = MODELO.slice(MODELO.indexOf('  equipamentos: {'), MODELO.indexOf('  arranjos: ['))
@@ -171,8 +180,14 @@ for (const campo of ['paineis', 'inversores', 'quantidade', 'rotulo', 'somente_l
 const trechoEtapas2 = CTRL.slice(CTRL.indexOf('ETAPAS_PERMITIDAS = ['), CTRL.indexOf('ETAPAS_PERMITIDAS = [') + 700)
 ok(trechoEtapas2.includes("'arranjos'"), 'a etapa `arranjos` já pertencia à lista fechada')
 const handlerArr = CTRL.slice(CTRL.indexOf("case 'arranjos'"), CTRL.indexOf("case 'instalacao_ref'"))
-ok(handlerArr.includes('$set.arranjos = Array.isArray(dados.lista)'),
+// F13: a linha era `$set.arranjos = Array.isArray(dados.lista) ? ... : []`.
+// Continua recebendo `{ lista: [...] }` e substituindo o array inteiro — só
+// passou a garantir identidade única na gravação. A asserção olha as DUAS
+// partes em vez de fixar a linha inteira, que era o que a prendia à escrita.
+ok(/\$set\.arranjos\s*=/.test(handlerArr) && handlerArr.includes('Array.isArray(dados.lista)'),
   'o handler recebe `{ lista: [...] }` e substitui o array')
+ok(handlerArr.includes('garantirIdentidade('),
+  'e garante identidade única antes de persistir (F13)')
 ok(ETAPA_EQ.includes("salvarEtapa('arranjos'"), 'a tela grava a composição em `arranjos`')
 
 secao('13 · `equipamentos` virou PROJEÇÃO, não segunda fonte')

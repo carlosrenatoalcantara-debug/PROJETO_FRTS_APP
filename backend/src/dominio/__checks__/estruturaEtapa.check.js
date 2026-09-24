@@ -58,22 +58,29 @@ secao('1 · Os campos já existiam — nenhum schema novo')
 const schema = ler(SCHEMA)
 ok(/estrutura:\s*\{\s*tipo:\s*String,\s*descricao:\s*String,?\s*\}/.test(schema),
   '`equipamentos.estrutura.{tipo,descricao}` já declarado no ProjetoFV')
-let git = null
-try { git = execSync('git status --porcelain', { cwd: RAIZ, encoding: 'utf8' }) } catch { /* fora de repo */ }
-if (git === null) ok(false, 'git indisponível — não foi possível verificar o schema')
-else {
-  for (const m of ['backend/src/models/Equipamento.js',
-    'backend/src/models/Baseline.js', 'backend/src/models/Orcamento.js']) {
-    ok(!git.includes(m), `intacto: ${m}`)
+/**
+ * ── Por que este bloco mudou de mecanismo (F1.1) ────────────────────────────
+ * Exigia que três schemas não aparecessem no `git status` e media a preservação
+ * de `equipamentos.estrutura` por `git diff` da ÁRVORE. Depois do commit o diff
+ * fica vazio e a asserção passa por não ter o que comparar — verde por ausência
+ * de evidência, não por prova.
+ *
+ * O que interessa a esta sprint — "o campo em que a Estrutura grava continua
+ * declarado, e os agregados congelados continuam íntegros" — verifica-se por
+ * CONTEÚDO, em qualquer ponto do histórico.
+ */
+for (const [modelo, campos] of Object.entries({
+  'backend/src/models/Equipamento.js': ['especificacoes', 'fabricante', 'tipo'],
+  'backend/src/models/Baseline.js':    ['congelado'],
+  'backend/src/models/Orcamento.js':   ['validade_dias', 'prazo_execucao_dias'],
+})) {
+  const fonte = ler(modelo)
+  for (const campo of campos) {
+    ok(new RegExp(`\\b${campo}\\b`).test(fonte),
+      `${modelo.split('/').pop()}: \`${campo}\` continua declarado`)
   }
-  // A FV-UX-030 não tocou o schema. A FV-DOM-031 tocou, por autorização
-  // (micro por modelo) — e não removeu nada: `equipamentos.estrutura` segue
-  // declarado exatamente como estava, que é o que ESTA sprint precisa garantir.
-  let diffSchema = ''
-  try { diffSchema = execSync(`git diff -- ${SCHEMA}`, { cwd: RAIZ, encoding: 'utf8' }) } catch { /* fora de repo */ }
-  ok(!/^-.*estrutura/m.test(diffSchema), '`equipamentos.estrutura` intacto no schema')
-  ok(!/^[-+].*\bdescricao\b/m.test(diffSchema), 'nenhuma mudança em `estrutura.descricao`')
 }
+ok(/descricao/.test(schema), '`estrutura.descricao` continua no schema')
 
 secao('2 · Nenhuma etapa nova no PUT /:id/etapa')
 const controller = ler(CONTROLLER)
@@ -87,10 +94,12 @@ ok(semComentarios(tela).includes("salvarEtapa('equipamentos'"),
  * A guarda que interessa a ESTA sprint é mais precisa: a lista de etapas
  * permitidas não mudou, e nenhuma linha que mencione `estrutura` foi tocada.
  */
-if (git !== null) {
-  let diff = ''
-  try { diff = execSync(`git diff -- ${CONTROLLER}`, { cwd: RAIZ, encoding: 'utf8' }) } catch { /* fora de repo */ }
-  ok(!/^[-+].*ETAPAS_PERMITIDAS/m.test(diff), 'a lista `ETAPAS_PERMITIDAS` não foi alterada')
+{
+  // F1.1: era `git diff` da árvore. A garantia por CONTEÚDO é mais forte — o
+  // que importa não é que a linha não tenha sido tocada, e sim que `estrutura`
+  // não seja uma etapa aceita pelo controller.
+  ok(!/'estrutura'/.test(controller),
+    '`estrutura` não entrou na lista de etapas permitidas')
   /**
    * O que esta sprint precisa garantir é que ninguém passou a ESCREVER
    * `equipamentos.estrutura` por outro caminho — a etapa `equipamentos` continua
@@ -107,22 +116,25 @@ if (git !== null) {
    * qualquer linha. A leitura do valor que segue `estrutura:` é feita
    * explicitamente, com o texto capturado.
    */
-  const depoisDeEstrutura = (l) => (l.match(/estrutura:\s*(.*)$/) ?? [])[1] ?? ''
-  const LEITURA_OU_VAZIO = /^(\{\s*\}|o\.|p\.|projeto|base|orig|equipamentos\?)/
-
-  const escritasDeEstrutura = diff.split('\n')
-    .filter((l) => l.startsWith('+') && !l.startsWith('+++'))
-    .filter((l) => !/^\+\s*(\/\/|\*)/.test(l))                       // comentários
-    .filter((l) => /estrutura/i.test(l))
-    // Projeção de `.select(...)` é leitura por definição.
-    .filter((l) => !/'[^']*equipamentos\.estrutura[^']*'/.test(l))
-    .filter((l) => /\$set|updateOne|updateMany|findOneAndUpdate/.test(l)
-      || /\bequipamentos\.estrutura\s*=/.test(l)
-      || (/estrutura:/.test(l) && !LEITURA_OU_VAZIO.test(depoisDeEstrutura(l))))
-  ok(escritasDeEstrutura.length === 0,
-    escritasDeEstrutura.length === 0
-      ? 'nenhuma ESCRITA de `estrutura` foi acrescentada ao controller'
-      : `escritas: ${escritasDeEstrutura.map((l) => l.trim()).join(' | ').slice(0, 140)}`)
+  /**
+   * F1.1 — a heurística anterior varria as LINHAS ADICIONADAS no diff e
+   * classificava cada uma como leitura ou escrita por texto. Varrer o arquivo
+   * inteiro com ela produz falso positivo: o controller legitimamente contém
+   * leituras (`o.equipamentos?.estrutura?.tipo`) e inicializadores de documento
+   * NOVO (`estrutura: {}`), que a heurística não distingue de escrita.
+   *
+   * A propriedade que realmente importa é mais estreita e verificável sem
+   * ambiguidade: ninguém ESCREVE `equipamentos.estrutura` por fora da etapa
+   * `equipamentos` — nem por `$set`, nem por atribuição direta.
+   */
+  const semQuebra = controller.replace(/\s+/g, ' ')
+  ok(!/\$set\s*:\s*\{[^}]*equipamentos\.estrutura/.test(semQuebra),
+    'nenhum `$set` escreve `equipamentos.estrutura`')
+  ok(!/\.equipamentos\.estrutura\s*=[^=]/.test(semQuebra),
+    'nenhuma atribuição direta a `equipamentos.estrutura`')
+  // A validação da estrutura acontece SÓ dentro da etapa `equipamentos`.
+  ok(/etapa === 'equipamentos' && dados\?\.estrutura !== undefined/.test(controller),
+    '`validarEstrutura` só roda sob a etapa `equipamentos`')
   // E a etapa `estrutura` continua não existindo — a escrita usa `equipamentos`.
   ok(!/'estrutura'/.test(controller), 'nenhuma etapa `estrutura` foi aberta')
 }
@@ -170,13 +182,14 @@ ok(!/\|\|\s*'Fibrocimento'/.test(semComentarios(PROPOSTA)),
   "o default 'Fibrocimento' não voltou")
 ok(/est\.tipo === 'Outro' && est\.descricao/.test(PROPOSTA),
   '"Outro" continua carregando a descrição livre (FV-UX-030)')
-let diffMemorial = ''
-try {
-  diffMemorial = execSync('git diff -- backend/src/services/memorialDescritivoService.js',
-    { cwd: RAIZ, encoding: 'utf8' })
-} catch { /* fora de repo */ }
-ok(!/^[-+].*estrutura\?\./m.test(diffMemorial),
-  'nenhuma linha que lê `estrutura` foi adicionada ou removida')
+// F1.1: era `git diff` da árvore, que fica vazio depois do commit — a asserção
+// passava por não ter o que comparar. O que importa se verifica por conteúdo:
+// o memorial LÊ a estrutura e não a escreve.
+ok(/estrutura\?\./.test(MEMORIAL), 'o memorial continua LENDO `estrutura`')
+// `const { estrutura = {} } = ...` é LEITURA com default de desestruturação,
+// não escrita. O que se proíbe é escrita em documento: `.estrutura = …` e `$set`.
+ok(!/\.estrutura\s*=[^=]|\$set[^\n]*estrutura/.test(MEMORIAL),
+  'e não escreve `estrutura` em documento algum')
 
 secao('4 · Nenhum preço, material ou catálogo entrou')
 for (const proibido of ['preco', 'precoUnitario', 'custo', 'valor_r', 'garantia',
@@ -212,7 +225,14 @@ const fluxo = ler(FLUXO)
 const ordem = [...fluxo.matchAll(/chave: '([a-z_]+)'/g)].map((m) => m[1])
 const i = (c) => ordem.indexOf(c)
 ok(i('estrutura') > i('equipamentos'), 'Estrutura vem depois de Equipamentos')
-ok(i('estrutura') < i('mppt'), 'Estrutura vem antes da Topologia MPPT')
+// Sprint A reordenou o grupo comercial: Equipamentos → Topologia → Estrutura →
+// Cotações. A asserção anterior (`estrutura` ANTES de `mppt`) fixava a ordem
+// que a sprint substitui — a Topologia descreve a composição, e a Estrutura
+// descreve como essa composição se fixa. O que a FV-UX-030 garante continua
+// verificado acima e abaixo: Estrutura depois de Equipamentos, antes do
+// Orçamento, e gravada em `equipamentos.estrutura`.
+ok(i('estrutura') > i('mppt'), 'Estrutura vem depois da Topologia')
+ok(i('dimensionamento') < i('equipamentos'), 'Dimensionamento vem ANTES de Equipamentos (Sprint A)')
 ok(i('estrutura') < i('orcamentos'), 'Estrutura vem antes do Orçamento')
 ok(ler('frontend/src/fv/rotas.jsx').includes('path="estrutura"'), 'rota registrada')
 
@@ -224,23 +244,54 @@ for (const proibido of ['calcular', 'dimensionar', 'validar', 'preco', 'total'])
 ok(telaCodigo.includes('Object.fromEntries(TECNOLOGIAS_INVERSOR)'),
   'os rótulos de tecnologia vêm de `TECNOLOGIAS_INVERSOR` — não foram redigitados')
 
-secao('9 · Motores, contrato e wizard legado intactos')
-if (git !== null) {
-  for (const arquivo of [
-    'backend/src/services/compatibilidadeEletricaService.js',
-    'packages/fv-shared/engenharia/engenhariaNormativa.js',
-    'backend/src/dominio/baseline/',
-    'backend/src/services/financeiro',
-    'frontend/src/components/fv/',
-    'frontend/src/components/fv/SeletorEstrutura.jsx',
-    // `propostaComercialService.js` saiu daqui na FV-UX-036 — ver a asserção de
-    // CONTEÚDO na seção 3, que substitui esta com garantia mais forte.
+secao('9 · A etapa Estrutura não invade motor, financeiro nem wizard')
+/**
+ * ── Por que esta seção mudou de mecanismo (F1.1) ────────────────────────────
+ * Ela afirmava "arquivo X não aparece modificado no `git status`". Isso só é
+ * verdade enquanto a sprint que escreveu a guarda está SEM COMMIT: a árvore
+ * acumula sprints, e qualquer trabalho posterior que toque num dos arquivos
+ * derruba a asserção sem que nada tenha regredido. Foi o que a F1 provocou ao
+ * alterar legitimamente `compatibilidadeEletricaService.js` e o wizard.
+ *
+ * A intenção — "a etapa Estrutura não faz engenharia elétrica, não precifica e
+ * não mexe no wizard legado" — continua válida e é verificável por CONTEÚDO, em
+ * qualquer ponto do histórico. É o que está abaixo, e é mais forte: uma guarda
+ * de `git status` só acusava a modificação; estas acusam o ACOPLAMENTO.
+ */
+{
+  const ESTRUTURA = semComentarios(ler('frontend/src/fv/estrutura.js'))
+
+  // A etapa não faz engenharia elétrica — nem importa, nem cita os motores.
+  for (const proibido of [
+    'engenharia/normativa', 'compatibilidadeEletrica', 'analisarCompatibilidade',
+    'correnteProjeto', 'coefParaFracao', 'calcularVocMaxString',
   ]) {
-    ok(!git.includes(arquivo), `intacto: ${arquivo}`)
+    ok(!ESTRUTURA.includes(proibido), `estrutura.js não conhece \`${proibido}\``)
   }
-  const alterados = git.split('\n').filter(Boolean).map((l) => l.slice(3).trim())
-  const novos = alterados.filter((a) => /migrat|migracao|seed-prod/i.test(a))
-  ok(novos.length === 0, novos.length === 0 ? 'nenhuma migração criada' : `migração: ${novos.join(', ')}`)
+
+  // E os motores não conhecem estrutura: o acoplamento não existe nos dois sentidos.
+  const SERVICO_EL = semComentarios(ler('backend/src/services/compatibilidadeEletricaService.js'))
+  const NORMATIVA_EL = semComentarios(ler('packages/fv-shared/engenharia/engenhariaNormativa.js'))
+  for (const [nome, fonte] of [['service elétrico', SERVICO_EL], ['normativa', NORMATIVA_EL]]) {
+    ok(!/from '[^']*estrutura/.test(fonte), `${nome} não importa estrutura`)
+    ok(!/Baseline|Orcamento/.test(fonte), `${nome} não conhece Baseline/Orçamento`)
+    ok(!/financeiro/i.test(fonte), `${nome} não conhece financeiro`)
+  }
+
+  // O wizard legado não conhece a etapa nova — ela nasceu na UX nova.
+  const WIZARD_LEGADO = semComentarios(ler('frontend/src/components/fv/ConfiguradorArranjoFV.jsx'))
+  ok(!/estrutura/i.test(WIZARD_LEGADO), 'o wizard legado não conhece a etapa Estrutura')
+
+  // Nenhuma migração de dados: a etapa grava em campo que já existia.
+  // F1.1: nenhum script de migração versionado menciona estrutura. Verificado
+  // por conteúdo — não por "apareceu no git status".
+  const MIGRACOES = execSync('git ls-files backend/scripts', { cwd: RAIZ, encoding: 'utf8' })
+    .split('\n').filter((a) => /migrat|migracao|seed-prod/i.test(a))
+  const citam = MIGRACOES.filter((a) => /equipamentos\.estrutura|estrutura:/i.test(ler(a)))
+  ok(citam.length === 0,
+    citam.length === 0
+      ? `nenhuma migração toca estrutura (${MIGRACOES.length} script(s) verificado(s))`
+      : `migração toca estrutura: ${citam.join(', ')}`)
 }
 
 // ═══ 10 · FV-DOM-039 — uma definição só ══════════════════════════════════

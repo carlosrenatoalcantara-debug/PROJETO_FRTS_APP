@@ -21,25 +21,42 @@
  * Puro: sem React, sem I/O.
  */
 
-/** Agregado que cada etapa consome. `null` = agregado ainda não implementado. */
+/**
+ * Agregado que cada etapa consome. `null` = agregado ainda não implementado.
+ *
+ * ── Reorganização (Sprint A) ────────────────────────────────────────────────
+ * A ordem passou a refletir o fluxo operacional: dimensionar ANTES de escolher
+ * equipamento. Antes, `equipamentos` e `estrutura` vinham antes de
+ * `dimensionamento`, e a tela pedia quantidade de módulos que o sistema ainda
+ * não havia calculado.
+ *
+ * `equipamentos` desceu para o grupo comercial e passou a ser o PAI de
+ * `mppt` (topologia), `estrutura` e `cotacao` — via `subDe`. São configurações
+ * da mesma composição, não etapas independentes do fluxo principal.
+ *
+ * Só agrupamento, ordem e navegação mudaram. Cada uma continua sendo a MESMA
+ * rota, com a mesma chave: nenhum link quebra e nenhum comportamento muda.
+ */
 export const ETAPAS_FLUXO = Object.freeze([
   { chave: 'projeto',       rotulo: 'Projeto',        grupo: 'origem',    agregado: 'ProjetoFV' },
+  // FV-UX-020: o dimensionamento é gravado em `ProjetoFV.dimensionamento` e
+  // calculado pelo motor existente no servidor. Sem agregado próprio.
+  // Sprint A: vem ANTES de Equipamentos — é ele que estabelece a potência
+  // mínima necessária e a quantidade mínima de módulos.
+  { chave: 'dimensionamento', rotulo: 'Dimensionamento', grupo: 'origem', agregado: 'ProjetoFV' },
+  { chave: 'beneficiarias', rotulo: 'Beneficiárias',  grupo: 'origem',    agregado: 'UnidadeBeneficiaria' },
   // FV-UX-019: a seleção de equipamentos vive no próprio ProjetoFV
   // (`equipamentos.paineis[]` / `equipamentos.inversor`) e referencia o
   // catálogo por `equipamento_id`. Não tem agregado próprio.
-  { chave: 'equipamentos',  rotulo: 'Equipamentos',   grupo: 'origem',    agregado: 'ProjetoFV' },
-  // FV-UX-030: a estrutura de fixação vive em `equipamentos.estrutura`, campo
-  // que já existia no schema. Vem depois de Equipamentos porque descreve como a
-  // composição recém-escolhida se fixa. Sem agregado próprio.
-  { chave: 'estrutura',     rotulo: 'Estrutura',      grupo: 'origem',    agregado: 'ProjetoFV' },
-  // FV-UX-020: o dimensionamento é gravado em `ProjetoFV.dimensionamento` e
-  // calculado pelo motor existente no servidor. Sem agregado próprio.
-  { chave: 'dimensionamento', rotulo: 'Dimensionamento', grupo: 'origem', agregado: 'ProjetoFV' },
+  { chave: 'equipamentos',  rotulo: 'Equipamentos',   grupo: 'comercial', agregado: 'ProjetoFV' },
   // FV-UX-026: topologia AUTORAL do projetista, gravada em
   // `engenharia_eletrica.arranjo.mppts[]`. Sem agregado proprio.
-  { chave: 'mppt', rotulo: 'Topologia MPPT', grupo: 'origem', agregado: 'ProjetoFV' },
-  { chave: 'beneficiarias', rotulo: 'Beneficiárias',  grupo: 'origem',    agregado: 'UnidadeBeneficiaria' },
-  { chave: 'cotacao',    rotulo: 'Cotação',           grupo: 'comercial', agregado: 'Cotacao' },
+  { chave: 'mppt', rotulo: 'Topologia', grupo: 'comercial', agregado: 'ProjetoFV', subDe: 'equipamentos' },
+  // FV-UX-030: a estrutura de fixação vive em `equipamentos.estrutura`, campo
+  // que já existia no schema. Descreve como a composição escolhida se fixa —
+  // por isso é configuração de Equipamentos, não etapa própria.
+  { chave: 'estrutura',     rotulo: 'Estrutura',      grupo: 'comercial', agregado: 'ProjetoFV', subDe: 'equipamentos' },
+  { chave: 'cotacao',    rotulo: 'Cotações / Opções', grupo: 'comercial', agregado: 'Cotacao',  subDe: 'equipamentos' },
   { chave: 'orcamentos', rotulo: 'Orçamentos',        grupo: 'comercial', agregado: 'Orcamento' },
   { chave: 'aprovacao',  rotulo: 'Aprovação',         grupo: 'comercial', agregado: 'Orcamento' },
   // FV-DOM-032: opções concorrentes da MESMA proposta. Cada opção é um
@@ -64,8 +81,8 @@ export const ETAPAS_FLUXO = Object.freeze([
 
 /** Macro-etapas, para a navegação não exibir 11 itens soltos. */
 export const GRUPOS_FLUXO = Object.freeze([
-  { chave: 'origem',    rotulo: 'Projeto',   descricao: 'Identificação e dados do cliente' },
-  { chave: 'comercial', rotulo: 'Comercial', descricao: 'Cotações, orçamentos e aprovação' },
+  { chave: 'origem',    rotulo: 'Projeto',   descricao: 'Conta de energia, dimensionamento e beneficiárias' },
+  { chave: 'comercial', rotulo: 'Comercial', descricao: 'Equipamentos, cotações, orçamentos e aprovação' },
   { chave: 'contrato',  rotulo: 'Contrato',  descricao: 'Baseline congelada e liberação' },
   { chave: 'execucao',  rotulo: 'Execução',  descricao: 'Engenharia, homologação e executivo' },
   { chave: 'entrega',   rotulo: 'Entrega',   descricao: 'Obra, as-built e comissionamento' },
@@ -77,6 +94,19 @@ export function etapaPorChave(chave) {
 
 export function etapasDoGrupo(grupo) {
   return ETAPAS_FLUXO.filter((e) => e.grupo === grupo)
+}
+
+/**
+ * Etapas de PRIMEIRO NÍVEL do grupo — as que a navegação lista diretamente.
+ * Uma sub-etapa (`subDe`) aparece aninhada sob o pai, não solta ao lado dele.
+ */
+export function etapasRaizDoGrupo(grupo) {
+  return ETAPAS_FLUXO.filter((e) => e.grupo === grupo && !e.subDe)
+}
+
+/** Sub-etapas de uma etapa pai, na ordem do fluxo. */
+export function subEtapasDe(chave) {
+  return ETAPAS_FLUXO.filter((e) => e.subDe === chave)
 }
 
 export function indiceDaEtapa(chave) {
