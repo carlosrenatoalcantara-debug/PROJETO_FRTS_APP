@@ -998,11 +998,37 @@ export const gerarUnifilarProjeto = async (req, res) => {
       console.warn('⚠️ unifilar: módulo do catálogo indisponível —', e.message)
     }
 
+    /**
+     * BUG-QA-02: o ENVELOPE dos inversores do projeto, para o portão poder
+     * confrontar o Voc calculado com o limite de entrada. Sem isto o desenho
+     * dependia só de `compatibilidade.compativel` persistido, e saía um diagrama
+     * de 1614 V numa entrada de 550 V.
+     *
+     * Mesmo padrão do módulo acima: best-effort e SEM `aplicarEscopo` (catálogo
+     * é global). Catálogo indisponível ⇒ mapa vazio ⇒ NÃO AVALIADO, nunca um
+     * limite inventado.
+     */
+    const inversoresCatalogo = {}
+    try {
+      const refs = [
+        projeto?.equipamentos?.inversor?.equipamento_id,
+        ...(projeto?.arranjos ?? []).flatMap((a) => (a?.inversores ?? []).map((i) => i?.equipamento_id)),
+      ].filter((r) => r && mongoose.Types.ObjectId.isValid(r))
+      if (refs.length > 0) {
+        const { Equipamento } = await import('../models/Equipamento.js')
+        const achados = await Equipamento.find({ _id: { $in: [...new Set(refs.map(String))] } }).lean()
+        for (const e of achados) inversoresCatalogo[String(e._id)] = e
+      }
+    } catch (e) {
+      console.warn('⚠️ unifilar: envelope dos inversores indisponível —', e.message)
+    }
+
     const { gerarUnifilarDoProjeto } = await import('../dominio/unifilar/index.js')
     const resultado = gerarUnifilarDoProjeto(projeto, {
       ativos,
       nomeCliente: projeto.clienteId?.nome ?? null,
       moduloCatalogo,
+      inversoresCatalogo,
     })
 
     res.json({

@@ -26,6 +26,9 @@
  * INV-58: nada aqui é persistido — é derivação pura de `projeto`.
  */
 import { montarModeloEletrico } from '@fortesolar/fv-shared/engenharia/normativa'
+// BUG-QA-02: leitura canônica do envelope do inversor, com os dialetos que o
+// dicionário já declara (`vpv_max` entre eles).
+import { valorCampo } from '@fortesolar/fv-shared/inversores/dicionario'
 import { arranjosCanonicos } from '../topologia/arranjosCanonicos.js'
 import { obterTopologiaProjeto } from '../topologia/obterTopologiaProjeto.js'
 import {
@@ -75,6 +78,26 @@ function inversorDoArranjo(bruto, canonico) {
 }
 
 /**
+ * Limite de tensão de entrada do inversor, pelo SSOT — BUG-QA-02.
+ *
+ * `valorCampo(esp, 'tensao_max_entrada')` resolve os DIALETOS que o dicionário
+ * de inversores já declara como alias do campo canônico — inclusive `vpv_max`,
+ * que é a chave dos registros legados do catálogo. Não é alias novo nem
+ * equivalência inventada aqui: é o mesmo caminho de leitura do resto do domínio.
+ *
+ * `null` quando não há vínculo de catálogo ou o campo não existe. Ausência é
+ * ausência: o portão trata como NÃO AVALIADO, nunca como teto arbitrado.
+ */
+function _limiteTensaoEntrada(brutoInversor, inversoresCatalogo) {
+  const ref = brutoInversor?.equipamento_id
+  if (!ref) return null
+  const eq = inversoresCatalogo?.[String(ref)]
+  if (!eq) return null
+  const v = _n(valorCampo(eq.especificacoes ?? {}, 'tensao_max_entrada'))
+  return v !== null && v > 0 ? v : null
+}
+
+/**
  * Topologia de DESENHO do arranjo: `micro` ou `string`.
  *
  * Ordem: o fato estrutural resolvido pelo adapter canônico; depois a
@@ -105,7 +128,8 @@ function topologiaDeDesenho(canonico, brutoInversor) {
  * }}
  */
 export function composicaoUnifilarDoProjeto(projeto, opts = {}) {
-  const { nomeCliente = null, moduloCatalogo = null, instalacao = null, catalogo = null } = opts
+  const { nomeCliente = null, moduloCatalogo = null, instalacao = null, catalogo = null,
+    inversoresCatalogo = {} } = opts
   const { entrada, proveniencia } = adaptarProjetoParaUnifilar(projeto, { nomeCliente, moduloCatalogo })
 
   const canonico = arranjosCanonicos(projeto, { instalacao, catalogo })
@@ -205,6 +229,9 @@ export function composicaoUnifilarDoProjeto(projeto, opts = {}) {
       arranjoMPPTs,
       dimensionamento,
       modeloEletrico,
+      // BUG-QA-02 · limite de entrada do inversor DESTE arranjo, lido do SSOT.
+      // `null` quando o catálogo não declara — e aí o portão não avalia.
+      limiteTensaoEntrada: _limiteTensaoEntrada(brutoInversor, inversoresCatalogo),
     }
   })
 

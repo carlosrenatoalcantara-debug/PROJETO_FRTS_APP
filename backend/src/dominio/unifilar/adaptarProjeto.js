@@ -30,6 +30,9 @@
 import { lerModulo } from '@fortesolar/fv-shared/modulos'
 // FV-UX-038 (D5): classificador ÚNICO da topologia (FV-DOM-031, decisão 4).
 import { classificarTopologiaInversor, TOPOLOGIA } from '@fortesolar/fv-shared/inversores/dicionario'
+// BUG-QA-01: as MESMAS funções que o frontend usa ao salvar a distribuição.
+// Reusar é o que garante que derivar aqui dê o valor que teria sido persistido.
+import { capacidadeDoMicro, distribuirEntreMicros } from '@fortesolar/fv-shared/engenharia/microinversores'
 
 /** Primeiro valor não-nulo, junto com o rótulo da fonte que o forneceu. */
 function primeiro(candidatos) {
@@ -89,6 +92,9 @@ export function microsDoArranjo(a) {
   const porId = new Map((a?.inversores ?? [])
     .map((i) => [String(i?.equipamento_id ?? i?.id), Number(i?.potencia_kw)]))
 
+  const umModelo = lista.length === 1
+  const modulosDoArranjo = _modulosDoArranjo(a)
+
   return lista.map((m) => {
     const p = porId.get(String(m?.equipamento_id))
     return {
@@ -98,10 +104,60 @@ export function microsDoArranjo(a) {
       quantidade: m?.quantidade ?? null,
       entradas_por_micro: m?.entradas_por_micro ?? null,
       modulos_por_entrada: m?.modulos_por_entrada ?? null,
-      distribuicao: Array.isArray(m?.distribuicao) ? m.distribuicao : [],
+      distribuicao: _distribuicaoDoModelo(m, { umModelo, modulosDoArranjo }),
       potencia_kw: Number.isFinite(p) ? p : null,
     }
   })
+}
+
+/** Módulos que a COMPOSIÇÃO do arranjo declara — a mesma fonte do memorial. */
+function _modulosDoArranjo(a) {
+  const decl = a?.dimensionamento?.n_modulos
+  const n = decl === null || decl === undefined || decl === '' ? null : Number(decl)
+  if (Number.isFinite(n) && n > 0) return n
+  const soma = (Array.isArray(a?.paineis) ? a.paineis : [])
+    .reduce((s, p) => s + (Number(p?.quantidade) || 0), 0)
+  return soma > 0 ? soma : null
+}
+
+/**
+ * `distribuicao[]` do modelo — e a derivação quando ela não foi persistida.
+ *
+ * ── O defeito que isto fecha (BUG-QA-01) ────────────────────────────────────
+ * `montarModeloMicro` conta módulos somando `distribuicao[]`. O frontend grava
+ * `distribuicao: distribuicaoDoBloco(b) ?? undefined`, então existe caminho
+ * real que persiste `micros[]` SEM ela. Quando isso acontecia, o unifilar saía
+ * desenhado declarando `0 módulos / 0 kWp` enquanto o memorial — que lê a
+ * composição — dizia `8 módulos / 4,4 kWp`. Dois anexos da mesma homologação
+ * descrevendo sistemas diferentes.
+ *
+ * ── Por que NÃO se deriva de quantidade × entradas × modulos_por_entrada ────
+ * Esse produto é a CAPACIDADE do bloco, não a ocupação. O schema é explícito:
+ * `distribuicao` são os "módulos em CADA micro, na ordem". Um micro de 4
+ * entradas pode levar 2 módulos. Usar a capacidade como contagem assumiria
+ * ocupação total — fabricação de dado, que é exatamente o que a regra proíbe.
+ *
+ * ── O que se deriva, e só quando é inequívoco ───────────────────────────────
+ * A contagem REAL de módulos do arranjo é da composição (`dimensionamento.
+ * n_modulos` / `paineis[].quantidade`) — a mesma fonte que o memorial usa. Com
+ * UM modelo de micro no arranjo, todos esses módulos são dele, e o rateio entre
+ * as unidades é `distribuirEntreMicros`, a função canônica do SSOT (a mesma que
+ * o frontend chama ao salvar). Não há escolha a fazer: o resultado é o que teria
+ * sido persistido.
+ *
+ * Com DOIS OU MAIS modelos, quanto cabe a cada um não está em lugar nenhum —
+ * aí não se deriva. Devolve `[]`, o motor declara a lacuna e o portão recusa o
+ * desenho (ver `integridade.js`). Melhor recusar que repartir por conta própria.
+ */
+function _distribuicaoDoModelo(m, { umModelo, modulosDoArranjo }) {
+  const persistida = Array.isArray(m?.distribuicao) ? m.distribuicao : []
+  if (persistida.length > 0) return persistida
+  if (!umModelo || modulosDoArranjo === null) return []
+  const capacidade = capacidadeDoMicro({
+    entradas: m?.entradas_por_micro,
+    modulos_por_entrada: m?.modulos_por_entrada,
+  })
+  return distribuirEntreMicros(modulosDoArranjo, m?.quantidade, capacidade) ?? []
 }
 
 /** Painel do arranjo principal, com os dados elétricos que o catálogo guarda. */

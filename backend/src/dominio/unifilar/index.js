@@ -23,12 +23,12 @@ import { gerarUnifilarMicroSVG } from '@fortesolar/fv-shared/engenharia/unifilar
 import { montarModeloMicro } from '@fortesolar/fv-shared/engenharia/microinversores'
 import { montarModeloEletrico } from '@fortesolar/fv-shared/engenharia/normativa'
 import { adaptarProjetoParaUnifilar, lacunasDaProveniencia } from './adaptarProjeto.js'
-import { avaliarIntegridade, avaliarIntegridadeArranjo, MOTIVOS_UNIFILAR } from './integridade.js'
+import { avaliarIntegridade, avaliarIntegridadeArranjo, avaliarVocContraInversor, modulosDosMicros, MOTIVOS_UNIFILAR } from './integridade.js'
 import { composicaoUnifilarDoProjeto, entradaDoArranjo, MODO, MOTIVO_COMPOSICAO } from './composicaoUnifilar.js'
 import { comporUnifilarMultiarranjo } from './composicaoSVG.js'
 
 export { adaptarProjetoParaUnifilar, lacunasDaProveniencia }
-export { avaliarIntegridade, avaliarIntegridadeArranjo, MOTIVOS_UNIFILAR }
+export { avaliarIntegridade, avaliarIntegridadeArranjo, avaliarVocContraInversor, modulosDosMicros, MOTIVOS_UNIFILAR }
 export { composicaoUnifilarDoProjeto, entradaDoArranjo, MODO, MOTIVO_COMPOSICAO }
 
 /**
@@ -57,8 +57,8 @@ function recusar(impedimento, proveniencia) {
  * @param {string} [opts.nomeCliente]
  * @returns {{ svg, origem, proveniencia, lacunas, modelo, especificacoes }}
  */
-export function gerarUnifilarDoProjeto(projeto, { ativos = [], nomeCliente = null, moduloCatalogo = null, instalacao = null, catalogo = null } = {}) {
-  const composicao = composicaoUnifilarDoProjeto(projeto, { nomeCliente, moduloCatalogo, instalacao, catalogo })
+export function gerarUnifilarDoProjeto(projeto, { ativos = [], nomeCliente = null, moduloCatalogo = null, instalacao = null, catalogo = null, inversoresCatalogo = {} } = {}) {
+  const composicao = composicaoUnifilarDoProjeto(projeto, { nomeCliente, moduloCatalogo, instalacao, catalogo, inversoresCatalogo })
   const { proveniencia } = composicao
 
   // ── Representabilidade — F14-6B ───────────────────────────────────────────
@@ -89,6 +89,15 @@ export function gerarUnifilarDoProjeto(projeto, { ativos = [], nomeCliente = nul
     // FV-DOM-031C: microinversor tem desenho e modelo PRÓPRIOS. A bifurcação é
     // aqui, no domínio, e não dentro dos motores.
     if (entrada.topologia === 'micro') return gerarUnifilarMicro(entrada, proveniencia)
+
+    // BUG-QA-02 · barreira elétrica própria, com o Voc que o motor calculou.
+    const voc = avaliarVocContraInversor({
+      vocMax: arranjo.modeloEletrico?.resumo?.vocMaxGlobal,
+      limite: arranjo.limiteTensaoEntrada,
+      inversor: entrada.inversor?.modelo ?? null,
+    })
+    if (voc) return recusar(voc, proveniencia)
+
     return gerarUnifilarString(entrada, ativos, proveniencia, arranjo.modeloEletrico)
   }
 
@@ -105,6 +114,17 @@ export function gerarUnifilarDoProjeto(projeto, { ativos = [], nomeCliente = nul
     // que é exatamente o defeito que esta sprint fecha.
     const impedimento = avaliarIntegridadeArranjo(projeto, entrada, canonico)
     if (impedimento) return recusar(impedimento, proveniencia)
+
+    // BUG-QA-02 · a mesma barreira, por arranjo.
+    if (entrada.topologia !== 'micro') {
+      const voc = avaliarVocContraInversor({
+        vocMax: arranjo.modeloEletrico?.resumo?.vocMaxGlobal,
+        limite: arranjo.limiteTensaoEntrada,
+        inversor: entrada.inversor?.modelo ?? null,
+        arranjo: arranjo.id,
+      })
+      if (voc) return recusar(voc, proveniencia)
+    }
 
     const r = entrada.topologia === 'micro'
       ? gerarUnifilarMicro(entrada, proveniencia)

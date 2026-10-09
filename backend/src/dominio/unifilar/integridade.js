@@ -44,6 +44,11 @@ export const MOTIVOS_UNIFILAR = Object.freeze({
   // F-02: topologia declarada e equipamento ausente — o caso em que o motor
   // desenhava com os próprios defaults (550 W / 5 kW) sem avisar ninguém.
   EQUIPAMENTO_AUSENTE:  'EQUIPAMENTO_AUSENTE',
+  // BUG-QA-01: micro com `micros[]` preenchido, mas sem como saber quantos
+  // módulos cada modelo leva. O desenho saía com 0 módulos / 0 kWp.
+  DISTRIBUICAO_MICRO_INDETERMINADA: 'DISTRIBUICAO_MICRO_INDETERMINADA',
+  // BUG-QA-02: Voc da string acima do limite de entrada do inversor.
+  VOC_ACIMA_DO_LIMITE:  'VOC_ACIMA_DO_LIMITE',
 })
 
 const num = (v) => {
@@ -59,6 +64,69 @@ const num = (v) => {
 export function modulosDaTopologia(arranjoMPPTs) {
   if (!Array.isArray(arranjoMPPTs)) return 0
   return arranjoMPPTs.reduce((s, m) => s + num(m.numStrings) * num(m.modulosPorString), 0)
+}
+
+/**
+ * Micro: a quantidade de módulos de cada modelo é conhecida? — BUG-QA-01.
+ *
+ * `montarModeloMicro` conta módulos somando `distribuicao[]`. Vazia, o desenho
+ * saía afirmando `0 módulos / 0 kWp` enquanto o memorial, que lê a composição,
+ * dizia a quantidade real. O adapter deriva a distribuição quando é inequívoco
+ * (um modelo só — ver `adaptarProjeto`); o que sobra aqui é o caso ambíguo, em
+ * que repartir entre modelos seria inventar. Recusa-se o desenho.
+ *
+ * @returns {null|{codigo,motivo,detalhe}} `null` quando todos os modelos sabem.
+ */
+export function modulosDosMicros(micros) {
+  const lista = Array.isArray(micros) ? micros : []
+  const semDistribuicao = lista.filter((m) => !(Array.isArray(m?.distribuicao) && m.distribuicao.length > 0))
+  if (semDistribuicao.length === 0) return null
+  return {
+    codigo: MOTIVOS_UNIFILAR.DISTRIBUICAO_MICRO_INDETERMINADA,
+    motivo: 'Não é possível saber quantos módulos cabem a cada modelo de microinversor. '
+      + 'Com mais de um modelo no arranjo, a repartição tem de ser declarada — o diagrama '
+      + 'representaria uma quantidade de módulos que o projeto não afirma.',
+    detalhe: {
+      campo: 'arranjos[].configuracao_eletrica.micros[].distribuicao',
+      modelos_sem_distribuicao: semDistribuicao.map((m) => m?.modelo ?? '—'),
+    },
+  }
+}
+
+/**
+ * Voc da string contra o limite de entrada do inversor — BUG-QA-02.
+ *
+ * O portão tinha quatro eixos (topologia ausente, equipamento ausente, veredito
+ * do validador, mais de um inversor) e NENHUM confrontava tensão com envelope.
+ * Bastava `compatibilidade.compativel === true` persistido — ou um catálogo sem
+ * o limite — para sair um diagrama de 1614 V numa entrada de 550 V.
+ *
+ * Esta é a barreira mínima, não uma segunda engenharia: `vocMax` é o número que
+ * o próprio `montarModeloEletrico` calculou, e `limite` vem do SSOT do catálogo
+ * (`tensao_max_entrada`, cujos dialetos — inclusive `vpv_max` — o dicionário de
+ * inversores já declara como alias). Nada é recalculado aqui.
+ *
+ * Limite ausente ⇒ `null`: NÃO AVALIADO. Inventar um teto seria o mesmo tipo de
+ * fabricação que esta função existe para impedir.
+ *
+ * @returns {null|{codigo,motivo,detalhe}} `null` quando permitido ou não avaliável.
+ */
+export function avaliarVocContraInversor({ vocMax, limite, inversor = null, arranjo = null } = {}) {
+  const v = Number(vocMax)
+  const lim = Number(limite)
+  if (!Number.isFinite(v) || !Number.isFinite(lim) || lim <= 0) return null
+  if (v <= lim) return null
+  return {
+    codigo: MOTIVOS_UNIFILAR.VOC_ACIMA_DO_LIMITE,
+    motivo: `A tensão de circuito aberto no frio chega a ${v} V e o inversor aceita no máximo ${lim} V. `
+      + 'O diagrama representaria uma ligação que o equipamento não suporta.',
+    detalhe: {
+      voc_max_v: v,
+      tensao_max_entrada_v: lim,
+      inversor: inversor ?? null,
+      ...(arranjo ? { arranjo_id: arranjo } : {}),
+    },
+  }
 }
 
 /**
@@ -83,6 +151,12 @@ export function avaliarIntegridade(projeto, entrada, { instalacao = null, catalo
         ? 'arranjos[].configuracao_eletrica.micros'
         : 'engenharia_eletrica.arranjo.mppts' },
     }
+  }
+
+  // ── 1a · Micro sem distribuição determinável — BUG-QA-01 ──────────────────
+  if (micro) {
+    const semDist = modulosDosMicros(entrada.micros)
+    if (semDist) return semDist
   }
 
   // ── 1b · Equipamento ausente — F-02 ───────────────────────────────────────
@@ -198,6 +272,12 @@ export function avaliarIntegridadeArranjo(projeto, entrada, arranjo) {
       detalhe: { arranjo_id: arranjo?.id ?? null, campo: 'arranjos[].configuracao_eletrica',
         chave: micro ? 'micros' : 'mppts' },
     }
+  }
+
+  // BUG-QA-01 · mesma regra por arranjo.
+  if (micro) {
+    const semDist = modulosDosMicros(entrada.micros)
+    if (semDist) return { ...semDist, detalhe: { ...semDist.detalhe, arranjo_id: arranjo?.id ?? null } }
   }
 
   if (!micro) {
