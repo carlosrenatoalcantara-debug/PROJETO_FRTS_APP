@@ -2,6 +2,9 @@ import { PDFParse } from 'pdf-parse'
 import { obterIrradianciaCity, obterIrradianciaFallback } from '../data/irradianciaRN.js'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { gerarComFallback, ehErroDeModelo, ehErroDeCapacidade } from '../ai/geminiModelos.js'
+import Anthropic from '@anthropic-ai/sdk'
+import { getAnthropicKey } from '../ai/aiKeys.js'
+import { CLAUDE_MODELO_PADRAO } from '../ai/adapters/claudeAdapter.js'
 
 // ─── Gemini Vision para imagens de fatura ────────────────────────────────────
 // Chave pode vir do env (Railway) ou do header X-Gemini-Key (enviado pelo frontend via localStorage)
@@ -57,18 +60,45 @@ async function extrairComGeminiVision(buffer, mimeType, apiKeyFromHeader) {
   const { result, modelo } = await gerarComFallback(genAI, [PROMPT_FATURA, imagePart], {
     generationConfig: { responseMimeType: 'application/json', temperature: 0 },
   })
-  const text = result.response.text().trim()
   console.log(`🖼️ Fatura extraída com ${modelo}`)
+  return parseJsonIA(result.response.text(), 'Gemini')
+}
 
-  // Remove markdown se presente; isola o objeto JSON caso venha texto ao redor
-  const semMarkdown = text.replace(/^```(?:json)?\s*/i, '').replace(/```$/i, '').trim()
+// ─── Claude Vision: fallback quando o Gemini falha (sobrecarga, cota, modelo) ──
+const MIMES_CLAUDE = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+
+async function extrairComClaudeVision(buffer, mimeType) {
+  const key = getAnthropicKey()
+  if (!key) throw new Error('ANTHROPIC_API_KEY não configurada')
+  if (!MIMES_CLAUDE.includes(mimeType)) throw new Error(`Formato ${mimeType} não suportado pelo Claude`)
+
+  const client = new Anthropic({ apiKey: key, timeout: 60000 })
+  const msg = await client.messages.create({
+    model: CLAUDE_MODELO_PADRAO,
+    max_tokens: 2048,
+    messages: [{
+      role: 'user',
+      content: [
+        { type: 'image', source: { type: 'base64', media_type: mimeType, data: buffer.toString('base64') } },
+        { type: 'text', text: PROMPT_FATURA },
+      ],
+    }],
+  })
+  const text = (msg.content || []).filter(b => b.type === 'text').map(b => b.text).join('')
+  console.log(`🖼️ Fatura extraída com ${CLAUDE_MODELO_PADRAO}`)
+  return parseJsonIA(text, 'Claude')
+}
+
+// Remove markdown se presente; isola o objeto JSON caso venha texto ao redor
+function parseJsonIA(texto, provedor) {
+  const semMarkdown = String(texto || '').trim().replace(/^```(?:json)?\s*/i, '').replace(/```$/i, '').trim()
   const ini = semMarkdown.indexOf('{')
   const fim = semMarkdown.lastIndexOf('}')
   const jsonStr = ini >= 0 && fim > ini ? semMarkdown.slice(ini, fim + 1) : semMarkdown
   try {
     return JSON.parse(jsonStr)
   } catch {
-    throw new Error('Resposta do Gemini não é JSON válido')
+    throw new Error(`Resposta do ${provedor} não é JSON válido`)
   }
 }
 
@@ -102,7 +132,21 @@ export async function extrairDadosFatura(req, res) {
       try {
         const imgMime = mimeType.startsWith('image/') ? mimeType : 'image/jpeg'
         const apiKeyFromHeader = req.headers['x-gemini-key'] || null
-        const dadosGemini = await extrairComGeminiVision(req.file.buffer, imgMime, apiKeyFromHeader)
+        let dadosGemini
+        let metodo = 'gemini_vision'
+        try {
+          dadosGemini = await extrairComGeminiVision(req.file.buffer, imgMime, apiKeyFromHeader)
+        } catch (errGemini) {
+          if (!getAnthropicKey()) throw errGemini
+          console.warn('⚠️ Gemini falhou, tentando Claude Vision:', errGemini.message)
+          try {
+            dadosGemini = await extrairComClaudeVision(req.file.buffer, imgMime)
+            metodo = 'claude_vision'
+          } catch (errClaude) {
+            console.warn('⚠️ Claude Vision falhou:', errClaude.message)
+            throw errGemini // erro primário é o que orienta o usuário
+          }
+        }
 
         // Complementar com dados calculados a partir do que Gemini extraiu
         const { fase, tensao } = extrairFaseETensao(dadosGemini.tipoLigacao)
@@ -141,7 +185,7 @@ export async function extrairDadosFatura(req, res) {
           periodoMeses: historico.length || null,
           valorR: dadosGemini.valorR || null,
           // Metadados da extração
-          _metodo: 'gemini_vision',
+          _metodo: metodo,
           _extraidoEm: new Date().toISOString(),
         })
       } catch (geminiErr) {
