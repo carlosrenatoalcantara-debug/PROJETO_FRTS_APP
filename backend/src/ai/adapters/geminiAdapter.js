@@ -7,13 +7,15 @@
 
 import { BaseAdapter } from './baseAdapter.js'
 import { getGoogleKey } from '../aiKeys.js'
+import { modelosGemini, gerarComFallback } from '../geminiModelos.js'
 
 // P0-AI-RUNTIME-CLOSE: alinhado ao modelo REAL da extração
 // (datasheetGeminiUnificado.js → 'gemini-2.0-flash'). Antes o health pingava
 // 'gemini-1.5-flash' (modelo diferente) → /api/ai/health podia reportar Gemini
 // ONLINE enquanto a extração de produção falhava no 2.0-flash. Health passa a
 // refletir o mesmo modelo usado na extração.
-export const GEMINI_MODELO_PADRAO = 'gemini-2.0-flash'
+// Atualização: modelo vem de ai/geminiModelos.js (2.0-flash aposentado em 2026-10).
+export const GEMINI_MODELO_PADRAO = modelosGemini()[0]
 
 export class GeminiAdapter extends BaseAdapter {
   /**
@@ -44,9 +46,8 @@ export class GeminiAdapter extends BaseAdapter {
     try {
       const { GoogleGenerativeAI } = await import('@google/generative-ai')
       const genAI = new GoogleGenerativeAI(key)
-      const model = genAI.getGenerativeModel({ model: this.modelo })
-      const r = await model.generateContent('ping')
-      return { ok: true, latenciaMs: Date.now() - inicio, modelo: this.modelo, resposta: r?.response?.text?.() ?? '' }
+      const { result: r, modelo } = await gerarComFallback(genAI, 'ping')
+      return { ok: true, latenciaMs: Date.now() - inicio, modelo, resposta: r?.response?.text?.() ?? '' }
     } catch (err) {
       return { ok: false, latenciaMs: Date.now() - inicio, motivo: err?.message || 'erro desconhecido' }
     }

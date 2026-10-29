@@ -6,6 +6,7 @@ import { Equipamento } from '../models/Equipamento.js'
 import { gerarResumoPadraoStrings } from '../utils/otimizadorStrings.js'
 import * as SVG from '../utils/simbolosUnifilar.js'
 import { GoogleGenerativeAI } from '@google/generative-ai'
+import { gerarComFallback } from '../ai/geminiModelos.js'
 import { adicionarExemploTreinamento } from '../config/trainingDataCollector.js'
 
 // Wrapper function to make PDFParse easier to use
@@ -32,7 +33,6 @@ const extrairPareceComGemini = async (bufferPDF) => {
   }
 
   const client = new GoogleGenerativeAI(apiKey)
-  const model = client.getGenerativeModel({ model: 'gemini-2.0-flash' })
 
   // Convert PDF to base64
   const base64PDF = bufferPDF.toString('base64')
@@ -108,7 +108,7 @@ Agora analise ESTE DOCUMENTO e extraia RIGOROSAMENTE:
 =========================================`
 
   try {
-    const response = await model.generateContent([
+    const { result: response } = await gerarComFallback(client, [
       {
         inlineData: {
           mimeType: 'application/pdf',

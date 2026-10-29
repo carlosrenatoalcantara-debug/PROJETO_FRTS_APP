@@ -1,6 +1,7 @@
 import { PDFParse } from 'pdf-parse'
 import { obterIrradianciaCity, obterIrradianciaFallback } from '../data/irradianciaRN.js'
 import { GoogleGenerativeAI } from '@google/generative-ai'
+import { gerarComFallback, ehErroDeModelo } from '../ai/geminiModelos.js'
 
 // ─── Gemini Vision para imagens de fatura ────────────────────────────────────
 // Chave pode vir do env (Railway) ou do header X-Gemini-Key (enviado pelo frontend via localStorage)
@@ -45,7 +46,6 @@ async function extrairComGeminiVision(buffer, mimeType, apiKeyFromHeader) {
   }
 
   const genAI = new GoogleGenerativeAI(GEMINI_API_KEY)
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' })
 
   const imagePart = {
     inlineData: {
@@ -54,12 +54,22 @@ async function extrairComGeminiVision(buffer, mimeType, apiKeyFromHeader) {
     },
   }
 
-  const result = await model.generateContent([PROMPT_FATURA, imagePart])
+  const { result, modelo } = await gerarComFallback(genAI, [PROMPT_FATURA, imagePart], {
+    generationConfig: { responseMimeType: 'application/json', temperature: 0 },
+  })
   const text = result.response.text().trim()
+  console.log(`🖼️ Fatura extraída com ${modelo}`)
 
-  // Remove markdown se presente
-  const jsonStr = text.replace(/^```json\s*/i, '').replace(/```$/i, '').trim()
-  return JSON.parse(jsonStr)
+  // Remove markdown se presente; isola o objeto JSON caso venha texto ao redor
+  const semMarkdown = text.replace(/^```(?:json)?\s*/i, '').replace(/```$/i, '').trim()
+  const ini = semMarkdown.indexOf('{')
+  const fim = semMarkdown.lastIndexOf('}')
+  const jsonStr = ini >= 0 && fim > ini ? semMarkdown.slice(ini, fim + 1) : semMarkdown
+  try {
+    return JSON.parse(jsonStr)
+  } catch {
+    throw new Error('Resposta do Gemini não é JSON válido')
+  }
 }
 
 // Endpoint de debug: retorna o texto bruto do PDF linha por linha
@@ -135,12 +145,14 @@ export async function extrairDadosFatura(req, res) {
           _extraidoEm: new Date().toISOString(),
         })
       } catch (geminiErr) {
-        console.warn('⚠️ Gemini Vision falhou:', geminiErr.message)
-        return res.status(422).json({
-          erro: geminiErr.message.includes('GOOGLE_API_KEY')
-            ? geminiErr.message
-            : 'Não foi possível extrair dados da imagem. Tente um PDF ou preencha manualmente.',
-        })
+        const msg = String(geminiErr?.message || '')
+        console.warn('⚠️ Gemini Vision falhou:', msg)
+        let erro = 'Não foi possível extrair dados da imagem. Tente um PDF ou preencha manualmente.'
+        if (/Chave Gemini/i.test(msg)) erro = msg
+        else if (/API key not valid|API_KEY_INVALID|PERMISSION_DENIED|\b403\b/i.test(msg)) erro = 'Chave Gemini inválida ou sem permissão. Verifique GOOGLE_API_KEY.'
+        else if (/\b429\b|quota|RESOURCE_EXHAUSTED/i.test(msg)) erro = 'Cota da IA (Gemini) esgotada. Tente novamente em alguns minutos.'
+        else if (ehErroDeModelo(msg)) erro = 'Modelo de IA indisponível no momento. Configure GEMINI_MODEL no servidor.'
+        return res.status(422).json({ erro })
       }
     }
 

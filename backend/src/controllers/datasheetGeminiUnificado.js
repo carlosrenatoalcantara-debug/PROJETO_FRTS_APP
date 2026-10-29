@@ -1,4 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai'
+import { modelosGemini } from '../ai/geminiModelos.js'
 import fs from 'fs'
 import path from 'path'
 
@@ -40,7 +41,8 @@ const client = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY)
 // fallback automático ao próximo. gemini-1.5-flash é GA e o mais disponível.
 // Erros de credencial (403/PERMISSION) NÃO disparam fallback — propagam para a
 // cascata do orchestrator tratar com honestidade.
-const MODELOS_GEMINI = ['gemini-2.0-flash', 'gemini-1.5-flash']
+// Lista vem de ai/geminiModelos.js (fonte única; 2.0/1.5-flash foram aposentados).
+const MODELOS_GEMINI = modelosGemini()
 
 // ═══════════════════════════════════════════════════════════════════════════
 // PROMPT UNIFICADO - Otimizado para todos os tipos de documentos

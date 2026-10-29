@@ -6,6 +6,7 @@ import mongoose from 'mongoose'
 import { memoryStore } from '../config/memoryStorage.js'
 import Anthropic from '@anthropic-ai/sdk'
 import { GoogleGenerativeAI } from '@google/generative-ai'
+import { gerarComFallback } from '../ai/geminiModelos.js'
 // CAT-P0-UNIFY: normalização de tipo + feature flags
 import { normalizarTipo, ehCarregadorEV } from '../utils/catalogo/tipoEquipamento.js'
 import { catalogoFlags } from '../config/catalogoFlags.js'
@@ -515,7 +516,6 @@ const analisarImagemComGemini = async (imagemBase64, contexto = 'Analise esta im
     }
 
     const genAI = new GoogleGenerativeAI(apiKey)
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' })
 
     const prompt = `${contexto}
 
@@ -541,7 +541,7 @@ Responda APENAS com o JSON, sem markdown ou explicações.`
     // Converter base64 para buffer
     const imageBuffer = Buffer.from(imagemBase64, 'base64')
 
-    const result = await model.generateContent([
+    const { result } = await gerarComFallback(genAI, [
       {
         inlineData: {
           data: imagemBase64,
