@@ -152,7 +152,7 @@ export async function extrairDadosFatura(req, res) {
         else if (/API key not valid|API_KEY_INVALID|PERMISSION_DENIED|\b403\b/i.test(msg)) erro = 'Chave Gemini inválida ou sem permissão. Verifique GOOGLE_API_KEY.'
         else if (/\b429\b|quota|RESOURCE_EXHAUSTED/i.test(msg)) erro = 'Cota da IA (Gemini) esgotada. Tente novamente em alguns minutos.'
         else if (ehErroDeModelo(msg)) erro = 'Modelo de IA indisponível no momento. Configure GEMINI_MODEL no servidor.'
-        return res.status(422).json({ erro })
+        return res.status(422).json({ erro, detalhe: msg.slice(0, 300) })
       }
     }
 
