@@ -133,6 +133,107 @@ export function comCredencial(input, init) {
   return { ...(init || {}), headers }
 }
 
+// ─── Renovação do access token ───────────────────────────────────────────────
+//
+// O access token vale 15 minutos e o refresh token vale 7 dias. Sem renovar, o
+// usuário era expulso a cada 15 minutos mesmo com sessão válida. A renovação
+// acontece aqui, no mesmo ponto único por onde toda chamada já passa.
+
+/** Promessa de renovação em curso — várias chamadas em 401 compartilham uma só. */
+let renovacaoEmCurso = null
+
+/** Lê o refresh token guardado no login. */
+function obterRefreshToken() {
+  try {
+    return localStorage.getItem('refreshToken') || null
+  } catch {
+    return null
+  }
+}
+
+/** Apaga as credenciais: a sessão acabou de verdade. */
+function limparSessao() {
+  try {
+    localStorage.removeItem('accessToken')
+    localStorage.removeItem('token')
+    localStorage.removeItem('refreshToken')
+  } catch { /* localStorage indisponível */ }
+}
+
+/**
+ * Troca o refresh token por um access token novo. Devolve o token novo, ou null
+ * quando não há refresh token ou o backend o recusa (aí a sessão acabou mesmo).
+ *
+ * @returns {Promise<string|null>}
+ */
+export function renovarAccessToken() {
+  if (renovacaoEmCurso) return renovacaoEmCurso
+
+  renovacaoEmCurso = (async () => {
+    const refreshToken = obterRefreshToken()
+    if (!refreshToken) return null
+
+    const alvo = fetchOriginal || globalThis.fetch
+    try {
+      const res = await alvo.call(globalThis, '/api/auth/refresh', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refreshToken }),
+      })
+      if (!res.ok) {
+        limparSessao()
+        return null
+      }
+      const corpo = await res.json().catch(() => null)
+      const novo = corpo?.accessToken || null
+      if (!novo) {
+        limparSessao()
+        return null
+      }
+      try { localStorage.setItem('accessToken', novo) } catch { /* idem */ }
+      return novo
+    } catch {
+      // Falha de rede não é sessão expirada — não apaga nada.
+      return null
+    } finally {
+      renovacaoEmCurso = null
+    }
+  })()
+
+  return renovacaoEmCurso
+}
+
+/** A requisição pode ser repetida? Um body já consumido não pode. */
+function podeRepetir(input, init) {
+  if (input instanceof Request) return false
+  const body = init?.body
+  if (!body) return true
+  // ReadableStream e Blob em streaming não sobrevivem a um segundo envio.
+  return typeof body === 'string' || body instanceof URLSearchParams || body instanceof FormData
+}
+
+/**
+ * Executa a requisição e, num 401 de rota protegida desta API, renova o token
+ * uma única vez e repete. Qualquer outro desfecho passa intacto.
+ */
+async function enviarComRenovacao(input, init) {
+  const alvo = fetchOriginal || globalThis.fetch
+  const res = await alvo.call(globalThis, input, comCredencial(input, init))
+
+  if (res.status !== 401) return res
+
+  const url = urlDoInput(input)
+  if (!ehApiDaAplicacao(url) || ehCaminhoPublico(url)) return res
+  if (url.includes('/api/auth/refresh')) return res
+  if (!podeRepetir(input, init)) return res
+  if (!obterToken()) return res
+
+  const novo = await renovarAccessToken()
+  if (!novo) return res
+
+  return alvo.call(globalThis, input, comCredencial(input, init))
+}
+
 /**
  * Ponto de entrada HTTP da aplicação. Assinatura e retorno idênticos a `fetch`
  * — devolve `Response`, sem alterar o comportamento de quem consome.
@@ -142,8 +243,7 @@ export function comCredencial(input, init) {
  * @returns {Promise<Response>}
  */
 export function apiFetch(input, init) {
-  const alvo = fetchOriginal || globalThis.fetch
-  return alvo.call(globalThis, input, comCredencial(input, init))
+  return enviarComRenovacao(input, init)
 }
 
 /**
@@ -204,7 +304,7 @@ export function instalarInterceptorHttp() {
   // A invocação usa `.call(globalThis, …)` — fetch destacado do contexto
   // global lança "Illegal invocation" no navegador.
   fetchOriginal = globalThis.fetch
-  const interceptado = (input, init) => fetchOriginal.call(globalThis, input, comCredencial(input, init))
+  const interceptado = (input, init) => enviarComRenovacao(input, init)
   interceptado.__forteSolarInterceptor = true
   globalThis.fetch = interceptado
   return true

@@ -24,6 +24,15 @@ const FROM  = process.env.MAIL_FROM || process.env.SMTP_FROM || null
 
 const TIMEOUT_MS = 15000
 
+/**
+ * O console do Zoho exibe o token já com o prefixo `Zoho-enczapikey `. Aceitar as
+ * duas formas evita um 401 cuja única causa é a colagem ter vindo com o prefixo.
+ */
+function cabecalhoAutorizacao() {
+  const t = String(TOKEN || '').trim()
+  return /^Zoho-enczapikey\s/i.test(t) ? t : `Zoho-enczapikey ${t}`
+}
+
 export function smtpConfigurado() {
   return !!(TOKEN && FROM)
 }
@@ -43,7 +52,7 @@ async function chamarApi(payload) {
     const r = await fetch(API, {
       method: 'POST',
       headers: {
-        Authorization: `Zoho-enczapikey ${TOKEN}`,
+        Authorization: cabecalhoAutorizacao(),
         'Content-Type': 'application/json',
         Accept: 'application/json',
       },
