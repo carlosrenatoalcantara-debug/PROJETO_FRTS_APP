@@ -33,6 +33,12 @@ function getTransporter() {
       port: PORT,
       secure: PORT === 465,   // SSL direto na 465 (premissa Zoho)
       auth: { user: USER, pass: PASS },
+      // O egress do Railway prefere IPv6; o Zoho não atende por AAAA e a conexão
+      // fica pendurada até o timeout padrão (2 min), derrubando a request com 502.
+      family: 4,
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 15000,
     })
   }
   return _transporter
