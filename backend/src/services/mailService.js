@@ -31,7 +31,8 @@ function getTransporter() {
     _transporter = nodemailer.createTransport({
       host: HOST,
       port: PORT,
-      secure: PORT === 465,   // SSL direto na 465 (premissa Zoho)
+      secure: PORT === 465,   // SSL direto na 465; 587 sobe por STARTTLS
+      requireTLS: PORT !== 465,  // na 587 a sessão só segue se o STARTTLS fechar
       auth: { user: USER, pass: PASS },
       // O egress do Railway prefere IPv6; o Zoho não atende por AAAA e a conexão
       // fica pendurada até o timeout padrão (2 min), derrubando a request com 502.
