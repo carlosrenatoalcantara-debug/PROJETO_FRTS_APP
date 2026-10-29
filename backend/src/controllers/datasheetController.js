@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk'
+import { CLAUDE_MODELO_PADRAO } from '../ai/adapters/claudeAdapter.js'
 import { PDFParse } from 'pdf-parse'
 import { DatasheetCache } from '../models/DatasheetCache.js'
 import { Equipamento } from '../models/Equipamento.js'
@@ -186,7 +187,7 @@ export async function extrairComClaude(pdfBuffer, exemplosCache = []) {
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
   const message = await client.messages.create({
-    model: 'claude-3-5-sonnet-20241022',
+    model: CLAUDE_MODELO_PADRAO,
     max_tokens: 4096,
     messages: [{
       role: 'user',
@@ -714,7 +715,7 @@ export async function diagnosticoIA(req, res) {
     const msg = await client.messages.create({
       // AI-ARCH-01 (FASE 9): mesmo modelo do fluxo de produção, para o teste de
       // chave ser representativo (antes usava um modelo diferente).
-      model: 'claude-3-5-sonnet-20241022',
+      model: CLAUDE_MODELO_PADRAO,
       max_tokens: 16,
       messages: [{ role: 'user', content: 'responda só: ok' }],
     })

@@ -8,7 +8,8 @@
 import { BaseAdapter } from './baseAdapter.js'
 import { getAnthropicKey } from '../aiKeys.js'
 
-export const CLAUDE_MODELO_PADRAO = 'claude-3-5-sonnet-20241022'
+// claude-3-5-sonnet-20241022 foi aposentado; CLAUDE_MODEL (env Railway) sobrescreve sem deploy.
+export const CLAUDE_MODELO_PADRAO = String(process.env.CLAUDE_MODEL || '').trim() || 'claude-sonnet-5-5'
 
 export class ClaudeAdapter extends BaseAdapter {
   /**

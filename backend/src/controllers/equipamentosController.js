@@ -5,6 +5,7 @@ import multer from 'multer'
 import mongoose from 'mongoose'
 import { memoryStore } from '../config/memoryStorage.js'
 import Anthropic from '@anthropic-ai/sdk'
+import { CLAUDE_MODELO_PADRAO } from '../ai/adapters/claudeAdapter.js'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { gerarComFallback } from '../ai/geminiModelos.js'
 // CAT-P0-UNIFY: normalização de tipo + feature flags
@@ -434,7 +435,7 @@ const analisarImagemComClaude = async (imagemBase64, contexto = 'Analise esta im
     const client = new Anthropic()
 
     const message = await client.messages.create({
-      model: 'claude-3-5-sonnet-20241022',
+      model: CLAUDE_MODELO_PADRAO,
       max_tokens: 1024,
       messages: [
         {
