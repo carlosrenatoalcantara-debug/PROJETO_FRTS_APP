@@ -5,13 +5,14 @@
  * em 2026-10) e cada controller tinha o nome hardcoded, quebrando OCR de fatura,
  * datasheets e parecer ao mesmo tempo, com erro genérico na UI.
  *
- * Ordem: GEMINI_MODEL (env Railway, override sem deploy) → alias rolante
- * 'gemini-flash-latest' → modelos fixados conhecidos. Erro de MODELO
+ * Ordem: GEMINI_MODEL (env Railway, override sem deploy) → MODELOS_FIXOS. Erro de MODELO
  * (404/aposentado) ou de CAPACIDADE (503/timeout) cai para o próximo;
  * erro de chave/cota propaga.
  */
 
-const MODELOS_FIXOS = ['gemini-flash-latest', 'gemini-3.8-flash', 'gemini-2.5-flash']
+// 2.5-flash primeiro: em 2026-10-29 foi o único a responder (flash-latest 503,
+// 3.8-flash estourando timeout → ping de 90s).
+const MODELOS_FIXOS = ['gemini-2.5-flash', 'gemini-flash-latest', 'gemini-3.8-flash']
 
 export function modelosGemini() {
   const override = String(process.env.GEMINI_MODEL || '').trim()
@@ -29,7 +30,7 @@ export function ehErroDeCapacidade(err) {
   return /\b503\b|\b500\b|high demand|overloaded|unavailable|timed? ?out|aborted/i.test(msg)
 }
 
-const TIMEOUT_MS = 45000
+const TIMEOUT_MS = 30000
 
 /**
  * Executa generateContent tentando cada modelo em ordem.
