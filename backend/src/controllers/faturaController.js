@@ -1,7 +1,7 @@
 import { PDFParse } from 'pdf-parse'
 import { obterIrradianciaCity, obterIrradianciaFallback } from '../data/irradianciaRN.js'
 import { GoogleGenerativeAI } from '@google/generative-ai'
-import { gerarComFallback, ehErroDeModelo } from '../ai/geminiModelos.js'
+import { gerarComFallback, ehErroDeModelo, ehErroDeCapacidade } from '../ai/geminiModelos.js'
 
 // ─── Gemini Vision para imagens de fatura ────────────────────────────────────
 // Chave pode vir do env (Railway) ou do header X-Gemini-Key (enviado pelo frontend via localStorage)
@@ -151,6 +151,7 @@ export async function extrairDadosFatura(req, res) {
         if (/Chave Gemini/i.test(msg)) erro = msg
         else if (/API key not valid|API_KEY_INVALID|PERMISSION_DENIED|\b403\b/i.test(msg)) erro = 'Chave Gemini inválida ou sem permissão. Verifique GOOGLE_API_KEY.'
         else if (/\b429\b|quota|RESOURCE_EXHAUSTED/i.test(msg)) erro = 'Cota da IA (Gemini) esgotada. Tente novamente em alguns minutos.'
+        else if (ehErroDeCapacidade(msg)) erro = 'IA (Gemini) sobrecarregada no momento. Tente novamente em instantes.'
         else if (ehErroDeModelo(msg)) erro = 'Modelo de IA indisponível no momento. Configure GEMINI_MODEL no servidor.'
         return res.status(422).json({ erro, detalhe: msg.slice(0, 300) })
       }
