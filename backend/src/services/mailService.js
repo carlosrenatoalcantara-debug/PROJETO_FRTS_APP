@@ -44,12 +44,25 @@ function parseRemetente(valor) {
   return { address: String(valor || '').trim() }
 }
 
+/**
+ * Hosts conhecidos da API. O console mudou de `api.zeptomail.com` para
+ * `cpaas.zoho.com` e contas antigas seguem atendidas pelo endereço antigo; um
+ * token válido no host errado devolve 401, igual a um token inválido. O envio
+ * usa `API`; só o diagnóstico percorre a lista para distinguir os dois casos.
+ */
+const HOSTS_CONHECIDOS = [
+  'https://cpaas.zoho.com/v1.1/email',
+  'https://api.zeptomail.com/v1.1/email',
+  'https://api.zeptomail.eu/v1.1/email',
+  'https://api.zeptomail.in/v1.1/email',
+]
+
 /** POST autenticado no ZeptoMail, com timeout. Devolve { status, corpo }. */
-async function chamarApi(payload) {
+async function chamarApi(payload, endpoint = API) {
   const ac = new AbortController()
   const t = setTimeout(() => ac.abort(), TIMEOUT_MS)
   try {
-    const r = await fetch(API, {
+    const r = await fetch(endpoint, {
       method: 'POST',
       headers: {
         Authorization: cabecalhoAutorizacao(),
@@ -79,13 +92,41 @@ async function chamarApi(payload) {
 export async function verificarTransporte() {
   if (!TOKEN) return { ok: false, motivo: 'ZEPTOMAIL_TOKEN não definido' }
   if (!FROM)  return { ok: false, motivo: 'MAIL_FROM não definido' }
+  // Tamanho do token, nunca o valor: é o que separa uma colagem truncada de um
+  // token simplesmente errado, sem expor a credencial.
+  const tamanhoToken = String(TOKEN).trim().replace(/^Zoho-enczapikey\s+/i, '').length
+
   try {
     const { status, corpo } = await chamarApi({})
     if (status === 400) return { ok: true, api: API, remetente: FROM }
     if (status === 401 || status === 403) {
-      return { ok: false, api: API, erro: 'Token recusado pelo ZeptoMail', status }
+      // Antes de culpar o token, descobrir se ele é válido em outro host.
+      const alternativas = []
+      for (const host of HOSTS_CONHECIDOS) {
+        if (host === API) continue
+        try {
+          const r = await chamarApi({}, host)
+          if (r.status === 400) alternativas.push(host)
+        } catch { /* host inacessível: não é resposta sobre o token */ }
+      }
+      if (alternativas.length) {
+        return {
+          ok: false,
+          api: API,
+          erro: `Token válido, mas em outro host. Defina ZEPTOMAIL_API=${alternativas[0]}`,
+          status,
+          tamanho_token: tamanhoToken,
+        }
+      }
+      return {
+        ok: false,
+        api: API,
+        erro: 'Token recusado em todos os hosts conhecidos do ZeptoMail',
+        status,
+        tamanho_token: tamanhoToken,
+      }
     }
-    return { ok: false, api: API, erro: corpo?.message || `HTTP ${status}`, status }
+    return { ok: false, api: API, erro: corpo?.message || `HTTP ${status}`, status, tamanho_token: tamanhoToken }
   } catch (e) {
     return { ok: false, api: API, erro: e.name === 'AbortError' ? 'Timeout na API' : e.message }
   }
