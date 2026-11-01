@@ -31,9 +31,11 @@ export default function Login() {
       const dados = await res.json()
 
       if (!res.ok) {
-        // /api/auth/login responde { error, code }; `erro` era o campo de outro
-        // contrato e deixava toda falha sem mensagem visível.
-        setErro(dados.error || dados.erro || 'Erro ao fazer login')
+        // Três contratos convivem: /api/auth/login responde { error, code }, os
+        // controllers respondem { erro }, e o errorHandler de último recurso
+        // responde { erro, mensagem, ref }. Ler só um deixava a falha sem texto.
+        const texto = dados.error || dados.erro || dados.mensagem || 'Erro ao fazer login'
+        setErro(dados.ref ? `${texto} (ref ${dados.ref})` : texto)
         return
       }
 
@@ -77,7 +79,7 @@ export default function Login() {
       const dados = await res.json()
 
       if (!res.ok) {
-        setMensagemReset(dados.erro || 'Erro ao solicitar reset')
+        setMensagemReset(dados.erro || dados.error || dados.mensagem || 'Erro ao solicitar reset')
         return
       }
 
