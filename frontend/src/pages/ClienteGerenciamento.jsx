@@ -5,6 +5,7 @@ import Card, { CardHeader, CardBody } from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import Badge from '../components/ui/Badge'
 import Input from '../components/ui/Input'
+import FormNovoProjeto from '../fv/componentes/FormNovoProjeto'
 
 const API_URL = '' /* URL relativa forçada — Vercel proxy → Railway. Não usar VITE_API_URL */
 
@@ -19,6 +20,7 @@ export default function ClienteGerenciamento() {
   const [uploadandoConta, setUploadandoConta] = useState(false)
   const [dragAtivo, setDragAtivo] = useState(false)
   const [modalAberta, setModalAberta] = useState(false)
+  const [criandoFV, setCriandoFV] = useState(false)
   const [clienteEditando, setClienteEditando] = useState(null)
   const [expandidos, setExpandidos] = useState({
     dados: true,
@@ -276,8 +278,10 @@ export default function ClienteGerenciamento() {
           <div className="flex items-center gap-2">
             <Button icone={Plus} tamanho="sm" onClick={(e) => {
               e.stopPropagation()
-              // [AUDIT LOCAL] Apontando para wizard novo ProjetosFVNovo (era /propostas/nova - velho monolítico)
-              navigate(`/projetos-fv/novo?clienteId=${clienteId}`)
+              // Fluxo canônico (docs/DECISAO_FLUXO_FV_2026-11.md): cria com o
+              // cliente fixo e abre /fv/projetos/:id. O wizard legado segue no menu.
+              setExpandidos(prev => ({ ...prev, projetosFV: true }))
+              setCriandoFV(true)
             }}>
               Novo
             </Button>
@@ -286,6 +290,16 @@ export default function ClienteGerenciamento() {
         </CardHeader>
         {expandidos.projetosFV && (
           <CardBody>
+            {criandoFV && (
+              <div className="mb-4">
+                <FormNovoProjeto
+                  clienteIdInicial={clienteId}
+                  abertoInicial
+                  aoCancelar={() => setCriandoFV(false)}
+                  aoCriar={(id) => { setCriandoFV(false); if (id) navigate(`/fv/projetos/${id}`) }}
+                />
+              </div>
+            )}
             {projetosFV.length === 0 ? (
               <p className="text-sm text-slate-500">Nenhum projeto FV criado</p>
             ) : (
@@ -305,8 +319,8 @@ export default function ClienteGerenciamento() {
                         className="border-b hover:bg-slate-50 cursor-pointer"
                         role="button"
                         tabIndex={0}
-                        onClick={() => navigate(`/projetos-fv/novo?id=${p._id}`)}
-                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(`/projetos-fv/novo?id=${p._id}`) } }}
+                        onClick={() => navigate(`/fv/projetos/${p._id}`)}
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(`/fv/projetos/${p._id}`) } }}
                       >
                         <td className="px-4 py-2 font-medium text-slate-900">{p.nome}</td>
                         <td className="px-4 py-2 text-slate-600">{new Date(p.createdAt).toLocaleDateString('pt-BR')}</td>

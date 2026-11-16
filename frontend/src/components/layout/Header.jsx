@@ -6,7 +6,7 @@ const titulos = {
   '/dashboard':     'Dashboard',
   '/clientes':      'Clientes',
   '/fv/projetos':   'Projetos Fotovoltaicos',
-  '/projetos-fv':   'Projetos Fotovoltaicos (clássico)',
+  '/projetos-fv':   'Projetos Fotovoltaicos (legado)',
   '/projetos-fv/novo': 'Novo Projeto FV',
   '/projetos-ev':   'Projetos Elétrico-Veicular',
   '/homologacao':   'Homologação',

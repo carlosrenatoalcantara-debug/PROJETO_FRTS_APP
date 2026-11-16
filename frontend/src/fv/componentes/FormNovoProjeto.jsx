@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { useProjetos } from '../providers/ProjetosProvider'
-import { listarClientes } from '../api/agregadosFvApi'
+import { useProjetosOpcional } from '../providers/ProjetosProvider'
+import { listarClientes, criarProjeto } from '../api/agregadosFvApi'
 
 /**
  * FormNovoProjeto — cria um Projeto FV — FV-UX-014.
@@ -12,34 +12,40 @@ import { listarClientes } from '../api/agregadosFvApi'
  *
  * Nenhuma regra vive aqui: obrigatoriedade de `clienteId`/`nome` e o carimbo de
  * tenant são do servidor. O erro exibido é o do domínio, sem reinterpretação.
+ *
+ * `clienteIdInicial` fixa o cliente (entrada pela ficha do cliente): o seletor
+ * some e o operador só informa o nome. Fora do `ProjetosProvider` a criação vai
+ * direto à API — a ficha do cliente não precisa carregar a lista de projetos.
  */
-export default function FormNovoProjeto({ aoCriar }) {
-  const { acoes } = useProjetos()
-  const [aberto, setAberto] = useState(false)
+export default function FormNovoProjeto({ aoCriar, aoCancelar, clienteIdInicial = null, abertoInicial = false }) {
+  const ctx = useProjetosOpcional()
+  const criar = ctx?.acoes?.criar ?? criarProjeto
+  const clienteFixo = Boolean(clienteIdInicial)
+  const [aberto, setAberto] = useState(abertoInicial)
   const [clientes, setClientes] = useState([])
-  const [clienteId, setClienteId] = useState('')
+  const [clienteId, setClienteId] = useState(clienteIdInicial ?? '')
   const [nome, setNome] = useState('')
   const [enviando, setEnviando] = useState(false)
   const [erro, setErro] = useState(null)
   const [erroClientes, setErroClientes] = useState(null)
 
   useEffect(() => {
-    if (!aberto) return
+    if (!aberto || clienteFixo) return
     let vivo = true
     listarClientes()
       .then((r) => { if (vivo) setClientes(Array.isArray(r) ? r : (r?.data ?? [])) })
       .catch((e) => { if (vivo) setErroClientes(e.message) })
     return () => { vivo = false }
-  }, [aberto])
+  }, [aberto, clienteFixo])
 
   async function enviar(ev) {
     ev.preventDefault()
     setEnviando(true)
     setErro(null)
     try {
-      const criado = await acoes.criar({ clienteId, nome: nome.trim() })
+      const criado = await criar({ clienteId, nome: nome.trim() })
       setAberto(false)
-      setNome(''); setClienteId('')
+      setNome(''); setClienteId(clienteIdInicial ?? '')
       aoCriar?.(criado?._id ?? null)
     } catch (e) {
       setErro(e.codigo ? `${e.message} (${e.codigo})` : e.message)
@@ -65,7 +71,7 @@ export default function FormNovoProjeto({ aoCriar }) {
       <h3 className="text-sm font-semibold text-slate-900">Novo projeto FV</h3>
 
       <div className="mt-3 grid gap-3 sm:grid-cols-2">
-        <label className="text-sm">
+        {!clienteFixo && <label className="text-sm">
           <span className="text-slate-600">Cliente</span>
           <select
             value={clienteId} onChange={(e) => setClienteId(e.target.value)}
@@ -83,7 +89,7 @@ export default function FormNovoProjeto({ aoCriar }) {
               Não foi possível carregar clientes: {erroClientes}
             </span>
           )}
-        </label>
+        </label>}
 
         <label className="text-sm">
           <span className="text-slate-600">Nome do projeto</span>
@@ -102,7 +108,7 @@ export default function FormNovoProjeto({ aoCriar }) {
           className="rounded bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-700 disabled:bg-slate-400">
           {enviando ? 'Criando…' : 'Criar projeto'}
         </button>
-        <button type="button" onClick={() => { setAberto(false); setErro(null) }}
+        <button type="button" onClick={() => { setAberto(false); setErro(null); aoCancelar?.() }}
           className="rounded border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50">
           Cancelar
         </button>

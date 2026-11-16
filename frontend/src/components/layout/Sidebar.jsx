@@ -18,7 +18,7 @@ const itensMenu = [
     // FV-UX-011: a entrada principal do módulo FV passou a ser o fluxo canônico.
     // A tela clássica continua acessível — não foi removida.
     { rotulo: 'Fotovoltaico',  caminho: '/fv/projetos', modulo: 'fv' },
-    { rotulo: 'Fotovoltaico (clássico)', caminho: '/projetos-fv', modulo: 'fv' },
+    { rotulo: 'Fotovoltaico (legado)', caminho: '/projetos-fv', modulo: 'fv' },
     { rotulo: 'Elétrico-Veicular', caminho: '/projetos-ev', modulo: 'ev' },
   ]},
   { rotulo: 'Equipamentos',  icone: Package, modulo: 'catalogo', submenu: [

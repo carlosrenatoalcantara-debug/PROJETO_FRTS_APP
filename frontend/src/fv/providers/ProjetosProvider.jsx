@@ -42,6 +42,11 @@ export function ProjetosProvider({ children }) {
   return <Ctx.Provider value={valor}>{children}</Ctx.Provider>
 }
 
+/** Versão que não exige o provider — devolve null fora dele. */
+export function useProjetosOpcional() {
+  return useContext(Ctx)
+}
+
 export function useProjetos() {
   const ctx = useContext(Ctx)
   if (!ctx) throw new Error('useProjetos precisa estar dentro de ProjetosProvider')
