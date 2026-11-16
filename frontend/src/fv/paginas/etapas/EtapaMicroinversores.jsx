@@ -117,6 +117,16 @@ export default function EtapaMicroinversores({ catalogoInversores, arranjoPrinci
   const atribuidos = modulosAtribuidos(atual)
   const faltam = totalModulos === null ? null : totalModulos - atribuidos
 
+  // Nova aba: corrigir o cadastro não pode custar as edições não salvas daqui.
+  const linkCadastro = (
+    <a
+      href="/equipamentos/inversores" target="_blank" rel="noopener noreferrer"
+      className="underline hover:text-slate-900"
+    >
+      Corrigir no cadastro de inversores
+    </a>
+  )
+
   const campo = (valor, aoMudar, rotulo, editavel = true) => (
     <input
       aria-label={rotulo} type="number" min="1" step="1" readOnly={!editavel}
@@ -198,6 +208,7 @@ export default function EtapaMicroinversores({ catalogoInversores, arranjoPrinci
                   Enquanto o conflito existir, nenhum dos valores é usado no cálculo —
                   escolher um deles em silêncio esconderia o problema.
                 </p>
+                <p className="mt-1">{linkCadastro}</p>
               </div>
             )}
             {(b._conflitos ?? []).filter((c) => c.tipo === 'so_em_specs_canonicas').length > 0 && (
@@ -222,6 +233,8 @@ export default function EtapaMicroinversores({ catalogoInversores, arranjoPrinci
                 : proc === 'ssot'
                   ? `Capacidade ${capacidade} módulo(s) por micro — calculada pelo SSOT.`
                   : `Capacidade ${capacidade} módulo(s) por micro — ${PROCEDENCIA[proc].texto}.`}
+              {/* Lacuna do catálogo tem ação: o conserto definitivo é no cadastro. */}
+              {(proc === null || proc === 'manual') && <> {linkCadastro}</>}
             </p>
 
             <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-slate-600 sm:grid-cols-3">
@@ -249,6 +262,31 @@ export default function EtapaMicroinversores({ catalogoInversores, arranjoPrinci
                 </span>
               </p>
             )}
+
+            {/* Módulos da composição ainda sem micro: ação explícita, nunca
+                preenchimento silencioso. Só é oferecida com capacidade definida
+                e limitada ao que cabe neste modelo. */}
+            {(() => {
+              const cabem = capacidade === null || faltam === null || faltam <= 0
+                ? 0 : Math.min(faltam, capacidade - (inteiro(b.modulos) ?? 0))
+              if (cabem <= 0) return null
+              return (
+                <p className="mt-2 text-xs text-slate-600">
+                  <button
+                    type="button"
+                    onClick={() => mudar(i, 'modulos', (inteiro(b.modulos) ?? 0) + cabem)}
+                    className="rounded border border-slate-300 px-2 py-1 hover:bg-slate-50"
+                  >
+                    Atribuir {cabem} módulo(s) a este modelo
+                  </button>
+                  <span className="ml-2 text-slate-500">
+                    {cabem === faltam
+                      ? 'são os módulos da composição ainda sem microinversor.'
+                      : `cabem ${cabem} dos ${faltam} ainda sem microinversor.`}
+                  </span>
+                </p>
+              )
+            })()}
 
             {/* ── Micro 1..N — identificação explícita (Sprint E, §3) ──────── */}
             {distribuicao && plano && (
