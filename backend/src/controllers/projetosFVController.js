@@ -5,6 +5,8 @@ import {
   statusJuridicoDeEstado, validarTransicaoComercial, normalizarFreezeLegado,
 } from '@fortesolar/fv-shared/estados'
 import { Equipamento } from '../models/Equipamento.js'
+import { Cliente } from '../models/Cliente.js'
+import { faturaDoCliente } from '../dominio/projeto/faturaDoCliente.js'
 import { Tecnico } from '../models/Tecnico.js'
 import mongoose from 'mongoose'
 import { memoryStore } from '../config/memoryStorage.js'
@@ -218,9 +220,20 @@ export const criarProjetoFV = async (req, res) => {
         return res.status(400).json({ erro: 'ClienteId inválido' })
       }
 
+      // O cadastro do cliente já é fato: o projeto nasce com ele, sem redigitação.
+      // Cliente de outro tenant não é lido (aplicarEscopo) e não bloqueia a criação.
+      let fatura = {}
+      try {
+        const cli = await Cliente.findOne(aplicarEscopo({ _id: clienteId }, req, { contexto: 'projetoFV.criar.cliente' })).lean()
+        fatura = faturaDoCliente(cli)
+      } catch (e) {
+        console.warn('[projetoFV.criar] dados do cliente não copiados:', e.message)
+      }
+
       const novo = new ProjetoFV(carimbarTenant({
         clienteId,
         nome,
+        ...(Object.keys(fatura).length ? { fatura_extracao: fatura } : {}),
         status: status || 'rascunho',
         endereco_completo: endereco_completo || '',
         latitude: latitude === undefined || latitude === null || latitude === '' ? null : Number(latitude),
