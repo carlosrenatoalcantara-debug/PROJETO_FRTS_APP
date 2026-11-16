@@ -36,13 +36,17 @@ describe('validarFvPadroes — eficiência padrão 0,50–1,00', () => {
 })
 
 describe('rota /api/empresa', () => {
-  const rota = readFileSync(fileURLToPath(new URL('../../../backend/src/routes/empresa.js', import.meta.url)), 'utf8')
+  // Caminho por variável: com literal, o Vite reescreve `new URL(..., import.meta.url)` como asset.
+  const lerRota = (rel = '../../../backend/src/routes/empresa.js') =>
+    readFileSync(fileURLToPath(new URL(rel, import.meta.url)), 'utf8')
   it('valida antes de gravar e responde 400 com código', () => {
+    const rota = lerRota()
     expect(rota).toMatch(/validarFvPadroes\(req\.body\.fv_padroes\)/)
     expect(rota).toMatch(/status\(400\)[^\n]*FV_PADROES_INVALIDO/)
     expect(rota.indexOf('validarFvPadroes(')).toBeLessThan(rota.indexOf('findOneAndUpdate'))
   })
   it('o grupo está na lista de grupos aceitos (merge raso preserva os demais)', () => {
+    const rota = lerRota()
     expect(rota).toMatch(/GRUPOS = \[[^\]]*'fv_padroes'/)
   })
 })
