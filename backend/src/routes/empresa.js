@@ -2,6 +2,7 @@ import { Router } from 'express'
 import mongoose from 'mongoose'
 import { EmpresaConfig } from '../models/EmpresaConfig.js'
 import { AuditLog } from '../models/AuditLog.js'
+import { validarFvPadroes } from '../dominio/empresa/fvPadroes.js'
 import { MATRIZ_RBAC, PERFIS, MODULOS, mesclarMatriz } from '../services/rbac.js'
 
 /**
@@ -20,7 +21,7 @@ function _dbOk(res) {
   return true
 }
 
-const GRUPOS = ['empresa_config', 'responsavel_tecnico', 'branding', 'uploads', 'armazenamento', 'politica_comercial_ev']
+const GRUPOS = ['empresa_config', 'responsavel_tecnico', 'branding', 'uploads', 'armazenamento', 'politica_comercial_ev', 'fv_padroes']
 
 async function obterSingleton() {
   let doc = await EmpresaConfig.findOne({ chave: 'default' })
@@ -62,6 +63,8 @@ router.put('/', async (req, res) => {
     // grupo salvo) colidiam → "VersionError: No matching document found ... version N"
     // → branding/uploads/etc. eram perdidos. Agora: update ATÔMICO com $set por
     // caminho (merge raso preservado, sem checagem de versão).
+    const vFv = validarFvPadroes(req.body.fv_padroes)
+    if (!vFv.ok) return res.status(400).json({ erro: vFv.erro, mensagem: vFv.erro, codigo: 'FV_PADROES_INVALIDO' })
     const $set = {}
     for (const g of GRUPOS) {
       if (req.body[g] && typeof req.body[g] === 'object') {

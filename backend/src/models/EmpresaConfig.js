@@ -32,6 +32,10 @@ const empresaConfigSchema = new mongoose.Schema({
   // FEATURE-004 — Política Comercial EV: { padrao: {política}, perfis: [{política}] }.
   // A personalização de um projeto NUNCA altera isto (fica no ProjetoEV).
   politica_comercial_ev: { type: mongoose.Schema.Types.Mixed, default: () => ({}) },
+
+  // Padrões do módulo FV: { eficiencia_padrao: 0.50–1.00 | null }. Valida em
+  // dominio/empresa/fvPadroes.js. Só vale para projeto NOVO — nada retroativo.
+  fv_padroes: { type: mongoose.Schema.Types.Mixed, default: () => ({}) },
 }, { timestamps: true })
 
 export const EmpresaConfig = mongoose.model('EmpresaConfig', empresaConfigSchema)
