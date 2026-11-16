@@ -34,6 +34,7 @@ import E5Dimensionamento from '../components/fv/etapas/E5Dimensionamento'
 import E6Area            from '../components/fv/etapas/E6Area'
 import E7Equipamentos    from '../components/fv/etapas/E7Equipamentos'
 import E8Orcamento       from '../components/fv/etapas/E8Orcamento'
+import { resolverTensaoRede } from '../utils/tensaoRede'
 
 const COMPONENTES = {
   1: E1Upload,
@@ -175,8 +176,10 @@ function WizardInterno() {
                 distribuidora:  fe.concessionaria || '',
                 tipoLigacao:    normalizarFase(fe.tipo_ligacao),
                 // P1-TENSAO-380V-PARSER-01: fallback derivado do tipo quando tensao_v ausente
-                tensao:         fe.tensao_v ? String(fe.tensao_v)
-                                : normalizarFase(fe.tipo_ligacao) === 'trifasico' ? '380' : '220',
+                tensao:         resolverTensaoRede({
+                                  tensao: fe.tensao_v, tipoLigacao: fe.tipo_ligacao,
+                                  concessionaria: fe.concessionaria, uf: fe.estado,
+                                }).valor ?? '',
                 valorKwh:       String(fe.valor_kwh || ''),
                 grupoTarifario: fe.grupo_tarifario || '',
                 fase:           fe.tipo_ligacao    || '',
@@ -296,6 +299,10 @@ function WizardInterno() {
                 concessionaria:   cliente.distribuidora  || '',
                 distribuidora:    cliente.distribuidora  || '',
                 tipoLigacao:      normFase(cliente.tipo_ligacao),
+                tensao:           resolverTensaoRede({
+                                    tipoLigacao: cliente.tipo_ligacao,
+                                    concessionaria: cliente.distribuidora, uf: cliente.estado,
+                                  }).valor ?? '',
                 consumoMensal:    cliente.consumo_kwh   ? String(cliente.consumo_kwh)  : '',
                 valorKwh:         cliente.valor_kwh     ? String(cliente.valor_kwh)    : '',
                 classificacao:    cliente.classificacao  || '',

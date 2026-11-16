@@ -23,6 +23,7 @@ import CrmPainel from '../CrmPainel'
 import { construirTodosSnapshots, construirSnapshotTecnico, construirSnapshotGeoespacial } from '../../../utils/engenhariaGovernanca'
 // P0-FV-ENGINEERING-WORKFLOW-CONSOLIDATION-01: fonte única = arranjos[]
 import { obterTopologiaState } from '../../../utils/obterTopologiaState'
+import { resolverTensaoRede } from '../../../utils/tensaoRede'
 
 function LinhaResumo({ rotulo, valor }) {
   return (
@@ -267,7 +268,11 @@ export default function E8Orcamento() {
           potenciaArredondada: dim.potenciaRealKwp ?? dim.potenciaKwp ?? 0,
         },
         tipo_ligacao:  dadosConsumo.tipoLigacao || 'monofasico',
-        tensao:        dadosConsumo.tensao || '220',
+        // Sem tensão resolvida segue null (lacuna) — nunca '220' de reserva.
+        tensao:        resolverTensaoRede({
+          tensao: dadosConsumo.tensao, tipoLigacao: dadosConsumo.tipoLigacao,
+          concessionaria: dadosConsumo.concessionaria || dadosConsumo.distribuidora,
+        }).valor,
         distribuidora: dadosConsumo.concessionaria || dadosConsumo.distribuidora || 'Concessionária',
         painel:        painel || null,
         inversor:      inversor || null,
@@ -470,7 +475,11 @@ export default function E8Orcamento() {
           potenciaArredondada: dim.potenciaRealKwp ?? dim.potenciaKwp ?? 0,
         },
         tipo_ligacao:  dadosConsumo.tipoLigacao || 'monofasico',
-        tensao:        dadosConsumo.tensao || '220',
+        // Sem tensão resolvida segue null (lacuna) — nunca '220' de reserva.
+        tensao:        resolverTensaoRede({
+          tensao: dadosConsumo.tensao, tipoLigacao: dadosConsumo.tipoLigacao,
+          concessionaria: dadosConsumo.concessionaria || dadosConsumo.distribuidora,
+        }).valor,
         distribuidora: dadosConsumo.concessionaria || dadosConsumo.distribuidora || 'Concessionária',
         painel:        painel || null,
         inversor:      inversor || null,

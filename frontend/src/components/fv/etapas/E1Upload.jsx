@@ -4,6 +4,7 @@ import { useProjetoFV } from '../../../contexts/ProjetoFVContext'
 import Dropzone from '../../ui/Dropzone'
 import Button from '../../ui/Button'
 import Input from '../../ui/Input'
+import { resolverTensaoRede } from '../../../utils/tensaoRede'
 
 const API_URL = '' /* URL relativa forçada — Vercel proxy → Railway */
 
@@ -53,12 +54,12 @@ export default function E1Upload() {
           if (tl.includes('mono')) return 'monofasico'
           return t || ''
         }
-        // Extrai tensão do campo tipoLigacao como fallback ("Trifásico 380V" → "380")
-        const tensaoDoTipo = (t) => {
-          const m = (t || '').match(/\b(440|380|220|127)\b/)
-          return m ? m[1] : null
-        }
-        const tensaoFinal = dados.tensao || tensaoDoTipo(dados.tipoLigacao) || '220'
+        // Tensão: informada > número no tipo de ligação > trifásico COSERN/RN (380).
+        // Sem regra aplicável fica VAZIA — nunca '220' de reserva (defeito de produção).
+        const tensaoFinal = resolverTensaoRede({
+          tensao: dados.tensao, tipoLigacao: dados.tipoLigacao,
+          concessionaria: dados.distribuidora, uf: dados.uf ?? dados.estado,
+        }).valor ?? ''
 
         dispatch({
           type: 'SET_CONSUMO',

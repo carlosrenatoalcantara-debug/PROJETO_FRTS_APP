@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useProjeto } from '../../providers/ProjetoProvider'
+import { resolverTensaoRede, ROTULO_ORIGEM_TENSAO } from '../../../utils/tensaoRede'
 
 /**
  * EtapaProjeto — identificação + DADOS TÉCNICOS do projeto — FV-UX-018.
@@ -154,6 +155,13 @@ export default function EtapaProjeto() {
   // projetos não muda o diagrama — a tela avisa em vez de fingir que mudou.
   const distribuidoraRaiz = projeto.distribuidora ?? null
 
+  // Tensão derivada: só SUGERE. Não é gravada até o operador aceitar.
+  const sugestaoTensao = resolverTensaoRede({
+    tipoLigacao: valores.tipo_ligacao,
+    concessionaria: valores.concessionaria,
+    uf: valores.estado,
+  })
+
   return (
     <section className="mx-auto max-w-2xl p-6">
       <h2 className="text-lg font-semibold text-slate-900">Projeto</h2>
@@ -198,6 +206,22 @@ export default function EtapaProjeto() {
               )}
               {campo.ajuda && (
                 <span className="mt-1 block text-xs text-slate-500">{campo.ajuda}</span>
+              )}
+              {campo.chave === 'tensao_v' && sugestaoTensao.valor && !valores.tensao_v && (
+                <span className="mt-1 block text-xs text-amber-700">
+                  Sugestão {sugestaoTensao.valor} V — {ROTULO_ORIGEM_TENSAO[sugestaoTensao.origem]}.{' '}
+                  <button
+                    type="button" className="underline"
+                    onClick={() => editar('tensao_v', sugestaoTensao.valor)}
+                  >
+                    Usar {sugestaoTensao.valor} V
+                  </button>
+                </span>
+              )}
+              {campo.chave === 'tensao_v' && !sugestaoTensao.valor && !valores.tensao_v && (
+                <span className="mt-1 block text-xs text-slate-500">
+                  Não informada e sem regra para derivar — nenhum valor é assumido.
+                </span>
               )}
             </label>
           ))}
