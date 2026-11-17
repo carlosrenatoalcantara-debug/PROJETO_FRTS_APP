@@ -1,4 +1,5 @@
 import { Cliente } from '../models/Cliente.js'
+import { ContaEnergiaCliente } from '../models/ContaEnergiaCliente.js'
 import mongoose from 'mongoose'
 import { memoryStore } from '../config/memoryStorage.js'
 // Fase 0.5 — M-4: escopo de organização (ponto único).
@@ -130,6 +131,8 @@ export const excluirCliente = async (req, res) => {
   try {
     const cliente = await Cliente.findOneAndDelete(aplicarEscopo({ _id: req.params.id }, req, { contexto: 'excluirCliente' }))
     if (!cliente) return res.status(404).json({ mensagem: 'Cliente não encontrado' })
+    // Contas anexadas saem junto: não fica documento pessoal órfão.
+    await ContaEnergiaCliente.deleteMany(aplicarEscopo({ clienteId: cliente._id }, req, { contexto: 'excluirCliente' }))
     console.log('✓ Cliente excluído:', req.params.id)
     res.status(204).end()
   } catch (err) {

@@ -38,6 +38,7 @@ export const TENANCY = {
     'UnidadeBeneficiaria', 'Lead', 'CrmLead', 'CrmFunil', 'CrmColuna',
     'AtivoEquipamento', 'DocumentoTecnico', 'AlertaStatus', 'FaturaEnergia',
     'Material', 'CategoriaMaterial', 'Tecnico', 'Vendedor', 'User',
+    'ContaEnergiaCliente',   // conta de energia anexada ao cliente
   ],
   GLOBAL: [
     'Equipamento',        // Catálogo — ADR-021 A-8
