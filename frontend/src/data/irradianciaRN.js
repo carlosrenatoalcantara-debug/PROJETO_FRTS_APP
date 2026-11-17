@@ -37,27 +37,22 @@ export const irradianciaRN = {
   'tibau': 5.55,
 }
 
+const semAcento = (t) =>
+  String(t ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim()
+
+// Índice sem acento/caixa: "Sao Goncalo do Amarante" casa com a chave acentuada.
+const indiceRN = Object.fromEntries(
+  Object.entries(irradianciaRN).map(([k, v]) => [semAcento(k), v]),
+)
+
+/**
+ * Média anual da cidade (RN) ou `null`. SÓ casamento exato (sem acento/caixa).
+ * A busca anterior por prefixo de 3 letras devolvia o valor de OUTRA cidade em
+ * silêncio ("Parelhas" → Parnamirim): valor inventado com cara de dado.
+ */
 export function obterIrradianciaCity(cidade, estado) {
-  if (!cidade || estado?.toUpperCase() !== 'RN') {
-    return null
-  }
-
-  const cityNormalizado = cidade.toLowerCase().trim()
-
-  // Busca exata
-  if (irradianciaRN[cityNormalizado]) {
-    return irradianciaRN[cityNormalizado]
-  }
-
-  // Busca por similitude (caso primeiras letras coincidam)
-  const chaves = Object.keys(irradianciaRN)
-  for (const chave of chaves) {
-    if (chave.startsWith(cityNormalizado.substring(0, 3))) {
-      return irradianciaRN[chave]
-    }
-  }
-
-  return null
+  if (!cidade || estado?.toUpperCase() !== 'RN') return null
+  return indiceRN[semAcento(cidade)] ?? null
 }
 
 export function obterIrradianciaFallback(estado) {
