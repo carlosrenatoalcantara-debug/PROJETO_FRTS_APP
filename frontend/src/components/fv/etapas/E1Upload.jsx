@@ -82,6 +82,9 @@ export default function E1Upload() {
             type: 'SET_LOCALIZACAO',
             payload: {
               endereco: dados.endereco,
+              cidade:   dados.cidade || '',
+              cep:      dados.cep || '',
+              ...(dados.estado ? { uf: dados.estado } : {}),
             },
           })
         }

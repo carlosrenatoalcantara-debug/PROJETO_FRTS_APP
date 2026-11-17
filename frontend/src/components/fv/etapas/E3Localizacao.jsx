@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Search, MapPin, CheckCircle, AlertCircle } from 'lucide-react'
 import { useProjetoFV } from '../../../contexts/ProjetoFVContext'
 import Input from '../../ui/Input'
 import Button from '../../ui/Button'
 import { geocodificarEndereco } from '../../../services/geocodingApi'
 import { detectarUF, getRegiao } from '../../../data/regioesBrasil'
+import { montarConsultasEndereco } from '../../../utils/consultaEndereco'
 
 export default function E3Localizacao() {
   const { state, dispatch, proxima, anterior } = useProjetoFV()
@@ -14,24 +15,38 @@ export default function E3Localizacao() {
   const [erroBusca, setErroBusca] = useState('')
   const [erroForm, setErroForm]   = useState('')
 
-  // Auto-preencher endereço se extraído do PDF
+  // Busca sozinha ao entrar quando há cadastro e ainda não há coordenada.
+  // Uma vez por montagem: não repete se o usuário apagar o resultado.
+  const buscouAuto = useRef(false)
   useEffect(() => {
-    if (!loc.endereco && state.localizacao?.endereco) {
-      // Já foi preenchido em E1
-    }
+    if (buscouAuto.current || loc.lat || loc.lon) return
+    if (montarConsultasEndereco(loc).length === 0) return
+    buscouAuto.current = true
+    buscarEndereco({ automatica: true })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   function set(campo, valor) {
     dispatch({ type: 'SET_LOCALIZACAO', payload: { [campo]: valor } })
   }
 
-  async function buscarEndereco() {
-    if (!loc.endereco.trim()) { setErroBusca('Digite um endereço'); return }
+  async function buscarEndereco({ automatica = false } = {}) {
+    const consultas = montarConsultasEndereco(loc)
+    if (consultas.length === 0) { setErroBusca('Digite um endereço'); return }
     setBuscando(true)
     setErroBusca('')
     try {
-      const res = await geocodificarEndereco(loc.endereco)
-      const uf  = detectarUF(res.enderecoFormatado)
+      let res = null
+      for (const q of consultas) {
+        res = await geocodificarEndereco(q)
+        if (res) break
+      }
+      if (!res) {
+        throw new Error(
+          `Não encontrei "${consultas[0]}". Ajuste o endereço (confira rua, cidade e UF) e clique em Buscar, ou informe as coordenadas manualmente.`,
+        )
+      }
+      const uf  = detectarUF(res.enderecoFormatado) || loc.uf || null
       const reg = uf ? getRegiao(uf) : null
       dispatch({
         type: 'SET_LOCALIZACAO',
@@ -61,7 +76,7 @@ export default function E3Localizacao() {
           geocodificado_em: new Date().toISOString(),
         },
       })
-      setErroBusca(e.message)
+      setErroBusca(automatica ? `Busca automática sem resultado. ${e.message}` : e.message)
     } finally {
       setBuscando(false)
     }
@@ -104,7 +119,7 @@ export default function E3Localizacao() {
           />
           <Button
             icone={Search}
-            onClick={buscarEndereco}
+            onClick={() => buscarEndereco()}
             carregando={buscando}
             tamanho="md"
           >

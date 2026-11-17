@@ -281,6 +281,8 @@ function WizardInterno() {
                 endereco:     cliente.endereco_completo || '',
                 cidadeEstado: [cliente.cidade, cliente.estado].filter(Boolean).join(', '),
                 uf:           cliente.estado || null,
+                cidade:       cliente.cidade || '',
+                cep:          cliente.cep || '',
               },
             })
           }

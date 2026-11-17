@@ -41,6 +41,8 @@ const estadoInicial = {
     lon:          null,
     cidadeEstado: '',
     uf:           null,
+    cidade:       '',
+    cep:          '',
     geocoding_origem: null,
     geocoding_confianca: null,
     geocodificado_em: null,
