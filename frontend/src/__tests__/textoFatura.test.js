@@ -45,3 +45,37 @@ describe('UC — número da unidade consumidora', () => {
     expect(extrairDadosDoTexto(t).numeroCliente).toBeNull()
   })
 })
+
+describe('média de consumo — 12 meses mais recentes', () => {
+  it('fatura com 13 pontos usa só os 12 mais recentes (397, não 389)', () => {
+    const d = extrairDadosDoTexto(FATURA_COSERN_NOVA)
+    expect(d.periodoMeses).toBe(12)
+    expect(d.mediaAnual).toBe(397)        // 4760 / 12 = 396,67
+    expect(d.consumoKwh).toBe(397)
+    // O ponto descartado é o MAIS ANTIGO (OUT/25 = 300), não o atual.
+    expect(d.historico12Meses.some((h) => h.ano === '25' && h.mes === 'OUT')).toBe(false)
+    expect(d.historico12Meses[0]).toMatchObject({ mes: 'OUT', ano: '26', consumo: 410 })
+  })
+
+  it('ordem embaralhada no texto não muda o resultado', () => {
+    const linhas = FATURA_COSERN_NOVA.split('\n')
+    const ini = linhas.findIndex((l) => l.startsWith('OUT26'))
+    const bloco = linhas.slice(ini, ini + 13).reverse()
+    const t = [...linhas.slice(0, ini), ...bloco, ...linhas.slice(ini + 13)].join('\n')
+    expect(extrairDadosDoTexto(t).mediaAnual).toBe(397)
+  })
+
+  it('consumo com separador de milhar não é descartado', () => {
+    const d = extrairDadosDoTexto(FATURA_COSERN_LEGADA)
+    expect(d.periodoMeses).toBe(3)
+    expect(d.historico12Meses.map((h) => h.consumo)).toEqual([210, 1050, 190])
+    expect(d.mediaAnual).toBe(483)        // 1450 / 3 = 483,3
+  })
+
+  it('mês repetido conta uma vez', () => {
+    const t = 'CONSUMO / kWh\nOUT26 400 30\nOUT26 400 30\nSET26 200 30\n'
+    const d = extrairDadosDoTexto(t)
+    expect(d.periodoMeses).toBe(2)
+    expect(d.mediaAnual).toBe(300)
+  })
+})

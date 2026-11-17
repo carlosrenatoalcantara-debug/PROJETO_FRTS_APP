@@ -291,22 +291,37 @@ function extrairConsumo(texto) {
 
 function extrairHistorico12Meses(linhas) {
   const meses = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ']
-  const historico = []
+  let historico = []
   let somaConsumo = 0
 
-  // COSERN: "MAR26 438 30" (mês+ano consumo dias)
+  // COSERN: "MAR26 438 30" (mês+ano consumo dias). Consumo pode vir com
+  // separador de milhar ("1.050") — antes esse mês era descartado em silêncio.
+  const comAno = []
   for (const linha of linhas) {
     for (let i = 0; i < meses.length; i++) {
-      const m = linha.match(new RegExp(`^(${meses[i]}\\d{2})\\s+(\\d+)\\s+\\d+$`, 'i'))
+      const m = linha.match(new RegExp(`^(${meses[i]})(\\d{2})\\s+(\\d{1,3}(?:\\.\\d{3})+|\\d+)\\s+\\d+$`, 'i'))
       if (m) {
-        const consumo = parseInt(m[2])
+        const consumo = parseInt(m[3].replace(/\./g, ''), 10)
         // Ignorar valores claramente errados (ex: 30 que é número de dias padrão)
-        if (consumo > 10) {
-          historico.push({ mes: meses[i], ano: m[1].slice(3), consumo, indice: i + 1 })
-          somaConsumo += consumo
-        }
+        if (consumo > 10) comAno.push({ mes: meses[i], ano: m[2], consumo, indice: i + 1 })
       }
     }
+  }
+
+  /**
+   * A COSERN imprime 13 pontos: o mês atual e o mesmo mês do ano anterior. A
+   * média anual usa só os 12 MAIS RECENTES — com 13, o mês repetido pesa duas
+   * vezes e a média desvia (fatura real: 383,7 com 13 × 387,2 com 12).
+   * Ordena por ano/mês (não confia na ordem do texto) e descarta mês repetido.
+   */
+  if (comAno.length > 0) {
+    const chave = (h) => Number(h.ano) * 100 + h.indice
+    const vistos = new Set()
+    historico = [...comAno]
+      .sort((a, b) => chave(b) - chave(a))
+      .filter((h) => (vistos.has(chave(h)) ? false : vistos.add(chave(h))))
+      .slice(0, 12)
+    somaConsumo = historico.reduce((s, h) => s + h.consumo, 0)
   }
 
   // Fallback: padrão "JAN26: 262"
