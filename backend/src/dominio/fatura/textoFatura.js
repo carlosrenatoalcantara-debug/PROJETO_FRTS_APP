@@ -25,7 +25,7 @@ export function extrairDadosDoTexto(textoOriginal) {
 
   const dados = {
     nome:            extrairNomeCliente(linhas),
-    cpfCnpj:         extrairCpfCnpj(linhas, textoOriginal),
+    ...separarDocumentoMascarado(extrairCpfCnpj(linhas, textoOriginal)),
     numeroCliente:   extrairNumeroCliente(linhas),
     codigoInstalacao:extrairCodigoInstalacao(linhas),
     endereco:        extrairEnderecoCliente(linhas),
@@ -83,6 +83,18 @@ function extrairNomeCliente(linhas) {
   }
 
   return null
+}
+
+/**
+ * CPF/CNPJ com "*" é o documento MASCARADO pela distribuidora (ex.:
+ * 123.4**.***-**). Não é documento válido e não pode ir para `cpf_cnpj`:
+ * volta em `cpfCnpjMascarado`, só para a tela avisar e o operador completar.
+ * Nenhum campo novo no banco — é só resposta da API.
+ */
+export function separarDocumentoMascarado(doc) {
+  if (typeof doc !== 'string' || doc.trim() === '') return { cpfCnpj: null, cpfCnpjMascarado: null }
+  if (doc.includes('*')) return { cpfCnpj: null, cpfCnpjMascarado: doc.trim() }
+  return { cpfCnpj: doc.trim(), cpfCnpjMascarado: null }
 }
 
 function extrairCpfCnpj(linhas, textoOriginal) {

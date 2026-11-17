@@ -79,3 +79,16 @@ describe('média de consumo — 12 meses mais recentes', () => {
     expect(d.mediaAnual).toBe(300)
   })
 })
+
+describe('CPF mascarado', () => {
+  it('"123.4**.***-**" não vira CPF: vai para cpfCnpjMascarado', () => {
+    const d = extrairDadosDoTexto(FATURA_COSERN_NOVA)
+    expect(d.cpfCnpj).toBeNull()
+    expect(d.cpfCnpjMascarado).toBe('123.4**.***-**')
+  })
+  it('CPF completo continua em cpfCnpj', () => {
+    const d = extrairDadosDoTexto(FATURA_COSERN_LEGADA)
+    expect(d.cpfCnpj).toBe('111.222.333-44')
+    expect(d.cpfCnpjMascarado).toBeNull()
+  })
+})

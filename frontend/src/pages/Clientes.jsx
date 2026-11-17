@@ -14,6 +14,8 @@ function ModalNovoClienteComPDF({ onClose, onSalvo }) {
   const [arquivo, setArquivo] = useState(null)
   const [extraindo, setExtraindo] = useState(false)
   const [erro, setErro] = useState('')
+  // CPF que a conta traz mascarado ("123.4**.***-**"): só para avisar, nunca gravado.
+  const [cpfMascarado, setCpfMascarado] = useState(null)
 
   const [formData, setFormData] = useState({
     nome: '',
@@ -75,6 +77,7 @@ function ModalNovoClienteComPDF({ onClose, onSalvo }) {
       setFormData(prev => ({
         ...prev,
         nome:             dados.nome             || prev.nome,
+        // CPF mascarado na conta (com "*") não é gravado: o campo fica para o operador.
         cpf_cnpj:         dados.cpfCnpj          || prev.cpf_cnpj,
         endereco_completo:dados.endereco          || prev.endereco_completo,
         cep:              dados.cep               || prev.cep,
@@ -91,6 +94,7 @@ function ModalNovoClienteComPDF({ onClose, onSalvo }) {
         valor_kwh:        dados.valorKwh          || prev.valor_kwh,
       }))
 
+      setCpfMascarado(dados.cpfCnpj ? null : (dados.cpfCnpjMascarado || null))
       setStep('manual')
     } catch (err) {
       const msg = err.message || 'Erro desconhecido'
@@ -195,12 +199,19 @@ function ModalNovoClienteComPDF({ onClose, onSalvo }) {
                   name="nome"
                   placeholder="Ex: João Silva"
                 />
-                <Input
-                  rotulo="CPF/CNPJ"
-                  value={formData.cpf_cnpj}
-                  onChange={handleChange}
-                  name="cpf_cnpj"
-                />
+                <div>
+                  <Input
+                    rotulo="CPF/CNPJ"
+                    value={formData.cpf_cnpj}
+                    onChange={handleChange}
+                    name="cpf_cnpj"
+                  />
+                  {cpfMascarado && !formData.cpf_cnpj && (
+                    <p role="status" className="mt-1 text-xs text-amber-700">
+                      A conta traz o CPF mascarado ({cpfMascarado}). Informe o documento completo.
+                    </p>
+                  )}
+                </div>
                 <Input
                   rotulo="Email *"
                   type="email"

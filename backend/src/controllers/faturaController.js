@@ -1,5 +1,5 @@
 import { PDFParse } from 'pdf-parse'
-import { extrairDadosDoTexto, extrairFaseETensao, mapeiaGrupoTarifario } from '../dominio/fatura/textoFatura.js'
+import { extrairDadosDoTexto, extrairFaseETensao, mapeiaGrupoTarifario, separarDocumentoMascarado } from '../dominio/fatura/textoFatura.js'
 import { obterIrradianciaCity, obterIrradianciaFallback } from '../data/irradianciaRN.js'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { gerarComFallback, ehErroDeModelo, ehErroDeCapacidade } from '../ai/geminiModelos.js'
@@ -176,6 +176,8 @@ export async function extrairDadosFatura(req, res) {
 
         return res.json({
           ...dadosGemini,
+          // CPF mascarado na imagem também não vira documento válido.
+          ...separarDocumentoMascarado(dadosGemini.cpfCnpj),
           // Campos derivados / enriquecidos
           grupoTarifario,
           fase,
