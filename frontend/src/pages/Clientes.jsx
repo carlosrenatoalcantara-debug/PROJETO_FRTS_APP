@@ -6,6 +6,7 @@ import Button from '../components/ui/Button'
 import Badge from '../components/ui/Badge'
 import Input from '../components/ui/Input'
 import Dropzone from '../components/ui/Dropzone'
+import { anexarConta } from '../services/contasClienteApi'
 
 const API_URL = '' /* URL relativa forçada — Vercel proxy → Railway. Não usar VITE_API_URL */
 
@@ -138,6 +139,15 @@ function ModalNovoClienteComPDF({ onClose, onSalvo }) {
       }
 
       const novoCliente = data
+      // A conta lida no cadastro fica anexada ao cliente. Se o anexo falhar,
+      // o cliente já existe: avisa e segue (dá para anexar pela ficha).
+      if (arquivo && novoCliente?._id) {
+        try {
+          await anexarConta(novoCliente._id, arquivo)
+        } catch (errAnexo) {
+          window.alert(`Cliente criado, mas a conta não foi anexada: ${errAnexo.message}. Anexe pela ficha do cliente.`)
+        }
+      }
       onSalvo(novoCliente)
       onClose()
     } catch (err) {

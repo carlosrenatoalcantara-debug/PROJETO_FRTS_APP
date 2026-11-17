@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Edit2, Plus, ChevronDown, ChevronUp, Upload, Zap, Zap as EV, Trash2, X } from 'lucide-react'
 import Card, { CardHeader, CardBody } from '../components/ui/Card'
@@ -6,6 +6,7 @@ import Button from '../components/ui/Button'
 import Badge from '../components/ui/Badge'
 import Input from '../components/ui/Input'
 import FormNovoProjeto from '../fv/componentes/FormNovoProjeto'
+import { listarContas, anexarConta, excluirConta, baixarConta, TIPOS_CONTA, MIMETYPES_CONTA } from '../services/contasClienteApi'
 
 const API_URL = '' /* URL relativa forçada — Vercel proxy → Railway. Não usar VITE_API_URL */
 
@@ -19,6 +20,8 @@ export default function ClienteGerenciamento() {
   const [carregando, setCarregando] = useState(true)
   const [uploadandoConta, setUploadandoConta] = useState(false)
   const [dragAtivo, setDragAtivo] = useState(false)
+  const [erroConta, setErroConta] = useState('')
+  const inputContaRef = useRef(null)
   const [modalAberta, setModalAberta] = useState(false)
   const [criandoFV, setCriandoFV] = useState(false)
   const [clienteEditando, setClienteEditando] = useState(null)
@@ -45,7 +48,8 @@ export default function ClienteGerenciamento() {
         setCliente(dataCliente)
         setProjetosFV(Array.isArray(dataProjetosFV) ? dataProjetosFV : [])
         setProjetosEV(Array.isArray(dataProjetosEV) ? dataProjetosEV : [])
-        setContas([])
+        // Contas falham sozinhas: o resto da ficha carrega mesmo assim.
+        listarContas(clienteId).then(setContas).catch((e) => setErroConta(e.message))
       } catch (err) {
         console.error('Erro ao carregar:', err)
       } finally {
@@ -63,15 +67,29 @@ export default function ClienteGerenciamento() {
   async function enviarConta(arquivo) {
     if (!arquivo) return
 
+    setErroConta('')
     setUploadandoConta(true)
-    setTimeout(() => {
-      setContas([...contas, {
-        _id: Date.now().toString(),
-        nome: arquivo.name,
-        createdAt: new Date(),
-      }])
+    try {
+      const conta = await anexarConta(clienteId, arquivo)
+      setContas((atuais) => [conta, ...atuais])
+    } catch (err) {
+      setErroConta(err.message)
+    } finally {
       setUploadandoConta(false)
-    }, 300)
+      if (inputContaRef.current) inputContaRef.current.value = ''
+    }
+  }
+
+  async function abrirConta(conta) {
+    setErroConta('')
+    try {
+      const blob = await baixarConta(clienteId, conta._id)
+      const url = URL.createObjectURL(blob)
+      window.open(url, '_blank', 'noopener')
+      setTimeout(() => URL.revokeObjectURL(url), 60_000)
+    } catch (err) {
+      setErroConta(err.message)
+    }
   }
 
   function handleDragOver(e) {
@@ -88,9 +106,9 @@ export default function ClienteGerenciamento() {
     e.preventDefault()
     setDragAtivo(false)
     const arquivo = e.dataTransfer.files[0]
-    if (arquivo && arquivo.type === 'application/pdf') {
-      enviarConta(arquivo)
-    }
+    if (!arquivo) return
+    if (MIMETYPES_CONTA.includes(arquivo.type)) enviarConta(arquivo)
+    else setErroConta('A conta precisa ser PDF ou imagem (JPG, PNG, WEBP).')
   }
 
   function handleFileInput(e) {
@@ -140,9 +158,14 @@ export default function ClienteGerenciamento() {
     }
   }
 
-  function deletarConta(contaId) {
-    if (window.confirm('Tem certeza que deseja deletar este arquivo?')) {
-      setContas(contas.filter(c => c._id !== contaId))
+  async function deletarConta(contaId) {
+    if (!window.confirm('Tem certeza que deseja deletar este arquivo?')) return
+    setErroConta('')
+    try {
+      await excluirConta(clienteId, contaId)
+      setContas((atuais) => atuais.filter(c => c._id !== contaId))
+    } catch (err) {
+      setErroConta(err.message)
     }
   }
 
@@ -207,8 +230,10 @@ export default function ClienteGerenciamento() {
           <div className="flex items-center gap-2">
             <label className="cursor-pointer">
               <input
+                ref={inputContaRef}
                 type="file"
-                accept=".pdf"
+                accept={TIPOS_CONTA}
+                aria-label="Arquivo da conta de energia"
                 onChange={handleFileInput}
                 disabled={uploadandoConta}
                 className="hidden"
@@ -220,7 +245,7 @@ export default function ClienteGerenciamento() {
                 disabled={uploadandoConta}
                 onClick={(e) => {
                   e.stopPropagation()
-                  document.querySelector('input[type="file"]')?.click()
+                  inputContaRef.current?.click()
                 }}
               >
                 {uploadandoConta ? 'Enviando...' : '+ Anexar'}
@@ -240,8 +265,10 @@ export default function ClienteGerenciamento() {
               }`}
             >
               <Upload size={32} className="mx-auto text-slate-400 mb-2" />
-              <p className="text-sm text-slate-600">Arraste PDFs aqui ou use o botão Anexar</p>
+              <p className="text-sm text-slate-600">Arraste a conta (PDF ou imagem, até 10 MB) aqui ou use o botão Anexar</p>
             </div>
+
+            {erroConta && <p role="alert" className="text-sm text-red-600">{erroConta}</p>}
 
             {contas.length === 0 ? (
               <p className="text-sm text-slate-500">Nenhuma conta anexada</p>
@@ -250,7 +277,9 @@ export default function ClienteGerenciamento() {
                 {contas.map(conta => (
                   <div key={conta._id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
                     <div>
-                      <p className="font-medium text-slate-900">{conta.nome}</p>
+                      <button type="button" onClick={() => abrirConta(conta)} className="font-medium text-slate-900 hover:underline text-left">
+                        {conta.nome}
+                      </button>
                       <p className="text-xs text-slate-500">{new Date(conta.createdAt).toLocaleDateString('pt-BR')}</p>
                     </div>
                     <button

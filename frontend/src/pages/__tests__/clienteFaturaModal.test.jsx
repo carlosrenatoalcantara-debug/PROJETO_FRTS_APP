@@ -23,7 +23,7 @@ beforeEach(() => {
     chamadas.push({ url: String(url), init })
     const ok = (data) => Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(data) })
     if (String(url).includes('/api/fatura/extrair')) return ok(extracao)
-    if (String(url).endsWith('/api/clientes') && init.method === 'POST') return ok({ _id: 'cli-novo' })
+    if (String(url).endsWith('/api/clientes') && init.method === 'POST') return ok({ _id: 'cli-novo', nome: 'FULANO DE TAL TESTE', email: 'fulano@exemplo.test', cidade: 'Natal' })
     if (String(url).includes('/contas')) return ok({ _id: 'conta-1' })
     return ok([])
   })
@@ -57,5 +57,36 @@ describe('UC lida da fatura', () => {
     extracao = { nome: 'FULANO DE TAL TESTE', numeroCliente: '001.234.567-89' }
     await lerFatura()
     expect(screen.getByDisplayValue('001.234.567-89')).toBeTruthy()
+  })
+})
+
+describe('conta lida no cadastro fica anexada ao cliente', () => {
+  async function salvar() {
+    extracao = { nome: 'FULANO DE TAL TESTE', cpfCnpj: '111.222.333-44' }
+    await lerFatura()
+    fireEvent.change(document.querySelector('input[name="email"]'), { target: { name: 'email', value: 'fulano@exemplo.test' } })
+    fireEvent.submit(document.querySelector('input[name="email"]').closest('form'))
+  }
+
+  it('depois de criar o cliente, envia o mesmo arquivo para /api/clientes/<id>/contas', async () => {
+    await salvar()
+    await waitFor(() => expect(chamadas.some((c) => c.url.endsWith('/api/clientes/cli-novo/contas'))).toBe(true))
+    const envio = chamadas.find((c) => c.url.endsWith('/api/clientes/cli-novo/contas'))
+    expect(envio.init.method).toBe('POST')
+    expect(envio.init.body.get('conta').name).toBe('fatura.pdf')
+    const iCriar = chamadas.findIndex((c) => c.url.endsWith('/api/clientes') && c.init.method === 'POST')
+    expect(iCriar).toBeGreaterThanOrEqual(0)
+    expect(chamadas.indexOf(envio)).toBeGreaterThan(iCriar)
+  })
+
+  it('anexo falhou: cliente continua criado e o operador é avisado', async () => {
+    const original = global.fetch
+    global.fetch = vi.fn((url, init) => (String(url).includes('/contas')
+      ? Promise.resolve({ ok: false, status: 413, json: () => Promise.resolve({ mensagem: 'A conta passa de 10 MB.' }) })
+      : original(url, init)))
+    const alerta = vi.spyOn(window, 'alert').mockImplementation(() => {})
+    await salvar()
+    await waitFor(() => expect(alerta).toHaveBeenCalledWith(expect.stringMatching(/Cliente criado, mas a conta não foi anexada: A conta passa de 10 MB/)))
+    alerta.mockRestore()
   })
 })
