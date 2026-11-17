@@ -5,6 +5,7 @@
  * Novos campos: tecnologia (N/P-type), bifacial, eficiência, Voc, Vmpp, Isc
  * Filtros: busca textual, tecnologia, faixa de potência
  */
+import { precoExibivel } from '../../utils/precoExibivel'
 import { useState, useMemo, useEffect } from 'react'
 import { Search, X, Lock, Database, AlertTriangle } from 'lucide-react'
 import { buscarEquipamentosEngenharia, registrarFallback } from '../../services/catalogoEngenhariaApi'
@@ -397,10 +398,12 @@ export default function SeletorPaineis({ onSelecionar, selecionado }) {
                 <Param label="Perf. final" valor={`${painel.percentualPerformance}%`} />
               </div>
 
-              {/* Linha 3: Preço */}
-              <div className="mt-2 text-right text-xs text-emerald-700 font-medium">
-                ≈ R$ {painel.precoUnitario.toLocaleString('pt-BR')}/un
-              </div>
+              {/* Linha 3: Preço — só quando existe (nunca "R$ 0") */}
+              {precoExibivel(painel.precoUnitario) !== null && (
+                <div className="mt-2 text-right text-xs text-emerald-700 font-medium" data-testid="preco-painel">
+                  ≈ R$ {precoExibivel(painel.precoUnitario).toLocaleString('pt-BR')}/un
+                </div>
+              )}
             </div>
           )
         })}

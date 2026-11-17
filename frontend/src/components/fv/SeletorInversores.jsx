@@ -5,6 +5,7 @@
  * Exibe: MPPTs, Vmáx, Imáx CA, oversizing, entradas por MPPT
  * Puxa dados elétricos do catalogoEletrico para exibição e propagação
  */
+import { precoExibivel } from '../../utils/precoExibivel'
 import { useState, useEffect } from 'react'
 import { AlertCircle, Lock, Database, AlertTriangle } from 'lucide-react'
 import { DADOS_ELETRICOS_INVERSORES } from '../../data/catalogoEletrico'
@@ -423,10 +424,12 @@ export default function SeletorInversores({ onSelecionar, selecionado }) {
                         </div>
                       )}
 
-                      {/* Linha 3: Preço */}
-                      <div className="mt-2 text-right text-xs text-emerald-700 font-medium">
-                        ≈ R$ {inv.precoUnitario.toLocaleString('pt-BR')}
-                      </div>
+                      {/* Linha 3: Preço — só quando existe (nunca "R$ 0") */}
+                      {precoExibivel(inv.precoUnitario) !== null && (
+                        <div className="mt-2 text-right text-xs text-emerald-700 font-medium" data-testid="preco-inversor">
+                          ≈ R$ {precoExibivel(inv.precoUnitario).toLocaleString('pt-BR')}
+                        </div>
+                      )}
                     </div>
                     {sel && <span className="text-blue-600 font-bold ml-2 shrink-0">✓</span>}
                   </div>
