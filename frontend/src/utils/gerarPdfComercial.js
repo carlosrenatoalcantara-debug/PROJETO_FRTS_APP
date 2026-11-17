@@ -269,7 +269,7 @@ export function gerarPdfComercial({ resultado, cidadeEstado, empresa = {}, datas
     head: [['Mês','Irradiância (kWh/m²/dia)','Geração (kWh)','Consumo (kWh)','Saldo (kWh)','Atend. (%)']],
     body: geracao.mensal.map((m, i) => [
       m.mes,
-      irradiancia.mensal[i]?.valor?.toFixed(2) ?? '—',
+      irradiancia.mensal?.[i]?.valor?.toFixed(2) ?? '—',
       m.gerado.toLocaleString('pt-BR'),
       m.consumo.toLocaleString('pt-BR'),
       (m.gerado - m.consumo).toLocaleString('pt-BR', { signDisplay: 'always' }),
