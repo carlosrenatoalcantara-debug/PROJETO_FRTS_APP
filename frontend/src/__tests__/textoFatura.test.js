@@ -23,3 +23,25 @@ describe('refator sem mudança de comportamento — campos que já funcionavam',
     expect(d.tipoLigacao).toBe('Trifásico 380V')
   })
 })
+
+describe('UC — número da unidade consumidora', () => {
+  it('formato ATUAL: rótulo "NÚMERO DA UNIDADE CONSUMIDORA" + NNN.NNN.NNN-NN na linha seguinte', () => {
+    expect(extrairDadosDoTexto(FATURA_COSERN_NOVA).numeroCliente).toBe('001.234.567-89')
+  })
+  it('formato LEGADO: "CÓDIGO DO CLIENTE" + só dígitos', () => {
+    expect(extrairDadosDoTexto(FATURA_COSERN_LEGADA).numeroCliente).toBe('7012345678')
+  })
+  it('rótulo e valor na mesma linha', () => {
+    const t = 'NÚMERO DA UNIDADE CONSUMIDORA: 009.876.543-21\nOUTRA LINHA'
+    expect(extrairDadosDoTexto(t).numeroCliente).toBe('009.876.543-21')
+  })
+  it('armadilhas: sem o rótulo, débito em conta / medidor / chave / nota NÃO viram UC', () => {
+    const semUc = FATURA_COSERN_NOVA
+      .replace('NÚMERO DA UNIDADE CONSUMIDORA\n001.234.567-89\n', '')
+    expect(extrairDadosDoTexto(semUc).numeroCliente).toBeNull()
+  })
+  it('rótulo presente mas valor fora do formato: não aceita qualquer número', () => {
+    const t = 'NÚMERO DA UNIDADE CONSUMIDORA\n987654321\n'
+    expect(extrairDadosDoTexto(t).numeroCliente).toBeNull()
+  })
+})

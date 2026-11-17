@@ -21,7 +21,7 @@ RETORNE APENAS JSON válido, sem markdown, sem explicação. Use null para campo
   "nome": "nome completo do cliente",
   "cpfCnpj": "CPF ou CNPJ do cliente (não da distribuidora)",
   "telefone": "telefone do cliente no formato (XX) 9XXXX-XXXX",
-  "numeroCliente": "código/número do cliente",
+  "numeroCliente": "número da unidade consumidora (UC): rótulo \"NÚMERO DA UNIDADE CONSUMIDORA\" (formato 000.000.000-00) ou, em faturas antigas, \"CÓDIGO DO CLIENTE\". NUNCA o código de débito em conta, o número do medidor, a nota fiscal ou a chave de acesso",
   "codigoInstalacao": "código da instalação ou UC",
   "endereco": "endereço completo do cliente",
   "cep": "CEP formato 00000-000",

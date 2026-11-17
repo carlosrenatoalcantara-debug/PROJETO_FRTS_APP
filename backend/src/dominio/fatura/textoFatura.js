@@ -101,8 +101,23 @@ function extrairCpfCnpj(linhas, textoOriginal) {
   return null
 }
 
+/** UC no formato da REN 1.095/2024: NNN.NNN.NNN-NN. */
+const FORMATO_UC = /^\d{3}\.\d{3}\.\d{3}-\d{2}$/
+
 function extrairNumeroCliente(linhas) {
-  // Padrão COSERN: rótulo "CÓDIGO DO CLIENTE" na linha N, número na N+1
+  // Formato ATUAL: rótulo "NÚMERO DA UNIDADE CONSUMIDORA" e o valor
+  // NNN.NNN.NNN-NN na mesma linha ou na seguinte. Só aceita esse formato:
+  // código de débito (9 dígitos), medidor (10) e chave de acesso (44) ficam
+  // na mesma página e não podem ser confundidos com a UC.
+  const idxUc = findLine(linhas, /N[ÚU]MERO\s*DA\s*UNIDADE\s*CONSUMIDORA/i)
+  if (idxUc >= 0) {
+    const mesma = linhas[idxUc].match(/CONSUMIDORA\s*:?\s*(\d{3}\.\d{3}\.\d{3}-\d{2})\b/i)
+    if (mesma) return mesma[1]
+    const val = nextLine(linhas, idxUc)
+    if (val && FORMATO_UC.test(val)) return val
+  }
+
+  // Formato LEGADO COSERN: rótulo "CÓDIGO DO CLIENTE" na linha N, número na N+1
   const idx = findLine(linhas, /^C[ÓO]DIGO\s*DO\s*CLIENTE\s*$/i)
   if (idx >= 0) {
     const val = nextLine(linhas, idx)
