@@ -6,11 +6,15 @@
  * ADICIONADO: slider de eficiência 70–100%, crescimento de carga, aviso de hardware
  */
 
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { useState } from 'react'
 import { Zap, Sun, TrendingUp, AlertCircle, Info } from 'lucide-react'
 import { useProjetoFV } from '../../../contexts/ProjetoFVContext'
 import Button from '../../ui/Button'
+import { eficienciaPadraoConfigurada } from '../../../services/fvPadroesApi'
+import {
+  resolverEficienciaPadrao, ROTULO_ORIGEM_EFICIENCIA,
+} from '../../../utils/eficienciaPadrao'
 
 // Aparelhos com consumo típico mensal (kWh/mês) — valores conservadores
 const APARELHOS = [
@@ -35,9 +39,28 @@ export default function E5Dimensionamento() {
   const { dadosConsumo, irradiancia, localizacao, dimensionamento: dim } = state
 
   // ── Estado local (persiste em dim via _* campos ocultos) ─────────────────
+  // Projeto salvo mantém o valor dele. Só projeto NOVO parte do padrão da empresa
+  // (ou, sem configuração, do padrão do sistema — dito na tela).
   const [fatorEficiencia, setFatorEficiencia] = useState(
-    dim._fatorEficiencia ?? 0.80
+    dim._fatorEficiencia ?? resolverEficienciaPadrao(null).valor
   )
+  const [origemEficiencia, setOrigemEficiencia] = useState(
+    dim._fatorEficiencia != null ? 'projeto' : 'padrao_sistema'
+  )
+  const eficienciaTocada = useRef(false)
+  useEffect(() => {
+    if (dim._fatorEficiencia != null) return undefined
+    let vivo = true
+    eficienciaPadraoConfigurada().then((cfg) => {
+      // Só aplica se o operador ainda não mexeu no controle.
+      if (!vivo || eficienciaTocada.current) return
+      const { valor, origem } = resolverEficienciaPadrao(cfg)
+      setFatorEficiencia(valor)
+      setOrigemEficiencia(origem)
+    })
+    return () => { vivo = false }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   const [crescimentoKwh, setCrescimentoKwh] = useState(
     dim._crescimentoKwh != null ? String(dim._crescimentoKwh) : ''
   )
@@ -196,11 +219,11 @@ export default function E5Dimensionamento() {
 
           <input
             type="range"
-            min="70"
+            min="50"
             max="100"
             step="1"
             value={Math.round(fatorEficiencia * 100)}
-            onChange={e => setFatorEficiencia(Number(e.target.value) / 100)}
+            onChange={e => { eficienciaTocada.current = true; setFatorEficiencia(Number(e.target.value) / 100); setOrigemEficiencia('projeto') }}
             className="w-full h-2 rounded-full appearance-none cursor-pointer"
             style={{ accentColor: '#3b82f6' }}
           />
@@ -213,6 +236,11 @@ export default function E5Dimensionamento() {
 
           <div className="bg-white rounded-lg border border-blue-100 p-3 text-xs text-slate-600">
             <p>{labelEficiencia(fatorEficiencia)}</p>
+            {origemEficiencia !== 'projeto' && (
+              <p data-testid="origem-eficiencia" className="text-slate-500 mt-1">
+                Valor inicial: {ROTULO_ORIGEM_EFICIENCIA[origemEficiencia]}.
+              </p>
+            )}
             <p className="text-slate-400 mt-1">
               Engloba: perdas em cabos, conversão CC/CA, temperatura, sujeira e sombreamento.
             </p>

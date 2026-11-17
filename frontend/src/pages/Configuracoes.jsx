@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { ArrowLeft, Save, Check, ExternalLink, ToggleLeft, ToggleRight, Lock, AlertCircle, Loader, Eye, EyeOff, Trash2, Plus, DollarSign } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import PoliticaComercialConfig from '../components/configuracoes/PoliticaComercialConfig'
+import FvPadroesConfig from '../components/configuracoes/FvPadroesConfig'
 import Card, { CardHeader, CardBody } from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import Input from '../components/ui/Input'
@@ -736,6 +737,9 @@ export default function Configuracoes() {
 
       {/* FEATURE-004 — Política Comercial EV */}
       <PoliticaComercialConfig />
+
+      {/* Padrões do módulo FV (eficiência padrão) */}
+      <FvPadroesConfig />
 
       {/* Alertas */}
       {erro && (

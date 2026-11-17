@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useProjeto } from '../../providers/ProjetoProvider'
 import { calcularDimensionamento, consultarIrradiancia } from '../../api/agregadosFvApi'
+import { eficienciaPadraoConfigurada } from '../../../services/fvPadroesApi'
+import {
+  resolverEficienciaPadrao, perdasPctDaEficiencia, ROTULO_ORIGEM_EFICIENCIA,
+} from '../../../utils/eficienciaPadrao'
 
 /**
  * EtapaDimensionamento — potência, geração e nº de módulos — FV-UX-020.
@@ -79,6 +83,16 @@ export default function EtapaDimensionamento() {
   const { projeto, carregando, erro, acoes } = useProjeto()
 
   const [premissas, setPremissas] = useState(null)
+  // Perdas (%) equivalentes à eficiência padrão da empresa; null = não configurada.
+  const [perdasPadrao, setPerdasPadrao] = useState(null)
+  useEffect(() => {
+    let vivo = true
+    eficienciaPadraoConfigurada().then((cfg) => {
+      const r = resolverEficienciaPadrao(cfg)
+      if (vivo && r.origem === 'configurado') setPerdasPadrao(perdasPctDaEficiencia(r.valor))
+    })
+    return () => { vivo = false }
+  }, [])
   const [resultado, setResultado] = useState(null)
   const [calculando, setCalculando] = useState(false)
   const [salvando, setSalvando] = useState(false)
@@ -115,9 +129,12 @@ export default function EtapaDimensionamento() {
   /** HSP já persistido serve de valor inicial — é leitura, não sugestão. */
   const premissasIniciais = useMemo(() => ({
     irradiancia_kwh_m2_dia: texto(projeto?.localizacao?.irradiancia_kwh_kwp_dia),
+    // Só o padrão que a EMPRESA configurou entra; sem configuração segue vazio
+    // (o fallback do sistema não é imposto a quem não pediu — a tela exige a entrada).
     perdas_pct: '',
     margem_pct: '',
-  }), [projeto])
+    ...(perdasPadrao === null ? {} : { perdas_pct: String(perdasPadrao) }),
+  }), [projeto, perdasPadrao])
 
   // ── Irradiância: consulta pela localização do projeto ──────────────────────
   const lat = num(projeto?.localizacao?.latitude)
@@ -347,7 +364,8 @@ export default function EtapaDimensionamento() {
         <h3 className="text-sm font-semibold text-slate-900">Premissas de engenharia</h3>
         <p className="mt-1 text-xs text-slate-500">
           O HSP vem da consulta acima e pode ser ajustado — ajustá-lo marca a
-          origem como manual. Perdas e margem não são sugeridas: informe as duas.
+          origem como manual. A margem não é sugerida, e as perdas só partem de um
+          valor se a empresa configurou a eficiência padrão em Configurações.
         </p>
         <div className="mt-3 grid gap-3 sm:grid-cols-3">
           {PREMISSAS.map((p) => (
@@ -361,6 +379,12 @@ export default function EtapaDimensionamento() {
                 className="mt-1 w-full rounded border border-slate-300 px-2 py-1"
               />
               {p.ajuda && <span className="mt-1 block text-xs text-slate-500">{p.ajuda}</span>}
+              {p.chave === 'perdas_pct' && perdasPadrao !== null && valores.perdas_pct === String(perdasPadrao) && (
+                <span className="mt-1 block text-xs text-slate-500">
+                  Valor inicial: {ROTULO_ORIGEM_EFICIENCIA.configurado} — eficiência de{' '}
+                  {+(100 - perdasPadrao).toFixed(2)}%.
+                </span>
+              )}
             </label>
           ))}
         </div>
