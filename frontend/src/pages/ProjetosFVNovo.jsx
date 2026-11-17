@@ -1,4 +1,5 @@
 import { useNavigate, useSearchParams } from 'react-router-dom'
+import { avisoRascunho } from '../utils/avisoRascunho'
 import { useEffect, useRef } from 'react'
 import { X, AlertTriangle, Cloud, CloudOff, Check } from 'lucide-react'
 import { ProjetoFVProvider, useProjetoFV } from '../contexts/ProjetoFVContext'
@@ -53,6 +54,7 @@ function WizardInterno() {
   const [params, setParams] = useSearchParams()
   const { state, irParaEtapa, dispatch, resetar, ETAPAS } = useProjetoFV()
   const EtapaAtual  = COMPONENTES[state.etapa]
+  const aviso = avisoRascunho({ etapa: state.etapa, projetoId: state.projetoId, clienteId: state.clienteId })
   const etapaAnteriorRef = useRef(state.etapa)
   // P1-FV-WIZARD-PERSISTENCE-FIX-01: guarda contra criação concorrente de rascunho
   const criandoRascunhoRef = useRef(false)
@@ -513,12 +515,12 @@ function WizardInterno() {
           Com projetoId, cada etapa é salva no banco automaticamente; sem ele,
           o rascunho ainda não foi criado (cliente não cadastrado) e os dados
           NÃO estão protegidos contra F5/fechamento. */}
-      {state.etapa > 1 && (
+      {aviso && (
         <div className="flex items-center gap-2 text-xs px-1">
-          <AlertTriangle size={12} className={state.projetoId ? 'text-emerald-500' : 'text-amber-500'} />
-          {state.projetoId
+          <AlertTriangle size={12} className={aviso.tipo === 'salvo' ? 'text-emerald-500' : 'text-amber-500'} />
+          {aviso.tipo === 'salvo'
             ? <span className="text-emerald-600">Projeto salvo no banco automaticamente a cada etapa. ID: {state.projetoId}</span>
-            : <span className="text-amber-600">Rascunho ainda não salvo no servidor — conclua a Etapa 2 (consumo) com um cliente cadastrado para ativar o salvamento automático. Até lá, evite atualizar a página.</span>
+            : <span className="text-amber-600" data-testid="aviso-rascunho">{aviso.texto}</span>
           }
         </div>
       )}
