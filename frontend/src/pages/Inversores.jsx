@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { useEdicaoPorLink } from '../hooks/useEdicaoPorLink'
 import { X, Edit2, Trash2, Upload, Zap, ChevronDown, ChevronUp, Cable, Info, CheckCircle, AlertCircle } from 'lucide-react'
 import Card, { CardHeader, CardBody } from '../components/ui/Card'
 import Button from '../components/ui/Button'
@@ -308,6 +309,8 @@ export default function Inversores() {
     setArquivosModal([])
     setModalAberto(true)
   }
+
+  useEdicaoPorLink({ itens: inversores, carregando, abrir: handleEditar })
 
   function handleSalvar() {
     setModalAberto(false)

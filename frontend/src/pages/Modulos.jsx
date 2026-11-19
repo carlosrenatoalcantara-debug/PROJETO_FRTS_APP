@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { useEdicaoPorLink } from '../hooks/useEdicaoPorLink'
 import { Plus, Edit2, Trash2, ChevronDown, ChevronUp, Sun, Upload, BarChart2, Zap, FileText, Award, CheckCircle2 } from 'lucide-react'
 import Card, { CardBody } from '../components/ui/Card'
 import Button from '../components/ui/Button'
@@ -355,6 +356,8 @@ export default function Modulos() {
 
   function handleNovo() { setModuloEditar(null); setModalAberto(true) }
   function handleEditar(m) { setModuloEditar(m); setModalAberto(true) }
+  useEdicaoPorLink({ itens: modulos, carregando, abrir: handleEditar })
+
   function handleSalvar() { setModalAberto(false); carregarModulos(); carregarStats() }
 
   function onDragOver(e)  { e.preventDefault(); setArrastando(true)  }
