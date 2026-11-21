@@ -96,6 +96,7 @@ export default function E7Equipamentos() {
   function selecionarInversor(inversor) {
     const item = { ...inversor, snapshot_equipamento: snapshotEquipamentoSelecao(inversor) }
     dispatch({ type: 'SET_EQUIPAMENTO', payload: { tipo: 'inversor', item } })
+    dispatch({ type: 'SET_EQUIPAMENTO', payload: { tipo: 'quantidadeMicros', item: null } })
     setInversorExp(false)
     setErro('')
   }
@@ -133,13 +134,21 @@ export default function E7Equipamentos() {
 
     const inv = equipamentos.inversor
     if (inv?.tipo === 'micro') {
-      const numModulos = equipamentos.quantidadeModulos ?? dim.numPaineis ?? 0
-      const numMicros = dim.numInversores ?? 0
-      const entradasPorMicro = (inv.nMppts ?? 1) * (inv.entradasPorMppt ?? 1)
+      // Capacidade do micro = entradas × módulos por entrada, DO CATÁLOGO.
+      const entradas = inv._micro?.entradas
+      const porEntrada = inv._micro?.modulos_por_entrada
+      if (!(entradas > 0) || !(porEntrada > 0)) {
+        const faltas = [!(entradas > 0) && 'nº de entradas', !(porEntrada > 0) && 'módulos por entrada'].filter(Boolean)
+        setErro(`Cadastro incompleto: falta ${faltas.join(' e ')} do microinversor ${inv.marca ?? ''} ${inv.modelo ?? ''}. Corrija no catálogo (link no bloco do microinversor) e selecione-o de novo.`)
+        return false
+      }
+      const capacidade = entradas * porEntrada
+      const numModulos = qtd
+      const numMicros = equipamentos.quantidadeMicros || Math.ceil(numModulos / capacidade)
       const res = validarMicroinversores({
         numModulos,
         numMicros,
-        entradasPorMicro,
+        entradasPorMicro: capacidade,
         potenciaModuloW: equipamentos.painel?.potenciaW ?? null,
         potenciaMicroCA_W: inv.potenciaKW ? inv.potenciaKW * 1000 : null,
       })
@@ -462,6 +471,7 @@ export default function E7Equipamentos() {
               areaDisponivel={areaDisponivel}
               tipoLigacao={tipoLigacao}
               dispatch={dispatch}
+              numMicros={equipamentos.quantidadeMicros}
               onSaved={() => {}}
               onSaveAndNext={avancar}
             />

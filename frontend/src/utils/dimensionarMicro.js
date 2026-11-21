@@ -27,9 +27,10 @@ import {
  * @param {number} p.numModulos        total de módulos do sistema
  * @param {number} p.potenciaModuloW   potência de cada módulo (Wp)
  * @param {object} p.micro             { entradas, modulos_por_entrada, potencia_ca_kw, oversizing_max }
+ * @param {number} [p.quantidade]     micros escolhidos pelo projetista (>= mínimo); ausente = mínimo
  * @returns {object} dimensionamento do arranjo micro
  */
-export function dimensionarMicroinversor({ numModulos, potenciaModuloW, micro }) {
+export function dimensionarMicroinversor({ numModulos, potenciaModuloW, micro, quantidade }) {
   const n = Math.max(0, Math.floor(numModulos || 0))
   const capacidade = capacidadeDoMicro(micro)
 
@@ -46,7 +47,17 @@ export function dimensionarMicroinversor({ numModulos, potenciaModuloW, micro })
 
   // Quantidade MÍNIMA que acomoda os módulos. Continua sendo o que esta função
   // sempre devolveu — a diferença é que a capacidade agora vem declarada.
-  const qtdMicros = microsNecessarios(n, capacidade)
+  const qtdMinima = microsNecessarios(n, capacidade)
+  const pedido = Math.floor(Number(quantidade))
+  const informado = Number.isFinite(pedido) && pedido > 0
+  if (informado && pedido < qtdMinima) {
+    return {
+      valido: false,
+      motivo: `${pedido} microinversor(es) não comportam ${n} módulos — mínimo ${qtdMinima}`,
+      qtdMicros: pedido, qtdMinima, modulosPorMicro: capacidade, distribuicao: [],
+    }
+  }
+  const qtdMicros = informado ? pedido : qtdMinima
 
   const r = avaliarModeloMicro({
     modulos: n, quantidade: qtdMicros,
@@ -79,6 +90,7 @@ export function dimensionarMicroinversor({ numModulos, potenciaModuloW, micro })
     modulosPorMicro: capacidade,
     entradasPorMicro: entradas,
     qtdMicros,
+    qtdMinima,
     microsCompletos: completos,
     microsParciais: parciais,
     distribuicao,                 // ex.: [4,4,4,4,4,4,2] p/ 26 mód em micro de 4 entradas

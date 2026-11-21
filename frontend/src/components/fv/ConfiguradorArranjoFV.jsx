@@ -38,6 +38,7 @@ import {
 import { classificarTopologia } from '../../utils/topologiaInversor'
 import { dimensionarMicroinversor, resumoDistribuicao } from '../../utils/dimensionarMicro'
 import { sugerirMPPTs } from '../../utils/sugerirStrings'
+import { linkEdicaoCatalogo } from '../../utils/linkEdicaoCatalogo'
 // P1-MPPT-TOPOLOGY-IMPLEMENTATION-01 — editor da topologia real (entradas/strings)
 import TopologiaMPPTEditor, { derivarTopologia, resumoTopologia, topologiaVazia } from './TopologiaMPPTEditor'
 
@@ -300,7 +301,8 @@ export default function ConfiguradorArranjoFV({
   initialValues,
   areaDisponivel,
   tipoLigacao,
-  dispatch,        // ProjetoFV dispatch para atualizar numPaineis real
+  dispatch,        // ProjetoFV dispatch (topologia de strings / qtd. de micros)
+  numMicros,       // micros escolhidos em E7 (ausente = mínimo do catálogo)
   onSaved,
   onSaveAndNext,
 }) {
@@ -343,11 +345,31 @@ export default function ConfiguradorArranjoFV({
         : mppts.reduce((s, m) => s + m.numStrings * m.modulosPorString, 0),
     [ehMicro, numPaineis, mppts, modoDetalhado, topologia2]
   )
+  // Capacidade do micro vem do CATÁLOGO (entradas × módulos por entrada).
+  // Ausente ⇒ bloqueio "cadastro incompleto" com link para editar — nunca default.
+  const microCatalogo = useMemo(() => ({
+    entradas:            inversor?._micro?.entradas ?? null,
+    modulos_por_entrada: inversor?._micro?.modulos_por_entrada ?? null,
+    potencia_ca_kw:      eletricoInv?.potencia_ca_kw ?? inversor?.potenciaKW ?? null,
+    oversizing_max:      eletricoInv ? eletricoInv.oversizing_max : null,
+  }), [inversor?.id, inversor?._micro, inversor?.potenciaKW, eletricoInv])
+  const faltasMicro = ehMicro ? [
+    microCatalogo.entradas == null && 'nº de entradas',
+    microCatalogo.modulos_por_entrada == null && 'módulos por entrada',
+  ].filter(Boolean) : []
   const dimMicro = useMemo(() => {
     if (!ehMicro || !eletricoMod) return null
-    const numMod = totalModulosArranjo || numPaineis || 0
-    return dimensionarMicroinversor({ numModulos: numMod, potenciaModuloW: eletricoMod.potencia_w, micro: eletricoInv || {} })
-  }, [ehMicro, eletricoMod, eletricoInv, totalModulosArranjo, numPaineis])
+    return dimensionarMicroinversor({
+      numModulos: numPaineis || 0, potenciaModuloW: eletricoMod.potencia_w,
+      micro: microCatalogo, quantidade: numMicros,
+    })
+  }, [ehMicro, eletricoMod, microCatalogo, numPaineis, numMicros])
+
+  // Link para corrigir o cadastro do equipamento na hora (abre em nova aba).
+  const linkInversor = inversor?._fonte === 'catalogo'
+    ? linkEdicaoCatalogo({ tipo: ehMicro ? 'microinversor' : 'inversor', id: inversor?.id }) : null
+  const linkModulo = painel?._fonte === 'catalogo'
+    ? linkEdicaoCatalogo({ tipo: 'modulo', id: painel?.id }) : null
 
   // ── Clima ───────────────────────────────────────────────────────────────
   const climaPadrao = CLIMA_PADRAO_UF[uf] ?? { tmin: 10, tmax: 40 }
@@ -692,7 +714,7 @@ export default function ConfiguradorArranjoFV({
     if (ok !== null) onSaveAndNext?.()
   }, [salvar, onSaveAndNext])
 
-  const podeSalvar = !!resultado && !carregando && !!projetoId
+  const podeSalvar = !!resultado && !carregando && !!projetoId && !(ehMicro && !dimMicro?.valido)
 
   // ─── Render ────────────────────────────────────────────────────────────────
   const semMod = painel   && !eletricoMod
@@ -705,9 +727,11 @@ export default function ConfiguradorArranjoFV({
       {(semMod || semInv) && (
         <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
           <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-amber-500" />
-          {semMod && 'Dados elétricos do módulo não mapeados. '}
-          {semInv && 'Dados elétricos do inversor não mapeados. '}
-          Análise de compatibilidade indisponível.
+          <span>
+            {semMod && <>Dados elétricos do módulo não mapeados{linkModulo && <> — <a href={linkModulo} target="_blank" rel="noopener noreferrer" className="underline font-semibold">editar módulo no catálogo ↗</a></>}. </>}
+            {semInv && <>Dados elétricos do inversor não mapeados (tensão máx., corrente/MPPT, faixa MPPT){linkInversor && <> — <a href={linkInversor} target="_blank" rel="noopener noreferrer" className="underline font-semibold">editar {ehMicro ? 'microinversor' : 'inversor'} no catálogo ↗</a></>}. </>}
+            Análise de compatibilidade indisponível. Depois de salvar no catálogo, selecione o equipamento de novo.
+          </span>
         </div>
       )}
 
@@ -781,11 +805,27 @@ export default function ConfiguradorArranjoFV({
             <h3 className="text-base font-bold text-amber-700">⚡ Sistema Microinversor</h3>
             <span className="ml-auto text-xs text-slate-500">{inversor?.marca} {inversor?.modelo}</span>
           </div>
-          {dimMicro?.valido ? (
+          {faltasMicro.length > 0 ? (
+            <div className="p-3 bg-red-50 border border-red-300 rounded-lg text-sm text-red-800" data-testid="micro-cadastro-incompleto">
+              <strong>Cadastro incompleto: falta {faltasMicro.join(' e ')}</strong> do {inversor?.marca} {inversor?.modelo}.
+              {' '}Sem isso não há como dimensionar os micros — nenhum valor é presumido.
+              {linkInversor && <> <a href={linkInversor} target="_blank" rel="noopener noreferrer" className="underline font-semibold">Editar no catálogo ↗</a></>}
+              <span className="block text-xs mt-1">Depois de salvar no catálogo, selecione o microinversor de novo.</span>
+            </div>
+          ) : dimMicro?.valido ? (
             <>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
                 <div><p className="text-xs text-slate-400">Módulos</p><p className="font-bold text-slate-800">{dimMicro.numModulos}</p></div>
-                <div><p className="text-xs text-slate-400">Microinversores</p><p className="font-bold text-amber-700 text-lg">{dimMicro.qtdMicros}</p></div>
+                <div>
+                  <label htmlFor="qtd-micros" className="text-xs text-slate-400 block">Microinversores</label>
+                  <input
+                    id="qtd-micros" type="number" min={dimMicro.qtdMinima}
+                    value={dimMicro.qtdMicros}
+                    onChange={e => dispatch?.({ type: 'SET_EQUIPAMENTO', payload: { tipo: 'quantidadeMicros', item: Math.max(0, parseInt(e.target.value, 10) || 0) || null } })}
+                    className="w-20 px-2 py-1 border border-amber-300 rounded text-amber-700 font-bold text-lg"
+                  />
+                  <p className="text-[10px] text-slate-400">mínimo {dimMicro.qtdMinima}</p>
+                </div>
                 <div><p className="text-xs text-slate-400">Módulos por micro</p><p className="font-bold text-slate-800">{dimMicro.modulosPorMicro} <span className="text-xs text-slate-400">({dimMicro.entradasPorMicro} entradas)</span></p></div>
                 <div><p className="text-xs text-slate-400">Aproveitamento entradas</p><p className="font-bold text-slate-800">{(dimMicro.aproveitamento * 100).toFixed(0)}%</p></div>
                 <div><p className="text-xs text-slate-400">Potência CC</p><p className="font-bold text-slate-800">{dimMicro.potenciaCcKw} kWp</p></div>
@@ -796,7 +836,17 @@ export default function ConfiguradorArranjoFV({
               <p className="text-xs text-slate-400">Cada módulo conecta a uma entrada do micro — <strong>sem strings, sem MPPT, sem strings paralelas</strong>.</p>
             </>
           ) : (
-            <p className="text-sm text-slate-500">Selecione módulo e quantidade para dimensionar o sistema microinversor.</p>
+            <div className="text-sm text-red-700" data-testid="micro-bloqueio">
+              {!eletricoMod ? 'Dados elétricos do módulo não mapeados — não há como dimensionar.'
+                : !(numPaineis > 0) ? 'Informe a quantidade de módulos acima.'
+                : dimMicro?.motivo}
+              {dimMicro && dimMicro.qtdMinima > 0 && (
+                <button type="button" className="ml-2 underline text-xs"
+                  onClick={() => dispatch?.({ type: 'SET_EQUIPAMENTO', payload: { tipo: 'quantidadeMicros', item: null } })}>
+                  usar o mínimo ({dimMicro.qtdMinima})
+                </button>
+              )}
+            </div>
           )}
         </div>
       )}
