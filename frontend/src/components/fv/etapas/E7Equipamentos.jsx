@@ -30,6 +30,7 @@ import { snapshotEquipamentoSelecao } from '../../../utils/catalogoEngenhariaAda
 import { referenciaDoCatalogo } from '../../../fv/catalogo'
 import { validarMicroinversores } from '@fortesolar/fv-shared/fv/validacao-microinversores'
 import { novoIdArranjo } from '@fortesolar/fv-shared/projeto/identidade-arranjo'
+import { totalDoArranjo } from '../../../utils/sugerirStrings'
 
 const TIPO_BADGE_COR = {
   string:     'azul',
@@ -122,6 +123,14 @@ export default function E7Equipamentos() {
     // P1-03: validação física mínima de microinversores.
     // Topologia micro → cada micro tem nº finito de entradas DC. Bloqueia
     // configurações impossíveis (ex.: 20 módulos / 5 micros / 1 entrada).
+    // A quantidade é deste campo; strings que não a fecham não avançam.
+    const qtd = equipamentos.quantidadeModulos ?? dim.numPaineis ?? 0
+    const mppts = equipamentos.arranjoMPPTs
+    if (Array.isArray(mppts) && mppts.length && qtd > 0 && totalDoArranjo(mppts) !== qtd) {
+      setErro(`As strings somam ${totalDoArranjo(mppts)} módulos, mas a quantidade definida é ${qtd}. Ajuste o arranjo ou a quantidade.`)
+      return false
+    }
+
     const inv = equipamentos.inversor
     if (inv?.tipo === 'micro') {
       const numModulos = equipamentos.quantidadeModulos ?? dim.numPaineis ?? 0
@@ -237,6 +246,21 @@ export default function E7Equipamentos() {
   // Quantidade configurada (pode ter sido atualizada pelo configurador)
   const numPaineisReal  = equipamentos.quantidadeModulos ?? dim.numPaineis ?? 0
 
+  // Estimativa do E5 (necessidade) — `dim.numPaineis` acompanha o campo acima
+  // e não serve de referência; `numPaineisNecessidade` ninguém reescreve.
+  const estimativaE5 = dim.numPaineisNecessidade ?? null
+  const potenciaPainelW = Number(equipamentos.painel?.potenciaW) || 0
+  const kwpConfigurado = potenciaPainelW > 0 && numPaineisReal > 0
+    ? +(numPaineisReal * potenciaPainelW / 1000).toFixed(2)
+    : null
+
+  // A composição (quantidade × módulo) alimenta E8 e o resumo.
+  useEffect(() => {
+    if (!kwpConfigurado) return
+    dispatch({ type: 'SET_DIMENSIONAMENTO', payload: { numPaineis: numPaineisReal, potenciaRealKwp: kwpConfigurado } })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [numPaineisReal, kwpConfigurado])
+
   // Aviso de área
   const areaNecess      = numPaineisReal * 2.0
   const areaInsuficiente = areaDisponivel > 0 && areaNecess > areaDisponivel
@@ -259,8 +283,8 @@ export default function E7Equipamentos() {
         <h2 className="text-lg font-semibold text-slate-900">Seleção de Equipamentos</h2>
         <p className="text-sm text-slate-500 mt-1">
           Sistema estimado em{' '}
-          <strong>{dim.potenciaRealKwp ?? dim.potenciaKwp ?? '?'} kWp</strong>
-          {' '}· {numPaineisReal > 0 ? `${numPaineisReal} módulos configurados` : `~${dim.numPaineis ?? '?'} módulos estimados`}
+          <strong data-testid="kwp-cabecalho">{kwpConfigurado ?? dim.potenciaKwp ?? '?'} kWp</strong>
+          {' '}· {numPaineisReal > 0 ? `${numPaineisReal} módulos configurados` : `~${estimativaE5 ?? '?'} módulos estimados`}
         </p>
 
         {/* S6: bloqueio de capacidade do layout (precede o aviso de área bruta) */}
@@ -353,11 +377,11 @@ export default function E7Equipamentos() {
               min={0}
               value={numPaineisReal || ''}
               onChange={e => alterarQuantidade(e.target.value)}
-              placeholder={dim.numPaineis ? String(dim.numPaineis) : '0'}
+              placeholder={estimativaE5 ? String(estimativaE5) : '0'}
               className="w-28 px-3 py-1.5 border border-slate-300 rounded-lg text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-400"
             />
             <span className="text-[11px] text-slate-400">
-              estimativa E5: ~{dim.numPaineis ?? '?'} un. · você define a quantidade real
+              estimativa E5: ~{estimativaE5 ?? '?'} un. · você define a quantidade real
             </span>
             {equipamentos.painel && numPaineisReal > 0 && (
               <span className="ml-auto text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2.5 py-0.5">
