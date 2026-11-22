@@ -1,12 +1,13 @@
 import mongoose from 'mongoose'
 
 /**
- * ContaEnergiaCliente — conta de energia anexada ao cadastro do cliente.
+ * ContaEnergiaCliente — conta de energia do cadastro do cliente.
  *
- * Coleção própria (não embutida em Cliente): o arquivo pode ter até 10 MB e não
- * deve viajar em toda leitura do cliente. O conteúdo vai para o storage da
- * empresa (documentStorageService); aqui ficam metadados + referência.
- * `url_storage` é select:false — a listagem nunca carrega o conteúdo.
+ * Conta NOVA = só `dados` (o que a conta diz, poucos KB): o arquivo original não
+ * é guardado e os dois arquivos entregues (JSON e Markdown) são derivados de
+ * `dados` na hora. Conta ANTIGA (anterior a esta decisão) tem o arquivo no
+ * storage da empresa (`document_path`/`url_storage`, select:false) e continua
+ * abrindo; nada foi migrado nem apagado.
  */
 const contaEnergiaClienteSchema = new mongoose.Schema({
   empresa_id:       { type: mongoose.Schema.Types.ObjectId, ref: 'Empresa', required: true, index: true },
@@ -19,6 +20,11 @@ const contaEnergiaClienteSchema = new mongoose.Schema({
   document_path:    { type: String, default: null },
   url_storage:      { type: String, default: null, select: false },
   enviado_por:      { type: String, default: null },
+  // Conta como dados. `numero_cliente`/`distribuidora` repetem campos de `dados`
+  // para serem indexáveis (busca por UC sem varrer o objeto).
+  dados:            { type: mongoose.Schema.Types.Mixed, default: null },
+  numero_cliente:   { type: String, default: null, index: true },
+  distribuidora:    { type: String, default: null },
 }, { timestamps: true })
 
 contaEnergiaClienteSchema.index({ empresa_id: 1, clienteId: 1, createdAt: -1 })
