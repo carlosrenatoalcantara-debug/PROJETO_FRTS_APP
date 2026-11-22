@@ -26,6 +26,7 @@ const ETAPA_PARA_SLICE = {
 }
 import Stepper from '../components/ui/Stepper'
 import { progressoGrupos, rotuloEtapa, GRUPOS } from '../config/etapasFunilFV'
+import { casarConcessionaria } from '../data/concessionariasWizard'
 import E1Upload          from '../components/fv/etapas/E1Upload'
 import E2Consumo         from '../components/fv/etapas/E2Consumo'
 import E2BBeneficiarias  from '../components/fv/etapas/E2BBeneficiarias'
@@ -174,7 +175,7 @@ function WizardInterno() {
               // Consumo (fatura_extracao)
               dadosConsumo: {
                 consumoMensal:  String(fe.consumo_mensal_kwh || ''),
-                concessionaria: fe.concessionaria || '',
+                concessionaria: casarConcessionaria(fe.concessionaria, fe.estado) ?? (fe.concessionaria || ''),
                 distribuidora:  fe.concessionaria || '',
                 tipoLigacao:    normalizarFase(fe.tipo_ligacao),
                 // P1-TENSAO-380V-PARSER-01: fallback derivado do tipo quando tensao_v ausente
@@ -300,7 +301,7 @@ function WizardInterno() {
             dispatch({
               type: 'SET_CONSUMO',
               payload: {
-                concessionaria:   cliente.distribuidora  || '',
+                concessionaria:   casarConcessionaria(cliente.distribuidora, cliente.estado) ?? (cliente.distribuidora || ''),
                 distribuidora:    cliente.distribuidora  || '',
                 tipoLigacao:      normFase(cliente.tipo_ligacao),
                 tensao:           resolverTensaoRede({
