@@ -78,8 +78,18 @@ const dimensionamentoV3Schema = new mongoose.Schema({
   num_paineis:          { type: Number, default: null },
   num_strings:          { type: Number, default: null },
   num_inversores:       { type: Number, default: null },
+  // Sem min/max no schema: documento antigo com valor fora da faixa não pode
+  // passar a falhar no save. A faixa é garantida por quem calcula (eficienciaUsada).
   performance_ratio:    { type: Number, default: null },  // fator de desempenho (tipicamente 0.75-0.85)
-  fator_capacidade:     { type: Number, default: null },
+  // De onde veio a eficiência usada: padrão da empresa (Configurações), digitada
+  // pelo operador neste projeto, ou fallback do sistema. Sem origem, o número
+  // não é auditável (FV-ORC-000 D1).
+  performance_ratio_origem: {
+    type: String,
+    enum: ['configurado', 'manual', 'padrao_sistema', null],
+    default: null,
+  },
+  fator_capacidade:    { type: Number, default: null },
   area_total_m2:        { type: Number, default: null },
   metodo: {
     type: String,

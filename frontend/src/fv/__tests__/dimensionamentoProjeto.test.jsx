@@ -193,6 +193,8 @@ describe('FV-UX-020 · o financeiro do motor é descartado', () => {
     expect(enviado()).toEqual({
       potencia_kwp: 12.35, geracao_mensal_kwh: 1646.5, geracao_anual_kwh: 19758,
       num_paineis: 23, area_total_m2: 77.28,
+      // FV-ORC-000 D1: a eficiência usada (1 − perdas) e de onde veio.
+      performance_ratio: 0.82, performance_ratio_origem: 'manual',
       metodo: 'automatico', calculado_em: '2026-08-17T10:00:00.000Z',
     })
   })
@@ -223,7 +225,9 @@ describe('FV-UX-020 · o financeiro do motor é descartado', () => {
     const d = enviado()
     expect(d.num_strings).toBe(3)
     expect(d.num_inversores).toBe(1)
-    expect(d.performance_ratio).toBe(0.8)
+    // FV-ORC-000 D1: a eficiência passou a ser produzida pelo cálculo — a do
+    // cálculo novo substitui a antiga.
+    expect(d.performance_ratio).toBe(0.82)
     expect(d.potencia_kwp).toBe(12.35)   // este, sim, foi recalculado
   })
 })

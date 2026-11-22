@@ -3,7 +3,7 @@ import { useProjeto } from '../../providers/ProjetoProvider'
 import { calcularDimensionamento, consultarIrradiancia } from '../../api/agregadosFvApi'
 import { eficienciaPadraoConfigurada } from '../../../services/fvPadroesApi'
 import {
-  resolverEficienciaPadrao, perdasPctDaEficiencia, ROTULO_ORIGEM_EFICIENCIA,
+  resolverEficienciaPadrao, perdasPctDaEficiencia, ROTULO_ORIGEM_EFICIENCIA, eficienciaUsada,
 } from '../../../utils/eficienciaPadrao'
 
 /**
@@ -201,6 +201,11 @@ export default function EtapaDimensionamento() {
     ['Geração anual', dim?.geracao_anual_kwh, 'kWh'],
     ['Módulos', dim?.num_paineis, ''],
     ['Área ocupada', dim?.area_total_m2, 'm²'],
+    ['Eficiência usada',
+      dim?.performance_ratio == null ? null
+        : `${+(dim.performance_ratio * 100).toFixed(2)}%`
+          + (dim.performance_ratio_origem ? ` — ${ROTULO_ORIGEM_EFICIENCIA[dim.performance_ratio_origem] ?? dim.performance_ratio_origem}` : ''),
+      ''],
     ['Strings', dim?.num_strings, ''],
     ['Inversores', dim?.num_inversores, ''],
   ]
@@ -251,6 +256,7 @@ export default function EtapaDimensionamento() {
         geracao_anual_kwh: r.geracao_anual_kwh,
         num_paineis: r.qtd_modulos_estimada,
         area_total_m2: r.area_ocupacao_m2,
+        ...eficienciaUsada(resultado?.input_normalizado?.perdas_pct, perdasPadrao),
         metodo: 'automatico',
         calculado_em: resultado?.metadados?.calculado_em ?? null,
       })
