@@ -126,6 +126,13 @@ export function resumoTecnicoArranjo(arranjo, cat = {}) {
     pCA += pkw * q
     nMppt += nm * q
     entradas += nm * epm * q
+    // Micro: capacidade = entradas × módulos por entrada (catálogo). Sem esses
+    // dados, nada é presumido e cai no ramo "sem specs" abaixo (sem falso alarme).
+    if (String(esp.tipo_topologia).toUpperCase() === 'MICRO') {
+      const e = numEsp(esp, ['entradas']), mpe = numEsp(esp, ['modulos_por_entrada'])
+      if (e && mpe) capacidade += e * mpe * q
+      continue
+    }
     // módulos por string estimado por Voc; fallback conservador 16
     const modPorString = (vmax && vocModulo) ? Math.max(1, Math.floor(vmax / vocModulo)) : 16
     capacidade += nm * epm * modPorString * q

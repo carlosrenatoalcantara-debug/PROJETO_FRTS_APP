@@ -31,6 +31,7 @@ import { referenciaDoCatalogo } from '../../../fv/catalogo'
 import { validarMicroinversores } from '@fortesolar/fv-shared/fv/validacao-microinversores'
 import { novoIdArranjo } from '@fortesolar/fv-shared/projeto/identidade-arranjo'
 import { totalDoArranjo } from '../../../utils/sugerirStrings'
+import { quantidadeDeInversores } from '../../../utils/dimensionarMicro'
 
 const TIPO_BADGE_COR = {
   string:     'azul',
@@ -178,7 +179,7 @@ export default function E7Equipamentos() {
       fabricante: inversor.fabricante || inversor.marca || null,
       modelo: inversor.modelo || null,
       potencia_kw: inversor.especificacoes?.potencia_kw || inversor.potencia_kw || inversor.potenciaKW || null,
-      quantidade: 1,
+      quantidade: b.quantidadeInversores ?? 1,
       equipamento_id: referenciaDoCatalogo(inversor),
     }] : (b.inversores || [])
     return {
@@ -219,6 +220,7 @@ export default function E7Equipamentos() {
         { id: idDoPrimario(), rotulo: 'Arranjo A', tipo: 'principal',
           painel: equipamentos.painel, inversor: equipamentos.inversor,
           quantidadeModulos: equipamentos.quantidadeModulos ?? dim.numPaineis ?? null,
+          quantidadeInversores: quantidadeDeInversores({ inversor: equipamentos.inversor, numModulos: equipamentos.quantidadeModulos ?? dim.numPaineis, escolhida: equipamentos.quantidadeMicros }),
           estrutura: equipamentos.estrutura?.id || null },  // P2-FV-MULTIARRANJO-UX-01
         'Arranjo A', 'principal',
       ))
@@ -514,7 +516,7 @@ export default function E7Equipamentos() {
                 potencia_w: equipamentos.painel.potenciaW,
                 quantidade: equipamentos.quantidadeModulos ?? dim.numPaineis ?? 0,
               }] : [],
-              inversores: equipamentos.inversor ? [{ modelo: equipamentos.inversor.modelo, quantidade: 1 }] : [],
+              inversores: equipamentos.inversor ? [{ modelo: equipamentos.inversor.modelo, quantidade: quantidadeDeInversores({ inversor: equipamentos.inversor, numModulos: numPaineisReal, escolhida: equipamentos.quantidadeMicros }) ?? 1 }] : [],
             }}
             catalogo={{
               modulos: equipamentos.painel ? [{ _id: 'A_mod', modelo: equipamentos.painel.modelo, especificacoes: {
@@ -523,6 +525,11 @@ export default function E7Equipamentos() {
               inversores: equipamentos.inversor ? [{ _id: 'A_inv', modelo: equipamentos.inversor.modelo, especificacoes: {
                 potencia_kw: equipamentos.inversor.potenciaKW, n_mppts: equipamentos.inversor.nMppts,
                 entradas_por_mppt: equipamentos.inversor.entradasPorMppt, tensao_max_entrada: equipamentos.inversor.tensaoMaxV,
+                ...(equipamentos.inversor.tipo === 'micro' ? {
+                  tipo_topologia: 'MICRO',
+                  entradas: equipamentos.inversor._micro?.entradas,
+                  modulos_por_entrada: equipamentos.inversor._micro?.modulos_por_entrada,
+                } : {}),
               } }] : [],
             }}
           />

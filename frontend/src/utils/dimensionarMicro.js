@@ -133,3 +133,22 @@ export function resumoDistribuicao(dim) {
       i === 0 ? `${quantos} micro${quantos !== 1 ? 's' : ''} de ${modulos}` : `${quantos} de ${modulos}`)
     .join(' + ')
 }
+
+/**
+ * Quantas unidades do inversor entram no arranjo.
+ *
+ * String/híbrido: 1. Micro: a quantidade escolhida pelo projetista (nunca
+ * abaixo do mínimo) ou, sem escolha, o mínimo que a capacidade do CATÁLOGO
+ * exige. Sem capacidade no catálogo não há número a inventar → `null`.
+ */
+export function quantidadeDeInversores({ inversor, numModulos, escolhida }) {
+  if (inversor?.tipo !== 'micro') return 1
+  const cap = capacidadeDoMicro({
+    entradas: inversor?._micro?.entradas, modulos_por_entrada: inversor?._micro?.modulos_por_entrada,
+  })
+  const n = Math.max(0, Math.floor(numModulos || 0))
+  if (cap === null || n === 0) return null
+  const minimo = microsNecessarios(n, cap)
+  const pedida = Math.floor(Number(escolhida))
+  return Number.isFinite(pedida) && pedida >= minimo ? pedida : minimo
+}
