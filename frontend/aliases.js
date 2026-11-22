@@ -43,6 +43,10 @@ export function criarAliases(path, dirname) {
     '@fortesolar/fv-shared/financeiro/dimensionamento-retorno': path.resolve(dirname, '../packages/fv-shared/financeiro/dimensionamentoRetorno.js'),
     '@fortesolar/fv-shared/financeiro/simulacao-om':          path.resolve(dirname, '../packages/fv-shared/financeiro/simulacaoOM.js'),
     '@fortesolar/fv-shared/financeiro/contrato-v1':           path.resolve(dirname, '../packages/fv-shared/financeiro/contratoV1.js'),
+    // FV-ORC-000 Fase 1: motores da proposta de grupo (comparativo, preço, strings).
+    '@fortesolar/fv-shared/financeiro/comparativo-energetico': path.resolve(dirname, '../packages/fv-shared/financeiro/comparativoEnergetico.js'),
+    '@fortesolar/fv-shared/financeiro/precificacao-opcao':    path.resolve(dirname, '../packages/fv-shared/financeiro/precificacaoOpcao.js'),
+    '@fortesolar/fv-shared/engenharia/distribuicao-strings':  path.resolve(dirname, '../packages/fv-shared/engenharia/distribuicaoStrings.js'),
 
     // FV-DOM-007B: engenharia normativa e motor de unifilar. Saíram do frontend
     // para o domínio; o wizard legado ainda os alcança por shim enquanto existir.
