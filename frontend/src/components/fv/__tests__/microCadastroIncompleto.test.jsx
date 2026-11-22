@@ -38,6 +38,11 @@ describe('micro sem entradas no catálogo (opção A)', () => {
     expect(screen.getByText(/Salvar e avançar/).closest('button').disabled).toBe(true)
   })
 
+  it('não acusa "dados elétricos não mapeados" de string num micro', () => {
+    montar(micro({ _micro: { entradas: null, modulos_por_entrada: null } }))
+    expect(document.body.textContent).not.toMatch(/tensão máx\., corrente\/MPPT, faixa MPPT/)
+  })
+
   it('com entradas no catálogo: dimensiona e a quantidade de micros é editável', () => {
     montar(micro({ _micro: { entradas: 4, modulos_por_entrada: 1 } }))
     expect(screen.queryByTestId('micro-cadastro-incompleto')).toBeNull()
@@ -50,6 +55,8 @@ describe('micro sem entradas no catálogo (opção A)', () => {
     montar(micro({ _micro: { entradas: 4, modulos_por_entrada: 1 } }), { numMicros: 3 })
     expect(screen.getByTestId('micro-bloqueio').textContent).toMatch(/3 microinversor\(es\) não comportam 16 módulos — mínimo 4/)
     expect(screen.queryByText(/Selecione módulo e quantidade/)).toBeNull()
+    // a caixa continua na tela para o operador corrigir sem perder o foco
+    expect(screen.getByLabelText('Microinversores').value).toBe('3')
   })
 })
 

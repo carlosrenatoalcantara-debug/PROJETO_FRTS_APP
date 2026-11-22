@@ -718,7 +718,8 @@ export default function ConfiguradorArranjoFV({
 
   // ─── Render ────────────────────────────────────────────────────────────────
   const semMod = painel   && !eletricoMod
-  const semInv = inversor && !eletricoInv
+  // Micro não usa o envelope string (tensão máx./MPPT): a lacuna dele é a do bloco próprio.
+  const semInv = inversor && !eletricoInv && !ehMicro
 
   return (
     <div className="space-y-5">
@@ -805,6 +806,19 @@ export default function ConfiguradorArranjoFV({
             <h3 className="text-base font-bold text-amber-700">⚡ Sistema Microinversor</h3>
             <span className="ml-auto text-xs text-slate-500">{inversor?.marca} {inversor?.modelo}</span>
           </div>
+          {/* Fora do ternário: a caixa não pode sumir enquanto se digita um valor abaixo do mínimo. */}
+          {faltasMicro.length === 0 && dimMicro?.qtdMinima > 0 && (
+            <div>
+              <label htmlFor="qtd-micros" className="text-xs text-slate-400 block">Microinversores</label>
+              <input
+                id="qtd-micros" type="number" min={dimMicro.qtdMinima}
+                value={dimMicro.qtdMicros}
+                onChange={e => dispatch?.({ type: 'SET_EQUIPAMENTO', payload: { tipo: 'quantidadeMicros', item: parseInt(e.target.value, 10) > 0 ? parseInt(e.target.value, 10) : null } })}
+                className="w-20 px-2 py-1 border border-amber-300 rounded text-amber-700 font-bold text-lg"
+              />
+              <span className="ml-2 text-[10px] text-slate-400">mínimo {dimMicro.qtdMinima}</span>
+            </div>
+          )}
           {faltasMicro.length > 0 ? (
             <div className="p-3 bg-red-50 border border-red-300 rounded-lg text-sm text-red-800" data-testid="micro-cadastro-incompleto">
               <strong>Cadastro incompleto: falta {faltasMicro.join(' e ')}</strong> do {inversor?.marca} {inversor?.modelo}.
@@ -816,16 +830,6 @@ export default function ConfiguradorArranjoFV({
             <>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
                 <div><p className="text-xs text-slate-400">Módulos</p><p className="font-bold text-slate-800">{dimMicro.numModulos}</p></div>
-                <div>
-                  <label htmlFor="qtd-micros" className="text-xs text-slate-400 block">Microinversores</label>
-                  <input
-                    id="qtd-micros" type="number" min={dimMicro.qtdMinima}
-                    value={dimMicro.qtdMicros}
-                    onChange={e => dispatch?.({ type: 'SET_EQUIPAMENTO', payload: { tipo: 'quantidadeMicros', item: Math.max(0, parseInt(e.target.value, 10) || 0) || null } })}
-                    className="w-20 px-2 py-1 border border-amber-300 rounded text-amber-700 font-bold text-lg"
-                  />
-                  <p className="text-[10px] text-slate-400">mínimo {dimMicro.qtdMinima}</p>
-                </div>
                 <div><p className="text-xs text-slate-400">Módulos por micro</p><p className="font-bold text-slate-800">{dimMicro.modulosPorMicro} <span className="text-xs text-slate-400">({dimMicro.entradasPorMicro} entradas)</span></p></div>
                 <div><p className="text-xs text-slate-400">Aproveitamento entradas</p><p className="font-bold text-slate-800">{(dimMicro.aproveitamento * 100).toFixed(0)}%</p></div>
                 <div><p className="text-xs text-slate-400">Potência CC</p><p className="font-bold text-slate-800">{dimMicro.potenciaCcKw} kWp</p></div>

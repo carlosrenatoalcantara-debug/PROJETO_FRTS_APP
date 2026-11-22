@@ -261,6 +261,8 @@ export default function SeletorInversores({ onSelecionar, selecionado }) {
       // F3: idem para entradas por MPPT — ausência é ausência, não "1".
       entradasPorMppt: eletrico?.entradas_por_mppt ?? null,
       // S8.1: proveniência (snapshot/unifilar/homologação futura)
+      // Lado CC do micro (entradas × módulos/entrada): sem repassar, todo micro cai em 'cadastro incompleto'.
+      _micro:            inv._micro ?? null,
       _fonte:            inv._fonte || 'local',
       _catalogo_original: inv._catalogo_original || null,
     })
