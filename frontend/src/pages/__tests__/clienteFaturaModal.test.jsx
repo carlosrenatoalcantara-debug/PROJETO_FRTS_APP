@@ -68,25 +68,26 @@ describe('conta lida no cadastro fica anexada ao cliente', () => {
     fireEvent.submit(document.querySelector('input[name="email"]').closest('form'))
   }
 
-  it('depois de criar o cliente, envia o mesmo arquivo para /api/clientes/<id>/contas', async () => {
+  it('depois de criar o cliente, guarda os DADOS lidos (não o arquivo) em /api/clientes/<id>/contas', async () => {
     await salvar()
     await waitFor(() => expect(chamadas.some((c) => c.url.endsWith('/api/clientes/cli-novo/contas'))).toBe(true))
     const envio = chamadas.find((c) => c.url.endsWith('/api/clientes/cli-novo/contas'))
     expect(envio.init.method).toBe('POST')
-    expect(envio.init.body.get('conta').name).toBe('fatura.pdf')
+    expect(typeof envio.init.body).toBe('string')   // JSON, nunca FormData/arquivo
+    expect(JSON.parse(envio.init.body).dados).toMatchObject({ nome: 'FULANO DE TAL TESTE', cpfCnpj: '111.222.333-44' })
     const iCriar = chamadas.findIndex((c) => c.url.endsWith('/api/clientes') && c.init.method === 'POST')
     expect(iCriar).toBeGreaterThanOrEqual(0)
     expect(chamadas.indexOf(envio)).toBeGreaterThan(iCriar)
   })
 
-  it('anexo falhou: cliente continua criado e o operador é avisado', async () => {
+  it('guarda falhou: cliente continua criado e o operador é avisado', async () => {
     const original = global.fetch
     global.fetch = vi.fn((url, init) => (String(url).includes('/contas')
-      ? Promise.resolve({ ok: false, status: 413, json: () => Promise.resolve({ mensagem: 'A conta passa de 10 MB.' }) })
+      ? Promise.resolve({ ok: false, status: 400, json: () => Promise.resolve({ mensagem: 'Não há dados da conta para guardar.' }) })
       : original(url, init)))
     const alerta = vi.spyOn(window, 'alert').mockImplementation(() => {})
     await salvar()
-    await waitFor(() => expect(alerta).toHaveBeenCalledWith(expect.stringMatching(/Cliente criado, mas a conta não foi anexada: A conta passa de 10 MB/)))
+    await waitFor(() => expect(alerta).toHaveBeenCalledWith(expect.stringMatching(/Cliente criado, mas os dados da conta não foram guardados: Não há dados da conta para guardar/)))
     alerta.mockRestore()
   })
 })
