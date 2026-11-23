@@ -129,7 +129,8 @@ function validarArranjo({ mppts, modulosPorString, totalModulos = 0, ehMicro = f
   }
 
   // ── Por MPPT ──────────────────────────────────────────────────────────────
-  mppts.forEach((mppt, i) => {
+  // Micro não tem string nem MPPT: estes critérios não se aplicam a ele.
+  ;(ehMicro ? [] : mppts).forEach((mppt, i) => {
     const idx    = i + 1
     const mps    = mppt.modulosPorString
     const nStr   = mppt.numStrings
@@ -234,6 +235,9 @@ function validarArranjo({ mppts, modulosPorString, totalModulos = 0, ehMicro = f
   // aqui era uma segunda contagem do mesmo arranjo — no modo detalhado ela
   // divergia da soma exata por entrada/string, e a tela passava a discordar de
   // si mesma sobre quantos módulos existem.
+  // Micro: o CC/CA é da COMPOSIÇÃO (n micros), calculado por dimensionarMicroinversor
+  // no bloco próprio. Aqui a potência CA é a de UM micro — o fator sairia ~n× maior.
+  if (!ehMicro) {
   const totalKwp = (totalModulos * eletricoMod.potencia_w) / 1000
   /**
    * F2 — o `?? 1.30` saiu. Nenhum dos inversores do catálogo declara
@@ -278,6 +282,7 @@ function validarArranjo({ mppts, modulosPorString, totalModulos = 0, ehMicro = f
     avisos.push(
       `Strings com módulos muito diferentes entre MPPTs (${minMods}–${maxMods} mód/string). Strings desbalanceadas reduzem eficiência.`
     )
+  }
   }
 
   // ── Incompatibilidade mono/trifásica ──────────────────────────────────────
@@ -727,13 +732,22 @@ export default function ConfiguradorArranjoFV({
     }
   }, [projetoId, resultado, montarPayload, onSaved])
 
+  /**
+   * Micro NÃO grava `engenharia_eletrica`: aquele bloco é da análise de string
+   * (Voc/MPPT), que não se aplica, e o backend descarta `micro`/`topologia` ali.
+   * O fato do micro é `arranjos[].configuracao_eletrica.micros[]`, gravado pela
+   * etapa (onSaveAndNext → validar + persistir arranjos). Por isso, para micro,
+   * avançar não depende do `resultado` da análise de string.
+   */
   const salvarEAvancar = useCallback(async () => {
+    if (ehMicro) { onSaveAndNext?.(); return }
     const ok = await salvar()
     if (ok !== null) onSaveAndNext?.()
-  }, [salvar, onSaveAndNext])
+  }, [ehMicro, salvar, onSaveAndNext])
 
-  const podeSalvar = !!resultado && !carregando && !!projetoId && !(ehMicro && !dimMicro?.valido)
-    && faltasModulo.length === 0
+  const podeSalvar = ehMicro
+    ? !!projetoId && !!dimMicro?.valido
+    : !!resultado && !carregando && !!projetoId && faltasModulo.length === 0
 
   // ─── Render ────────────────────────────────────────────────────────────────
   const semMod = painel   && !eletricoMod
@@ -1227,6 +1241,7 @@ export default function ConfiguradorArranjoFV({
             )}
           </div>
           <div className="flex gap-2 shrink-0">
+            {!ehMicro && (
             <button
               onClick={salvar}
               disabled={!podeSalvar || saveStatus === 'saving' || divergenciaQtd}
@@ -1238,6 +1253,7 @@ export default function ConfiguradorArranjoFV({
             >
               <Save className="w-4 h-4" /> Salvar configuração
             </button>
+            )}
             {onSaveAndNext && (
               <button
                 onClick={salvarEAvancar}
