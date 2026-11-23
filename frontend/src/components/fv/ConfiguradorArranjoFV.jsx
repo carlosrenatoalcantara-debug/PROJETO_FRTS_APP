@@ -37,6 +37,8 @@ import {
 // classificadores. Mantê-los importados convidaria a comparação manual de volta.
 import { classificarTopologia } from '../../utils/topologiaInversor'
 import { dimensionarMicroinversor, resumoDistribuicao } from '../../utils/dimensionarMicro'
+import { sugerirMPPTs } from '../../utils/sugerirStrings'
+import { linkEdicaoCatalogo } from '../../utils/linkEdicaoCatalogo'
 // P1-MPPT-TOPOLOGY-IMPLEMENTATION-01 — editor da topologia real (entradas/strings)
 import TopologiaMPPTEditor, { derivarTopologia, resumoTopologia, topologiaVazia } from './TopologiaMPPTEditor'
 
@@ -56,17 +58,7 @@ const VERSAO_MOTOR = '2.0.0-sprint2'
  * pode derivar delas, e nenhum diagnóstico as consulta: quem valida é
  * `validarArranjo` (regras canônicas) e o motor do backend.
  */
-function sugerirMPPTs(numPaineis, nMppts) {
-  if (!numPaineis || numPaineis <= 0 || !nMppts) return Array(1).fill({ numStrings: 1, modulosPorString: 8 })
-  const modsPorStr = Math.min(14, Math.max(6, Math.ceil(numPaineis / Math.max(nMppts, 1) / 1.5)))
-  const stringsTotal = Math.ceil(numPaineis / modsPorStr)
-  const stringsBase  = Math.floor(stringsTotal / nMppts)
-  const resto        = stringsTotal - stringsBase * nMppts
-  return Array.from({ length: nMppts }, (_, i) => ({
-    numStrings:       stringsBase + (i < resto ? 1 : 0),
-    modulosPorString: modsPorStr,
-  }))
-}
+// A sugestão vive em utils/sugerirStrings (divisão exata da quantidade de E7).
 
 // ─── Regras elétricas: fonte única (FV-DOM-025) ──────────────────────────────
 //
@@ -309,7 +301,8 @@ export default function ConfiguradorArranjoFV({
   initialValues,
   areaDisponivel,
   tipoLigacao,
-  dispatch,        // ProjetoFV dispatch para atualizar numPaineis real
+  dispatch,        // ProjetoFV dispatch (topologia de strings / qtd. de micros)
+  numMicros,       // micros escolhidos em E7 (ausente = mínimo do catálogo)
   onSaved,
   onSaveAndNext,
 }) {
@@ -339,21 +332,44 @@ export default function ConfiguradorArranjoFV({
   // ── Quantidade alvo (user-defined) ─────────────────────────────────────
   // Em modo detalhado a soma é EXATA (módulos por string podem variar); no modo
   // simples mantém numStrings × modulosPorString.
-  const totalModulosArranjo = useMemo(
-    () => (modoDetalhado && topologia2)
-      ? resumoTopologia(topologia2).totalModulos
-      : mppts.reduce((s, m) => s + m.numStrings * m.modulosPorString, 0),
-    [mppts, modoDetalhado, topologia2]
-  )
-
   // ── Topologia explícita (string / micro / otimizador) ───────────────────
   const topologia = useMemo(() => classificarTopologia(inversor, eletricoInv), [inversor?.id, inversor?.modelo, eletricoInv])
   const ehMicro = topologia === 'micro'
+
+  // Micro não tem string: o total é a quantidade definida em E7.
+  const totalModulosArranjo = useMemo(
+    () => ehMicro
+      ? (numPaineis || 0)
+      : (modoDetalhado && topologia2)
+        ? resumoTopologia(topologia2).totalModulos
+        : mppts.reduce((s, m) => s + m.numStrings * m.modulosPorString, 0),
+    [ehMicro, numPaineis, mppts, modoDetalhado, topologia2]
+  )
+  // Capacidade do micro vem do CATÁLOGO (entradas × módulos por entrada).
+  // Ausente ⇒ bloqueio "cadastro incompleto" com link para editar — nunca default.
+  const microCatalogo = useMemo(() => ({
+    entradas:            inversor?._micro?.entradas ?? null,
+    modulos_por_entrada: inversor?._micro?.modulos_por_entrada ?? null,
+    potencia_ca_kw:      eletricoInv?.potencia_ca_kw ?? inversor?.potenciaKW ?? null,
+    oversizing_max:      eletricoInv ? eletricoInv.oversizing_max : null,
+  }), [inversor?.id, inversor?._micro, inversor?.potenciaKW, eletricoInv])
+  const faltasMicro = ehMicro ? [
+    microCatalogo.entradas == null && 'nº de entradas',
+    microCatalogo.modulos_por_entrada == null && 'módulos por entrada',
+  ].filter(Boolean) : []
   const dimMicro = useMemo(() => {
     if (!ehMicro || !eletricoMod) return null
-    const numMod = totalModulosArranjo || numPaineis || 0
-    return dimensionarMicroinversor({ numModulos: numMod, potenciaModuloW: eletricoMod.potencia_w, micro: eletricoInv || {} })
-  }, [ehMicro, eletricoMod, eletricoInv, totalModulosArranjo, numPaineis])
+    return dimensionarMicroinversor({
+      numModulos: numPaineis || 0, potenciaModuloW: eletricoMod.potencia_w,
+      micro: microCatalogo, quantidade: numMicros,
+    })
+  }, [ehMicro, eletricoMod, microCatalogo, numPaineis, numMicros])
+
+  // Link para corrigir o cadastro do equipamento na hora (abre em nova aba).
+  const linkInversor = inversor?._fonte === 'catalogo'
+    ? linkEdicaoCatalogo({ tipo: ehMicro ? 'microinversor' : 'inversor', id: inversor?.id }) : null
+  const linkModulo = painel?._fonte === 'catalogo'
+    ? linkEdicaoCatalogo({ tipo: 'modulo', id: painel?.id }) : null
 
   // ── Clima ───────────────────────────────────────────────────────────────
   const climaPadrao = CLIMA_PADRAO_UF[uf] ?? { tmin: 10, tmax: 40 }
@@ -439,22 +455,28 @@ export default function ConfiguradorArranjoFV({
 
   // ── Autoconfigurar pela quantidade alvo ─────────────────────────────────
   function autoConfigurar(qtdAlvo) {
-    const mps = Math.min(14, Math.max(6, Math.ceil(qtdAlvo / nMppts / 1.5)))
-    const stringsTotal = Math.ceil(qtdAlvo / mps)
-    const base  = Math.floor(stringsTotal / nMppts)
-    const resto = stringsTotal - base * nMppts
-    setMppts(Array.from({ length: nMppts }, (_, i) => ({
-      numStrings:       base + (i < resto ? 1 : 0),
-      modulosPorString: mps,
-    })))
+    const novo = sugerirMPPTs(qtdAlvo, nMppts)
+    setMppts(novo)
+    if (modoDetalhado) setTopologia2(derivarTopologia(novo, entradasPorMppt))
   }
+
+  // A quantidade é de E7. Mudou lá → o arranjo se refaz aqui; nunca o contrário.
+  const qtdAnteriorRef = useRef(numPaineis)
+  useEffect(() => {
+    if (qtdAnteriorRef.current === numPaineis) return
+    qtdAnteriorRef.current = numPaineis
+    if (ehMicro || !(numPaineis > 0) || numPaineis === totalModulosArranjo) return
+    autoConfigurar(numPaineis)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [numPaineis])
+
 
   /**
    * ── Propagação ao contexto ────────────────────────────────────────────────
    *
-   * O total de módulos do arranjo viaja daqui para o resto do wizard. Continua
-   * escrevendo `numPaineis` e `potenciaRealKwp` porque as etapas seguintes
-   * (E7, E8) leem esses campos como a composição em edição.
+   * A QUANTIDADE de módulos é de E7 (campo explícito) — daqui não volta mais
+   * `numPaineis`/`quantidadeModulos`: antes o arredondamento das strings
+   * (16 → 3 × 6 = 18) sobrescrevia o campo. Daqui só sai a topologia.
    *
    * F-05: o que MUDOU é a persistência. `adaptarDimensionamento` gravava esses
    * mesmos campos em `dimensionamento`, o subdocumento da NECESSIDADE, e assim
@@ -463,27 +485,16 @@ export default function ConfiguradorArranjoFV({
    * E5, que ninguém reescreve — e a composição vai para `arranjos[]`.
    */
   useEffect(() => {
-    if (!dispatch || !totalModulosArranjo || !painel?.potenciaW) return
-    const potRealKwp    = +(totalModulosArranjo * painel.potenciaW / 1000).toFixed(3)
+    if (!dispatch) return
+    if (ehMicro) { dispatch({ type: 'SET_EQUIPAMENTO', payload: { tipo: 'arranjoMPPTs', item: null } }); return }
     const totalStrings  = mppts.reduce((s, m) => s + m.numStrings, 0)
-    dispatch({
-      type: 'SET_DIMENSIONAMENTO',
-      payload: {
-        numPaineis:      totalModulosArranjo,
-        potenciaRealKwp: potRealKwp,
-        numStrings:      totalStrings,         // ← unifilar usa este campo
-      },
-    })
-    dispatch({
-      type: 'SET_EQUIPAMENTO',
-      payload: { tipo: 'quantidadeModulos', item: totalModulosArranjo },
-    })
-    dispatch({
-      type: 'SET_EQUIPAMENTO',
-      payload: { tipo: 'arranjoMPPTs', item: mppts },
-    })
+    dispatch({ type: 'SET_DIMENSIONAMENTO', payload: { numStrings: totalStrings } })   // ← unifilar usa este campo
+    dispatch({ type: 'SET_EQUIPAMENTO', payload: { tipo: 'arranjoMPPTs', item: mppts } })
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [totalModulosArranjo, painel?.potenciaW])
+  }, [mppts, ehMicro])
+
+  // Arranjo de strings que não fecha a quantidade de E7 não pode ser salvo.
+  const divergenciaQtd = !ehMicro && numPaineis > 0 && totalModulosArranjo !== numPaineis
 
   // ── Objetos para o hook de compatibilidade ──────────────────────────────
   // Usa o MPPT com mais módulos/string como worst-case para a API
@@ -703,11 +714,12 @@ export default function ConfiguradorArranjoFV({
     if (ok !== null) onSaveAndNext?.()
   }, [salvar, onSaveAndNext])
 
-  const podeSalvar = !!resultado && !carregando && !!projetoId
+  const podeSalvar = !!resultado && !carregando && !!projetoId && !(ehMicro && !dimMicro?.valido)
 
   // ─── Render ────────────────────────────────────────────────────────────────
   const semMod = painel   && !eletricoMod
-  const semInv = inversor && !eletricoInv
+  // Micro não usa o envelope string (tensão máx./MPPT): a lacuna dele é a do bloco próprio.
+  const semInv = inversor && !eletricoInv && !ehMicro
 
   return (
     <div className="space-y-5">
@@ -716,9 +728,11 @@ export default function ConfiguradorArranjoFV({
       {(semMod || semInv) && (
         <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
           <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-amber-500" />
-          {semMod && 'Dados elétricos do módulo não mapeados. '}
-          {semInv && 'Dados elétricos do inversor não mapeados. '}
-          Análise de compatibilidade indisponível.
+          <span>
+            {semMod && <>Dados elétricos do módulo não mapeados{linkModulo && <> — <a href={linkModulo} target="_blank" rel="noopener noreferrer" className="underline font-semibold">editar módulo no catálogo ↗</a></>}. </>}
+            {semInv && <>Dados elétricos do inversor não mapeados (tensão máx., corrente/MPPT, faixa MPPT){linkInversor && <> — <a href={linkInversor} target="_blank" rel="noopener noreferrer" className="underline font-semibold">editar {ehMicro ? 'microinversor' : 'inversor'} no catálogo ↗</a></>}. </>}
+            Análise de compatibilidade indisponível. Depois de salvar no catálogo, selecione o equipamento de novo.
+          </span>
         </div>
       )}
 
@@ -743,10 +757,11 @@ export default function ConfiguradorArranjoFV({
               <span className="text-3xl font-black text-slate-900">{totalModulosArranjo}</span>
               <span className="text-sm text-slate-400 font-medium">módulos</span>
             </div>
-            {numPaineis > 0 && totalModulosArranjo !== numPaineis && (
-              <p className="text-xs text-amber-600 mt-1">
-                Dimensionamento E5 sugeria {numPaineis} módulos
-                {totalModulosArranjo > numPaineis ? ` (+${totalModulosArranjo - numPaineis})` : ` (−${numPaineis - totalModulosArranjo})`}
+            {divergenciaQtd && (
+              <p className="text-xs text-red-600 mt-1" data-testid="divergencia-qtd">
+                Quantidade definida: {numPaineis} módulos — as strings somam {totalModulosArranjo}
+                {totalModulosArranjo > numPaineis ? ` (+${totalModulosArranjo - numPaineis})` : ` (−${numPaineis - totalModulosArranjo})`}.
+                {' '}Ajuste as strings (o modo detalhado aceita tamanhos diferentes) ou a quantidade.
               </p>
             )}
           </div>
@@ -772,12 +787,14 @@ export default function ConfiguradorArranjoFV({
             </div>
           )}
 
+          {!ehMicro && (
           <button
             onClick={() => autoConfigurar(numPaineis || totalModulosArranjo)}
             className="text-xs bg-slate-100 border border-slate-200 text-slate-700 hover:bg-slate-200 px-3 py-2 rounded-lg font-medium transition-colors"
           >
-            ↺ Auto-configurar pelo E5
+            ↺ Auto-configurar pela quantidade
           </button>
+          )}
         </div>
       </div>
 
@@ -789,11 +806,30 @@ export default function ConfiguradorArranjoFV({
             <h3 className="text-base font-bold text-amber-700">⚡ Sistema Microinversor</h3>
             <span className="ml-auto text-xs text-slate-500">{inversor?.marca} {inversor?.modelo}</span>
           </div>
-          {dimMicro?.valido ? (
+          {/* Fora do ternário: a caixa não pode sumir enquanto se digita um valor abaixo do mínimo. */}
+          {faltasMicro.length === 0 && dimMicro?.qtdMinima > 0 && (
+            <div>
+              <label htmlFor="qtd-micros" className="text-xs text-slate-400 block">Microinversores</label>
+              <input
+                id="qtd-micros" type="number" min={dimMicro.qtdMinima}
+                value={dimMicro.qtdMicros}
+                onChange={e => dispatch?.({ type: 'SET_EQUIPAMENTO', payload: { tipo: 'quantidadeMicros', item: parseInt(e.target.value, 10) > 0 ? parseInt(e.target.value, 10) : null } })}
+                className="w-20 px-2 py-1 border border-amber-300 rounded text-amber-700 font-bold text-lg"
+              />
+              <span className="ml-2 text-[10px] text-slate-400">mínimo {dimMicro.qtdMinima}</span>
+            </div>
+          )}
+          {faltasMicro.length > 0 ? (
+            <div className="p-3 bg-red-50 border border-red-300 rounded-lg text-sm text-red-800" data-testid="micro-cadastro-incompleto">
+              <strong>Cadastro incompleto: falta {faltasMicro.join(' e ')}</strong> do {inversor?.marca} {inversor?.modelo}.
+              {' '}Sem isso não há como dimensionar os micros — nenhum valor é presumido.
+              {linkInversor && <> <a href={linkInversor} target="_blank" rel="noopener noreferrer" className="underline font-semibold">Editar no catálogo ↗</a></>}
+              <span className="block text-xs mt-1">Depois de salvar no catálogo, selecione o microinversor de novo.</span>
+            </div>
+          ) : dimMicro?.valido ? (
             <>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
                 <div><p className="text-xs text-slate-400">Módulos</p><p className="font-bold text-slate-800">{dimMicro.numModulos}</p></div>
-                <div><p className="text-xs text-slate-400">Microinversores</p><p className="font-bold text-amber-700 text-lg">{dimMicro.qtdMicros}</p></div>
                 <div><p className="text-xs text-slate-400">Módulos por micro</p><p className="font-bold text-slate-800">{dimMicro.modulosPorMicro} <span className="text-xs text-slate-400">({dimMicro.entradasPorMicro} entradas)</span></p></div>
                 <div><p className="text-xs text-slate-400">Aproveitamento entradas</p><p className="font-bold text-slate-800">{(dimMicro.aproveitamento * 100).toFixed(0)}%</p></div>
                 <div><p className="text-xs text-slate-400">Potência CC</p><p className="font-bold text-slate-800">{dimMicro.potenciaCcKw} kWp</p></div>
@@ -804,7 +840,17 @@ export default function ConfiguradorArranjoFV({
               <p className="text-xs text-slate-400">Cada módulo conecta a uma entrada do micro — <strong>sem strings, sem MPPT, sem strings paralelas</strong>.</p>
             </>
           ) : (
-            <p className="text-sm text-slate-500">Selecione módulo e quantidade para dimensionar o sistema microinversor.</p>
+            <div className="text-sm text-red-700" data-testid="micro-bloqueio">
+              {!eletricoMod ? 'Dados elétricos do módulo não mapeados — não há como dimensionar.'
+                : !(numPaineis > 0) ? 'Informe a quantidade de módulos acima.'
+                : dimMicro?.motivo}
+              {dimMicro && dimMicro.qtdMinima > 0 && (
+                <button type="button" className="ml-2 underline text-xs"
+                  onClick={() => dispatch?.({ type: 'SET_EQUIPAMENTO', payload: { tipo: 'quantidadeMicros', item: null } })}>
+                  usar o mínimo ({dimMicro.qtdMinima})
+                </button>
+              )}
+            </div>
           )}
         </div>
       )}
@@ -1156,7 +1202,7 @@ export default function ConfiguradorArranjoFV({
           <div className="flex gap-2 shrink-0">
             <button
               onClick={salvar}
-              disabled={!podeSalvar || saveStatus === 'saving'}
+              disabled={!podeSalvar || saveStatus === 'saving' || divergenciaQtd}
               className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                 podeSalvar && saveStatus !== 'saving'
                   ? 'bg-slate-700 text-white hover:bg-slate-800'
@@ -1168,7 +1214,7 @@ export default function ConfiguradorArranjoFV({
             {onSaveAndNext && (
               <button
                 onClick={salvarEAvancar}
-                disabled={!podeSalvar || saveStatus === 'saving' || bloqueios.length > 0}
+                disabled={!podeSalvar || saveStatus === 'saving' || bloqueios.length > 0 || divergenciaQtd}
                 className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                   podeSalvar && saveStatus !== 'saving' && bloqueios.length === 0
                     ? 'bg-blue-600 text-white hover:bg-blue-700'

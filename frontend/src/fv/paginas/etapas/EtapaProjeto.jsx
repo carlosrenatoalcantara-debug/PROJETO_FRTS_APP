@@ -60,13 +60,28 @@ const CAMPOS = [
 /** Documento → texto do input. `null`/ausente vira '', e `0` continua "0". */
 const texto = (v) => (v === null || v === undefined ? '' : String(v))
 
+/**
+ * A fatura grava o tipo de ligação como foi lido ("Trifásico 380V"); o select só
+ * tem a lista fechada do schema. Sem casar, o select aparecia vazio apesar de o
+ * dado existir. Só ESCOLHE a opção que o texto já diz — o gravado não muda até o
+ * operador editar, e o que não casa com nenhuma opção continua em branco.
+ */
+export function ligacaoDaOpcao(valor) {
+  const s = texto(valor).trim()
+  if (s === '') return ''
+  if (LIGACOES.includes(s)) return s
+  const n = s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+  const achadas = LIGACOES.filter((l) => n.includes(l.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().slice(0, 4)))
+  return achadas.length === 1 ? achadas[0] : ''
+}
+
 /** Valores persistidos, na forma que o formulário edita. */
 function persistidos(projeto) {
   const fatura = projeto?.fatura_extracao ?? {}
   return {
     consumo_mensal_kwh: texto(fatura.consumo_mensal_kwh),
     valor_kwh: texto(fatura.valor_kwh),
-    tipo_ligacao: texto(fatura.tipo_ligacao),
+    tipo_ligacao: ligacaoDaOpcao(fatura.tipo_ligacao),
     tensao_v: texto(fatura.tensao_v),
     concessionaria: texto(fatura.concessionaria),
     estado: texto(projeto?.localizacao?.estado),
@@ -157,7 +172,11 @@ export default function EtapaProjeto() {
 
   // Tensão derivada: só SUGERE. Não é gravada até o operador aceitar.
   const sugestaoTensao = resolverTensaoRede({
-    tipoLigacao: valores.tipo_ligacao,
+    // Não editado: usa o texto gravado ("Trifásico 380V" carrega a tensão); o select
+    // mostra só a opção normalizada.
+    tipoLigacao: valores.tipo_ligacao === original.tipo_ligacao
+      ? (projeto.fatura_extracao?.tipo_ligacao ?? valores.tipo_ligacao)
+      : valores.tipo_ligacao,
     concessionaria: valores.concessionaria,
     uf: valores.estado,
   })

@@ -13,6 +13,8 @@ const API_URL = '' /* URL relativa forçada — Vercel proxy → Railway. Não u
 function ModalNovoClienteComPDF({ onClose, onSalvo }) {
   const [step, setStep] = useState('upload') // 'upload' | 'manual'
   const [arquivo, setArquivo] = useState(null)
+  // O que a conta disse (corpo de /api/fatura/extrair): é isto que fica guardado, não o arquivo.
+  const [dadosConta, setDadosConta] = useState(null)
   const [extraindo, setExtraindo] = useState(false)
   const [erro, setErro] = useState('')
   // CPF que a conta traz mascarado ("123.4**.***-**"): só para avisar, nunca gravado.
@@ -73,6 +75,7 @@ function ModalNovoClienteComPDF({ onClose, onSalvo }) {
       }
 
       const dados = await res.json()
+      setDadosConta(dados)
 
       // Auto-preencher com todos os dados extraídos
       setFormData(prev => ({
@@ -139,13 +142,14 @@ function ModalNovoClienteComPDF({ onClose, onSalvo }) {
       }
 
       const novoCliente = data
-      // A conta lida no cadastro fica anexada ao cliente. Se o anexo falhar,
-      // o cliente já existe: avisa e segue (dá para anexar pela ficha).
-      if (arquivo && novoCliente?._id) {
+      // O que a conta disse fica guardado no cliente (só os dados; o arquivo é
+      // descartado). Se falhar, o cliente já existe: avisa e segue (dá para
+      // anexar pela ficha).
+      if (dadosConta && novoCliente?._id) {
         try {
-          await anexarConta(novoCliente._id, arquivo)
+          await anexarConta(novoCliente._id, dadosConta)
         } catch (errAnexo) {
-          window.alert(`Cliente criado, mas a conta não foi anexada: ${errAnexo.message}. Anexe pela ficha do cliente.`)
+          window.alert(`Cliente criado, mas os dados da conta não foram guardados: ${errAnexo.message}. Anexe pela ficha do cliente.`)
         }
       }
       onSalvo(novoCliente)

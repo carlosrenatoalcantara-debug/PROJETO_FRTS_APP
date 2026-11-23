@@ -5,6 +5,7 @@ import Dropzone from '../../ui/Dropzone'
 import Button from '../../ui/Button'
 import Input from '../../ui/Input'
 import { resolverTensaoRede } from '../../../utils/tensaoRede'
+import { casarConcessionaria } from '../../../data/concessionariasWizard'
 
 const API_URL = '' /* URL relativa forçada — Vercel proxy → Railway */
 
@@ -66,6 +67,10 @@ export default function E1Upload() {
           payload: {
             consumoMensal: dados.consumoKwh || '',
             distribuidora: dados.distribuidora || '',
+            // O select da E2 lê `concessionaria`: sem isso o nome lido ("COSERN") nunca chegava a ele.
+            // Só preenche quando o nome identifica UMA opção da lista; ambíguo fica para o operador.
+            ...(casarConcessionaria(dados.distribuidora, dados.uf ?? dados.estado)
+              ? { concessionaria: casarConcessionaria(dados.distribuidora, dados.uf ?? dados.estado) } : {}),
             historico12Meses: dados.historico12Meses || null,
             mediaAnual: dados.mediaAnual || null,
             tipoLigacao: normFase(dados.tipoLigacao),

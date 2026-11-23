@@ -6,7 +6,7 @@ import Button from '../components/ui/Button'
 import Badge from '../components/ui/Badge'
 import Input from '../components/ui/Input'
 import FormNovoProjeto from '../fv/componentes/FormNovoProjeto'
-import { listarContas, anexarConta, excluirConta, baixarConta, TIPOS_CONTA, MIMETYPES_CONTA } from '../services/contasClienteApi'
+import { listarContas, lerDadosDaConta, anexarConta, excluirConta, baixarConta, baixarDadosConta, TIPOS_CONTA, MIMETYPES_CONTA } from '../services/contasClienteApi'
 
 const API_URL = '' /* URL relativa forçada — Vercel proxy → Railway. Não usar VITE_API_URL */
 
@@ -70,13 +70,31 @@ export default function ClienteGerenciamento() {
     setErroConta('')
     setUploadandoConta(true)
     try {
-      const conta = await anexarConta(clienteId, arquivo)
-      setContas((atuais) => [conta, ...atuais])
+      // Lê a conta e guarda só o que ela diz; o arquivo não é guardado.
+      const dados = await lerDadosDaConta(arquivo)
+      const conta = await anexarConta(clienteId, dados)
+      setContas((atuais) => (atuais.some((c) => c._id === conta._id) ? atuais : [conta, ...atuais]))
     } catch (err) {
       setErroConta(err.message)
     } finally {
       setUploadandoConta(false)
       if (inputContaRef.current) inputContaRef.current.value = ''
+    }
+  }
+
+  /** Baixa o JSON ou o Markdown gerado dos dados guardados. */
+  async function baixarArquivoDaConta(conta, formato) {
+    setErroConta('')
+    try {
+      const blob = await baixarDadosConta(clienteId, conta._id, formato)
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `conta-${String(conta.numero_cliente || conta._id).replace(/[^A-Za-z0-9._-]+/g, '_')}.${formato}`
+      a.click()
+      setTimeout(() => URL.revokeObjectURL(url), 60_000)
+    } catch (err) {
+      setErroConta(err.message)
     }
   }
 
@@ -265,7 +283,7 @@ export default function ClienteGerenciamento() {
               }`}
             >
               <Upload size={32} className="mx-auto text-slate-400 mb-2" />
-              <p className="text-sm text-slate-600">Arraste a conta (PDF ou imagem, até 10 MB) aqui ou use o botão Anexar</p>
+              <p className="text-sm text-slate-600">Arraste a conta (PDF ou imagem) aqui ou use o botão Anexar. Só os dados lidos ficam guardados — o arquivo não.</p>
             </div>
 
             {erroConta && <p role="alert" className="text-sm text-red-600">{erroConta}</p>}
@@ -277,10 +295,25 @@ export default function ClienteGerenciamento() {
                 {contas.map(conta => (
                   <div key={conta._id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
                     <div>
-                      <button type="button" onClick={() => abrirConta(conta)} className="font-medium text-slate-900 hover:underline text-left">
-                        {conta.nome}
-                      </button>
-                      <p className="text-xs text-slate-500">{new Date(conta.createdAt).toLocaleDateString('pt-BR')}</p>
+                      {conta.tem_dados ? (
+                        <p className="font-medium text-slate-900">
+                          {conta.nome}{conta.distribuidora ? ` · ${conta.distribuidora}` : ''}
+                        </p>
+                      ) : (
+                        <button type="button" onClick={() => abrirConta(conta)} className="font-medium text-slate-900 hover:underline text-left">
+                          {conta.nome}
+                        </button>
+                      )}
+                      <p className="text-xs text-slate-500">
+                        {new Date(conta.createdAt).toLocaleDateString('pt-BR')}
+                        {conta.tem_dados ? ' · dados extraídos' : ' · arquivo original (anterior)'}
+                      </p>
+                      {conta.tem_dados && (
+                        <div className="mt-1 flex gap-3 text-xs">
+                          <button type="button" onClick={() => baixarArquivoDaConta(conta, 'json')} className="text-blue-600 hover:underline">Baixar .json</button>
+                          <button type="button" onClick={() => baixarArquivoDaConta(conta, 'md')} className="text-blue-600 hover:underline">Baixar .md</button>
+                        </div>
+                      )}
                     </div>
                     <button
                       onClick={() => deletarConta(conta._id)}

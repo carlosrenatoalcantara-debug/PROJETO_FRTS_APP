@@ -10,6 +10,7 @@
 
 // P0-DIMENSIONAMENTO-ENGINEERING-RESTORE-01: reúso da fonte única de tecnologia (sem duplicar regras).
 import { tecnologiaInversor } from '@fortesolar/fv-shared/engenharia/regras-plausibilidade'
+import { valorCampo } from '@fortesolar/fv-shared/inversores/dicionario'
 
 const num = (v) => { if (v == null || v === '') return null; const n = Number(v); return Number.isFinite(n) ? n : null }
 const pick = (e, ks) => { for (const k of ks) { const v = num(e?.[k]); if (v !== null) return v } return null }
@@ -144,6 +145,12 @@ export function adaptarInversor(eq) {
       // `strings_por_mppt`; para os demais, "1" era presunção indistinguível
       // do dado real. Ausente ⇒ `null` ⇒ lacuna visível.
       entradas_por_mppt: pick(e, ['entradas_por_mppt', 'strings_por_mppt']),
+    },
+    // Lado CC do MICRO (FV-DOM-031): sem estes dois o micro não tem capacidade
+    // e o wizard bloqueia — nunca presumidos. Lidos pelos aliases do dicionário.
+    _micro: {
+      entradas: num(valorCampo(e, 'entradas')),
+      modulos_por_entrada: num(valorCampo(e, 'modulos_por_entrada')),
     },
     registro_inmetro: eq.certificacao?.inmetro?.numero ?? null,
     _fases: fases,

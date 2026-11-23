@@ -43,6 +43,15 @@ const ESQUEMA = {
     { key: 'n_mppts',               label: 'Nº de MPPTs',           obrigatorio: true,  tipo: 'number', info: 'Quantidade de rastreadores de máxima potência independentes.' },
     { key: 'tipo_topologia',        label: 'Topologia',             tipo: 'text', info: 'STRING (inversor de string), MICRO (microinversor) ou HYBRID (híbrido).' },
     { key: 'entradas_por_mppt',     label: 'Entradas por MPPT',     tipo: 'text', info: 'Entradas físicas (conectores) por MPPT. STRING: strings possíveis; MICRO: módulos por MPPT. Ex.: 3/3, 2/1.' },
+    // Lado CC do MICROINVERSOR (FV-DOM-031). Só aparecem quando o equipamento é
+    // micro; sem eles o wizard bloqueia ("cadastro incompleto") — nunca presumidos.
+    // `aliases`: o mesmo dado já gravado com outro nome (dicionarioInversor).
+    { key: 'entradas',              label: 'Nº de entradas (micro)', tipo: 'number', soMicro: true,
+      aliases: ['entradas_cc', 'total_entradas_cc', 'n_entradas', 'numero_entradas', 'entradas_dc'],
+      info: 'Entradas CC do microinversor (conectores de módulo). Ex.: 4.' },
+    { key: 'modulos_por_entrada',   label: 'Módulos por entrada (micro)', tipo: 'number', soMicro: true,
+      aliases: ['modulos_por_entrada_max', 'paineis_por_entrada', 'modulos_por_canal'],
+      info: 'Quantos módulos ligam em cada entrada. Ex.: 1.' },
     { key: 'strings_por_mppt',      label: 'Strings por MPPT',      tipo: 'text', info: 'Compatibilidade — strings por MPPT, derivado de entradas_por_mppt. Ex.: 1/1, 2/1, 3/3/2/2.' },
     { key: 'tensao_max_entrada',    label: 'Tensão máx. entrada (V)', tipo: 'number', info: 'Tensão CC máxima suportada na entrada (Voc no frio não pode excedê-la).' },
     { key: 'tensao_mppt_min',       label: 'Tensão MPPT mín. (V)',  tipo: 'number', info: 'Limite inferior da faixa de rastreamento MPPT.' },
@@ -124,10 +133,12 @@ export function rotuloEntradas(tipoTopologia) {
   return String(tipoTopologia).toUpperCase() === 'MICRO' ? 'Módulos por MPPT' : 'Strings por MPPT'
 }
 
-export function classificarCampos(tipo, especificacoes = {}, statusMap = {}) {
+export function classificarCampos(tipo, especificacoes = {}, statusMap = {}, ctx = {}) {
   const topo = especificacoes?.tipo_topologia
-  return obterCamposEditaveis(tipo).map(campo => {
+  const micro = ctx?.micro === true || String(topo).toUpperCase() === 'MICRO'
+  return obterCamposEditaveis(tipo).filter(c => !c.soMicro || micro).map(campo => {
     let valor = especificacoes?.[campo.key] ?? null
+    for (const a of campo.aliases || []) { if (valor == null || valor === '') valor = especificacoes?.[a] ?? null }
     // entradas_por_mppt: exibe array como "3/3"; rótulo muda por topologia.
     let label = campo.label
     if (campo.key === 'entradas_por_mppt') {

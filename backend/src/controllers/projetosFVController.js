@@ -7,6 +7,7 @@ import {
 import { Equipamento } from '../models/Equipamento.js'
 import { Cliente } from '../models/Cliente.js'
 import { faturaDoCliente } from '../dominio/projeto/faturaDoCliente.js'
+import { localizacaoDoCliente } from '../dominio/projeto/localizacaoDoCliente.js'
 import { Tecnico } from '../models/Tecnico.js'
 import mongoose from 'mongoose'
 import { memoryStore } from '../config/memoryStorage.js'
@@ -223,9 +224,11 @@ export const criarProjetoFV = async (req, res) => {
       // O cadastro do cliente já é fato: o projeto nasce com ele, sem redigitação.
       // Cliente de outro tenant não é lido (aplicarEscopo) e não bloqueia a criação.
       let fatura = {}
+      let localizacao = {}
       try {
         const cli = await Cliente.findOne(aplicarEscopo({ _id: clienteId }, req, { contexto: 'projetoFV.criar.cliente' })).lean()
         fatura = faturaDoCliente(cli)
+        localizacao = localizacaoDoCliente(cli)
       } catch (e) {
         console.warn('[projetoFV.criar] dados do cliente não copiados:', e.message)
       }
@@ -234,6 +237,7 @@ export const criarProjetoFV = async (req, res) => {
         clienteId,
         nome,
         ...(Object.keys(fatura).length ? { fatura_extracao: fatura } : {}),
+        ...(Object.keys(localizacao).length ? { localizacao } : {}),
         status: status || 'rascunho',
         endereco_completo: endereco_completo || '',
         latitude: latitude === undefined || latitude === null || latitude === '' ? null : Number(latitude),

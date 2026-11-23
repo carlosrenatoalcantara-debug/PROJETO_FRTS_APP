@@ -81,3 +81,19 @@ describe('FASE 2 — classificação explícita de topologia', () => {
     expect(classificarTopologia({ ...inv('Hoymiles', 'HMS-2000'), topologia: 'string' })).toBe(TOPOLOGIAS.STRING)
   })
 })
+
+import { quantidadeDeInversores } from '../dimensionarMicro.js'
+describe('quantidadeDeInversores', () => {
+  const micro = (e, m) => ({ tipo: 'micro', _micro: { entradas: e, modulos_por_entrada: m } })
+  it('string é sempre 1', () => {
+    expect(quantidadeDeInversores({ inversor: { tipo: 'string' }, numModulos: 16 })).toBe(1)
+  })
+  it('micro: mínimo pela capacidade do catálogo; escolha válida prevalece', () => {
+    expect(quantidadeDeInversores({ inversor: micro(4, 1), numModulos: 16 })).toBe(4)
+    expect(quantidadeDeInversores({ inversor: micro(4, 1), numModulos: 16, escolhida: 6 })).toBe(6)
+    expect(quantidadeDeInversores({ inversor: micro(4, 1), numModulos: 16, escolhida: 3 })).toBe(4)
+  })
+  it('micro sem capacidade no catálogo: null, nunca 1 presumido', () => {
+    expect(quantidadeDeInversores({ inversor: micro(null, null), numModulos: 16 })).toBeNull()
+  })
+})

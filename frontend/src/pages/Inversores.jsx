@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { useEdicaoPorLink } from '../hooks/useEdicaoPorLink'
 import { X, Edit2, Trash2, Upload, Zap, ChevronDown, ChevronUp, Cable, Info, CheckCircle, AlertCircle } from 'lucide-react'
 import Card, { CardHeader, CardBody } from '../components/ui/Card'
 import Button from '../components/ui/Button'
@@ -6,6 +7,7 @@ import ModalNovoInversor from '../components/equipamentos/ModalNovoInversor'
 import AssistenteImportacaoDatasheet from '../components/equipamentos/AssistenteImportacaoDatasheet'
 // P1-INV-UI-01: edição manual dirigida pelo MESMO esquema do SSOT (sem dialeto).
 import { obterCamposEditaveis, classificarCampos, STATUS } from '@fortesolar/fv-shared/ai/campos-equipamento'
+import { ehMicroinversor } from '@fortesolar/fv-shared/inversores/dicionario'
 // Sprint E3 (§5/§6): a corrente acumulada do ramal vem do motor de micro — era
 // a única aritmética aqui que duplicava regra existente.
 import { correnteDoRamal } from '@fortesolar/fv-shared/engenharia/corrente-micro'
@@ -309,6 +311,8 @@ export default function Inversores() {
     setModalAberto(true)
   }
 
+  useEdicaoPorLink({ itens: inversores, carregando, abrir: handleEditar })
+
   function handleSalvar() {
     setModalAberto(false)
     setArquivosModal([])
@@ -527,7 +531,9 @@ function EdicaoInversor({ inversor, onClose, onSalvar }) {
   // P1-INV-UI-01: campos editáveis vêm do MESMO esquema do SSOT (camposEquipamento).
   // Sem dialeto, sem placeholder-como-documentação. Rótulo dinâmico de entradas por
   // topologia, legenda externa (ℹ) e status 🟢/🟡/🔴 — consistente com a Assistida.
-  const campos = classificarCampos('inversor', espec)
+  // Micro (pela topologia declarada ou pelo modelo) mostra entradas / módulos por entrada.
+  const micro = espec.subtipo === 'microinversor' || ehMicroinversor(espec, { fabricante: form.fabricante, modelo: form.modelo })
+  const campos = classificarCampos('inversor', espec, {}, { micro })
   const corStatus = { [STATUS.OK]: 'text-emerald-500', [STATUS.AUSENTE]: 'text-amber-500', [STATUS.OBRIGATORIO]: 'text-red-500' }
   const Badge = ({ status }) => status === STATUS.OK
     ? <CheckCircle size={13} className={corStatus[status]} />
