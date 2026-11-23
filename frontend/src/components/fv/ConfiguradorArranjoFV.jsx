@@ -104,13 +104,16 @@ function tensaoDoMppt(eletricoMod, eletricoInv, modulosPorString, tmin, tmax) {
   })
 }
 
+/** Tensão para exibição; ausente ⇒ "—", nunca crash nem número presumido. */
+const volts = (v) => (v == null || !Number.isFinite(v) ? '—' : `${v.toFixed(0)} V`)
+
 // ─── Validações elétricas locais ──────────────────────────────────────────────
 
 /**
  * Retorna { avisos: string[], bloqueios: string[] }
  * Avisos = amarelo | Bloqueios = vermelho (impedem avanço seguro)
  */
-function validarArranjo({ mppts, modulosPorString, totalModulos = 0, eletricoMod, eletricoInv, clima, tipoLigacao, fases, areaDisponivel }) {
+function validarArranjo({ mppts, modulosPorString, totalModulos = 0, ehMicro = false, eletricoMod, eletricoInv, clima, tipoLigacao, fases, areaDisponivel }) {
   const avisos   = []
   const bloqueios = []
 
@@ -118,6 +121,12 @@ function validarArranjo({ mppts, modulosPorString, totalModulos = 0, eletricoMod
 
   const tmin = clima?.temperatura_min_historica_c ?? 10
   const tmax = clima?.temperatura_max_historica_c ?? 40
+
+  if (!ehMicro && (eletricoMod.coef_temp_voc === null || eletricoMod.coef_temp_voc === undefined)) {
+    bloqueios.push(
+      'Módulo sem coeficiente de temperatura do Voc no catálogo: não há como verificar o Voc no frio contra a tensão máxima do inversor. Complete o cadastro do módulo.'
+    )
+  }
 
   // ── Por MPPT ──────────────────────────────────────────────────────────────
   mppts.forEach((mppt, i) => {
@@ -365,6 +374,14 @@ export default function ConfiguradorArranjoFV({
     })
   }, [ehMicro, eletricoMod, microCatalogo, numPaineis, numMicros])
 
+  // String: sem coeficiente de temperatura do Voc não há Voc frio, e o critério
+  // que protege o inversor (Voc frio × tensão máxima) não fecha. Bloqueia com o
+  // nome do dado e o link do catálogo — nunca um coeficiente presumido.
+  const faltasModulo = !ehMicro && eletricoMod ? [
+    (eletricoMod.coef_temp_voc === null || eletricoMod.coef_temp_voc === undefined)
+      && 'coeficiente de temperatura do Voc',
+  ].filter(Boolean) : []
+
   // Link para corrigir o cadastro do equipamento na hora (abre em nova aba).
   const linkInversor = inversor?._fonte === 'catalogo'
     ? linkEdicaoCatalogo({ tipo: ehMicro ? 'microinversor' : 'inversor', id: inversor?.id }) : null
@@ -562,13 +579,14 @@ export default function ConfiguradorArranjoFV({
     modulosPorString: piorCaso?.modulosPorString ?? 0,
     // F-01: fonte única do total, derivada da topologia real.
     totalModulos: totalModulosArranjo,
+    ehMicro,
     eletricoMod,
     eletricoInv,
     clima: climaObj,
     tipoLigacao,
     fases: inversor?.fases ?? 1,
     areaDisponivel,
-  }), [mppts, totalModulosArranjo, eletricoMod, eletricoInv, climaObj, tipoLigacao, inversor?.fases, areaDisponivel])
+  }), [mppts, totalModulosArranjo, ehMicro, eletricoMod, eletricoInv, climaObj, tipoLigacao, inversor?.fases, areaDisponivel])
 
   // ── Cálculos elétricos para exibição ─────────────────────────────────────
   const totalKwp = eletricoMod
@@ -715,6 +733,7 @@ export default function ConfiguradorArranjoFV({
   }, [salvar, onSaveAndNext])
 
   const podeSalvar = !!resultado && !carregando && !!projetoId && !(ehMicro && !dimMicro?.valido)
+    && faltasModulo.length === 0
 
   // ─── Render ────────────────────────────────────────────────────────────────
   const semMod = painel   && !eletricoMod
@@ -858,6 +877,14 @@ export default function ConfiguradorArranjoFV({
       {/* ── 2. Configuração por MPPT (apenas STRING) ───────────────────────── */}
       {!ehMicro && (
       <div className="bg-white border border-slate-200 rounded-xl p-5 space-y-4">
+        {faltasModulo.length > 0 && (
+          <div className="p-3 bg-red-50 border border-red-300 rounded-lg text-sm text-red-800" data-testid="modulo-cadastro-incompleto">
+            <strong>Cadastro incompleto: falta {faltasModulo.join(' e ')}</strong> do módulo {painel?.marca} {painel?.modelo}.
+            {' '}Sem ele não há Voc no frio, e não há como garantir que a string não passa da tensão máxima do inversor — nenhum valor é presumido.
+            {linkModulo && <> <a href={linkModulo} target="_blank" rel="noopener noreferrer" className="underline font-semibold">Editar no catálogo ↗</a></>}
+            <span className="block text-xs mt-1">Depois de salvar no catálogo, selecione o módulo de novo.</span>
+          </div>
+        )}
         <div className="flex items-center justify-between gap-2 flex-wrap">
           <div className="flex items-center gap-2">
             <Sliders className="w-4 h-4 text-slate-400" />
@@ -986,11 +1013,11 @@ export default function ConfiguradorArranjoFV({
                   <div className="grid grid-cols-3 gap-2 text-[11px] border-t border-slate-200 pt-2">
                     <div className={!vocOk ? 'text-red-700' : 'text-slate-600'}>
                       <p className="text-slate-400">Voc frio</p>
-                      <p className="font-mono font-semibold">{eletricoLocal.vocStr.toFixed(0)} V {!vocOk ? '⛔' : '✓'}</p>
+                      <p className="font-mono font-semibold">{volts(eletricoLocal.vocStr)} {eletricoLocal.vocStr == null ? '' : !vocOk ? '⛔' : '✓'}</p>
                     </div>
                     <div className={!mpptOk ? 'text-red-700' : 'text-slate-600'}>
                       <p className="text-slate-400">Vmpp frio</p>
-                      <p className="font-mono font-semibold">{eletricoLocal.vmppF.toFixed(0)} V {!mpptOk ? '⛔' : '✓'}</p>
+                      <p className="font-mono font-semibold">{volts(eletricoLocal.vmppF)} {eletricoLocal.vmppF == null ? '' : !mpptOk ? '⛔' : '✓'}</p>
                     </div>
                     <div className={!iscOk ? 'text-red-700' : 'text-slate-600'}>
                       <p className="text-slate-400">Isc total</p>
@@ -1018,12 +1045,12 @@ export default function ConfiguradorArranjoFV({
           {mppts.map((mppt, i) => {
             // F2: mesmo veredito canônico dos cartões acima — nada é recomparado aqui.
             const tensaoLocal = tensaoDoMppt(eletricoMod, eletricoInv, mppt.modulosPorString, tmin, tmax)
-            const vocStr  = (tensaoLocal?.tensoes.voc_string_max
-              ?? eletricoMod.voc * mppt.modulosPorString).toFixed(0)
-            const vmppF   = (tensaoLocal?.tensoes.vmpp_string_frio
-              ?? eletricoMod.vmpp * mppt.modulosPorString).toFixed(0)
-            const vmppQ   = (tensaoLocal?.tensoes.vmpp_string_quente
-              ?? eletricoMod.vmpp * mppt.modulosPorString).toFixed(0)
+            // Sem correção térmica (falta coeficiente) ⇒ "—". O fallback para o
+            // valor STC rotulava Voc de 25 °C como se fosse o pior caso frio.
+            const fmt0    = (v) => (v == null ? '—' : v.toFixed(0))
+            const vocStr  = fmt0(tensaoLocal?.tensoes.voc_string_max)
+            const vmppF   = fmt0(tensaoLocal?.tensoes.vmpp_string_frio)
+            const vmppQ   = fmt0(tensaoLocal?.tensoes.vmpp_string_quente)
             const iscStr  = eletricoMod.isc.toFixed(2)
             const kWp     = ((mppt.numStrings * mppt.modulosPorString * eletricoMod.potencia_w) / 1000).toFixed(2)
 
