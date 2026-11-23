@@ -85,9 +85,9 @@ beforeEach(() => {
 
 // ═══ 1 · Modelo puro ════════════════════════════════════════════════════════
 describe('FV-UX-030 · modelo da estrutura', () => {
-  it('1 · oferece exatamente os seis tipos da sprint', () => {
+  it('1 · oferece exatamente os sete tipos (Madeira desde 2026-11-22)', () => {
     expect(TIPOS_ESTRUTURA.map((t) => t.rotulo)).toEqual([
-      'Telhado fibrocimento', 'Telhado cerâmico', 'Telhado metálico',
+      'Telhado fibrocimento', 'Telhado madeira', 'Telhado cerâmico', 'Telhado metálico',
       'Solo', 'Laje', 'Outro',
     ])
   })
@@ -95,7 +95,7 @@ describe('FV-UX-030 · modelo da estrutura', () => {
   it('2 · o valor persistido é o rótulo do wizard legado, não um slug', () => {
     // `memorialDescritivoService` imprime `estrutura.tipo` direto no documento.
     expect(TIPOS_ESTRUTURA.map((t) => t.valor)).toEqual([
-      'Fibrocimento', 'Cerâmico', 'Metálico', 'Solo', 'Laje', 'Outro',
+      'Fibrocimento', 'Madeira', 'Cerâmico', 'Metálico', 'Solo', 'Laje', 'Outro',
     ])
   })
 

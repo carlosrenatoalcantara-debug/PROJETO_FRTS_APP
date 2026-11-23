@@ -231,7 +231,7 @@ describe('D0 · a etapa Topologia', () => {
   it('15 · trocar o tipo para Micro limpa strings na gravação', async () => {
     render(<EtapaMppt />)
     await waitFor(() => expect(screen.getByLabelText('Tipo de topologia')).toBeTruthy())
-    put(screen.getByLabelText('Tipo de topologia'), 'micro')
+    fireEvent.click(screen.getByLabelText(/^Microinversor/))
     fireEvent.click(screen.getByText('Salvar configuração'))
     await waitFor(() => expect(salvarEtapa).toHaveBeenCalled())
     const a = etapa('arranjos').lista.find((x) => x.tipo === 'principal')

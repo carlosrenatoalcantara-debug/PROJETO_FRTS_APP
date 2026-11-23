@@ -371,9 +371,10 @@ export default function EtapaEquipamentos() {
             sendo gravada do mesmo jeito, no mesmo `arranjos[]`, com o mesmo
             `equipamento_id` — o que mudou foi ONDE se escolhe, não o dado. */}
         <p className="mt-3 rounded border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
-          O inversor é escolhido na etapa <strong>Topologia</strong>, entre os
-          modelos que o motor elétrico aprovar para a configuração do projeto.
-          Os inversores já gravados aparecem acima e seguem editáveis em quantidade.
+          O inversor é escolhido logo abaixo, na seção <strong>Topologia e
+          inversor</strong>: marque string ou micro e escolha marca, modelo e
+          quantidade entre os que o motor elétrico aprovar. Os já gravados
+          aparecem acima e seguem editáveis em quantidade.
         </p>
 
       {avisoFase && (
@@ -451,7 +452,7 @@ export default function EtapaEquipamentos() {
       )}
 
       <p className="mt-4 text-xs text-slate-500">
-        Arranjo, strings e MPPT não são definidos aqui — continuam na etapa Topologia MPPT.
+        Arranjo, strings e MPPT são definidos na seção Topologia, abaixo.
       </p>
 
       {erroSalvar && <p role="alert" className="mt-3 text-xs text-red-600">{erroSalvar}</p>}

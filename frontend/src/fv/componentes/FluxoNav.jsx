@@ -1,22 +1,30 @@
-import { NavLink } from 'react-router-dom'
-import { ETAPAS_FLUXO, GRUPOS_FLUXO, etapasRaizDoGrupo, subEtapasDe, progressoDosGrupos } from '../fluxo'
+import { NavLink, useLocation } from 'react-router-dom'
+import {
+  ETAPAS_FLUXO, etapasRaizDoGrupo, subEtapasDe, progressoDosGrupos, paginaDaEtapa,
+} from '../fluxo'
 
 /**
  * Um item de navegação. Extraído para que etapa e sub-etapa compartilhem
  * exatamente o mesmo comportamento — inclusive o bloqueio por agregado ausente.
+ *
+ * Fica ativo também quando a rota aberta é uma SEÇÃO da sua página
+ * (ex.: `/dimensionamento` acende "Cadastro").
  */
 function ItemEtapa({ etapa, projetoId, miuda = false }) {
   const indisponivel = etapa.agregado == null
+  const { pathname } = useLocation()
+  const atual = pathname.split('/').filter(Boolean).pop()
+  const ativaPorSecao = paginaDaEtapa(atual) === etapa.chave
   return (
     <NavLink
       to={`/fv/projetos/${projetoId}/${etapa.chave}`}
       aria-disabled={indisponivel}
       title={indisponivel ? 'Agregado ainda não implementado no domínio' : etapa.rotulo}
-      className={({ isActive }) => [
+      className={({ isActive: ativaPorRota }) => [
         'rounded px-2 py-1 transition',
         miuda ? 'text-xs' : 'text-sm',
         indisponivel ? 'cursor-not-allowed text-slate-300' : 'text-slate-700 hover:bg-slate-100',
-        isActive && !indisponivel ? 'bg-slate-900 text-white hover:bg-slate-900' : '',
+        (ativaPorRota || ativaPorSecao) && !indisponivel ? 'bg-slate-900 text-white hover:bg-slate-900' : '',
       ].join(' ')}
       onClick={(ev) => { if (indisponivel) ev.preventDefault() }}
     >

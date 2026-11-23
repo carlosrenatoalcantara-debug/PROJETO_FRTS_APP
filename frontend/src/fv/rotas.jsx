@@ -1,12 +1,7 @@
 import { Navigate, Route } from 'react-router-dom'
 import ListaProjetos from './paginas/ListaProjetos'
 import ProjetoFluxoLayout from './paginas/ProjetoFluxoLayout'
-import EtapaProjeto from './paginas/etapas/EtapaProjeto'
-import EtapaEquipamentos from './paginas/etapas/EtapaEquipamentos'
-import EtapaEstrutura from './paginas/etapas/EtapaEstrutura'
-import EtapaDimensionamento from './paginas/etapas/EtapaDimensionamento'
-import EtapaMppt from './paginas/etapas/EtapaMppt'
-import EtapaBeneficiarias from './paginas/etapas/EtapaBeneficiarias'
+import { PaginaCadastro, PaginaComposicao } from './paginas/PaginaSecoes'
 import EtapaCotacao from './paginas/etapas/EtapaCotacao'
 import EtapaOrcamentos from './paginas/etapas/EtapaOrcamentos'
 import EtapaAprovacao from './paginas/etapas/EtapaAprovacao'
@@ -37,12 +32,13 @@ export const rotasFv = (
     <Route path="fv/projetos" element={<ListaProjetos />} />
     <Route path="fv/projetos/:id" element={<ProjetoFluxoLayout />}>
     <Route index element={<Navigate to="projeto" replace />} />
-    <Route path="projeto"     element={<EtapaProjeto />} />
-    <Route path="equipamentos" element={<EtapaEquipamentos />} />
-    <Route path="estrutura"     element={<EtapaEstrutura />} />
-    <Route path="dimensionamento" element={<EtapaDimensionamento />} />
-    <Route path="mppt"          element={<EtapaMppt />} />
-    <Route path="beneficiarias" element={<EtapaBeneficiarias />} />
+    {/* Páginas compostas: a rota de uma seção abre a página do pai nela. */}
+    <Route path="projeto"         element={<PaginaCadastro />} />
+    <Route path="dimensionamento" element={<PaginaCadastro foco="dimensionamento" />} />
+    <Route path="beneficiarias"   element={<PaginaCadastro foco="beneficiarias" />} />
+    <Route path="equipamentos"    element={<PaginaComposicao />} />
+    <Route path="estrutura"       element={<PaginaComposicao foco="estrutura" />} />
+    <Route path="mppt"            element={<PaginaComposicao foco="mppt" />} />
     <Route path="cotacao"     element={<EtapaCotacao />} />
     <Route path="orcamentos"  element={<EtapaOrcamentos />} />
     <Route path="aprovacao"   element={<EtapaAprovacao />} />

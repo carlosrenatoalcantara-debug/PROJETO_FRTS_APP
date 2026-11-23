@@ -479,7 +479,7 @@ describe('Sprint C · seleção hierárquica de equipamentos', () => {
     expect(screen.queryByLabelText('Marca do inversor')).toBe(null)
     expect(screen.queryByLabelText('Inversor')).toBe(null)
     expect(screen.queryByText('Adicionar inversor')).toBe(null)
-    expect(document.body.textContent).toContain('escolhido na etapa')
+    expect(document.body.textContent).toContain('O inversor é escolhido logo abaixo')
     // E a hierarquia do MÓDULO continua intacta.
     expect(screen.getByLabelText('Marca do módulo')).toBeTruthy()
   })

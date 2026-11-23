@@ -14,7 +14,7 @@ import {
 } from '../../topologia'
 import { composicaoEhMicro, composicaoMista } from '../../microinversores'
 import { inversorDoCatalogo } from '../../catalogo'
-import { paraArranjos, daArranjos, projecaoLegado } from '../../composicao'
+import { paraArranjos, daArranjos, projecaoLegado, quantidade } from '../../composicao'
 // Sprint D0 — configuração elétrica anterior ao inversor. Fonte única do nível
 // preliminar; nunca toca em mppts[]/micros[], que são pós-inversor.
 import {
@@ -98,6 +98,15 @@ function CorrenteDoCandidato({ avaliacao }) {
 
 const bloqueante = (d) => d?.severidade === 'critico' || d?.nivel === 'critico'
 
+/** Topologias que o operador usa e o motor ainda não avalia — exibidas desabilitadas. */
+const TIPOS_SEM_MOTOR = Object.freeze([
+  ['otimizador', 'Otimizador', true],
+  ['hibrido', 'Híbrido / BESS', true],
+])
+
+/** Espera após a última edição antes de consultar compatíveis sozinho. */
+const ESPERA_CONSULTA_MS = 600
+
 export default function EtapaMppt() {
   const { projeto, carregando, erro, acoes } = useProjeto()
 
@@ -119,6 +128,7 @@ export default function EtapaMppt() {
   const [erroCompat, setErroCompat] = useState(null)
   const [marcaInv, setMarcaInv] = useState('')
   const [modeloInv, setModeloInv] = useState('')
+  const [qtdInv, setQtdInv] = useState('1')
   const [salvandoInv, setSalvandoInv] = useState(false)
   const [invSalvo, setInvSalvo] = useState(false)
 
@@ -356,6 +366,20 @@ export default function EtapaMppt() {
   }
 
   /**
+   * Consulta automática (2026-11-22): completou a configuração preliminar, a
+   * lista de compatíveis vem sozinha — o botão continua para reconsultar.
+   * Espera o operador parar de digitar; nunca consulta configuração incompleta
+   * nem repete a consulta da mesma assinatura.
+   */
+  useEffect(() => {
+    if (!podeConsultar || consultando) return undefined
+    if (compat?.assinatura === assinaturaCompat || erroCompat) return undefined
+    const t = setTimeout(() => { consultarCompativeis() }, ESPERA_CONSULTA_MS)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [podeConsultar, assinaturaCompat])
+
+  /**
    * O inversor persistido continua compatível com a configuração atual?
    * Só responde quando há consulta VÁLIDA para a configuração de agora — sem
    * consulta não afirma nada, porque ausência de informação não é incompatibilidade.
@@ -387,18 +411,25 @@ export default function EtapaMppt() {
     if (!modeloInv) return
     const eq = (catalogo?.inversores ?? []).find((e) => String(e._id) === modeloInv)
     if (!eq) return
+    const q = quantidade(qtdInv)
+    if (q === null) return
     setSalvandoInv(true); setErroAcao(null)
     try {
       const daComposicao = daArranjos(projeto?.arranjos)
       const atualComp = daComposicao ?? { paineis: equip.paineis ?? [], inversores: [] }
       const composicao = {
         paineis: atualComp.paineis,
-        inversores: [{ ...inversorDoCatalogo(eq), quantidade: 1 }],
+        inversores: [{ ...inversorDoCatalogo(eq), quantidade: q }],
       }
       const outros = (projeto?.arranjos ?? []).filter((a) => a?.tipo !== 'principal')
-      const principal = paraArranjos(composicao, arranjoPrincipal)[0]
+      // A consulta é automática e pode ter usado uma configuração preliminar
+      // ainda não salva: ela vai junto, senão o inversor ficaria gravado sem o
+      // tipo/agrupamento que o aprovou.
+      const comComposicao = paraArranjos(composicao, arranjoPrincipal)[0]
+      const principal = prelim ? paraArranjoPreliminar(prelimEditada, comComposicao) : comComposicao
       await acoes.salvarEtapa('arranjos', { lista: [...outros, principal] })
       await acoes.salvarEtapa('equipamentos', projecaoLegado(composicao, projeto?.equipamentos))
+      if (prelim) { setPrelim(null); setPrelimSalva(true) }
       setInvSalvo(true)
     } catch (e) {
       setErroAcao(e.codigo ? `${e.message} (${e.codigo})` : e.message)
@@ -480,17 +511,25 @@ export default function EtapaMppt() {
       </p>
 
       <div className="mt-3 flex flex-wrap items-end gap-3 rounded border border-slate-200 bg-slate-50 p-3">
-        <label className="text-sm">
-          <span className="block text-slate-600">Tipo de topologia</span>
-          <select
-            aria-label="Tipo de topologia" value={prelimEditada.tipo ?? ''}
-            onChange={(e) => editarPrelim('tipo', e.target.value === '' ? null : e.target.value)}
-            className="mt-1 w-48 rounded border border-slate-300 px-2 py-1"
-          >
-            <option value="">não definido</option>
-            {TIPOS_TOPOLOGIA.map(([v, r]) => <option key={v} value={v}>{r}</option>)}
-          </select>
-        </label>
+        {/* Botões de opção (2026-11-22). Otimizador e híbrido/BESS aparecem,
+            mas desabilitados: o motor de compatibilidade só avalia string e
+            micro — oferecer a opção sem regra seria aprovar sem verificar. */}
+        <fieldset aria-label="Tipo de topologia" className="text-sm">
+          <legend className="text-slate-600">Tipo de topologia</legend>
+          <div className="mt-1 flex flex-wrap gap-3">
+            {[...TIPOS_TOPOLOGIA, ...TIPOS_SEM_MOTOR].map(([v, r, semMotor]) => (
+              <label key={v} title={semMotor ? 'Ainda sem avaliação pelo motor elétrico' : r}
+                className={`flex items-center gap-1 ${semMotor ? 'text-slate-400' : 'text-slate-800'}`}>
+                <input
+                  type="radio" name="tipo-topologia" value={v} disabled={!!semMotor}
+                  checked={prelimEditada.tipo === v}
+                  onChange={() => editarPrelim('tipo', v)}
+                />
+                {r}{semMotor && <span className="text-[10px]">(em breve)</span>}
+              </label>
+            ))}
+          </div>
+        </fieldset>
 
         {prelimEditada.tipo === 'string' && (
           <>
@@ -553,8 +592,8 @@ export default function EtapaMppt() {
       )}
       {preliminarCompleta(prelimEditada) && (
         <p className="mt-2 text-xs text-slate-500">
-          Configuração completa. O filtro de inversores compatíveis entra na
-          próxima etapa — hoje o inversor ainda é escolhido em Equipamentos.
+          Configuração completa — os inversores compatíveis são consultados
+          sozinhos e aparecem logo abaixo.
         </p>
       )}
     </section>
@@ -597,7 +636,7 @@ export default function EtapaMppt() {
         </button>
         {!podeConsultar && (
           <span className="text-xs text-amber-700">
-            Complete a configuração preliminar e escolha o módulo em Equipamentos.
+            Complete a configuração preliminar e escolha o módulo na seção acima.
           </span>
         )}
       </div>
@@ -653,8 +692,17 @@ export default function EtapaMppt() {
                 ))}
               </select>
             </label>
+            <label className="text-sm">
+              <span className="block text-slate-600">Quantidade</span>
+              <input
+                aria-label="Quantidade de inversores" type="number" min="1" step="1"
+                value={qtdInv} onChange={(e) => { setQtdInv(e.target.value); setInvSalvo(false) }}
+                className="mt-1 w-24 rounded border border-slate-300 px-2 py-1"
+              />
+            </label>
             <button
-              type="button" onClick={salvarInversor} disabled={!modeloInv || salvandoInv}
+              type="button" onClick={salvarInversor}
+              disabled={!modeloInv || salvandoInv || quantidade(qtdInv) === null}
               className="rounded bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-700 disabled:bg-slate-400"
             >
               {salvandoInv ? 'Salvando…' : 'Usar este inversor'}

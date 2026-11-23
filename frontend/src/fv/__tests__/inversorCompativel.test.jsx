@@ -115,7 +115,7 @@ beforeEach(() => {
 
 // ═══ 1 · Consulta ═══════════════════════════════════════════════════════════
 describe('D2 · consulta de compatíveis', () => {
-  it('1 · abre sem inversor e sem lista — nada é oferecido antes de consultar', async () => {
+  it('1 · abre sem inversor e sem lista — nada é oferecido antes da consulta', async () => {
     await montar()
     expect(screen.queryByLabelText('Marca do inversor compatível')).toBe(null)
     expect(consultarCompat).not.toHaveBeenCalled()
@@ -244,7 +244,7 @@ describe('D2 · invalidação quando a configuração muda', () => {
     await montar()
     await consultar()
     expect(screen.getByLabelText('Marca do inversor compatível')).toBeTruthy()
-    put(screen.getByLabelText('Tipo de topologia'), 'micro')
+    fireEvent.click(screen.getByLabelText(/^Microinversor/))
     // A lista some: a consulta anterior não vale para a configuração nova.
     expect(screen.queryByLabelText('Marca do inversor compatível')).toBe(null)
   })
@@ -329,5 +329,65 @@ describe('D2 · a regra continua no servidor', () => {
       'voc_string =', 'isc_total =', 'oversizing =', '/ potencia_ca']) {
       expect(fonte.includes(p), `encontrou \`${p}\``).toBe(false)
     }
+  })
+})
+
+// ═══ 6 · Página única (2026-11-22) ═════════════════════════════════════════
+describe('Equipamentos em página única · topologia e inversor', () => {
+  it('20 · configuração completa consulta os compatíveis sozinha', async () => {
+    await montar()
+    await waitFor(() => expect(consultarCompat).toHaveBeenCalledTimes(1), { timeout: 2000 })
+    await waitFor(() => expect(screen.getByLabelText('Marca do inversor compatível')).toBeTruthy())
+  })
+
+  it('21 · configuração incompleta não consulta', async () => {
+    const p = clone(BASE)
+    p.arranjos[0].configuracao_eletrica = {}
+    projetoAtual = p
+    await montar()
+    await new Promise((r) => setTimeout(r, 900))
+    expect(consultarCompat).not.toHaveBeenCalled()
+  })
+
+  it('22 · grava a quantidade de inversores escolhida', async () => {
+    await montar()
+    await consultar()
+    put(screen.getByLabelText('Marca do inversor compatível'), 'Sungrow')
+    put(screen.getByLabelText('Modelo do inversor compatível'), 'i1')
+    fireEvent.change(screen.getByLabelText('Quantidade de inversores'), { target: { value: '2' } })
+    fireEvent.click(screen.getByText('Usar este inversor'))
+    await waitFor(() => expect(salvarEtapa).toHaveBeenCalled())
+    const arranjos = salvarEtapa.mock.calls.find(([e]) => e === 'arranjos')?.[1]
+    expect(arranjos.lista.find((a) => a.tipo === 'principal').inversores[0].quantidade).toBe(2)
+  })
+
+  it('23 · quantidade inválida bloqueia a gravação', async () => {
+    await montar()
+    await consultar()
+    put(screen.getByLabelText('Marca do inversor compatível'), 'Sungrow')
+    put(screen.getByLabelText('Modelo do inversor compatível'), 'i1')
+    fireEvent.change(screen.getByLabelText('Quantidade de inversores'), { target: { value: '0' } })
+    expect(screen.getByText('Usar este inversor').disabled).toBe(true)
+  })
+
+  it('24 · tipo não salvo vai junto com o inversor', async () => {
+    const p = clone(BASE)
+    p.arranjos[0].topologia = null
+    projetoAtual = p
+    await montar()
+    fireEvent.click(screen.getByLabelText(/^String/))
+    await consultar()
+    put(screen.getByLabelText('Marca do inversor compatível'), 'Sungrow')
+    put(screen.getByLabelText('Modelo do inversor compatível'), 'i1')
+    fireEvent.click(screen.getByText('Usar este inversor'))
+    await waitFor(() => expect(salvarEtapa).toHaveBeenCalled())
+    const arranjos = salvarEtapa.mock.calls.find(([e]) => e === 'arranjos')?.[1]
+    expect(arranjos.lista.find((a) => a.tipo === 'principal').topologia).toBe('string')
+  })
+
+  it('25 · otimizador e híbrido aparecem desabilitados', async () => {
+    await montar()
+    expect(screen.getByLabelText(/^Otimizador/).disabled).toBe(true)
+    expect(screen.getByLabelText(/^Híbrido \/ BESS/).disabled).toBe(true)
   })
 })

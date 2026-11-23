@@ -37,26 +37,36 @@
  * Só agrupamento, ordem e navegação mudaram. Cada uma continua sendo a MESMA
  * rota, com a mesma chave: nenhum link quebra e nenhum comportamento muda.
  */
+/*
+ * ── Páginas compostas (2026-11-22) ──────────────────────────────────────────
+ * Etapas que se complementam passaram a ser SEÇÕES de uma página só
+ * (`secaoDe`): Cadastro reúne Projeto + Dimensionamento + Beneficiárias;
+ * Equipamentos reúne Estrutura + composição + Topologia. As chaves e rotas
+ * continuam existindo — o link antigo abre a página do pai rolada até a seção.
+ * Só o pai aparece na navegação. A ordem do array (o fluxo) não mudou.
+ */
 export const ETAPAS_FLUXO = Object.freeze([
-  { chave: 'projeto',       rotulo: 'Projeto',        grupo: 'origem',    agregado: 'ProjetoFV' },
+  { chave: 'projeto',       rotulo: 'Cadastro',       grupo: 'origem',    agregado: 'ProjetoFV' },
   // FV-UX-020: o dimensionamento é gravado em `ProjetoFV.dimensionamento` e
   // calculado pelo motor existente no servidor. Sem agregado próprio.
   // Sprint A: vem ANTES de Equipamentos — é ele que estabelece a potência
   // mínima necessária e a quantidade mínima de módulos.
-  { chave: 'dimensionamento', rotulo: 'Dimensionamento', grupo: 'origem', agregado: 'ProjetoFV' },
-  { chave: 'beneficiarias', rotulo: 'Beneficiárias',  grupo: 'origem',    agregado: 'UnidadeBeneficiaria' },
+  { chave: 'dimensionamento', rotulo: 'Dimensionamento', grupo: 'origem', agregado: 'ProjetoFV', secaoDe: 'projeto' },
+  { chave: 'beneficiarias', rotulo: 'Beneficiárias',  grupo: 'origem',    agregado: 'UnidadeBeneficiaria', secaoDe: 'projeto' },
   // FV-UX-019: a seleção de equipamentos vive no próprio ProjetoFV
   // (`equipamentos.paineis[]` / `equipamentos.inversor`) e referencia o
   // catálogo por `equipamento_id`. Não tem agregado próprio.
   { chave: 'equipamentos',  rotulo: 'Equipamentos',   grupo: 'comercial', agregado: 'ProjetoFV' },
   // FV-UX-026: topologia AUTORAL do projetista, gravada em
   // `engenharia_eletrica.arranjo.mppts[]`. Sem agregado proprio.
-  { chave: 'mppt', rotulo: 'Topologia', grupo: 'comercial', agregado: 'ProjetoFV', subDe: 'equipamentos' },
+  { chave: 'mppt', rotulo: 'Topologia', grupo: 'comercial', agregado: 'ProjetoFV', subDe: 'equipamentos', secaoDe: 'equipamentos' },
   // FV-UX-030: a estrutura de fixação vive em `equipamentos.estrutura`, campo
   // que já existia no schema. Descreve como a composição escolhida se fixa —
   // por isso é configuração de Equipamentos, não etapa própria.
-  { chave: 'estrutura',     rotulo: 'Estrutura',      grupo: 'comercial', agregado: 'ProjetoFV', subDe: 'equipamentos' },
-  { chave: 'cotacao',    rotulo: 'Cotações / Opções', grupo: 'comercial', agregado: 'Cotacao',  subDe: 'equipamentos' },
+  { chave: 'estrutura',     rotulo: 'Estrutura',      grupo: 'comercial', agregado: 'ProjetoFV', subDe: 'equipamentos', secaoDe: 'equipamentos' },
+  // Cotações/Opções voltou a ser item próprio da navegação: é a próxima página
+  // depois da composição, não uma configuração dela.
+  { chave: 'cotacao',    rotulo: 'Cotações / Opções', grupo: 'comercial', agregado: 'Cotacao' },
   { chave: 'orcamentos', rotulo: 'Orçamentos',        grupo: 'comercial', agregado: 'Orcamento' },
   { chave: 'aprovacao',  rotulo: 'Aprovação',         grupo: 'comercial', agregado: 'Orcamento' },
   // FV-DOM-032: opções concorrentes da MESMA proposta. Cada opção é um
@@ -101,12 +111,26 @@ export function etapasDoGrupo(grupo) {
  * Uma sub-etapa (`subDe`) aparece aninhada sob o pai, não solta ao lado dele.
  */
 export function etapasRaizDoGrupo(grupo) {
-  return ETAPAS_FLUXO.filter((e) => e.grupo === grupo && !e.subDe)
+  return ETAPAS_FLUXO.filter((e) => e.grupo === grupo && !e.subDe && !e.secaoDe)
 }
 
-/** Sub-etapas de uma etapa pai, na ordem do fluxo. */
+/**
+ * Sub-etapas de uma etapa pai, na ordem do fluxo. As que viraram SEÇÃO da
+ * página do pai não aparecem — não são mais destino de navegação próprio.
+ */
 export function subEtapasDe(chave) {
-  return ETAPAS_FLUXO.filter((e) => e.subDe === chave)
+  return ETAPAS_FLUXO.filter((e) => e.subDe === chave && !e.secaoDe)
+}
+
+/** Seções que a página da etapa `chave` reúne (sem contar ela mesma). */
+export function secoesDe(chave) {
+  return ETAPAS_FLUXO.filter((e) => e.secaoDe === chave)
+}
+
+/** Etapa cuja PÁGINA exibe `chave`: ela mesma, ou o pai de quem é seção. */
+export function paginaDaEtapa(chave) {
+  const e = etapaPorChave(chave)
+  return e?.secaoDe ?? e?.chave ?? null
 }
 
 export function indiceDaEtapa(chave) {

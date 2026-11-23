@@ -39,6 +39,8 @@
  */
 export const TIPOS_ESTRUTURA = Object.freeze([
   Object.freeze({ valor: 'Fibrocimento', rotulo: 'Telhado fibrocimento' }),
+  // 2026-11-22: pedido do operador — telhado com madeiramento.
+  Object.freeze({ valor: 'Madeira',      rotulo: 'Telhado madeira' }),
   Object.freeze({ valor: 'Cerâmico',     rotulo: 'Telhado cerâmico' }),
   Object.freeze({ valor: 'Metálico',     rotulo: 'Telhado metálico' }),
   Object.freeze({ valor: 'Solo',         rotulo: 'Solo' }),

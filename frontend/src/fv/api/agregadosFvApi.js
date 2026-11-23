@@ -86,8 +86,23 @@ export function criarProjeto(dados) {
  *
  * @param {'modulo'|'inversor'} tipo
  */
+/**
+ * Catálogo por tipo, com cache curto em memória. A página Equipamentos reúne
+ * seções que pedem o MESMO catálogo ao montar; sem isto eram 4 requisições
+ * iguais. 60 s basta para a página e não esconde um cadastro novo por muito
+ * tempo. Falha não fica em cache.
+ */
+const CATALOGO_TTL_MS = 60_000
+const _cacheCatalogo = new Map()
+
 export function listarCatalogo(tipo) {
-  return obterJson(`/api/equipamentos/engenharia?tipo=${encodeURIComponent(tipo)}`, 'listarCatalogo')
+  const agora = Date.now()
+  const hit = _cacheCatalogo.get(tipo)
+  if (hit && agora - hit.em < CATALOGO_TTL_MS) return hit.promessa
+  const promessa = obterJson(`/api/equipamentos/engenharia?tipo=${encodeURIComponent(tipo)}`, 'listarCatalogo')
+  promessa.catch(() => { if (_cacheCatalogo.get(tipo)?.promessa === promessa) _cacheCatalogo.delete(tipo) })
+  _cacheCatalogo.set(tipo, { promessa, em: agora })
+  return promessa
 }
 
 /**
