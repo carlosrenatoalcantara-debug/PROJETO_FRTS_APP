@@ -430,12 +430,17 @@ describe('FV-UX-026 · nenhum cálculo elétrico no cliente', () => {
     }
   })
 
-  it('23b · A2 — a única importação do pacote é a tabela climática canônica', async () => {
+  // 2026-11-25: a precedência do clima (A2) saiu da tela para `climaDoProjeto`
+  // em sugestaoStrings.js, que a seção Equipamentos também usa. A tela não
+  // importa o pacote; o clima continua vindo da tabela canônica.
+  it('23b · A2 — o clima vem da tabela canônica, via climaDoProjeto', async () => {
     const fonte = await ler('../paginas/etapas/EtapaMppt.jsx')
-    const imports = fonte.split('\n').filter((l) => l.includes('@fortesolar/fv-shared'))
+    expect(fonte.split('\n').filter((l) => l.includes('@fortesolar/fv-shared'))).toHaveLength(0)
+    expect(fonte).toContain('climaDoProjeto(projeto)')
+    const ponte = await ler('../sugestaoStrings.js')
+    const imports = ponte.split('\n').filter((l) => l.includes('engenharia/normativa'))
     expect(imports).toHaveLength(1)
     expect(imports[0]).toContain('calcularTemperaturas')
-    expect(imports[0]).toContain('engenharia/normativa')
   })
 
   it('24 · nenhuma distribuição automática — `sugerirMPPTs` não existe aqui', async () => {

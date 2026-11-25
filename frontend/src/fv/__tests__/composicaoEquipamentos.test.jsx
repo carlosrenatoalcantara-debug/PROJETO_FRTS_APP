@@ -471,17 +471,70 @@ describe('Sprint C · seleção hierárquica de equipamentos', () => {
     expect(painel.potencia_w).toBe(650)            // do SSOT, não digitada
   })
 
-  // Sprint D2 substituiu este teste: a seleção do inversor saiu de Equipamentos
-  // e passou a Topologia, filtrada pela compatibilidade. O contrato novo é a
-  // AUSÊNCIA do seletor aqui — e a tela dizer onde ele foi parar.
-  it('35 · Equipamentos NÃO tem mais seleção final de inversor', async () => {
+  // 2026-11-25: o seletor de inversor VOLTOU para Equipamentos, no formato dos
+  // módulos e filtrado pelo tipo de topologia (pedido do operador).
+  it('35 · inversor: Marca → Modelo → Quantidade, só depois do tipo de topologia', async () => {
     await montar()
-    expect(screen.queryByLabelText('Marca do inversor')).toBe(null)
-    expect(screen.queryByLabelText('Inversor')).toBe(null)
-    expect(screen.queryByText('Adicionar inversor')).toBe(null)
-    expect(document.body.textContent).toContain('O inversor é escolhido logo abaixo')
-    // E a hierarquia do MÓDULO continua intacta.
+    expect(screen.getByLabelText('Marca do inversor').disabled).toBe(true)
+    fireEvent.click(screen.getByLabelText(/^String/))
+    expect(screen.getByLabelText('Marca do inversor').disabled).toBe(false)
+    expect(opcoes('Marca do inversor').slice(1)).toEqual(['Sungrow (2)'])
+    // Microinversor não tem nenhum modelo string do catálogo.
+    fireEvent.click(screen.getByLabelText(/^Microinversor/))
+    expect(opcoes('Marca do inversor').slice(1)).toEqual([])
+    // Otimizador e híbrido aparecem, mas desabilitados.
+    expect(screen.getByLabelText(/^Otimizador/).disabled).toBe(true)
+    expect(screen.getByLabelText(/^Híbrido/).disabled).toBe(true)
     expect(screen.getByLabelText('Marca do módulo')).toBeTruthy()
+  })
+
+  it('35b · inversor escolhido mostra a sugestão de strings e grava o tipo', async () => {
+    await montar()
+    addModulo('m1', 24)
+    fireEvent.click(screen.getByLabelText(/^String/))
+    put(screen.getByLabelText('Marca do inversor'), 'Sungrow')
+    put(screen.getByLabelText('Inversor'), 'i1')
+    fireEvent.change(screen.getByLabelText('Quantidade do novo inversor'), { target: { value: '1' } })
+    // Fixture sem entradas por MPPT: não avalia, mas declara por quê.
+    expect(screen.getByLabelText('Avaliação do inversor escolhido').textContent).toContain('não avaliado')
+    fireEvent.click(screen.getByText('Adicionar inversor'))
+    fireEvent.click(screen.getByText('Salvar composição'))
+    await waitFor(() => expect(salvarEtapa).toHaveBeenCalled())
+    const a = etapa('arranjos').lista[0]
+    expect(a.topologia).toBe('string')
+    expect(a.inversores[0]).toMatchObject({ equipamento_id: 'i1', quantidade: 1 })
+  })
+
+  it('35c · inversor sem distribuição possível não é adicionado', async () => {
+    const PEQUENO = {
+      _id: 'i9', tipo: 'inversor', fabricante: 'Mini', modelo: 'M1',
+      especificacoes: { potencia: 3, fases: 1, tensao_max_entrada: 600, tensao_mppt_min: 80,
+        tensao_mppt_max: 560, corrente_max_por_mppt: 25, n_mppts: 1, entradas_por_mppt: [1] },
+    }
+    listarCatalogo.mockImplementation((t) =>
+      Promise.resolve({ equipamentos: t === 'modulo' ? [M650] : [PEQUENO] }))
+    await montar()
+    addModulo('m1', 24)
+    fireEvent.click(screen.getByLabelText(/^String/))
+    put(screen.getByLabelText('Marca do inversor'), 'Mini')
+    put(screen.getByLabelText('Inversor'), 'i9')
+    fireEvent.change(screen.getByLabelText('Quantidade do novo inversor'), { target: { value: '1' } })
+    expect(screen.getByLabelText('Avaliação do inversor escolhido').textContent).toContain('incompatível')
+    expect(screen.getByText('Adicionar inversor').disabled).toBe(true)
+  })
+
+  it('35d · estrutura salva junto, no mesmo botão; "Outro" sem descrição bloqueia', async () => {
+    await montar()
+    fireEvent.click(screen.getByLabelText('Telhado madeira'))
+    fireEvent.click(screen.getByText('Salvar composição'))
+    await waitFor(() => expect(salvarEtapa).toHaveBeenCalled())
+    expect(etapa('equipamentos').estrutura).toEqual({ tipo: 'Madeira', descricao: '' })
+
+    salvarEtapa.mockClear()
+    fireEvent.click(screen.getByLabelText('Outro'))
+    expect(screen.getByText('Salvar composição').disabled).toBe(true)
+    fireEvent.change(screen.getByLabelText('Descrição da estrutura'), { target: { value: 'trilho sobre perfil' } })
+    expect(screen.getByText('Salvar composição').disabled).toBe(false)
   })
 
   // Sprint D2: o inversor vem da composição gravada em Topologia. O que este

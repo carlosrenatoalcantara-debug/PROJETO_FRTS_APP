@@ -3,7 +3,6 @@ import { useProjeto } from '../../providers/ProjetoProvider'
 import {
   listarCatalogo, validarCompatibilidadeEletrica, consultarInversoresCompativeis,
 } from '../../api/agregadosFvApi'
-import { calcularTemperaturas } from '@fortesolar/fv-shared/engenharia/normativa'
 import {
   eletricoDoModulo, eletricoDoInversor, nMpptsDoInversor, lacunasEletricas,
 } from '../../catalogo'
@@ -22,6 +21,9 @@ import {
   preliminarCompleta, coerenciaDeModulos, paraArranjoPreliminar,
 } from '../../topologiaPreliminar'
 import EtapaMicroinversores from './EtapaMicroinversores'
+import {
+  STATUS_SUGESTAO, climaDoProjeto, sugestaoParaInversor, rotuloDistribuicao, topologiaDaSugestao,
+} from '../../sugestaoStrings'
 
 /**
  * EtapaMppt — topologia do arranjo — FV-UX-026.
@@ -107,7 +109,11 @@ const TIPOS_SEM_MOTOR = Object.freeze([
 /** Espera após a última edição antes de consultar compatíveis sozinho. */
 const ESPERA_CONSULTA_MS = 600
 
-export default function EtapaMppt() {
+/**
+ * `naComposicao` (2026-11-25): dentro da página Equipamentos, tipo de topologia
+ * e inversor são escolhidos na seção de cima — aqui sobra só MPPT e strings.
+ */
+export default function EtapaMppt({ naComposicao = false } = {}) {
   const { projeto, carregando, erro, acoes } = useProjeto()
 
   const [catalogo, setCatalogo] = useState(null)
@@ -214,23 +220,7 @@ export default function EtapaMppt() {
    *   2. `calcularTemperaturas(uf)` — a tabela canônica de `fv-shared`;
    *   3. nada — o motor aplica o fallback dele e DECLARA o warning.
    */
-  const clima = useMemo(() => {
-    const loc = projeto?.localizacao ?? {}
-    const tmin = loc.temperatura_min_historica_c ?? null
-    const tmax = loc.temperatura_max_historica_c ?? null
-    const uf = projeto?.local_resolvido?.estado ?? loc.estado ?? null
-    if (tmin !== null && tmax !== null) {
-      return { temperatura_min_historica_c: tmin, temperatura_max_historica_c: tmax, uf, fonte: 'localizacao' }
-    }
-    if (uf) {
-      const t = calcularTemperaturas(uf)
-      return {
-        temperatura_min_historica_c: t.tmin, temperatura_max_historica_c: t.tmax,
-        uf, fonte: 'uf',
-      }
-    }
-    return { temperatura_min_historica_c: tmin, temperatura_max_historica_c: tmax, uf, fonte: null }
-  }, [projeto])
+  const clima = useMemo(() => climaDoProjeto(projeto), [projeto])
 
   // Topologia persistida; na ausência dela, MPPTs VAZIOS — nada é sugerido.
   const persistida = useMemo(
@@ -240,6 +230,28 @@ export default function EtapaMppt() {
     if (persistida) setTopologia(persistida)
     else if (nMppts !== null) setTopologia(topologiaVazia(nMppts))
   }, [persistida, nMppts, topologia])
+
+  /**
+   * Sugestão de strings (motor puro de fv-shared) para UM inversor. Só é
+   * oferecida como ponto de partida editável; quem aprova é "Validar arranjo".
+   */
+  const sugestao = useMemo(() => {
+    if (!inversorCat || !moduloCat || unidadesDeInversor > 1) return null
+    const r = sugestaoParaInversor({
+      inversorCat, moduloCat, totalModulos, quantidade: 1, clima,
+    })
+    const unidade = r.porUnidade[0]?.resultado ?? null
+    if (r.status !== STATUS_SUGESTAO.PRELIMINAR || !unidade) return { status: r.status, lacunas: r.lacunas }
+    return { status: r.status, lacunas: r.lacunas, rotulo: rotuloDistribuicao(unidade),
+      topologia: topologiaDaSugestao(unidade, nMppts) }
+  }, [inversorCat, moduloCat, unidadesDeInversor, totalModulos, clima, nMppts])
+
+  function usarSugestao() {
+    if (!sugestao?.topologia) return
+    setTopologia(JSON.parse(JSON.stringify(sugestao.topologia)))
+    setResultados(null)
+    setSalvo(false)
+  }
 
   const distribuido = totalDistribuido(topologia)
   const restantes = naoDistribuidos(topologia, totalModulos)
@@ -740,8 +752,8 @@ export default function EtapaMppt() {
   if (projeto && ehComposicaoMicro) {
     return (
       <>
-        {secaoPreliminar({ topo: true })}
-        <div className="mx-auto max-w-3xl px-6">{secaoInversor()}</div>
+        {!naComposicao && secaoPreliminar({ topo: true })}
+        {!naComposicao && <div className="mx-auto max-w-3xl px-6">{secaoInversor()}</div>}
         {composicaoEhMista && (
           <p role="alert" className="mx-auto mt-6 max-w-3xl rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800">
             A composição mistura microinversores com inversores de outra
@@ -781,14 +793,14 @@ export default function EtapaMppt() {
 
   return (
     <section className="mx-auto max-w-3xl p-6">
-      <h2 className="text-lg font-semibold text-slate-900">Topologia MPPT</h2>
+      <h2 className="text-lg font-semibold text-slate-900">{naComposicao ? 'MPPT e strings' : 'Topologia MPPT'}</h2>
       <p className="mt-1 text-sm text-slate-500">
-        A distribuição das strings é sua. O sistema valida contra os limites do
-        inversor — não decide o arranjo.
+        A distribuição das strings é sua. O sistema sugere um ponto de partida e
+        valida contra os limites do inversor — não decide o arranjo.
       </p>
 
-      {secaoPreliminar()}
-      {secaoInversor()}
+      {!naComposicao && secaoPreliminar()}
+      {!naComposicao && secaoInversor()}
 
       {erroCatalogo && <p role="alert" className="mt-4 text-sm text-red-600">Catálogo indisponível: {erroCatalogo}</p>}
 
@@ -836,10 +848,31 @@ export default function EtapaMppt() {
 
       {faltaEquip ? (
         <p className="mt-6 text-sm text-amber-700">
-          Selecione módulo e inversor na etapa Equipamentos antes de montar a topologia.
+          Selecione módulo e inversor {naComposicao ? 'na seção acima' : 'na etapa Equipamentos'} antes de montar a topologia.
         </p>
       ) : (
         <>
+          {sugestao && (
+            <div className="mt-6 flex flex-wrap items-center gap-2 rounded border border-slate-200 bg-slate-50 px-3 py-2 text-xs">
+              {sugestao.topologia ? (
+                <>
+                  <span className="text-slate-700">Sugestão: <strong>{sugestao.rotulo}</strong></span>
+                  <button type="button" onClick={usarSugestao}
+                    className="rounded border border-slate-400 px-2 py-1 text-slate-800 hover:bg-white">
+                    Usar sugestão
+                  </button>
+                  {sugestao.lacunas.length > 0 && (
+                    <span className="basis-full text-amber-700">{sugestao.lacunas.join(' ')}</span>
+                  )}
+                </>
+              ) : (
+                <span className={sugestao.status === STATUS_SUGESTAO.SEM_SOLUCAO ? 'text-red-700' : 'text-amber-700'}>
+                  {sugestao.status === STATUS_SUGESTAO.SEM_SOLUCAO ? 'Sem distribuição possível: ' : 'Sugestão indisponível: '}
+                  {sugestao.lacunas.join(' ')}
+                </span>
+              )}
+            </div>
+          )}
           <div className="mt-6 space-y-4">
             {(topologia ?? []).map((mppt, i) => {
               const r = resultados?.[i] ?? null

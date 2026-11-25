@@ -2,7 +2,6 @@ import { useEffect } from 'react'
 import EtapaProjeto from './etapas/EtapaProjeto'
 import EtapaDimensionamento from './etapas/EtapaDimensionamento'
 import EtapaBeneficiarias from './etapas/EtapaBeneficiarias'
-import EtapaEstrutura from './etapas/EtapaEstrutura'
 import EtapaEquipamentos from './etapas/EtapaEquipamentos'
 import EtapaMppt from './etapas/EtapaMppt'
 
@@ -58,15 +57,17 @@ export function PaginaCadastro({ foco = null }) {
 }
 
 /**
- * Equipamentos: estrutura, módulos e topologia (tipo + inversor + MPPT).
- * A ordem segue o raciocínio do operador: onde fixa, o que compra, como liga.
+ * Equipamentos (2026-11-25): estrutura, módulos, tipo de topologia e inversor
+ * numa seção só, com um botão de salvar; MPPT e strings logo abaixo.
+ * A rota antiga `/estrutura` rola até `#secao-estrutura`, dentro da primeira.
  */
+const MpptNaComposicao = () => <EtapaMppt naComposicao />
+
 export function PaginaComposicao({ foco = null }) {
   return (
     <PaginaSecoes foco={foco} secoes={[
-      { chave: 'estrutura', rotulo: 'Estrutura', Componente: EtapaEstrutura },
-      { chave: 'equipamentos', rotulo: 'Módulos e composição', Componente: EtapaEquipamentos },
-      { chave: 'mppt', rotulo: 'Topologia e inversor', Componente: EtapaMppt },
+      { chave: 'equipamentos', rotulo: 'Estrutura, módulos e inversores', Componente: EtapaEquipamentos },
+      { chave: 'mppt', rotulo: 'MPPT e strings', Componente: MpptNaComposicao },
     ]} />
   )
 }

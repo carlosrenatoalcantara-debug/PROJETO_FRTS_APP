@@ -113,7 +113,7 @@ describe('FV-UX-019 · o que independe da forma da tela', () => {
   it('14 · MPPT e dimensionamento continuam fora desta etapa', async () => {
     render(<EtapaEquipamentos />)
     await waitFor(() => expect(screen.getByLabelText('Marca do módulo').disabled).toBe(false))
-    expect(document.body.textContent).toContain('MPPT são definidos na seção Topologia')
+    expect(document.body.textContent).toContain('O detalhamento de MPPT e strings')
   })
 })
 
