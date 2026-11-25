@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { obterCamposEditaveis } from '@fortesolar/fv-shared/ai/campos-equipamento'
 import { useProjeto } from '../../providers/ProjetoProvider'
 import EdicaoInversor from '../../../components/equipamentos/EdicaoInversor'
-import { avisoDeFase, fasesDoInversor } from '../../catalogo'
+import { avisoDeFase, fasesDoInversor, ligacaoDoMicro } from '../../catalogo'
 import { linkEdicaoCatalogo } from '../../../utils/linkEdicaoCatalogo'
 import {
   avaliar, capacidadeDoBloco, capacidadePorMicro, coerenciaComComposicao, configDaComposicao,
@@ -162,8 +162,14 @@ export default function EtapaMicroinversores({ catalogoInversores, arranjoPrinci
   const composicao = useMemo(() => planoDaComposicao(atual, fases, politica), [atual, fases, politica])
   const obsolescencias = useMemo(() => obsolescenciaDaComposicao(atual, fases, politica), [atual, fases, politica])
   const sugestoes = useMemo(() => sugestoesDeArranjo(atual, fases), [atual, fases])
-  const avisoFase = avisoDeFase(projeto?.fatura_extracao?.tipo_ligacao, fasesDoInversor(
-    (catalogoInversores ?? []).find((e) => String(e._id) === String(atual[0]?.equipamento_id)) ?? null))
+  // Todos os modelos: um fase-neutro não pode esconder outro que pede adequação.
+  const tipoLigacao = projeto?.fatura_extracao?.tipo_ligacao
+  const equipamentos = atual
+    .map((b) => (catalogoInversores ?? []).find((e) => String(e._id) === String(b.equipamento_id)))
+    .filter(Boolean)
+  const ligacaoNormal = equipamentos.map((e) => ligacaoDoMicro(tipoLigacao, e)).find(Boolean) ?? null
+  const avisoFase = equipamentos.filter((e) => !ligacaoDoMicro(tipoLigacao, e))
+    .map((e) => avisoDeFase(tipoLigacao, fasesDoInversor(e))).find(Boolean) ?? null
 
   // Uma avaliação elétrica por bloco: a mesma que a tela mostra decide a conclusão.
   const avaliacoes = atual.map((b, i) => {
@@ -605,6 +611,7 @@ export default function EtapaMicroinversores({ catalogoInversores, arranjoPrinci
             declararia equilibrado.
           </p>
 
+          {ligacaoNormal && <p className="mt-2 text-xs text-slate-600">{ligacaoNormal}</p>}
           {avisoFase && (
             <p className="mt-2 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800">
               ⚠ {avisoFase}

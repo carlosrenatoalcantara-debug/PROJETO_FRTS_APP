@@ -4,6 +4,7 @@ import {
   opcoesDeArranjo, planejarComposicaoMicro, planejarMicros, planoObsoleto, repartirMicrosPorFase,
 } from '@fortesolar/fv-shared/engenharia/arranjos-micro'
 import { caboDoRamal } from '@fortesolar/fv-shared/engenharia/corrente-micro'
+import { ligacaoDoMicro } from '../catalogo'
 import { paraConfigPersistida, politicaDaConfig, sugestoesDeArranjo } from '../microinversores'
 
 /** Pedido de 2026-11-25: o quadro Fases sugere arranjos válidos, equilibrado primeiro. */
@@ -23,7 +24,7 @@ const op = (q, fases = 'Trifásico 380V', micro = MICRO) => opcoesDeArranjo({ mo
 const eq = (extra = {}) => ({
   _id: 'mi', tipo: 'inversor', fabricante: 'Hoymiles', modelo: 'HMS-2250DW-4T',
   especificacoes: { subtipo: 'microinversor', potencia_kw: 2.25, fases: 1, entradas: 4,
-    modulos_por_entrada: 1, corrente_ac_saida: 10.23, max_por_cabo_tronco: 3, ...extra },
+    modulos_por_entrada: 1, corrente_ac_saida: 10.23, tensao_ac: '220', max_por_cabo_tronco: 3, ...extra },
 })
 const bloco = (extra = {}) => ({ equipamento_id: 'mi', marca: 'Hoymiles', modelo: 'HMS-2250DW-4T', quantidade: 6,
   entradas_por_micro: 4, modulos_por_entrada: 1, modulos: 24, _max_por_cabo_tronco: 3, _corrente_ac_saida: 10.23, ...extra })
@@ -125,16 +126,27 @@ describe('quadro Fases', () => {
       arranjos: [{ id: 'principal', tipo: 'principal', inversores: [{ equipamento_id: 'mi', quantidade: 6, tipo: 'micro' }] }] }
   })
 
-  it('traz o aviso de fase e as duas opções, com a recomendada marcada', () => {
+  it('traz a ligação fase-neutro e as duas opções, com a recomendada marcada', () => {
     montar()
     const quadro = screen.getByLabelText('Fases da composição')
-    expect(quadro.textContent).toContain('pode exigir adequação da entrada elétrica')
+    expect(quadro.textContent).toContain('Micro monofásico 220 V em rede trifásica 380 V: ligação fase-neutro')
+    expect(document.body.textContent).not.toContain('adequação da entrada elétrica')
     expect(quadro.textContent).toContain('L1: 2 micros · 20.46 A · cabo 4 mm²')
     expect(quadro.textContent).toContain('L1: 3 micros · 30.69 A · cabo 6 mm²')
     expect(screen.getByLabelText('Opção 1: Fases equilibradas').checked).toBe(true)
     expect(screen.getByLabelText('Fase L3').textContent).toContain('2 micro(s)')
     // Saída e ramal não se repetem no bloco do modelo.
     expect(document.body.textContent).not.toMatch(/Ramal do arranjo|Saída CA de cada micro/)
+  })
+  it('fase-neutro só com as duas tensões declaradas; fora disso vale o aviso', () => {
+    expect(ligacaoDoMicro('Trifásico 380V', eq())).toMatch(/fase-neutro/)
+    for (const [lig, e] of [['Trifásico', eq()], ['Trifásico 220V', eq()], ['Trifásico 13800V', eq()],
+      ['Monofásico 220V', eq()], [null, eq()], ['Trifásico 380V', eq({ tensao_ac: null })],
+      ['Trifásico 380V', eq({ tensao_ac: 127 })], ['Trifásico 380V', eq({ fases: 3 })], ['Trifásico 380V', null]]) {
+      expect(ligacaoDoMicro(lig, e)).toBeNull()
+    }
+    montar(eq({ tensao_ac: null }))
+    expect(screen.getByLabelText('Fases da composição').textContent).toContain('pode exigir adequação da entrada elétrica')
   })
   it('escolher a opção 2 refaz os arranjos e grava os dela', async () => {
     montar()
