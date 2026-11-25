@@ -1,12 +1,20 @@
 import { useMemo, useState } from 'react'
+import { obterCamposEditaveis } from '@fortesolar/fv-shared/ai/campos-equipamento'
 import { useProjeto } from '../../providers/ProjetoProvider'
+import EdicaoInversor from '../../../components/equipamentos/EdicaoInversor'
+import { linkEdicaoCatalogo } from '../../../utils/linkEdicaoCatalogo'
 import {
   avaliar, capacidadeDoBloco, capacidadePorMicro, coerenciaComComposicao, configDaComposicao,
   correnteDoBloco, daConfigPersistida, distribuicaoDoBloco, divergenciasDaComposicao, inteiro,
   microsNecessariosNoBloco, modulosAtribuidos, obsolescenciaDaComposicao,
   paraArranjoComMicros, planoDaComposicao, procedenciaDaCapacidade, recalcularPelaComposicao,
+  reidratarDoCatalogo,
   totalDeMicros, VEREDITO,
 } from '../../microinversores'
+
+/** Nome do campo como está no cadastro: o operador procura o rótulo, não a chave. */
+const ROTULO = Object.fromEntries(obterCamposEditaveis('inversor').map((c) => [c.key, c.label]))
+const comRotulos = (texto) => texto.replace(/`(\w+)`/g, (m, chave) => (ROTULO[chave] ? `“${ROTULO[chave]}”` : m))
 
 /** Como cada procedência de capacidade se apresenta — Sprint E2, §2 e §10. */
 const PROCEDENCIA = {
@@ -54,13 +62,15 @@ const PROCEDENCIA = {
  * arranjos: a lacuna é dita e a tela para ali. Uma distribuição de aparência
  * válida sobre um limite inventado seria pior do que a ausência dela.
  */
-export default function EtapaMicroinversores({ catalogoInversores, arranjoPrincipal, totalModulos, potenciaModuloW, fases = null, iscModuloA = null, imppModuloA = null }) {
+export default function EtapaMicroinversores({ catalogoInversores, arranjoPrincipal, totalModulos, potenciaModuloW, fases = null, iscModuloA = null, imppModuloA = null, aoAtualizarCatalogo = null }) {
   const { projeto, acoes } = useProjeto()
 
   const [config, setConfig] = useState(null)
   const [salvando, setSalvando] = useState(false)
   const [erroSalvar, setErroSalvar] = useState(null)
   const [salvo, setSalvo] = useState(false)
+  // Equipamento com o cadastro aberto para correção, nesta mesma página.
+  const [corrigindo, setCorrigindo] = useState(null)
 
   const persistida = useMemo(
     () => daConfigPersistida(arranjoPrincipal?.configuracao_eletrica?.micros, catalogoInversores),
@@ -77,7 +87,8 @@ export default function EtapaMicroinversores({ catalogoInversores, arranjoPrinci
    * não tinha chegado, porque o efeito só rodava uma vez. Derivar em vez de
    * copiar elimina a janela inteira.
    */
-  const atual = config ?? persistida ?? inicial
+  const editado = useMemo(() => config && reidratarDoCatalogo(config, catalogoInversores), [config, catalogoInversores])
+  const atual = editado ?? persistida ?? inicial
   const alterado = config !== null
 
   const veredito = useMemo(
@@ -128,15 +139,25 @@ export default function EtapaMicroinversores({ catalogoInversores, arranjoPrinci
     setSalvo(false)
   }
 
-  // Nova aba: corrigir o cadastro não pode custar as edições não salvas daqui.
-  const linkCadastro = (
-    <a
-      href="/equipamentos/inversores" target="_blank" rel="noopener noreferrer"
-      className="underline hover:text-slate-900"
-    >
-      Corrigir no cadastro de inversores
-    </a>
-  )
+  // Abre o cadastro DESTE modelo aqui mesmo: corrigir não pode custar as edições
+  // não salvas, e aba nova pode ser bloqueada pelo navegador. Ctrl+clique usa o link.
+  const linkCadastro = (bloco) => {
+    const equipamento = (catalogoInversores ?? []).find((e) => String(e._id) === String(bloco?.equipamento_id)) ?? null
+    return (
+      <a
+        href={linkEdicaoCatalogo({ tipo: 'micro', id: bloco?.equipamento_id }) ?? '/equipamentos/inversores'}
+        target="_blank" rel="noopener noreferrer"
+        onClick={(e) => {
+          if (!equipamento || !aoAtualizarCatalogo || e.ctrlKey || e.metaKey || e.shiftKey) return
+          e.preventDefault()
+          setCorrigindo(equipamento)
+        }}
+        className="underline hover:text-slate-900"
+      >
+        Corrigir no cadastro
+      </a>
+    )
+  }
 
   const campo = (valor, aoMudar, rotulo, editavel = true) => (
     <input
@@ -235,7 +256,7 @@ export default function EtapaMicroinversores({ catalogoInversores, arranjoPrinci
                   Enquanto o conflito existir, nenhum dos valores é usado no cálculo —
                   escolher um deles em silêncio esconderia o problema.
                 </p>
-                <p className="mt-1">{linkCadastro}</p>
+                <p className="mt-1">{linkCadastro(b)}</p>
               </div>
             )}
             {(b._conflitos ?? []).filter((c) => c.tipo === 'so_em_specs_canonicas').length > 0 && (
@@ -261,7 +282,7 @@ export default function EtapaMicroinversores({ catalogoInversores, arranjoPrinci
                   ? `Capacidade ${porMicro} módulo(s) por micro — calculada pelo SSOT.`
                   : `Capacidade ${porMicro} módulo(s) por micro — ${PROCEDENCIA[proc].texto}.`}
               {/* Lacuna do catálogo tem ação: o conserto definitivo é no cadastro. */}
-              {(proc === null || proc === 'manual') && <> {linkCadastro}</>}
+              {(proc === null || proc === 'manual') && <> {linkCadastro(b)}</>}
             </p>
 
             <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-slate-600 sm:grid-cols-3">
@@ -353,7 +374,7 @@ export default function EtapaMicroinversores({ catalogoInversores, arranjoPrinci
                   Regra de arranjo não declarada no SSOT — limite de microinversores por ramal ausente
                   {b._fabricante ? ` para ${b._fabricante}` : ''} — nem no catálogo deste
                   modelo, nem como regra de fabricante. Nenhum agrupamento foi proposto:
-                  a regra de outro fabricante não se aplica aqui. {linkCadastro}.
+                  a regra de outro fabricante não se aplica aqui. {linkCadastro(b)}.
                 </p>
               ) : (
                 <>
@@ -476,7 +497,7 @@ export default function EtapaMicroinversores({ catalogoInversores, arranjoPrinci
 
             {r?.lacunas?.length > 0 && (
               <p className="mt-2 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-                O catálogo não declara: {r.lacunas.join(', ')}. Nenhum valor foi assumido.
+                O catálogo não declara: {r.lacunas.map((k) => ROTULO[k] ?? k).join(', ')}. Nenhum valor foi assumido. {linkCadastro(b)}.
               </p>
             )}
             {r?.bloqueios?.map((m) => (
@@ -486,7 +507,7 @@ export default function EtapaMicroinversores({ catalogoInversores, arranjoPrinci
             ))}
             {r?.avisos?.map((m) => (
               <p key={m} className="mt-2 rounded border border-slate-300 bg-slate-50 px-3 py-2 text-xs text-slate-600">
-                {m}
+                {comRotulos(m)}
               </p>
             ))}
           </article>
@@ -603,9 +624,17 @@ export default function EtapaMicroinversores({ catalogoInversores, arranjoPrinci
       ))}
 
       {veredito.valido && atual.length > 0 && (
-        <p className="mt-3 text-xs text-emerald-700">
-          Configuração válida dentro dos limites declarados pelo fabricante.
+        <p className={`mt-3 text-xs ${veredito.por_modelo.some((m) => m?.lacunas?.length > 0) ? 'text-amber-700' : 'text-emerald-700'}`}>
+          {veredito.por_modelo.some((m) => m?.lacunas?.length > 0)
+            ? 'Nenhuma reprovação, mas faltam limites no cadastro — isto não é aprovação elétrica.'
+            : 'Configuração válida dentro dos limites declarados pelo fabricante.'}
         </p>
+      )}
+      {corrigindo && (
+        <EdicaoInversor
+          inversor={corrigindo} onClose={() => setCorrigindo(null)}
+          onSalvar={() => { setCorrigindo(null); aoAtualizarCatalogo() }}
+        />
       )}
 
       {erroSalvar && <p role="alert" className="mt-3 text-xs text-red-600">{erroSalvar}</p>}

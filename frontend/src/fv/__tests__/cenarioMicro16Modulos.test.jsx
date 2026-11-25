@@ -65,7 +65,7 @@ describe('16 × 620 W + HMS-2250DW-4T com o cadastro real', () => {
     expect(campo('Módulos por entrada 1').value).toBe('')
     const proc = campo('Procedência da capacidade 1')
     expect(proc.textContent).toMatch(/Capacidade não determinada/)
-    expect(proc.querySelector('a').getAttribute('href')).toBe('/equipamentos/inversores')
+    expect(proc.querySelector('a').getAttribute('href')).toBe('/equipamentos/inversores?editar=mi2')
     // Sem capacidade não se oferece atribuição — seria capacidade inventada.
     expect(screen.queryByText(/Atribuir \d+ módulo/)).toBeNull()
     expect(screen.getByText('16 módulo(s) ainda não atribuído(s) a nenhum microinversor.')).toBeTruthy()
@@ -75,7 +75,7 @@ describe('16 × 620 W + HMS-2250DW-4T com o cadastro real', () => {
     montar()
     const bloco = campo('Cadastro inconsistente 1')
     expect(bloco.textContent).toMatch(/nenhum dos valores é usado no cálculo/i)
-    expect(bloco.querySelector('a').getAttribute('href')).toBe('/equipamentos/inversores')
+    expect(bloco.querySelector('a').getAttribute('href')).toBe('/equipamentos/inversores?editar=mi2')
     expect(screen.getByText(/potência não declarada/)).toBeTruthy()
   })
 

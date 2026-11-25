@@ -176,6 +176,33 @@ export function divergenciasDaComposicao(config, inversoresDaComposicao, totalMo
   return motivos
 }
 
+/**
+ * Depois de o cadastro mudar: relê do catálogo os campos que são do EQUIPAMENTO
+ * e preenche entradas ainda vazias. O que o operador digitou não é trocado.
+ */
+export function reidratarDoCatalogo(config, catalogo) {
+  return (config ?? []).map((b) => {
+    const eq = (catalogo ?? []).find((e) => String(e._id) === String(b?.equipamento_id))
+    if (!eq) return b
+    const envelope = envelopeDoMicro(eq)
+    return {
+      ...b,
+      entradas_por_micro: b.entradas_por_micro ?? envelope.entradas,
+      modulos_por_entrada: b.modulos_por_entrada ?? envelope.modulos_por_entrada,
+      _potencia_kw: envelope.potencia_kw,
+      _oversizing_max: envelope.oversizing_max,
+      _fabricante: envelope.fabricante,
+      _max_por_cabo_tronco: envelope.max_por_cabo_tronco,
+      _entradas_ssot: envelope.entradas,
+      _modulos_por_entrada_ssot: envelope.modulos_por_entrada,
+      _corrente_max_por_mppt: envelope.corrente_max_por_mppt,
+      _corrente_isc_max: envelope.corrente_isc_max,
+      _corrente_ac_saida: envelope.corrente_ac_saida,
+      _conflitos: envelope.conflitos ?? [],
+    }
+  })
+}
+
 /** Capacidade em módulos de UM micro (entradas × módulos/entrada). */
 export function capacidadePorMicro(bloco) {
   return capacidadeDoMicro({

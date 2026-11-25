@@ -106,7 +106,7 @@ REGRAS OBRIGATÓRIAS:
 3. "tipo": "modulo" para painéis fotovoltaicos, "inversor" para inversores solares.
 4. "subtipo" (inversores): use "microinversor" se potência AC ≤ 3kW e tensão DC ≤ 60V; caso contrário use "string".
 5. Para MÓDULOS com múltiplas potências na tabela: crie UMA variante para CADA potência listada.
-6. Para INVERSORES com múltiplos modelos na mesma tabela: crie UMA variante para CADA modelo/potência.
+6. Para INVERSORES com múltiplos modelos na mesma tabela: crie UMA variante para CADA modelo/potência. Colunas do MESMO modelo em tensões de rede diferentes (208/220/230/240 V) são UMA variante só: tensao_ac_nominal com todas ("208/220/230/240"), faixa_tensao_rede com a faixa e corrente_ac_saida com o MAIOR valor.
 7. Potência: se o datasheet mostrar em W (micro-inversores), converta para kW (ex: 2000W → 2.0).
 8. Campos "Faixa" devem ser string legível, ex: "25~55 V" ou "176~242 Vca".
 9. Valores numéricos devem ser números. Use null se não encontrar.${contexto}

@@ -2,6 +2,8 @@ import { useState, useRef } from 'react'
 import { X, Upload, CheckCircle, AlertCircle, Loader, FileText, Zap, PenLine } from 'lucide-react'
 import Button from '../ui/Button'
 import Card from '../ui/Card'
+import CamposAgrupados from './CamposAgrupados'
+import { aplicarCampo, classificarCampos, errosDeCampos } from '@fortesolar/fv-shared/ai/campos-equipamento'
 
 const API_URL = '' /* URL relativa forçada — Vercel proxy → Railway */
 
@@ -53,17 +55,16 @@ export default function ModalNovoInversor({ arquivosIniciais = [], onClose, onSa
   })
   const [salvandoManual, setSalvandoManual] = useState(false)
 
-  function setEspec(key, valor) {
-    setFormManual(f => ({
-      ...f,
-      especificacoes: { ...f.especificacoes, [key]: valor === '' ? undefined : valor },
-    }))
-  }
+  const camposManual = classificarCampos('inversor', formManual.especificacoes, {}, {
+    micro: formManual.especificacoes?.tipo_topologia === 'MICRO',
+  })
 
   async function handleSalvarManual() {
     if (!formManual.fabricante || !formManual.modelo) {
       return alert('Preencha fabricante e modelo')
     }
+    const invalidos = errosDeCampos(camposManual)
+    if (invalidos.length) return alert(invalidos.join('\n'))
     setSalvandoManual(true)
     try {
       const res = await fetch(`${API_URL}/api/equipamentos`, {
@@ -248,48 +249,15 @@ export default function ModalNovoInversor({ arquivosIniciais = [], onClose, onSa
               />
               <input
                 type="number"
-                placeholder="Potência CA (kW) *"
-                step="0.1"
-                value={formManual.especificacoes?.potencia_kw ?? ''}
-                onChange={e => setEspec('potencia_kw', e.target.value === '' ? '' : parseFloat(e.target.value))}
-                className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <input
-                type="number"
-                placeholder="Número de MPPTs"
-                value={formManual.especificacoes?.n_mppts ?? ''}
-                onChange={e => setEspec('n_mppts', e.target.value === '' ? '' : parseInt(e.target.value))}
-                className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <input
-                type="number"
-                placeholder="Entradas por MPPT"
-                value={formManual.especificacoes?.entradas_por_mppt ?? ''}
-                onChange={e => setEspec('entradas_por_mppt', e.target.value === '' ? '' : parseInt(e.target.value))}
-                className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <input
-                type="number"
-                placeholder="Tensão máx. CC (V)"
-                value={formManual.especificacoes?.tensao_max_entrada ?? ''}
-                onChange={e => setEspec('tensao_max_entrada', e.target.value === '' ? '' : parseFloat(e.target.value))}
-                className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <input
-                type="number"
-                placeholder="Corrente máx. por MPPT (A)"
-                step="0.1"
-                value={formManual.especificacoes?.corrente_max_por_mppt ?? ''}
-                onChange={e => setEspec('corrente_max_por_mppt', e.target.value === '' ? '' : parseFloat(e.target.value))}
-                className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <input
-                type="number"
                 placeholder="Preço (R$)"
                 value={formManual.preco_sugerido}
                 onChange={e => setFormManual(f => ({ ...f, preco_sugerido: parseFloat(e.target.value) || 0 }))}
                 className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
+              <div className="col-span-2 space-y-4">
+                <CamposAgrupados tipo="inversor" campos={camposManual}
+                  aoMudar={(c, v) => setFormManual(f => ({ ...f, especificacoes: aplicarCampo(f.especificacoes, c, v) }))} />
+              </div>
             </div>
           )}
 

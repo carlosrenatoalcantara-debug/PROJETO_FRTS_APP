@@ -71,7 +71,7 @@ describe('FASE 6 — validação com 6 fabricantes (rótulo correto por topologi
       expect(ent.label).toMatch(new RegExp(rotulo))
       const q = resumirQualidade('inversor', esp)
       expect(q.percentual).toBeGreaterThanOrEqual(0)
-      expect(q.encontrados + q.inferidos + q.pendentes).toBe(campos.length)
+      expect(q.encontrados + q.inferidos + q.pendentes).toBe(campos.filter(c => !c.complementar).length)
     })
   }
 })

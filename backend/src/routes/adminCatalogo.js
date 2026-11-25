@@ -11,6 +11,7 @@
 import { Router } from 'express'
 import { aplicarEscopo, carimbarTenant } from '../dominio/tenancy/index.js'   // Fase 0.5 — M-4
 import multer from 'multer'
+import { projetosQueUsam, mensagemEmUso } from '../services/usoEquipamento.js'
 import mongoose from 'mongoose'
 import { Equipamento } from '../models/Equipamento.js'
 import { processarEquipamento } from '../services/catalogoQualidade.js'
@@ -596,6 +597,8 @@ router.post('/lote', async (req, res) => {
 
     let afetados = 0
     if (acao === 'excluir') {
+      const uso = await projetosQueUsam(validos, req.auth?.empresa_id ?? null)
+      if (uso.total > 0) return res.status(409).json({ sucesso: false, codigo: 'EQUIPAMENTO_EM_USO', erro: mensagemEmUso(uso) })
       const r = await Equipamento.deleteMany({ _id: { $in: validos } })
       afetados = r.deletedCount
     } else {

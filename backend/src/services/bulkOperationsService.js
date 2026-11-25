@@ -5,6 +5,7 @@
  * Cada execução grava um BulkOperationLog com usuário, IDs, duração e resultado.
  */
 
+import { projetosQueUsam, mensagemEmUso } from './usoEquipamento.js'
 import mongoose from 'mongoose'
 import { Equipamento } from '../models/Equipamento.js'
 import { BulkOperationLog } from '../models/BulkOperationLog.js'
@@ -40,6 +41,9 @@ async function gravarLog({ usuario, operacao, tipo_catalogo, ids, inicio, sucess
 
 export async function bulkDelete({ ids, tipo, usuario }) {
   const objectIds = validarIds(ids)
+  // Mesma regra da exclusão individual: em uso, não apaga.
+  const uso = await projetosQueUsam(ids)
+  if (uso.total > 0) throw Object.assign(new Error(mensagemEmUso(uso)), { status: 409 })
   const inicio = Date.now()
   const session = await mongoose.startSession()
   try {

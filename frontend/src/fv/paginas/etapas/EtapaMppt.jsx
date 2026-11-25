@@ -138,13 +138,15 @@ export default function EtapaMppt({ naComposicao = false } = {}) {
   const [salvandoInv, setSalvandoInv] = useState(false)
   const [invSalvo, setInvSalvo] = useState(false)
 
+  // Muda quando o cadastro é corrigido daqui: recarrega o catálogo.
+  const [versaoCatalogo, setVersaoCatalogo] = useState(0)
   useEffect(() => {
     let vivo = true
     Promise.all([listarCatalogo('modulo'), listarCatalogo('inversor')])
       .then(([m, i]) => vivo && setCatalogo({ modulos: m?.equipamentos ?? [], inversores: i?.equipamentos ?? [] }))
       .catch((e) => vivo && setErroCatalogo(e.message))
     return () => { vivo = false }
-  }, [])
+  }, [versaoCatalogo])
 
   // FV-UX-029: a composição vive em `arranjos[]`; esta etapa consome a PROJEÇÃO
   // `equipamentos.*`, que carrega o primeiro módulo e o primeiro inversor.
@@ -784,6 +786,7 @@ export default function EtapaMppt({ naComposicao = false } = {}) {
           /* Impp: corrente de OPERAÇÃO do módulo. Sem ela o critério fica
              `nao_avaliado` — Isc NUNCA a substitui. */
           imppModuloA={eletricoMod?.impp ?? null}
+          aoAtualizarCatalogo={() => setVersaoCatalogo((v) => v + 1)}
         />
       </>
     )

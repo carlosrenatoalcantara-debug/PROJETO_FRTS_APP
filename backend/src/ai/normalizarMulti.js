@@ -84,6 +84,41 @@ function _limpar(s) {
   return t === '' ? null : t
 }
 
+const SUFIXO_TENSAO = /\s*[([]?\s*(\d{3})\s*V(?:ca|ac)?\s*[)\]]?\s*$/i
+const _num = (v) => { const n = Number(v); return Number.isFinite(n) ? n : null }
+
+/**
+ * Mesmo equipamento listado uma vez por tensão de rede ("HMS-2250DW-4T (208V)",
+ * "(220V)"…) é UM cadastro. Só une quando o nome difere apenas na tensão e a
+ * potência e os MPPTs são iguais. A corrente CA fica a MAIOR (menor tensão), que
+ * é a que dimensiona cabo e disjuntor.
+ */
+export function unificarTensoes(itens) {
+  const grupos = new Map()
+  for (const it of itens) {
+    const m = SUFIXO_TENSAO.exec(it.modelo || '')
+    const base = m ? it.modelo.slice(0, m.index).trim() : null
+    const e = it.especificacoes || {}
+    const chave = base ? `${(it.fabricante || '').toLowerCase()}::${base.toLowerCase()}::${e.potencia_kw ?? ''}::${e.n_mppts ?? ''}` : it
+    if (!grupos.has(chave)) grupos.set(chave, { base, membros: [] })
+    grupos.get(chave).membros.push({ it, tensao: m ? m[1] : null })
+  }
+  return [...grupos.values()].map(({ base, membros }) => {
+    if (!base || membros.length < 2) return membros[0].it
+    const especificacoes = {}
+    for (const { it } of membros) {
+      for (const [k, v] of Object.entries(it.especificacoes || {})) {
+        if (especificacoes[k] === undefined || especificacoes[k] === null) especificacoes[k] = v
+      }
+    }
+    const tensoes = [...new Set(membros.map((x) => x.tensao))].sort()
+    especificacoes.tensao_ac = tensoes.join('/')
+    const correntes = membros.map((x) => _num(x.it.especificacoes?.corrente_ac_saida)).filter((n) => n !== null && n > 0)
+    if (correntes.length) especificacoes.corrente_ac_saida = Math.max(...correntes)
+    return { ...membros[0].it, modelo: base, especificacoes }
+  })
+}
+
 /**
  * Converte o resultado bruto em N itens do schema interno (1 por modelo distinto).
  *
@@ -138,5 +173,5 @@ export function normalizarMulti(raw = {}) {
     }))
   }
 
-  return itens
+  return unificarTensoes(itens)
 }

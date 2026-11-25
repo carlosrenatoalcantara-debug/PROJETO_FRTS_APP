@@ -342,6 +342,8 @@ export function envelopeDoMicro(equipamento) {
     // Sprint E2 — limites de corrente, para o motor `correnteMicro`. Ausentes
     // viram `null` e o veredito é `nao_avaliado`; nunca um valor assumido.
     corrente_max_por_mppt: num(canonico(equipamento)?.corrente_max_por_mppt),
+    // Limite de CURTO: existia no catálogo e não era lido — a tela dizia que faltava.
+    corrente_isc_max: num(canonico(equipamento)?.corrente_isc_max),
     corrente_ac_saida: num(canonico(equipamento)?.corrente_ac_saida),
     // Sprint E3 — cadastro contraditório não vira número. `potencia_kw` acima
     // vem de `potenciaDoInversor`, que já devolve `null` em conflito; a lista

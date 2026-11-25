@@ -4,6 +4,7 @@ import { Plus, Edit2, Trash2, ChevronDown, ChevronUp, Sun, Upload, BarChart2, Za
 import Card, { CardBody } from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import ModalNovoModulo from '../components/equipamentos/ModalNovoModulo'
+import ConfirmarExclusao from '../components/equipamentos/ConfirmarExclusao'
 import { useBulkSelection } from '../hooks/useBulkSelection'
 import BulkActionBar from '../components/catalogo/BulkActionBar'
 
@@ -258,31 +259,32 @@ function CardModulo({ modulo, selecionado, onToggle, onEditar, onExcluir }) {
       {/* ── Painel expandido ── */}
       {aberto && (
         <div className="border-t border-slate-100 bg-slate-50 px-5 py-4">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
 
-            {/* Elétrica STC */}
-            <Secao titulo="Características Elétricas (STC)">
+            {/* Elétricas */}
+            <Secao titulo="Elétricas">
               <Linha label="Potência Máxima — Pmax"   value={val(e.potencia_wp,  0, 'W')} />
               <Linha label="Tensão de Circuito Aberto — Voc"  value={val(e.voc,  2, 'V')} />
               <Linha label="Tensão na Pot. Máxima — Vmpp"     value={val(e.vmp,  2, 'V')} />
               <Linha label="Corrente de Curto-Circuito — Isc" value={val(e.isc,  2, 'A')} />
               <Linha label="Corrente na Pot. Máxima — Impp"   value={val(e.imp,  2, 'A')} />
               <Linha label="Eficiência do Módulo — η"         value={val(e.eficiencia, 2, '%')} />
-            </Secao>
-
-            {/* Temperatura + Mecânica */}
-            <Secao titulo="Coef. de Temperatura e Mecânica">
               <Linha label="Coef. Temp. Pmax"   value={val(e.coef_temp_pmax,  3, '%/°C')} />
               <Linha label="Coef. Temp. Voc"    value={val(e.coef_temp_voc,   3, '%/°C')} />
               <Linha label="Coef. Temp. Isc"    value={val(e.coef_temp_isc,   3, '%/°C')} />
-              <Linha label="Tipo de célula"      value={val(e.tipo_celula,     0)} />
-              <Linha label="Nº de células"       value={val(e.num_celulas,     0)} />
-              <Linha label="Dimensões"           value={val(e.dimensoes,       0, 'mm')} />
-              <Linha label="Peso"                value={val(e.peso_kg,         1, 'kg')} />
+              <Linha label="NOCT"               value={val(e.noct, 1, '°C')} />
+              <Linha label="Tensão máx. do sistema" value={val(e.tensao_max_sistema, 0, 'V')} />
+              <Linha label="Fusível série máx." value={val(e.fusivel_serie_max, 0, 'A')} />
             </Secao>
 
-            {/* Garantias */}
-            <Secao titulo="Garantias">
+            {/* Mecânicas, garantias e certificações */}
+            <Secao titulo="Mecânicas, garantias e certificações">
+              <Linha label="Tipo de célula"      value={val(e.tipo_celula,     0)} />
+              <Linha label="Nº de células"       value={val(e.num_celulas ?? e.celulas, 0)} />
+              <Linha label="Dimensões"           value={val(e.dimensoes,       0, 'mm')} />
+              <Linha label="Peso"                value={val(e.peso_kg,         1, 'kg')} />
+              <Linha label="Grau de proteção IP" value={val(e.grau_protecao_ip, 0)} />
+              <Linha label="Certificações"       value={val(e.certificacoes,   0)} />
               <Linha
                 label="Garantia contra defeito de fabricação"
                 value={gpAnos  ? `${gpAnos} anos`  : '—'}
@@ -312,6 +314,8 @@ export default function Modulos() {
   const [arrastando, setArrastando]   = useState(false)
   const [modalAberto, setModalAberto] = useState(false)
   const [moduloEditar, setModuloEditar] = useState(null)
+  const [excluir, setExcluir] = useState(null)
+  const [erroLista, setErroLista] = useState(null)
   const [stats, setStats]             = useState(null)
   const [carregandoStats, setCarregandoStats] = useState(true)
   const [mostrarDashboard, setMostrarDashboard] = useState(false)
@@ -330,9 +334,12 @@ export default function Modulos() {
         ...(ordenar && { ordenar }),
       })
       const res  = await fetch(`${API_URL}/api/equipamentos?${params}`)
-      const dados = await res.json()
-      setModulos(dados.equipamentos || [])
-    } catch (err) { console.error('Erro ao carregar módulos:', err) }
+      const dados = await res.json().catch(() => null)
+      // Falha não é catálogo vazio: diz o que houve.
+      if (!res.ok) throw new Error(dados?.erro || `Erro ${res.status}`)
+      setErroLista(null)
+      setModulos(dados?.equipamentos || [])
+    } catch (err) { console.error('Erro ao carregar módulos:', err); setErroLista(err.message) }
     finally { setCarregando(false) }
   }
 
@@ -345,14 +352,7 @@ export default function Modulos() {
     finally { setCarregandoStats(false) }
   }
 
-  async function handleExcluir(id) {
-    if (!confirm('Tem certeza que deseja excluir este módulo?')) return
-    try {
-      await fetch(`${API_URL}/api/equipamentos/${id}`, { method: 'DELETE' })
-      carregarModulos()
-      carregarStats()
-    } catch (err) { console.error('Erro ao excluir:', err) }
-  }
+  const handleExcluir = (id) => setExcluir(modulos.find((m) => m._id === id) ?? null)
 
   function handleNovo() { setModuloEditar(null); setModalAberto(true) }
   function handleEditar(m) { setModuloEditar(m); setModalAberto(true) }
@@ -444,6 +444,10 @@ export default function Modulos() {
       {/* Lista */}
       {carregando ? (
         <Card><CardBody><p className="text-center text-slate-500 py-6">Carregando…</p></CardBody></Card>
+      ) : erroLista ? (
+        <p role="alert" className="rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">
+          Não foi possível carregar a lista: {erroLista}
+        </p>
       ) : modulos.length === 0 ? (
         <Card><CardBody>
           <div className="text-center py-10 text-slate-400">
@@ -490,6 +494,11 @@ export default function Modulos() {
             />
           ))}
         </div>
+      )}
+
+      {excluir && (
+        <ConfirmarExclusao equipamento={excluir} onFechar={() => setExcluir(null)}
+          onExcluido={() => { setExcluir(null); carregarModulos(); carregarStats() }} />
       )}
 
       {/* Barra de ações em lote */}

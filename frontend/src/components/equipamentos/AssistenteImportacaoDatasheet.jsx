@@ -1,11 +1,12 @@
 import { useState, useMemo } from 'react'
-import { X, Upload, CheckCircle, AlertTriangle, AlertCircle, ChevronLeft, ChevronRight, SkipForward, Loader, Info } from 'lucide-react'
+import { X, Upload, CheckCircle, AlertTriangle, AlertCircle, ChevronLeft, ChevronRight, SkipForward, Loader } from 'lucide-react'
 import {
   classificarCampos,
   resumirQualidade,
   STATUS,
   PROVENIENCIA,
 } from '@fortesolar/fv-shared/ai/campos-equipamento'
+import CamposAgrupados from './CamposAgrupados'
 import { validarPlausibilidadeInversor } from '@fortesolar/fv-shared/ai/validacao-eletrica-inversor'
 
 const API_URL = ''
@@ -240,34 +241,24 @@ export default function AssistenteImportacaoDatasheet({ tipoEquipamento = 'inver
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-3">
-                {campos.map(c => (
-                  <div key={c.key}>
-                    <label className="flex items-center gap-1.5 text-xs font-medium text-slate-600 mb-1">
+              <div className="space-y-4">
+                <CamposAgrupados
+                  tipo={itens[indice]?.tipo || tipoEquipamento} campos={campos}
+                  aoMudar={(c, v) => editarCampo(c.key, v === '' && c.tipo === 'number' ? null : v)}
+                  marcador={(c) => (
+                    <>
                       <BadgeProveniencia proveniencia={c.proveniencia} titulo={c.confianca?.texto} />
-                      {c.label}{c.obrigatorio && <span className="text-red-500">*</span>}
                       {c.proveniencia !== PROVENIENCIA.ENCONTRADO && c.proveniencia !== PROVENIENCIA.FALTANTE && (
-                        <span className="text-[10px] font-normal text-amber-600">· {c.confianca?.texto}</span>
+                        <span className="text-[10px] font-normal text-amber-600">{c.confianca?.texto} ·</span>
                       )}
-                    </label>
-                    <input
-                      type={c.tipo === 'number' ? 'number' : 'text'}
-                      value={c.valor ?? ''}
-                      onChange={e => editarCampo(c.key, c.tipo === 'number' ? (e.target.value === '' ? null : Number(e.target.value)) : e.target.value)}
-                      className={`w-full px-2.5 py-1.5 text-sm border rounded-lg focus:ring-1 focus:ring-blue-400 outline-none ${
-                        c.proveniencia === PROVENIENCIA.FALTANTE && c.obrigatorio ? 'border-red-300 bg-red-50'
-                          : c.proveniencia === PROVENIENCIA.INFERIDO ? 'border-amber-200 bg-amber-50'
-                          : c.proveniencia === PROVENIENCIA.FALTANTE ? 'border-amber-200' : 'border-slate-200'
-                      }`}
-                    />
-                    {/* Legenda EXTERNA ao campo (não usar placeholder como documentação) */}
-                    {c.info && (
-                      <p className="mt-0.5 flex items-start gap-1 text-[11px] text-slate-400">
-                        <Info size={11} className="mt-0.5 shrink-0" /> <span>{c.info}</span>
-                      </p>
-                    )}
-                  </div>
-                ))}
+                    </>
+                  )}
+                  classeEntrada={(c) => `w-full px-2.5 py-1.5 text-sm border rounded-lg focus:ring-1 focus:ring-blue-400 outline-none ${
+                    c.proveniencia === PROVENIENCIA.FALTANTE && c.obrigatorio ? 'border-red-300 bg-red-50'
+                      : c.proveniencia === PROVENIENCIA.INFERIDO ? 'border-amber-200 bg-amber-50'
+                        : c.proveniencia === PROVENIENCIA.FALTANTE ? 'border-amber-200' : 'border-slate-200'
+                  }`}
+                />
               </div>
 
               <div className="flex items-center justify-between gap-2 mt-5 pt-4 border-t">

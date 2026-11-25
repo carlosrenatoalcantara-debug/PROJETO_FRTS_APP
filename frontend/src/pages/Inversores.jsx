@@ -1,13 +1,13 @@
 import { useState, useEffect, useRef } from 'react'
 import { useEdicaoPorLink } from '../hooks/useEdicaoPorLink'
-import { X, Edit2, Trash2, Upload, Zap, ChevronDown, ChevronUp, Cable, Info, CheckCircle, AlertCircle } from 'lucide-react'
+import { Edit2, Trash2, Upload, Zap, ChevronDown, ChevronUp, Cable } from 'lucide-react'
 import Card, { CardHeader, CardBody } from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import ModalNovoInversor from '../components/equipamentos/ModalNovoInversor'
 import AssistenteImportacaoDatasheet from '../components/equipamentos/AssistenteImportacaoDatasheet'
 // P1-INV-UI-01: edição manual dirigida pelo MESMO esquema do SSOT (sem dialeto).
-import { obterCamposEditaveis, classificarCampos, STATUS } from '@fortesolar/fv-shared/ai/campos-equipamento'
-import { ehMicroinversor } from '@fortesolar/fv-shared/inversores/dicionario'
+import EdicaoInversor from '../components/equipamentos/EdicaoInversor'
+import ConfirmarExclusao from '../components/equipamentos/ConfirmarExclusao'
 // Sprint E3 (§5/§6): a corrente acumulada do ramal vem do motor de micro — era
 // a única aritmética aqui que duplicava regra existente.
 import { correnteDoRamal } from '@fortesolar/fv-shared/engenharia/corrente-micro'
@@ -165,8 +165,12 @@ const SPECS_AC = [
   { key: 'faixa_frequencia_hz', label: 'Faixa de frequência',   unit: ''    },
   { key: 'corrente_ac_saida',   label: 'Corrente saída CA',     unit: 'A'   },
   { key: 'fator_potencia',      label: 'Fator de potência',     unit: ''    },
+  { key: 'eficiencia_maxima',   label: 'Eficiência máxima',     unit: '%'   },
   { key: 'thdi',                label: 'THDi',                  unit: '%'   },
-  { key: 'max_por_cabo_tronco', label: 'Máx. por cabo tronco',  unit: 'un.' },
+  { key: 'max_por_cabo_tronco', label: 'Máx. de micros por arranjo', unit: 'un.' },
+  { key: 'eficiencia_europeia', label: 'Eficiência europeia',   unit: '%'   },
+  { key: 'eficiencia_cec',      label: 'Eficiência CEC',        unit: '%'   },
+  { key: 'eficiencia_mppt',     label: 'Eficiência MPPT',       unit: '%'   },
 ]
 const SPECS_DC = [
   { key: 'tipo_topologia',         label: 'Topologia',                 unit: ''  },
@@ -183,12 +187,11 @@ const SPECS_DC = [
   { key: 'corrente_max_entrada',   label: 'Corrente máx. entrada DC',  unit: 'A' },
   { key: 'corrente_max_por_mppt',  label: 'Corrente máx. por MPPT',    unit: 'A' },
   { key: 'corrente_isc_max',       label: 'Isc máx. por entrada',      unit: 'A' },
+  { key: 'entradas',               label: 'Nº de entradas (micro)',    unit: ''  },
+  { key: 'modulos_por_entrada',    label: 'Módulos por entrada (micro)', unit: '' },
+  { key: 'oversizing_max',         label: 'Limite CC/CA do fabricante', unit: '×' },
 ]
 const SPECS_EXTRA = [
-  { key: 'eficiencia_maxima',       label: 'Eficiência máxima',     unit: '%'   },
-  { key: 'eficiencia_europeia',     label: 'Eficiência europeia',   unit: '%'   },
-  { key: 'eficiencia_cec',          label: 'Eficiência CEC',        unit: '%'   },
-  { key: 'eficiencia_mppt',         label: 'Eficiência MPPT',       unit: '%'   },
   { key: 'grau_protecao_ip',        label: 'Grau de proteção IP',   unit: ''    },
   { key: 'protecao_sobretensao_dc', label: 'Prot. sobretensão DC',  unit: ''    },
   { key: 'protecao_sobretensao_ac', label: 'Prot. sobretensão CA',  unit: ''    },
@@ -197,6 +200,7 @@ const SPECS_EXTRA = [
   { key: 'comunicacao',             label: 'Comunicação',           unit: ''    },
   { key: 'peso_kg',                 label: 'Peso',                  unit: 'kg'  },
   { key: 'dimensoes',               label: 'Dimensões',             unit: 'mm'  },
+  { key: 'certificacoes',           label: 'Certificações',         unit: ''    },
   { key: 'garantia_anos',           label: 'Garantia',              unit: 'anos'},
 ]
 
@@ -273,6 +277,8 @@ export default function Inversores() {
   const [assistenteAberto, setAssistenteAberto] = useState(false)  // P0-INV-CAT-03
   const [arquivosModal, setArquivosModal] = useState([])
   const [inversorEditar, setInversorEditar] = useState(null)
+  const [excluir, setExcluir] = useState(null)
+  const [erroLista, setErroLista] = useState(null)
   const [expandido, setExpandido]       = useState(null)   // _id do card expandido
 
   useEffect(() => { carregarInversores() }, [busca, ordenar])
@@ -283,18 +289,13 @@ export default function Inversores() {
       const params = new URLSearchParams({ tipo: 'inversor', ativo: 'true',
         ...(busca && { search: busca }), ...(ordenar && { ordenar }) })
       const res  = await fetch(`${API_URL}/api/equipamentos?${params}`)
-      const dados = await res.json()
-      setInversores(dados.equipamentos || [])
-    } catch (err) { console.error('Erro ao carregar inversores:', err) }
+      const dados = await res.json().catch(() => null)
+      // Falha não é catálogo vazio: diz o que houve.
+      if (!res.ok) throw new Error(dados?.erro || `Erro ${res.status}`)
+      setErroLista(null)
+      setInversores(dados?.equipamentos || [])
+    } catch (err) { console.error('Erro ao carregar inversores:', err); setErroLista(err.message) }
     finally { setCarregando(false) }
-  }
-
-  async function handleExcluir(id) {
-    if (!confirm('Tem certeza que deseja excluir este inversor?')) return
-    try {
-      await fetch(`${API_URL}/api/equipamentos/${id}`, { method: 'DELETE' })
-      carregarInversores()
-    } catch (err) { console.error('Erro ao excluir:', err) }
   }
 
   function abrirComArquivos(files) {
@@ -396,6 +397,10 @@ export default function Inversores() {
       {/* Lista */}
       {carregando ? (
         <Card><CardBody><p className="text-center text-slate-500 py-4">Carregando…</p></CardBody></Card>
+      ) : erroLista ? (
+        <p role="alert" className="rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">
+          Não foi possível carregar a lista: {erroLista}
+        </p>
       ) : inversores.length === 0 ? (
         <Card><CardBody>
           <div className="text-center py-8 text-slate-400">
@@ -449,7 +454,7 @@ export default function Inversores() {
                       className="p-2 hover:bg-blue-50 rounded-lg text-blue-600 transition-colors">
                       <Edit2 size={16} />
                     </button>
-                    <button onClick={() => handleExcluir(inv._id)}
+                    <button onClick={() => setExcluir(inv)} title="Excluir" aria-label={`Excluir ${inv.modelo}`}
                       className="p-2 hover:bg-red-50 rounded-lg text-red-500 transition-colors">
                       <Trash2 size={16} />
                     </button>
@@ -459,9 +464,9 @@ export default function Inversores() {
                 {/* Painel expandido — todos os dados técnicos */}
                 {aberto && (
                   <div className="border-t border-slate-100 px-5 py-4 bg-slate-50 space-y-5">
-                    <SpecGroup titulo="Saída CA" specs={SPECS_AC} espec={espec} payload={payloadEng} />
-                    <SpecGroup titulo="Entrada CC / MPPT" specs={SPECS_DC} espec={espec} payload={payloadEng} />
-                    <SpecGroup titulo="Desempenho e instalação" specs={SPECS_EXTRA} espec={espec} payload={payloadEng} />
+                    <SpecGroup titulo="CA — saída para a rede" specs={SPECS_AC} espec={espec} payload={payloadEng} />
+                    <SpecGroup titulo="CC — entrada dos módulos" specs={SPECS_DC} espec={espec} payload={payloadEng} />
+                    <SpecGroup titulo="Físico-mecânicas, garantias e certificações" specs={SPECS_EXTRA} espec={espec} payload={payloadEng} />
                     <DimensionamentoEletrico espec={espec} />
                     {Object.keys(espec).length === 0 && (
                       <p className="text-xs text-slate-400 text-center">Nenhum dado técnico registrado</p>
@@ -492,6 +497,11 @@ export default function Inversores() {
         />
       )}
 
+      {excluir && (
+        <ConfirmarExclusao equipamento={excluir} onFechar={() => setExcluir(null)}
+          onExcluido={() => { setExcluir(null); carregarInversores() }} />
+      )}
+
       {/* Modal edição manual simples */}
       {modalAberto && inversorEditar && (
         <EdicaoInversor
@@ -503,94 +513,3 @@ export default function Inversores() {
     </div>
   )
 }
-
-// ── Modal de edição simplificado ─────────────────────────────────────────────
-
-function EdicaoInversor({ inversor, onClose, onSalvar }) {
-  const [form, setForm] = useState({ ...inversor })
-  const [salvando, setSalvando] = useState(false)
-
-  function setEspec(key, val) {
-    setForm(f => ({ ...f, especificacoes: { ...f.especificacoes, [key]: val === '' ? undefined : val } }))
-  }
-
-  async function salvar() {
-    if (!form.fabricante || !form.modelo) return alert('Preencha fabricante e modelo')
-    setSalvando(true)
-    try {
-      const res = await fetch(`${API_URL}/api/equipamentos/${inversor._id}`, {
-        method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form),
-      })
-      if (res.ok) onSalvar()
-      else alert('Erro ao salvar')
-    } catch { alert('Erro ao salvar') }
-    finally { setSalvando(false) }
-  }
-
-  const espec = form.especificacoes || {}
-  // P1-INV-UI-01: campos editáveis vêm do MESMO esquema do SSOT (camposEquipamento).
-  // Sem dialeto, sem placeholder-como-documentação. Rótulo dinâmico de entradas por
-  // topologia, legenda externa (ℹ) e status 🟢/🟡/🔴 — consistente com a Assistida.
-  // Micro (pela topologia declarada ou pelo modelo) mostra entradas / módulos por entrada.
-  const micro = espec.subtipo === 'microinversor' || ehMicroinversor(espec, { fabricante: form.fabricante, modelo: form.modelo })
-  const campos = classificarCampos('inversor', espec, {}, { micro })
-  const corStatus = { [STATUS.OK]: 'text-emerald-500', [STATUS.AUSENTE]: 'text-amber-500', [STATUS.OBRIGATORIO]: 'text-red-500' }
-  const Badge = ({ status }) => status === STATUS.OK
-    ? <CheckCircle size={13} className={corStatus[status]} />
-    : <AlertCircle size={13} className={corStatus[status]} />
-
-  // identificação (fora de especificacoes)
-  const campoTopo = (rotulo, key) => (
-    <div>
-      <label className="text-xs font-medium text-slate-600 block mb-1">{rotulo}</label>
-      <input value={form[key] ?? ''} onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
-        className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-full" />
-    </div>
-  )
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-2xl max-h-[90vh] flex flex-col">
-        <div className="flex items-center justify-between p-5 border-b shrink-0">
-          <h2 className="font-bold text-slate-900">Editar Inversor</h2>
-          <button onClick={onClose} className="p-1 hover:bg-slate-100 rounded"><X size={20} /></button>
-        </div>
-        <div className="overflow-y-auto flex-1 p-5 space-y-3">
-          <div className="grid grid-cols-2 gap-3">
-            {campoTopo('Fabricante', 'fabricante')}
-            {campoTopo('Modelo', 'modelo')}
-            {campos.map(c => (
-              <div key={c.key}>
-                <label className="flex items-center gap-1.5 text-xs font-medium text-slate-600 mb-1">
-                  <Badge status={c.status} />
-                  {c.label}{c.obrigatorio && <span className="text-red-500">*</span>}
-                </label>
-                {c.key === 'tipo_topologia' ? (
-                  <select value={espec.tipo_topologia ?? 'STRING'} onChange={e => setEspec('tipo_topologia', e.target.value)}
-                    className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-full bg-white">
-                    {['STRING', 'MICRO', 'HYBRID'].map(o => <option key={o} value={o}>{o}</option>)}
-                  </select>
-                ) : (
-                  <input type={c.tipo === 'number' ? 'number' : 'text'}
-                    value={c.valor ?? ''}
-                    onChange={e => setEspec(c.key, c.tipo === 'number' ? (e.target.value === '' ? '' : parseFloat(e.target.value)) : e.target.value)}
-                    className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-full" />
-                )}
-                {c.info && (
-                  <p className="mt-0.5 flex items-start gap-1 text-[11px] text-slate-400">
-                    <Info size={11} className="mt-0.5 shrink-0" /> <span>{c.info}</span>
-                  </p>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-        <div className="p-5 border-t flex justify-end gap-3 shrink-0">
-          <Button onClick={onClose} variante="secundario">Cancelar</Button>
-          <Button onClick={salvar} disabled={salvando}>{salvando ? 'Salvando…' : 'Salvar'}</Button>
-        </div>
-      </Card>
-    </div>
-  )
-}
-

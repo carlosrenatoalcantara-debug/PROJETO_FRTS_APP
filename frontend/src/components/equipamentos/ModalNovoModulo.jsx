@@ -2,6 +2,11 @@ import { useState, useRef } from 'react'
 import { X, Upload, CheckCircle, AlertCircle, Loader, FileText, Plus } from 'lucide-react'
 import Button from '../ui/Button'
 import Card from '../ui/Card'
+import CamposAgrupados from './CamposAgrupados'
+import { aplicarCampo, classificarCampos } from '@fortesolar/fv-shared/ai/campos-equipamento'
+
+/** Garantias do módulo vivem no TOPO do documento, não em `especificacoes`. */
+const GARANTIA = { garantia_produto_anos: 'garantia_produto', garantia_performance_anos: 'garantia_performance' }
 
 const API_URL = '' /* URL relativa forçada — Vercel proxy → Railway */
 
@@ -254,6 +259,20 @@ export default function ModalNovoModulo({ modulo, onClose, onSalvar }) {
     adicionarArquivos(e.dataTransfer.files)
   }
 
+  const camposManual = classificarCampos('modulo', {
+    ...(formData.especificacoes || {}),
+    garantia_produto_anos: formData.garantia_produto?.value ?? formData.especificacoes?.garantia_produto_anos,
+    garantia_performance_anos: formData.garantia_performance?.value ?? formData.especificacoes?.garantia_performance_anos,
+  })
+
+  function mudarCampo(campo, valor) {
+    const topo = GARANTIA[campo.key]
+    setFormData((f) => (topo
+      ? { ...f, [topo]: { value: valor === '' ? null : valor, unit: 'anos' },
+        especificacoes: aplicarCampo(f.especificacoes, campo, '') }
+      : { ...f, especificacoes: aplicarCampo(f.especificacoes, campo, valor) }))
+  }
+
   // ── Modo manual salvar ────────────────────────────────────────────────────────
 
   async function handleSalvarManual() {
@@ -454,64 +473,15 @@ export default function ModalNovoModulo({ modulo, onClose, onSalvar }) {
               />
               <input
                 type="number"
-                placeholder="Potência (Wp)"
-                value={formData.especificacoes?.potencia_wp || ''}
-                onChange={e => setFormData({ ...formData, especificacoes: { ...formData.especificacoes, potencia_wp: parseInt(e.target.value) } })}
-                className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <input
-                type="number"
                 placeholder="Preço (R$)"
-                value={formData.preco_sugerido}
-                onChange={e => setFormData({ ...formData, preco_sugerido: parseFloat(e.target.value) })}
+                aria-label="Preço (R$)"
+                value={formData.preco_sugerido ?? ''}
+                onChange={e => setFormData({ ...formData, preco_sugerido: e.target.value === '' ? 0 : Number(e.target.value) })}
                 className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-              <input
-                type="number"
-                placeholder="Voc (V)"
-                step="0.01"
-                value={formData.especificacoes?.voc || ''}
-                onChange={e => setFormData({ ...formData, especificacoes: { ...formData.especificacoes, voc: parseFloat(e.target.value) } })}
-                className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <input
-                type="number"
-                placeholder="Vmp (V)"
-                step="0.01"
-                value={formData.especificacoes?.vmp || ''}
-                onChange={e => setFormData({ ...formData, especificacoes: { ...formData.especificacoes, vmp: parseFloat(e.target.value) } })}
-                className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <input
-                type="number"
-                placeholder="Isc (A)"
-                step="0.01"
-                value={formData.especificacoes?.isc || ''}
-                onChange={e => setFormData({ ...formData, especificacoes: { ...formData.especificacoes, isc: parseFloat(e.target.value) } })}
-                className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <input
-                type="number"
-                placeholder="Imp (A)"
-                step="0.01"
-                value={formData.especificacoes?.imp || ''}
-                onChange={e => setFormData({ ...formData, especificacoes: { ...formData.especificacoes, imp: parseFloat(e.target.value) } })}
-                className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <input
-                type="number"
-                placeholder="Garantia produto (anos)"
-                value={formData.garantia_produto?.value || ''}
-                onChange={e => setFormData({ ...formData, garantia_produto: { value: parseFloat(e.target.value), unit: 'anos' } })}
-                className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <input
-                type="number"
-                placeholder="Garantia performance (anos)"
-                value={formData.garantia_performance?.value || ''}
-                onChange={e => setFormData({ ...formData, garantia_performance: { value: parseFloat(e.target.value), unit: 'anos' } })}
-                className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+              <div className="col-span-2 space-y-4">
+                <CamposAgrupados tipo="modulo" campos={camposManual} aoMudar={mudarCampo} />
+              </div>
             </div>
           )}
         </div>

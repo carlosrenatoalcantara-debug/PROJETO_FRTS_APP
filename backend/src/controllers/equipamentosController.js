@@ -11,6 +11,7 @@ import { gerarComFallback } from '../ai/geminiModelos.js'
 // CAT-P0-UNIFY: normalização de tipo + feature flags
 import { normalizarTipo, ehCarregadorEV } from '../utils/catalogo/tipoEquipamento.js'
 import { catalogoFlags } from '../config/catalogoFlags.js'
+import { projetosQueUsam, mensagemEmUso } from '../services/usoEquipamento.js'
 
 const usarMemoryStorage = () => mongoose.connection.readyState !== 1
 
@@ -384,6 +385,12 @@ export const excluirEquipamento = async (req, res) => {
     // de carregadores via fallback sem _id).
     if (!id || id === 'undefined' || id === 'null' || !mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ erro: 'ID inválido', codigo: 'ID_INVALIDO', recebido: id })
+    }
+
+    // Excluir um equipamento em uso deixa o projeto sem ficha técnica, em silêncio.
+    const uso = await projetosQueUsam([id], req.auth?.empresa_id ?? null)
+    if (uso.total > 0) {
+      return res.status(409).json({ erro: mensagemEmUso(uso), codigo: 'EQUIPAMENTO_EM_USO', projetos: uso.total })
     }
 
     // Tenta primeiro em Equipamento; se não achar, tenta CarregadorEV
