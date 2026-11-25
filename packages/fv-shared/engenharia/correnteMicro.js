@@ -193,6 +193,9 @@ export function correnteDoRamal({ correnteAcSaida = null, micros = null } = {}) 
   }
 }
 
+/** NBR 5410: seção mínima de condutor de cobre em circuito de força. */
+const SECAO_MINIMA_FORCA_MM2 = 2.5
+
 /**
  * Seção mínima (mm²) do condutor do ramal pelo critério de aquecimento da
  * NBR 5410 — a mesma tabela do unifilar. NÃO considera queda de tensão nem
@@ -203,7 +206,7 @@ export function caboDoRamal(corrente) {
   const i = _num(corrente)
   if (i === null || i <= 0) return null
   const linha = selecionarCabo(i, { tipo: 'ca' })
-  return linha.imax >= i ? Number(linha.secao) : null
+  return linha.imax >= i ? Math.max(SECAO_MINIMA_FORCA_MM2, Number(linha.secao)) : null
 }
 
 /**

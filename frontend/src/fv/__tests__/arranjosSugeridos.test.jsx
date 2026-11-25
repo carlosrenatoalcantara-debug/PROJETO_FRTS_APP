@@ -102,6 +102,8 @@ describe('corrente e cabo do ramal', () => {
       .toMatchObject({ corrente_a: null, cabo_mm2: null })
     expect([null, '', 0, -5, 'x', NaN, 211].map(caboDoRamal)).toEqual(Array(7).fill(null))
     expect([26, 26.01, 210].map(caboDoRamal)).toEqual([4, 6, 120])
+    // Circuito de força: nunca abaixo de 2,5 mm².
+    expect([0.5, 10.23, 19.5].map(caboDoRamal)).toEqual([2.5, 2.5, 2.5])
   })
 })
 
@@ -140,7 +142,8 @@ describe('quadro Fases', () => {
   })
   it('fase-neutro só com as duas tensões declaradas; fora disso vale o aviso', () => {
     expect(ligacaoDoMicro('Trifásico 380V', eq())).toMatch(/fase-neutro/)
-    for (const [lig, e] of [['Trifásico', eq()], ['Trifásico 220V', eq()], ['Trifásico 13800V', eq()],
+    expect(ligacaoDoMicro('trifasico', eq())).toBe('Micro monofásico 220 V em instalação trifásica: dividir entre as fases.')
+    for (const [lig, e] of [['Trifásico 220V', eq()], ['Trifásico 13800V', eq()],
       ['Monofásico 220V', eq()], [null, eq()], ['Trifásico 380V', eq({ tensao_ac: null })],
       ['Trifásico 380V', eq({ tensao_ac: 127 })], ['Trifásico 380V', eq({ fases: 3 })], ['Trifásico 380V', null]]) {
       expect(ligacaoDoMicro(lig, e)).toBeNull()

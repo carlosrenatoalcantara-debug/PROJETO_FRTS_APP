@@ -192,13 +192,16 @@ export function avisoDeFase(tipoLigacaoInstalacao, fasesEquipamento) {
 
 /**
  * Micro monofásico 220 V em rede trifásica 380 V liga fase-neutro: é o caso
- * normal, não pede adequação de entrada. Só afirma isso com as duas tensões
- * declaradas (380 V na ligação, 220 V no cadastro); sem elas, `null`.
+ * normal, não pede adequação de entrada. Só diz fase-neutro com os 380 V
+ * declarados; ligação trifásica sem tensão gravada fica só na divisão. Outra
+ * tensão declarada, ou micro sem 220 V no cadastro, devolve `null`.
  */
 export function ligacaoDoMicro(tipoLigacaoInstalacao, equipamento) {
   const inst = String(tipoLigacaoInstalacao ?? '')
-  if (!/trif/i.test(inst) || !/(^|\D)380(\D|$)/.test(inst)) return null
+  if (!/trif/i.test(inst)) return null
   if (fasesDoInversor(equipamento) !== 1 || num(canonico(equipamento)?.tensao_ac) !== 220) return null
+  if (!/\d/.test(inst)) return 'Micro monofásico 220 V em instalação trifásica: dividir entre as fases.'
+  if (!/(^|\D)380(\D|$)/.test(inst)) return null
   return 'Micro monofásico 220 V em rede trifásica 380 V: ligação fase-neutro, dividir entre as fases.'
 }
 
