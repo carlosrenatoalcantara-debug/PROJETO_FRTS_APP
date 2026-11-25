@@ -37,7 +37,7 @@ import { DatasheetProcessamento } from '../models/DatasheetProcessamento.js'
  *
  * A versão aqui deve coincidir com a constante em datasheetGeminiUnificado.js.
  */
-export const VERSAO_PARSER_ATUAL = '1.0.0'
+export const VERSAO_PARSER_ATUAL = '1.1.0'
 
 // ─── Hash SHA-256 ────────────────────────────────────────────────────────────
 

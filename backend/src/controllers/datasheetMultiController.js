@@ -11,6 +11,7 @@
 import { PDFParse } from 'pdf-parse'
 import { getOrchestrator } from '../ai/index.js'
 import { precisaOCR, extrairTextoOCR } from '../ai/ocr.js'
+import { compactarPdf } from '../ai/compactarPdf.js'
 
 export async function extrairDatasheetMulti(req, res) {
   try {
@@ -44,7 +45,8 @@ export async function extrairDatasheetMulti(req, res) {
     }
 
     const orch = getOrchestrator()
-    const r = await orch.extrairMulti({ pdfBuffer, textoOCR, tipoEsperado: 'inversor', origemTexto })
+    const pdfIA = await compactarPdf(pdfBuffer)
+    const r = await orch.extrairMulti({ pdfBuffer: pdfIA, textoOCR, tipoEsperado: 'inversor', origemTexto })
     const health = orch.health_snapshot()
 
     // ── P0-AI-01-FINAL: INSTRUMENTAÇÃO ─────────────────────────────────────────

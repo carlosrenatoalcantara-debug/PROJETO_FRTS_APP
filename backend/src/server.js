@@ -369,6 +369,11 @@ async function iniciarServidor() {
     console.log('ℹ️  Continuing without parser routes (non-critical)')
   }
 
+  // O Express só entrega o erro a tratadores registrados DEPOIS da rota, e as de
+  // cima entram depois do `app.use(errorHandler)` do topo: sem este, qualquer erro
+  // delas saía como página HTML, e a tela não tinha mensagem para mostrar.
+  app.use(errorHandler)
+
   app.listen(PORT, () => {
     console.log(`✅ Forte Solar API rodando em http://localhost:${PORT}`)
   })

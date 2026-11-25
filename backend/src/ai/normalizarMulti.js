@@ -45,6 +45,8 @@ export function mapearEspecificacoes(v = {}) {
   // DC / MPPT
   set('n_mppts',               v.n_mppts ?? v.nMppts)
   set('strings_por_mppt',      v.strings_por_mppt)
+  set('entradas',              v.entradas ?? v.total_entradas_cc)
+  set('modulos_por_entrada',   v.modulos_por_entrada)
   set('potencia_max_entrada_cc', v.potencia_max_entrada_cc ?? v.potencia_max_entrada_dc_w ?? v.potencia_max_entrada_dc_kwp)
   set('tensao_max_entrada',    v.tensao_max_entrada ?? v.tensao_max_entrada_dc_v)
   set('tensao_partida',        v.tensao_partida ?? v.tensao_partida_v)
@@ -85,6 +87,49 @@ function _limpar(s) {
   if (s == null) return null
   const t = String(s).trim()
   return t === '' ? null : t
+}
+
+const _int = (v) => {
+  const n = Number(v)
+  return v !== null && v !== undefined && v !== '' && Number.isInteger(n) && n > 0 ? n : null
+}
+
+/**
+ * Lado CC do MICRO: o wizard mede capacidade por `entradas × modulos_por_entrada`
+ * e, sem os dois, diz "cadastro incompleto". A leitura antiga só trazia MPPTs.
+ *
+ * - Com `entradas` divisível pelos MPPTs, elas se repartem por igual
+ *   (BDM-2500: 6 entradas em 3 MPPTs → 2/2/2).
+ * - Sem `entradas`, soma-se o que cada MPPT declara.
+ * - Um módulo por entrada só é inferido quando dois em série não caberiam: entrada
+ *   de até 65 V com módulo de 72/144 células ou similar. Vai marcado como inferido.
+ *
+ * Nada é sobrescrito: o que o documento declara vence. Devolve os campos inferidos.
+ */
+export function completarEntradasDoMicro(esp) {
+  const inferidos = {}
+  const nMppt = _int(esp.n_mppts)
+  const total = _int(esp.entradas)
+  if (total !== null) {
+    const soma = Array.isArray(esp.entradas_por_mppt)
+      ? esp.entradas_por_mppt.reduce((a, b) => a + (_int(b) ?? 0), 0) : null
+    if (soma !== total && nMppt !== null && total % nMppt === 0) {
+      esp.entradas_por_mppt = Array(nMppt).fill(total / nMppt)
+      inferidos.entradas_por_mppt = 'inferido_alta'
+    }
+  } else if (Array.isArray(esp.entradas_por_mppt) && esp.entradas_por_mppt.length === nMppt) {
+    const soma = esp.entradas_por_mppt.reduce((a, b) => a + (_int(b) ?? 0), 0)
+    if (soma > 0) {
+      esp.entradas = soma
+      inferidos.entradas = 'inferido_media'
+    }
+  }
+  const vmax = _num(esp.tensao_max_entrada)
+  if (_int(esp.modulos_por_entrada) === null && vmax !== null && vmax > 0 && vmax <= 65) {
+    esp.modulos_por_entrada = 1
+    inferidos.modulos_por_entrada = 'inferido_alta'
+  }
+  return inferidos
 }
 
 const SUFIXO_TENSAO = /\s*[([]?\s*(\d{3})\s*V(?:ca|ac)?\s*[)\]]?\s*$/i
@@ -157,13 +202,14 @@ export function normalizarMulti(raw = {}) {
     const entradas = normalizarEntradasPorMppt(especificacoes)
     if (entradas) especificacoes.entradas_por_mppt = entradas
     especificacoes.tipo_topologia = derivarTopologia(especificacoes, ctx)
+    const inferidos = especificacoes.tipo_topologia === 'MICRO' ? completarEntradasDoMicro(especificacoes) : {}
     itens.push(criarSchemaInterno({
       fabricante,
       modelo,
       tipo,
       especificacoes,
       // P1-INV-MATRIX-01: proveniência por campo (encontrado|inferido) p/ Assistida.
-      _meta: { multi: true, modelo_variante: !!v.modelo_variante, status: v._status || null },
+      _meta: { multi: true, modelo_variante: !!v.modelo_variante, status: (v._status || Object.keys(inferidos).length) ? { ...inferidos, ...(v._status || {}) } : null },
     }))
   }
 

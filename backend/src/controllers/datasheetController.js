@@ -2,6 +2,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import { CLAUDE_MODELO_PADRAO } from '../ai/adapters/claudeAdapter.js'
 import { PDFParse } from 'pdf-parse'
 import { DatasheetCache } from '../models/DatasheetCache.js'
+import { compactarPdf } from '../ai/compactarPdf.js'
 import { Equipamento } from '../models/Equipamento.js'
 // S8.6.2: regex fallback do 8.6.1 aplicado AGORA server-side (o frontend já tem,
 // mas só executava com texto que esta rota não devolvia → FALLBACK_NAO_EXECUTADO).
@@ -154,6 +155,8 @@ FORMATO PARA INVERSORES — extraia TODOS os campos. Usados no diagrama unifilar
     "thdi":                    <THDi em % — número ou string como "<3" ou null>,
     "n_mppts":                 <Número de rastreadores MPPT — inteiro>,
     "strings_por_mppt":        <Strings/entradas por MPPT, ex: "1/1" ou "2/2" — string ou inteiro>,
+    "entradas":                <Só micro: total de entradas CC (conectores de módulo). "750 x 6" ou "20 x 6" → 6; senão null>,
+    "modulos_por_entrada":     <Só micro: módulos ligados em CADA entrada, só se o documento disser; senão null>,
     "potencia_max_entrada_cc": <Potência máxima de entrada DC em W (micro) ou kWp (string) — número ou null>,
     "tensao_max_entrada":      <Tensão máxima de entrada DC (Vmax) em V>,
     "tensao_partida":          <Tensão de partida/startup em V — número ou null. Micro "22/60": a mínima, 22>,
@@ -165,7 +168,7 @@ FORMATO PARA INVERSORES — extraia TODOS os campos. Usados no diagrama unifilar
     "tensao_mppt_max":         <Tensão máxima MPPT em V>,
     "faixa_operacao_cc":       <Faixa de operação CC, ex: "20~60 V" — string ou null>,
     "corrente_max_entrada":    <Corrente máxima de entrada DC total em A>,
-    "corrente_max_por_mppt":   <Corrente máxima por MPPT em A — número ou string como "15A/15A">,
+    "corrente_max_por_mppt":   <Corrente máxima por MPPT em A — número ou string como "15A/15A". Micro "20 x 6": 20, a de cada entrada>,
     "corrente_isc_max":        <Corrente de curto-circuito máxima por string em A — número ou null>,
     "eficiencia_maxima":       <Eficiência máxima em %, ex: 98.6>,
     "eficiencia_europeia":     <Eficiência europeia/EURO em % ou null>,
@@ -178,7 +181,7 @@ FORMATO PARA INVERSORES — extraia TODOS os campos. Usados no diagrama unifilar
     "temperatura_operacao":    <Faixa de temperatura, ex: "-40~+65°C">,
     "tipo_refrigeracao":       <"Natural" ou "Forçada" ou null>,
     "comunicacao":             <Interface de comunicação, ex: "WiFi" ou "RS485/WiFi">,
-    "max_por_cabo_tronco":     <Máx. microinversores por cabo tronco — inteiro ou null (só micro)>,
+    "max_por_cabo_tronco":     <Máx. microinversores por cabo tronco/ramal ("unidades por ramal de 32A", "Max. Units per Branch") — inteiro ou null (só micro)>,
     "peso_kg":                 <Peso em kg — número>,
     "dimensoes":               <Dimensões em mm, ex: "460x420x182">,
     "garantia_anos":           <Garantia em anos — inteiro>
@@ -609,7 +612,7 @@ export async function extrairDatasheet(req, res) {
       _diag.claude_chamado = true
       const exemplos = await carregarExemplosCache()
       try {
-        resultado = await extrairComClaude(pdfBuffer, exemplos)
+        resultado = await extrairComClaude(await compactarPdf(pdfBuffer), exemplos)
         metodo = 'claude-pdf'
         _diag.claude_ok = true
         console.log(`✅ Claude extraiu: ${resultado?.fabricante} | ${resultado?.modelo} | ${resultado?.variantes?.length || 1} variante(s)`)
