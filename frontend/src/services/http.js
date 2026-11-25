@@ -226,12 +226,17 @@ async function enviarComRenovacao(input, init) {
   if (!ehApiDaAplicacao(url) || ehCaminhoPublico(url)) return res
   if (url.includes('/api/auth/refresh')) return res
   if (!podeRepetir(input, init)) return res
-  if (!obterToken()) return res
+  // Sem access token mas com refresh token a sessão ainda é válida: renova.
+  if (!obterToken() && !obterRefreshToken()) return res
 
   const novo = await renovarAccessToken()
   if (!novo) return res
 
-  return alvo.call(globalThis, input, comCredencial(input, init))
+  // Quem mandou o Authorization à mão mandou o token VENCIDO: a repetição tem de
+  // levar o novo, senão toma 401 de novo e a sessão boa é descartada.
+  const headers = new Headers(init?.headers || undefined)
+  headers.set('Authorization', `Bearer ${novo}`)
+  return alvo.call(globalThis, input, { ...(init || {}), headers })
 }
 
 /**

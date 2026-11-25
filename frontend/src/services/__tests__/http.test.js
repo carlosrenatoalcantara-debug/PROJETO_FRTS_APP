@@ -249,3 +249,41 @@ describe('apiJson', () => {
     expect(erro.codigo).toBe('TENANT_AUSENTE')
   })
 })
+
+// ─── Renovação da sessão (defeito de 2026-11-25) ─────────────────────────────
+
+describe('renovação', () => {
+  const resposta = (status, corpo = {}) => new Response(JSON.stringify(corpo), {
+    status, headers: { 'content-type': 'application/json' },
+  })
+  /** API que só aceita o token "novo" e renova com refresh válido. */
+  const servidor = () => vi.fn(async (input, init) => {
+    if (String(input).includes('/api/auth/refresh')) return resposta(200, { accessToken: 'novo' })
+    return resposta(authDe(init) === 'Bearer novo' ? 200 : 401)
+  })
+  const refreshes = (f) => f.mock.calls.filter(([u]) => String(u).includes('/refresh')).length
+
+  it('a repetição leva o token NOVO mesmo quando o chamador mandou o vencido', async () => {
+    localStorage.setItem('accessToken', 'vencido')
+    localStorage.setItem('refreshToken', 'r')
+    globalThis.fetch = servidor()
+    const res = await apiFetch('/api/auth/verify', { headers: { Authorization: 'Bearer vencido', 'X-A': '1' } })
+    expect(res.status).toBe(200)
+    expect(localStorage.getItem('accessToken')).toBe('novo')
+  })
+
+  it('sem access token mas com refresh token, renova em vez de ficar em 401', async () => {
+    localStorage.setItem('refreshToken', 'r')
+    const f = servidor()
+    globalThis.fetch = f
+    expect((await apiFetch('/api/equipamentos')).status).toBe(200)
+    expect(refreshes(f)).toBe(1)
+  })
+
+  it('anônimo não tenta renovar', async () => {
+    const f = servidor()
+    globalThis.fetch = f
+    expect((await apiFetch('/api/equipamentos')).status).toBe(401)
+    expect(refreshes(f)).toBe(0)
+  })
+})

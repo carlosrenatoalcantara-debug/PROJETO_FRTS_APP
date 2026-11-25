@@ -45,7 +45,9 @@ export const authenticateToken = async (req, res, next) => {
   } catch (error) {
     console.error('[AUTH ERROR]', error.message);
 
-    if (error.message.includes('expirado')) {
+    // A biblioteca escreve "jwt expired": sem isto o vencido virava 403 "inválido"
+    // e o frontend descartava a sessão em vez de renovar.
+    if (/expirado|expired/i.test(error.message)) {
       return res.status(401).json({
         success: false,
         error: 'Token expirado',

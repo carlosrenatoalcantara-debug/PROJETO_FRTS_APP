@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react'
+import { renovarAccessToken } from '../services/http'
 
 const AuthContext = createContext(null)
 
@@ -19,12 +20,19 @@ export function AuthProvider({ children }) {
       setToken(storedToken)
       // Load user data
       verifyToken(storedToken)
+    } else if (localStorage.getItem('refreshToken')) {
+      // Access token perdido com refresh token válido: a sessão continua.
+      renovarAccessToken().then((novo) => {
+        if (!novo) { setLoading(false); return }
+        setToken(novo)
+        verifyToken(novo)
+      })
     } else {
       setLoading(false)
     }
   }, [])
 
-  async function verifyToken(accessToken) {
+  async function verifyToken(accessToken, jaRenovou = false) {
     try {
       const response = await fetch('/api/auth/verify', {
         headers: {
@@ -35,9 +43,19 @@ export function AuthProvider({ children }) {
       if (response.ok) {
         const data = await response.json()
         setUser(data.user)
-      } else {
-        // Token is invalid, clear it
+        // A verificação pode ter renovado o token.
+        setToken(localStorage.getItem('accessToken') || accessToken)
+      } else if (response.status === 401 || response.status === 403) {
+        // Recusado: renova UMA vez antes de desistir da sessão.
+        const novo = jaRenovou ? null : await renovarAccessToken()
+        if (novo) {
+          setToken(novo)
+          await verifyToken(novo, true)
+          return
+        }
         localStorage.removeItem('accessToken')
+        // Token recém-renovado também recusado: a conta foi bloqueada.
+        if (jaRenovou) localStorage.removeItem('refreshToken')
         setToken(null)
         setUser(null)
       }
