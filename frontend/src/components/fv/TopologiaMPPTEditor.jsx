@@ -17,11 +17,23 @@
  * value: [ { entradas: [ { strings: [ { modulos:Number } ] } ] } ]  (length = nMppts)
  */
 import { GitBranch, Plus, Trash2, Zap } from 'lucide-react'
+import { coefParaFracao, fatorTermico } from '@fortesolar/fv-shared/engenharia/normativa'
 
 const LETRAS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 
-// Voc corrigida pelo frio (pior caso de tensão de circuito aberto)
-const vocFrio = (voc, coef, tmin) => voc * (1 + (coef ?? 0) * (tmin - 25))
+/**
+ * Voc corrigida pelo frio (pior caso de tensão de circuito aberto), pelas
+ * primitivas canônicas. Antes: `coef ?? 0` (sem coeficiente, mostrava o Voc STC
+ * como se fosse o frio) e sem conversão de unidade (−0,25 %/°C lido como fração
+ * ⇒ Voc ~4× maior). Sem coeficiente no catálogo ⇒ null: não exibe número.
+ */
+export function vocFrio(voc, coef, tmin) {
+  if (coef === null || coef === undefined || coef === '') return null
+  const v = Number(voc)
+  const t = Number(tmin)
+  if (!Number.isFinite(v) || !Number.isFinite(t)) return null
+  return v * fatorTermico(coefParaFracao(coef), t)
+}
 
 /** value vazio inicial p/ N MPPTs com `entradasPorMppt` entradas vazias cada */
 export function topologiaVazia(nMppts, entradasPorMppt = 2) {
@@ -166,7 +178,8 @@ export default function TopologiaMPPTEditor({
                       )}
 
                       {strings.map((s, si) => {
-                        const voc = eletricoMod ? vocFrio(eletricoMod.voc, eletricoMod.coef_temp_voc, tmin) * (s.modulos || 0) : null
+                        const vocMod = eletricoMod ? vocFrio(eletricoMod.voc, eletricoMod.coef_temp_voc, tmin) : null
+                        const voc = vocMod == null ? null : vocMod * (s.modulos || 0)
                         const vocOk = voc != null && vMax != null ? voc <= vMax : true
                         return (
                           <div key={si} className="flex items-center gap-2">

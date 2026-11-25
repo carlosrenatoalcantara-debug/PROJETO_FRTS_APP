@@ -32,6 +32,7 @@ import { validarMicroinversores } from '@fortesolar/fv-shared/fv/validacao-micro
 import { novoIdArranjo } from '@fortesolar/fv-shared/projeto/identidade-arranjo'
 import { totalDoArranjo } from '../../../utils/sugerirStrings'
 import { quantidadeDeInversores } from '../../../utils/dimensionarMicro'
+import { microsDoArranjoLegado } from '../../../utils/microsDoArranjoLegado'
 
 const TIPO_BADGE_COR = {
   string:     'azul',
@@ -182,10 +183,17 @@ export default function E7Equipamentos() {
       quantidade: b.quantidadeInversores ?? 1,
       equipamento_id: referenciaDoCatalogo(inversor),
     }] : (b.inversores || [])
+    // Micro: grava o fato canônico `configuracao_eletrica.micros[]` (o que o
+    // unifilar lê). Só o bloco montado nesta tela tem esses dados; blocos
+    // carregados do documento passam como estão.
+    const micros = b.inversor ? microsDoArranjoLegado({
+      inversor, numModulos: b.quantidadeModulos, quantidade: b.quantidadeInversores, fases: b.fases ?? null,
+    }) : null
     return {
       id: b.id, rotulo: b.rotulo || rotuloFallback, tipo: b.tipo || tipoFallback,
       somente_leitura: !!b.somente_leitura, paineis, inversores,
       estrutura: b.estrutura || null,  // P2-FV-MULTIARRANJO-UX-01: estrutura por arranjo
+      ...(micros ? { topologia: 'micro', configuracao_eletrica: { micros } } : {}),
     }
   }
 
@@ -221,6 +229,9 @@ export default function E7Equipamentos() {
           painel: equipamentos.painel, inversor: equipamentos.inversor,
           quantidadeModulos: equipamentos.quantidadeModulos ?? dim.numPaineis ?? null,
           quantidadeInversores: quantidadeDeInversores({ inversor: equipamentos.inversor, numModulos: equipamentos.quantidadeModulos ?? dim.numPaineis, escolhida: equipamentos.quantidadeMicros }),
+          // Fases da instalação para o agrupamento dos micros — valor cru da
+          // etapa de consumo; ausente ⇒ null (o motor declara a lacuna).
+          fases: dadosConsumo?.tipoLigacao ?? null,
           estrutura: equipamentos.estrutura?.id || null },  // P2-FV-MULTIARRANJO-UX-01
         'Arranjo A', 'principal',
       ))

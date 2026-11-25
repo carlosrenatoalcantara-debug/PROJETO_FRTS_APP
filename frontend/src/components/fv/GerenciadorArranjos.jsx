@@ -208,7 +208,7 @@ export default function GerenciadorArranjos() {
         || (a.configuracao_eletrica?.mppts?.length || null)
         || 2,
       entradasPorMppt: numK(espInv, ['entradas_por_mppt', 'strings_por_mppt']) || 2,
-      eletricoMod: { voc: numK(espMod, ['voc', 'voc_v']), coef_temp_voc: numK(espMod, ['coef_temp_voc']) ?? -0.0028 },
+      eletricoMod: { voc: numK(espMod, ['voc', 'voc_v']), coef_temp_voc: numK(espMod, ['coef_temp_voc']) },  // sem default: ausente ⇒ editor não mostra Voc frio
       eletricoInv: { tensao_max_entrada: numK(espInv, ['tensao_max_entrada', 'voc_max', 'voc_max_dc']), corrente_max_mppt: numK(espInv, ['corrente_max_por_mppt', 'corrente_max_mppt']) },
     }
   }
