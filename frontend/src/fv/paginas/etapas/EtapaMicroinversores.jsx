@@ -1,10 +1,10 @@
 import { useMemo, useState } from 'react'
 import { useProjeto } from '../../providers/ProjetoProvider'
 import {
-  avaliar, capacidadeDoBloco, coerenciaComComposicao, configDaComposicao,
-  correnteDoBloco, daConfigPersistida, distribuicaoDoBloco, inteiro,
+  avaliar, capacidadeDoBloco, capacidadePorMicro, coerenciaComComposicao, configDaComposicao,
+  correnteDoBloco, daConfigPersistida, distribuicaoDoBloco, divergenciasDaComposicao, inteiro,
   microsNecessariosNoBloco, modulosAtribuidos, obsolescenciaDaComposicao,
-  paraArranjoComMicros, planoDaComposicao, procedenciaDaCapacidade,
+  paraArranjoComMicros, planoDaComposicao, procedenciaDaCapacidade, recalcularPelaComposicao,
   totalDeMicros, VEREDITO,
 } from '../../microinversores'
 
@@ -117,6 +117,17 @@ export default function EtapaMicroinversores({ catalogoInversores, arranjoPrinci
   const atribuidos = modulosAtribuidos(atual)
   const faltam = totalModulos === null ? null : totalModulos - atribuidos
 
+  // A topologia SALVA prevalece na tela; se a composição mudou depois, isso é
+  // dito no topo e o recálculo é um clique — nunca uma troca silenciosa.
+  const divergencias = persistida && !alterado
+    ? divergenciasDaComposicao(persistida, arranjoPrincipal?.inversores, totalModulos) : []
+
+  function recalcular() {
+    setConfig(recalcularPelaComposicao(
+      atual, arranjoPrincipal?.inversores, catalogoInversores, totalModulos))
+    setSalvo(false)
+  }
+
   // Nova aba: corrigir o cadastro não pode custar as edições não salvas daqui.
   const linkCadastro = (
     <a
@@ -151,10 +162,26 @@ export default function EtapaMicroinversores({ catalogoInversores, arranjoPrinci
         </p>
       )}
 
+      {divergencias.length > 0 && inicial.length > 0 && (
+        <div role="alert" aria-label="Topologia desatualizada"
+          className="mt-4 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800"
+        >
+          <p>A topologia salva não corresponde mais à composição: {divergencias.join('; ')}.</p>
+          <button
+            type="button" onClick={recalcular}
+            className="mt-2 rounded bg-amber-700 px-3 py-1 text-xs font-medium text-white hover:bg-amber-800"
+          >
+            Recalcular pela composição
+          </button>
+          <span className="ml-2 text-xs">Nada é gravado até salvar.</span>
+        </div>
+      )}
+
       {/* ── Um bloco por MODELO ───────────────────────────────────────────── */}
       {atual.map((b, i) => {
         const distribuicao = distribuicaoDoBloco(b)
         const capacidade = capacidadeDoBloco(b)
+        const porMicro = capacidadePorMicro(b)
         const necessarios = microsNecessariosNoBloco(b)
         const r = veredito.por_modelo[i] ?? null
         // Sprint E2 — o plano é o da COMPOSIÇÃO: as fases de um modelo dependem
@@ -231,14 +258,14 @@ export default function EtapaMicroinversores({ catalogoInversores, arranjoPrinci
                 ? 'Capacidade não determinada — faltam entradas / módulos por entrada. '
                   + 'Nenhuma capacidade é assumida e a distribuição automática não roda.'
                 : proc === 'ssot'
-                  ? `Capacidade ${capacidade} módulo(s) por micro — calculada pelo SSOT.`
-                  : `Capacidade ${capacidade} módulo(s) por micro — ${PROCEDENCIA[proc].texto}.`}
+                  ? `Capacidade ${porMicro} módulo(s) por micro — calculada pelo SSOT.`
+                  : `Capacidade ${porMicro} módulo(s) por micro — ${PROCEDENCIA[proc].texto}.`}
               {/* Lacuna do catálogo tem ação: o conserto definitivo é no cadastro. */}
               {(proc === null || proc === 'manual') && <> {linkCadastro}</>}
             </p>
 
             <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-slate-600 sm:grid-cols-3">
-              <div><dt className="inline text-slate-500">Capacidade: </dt>
+              <div><dt className="inline text-slate-500">Capacidade total: </dt>
                 <dd className="inline">{capacidade === null ? '—' : `${capacidade} módulos`}</dd></div>
               <div><dt className="inline text-slate-500">Micros necessários: </dt>
                 <dd className="inline">{necessarios === null ? '—' : necessarios}</dd></div>
@@ -326,7 +353,7 @@ export default function EtapaMicroinversores({ catalogoInversores, arranjoPrinci
                   Regra de arranjo não declarada no SSOT — limite de microinversores por ramal ausente
                   {b._fabricante ? ` para ${b._fabricante}` : ''} — nem no catálogo deste
                   modelo, nem como regra de fabricante. Nenhum agrupamento foi proposto:
-                  a regra de outro fabricante não se aplica aqui.
+                  a regra de outro fabricante não se aplica aqui. {linkCadastro}.
                 </p>
               ) : (
                 <>
@@ -479,6 +506,12 @@ export default function EtapaMicroinversores({ catalogoInversores, arranjoPrinci
           {!composicao.fases ? (
             <p className="mt-2 text-xs text-amber-700">
               Fases da instalação não informadas — etapa Projeto.
+            </p>
+          ) : composicao.fases.fases === null && composicao.fases.n > 1 ? (
+            <p className="mt-2 text-xs text-amber-700">
+              Instalação com {composicao.fases.n} fases vivas ({composicao.fases.rotulo}): ainda sem
+              divisão entre elas, porque nenhum modelo tem limite de microinversores por ramal
+              declarado.
             </p>
           ) : composicao.fases.fases === null ? (
             <p className="mt-2 text-xs text-slate-500">

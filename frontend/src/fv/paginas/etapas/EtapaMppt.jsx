@@ -18,7 +18,7 @@ import { paraArranjos, daArranjos, projecaoLegado, quantidade } from '../../comp
 // preliminar; nunca toca em mppts[]/micros[], que são pós-inversor.
 import {
   TIPOS_TOPOLOGIA, inteiroPositivo, lerPreliminar, lacunasPreliminar,
-  preliminarCompleta, coerenciaDeModulos, paraArranjoPreliminar,
+  preliminarCompleta, coerenciaDeModulos, paraArranjoPreliminar, totalDeModulos,
 } from '../../topologiaPreliminar'
 import EtapaMicroinversores from './EtapaMicroinversores'
 import {
@@ -173,7 +173,11 @@ export default function EtapaMppt({ naComposicao = false } = {}) {
     () => (eletricoMod && eletricoInv ? lacunasEletricas(eletricoMod, eletricoInv) : []),
     [eletricoMod, eletricoInv])
 
-  const totalModulos = inteiro(projeto?.dimensionamento?.num_paineis ?? painelSel?.quantidade)
+  // A COMPOSIÇÃO é a fonte: os módulos que vão ao telhado. O dimensionamento é a
+  // necessidade estimada e só responde enquanto não há composição — com ele na
+  // frente, um dimensionamento de 1 módulo distribuía 1 dos 24 escolhidos.
+  const totalDaComposicao = totalDeModulos(projeto) ?? inteiroPositivo(painelSel?.quantidade)
+  const totalModulos = totalDaComposicao ?? inteiroPositivo(projeto?.dimensionamento?.num_paineis)
 
   /**
    * Sprint D0 — configuração elétrica PRELIMINAR, anterior ao inversor.
@@ -809,7 +813,7 @@ export default function EtapaMppt({ naComposicao = false } = {}) {
         {[
           ['Módulo', painelSel ? `${painelSel.marca ?? '—'} ${painelSel.modelo ?? ''}` : null, 'Equipamentos'],
           ['Inversor', inversorSel?.modelo ? `${inversorSel.marca ?? '—'} ${inversorSel.modelo}` : null, 'Equipamentos'],
-          ['Módulos no projeto', totalModulos, 'Dimensionamento'],
+          ['Módulos no projeto', totalModulos, 'Equipamentos'],
           ['MPPTs do inversor', nMppts, 'Catálogo'],
           ['Tmin / Tmax de projeto',
             clima.temperatura_min_historica_c === null ? null

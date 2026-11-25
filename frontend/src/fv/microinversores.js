@@ -123,6 +123,67 @@ export function configDaComposicao(inversoresDaComposicao, catalogo, totalModulo
   })
 }
 
+/**
+ * Refaz a configuração a partir da composição ATUAL: modelos, quantidades e
+ * módulos. Entradas e módulos por entrada informados na tela são mantidos para o
+ * mesmo modelo — sem isso, recalcular apagaria o que o catálogo não declara.
+ * Só produz a proposta; quem a aceita e salva é o operador.
+ */
+export function recalcularPelaComposicao(config, inversoresDaComposicao, catalogo, totalModulos) {
+  const antes = new Map((config ?? []).map((b) => [String(b?.equipamento_id), b]))
+  let restante = inteiro(totalModulos) ?? 0
+  return configDaComposicao(inversoresDaComposicao, catalogo, totalModulos).map((novo) => {
+    const velho = antes.get(novo.equipamento_id)
+    const bloco = {
+      ...novo,
+      entradas_por_micro: inteiro(velho?.entradas_por_micro) ?? novo.entradas_por_micro,
+      modulos_por_entrada: inteiro(velho?.modulos_por_entrada) ?? novo.modulos_por_entrada,
+    }
+    const capacidade = capacidadeDoBloco(bloco)
+    const cabe = capacidade === null ? null : Math.min(capacidade, restante)
+    if (cabe !== null) restante -= cabe
+    return { ...bloco, modulos: cabe }
+  })
+}
+
+/**
+ * O que está SALVO na topologia ainda descreve a composição? Compara modelos,
+ * quantidades e total de módulos. Nada é corrigido em silêncio: devolve os motivos.
+ */
+export function divergenciasDaComposicao(config, inversoresDaComposicao, totalModulos) {
+  const motivos = []
+  const total = inteiro(totalModulos)
+  const atribuidos = modulosAtribuidos(config)
+  if (total !== null && atribuidos !== total) {
+    motivos.push(`${atribuidos} módulo(s) distribuído(s) e ${total} na composição`)
+  }
+  coerenciaComComposicao(config, inversoresDaComposicao).forEach((c) => {
+    motivos.push(`${c.rotulo}: ${c.naTopologia} micro(s) aqui e ${c.previsto} na composição`)
+  })
+  const naComposicao = new Set((inversoresDaComposicao ?? [])
+    .map((i) => String(i?.equipamento_id ?? i?.id)))
+  const naTopologia = new Set((config ?? []).map((b) => String(b?.equipamento_id)))
+  if (naComposicao.size > 0) {
+    ;(config ?? []).filter((b) => !naComposicao.has(String(b?.equipamento_id))).forEach((b) => {
+      motivos.push(`${[b.marca, b.modelo].filter(Boolean).join(' ') || '—'} não está na composição`)
+    })
+  }
+  ;(inversoresDaComposicao ?? [])
+    .filter((i) => !naTopologia.has(String(i?.equipamento_id ?? i?.id)))
+    .forEach((i) => {
+      motivos.push(`${[i?.marca, i?.modelo].filter(Boolean).join(' ') || '—'} está na composição e não aqui`)
+    })
+  return motivos
+}
+
+/** Capacidade em módulos de UM micro (entradas × módulos/entrada). */
+export function capacidadePorMicro(bloco) {
+  return capacidadeDoMicro({
+    entradas: bloco?.entradas_por_micro,
+    modulos_por_entrada: bloco?.modulos_por_entrada,
+  })
+}
+
 /** Capacidade em módulos de UM bloco (quantidade × entradas × módulos/entrada). */
 export function capacidadeDoBloco(bloco) {
   const cap = capacidadeDoMicro({
