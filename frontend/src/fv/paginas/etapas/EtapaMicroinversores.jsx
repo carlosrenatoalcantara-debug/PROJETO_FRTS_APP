@@ -5,7 +5,7 @@ import EdicaoInversor from '../../../components/equipamentos/EdicaoInversor'
 import { avisoDeFase, fasesDoInversor } from '../../catalogo'
 import { linkEdicaoCatalogo } from '../../../utils/linkEdicaoCatalogo'
 import {
-  avaliar, caboDoRamal, capacidadeDoBloco, capacidadePorMicro, coerenciaComComposicao, configDaComposicao,
+  avaliar, capacidadeDoBloco, capacidadePorMicro, coerenciaComComposicao, configDaComposicao,
   correnteDoBloco, entradaDoBloco, STATUS_ENTRADA, daConfigPersistida, distribuicaoDoBloco, divergenciasDaComposicao, inteiro,
   microsNecessariosNoBloco, modulosAtribuidos, obsolescenciaDaComposicao,
   paraArranjoComMicros, planoDaComposicao, politicaDaConfig, procedenciaDaCapacidade, sugestoesDeArranjo, recalcularPelaComposicao,
@@ -539,26 +539,28 @@ export default function EtapaMicroinversores({ catalogoInversores, arranjoPrinci
                         : ''}
                     </dd>
                   </div>
-                  <div>
-                    <dt className="inline text-slate-500">Saída CA de cada micro: </dt>
-                    <dd className="inline text-slate-700">
-                      {corrente.micro.corrente_a === null
-                        ? `não avaliada — ${corrente.micro.motivo}`
-                        : `${corrente.micro.corrente_a} A`}
-                    </dd>
-                  </div>
-                  {(corrente.ramais ?? []).map((ra) => (
-                    <div key={ra.arranjo}>
-                      <dt className="inline text-slate-500">Ramal do arranjo {ra.arranjo}: </dt>
-                      <dd className="inline text-amber-700">
-                        {ra.corrente_a === null
-                          ? 'não avaliada — limite do ramal não cadastrado'
-                          : `${ra.corrente_a} A (${ra.micros} micros)` +
-                            `${caboDoRamal(ra.corrente_a) ? ` · cabo mín. ${caboDoRamal(ra.corrente_a)} mm²` : ''} — ` +
-                            'não avaliada: limite do ramal não cadastrado'}
+                  {/* Com divisão entre fases, saída e ramais aparecem só no quadro Fases. */}
+                  {sugestoes.length === 0 && (<>
+                    <div>
+                      <dt className="inline text-slate-500">Saída CA de cada micro: </dt>
+                      <dd className="inline text-slate-700">
+                        {corrente.micro.corrente_a === null
+                          ? `não avaliada — ${corrente.micro.motivo}`
+                          : `${corrente.micro.corrente_a} A`}
                       </dd>
                     </div>
-                  ))}
+                    {(corrente.ramais ?? []).map((ra) => (
+                      <div key={ra.arranjo}>
+                        <dt className="inline text-slate-500">Ramal do arranjo {ra.arranjo}: </dt>
+                        <dd className="inline text-amber-700">
+                          {ra.corrente_a === null
+                            ? 'não avaliada — limite do ramal não cadastrado'
+                            : `${ra.corrente_a} A (${ra.micros} micros) — ` +
+                              'não avaliada: limite do ramal não cadastrado'}
+                        </dd>
+                      </div>
+                    ))}
+                  </>)}
                 </dl>
               )}
             </div>

@@ -133,6 +133,8 @@ describe('quadro Fases', () => {
     expect(quadro.textContent).toContain('L1: 3 micros · 30.69 A · cabo 6 mm²')
     expect(screen.getByLabelText('Opção 1: Fases equilibradas').checked).toBe(true)
     expect(screen.getByLabelText('Fase L3').textContent).toContain('2 micro(s)')
+    // Saída e ramal não se repetem no bloco do modelo.
+    expect(document.body.textContent).not.toMatch(/Ramal do arranjo|Saída CA de cada micro/)
   })
   it('escolher a opção 2 refaz os arranjos e grava os dela', async () => {
     montar()

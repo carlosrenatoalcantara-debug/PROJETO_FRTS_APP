@@ -333,8 +333,6 @@ export function politicaDaConfig(config, fases) {
   return (igual ?? POLITICAS_ARRANJO[0]).id
 }
 
-export { caboDoRamal }
-
 /**
  * Corrente de um bloco — Sprint E2, §3. Delegação pura; `null` quando não há
  * plano de arranjos, porque a corrente de ramal depende de quantos micros há
