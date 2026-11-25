@@ -68,6 +68,7 @@ export function criarAliases(path, dirname) {
     '@fortesolar/fv-shared/engenharia/classificacao-oversizing': path.resolve(dirname, '../packages/fv-shared/engenharia/classificacaoOversizing.js'),
     '@fortesolar/fv-shared/engenharia/classificacao-corrente-cc': path.resolve(dirname, '../packages/fv-shared/engenharia/classificacaoCorrenteCC.js'),
     '@fortesolar/fv-shared/engenharia/corrente-micro':        path.resolve(dirname, '../packages/fv-shared/engenharia/correnteMicro.js'),
+    '@fortesolar/fv-shared/engenharia/entrada-micro':         path.resolve(dirname, '../packages/fv-shared/engenharia/entradaMicro.js'),
 
     '@fortesolar/fv-shared/engenharia/regras-plausibilidade': path.resolve(dirname, '../packages/fv-shared/services/regrasPlausibilidade.js'),
     '@fortesolar/fv-shared/engenharia/presentation':          path.resolve(dirname, '../packages/fv-shared/services/engineeringPresentation.js'),

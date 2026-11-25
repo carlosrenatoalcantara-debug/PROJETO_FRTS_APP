@@ -5,7 +5,7 @@ import EdicaoInversor from '../../../components/equipamentos/EdicaoInversor'
 import { linkEdicaoCatalogo } from '../../../utils/linkEdicaoCatalogo'
 import {
   avaliar, capacidadeDoBloco, capacidadePorMicro, coerenciaComComposicao, configDaComposicao,
-  correnteDoBloco, daConfigPersistida, distribuicaoDoBloco, divergenciasDaComposicao, inteiro,
+  correnteDoBloco, entradaDoBloco, STATUS_ENTRADA, daConfigPersistida, distribuicaoDoBloco, divergenciasDaComposicao, inteiro,
   microsNecessariosNoBloco, modulosAtribuidos, obsolescenciaDaComposicao,
   paraArranjoComMicros, planoDaComposicao, procedenciaDaCapacidade, recalcularPelaComposicao,
   reidratarDoCatalogo,
@@ -14,6 +14,40 @@ import {
 
 /** Nome do campo como está no cadastro: o operador procura o rótulo, não a chave. */
 const ROTULO = Object.fromEntries(obterCamposEditaveis('inversor').map((c) => [c.key, c.label]))
+const ROTULO_MODULO = Object.fromEntries(obterCamposEditaveis('modulo').map((c) => [c.key, c.label]))
+const NOME_LACUNA = {
+  clima: 'temperaturas do local',
+  'modulo.vmpp': `módulo: ${ROTULO_MODULO.vmp}`,
+  'modulo.impp': `módulo: ${ROTULO_MODULO.imp}`,
+}
+/** `modulo.voc` → "módulo: Voc (V)"; `micro.x`/`inversor.x` → rótulo do cadastro. */
+function nomeDaLacuna(chave) {
+  if (NOME_LACUNA[chave]) return NOME_LACUNA[chave]
+  const [origem, campo] = String(chave).split('.')
+  return origem === 'modulo' ? `módulo: ${ROTULO_MODULO[campo] ?? campo}` : (ROTULO[campo] ?? campo ?? chave)
+}
+
+/** Critérios da entrada CC, na ordem em que o datasheet os declara. */
+const CRITERIOS_ENTRADA = [
+  ['potencia_modulo', 'Potência do módulo', (c) => [
+    c.valor_w, c.min_w === null && c.max_w === null ? null : `faixa ${c.min_w ?? '—'}–${c.max_w ?? '—'}`, 'W']],
+  ['tensao_maxima', 'Tensão máxima (Voc no frio)', (c) => [c.valor_v, c.limite_v === null ? null : `máx. ${c.limite_v}`, 'V']],
+  ['mppt_max', 'MPPT máximo (Vmpp no frio)', (c) => [c.valor_v, c.limite_v === null ? null : `máx. ${c.limite_v}`, 'V']],
+  ['mppt_min', 'MPPT mínimo (Vmpp no calor)', (c) => [c.valor_v, c.limite_v === null ? null : `mín. ${c.limite_v}`, 'V']],
+  ['partida_min', 'Partida mínima (Voc no calor)', (c) => [c.valor_v, c.limite_v === null ? null : `mín. ${c.limite_v}`, 'V']],
+  ['partida_max', 'Partida máxima (Voc no frio)', (c) => [c.valor_v, c.limite_v === null ? null : `máx. ${c.limite_v}`, 'V']],
+]
+const COR_CRITERIO = {
+  [STATUS_ENTRADA.OK]: 'text-emerald-700',
+  [STATUS_ENTRADA.ATENCAO]: 'text-amber-700',
+  [STATUS_ENTRADA.INCOMPATIVEL]: 'text-red-700',
+  [STATUS_ENTRADA.NAO_AVALIADO]: 'text-slate-500',
+}
+const SUFIXO_CRITERIO = {
+  [STATUS_ENTRADA.OK]: '', [STATUS_ENTRADA.ATENCAO]: ' — atenção',
+  [STATUS_ENTRADA.INCOMPATIVEL]: ' — INCOMPATÍVEL', [STATUS_ENTRADA.NAO_AVALIADO]: ' — não avaliado',
+}
+
 const comRotulos = (texto) => texto.replace(/`(\w+)`/g, (m, chave) => (ROTULO[chave] ? `“${ROTULO[chave]}”` : m))
 
 /** Como cada procedência de capacidade se apresenta — Sprint E2, §2 e §10. */
@@ -47,9 +81,8 @@ const PROCEDENCIA = {
  * `@fortesolar/fv-shared/engenharia/microinversores`, via `avaliar()`.
  *
  * ── Reprovar é resultado válido (decisão 6) ──────────────────────────────────
- * Configuração acima do limite CC/CA do fabricante NÃO é ajustada em silêncio.
- * É reprovada, com o número medido, o limite declarado e quantos módulos
- * caberiam. Salvar continua permitido — o projeto é do projetista; o que não se
+ * Configuração fora dos limites do fabricante (tensão, MPPT, partida, corrente,
+ * entradas) NÃO é ajustada em silêncio. É reprovada, com o valor e o limite. Salvar continua permitido — o projeto é do projetista; o que não se
  * faz é fingir que passou.
  *
  * ── Sprint E — o nível acima do micro ────────────────────────────────────────
@@ -62,7 +95,7 @@ const PROCEDENCIA = {
  * arranjos: a lacuna é dita e a tela para ali. Uma distribuição de aparência
  * válida sobre um limite inventado seria pior do que a ausência dela.
  */
-export default function EtapaMicroinversores({ catalogoInversores, arranjoPrincipal, totalModulos, potenciaModuloW, fases = null, iscModuloA = null, imppModuloA = null, aoAtualizarCatalogo = null }) {
+export default function EtapaMicroinversores({ catalogoInversores, arranjoPrincipal, totalModulos, potenciaModuloW, fases = null, iscModuloA = null, imppModuloA = null, moduloEletrico = null, clima = null, aoAtualizarCatalogo = null }) {
   const { projeto, acoes } = useProjeto()
 
   const [config, setConfig] = useState(null)
@@ -123,6 +156,21 @@ export default function EtapaMicroinversores({ catalogoInversores, arranjoPrinci
   // contra ele. Calculados uma vez por render, não por bloco.
   const composicao = useMemo(() => planoDaComposicao(atual, fases), [atual, fases])
   const obsolescencias = useMemo(() => obsolescenciaDaComposicao(atual, fases), [atual, fases])
+
+  // Uma avaliação elétrica por bloco: a mesma que a tela mostra decide a conclusão.
+  const avaliacoes = atual.map((b, i) => {
+    const plano = composicao.por_modelo[i] ?? null
+    return {
+      entrada: entradaDoBloco(b, catalogoInversores, moduloEletrico, clima),
+      corrente: plano ? correnteDoBloco(b, { isc: iscModuloA, impp: imppModuloA }, plano) : null,
+    }
+  })
+  const reprovado = avaliacoes.some((a) => a.entrada.status === STATUS_ENTRADA.INCOMPATIVEL
+    || a.corrente?.entrada?.veredito === VEREDITO.EXCEDIDA)
+  const semDado = [...new Set(avaliacoes.flatMap((a, i) => [
+    ...a.entrada.lacunas, ...(a.corrente?.entrada?.lacunas ?? []),
+    ...(veredito.por_modelo[i]?.lacunas ?? []).map((k) => `micro.${k}`),
+  ]).map(nomeDaLacuna))]
 
   const coerencia = coerenciaComComposicao(atual, arranjoPrincipal?.inversores)
   const atribuidos = modulosAtribuidos(atual)
@@ -209,7 +257,8 @@ export default function EtapaMicroinversores({ catalogoInversores, arranjoPrinci
         // dos arranjos dos outros. Ver `planejarComposicaoMicro`.
         const plano = composicao.por_modelo[i] ?? null
         const obsoleto = obsolescencias[i] ?? { obsoleto: false, motivos: [] }
-        const corrente = plano ? correnteDoBloco(b, { isc: iscModuloA, impp: imppModuloA }, plano) : null
+        const corrente = avaliacoes[i].corrente
+        const entrada = avaliacoes[i].entrada
         const proc = procedenciaDaCapacidade(b)
         return (
           <article key={b.equipamento_id ?? i} className="mt-4 rounded border border-slate-200 bg-white p-4">
@@ -219,7 +268,7 @@ export default function EtapaMicroinversores({ catalogoInversores, arranjoPrinci
               </h3>
               <span className="text-xs text-slate-500">
                 {b._potencia_kw === null ? 'potência não declarada' : `${b._potencia_kw} kW CA`}
-                {b._oversizing_max === null ? ' · sem limite CC/CA declarado' : ` · CC/CA máx. ${b._oversizing_max}×`}
+                {b._oversizing_max === null ? '' : ` · CC/CA máx. ${b._oversizing_max}×`}
               </span>
             </header>
 
@@ -403,6 +452,27 @@ export default function EtapaMicroinversores({ catalogoInversores, arranjoPrinci
                   </p>
                 </>
               )}
+            </div>
+
+            {/* ── Módulo × entrada: o que o datasheet do micro limita ─────────── */}
+            <div className="mt-3" aria-label={`Entrada CC ${i + 1}`}>
+              <p className="text-xs font-medium text-slate-600">Entrada CC — módulo × micro</p>
+              <dl className="mt-1 space-y-1 text-xs">
+                {CRITERIOS_ENTRADA.map(([chave, titulo, partes]) => {
+                  const c = entrada.criterios[chave]
+                  const [valor, limite, un] = partes(c)
+                  return (
+                    <div key={chave}>
+                      <dt className="inline text-slate-500">{titulo}: </dt>
+                      <dd className={`inline ${COR_CRITERIO[c.status]}`}>
+                        {valor === null || valor === undefined ? 'sem valor' : `${valor} ${un}`}
+                        {limite === null ? ' · limite não cadastrado' : ` · ${limite} ${un}`}
+                        {SUFIXO_CRITERIO[c.status]}
+                      </dd>
+                    </div>
+                  )
+                })}
+              </dl>
             </div>
 
             {/* ── Corrente (Sprint E2, §3) — motor separado, veredito próprio ── */}
@@ -624,10 +694,15 @@ export default function EtapaMicroinversores({ catalogoInversores, arranjoPrinci
       ))}
 
       {veredito.valido && atual.length > 0 && (
-        <p className={`mt-3 text-xs ${veredito.por_modelo.some((m) => m?.lacunas?.length > 0) ? 'text-amber-700' : 'text-emerald-700'}`}>
-          {veredito.por_modelo.some((m) => m?.lacunas?.length > 0)
-            ? 'Nenhuma reprovação, mas faltam limites no cadastro — isto não é aprovação elétrica.'
-            : 'Configuração válida dentro dos limites declarados pelo fabricante.'}
+        <p
+          role={reprovado ? 'alert' : undefined}
+          className={`mt-3 text-xs ${reprovado ? 'text-red-700' : semDado.length > 0 ? 'text-amber-700' : 'text-emerald-700'}`}
+        >
+          {reprovado
+            ? 'Módulo incompatível com a entrada do micro — veja os itens em vermelho.'
+            : semDado.length > 0
+              ? `Nenhuma reprovação, mas não é aprovação elétrica: falta ${semDado.join(', ')}.`
+              : 'Entradas compatíveis com os limites declarados pelo fabricante.'}
         </p>
       )}
       {corrigindo && (

@@ -59,14 +59,14 @@ describe('P1-03 — validarMicroinversores (validação física)', () => {
 
   it('SEM limite declarado não há veredito de oversizing — avisa, não bloqueia', () => {
     // FV-DOM-031 (decisão 3): "remover defaults artificiais". Ausência de
-    // `oversizing_max` no catálogo é lacuna, não aprovação nem reprovação.
+    // `oversizing_max` não aprova nem reprova: no micro a relação é informativa (2026-11-25).
     const r = validarMicroinversores({
       numModulos: 4, numMicros: 1, entradasPorMicro: 4,
       potenciaModuloW: 550, potenciaMicroCA_W: 800,
     })
     expect(r.valido).toBe(true)
     expect(r.bloqueios).toHaveLength(0)
-    expect(r.avisos.join(' ')).toMatch(/não declara `oversizing_max`/i)
+    expect(r.avisos.join(' ')).toMatch(/2\.75× \(informativa\)/)
     expect(r.resumo.oversizing_mais_carregado).toBe(2.75)
   })
 

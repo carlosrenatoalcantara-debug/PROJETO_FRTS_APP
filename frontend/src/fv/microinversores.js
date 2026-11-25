@@ -21,6 +21,7 @@
  *
  * Puro: sem React, sem I/O.
  */
+import { avaliarEntradaMicro, STATUS_ENTRADA } from '@fortesolar/fv-shared/engenharia/entrada-micro'
 import {
   avaliarComposicaoMicro, capacidadeDoMicro, distribuirEntreMicros, microsNecessarios,
 } from '@fortesolar/fv-shared/engenharia/microinversores'
@@ -32,7 +33,7 @@ import {
 // Sprint E2 — corrente é motor separado, com veredito próprio. Não se mistura
 // com a distribuição de módulos: um pode estar completo e o outro não.
 import { avaliarCorrenteMicro, VEREDITO } from '@fortesolar/fv-shared/engenharia/corrente-micro'
-import { envelopeDoMicro, ehMicro } from './catalogo'
+import { envelopeDoMicro, entradaCcDoMicro, ehMicro } from './catalogo'
 
 /** Inteiro > 0 ou `null`. Vazio e 0 são ausência. */
 export function inteiro(v) {
@@ -323,7 +324,21 @@ export function correnteDoBloco(bloco, modulo, plano) {
   })
 }
 
-export { VEREDITO }
+/**
+ * Módulo × entrada do micro (tensão, MPPT, partida, potência). Os limites vêm do
+ * catálogo na hora; `modulos_por_entrada` é o do bloco, que o operador pode informar.
+ */
+export function entradaDoBloco(bloco, catalogo, modulo, clima) {
+  const eq = (catalogo ?? []).find((e) => String(e._id) === String(bloco?.equipamento_id)) ?? null
+  return avaliarEntradaMicro({
+    modulo: modulo ?? {},
+    micro: { ...(entradaCcDoMicro(eq) ?? {}), modulos_por_entrada: inteiro(bloco?.modulos_por_entrada) },
+    tMin: clima?.temperatura_min_historica_c ?? null,
+    tMax: clima?.temperatura_max_historica_c ?? null,
+  })
+}
+
+export { VEREDITO, STATUS_ENTRADA }
 
 /**
  * O agrupamento salvo ainda descreve a configuração atual? (§20 da Sprint E.)

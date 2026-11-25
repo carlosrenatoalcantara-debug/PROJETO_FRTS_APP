@@ -27,6 +27,7 @@
     "./engenharia/classificacao-oversizing": "./engenharia/classificacaoOversizing.js",
     "./engenharia/classificacao-corrente-cc": "./engenharia/classificacaoCorrenteCC.js",
     "./engenharia/corrente-micro": "./engenharia/correnteMicro.js",
+    "./engenharia/entrada-micro": "./engenharia/entradaMicro.js",
     "./engenharia/unifilar-svg": "./engenharia/unifilarSVG.js",
     "./engenharia/unifilar-micro-svg": "./engenharia/unifilarMicroSVG.js",
     "./engenharia/regras-plausibilidade": "./services/regrasPlausibilidade.js",

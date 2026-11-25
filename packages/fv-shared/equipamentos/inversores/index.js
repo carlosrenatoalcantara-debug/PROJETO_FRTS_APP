@@ -67,7 +67,6 @@ export function paraDimensionamento(especificacoes, equipamento = {}) {
     if (_num(c.entradas) === null) lacunas_micro.push('entradas')
     if (_num(c.modulos_por_entrada) === null) lacunas_micro.push('modulos_por_entrada')
     if (_num(c.potencia_kw) === null) lacunas_micro.push('potencia_kw')
-    if (_num(c.oversizing_max) === null) lacunas_micro.push('oversizing_max')
   }
 
   const lacunas = []

@@ -320,6 +320,21 @@ export function oversizingMaxDoInversor(equipamento) {
   return num(canonico(equipamento)?.oversizing_max)
 }
 
+/** Limites da ENTRADA CC do micro — o que o datasheet declara no lugar de CC/CA. */
+export function entradaCcDoMicro(equipamento) {
+  const c = canonico(equipamento)
+  if (!c) return null
+  return {
+    tensao_max_entrada: num(c.tensao_max_entrada),
+    mppt_min: num(c.tensao_mppt_min),
+    mppt_max: num(c.tensao_mppt_max),
+    tensao_partida: num(c.tensao_partida),
+    tensao_partida_max: num(c.tensao_partida_max),
+    potencia_modulo_min_w: num(c.potencia_modulo_min_w),
+    potencia_modulo_max_w: num(c.potencia_modulo_max_w),
+  }
+}
+
 /** O equipamento é um microinversor, pela classificação canônica única? */
 export function ehMicro(equipamento) {
   return tipoDoInversor(equipamento) === 'micro'

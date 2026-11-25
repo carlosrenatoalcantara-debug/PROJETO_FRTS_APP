@@ -74,11 +74,15 @@ const ESQUEMA = {
     { key: 'thdi', grupo: 'ca', complementar: true, label: 'THDi', tipo: 'text', info: 'Distorção harmônica total de corrente. Ex.: < 3%.' },
     { key: 'max_por_cabo_tronco', grupo: 'ca', complementar: true, soMicro: true, label: 'Máx. de micros por arranjo (ramal CA)', tipo: 'number', inteiro: true, min: 1, max: 50,
       aliases: ['max_micros_por_arranjo', 'max_micros_serie', 'max_micros_por_ramal', 'micros_por_ramal_max', 'max_unidades_por_ramal', 'maximo_micros_em_serie'],
-      info: 'Quantos micros cabem em série no mesmo ramal (cabo tronco), conforme o fabricante. Ex.: 3.' },
+      info: 'Quantos micros cabem em série no mesmo ramal (cabo tronco), conforme o fabricante. Depende da bitola e da tensão: informe o da bitola que você usa. Ex.: 3.' },
     { key: 'potencia_max_entrada_cc', grupo: 'cc', complementar: true, label: 'Potência máx. de entrada CC', tipo: 'number', min: 0, info: 'Potência fotovoltaica máxima admitida: kWp no inversor string, W no micro. É diferente da potência CA.' },
     { key: 'corrente_max_entrada', grupo: 'cc', complementar: true, label: 'Corrente máx. total de entrada (A)', tipo: 'number', min: 0, info: 'Limite TOTAL de corrente CC do equipamento — não é o limite por MPPT.' },
-    { key: 'tensao_partida', grupo: 'cc', complementar: true, label: 'Tensão de partida (V)', tipo: 'number', min: 0, info: 'Tensão CC em que o equipamento começa a operar.' },
-    { key: 'oversizing_max', grupo: 'cc', complementar: true, label: 'Limite CC/CA do fabricante', tipo: 'number', min: 0.5, max: 3,
+    { key: 'tensao_partida', grupo: 'cc', complementar: true, label: 'Tensão de partida (V)', tipo: 'number', min: 0, info: 'Tensão CC em que o equipamento começa a operar. No micro, a mínima. Ex.: 22.' },
+    { key: 'tensao_partida_max', grupo: 'cc', complementar: true, soMicro: true, label: 'Tensão de partida máx. (V)', tipo: 'number', min: 0, info: 'Tensão CC máxima em que o micro começa a operar. Ex.: 60.' },
+    { key: 'potencia_modulo_min_w', grupo: 'cc', complementar: true, soMicro: true, label: 'Potência do módulo mín. (W)', tipo: 'number', min: 0, info: 'Início da faixa de potência de módulo indicada pelo fabricante. Ex.: 450.' },
+    { key: 'potencia_modulo_max_w', grupo: 'cc', complementar: true, soMicro: true, label: 'Potência do módulo máx. (W)', tipo: 'number', min: 0, info: 'Fim da faixa de potência de módulo indicada pelo fabricante. Ex.: 750.' },
+    // Micro não tem: o datasheet limita por potência do módulo, tensão e corrente.
+    { key: 'oversizing_max', grupo: 'cc', complementar: true, naoMicro: true, label: 'Limite CC/CA do fabricante', tipo: 'number', min: 0.5, max: 3,
       aliases: ['fator_sobrecarga_max', 'dc_ac_ratio_max', 'sobredimensionamento_max', 'overload_max'],
       info: 'Razão máxima entre potência CC e CA. Ex.: 1.3 (não em %).' },
     { key: 'temperatura_operacao', grupo: 'mec', complementar: true, label: 'Temperatura de operação (°C)', tipo: 'text', info: 'Faixa de temperatura ambiente. Ex.: -40~+65.' },
@@ -217,7 +221,7 @@ export function rotuloEntradas(tipoTopologia) {
 export function classificarCampos(tipo, especificacoes = {}, statusMap = {}, ctx = {}) {
   const topo = especificacoes?.tipo_topologia
   const micro = ctx?.micro === true || String(topo).toUpperCase() === 'MICRO'
-  return obterCamposEditaveis(tipo).filter(c => !c.soMicro || micro).map(campo => {
+  return obterCamposEditaveis(tipo).filter(c => (micro ? !c.naoMicro || _presente(especificacoes?.[c.key]) : !c.soMicro)).map(campo => {
     let valor = especificacoes?.[campo.key] ?? null
     for (const a of campo.aliases || []) { if (valor == null || valor === '') valor = especificacoes?.[a] ?? null }
     // entradas_por_mppt: exibe array como "3/3"; rótulo muda por topologia.

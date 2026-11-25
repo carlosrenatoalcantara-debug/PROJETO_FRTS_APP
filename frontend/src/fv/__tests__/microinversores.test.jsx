@@ -161,7 +161,7 @@ describe('FV-DOM-031 · o envelope do micro chega ao consumidor', () => {
     const sem = paraDimensionamento(MICRO_SEM.especificacoes, {})
     expect(sem.entradas).toBe(null)
     expect(sem.modulos_por_entrada).toBe(null)
-    expect(sem.lacunas_micro).toEqual(['entradas', 'modulos_por_entrada', 'oversizing_max'])
+    expect(sem.lacunas_micro).toEqual(['entradas', 'modulos_por_entrada'])
   })
 
   it('9 · fora da topologia micro, `lacunas_micro` é sempre vazio', () => {
@@ -309,7 +309,7 @@ describe('FV-DOM-031 · motor de microinversores', () => {
     expect(r.valido).toBe(false)                            // média daria 2,275 e passaria
   })
 
-  it('17 · sem limite declarado NÃO há veredito — avisa (decisão 3)', () => {
+  it('17 · micro não declara CC/CA: a relação é informativa, não lacuna (2026-11-25)', () => {
     const r = avaliarModeloMicro({
       modulos: 24, quantidade: 6,
       micro: { entradas: 4, modulos_por_entrada: 1, potencia_kw: 2.0 },
@@ -317,8 +317,8 @@ describe('FV-DOM-031 · motor de microinversores', () => {
     })
     expect(r.valido).toBe(true)
     expect(r.bloqueios).toEqual([])
-    expect(r.avisos.join(' ')).toMatch(/não declara `oversizing_max`/)
-    expect(r.lacunas).toContain('oversizing_max')
+    expect(r.avisos.join(' ')).toMatch(/1\.30× \(informativa\)/)
+    expect(r.lacunas).toEqual([])
     expect(r.resumo.oversizing_mais_carregado).toBe(1.3)
   })
 
@@ -326,7 +326,7 @@ describe('FV-DOM-031 · motor de microinversores', () => {
     const r = avaliarModeloMicro({ modulos: 24, quantidade: 6, micro: {}, potenciaModuloW: 650 })
     expect(r.valido).toBe(false)
     expect(r.bloqueios.join(' ')).toMatch(/Nenhuma capacidade é assumida/)
-    expect(r.lacunas).toEqual(['entradas', 'modulos_por_entrada', 'potencia_kw', 'oversizing_max'])
+    expect(r.lacunas).toEqual(['entradas', 'modulos_por_entrada', 'potencia_kw'])
   })
 
   it('19 · módulos além da capacidade bloqueiam e dizem quantos micros faltam', () => {
@@ -550,7 +550,7 @@ describe('FV-DOM-031 · a etapa de topologia bifurca', () => {
     await montar()
     await waitFor(() => expect(screen.getByText(/Topologia — microinversores/)).toBeTruthy())
     expect(screen.getByText(/O catálogo não declara/)).toBeTruthy()
-    expect(screen.getByText(/sem limite CC\/CA declarado/)).toBeTruthy()
+    expect(screen.queryByText(/limite CC\/CA/)).toBe(null)
   })
 
   it('34 · não implementa múltiplas opções (decisão 10)', async () => {

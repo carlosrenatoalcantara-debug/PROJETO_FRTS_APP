@@ -786,6 +786,8 @@ export default function EtapaMppt({ naComposicao = false } = {}) {
           /* Impp: corrente de OPERAÇÃO do módulo. Sem ela o critério fica
              `nao_avaliado` — Isc NUNCA a substitui. */
           imppModuloA={eletricoMod?.impp ?? null}
+          moduloEletrico={eletricoMod}
+          clima={clima}
           aoAtualizarCatalogo={() => setVersaoCatalogo((v) => v + 1)}
         />
       </>

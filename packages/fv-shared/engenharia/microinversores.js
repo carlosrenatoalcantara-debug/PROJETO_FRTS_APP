@@ -12,8 +12,10 @@
  * sprint fecharam a questão:
  *
  *   • decisão 3 — o limite é o DECLARADO PELO CATÁLOGO (`oversizing_max`), e a
- *     verificação usa o MICRO MAIS CARREGADO, não a média. Sem default: sem
- *     limite declarado, não há veredito de oversizing — há lacuna.
+ *     verificação usa o MICRO MAIS CARREGADO, não a média. Sem default.
+ *     REVISTA em 2026-11-25: fabricante de micro não declara CC/CA (limita por
+ *     potência do módulo, tensão, corrente e entradas). Sem limite declarado a
+ *     relação é INFORMATIVA, não lacuna. Ver `entradaMicro.js`.
  *   • decisão 5 — a topologia é `microinversor → entradas → módulos`. Não há
  *     MPPT, não há string, não há módulos em série.
  *   • decisão 6 — configuração acima do limite REPROVA e explica. Não se força.
@@ -154,7 +156,6 @@ export function avaliarModeloMicro({ modulos, quantidade, micro = {}, potenciaMo
   if (entradas === null) lacunas.push('entradas')
   if (porEntrada === null) lacunas.push('modulos_por_entrada')
   if (potCaKw === null) lacunas.push('potencia_kw')
-  if (limite === null) lacunas.push('oversizing_max')
 
   // ── Sanidade do que o projetista pediu ────────────────────────────────────
   if (nMod === null || nMod < 1) bloqueios.push('Quantidade de módulos inválida (deve ser inteiro ≥ 1).')
@@ -201,8 +202,7 @@ export function avaliarModeloMicro({ modulos, quantidade, micro = {}, potenciaMo
     oversizing = +((maisCarregado * potModW) / 1000 / potCaKw).toFixed(3)
     if (limite === null) {
       avisos.push(
-        `Relação CC/CA do micro mais carregado: ${oversizing.toFixed(2)}×. ` +
-        'O catálogo não declara `oversizing_max` para este modelo — sem limite, não há veredito.',
+        `Relação CC/CA do micro mais carregado: ${oversizing.toFixed(2)}× (informativa).`,
       )
     } else if (oversizing > limite) {
       // Decisão 7: reprovar dizendo o que destrava — quantos módulos cabem por

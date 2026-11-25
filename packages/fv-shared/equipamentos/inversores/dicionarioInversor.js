@@ -87,6 +87,10 @@ export const CAMPOS_INVERSOR = {
   // multiplicado por `n_mppts` — seria a classe de erro que a F8 removeu.
   corrente_max_entrada:  { grupo: 'CC',           aliases: ['corrente_max_entrada', 'corrente_max_entrada_dc_a', 'corrente_max_entrada_a'] },
   tensao_partida:        { grupo: 'CC',           aliases: ['tensao_partida', 'tensao_partida_v', 'start_voltage_v', 'tensao_inicializacao_dc'] },
+  // Micro (2026-11-25): o que o datasheet usa no lugar de um limite CC/CA. Sem `peso`.
+  tensao_partida_max:    { grupo: 'CC',           aliases: ['tensao_partida_max', 'tensao_partida_max_v'] },
+  potencia_modulo_min_w: { grupo: 'CC',           aliases: ['potencia_modulo_min_w'] },
+  potencia_modulo_max_w: { grupo: 'CC',           aliases: ['potencia_modulo_max_w'] },
   potencia_max_entrada_cc:{ grupo: 'CC',          aliases: ['potencia_max_entrada_cc', 'potencia_kw_cc_max', 'potencia_dc_max', 'pdc_max', 'potencia_max_entrada_dc_w'] },
   // S1-FV-DOMAIN-MIGRATION-01 — envelope de dimensionamento do domínio.
   // Limite de fábrica CC/CA para contar inversores (D-13/INV-39). Sem `peso`:
