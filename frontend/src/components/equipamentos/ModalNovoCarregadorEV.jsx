@@ -146,6 +146,9 @@ export default function ModalNovoCarregadorEV({ arquivosIniciais = [], onClose, 
 
       const json = await res.json()
 
+      // Recusa de acesso não é leitura parcial: nada foi salvo.
+      if (res.status === 401 || res.status === 403) throw new Error(json.erro || `Erro ${res.status}`)
+
       if (!res.ok) {
         // Erro na extração, mostrar avisos
         atualizarItem(item.id, {

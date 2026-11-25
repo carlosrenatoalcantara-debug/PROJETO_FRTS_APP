@@ -1,11 +1,12 @@
 import express from 'express'
-import multer from 'multer'
+import { uploadDatasheet } from '../middleware/uploadDatasheet.js'
 import { extrairDadosFatura, debugFatura } from '../controllers/faturaController.js'
 
 const router = express.Router()
-const upload = multer({ storage: multer.memoryStorage() })
+// Conta chega em PDF ou foto; o limite é o mesmo do datasheet.
+const receberFatura = uploadDatasheet('fatura', 'arquivo')
 
-router.post('/extrair', upload.single('fatura'), extrairDadosFatura)
-router.post('/debug', upload.single('fatura'), debugFatura)
+router.post('/extrair', receberFatura, extrairDadosFatura)
+router.post('/debug', receberFatura, debugFatura)
 
 export default router

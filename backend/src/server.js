@@ -357,11 +357,14 @@ async function iniciarServidor() {
      * backfill — não um middleware a mais.
      */
     app.use('/api/equipamentos', protegerModulo('catalogo'), rotasEquipamentos)
-    app.use('/api/datasheet',    rotasDatasheet)
-    app.use('/api/fatura',       rotasFatura)
-    app.use('/api/faturas',      rotasFaturasInteligente)
-    app.use('/api/carregadores-ev', rotasCarregadoresEV)
-    app.use('/api/ai',           rotasAI)
+    // Mesma régua do catálogo: estas rotas gastam cota de IA e seguram PDF de até
+    // 25 MB em memória. Anônimo não chega ao multer nem ao provedor.
+    app.use('/api/datasheet',    protegerModulo('catalogo'), rotasDatasheet)
+    // Conta de energia: lida por quem edita projeto ou cliente (inclui comercial e técnico).
+    app.use('/api/fatura',       protegerModulo('fv'), rotasFatura)
+    app.use('/api/faturas',      protegerModulo('fv'), exigirOrganizacao, rotasFaturasInteligente)
+    app.use('/api/carregadores-ev', protegerModulo('catalogo'), rotasCarregadoresEV)
+    app.use('/api/ai',           protegerModulo('configuracoes'), rotasAI)
 
     console.log('✅ Parser routes loaded successfully before server start')
   } catch (err) {
