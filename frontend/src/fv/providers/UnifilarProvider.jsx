@@ -30,6 +30,10 @@ export function UnifilarProvider({ children }) {
   const [dados, setDados] = useState(null)
   const [carregando, setCarregando] = useState(false)
   const [erro, setErro] = useState(null)
+  // Só consulta quando uma tela usa o hook (2026-11-25): antes rodava ao abrir
+  // QUALQUER etapa do projeto, e cada chamada custa consultas ao banco.
+  const [ativo, setAtivo] = useState(false)
+  const ativar = useCallback(() => setAtivo(true), [])
 
   const gerar = useCallback(async () => {
     if (!projetoId) return
@@ -47,7 +51,7 @@ export function UnifilarProvider({ children }) {
   }, [projetoId])
 
   // Gerar ao abrir a etapa: a operação é derivação pura, sem efeito colateral.
-  useEffect(() => { gerar() }, [gerar])
+  useEffect(() => { if (ativo) gerar() }, [ativo, gerar])
 
   const snapshot = projeto?.governanca?.snapshot_unifilar ?? null
 
@@ -73,7 +77,8 @@ export function UnifilarProvider({ children }) {
     carregando,
     erro,
     gerar,
-  }), [dados, snapshot, carregando, erro, gerar])
+    ativar,
+  }), [dados, snapshot, carregando, erro, gerar, ativar])
 
   return <Ctx.Provider value={valor}>{children}</Ctx.Provider>
 }
@@ -81,5 +86,7 @@ export function UnifilarProvider({ children }) {
 export function useUnifilar() {
   const ctx = useContext(Ctx)
   if (!ctx) throw new Error('useUnifilar precisa estar dentro de UnifilarProvider')
+  const { ativar } = ctx
+  useEffect(() => { ativar() }, [ativar])
   return ctx
 }

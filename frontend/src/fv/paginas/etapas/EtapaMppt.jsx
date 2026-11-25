@@ -384,7 +384,8 @@ export default function EtapaMppt({ naComposicao = false } = {}) {
    * nem repete a consulta da mesma assinatura.
    */
   useEffect(() => {
-    if (!podeConsultar || consultando) return undefined
+    // Dentro de Equipamentos a lista de compatíveis não é exibida: não consulta.
+    if (naComposicao || !podeConsultar || consultando) return undefined
     if (compat?.assinatura === assinaturaCompat || erroCompat) return undefined
     const t = setTimeout(() => { consultarCompativeis() }, ESPERA_CONSULTA_MS)
     return () => clearTimeout(t)

@@ -29,6 +29,10 @@ export function FinanceiroProvider({ children }) {
   const [dados, setDados] = useState(null)
   const [carregando, setCarregando] = useState(false)
   const [erro, setErro] = useState(null)
+  // Só consulta quando uma tela usa o hook (2026-11-25): antes rodava ao abrir
+  // QUALQUER etapa do projeto, e cada chamada custa consultas ao banco.
+  const [ativo, setAtivo] = useState(false)
+  const ativar = useCallback(() => setAtivo(true), [])
 
   const calcular = useCallback(async () => {
     if (!projetoId) return
@@ -46,7 +50,7 @@ export function FinanceiroProvider({ children }) {
   }, [projetoId])
 
   // Calcular ao abrir a etapa: derivação pura, sem efeito colateral no servidor.
-  useEffect(() => { calcular() }, [calcular])
+  useEffect(() => { if (ativo) calcular() }, [ativo, calcular])
 
   const financeiro = dados?.financeiro ?? null
 
@@ -74,7 +78,8 @@ export function FinanceiroProvider({ children }) {
     carregando,
     erro,
     calcular,
-  }), [financeiro, carregando, erro, calcular])
+    ativar,
+  }), [financeiro, carregando, erro, calcular, ativar])
 
   return <Ctx.Provider value={valor}>{children}</Ctx.Provider>
 }
@@ -82,5 +87,7 @@ export function FinanceiroProvider({ children }) {
 export function useFinanceiro() {
   const ctx = useContext(Ctx)
   if (!ctx) throw new Error('useFinanceiro precisa estar dentro de FinanceiroProvider')
+  const { ativar } = ctx
+  useEffect(() => { ativar() }, [ativar])
   return ctx
 }

@@ -9,6 +9,8 @@
  * Puro: sem React, sem I/O.
  */
 import { sugerirDistribuicaoStrings } from '@fortesolar/fv-shared/engenharia/distribuicao-strings'
+import { STATUS_TENSAO } from '@fortesolar/fv-shared/engenharia/classificacao-tensao-cc'
+import { STATUS_CORRENTE } from '@fortesolar/fv-shared/engenharia/classificacao-corrente-cc'
 import { calcularTemperaturas } from '@fortesolar/fv-shared/engenharia/normativa'
 import {
   eletricoDoModulo, eletricoDoInversor, nMpptsDoInversor, entradasPorMppt,
@@ -56,15 +58,29 @@ export function dividirModulos(total, unidades) {
   return Array.from({ length: q }, (_, i) => base + (i < resto ? 1 : 0)).filter((x) => x > 0)
 }
 
+/**
+ * Acima disto o número de entradas por MPPT é erro de cadastro, não equipamento
+ * (catálogo de produção em 2026-11-25 tinha 2132). Vira dado ausente.
+ */
+const MAX_ENTRADAS_PLAUSIVEL = 32
+
+/** Entradas por MPPT utilizáveis, ou `null` se ausente/implausível. */
+function entradasValidas(inversorCat) {
+  const v = entradasPorMppt(inversorCat)
+  if (!v) return null
+  const n = v.map(Number)
+  return n.every((x) => Number.isInteger(x) && x > 0 && x <= MAX_ENTRADAS_PLAUSIVEL) ? n : null
+}
+
 /** Parâmetros do inversor nos nomes que o motor de distribuição espera. */
 function inversorParaMotor(inversorCat) {
   const el = eletricoDoInversor(inversorCat) ?? {}
-  const entradas = entradasPorMppt(inversorCat)
+  const entradas = entradasValidas(inversorCat)
   return {
     numero_mppt: nMpptsDoInversor(inversorCat),
     // Catálogo traz uma posição por MPPT. O motor assume MPPTs iguais: usa o
     // MENOR, que nunca promete uma entrada que algum MPPT não tem.
-    entradas_por_mppt: entradas ? Math.min(...entradas.map(Number).filter((x) => x > 0)) : null,
+    entradas_por_mppt: entradas ? Math.min(...entradas) : null,
     tensao_max_entrada: el.tensao_max_entrada ?? null,
     mppt_min: el.mppt_min ?? null,
     mppt_max: el.mppt_max ?? null,
@@ -111,17 +127,53 @@ export function sugestaoParaInversor({ inversorCat, moduloCat, totalModulos, qua
     tMax: clima?.temperatura_max_historica_c ?? undefined,
   }
 
+  // MPPTs com número de entradas DIFERENTE: o motor assume MPPTs iguais e aqui
+  // recebe o menor. "Sem solução" nesse caso só diz que o menor não basta — não
+  // prova incompatibilidade, e bloquear recusaria inversor válido.
+  const entradas = entradasValidas(inversorCat) ?? []
+  const entradasDesiguais = new Set(entradas).size > 1
+
+  const avaliar = (n) => {
+    const r = sugerirDistribuicaoStrings({ totalModulos: n, inversor, modulo, clima: climaMotor })
+    if (!entradasDesiguais || r.status !== STATUS_SUGESTAO.SEM_SOLUCAO) return r
+    return {
+      ...r,
+      status: STATUS_SUGESTAO.SEM_DADOS,
+      lacunas: [`MPPTs com entradas diferentes (${entradas.join('/')}): a sugestão automática não avalia esse caso — monte em MPPT e strings.`],
+    }
+  }
+
   const cache = new Map()
   const porUnidade = partes.map((n) => {
-    if (!cache.has(n)) {
-      cache.set(n, sugerirDistribuicaoStrings({ totalModulos: n, inversor, modulo, clima: climaMotor }))
-    }
+    if (!cache.has(n)) cache.set(n, avaliar(n))
     return { modulos: n, resultado: cache.get(n) }
   })
 
   const status = ORDEM.find((s) => porUnidade.some((u) => u.resultado.status === s)) ?? STATUS_SUGESTAO.PRELIMINAR
   const lacunas = [...new Set(porUnidade.flatMap((u) => u.resultado.lacunas ?? []))]
   return { status, porUnidade, lacunas }
+}
+
+/**
+ * A sugestão foi avaliada por inteiro e sem ressalva? Só então a tela mostra ✓.
+ * Tensão ou corrente não avaliada, ou em atenção, é ressalva — nunca aprovação.
+ */
+export function semRessalvas(avaliacao) {
+  if (avaliacao?.status !== STATUS_SUGESTAO.PRELIMINAR) return false
+  return avaliacao.porUnidade.every((u) => u.resultado.mppts.every(
+    (m) => m.tensao === STATUS_TENSAO.OK && m.corrente === STATUS_CORRENTE.OK))
+}
+
+/** Ressalvas por MPPT em texto: o que não foi avaliado ou está em atenção. */
+export function ressalvas(avaliacao) {
+  const out = new Set()
+  for (const u of avaliacao?.porUnidade ?? []) {
+    for (const m of u.resultado?.mppts ?? []) {
+      if (m.tensao === STATUS_TENSAO.ATENCAO) out.add('tensão em atenção.')
+      if (m.corrente === STATUS_CORRENTE.ATENCAO) out.add('corrente acima da de trabalho em algum MPPT.')
+    }
+  }
+  return [...out]
 }
 
 /**

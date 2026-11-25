@@ -19,6 +19,7 @@ import {
 import { TIPOS_TOPOLOGIA, lerPreliminar, paraArranjoPreliminar } from '../../topologiaPreliminar'
 import {
   STATUS_SUGESTAO, climaDoProjeto, sugestaoParaInversor, rotuloDistribuicao, agrupamentoUniforme,
+  semRessalvas, ressalvas,
 } from '../../sugestaoStrings'
 
 /** Topologias que o operador usa e o motor ainda não avalia — exibidas desabilitadas. */
@@ -343,8 +344,12 @@ export default function EtapaEquipamentos() {
     : null
   const candidatoBloqueado = avaliacaoCandidato?.status === STATUS_SUGESTAO.SEM_SOLUCAO
 
-  const bloqueioSalvar = !validacaoEstrutura.valida || avaliacaoLinha.some(
-    (a) => a?.status === STATUS_SUGESTAO.SEM_SOLUCAO || a?.status === 'tecnologia')
+  // Só bloqueia pelo que está sendo ALTERADO: projeto antigo com inversor
+  // incompatível continua podendo salvar a estrutura, por exemplo.
+  const mexeuNaComposicao = composicao !== null || tipoRasc !== null
+  const bloqueioSalvar = !validacaoEstrutura.valida || (mexeuNaComposicao && avaliacaoLinha.some(
+    (a) => a?.status === STATUS_SUGESTAO.SEM_SOLUCAO
+      || (a?.status === 'tecnologia' && tipoRasc !== null)))
 
   /** Agrupamento uniforme sugerido (um comprimento só) — grava na configuração preliminar. */
   const agrupamentoSugerido = umModelo ? agrupamentoUniforme(avaliacaoLinha[0]) : null
@@ -356,17 +361,18 @@ export default function EtapaEquipamentos() {
       const distintas = [...new Set(a.porUnidade.map((u) => rotuloDistribuicao(u.resultado)))]
       return `strings sugeridas: ${distintas.join(' | ')}`
         + (a.porUnidade.length > 1 ? ` (por inversor, ${a.porUnidade.length} un.)` : '')
-        + (a.lacunas.length ? ` — ${a.lacunas.join(' ')}` : '')
+        + ([...a.lacunas, ...ressalvas(a)].length ? ` — ${[...a.lacunas, ...ressalvas(a)].join(' ')}` : '')
     }
     return a.lacunas.join(' ')
   }
   const corAvaliacao = (a) => (
     a?.status === STATUS_SUGESTAO.SEM_SOLUCAO || a?.status === 'tecnologia' ? 'text-red-700'
-      : a?.status === STATUS_SUGESTAO.SEM_DADOS || a?.lacunas?.length ? 'text-amber-700'
+      : a?.status === STATUS_SUGESTAO.SEM_DADOS || !semRessalvas(a) ? 'text-amber-700'
         : 'text-emerald-700')
   const iconeAvaliacao = (a) => (
     a?.status === STATUS_SUGESTAO.SEM_SOLUCAO || a?.status === 'tecnologia' ? '⛔ incompatível: '
-      : a?.status === STATUS_SUGESTAO.SEM_DADOS ? '⚠ não avaliado: ' : '✓ ')
+      : a?.status === STATUS_SUGESTAO.SEM_DADOS ? '⚠ não avaliado: '
+        : semRessalvas(a) ? '✓ ' : '⚠ com ressalva: ')
 
   const linhaQtd = (valor, aoMudar, rotuloAria) => (
     <input
