@@ -344,8 +344,8 @@ export default function EtapaDimensionamento() {
               <>
                 <dt className="text-slate-500">Por que não foi usado</dt>
                 <dd className="text-xs text-amber-700">
-                  O valor de fallback do servidor está fora de faixa física para o
-                  Brasil (4–6 kWh/m²·dia). Ele é exibido para diagnóstico, mas não
+                  O fallback do servidor é um valor genérico de Brasil, não do
+                  local do projeto. Ele é exibido para diagnóstico, mas não
                   preenche o campo — informe o HSP manualmente.
                 </dd>
               </>

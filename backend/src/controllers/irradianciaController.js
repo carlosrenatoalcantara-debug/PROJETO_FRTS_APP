@@ -1,6 +1,9 @@
 import { obterIrradianciaLocal, calcularGeracaoComIrradiancia } from '../utils/nasaPowerAPI.js'
 
-const HSP_PADRAO = 131.44 / 365 // 5.06 kWh/m²/dia padrão (131.44 anual)
+// 2026-11-24: era `131.44 / 365` = 0,36 (o comentário dizia 5,06). Valor genérico
+// de Brasil, marcado `fonte: 'padrão'` — NÃO é do local; a UX nova não o adota.
+const HSP_PADRAO = 5.06
+const HSP_PADRAO_ANUAL = +(HSP_PADRAO * 365).toFixed(2)
 
 export async function obterIrradiancia(req, res) {
   try {
@@ -29,8 +32,8 @@ export async function obterIrradiancia(req, res) {
       // Fallback: usar HSP padrão
       return res.json({
         sucesso: true,
-        hsp_dia: parseFloat(HSP_PADRAO.toFixed(2)),
-        hsp_anual: 131.44,
+        hsp_dia: HSP_PADRAO,
+        hsp_anual: HSP_PADRAO_ANUAL,
         latitude: lat,
         longitude: lon,
         fonte: 'padrão',
@@ -92,8 +95,8 @@ export async function atualizarIrradianciaProjetoFV(req, res) {
       // Fallback
       return res.json({
         sucesso: true,
-        hsp_dia: parseFloat(HSP_PADRAO.toFixed(2)),
-        hsp_anual: 131.44,
+        hsp_dia: HSP_PADRAO,
+        hsp_anual: HSP_PADRAO_ANUAL,
         latitude: lat,
         longitude: lon,
         fonte: 'padrão',
