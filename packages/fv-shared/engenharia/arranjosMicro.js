@@ -52,25 +52,18 @@ export const FASES_VIVAS = Object.freeze(['L1', 'L2', 'L3'])
  *       Consequência: com menos arranjos que fases, sobra fase vazia.
  *       Custo: nenhum ramal a mais. Desequilíbrio: declarado, não corrigido.
  *
- *   B — DIVIDIR PARA OCUPAR AS FASES (NÃO implementada)
+ *   B — EQUILIBRAR FASES
  *       Repartir os mesmos 6 micros em 3 arranjos de 2, um por fase.
  *       O limite do fabricante é um MÁXIMO, então 2 por arranjo é permitido —
  *       B não viola nenhuma regra declarada.
- *       Custo: um ramal a mais (cabo tronco, disjuntor, ocupação de quadro).
+ *       Custo: um ramal a mais. Ganho: fases equilibradas e cabo mais fino.
  *
- * ── Por que A, e por que B fica bloqueada ───────────────────────────────────
- * Escolher B exige afirmar que equilibrar fases vale mais do que um ramal
- * adicional — e, para isso, um limite declarado de desequilíbrio aceitável.
- * Esse limite NÃO existe no sistema para FV. O único que existe é
- * `EV_TRIFASICO_DESBALANÇO` (10 %), do domínio de veículos elétricos: aplicá-lo
- * a microinversores seria fazer exatamente o que a disciplina de fabricante
- * proíbe um nível acima — importar a regra de outro domínio por conveniência.
+ * B ficou bloqueada até haver a premissa "equilibrar vale um ramal a mais". Ela
+ * foi declarada pelo responsável técnico em 2026-11-25: B é a RECOMENDADA e A
+ * segue oferecida (`opcoesDeArranjo`). Não há limiar de desequilíbrio — o de 10 %
+ * é do domínio EV e continua não se aplicando aqui.
  *
- * Então A é mantida por ser a política do sistema até aqui, agora NOMEADA e
- * documentada em vez de emergente; e B fica registrada como bloqueio à espera
- * de uma premissa declarada. O que muda na E2 não é o resultado: é que a fase
- * vazia passa a ser um campo próprio (`fases_sem_arranjo`) em vez de um zero
- * que o leitor precisa notar sozinho.
+ * Os motores seguem com A por default: quem escolhe a política é a tela.
  */
 export const POLITICA_ARRANJOS = Object.freeze({
   id: 'minimo_de_ramais',
@@ -79,14 +72,20 @@ export const POLITICA_ARRANJOS = Object.freeze({
     'Cada arranjo é preenchido até o limite do fabricante. Com menos arranjos ' +
     'do que fases, uma fase pode ficar sem nenhum microinversor — o que é ' +
     'declarado, nunca corrigido em silêncio.',
-  alternativa_nao_implementada: {
-    id: 'ocupar_todas_as_fases',
-    motivo:
-      'Exige um limite declarado de desequilíbrio aceitável para FV, que não ' +
-      'existe no sistema. O limite de 10 % existente é do domínio EV e não se ' +
-      'aplica aqui.',
-  },
 })
+
+export const POLITICA_EQUILIBRAR = Object.freeze({
+  id: 'equilibrar_fases',
+  rotulo: 'Fases equilibradas',
+  descricao:
+    'Os microinversores são repartidos por igual entre as fases vivas e cada ' +
+    'fase forma os seus arranjos, sem passar do limite do fabricante.',
+})
+
+/** Na ordem em que são oferecidas: a primeira é a recomendada. */
+export const POLITICAS_ARRANJO = Object.freeze([POLITICA_EQUILIBRAR, POLITICA_ARRANJOS])
+
+const _politica = (id) => POLITICAS_ARRANJO.find((p) => p.id === id) ?? POLITICA_ARRANJOS
 
 /** Inteiro > 0 ou `null`. Vazio, zero e negativo são ausência. */
 function _int(v) {
@@ -163,27 +162,64 @@ export function balancearFases(arranjos, nFases) {
     return fases[alvo]
   })
 
+  return _resumoDasFases(fases, carga, atribuicao, POLITICA_ARRANJOS.id)
+}
+
+function _resumoDasFases(fases, carga, atribuicao, politica) {
   const porFase = {}
   fases.forEach((f, i) => { porFase[f] = carga[i] })
+  const desequilibrio = Math.max(...carga) - Math.min(...carga)
 
   return {
     fases,
     atribuicao,
     por_fase: porFase,
-    desequilibrio: Math.max(...carga) - Math.min(...carga),
-    equilibrado: Math.max(...carga) - Math.min(...carga) === 0,
+    desequilibrio,
+    equilibrado: desequilibrio === 0,
     /**
      * Fases que não receberam nenhum arranjo — Sprint E2, §5.
      *
      * Antes isto era um `0` dentro de `por_fase` que o leitor tinha de notar.
      * Uma fase viva SEM geração é qualitativamente diferente de uma fase com
-     * menos micros que a vizinha, e a política que a produz (`POLITICA_ARRANJOS`)
-     * é uma escolha — então ganha campo próprio, para que nenhuma tela precise
-     * inferir a situação comparando números.
+     * menos micros que a vizinha, e a política que a produz é uma escolha —
+     * então ganha campo próprio, para que nenhuma tela precise inferir a
+     * situação comparando números.
      */
     fases_sem_arranjo: fases.filter((f) => porFase[f] === 0),
-    politica: POLITICA_ARRANJOS.id,
+    politica,
   }
+}
+
+/**
+ * Micros de cada modelo em cada fase, um a um, sempre para a fase com menos
+ * micros até aqui (empate: menor índice). A carga é GLOBAL: o segundo modelo
+ * continua de onde o primeiro parou.
+ *
+ * @param {number[]} quantidades micros de cada modelo (ausente conta como zero)
+ * @returns {number[][]|null} `[modelo][fase]`; `null` sem pelo menos duas fases
+ */
+export function repartirMicrosPorFase(quantidades, nFases) {
+  const n = _int(nFases)
+  if (!Array.isArray(quantidades) || n === null || n < 2 || n > FASES_VIVAS.length) return null
+  const carga = Array.from({ length: n }, () => 0)
+  return quantidades.map((q) => {
+    const doModelo = carga.map(() => 0)
+    for (let k = _int(q) ?? 0; k > 0; k -= 1) {
+      let alvo = 0
+      for (let i = 1; i < n; i += 1) if (carga[i] < carga[alvo]) alvo = i
+      carga[alvo] += 1
+      doModelo[alvo] += 1
+    }
+    return doModelo
+  })
+}
+
+/** Resumo de fases quando a fase de cada arranjo já está decidida. */
+function _resumoDeAtribuicao(ramais, nFases, politica) {
+  const fases = FASES_VIVAS.slice(0, nFases)
+  const carga = fases.map((f) => ramais
+    .filter((r) => r.fase === f).reduce((t, r) => t + r.micros, 0))
+  return _resumoDasFases(fases, carga, ramais.map((r) => r.fase), politica)
 }
 
 /**
@@ -199,8 +235,12 @@ export function balancearFases(arranjos, nFases) {
  * @param {Object} p.micro              { entradas, modulos_por_entrada, fabricante,
  *                                        max_por_cabo_tronco }
  * @param {string|number} [p.fases]     rótulo da ligação ou número de fases
+ * @param {string} [p.politica]         id de `POLITICAS_ARRANJO`
+ * @param {number[]} [p.porFase]        repartição já decidida pela COMPOSIÇÃO
  */
-export function planejarMicros({ modulos = null, quantidade = null, micro = {}, fases = null } = {}) {
+export function planejarMicros({
+  modulos = null, quantidade = null, micro = {}, fases = null, politica = null, porFase = null,
+} = {}) {
   const lacunas = []
   const avisos = []
 
@@ -225,8 +265,20 @@ export function planejarMicros({ modulos = null, quantidade = null, micro = {}, 
     lacunas.push('limite de microinversores por arranjo — não declarado pelo catálogo nem pelo fabricante')
   }
 
-  const tamanhos = agruparMicrosEmArranjos(nMicro, regra.max_por_cabo_tronco)
-  const balanceamento = tamanhos === null ? null : balancearFases(tamanhos, nFases)
+  const escolhida = _politica(politica)
+  let tamanhos = agruparMicrosEmArranjos(nMicro, regra.max_por_cabo_tronco)
+  let balanceamento = null
+  const divisao = escolhida.id !== POLITICA_EQUILIBRAR.id || tamanhos === null ? null
+    : porFase ?? repartirMicrosPorFase([nMicro], nFases)?.[0] ?? null
+  if (divisao !== null) {
+    const ramais = divisao.flatMap((n, f) =>
+      (agruparMicrosEmArranjos(n, regra.max_por_cabo_tronco) ?? [])
+        .map((micros) => ({ micros, fase: FASES_VIVAS[f] })))
+    tamanhos = ramais.map((r) => r.micros)
+    balanceamento = _resumoDeAtribuicao(ramais, nFases, escolhida.id)
+  } else if (tamanhos !== null) {
+    balanceamento = balancearFases(tamanhos, nFases)
+  }
 
   /**
    * Cada arranjo com os ÍNDICES (1..N) dos micros que estão nele. Índice, e não
@@ -260,9 +312,7 @@ export function planejarMicros({ modulos = null, quantidade = null, micro = {}, 
     avisos.push(
       `${balanceamento.fases_sem_arranjo.join(' e ')} sem nenhum microinversor: ` +
       `${tamanhos.length} arranjo(s) para ${nFases} fases, pela política ` +
-      `"${POLITICA_ARRANJOS.rotulo}". Dividir os mesmos micros em mais arranjos ` +
-      'ocuparia todas as fases ao custo de um ramal a mais — decisão não ' +
-      'automatizada por falta de limite declarado de desequilíbrio.',
+      `"${escolhida.rotulo}".`,
     )
   }
   if (nFases === 1 && nMicro !== null) {
@@ -291,7 +341,7 @@ export function planejarMicros({ modulos = null, quantidade = null, micro = {}, 
     entradas_por_micro_usadas: entradasUsadas,
     regra,
     arranjos,
-    politica: POLITICA_ARRANJOS,
+    politica: escolhida,
     fases: nFases === null ? null : {
       n: nFases,
       rotulo: nFases === 3 ? 'Trifásico' : nFases === 2 ? 'Bifásico' : 'Monofásico',
@@ -332,13 +382,19 @@ export function planejarMicros({ modulos = null, quantidade = null, micro = {}, 
  *                           `rotulo`, `entradas`, `modulos_por_entrada`,
  *                           `fabricante`, `max_por_cabo_tronco`, `origem`
  * @param {string|number} [p.fases]
+ * @param {string} [p.politica]  id de `POLITICAS_ARRANJO`
  */
-export function planejarComposicaoMicro({ modelos = [], fases = null } = {}) {
+export function planejarComposicaoMicro({ modelos = [], fases = null, politica = null } = {}) {
   const nFases = fasesDaInstalacao(fases)
+  const escolhida = _politica(politica)
+  // Modelo sem regra não forma arranjo, então não ocupa fase.
+  const porFase = escolhida.id !== POLITICA_EQUILIBRAR.id ? null : repartirMicrosPorFase(
+    modelos.map((m) => (regraDeArranjoMicro(m?.micro).fonte === null ? 0 : m?.quantidade)), nFases)
 
   // 1) Cada modelo forma os SEUS arranjos com a SUA regra e a SUA capacidade.
-  const planos = modelos.map((m) => planejarMicros({
+  const planos = modelos.map((m, i) => planejarMicros({
     modulos: m?.modulos, quantidade: m?.quantidade, micro: m?.micro, fases,
+    politica: escolhida.id, porFase: porFase?.[i] ?? null,
   }))
 
   // 2) Os arranjos de todos os modelos entram numa fila única para o balanceamento.
@@ -348,7 +404,10 @@ export function planejarComposicaoMicro({ modelos = [], fases = null } = {}) {
   })
 
   const balanceamento = fila.length === 0 ? null
-    : balancearFases(fila.map((f) => f.arranjo.micros.length), nFases)
+    : porFase !== null
+      ? _resumoDeAtribuicao(
+        fila.map((f) => ({ micros: f.arranjo.micros.length, fase: f.arranjo.fase })), nFases, escolhida.id)
+      : balancearFases(fila.map((f) => f.arranjo.micros.length), nFases)
 
   // 3) A fase de cada arranjo passa a ser a da fila global.
   if (balanceamento) {
@@ -383,7 +442,7 @@ export function planejarComposicaoMicro({ modelos = [], fases = null } = {}) {
     avisos.push(
       `${balanceamento.fases_sem_arranjo.join(' e ')} sem nenhum microinversor: ` +
       `${fila.length} arranjo(s) para ${nFases} fases, pela política ` +
-      `"${POLITICA_ARRANJOS.rotulo}".`,
+      `"${escolhida.rotulo}".`,
     )
   }
   if (nFases === 1 && fila.length > 0) {
@@ -419,7 +478,7 @@ export function planejarComposicaoMicro({ modelos = [], fases = null } = {}) {
         equilibrado: null, fases_sem_arranjo: null, politica: null,
       }),
     },
-    politica: POLITICA_ARRANJOS,
+    politica: escolhida,
     quantidade_micros: planos.reduce((s, p) => s + (p.quantidade_micros ?? 0), 0),
     total_arranjos: fila.length,
     homogenea: capacidades.size <= 1 && limites.size <= 1,
@@ -427,6 +486,44 @@ export function planejarComposicaoMicro({ modelos = [], fases = null } = {}) {
     avisos,
     completo: planos.length > 0 && planos.every((p) => p.completo),
   }
+}
+
+/**
+ * Sugestões de arranjos por fase, a primeira recomendada. Duas políticas que dão
+ * o mesmo resultado viram uma opção só.
+ *
+ * Modelo sem limite por ramal declarado entra na sugestão com um ramal por fase
+ * e `limite_declarado: false`: é referência para o projetista, e a tela não
+ * permite aplicá-la — sem o limite não há como afirmar que é válida.
+ *
+ * @returns {Array<{politica:Object, limite_declarado:boolean, ramais:Array, fases:Object}>}
+ */
+export function opcoesDeArranjo({ modelos = [], fases = null } = {}) {
+  const nFases = fasesDaInstalacao(fases)
+  if (nFases === null || nFases < 2) return []
+  const comMicros = modelos.filter((m) => _int(m?.quantidade) !== null)
+  if (comMicros.length === 0) return []
+  const limiteDeclarado = comMicros.every((m) => regraDeArranjoMicro(m?.micro).fonte !== null)
+
+  const vistas = new Set()
+  const opcoes = []
+  for (const politica of POLITICAS_ARRANJO) {
+    // Sem limite, "encher" poria tudo num ramal só: não há o que sugerir.
+    if (!limiteDeclarado && politica.id !== POLITICA_EQUILIBRAR.id) continue
+    const plano = planejarComposicaoMicro({
+      modelos: modelos.map((m) => (regraDeArranjoMicro(m?.micro).fonte !== null ? m : {
+        ...m, micro: { ...(m?.micro ?? {}), max_por_cabo_tronco: _int(m?.quantidade) },
+      })),
+      fases, politica: politica.id,
+    })
+    const ramais = plano.por_modelo.flatMap((p, modelo) =>
+      (p.arranjos ?? []).map((a) => ({ modelo, fase: a.fase, micros: a.micros.length })))
+    const chave = JSON.stringify(ramais)
+    if (vistas.has(chave)) continue
+    vistas.add(chave)
+    opcoes.push({ politica, limite_declarado: limiteDeclarado, ramais, fases: plano.fases })
+  }
+  return opcoes
 }
 
 /**
@@ -457,6 +554,9 @@ export function planoObsoleto(persistido, plano) {
       const fasesSalvas = persistido.map((a) => a?.fase ?? null).join(',')
       const fasesPlano = plano.arranjos.map((a) => a.fase ?? null).join(',')
       if (fasesSalvas !== fasesPlano) motivos.push('a atribuição de fases mudou')
+      const microsSalvos = persistido.map((a) => a?.micros?.length ?? 0).join(',')
+      const microsPlano = plano.arranjos.map((a) => a.micros.length).join(',')
+      if (microsSalvos !== microsPlano) motivos.push('a divisão dos microinversores entre os arranjos mudou')
     }
   } else if (plano?.regra?.fonte === null) {
     motivos.push('o modelo atual não tem limite de microinversores por arranjo declarado')
@@ -466,6 +566,6 @@ export function planoObsoleto(persistido, plano) {
 }
 
 export default {
-  FASES_VIVAS, POLITICA_ARRANJOS, fasesDaInstalacao, agruparMicrosEmArranjos,
-  balancearFases, planejarMicros, planejarComposicaoMicro, planoObsoleto,
+  FASES_VIVAS, POLITICA_ARRANJOS, POLITICA_EQUILIBRAR, POLITICAS_ARRANJO, fasesDaInstalacao,
+  agruparMicrosEmArranjos, balancearFases, repartirMicrosPorFase, opcoesDeArranjo, planejarMicros, planejarComposicaoMicro, planoObsoleto,
 }

@@ -28,7 +28,7 @@
  *
  * Puro: sem I/O, sem React, sem dependência de node.
  */
-import { correnteProjeto, FATOR_ISC_NBR16690 } from './engenhariaNormativa.js'
+import { correnteProjeto, FATOR_ISC_NBR16690, selecionarCabo } from './engenhariaNormativa.js'
 
 /** Vereditos possíveis. `nao_avaliado` é resultado legítimo, não erro. */
 export const VEREDITO = Object.freeze({
@@ -194,6 +194,19 @@ export function correnteDoRamal({ correnteAcSaida = null, micros = null } = {}) 
 }
 
 /**
+ * Seção mínima (mm²) do condutor do ramal pelo critério de aquecimento da
+ * NBR 5410 — a mesma tabela do unifilar. NÃO considera queda de tensão nem
+ * agrupamento de circuitos: é mínimo, não projeto. `null` sem corrente ou acima
+ * da tabela (a função base devolveria a última linha, subdimensionada).
+ */
+export function caboDoRamal(corrente) {
+  const i = _num(corrente)
+  if (i === null || i <= 0) return null
+  const linha = selecionarCabo(i, { tipo: 'ca' })
+  return linha.imax >= i ? Number(linha.secao) : null
+}
+
+/**
  * Avaliação de corrente de UM modelo de micro dentro de um plano de arranjos.
  * Devolve os três níveis; cada um com o seu próprio veredito e as suas lacunas.
  *
@@ -245,5 +258,5 @@ export function avaliarCorrenteMicro({
 }
 
 export default {
-  VEREDITO, correnteDaEntrada, correnteDoMicro, correnteDoRamal, avaliarCorrenteMicro,
+  VEREDITO, correnteDaEntrada, correnteDoMicro, correnteDoRamal, caboDoRamal, avaliarCorrenteMicro,
 }

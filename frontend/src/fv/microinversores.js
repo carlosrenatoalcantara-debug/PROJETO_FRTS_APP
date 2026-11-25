@@ -28,11 +28,11 @@ import {
 // Sprint E — o nível ACIMA do micro (arranjos e fases) mora no motor canônico,
 // como o nível de baixo. Aqui só se monta o payload e se traduz o resultado.
 import {
-  planejarMicros, planejarComposicaoMicro, planoObsoleto,
+  opcoesDeArranjo, planejarMicros, planejarComposicaoMicro, planoObsoleto, POLITICAS_ARRANJO,
 } from '@fortesolar/fv-shared/engenharia/arranjos-micro'
 // Sprint E2 — corrente é motor separado, com veredito próprio. Não se mistura
 // com a distribuição de módulos: um pode estar completo e o outro não.
-import { avaliarCorrenteMicro, VEREDITO } from '@fortesolar/fv-shared/engenharia/corrente-micro'
+import { avaliarCorrenteMicro, caboDoRamal, correnteDoRamal, VEREDITO } from '@fortesolar/fv-shared/engenharia/corrente-micro'
 import { envelopeDoMicro, entradaCcDoMicro, ehMicro } from './catalogo'
 
 /** Inteiro > 0 ou `null`. Vazio e 0 são ausência. */
@@ -279,12 +279,13 @@ export function procedenciaDaCapacidade(bloco) {
  * Plano vigente do bloco: módulos por micro, arranjos e fases — Sprint E.
  * Delegação pura ao motor canônico; nenhuma regra vive deste lado.
  */
-export function planoDoBloco(bloco, fases) {
+export function planoDoBloco(bloco, fases, politica = null) {
   return planejarMicros({
     modulos: bloco?.modulos,
     quantidade: bloco?.quantidade,
     micro: envelopeDoBloco(bloco),
     fases,
+    politica,
   })
 }
 
@@ -296,14 +297,43 @@ export function planoDoBloco(bloco, fases) {
  * os arranjos juntos: dois modelos planejados separadamente empilhavam ambos em
  * L1 e cada um se declarava equilibrado.
  */
-export function planoDaComposicao(config, fases) {
-  return planejarComposicaoMicro({
-    modelos: (config ?? []).map((b) => ({
-      modulos: b?.modulos, quantidade: b?.quantidade, micro: envelopeDoBloco(b),
-    })),
-    fases,
-  })
+export function planoDaComposicao(config, fases, politica = null) {
+  return planejarComposicaoMicro({ modelos: modelosDoPlano(config), fases, politica })
 }
+
+function modelosDoPlano(config) {
+  return (config ?? []).map((b) => ({
+    modulos: b?.modulos, quantidade: b?.quantidade, micro: envelopeDoBloco(b),
+  }))
+}
+
+/** Sugestões de arranjos por fase, com a corrente e o cabo mínimo de cada ramal. */
+export function sugestoesDeArranjo(config, fases) {
+  const modelos = modelosDoPlano(config)
+  return opcoesDeArranjo({ modelos, fases }).map((o) => ({
+    ...o,
+    ramais: o.ramais.map((r) => {
+      const { micro } = modelos[r.modelo]
+      const corrente_a = correnteDoRamal({
+        correnteAcSaida: micro.corrente_ac_saida, micros: r.micros,
+      }).corrente_a
+      return { ...r, rotulo: micro.rotulo, corrente_a, cabo_mm2: caboDoRamal(corrente_a) }
+    }),
+  }))
+}
+
+/**
+ * Política que a topologia SALVA segue: a que reproduz os arranjos gravados. Sem
+ * arranjos gravados, ou sem política que os reproduza, vale a recomendada.
+ */
+export function politicaDaConfig(config, fases) {
+  const salvos = (config ?? []).some((b) => Array.isArray(b?.arranjos) && b.arranjos.length > 0)
+  const igual = salvos ? POLITICAS_ARRANJO.find((p) =>
+    obsolescenciaDaComposicao(config, fases, p.id).every((o) => !o.obsoleto)) : null
+  return (igual ?? POLITICAS_ARRANJO[0]).id
+}
+
+export { caboDoRamal }
 
 /**
  * Corrente de um bloco — Sprint E2, §3. Delegação pura; `null` quando não há
@@ -354,10 +384,10 @@ export function obsolescenciaDoBloco(bloco, fases) {
  * modelos, comparar bloco a bloco acusaria divergência onde não há, e deixaria
  * passar a que existe.
  */
-export function obsolescenciaDaComposicao(config, fases) {
-  const composicao = planoDaComposicao(config, fases)
+export function obsolescenciaDaComposicao(config, fases, politica = null) {
+  const composicao = planoDaComposicao(config, fases, politica)
   return (config ?? []).map((b, i) =>
-    planoObsoleto(b?.arranjos, composicao.por_modelo[i] ?? planoDoBloco(b, fases)))
+    planoObsoleto(b?.arranjos, composicao.por_modelo[i] ?? planoDoBloco(b, fases, politica)))
 }
 
 /** Micros que ESTE bloco precisaria para os módulos que recebeu (decisão 7). */
@@ -439,15 +469,15 @@ export function avaliar(config, potenciaModuloW, totalModulos) {
  * A distribuição é gravada junto porque é o que o unifilar e o memorial leem —
  * derivada aqui uma vez, não recalculada por cada consumidor.
  */
-export function paraConfigPersistida(config, fases = null) {
+export function paraConfigPersistida(config, fases = null, politica = null) {
   /**
    * Sprint E2 — as fases vêm do plano da COMPOSIÇÃO, não do plano de cada bloco.
    * Gravar por bloco reintroduziria o defeito do §6: dois modelos, ambos
    * começando em L1. O que se grava é exatamente o que a tela mostrou.
    */
-  const composicao = planoDaComposicao(config, fases)
+  const composicao = planoDaComposicao(config, fases, politica)
   return (config ?? []).map((b, i) => {
-    const plano = composicao.por_modelo[i] ?? planoDoBloco(b, fases)
+    const plano = composicao.por_modelo[i] ?? planoDoBloco(b, fases, politica)
     return {
       equipamento_id: b.equipamento_id ?? null,
       marca: b.marca ?? null,
@@ -517,13 +547,13 @@ export function daConfigPersistida(micros, catalogo) {
  * não edita — inclusive a composição da FV-UX-029 (decisão 8) e a topologia
  * string, que continua onde estava.
  */
-export function paraArranjoComMicros(arranjoExistente, config, fases = null) {
+export function paraArranjoComMicros(arranjoExistente, config, fases = null, politica = null) {
   return {
     ...(arranjoExistente ?? {}),
     topologia: 'micro',
     configuracao_eletrica: {
       ...(arranjoExistente?.configuracao_eletrica ?? {}),
-      micros: paraConfigPersistida(config, fases),
+      micros: paraConfigPersistida(config, fases, politica),
     },
   }
 }

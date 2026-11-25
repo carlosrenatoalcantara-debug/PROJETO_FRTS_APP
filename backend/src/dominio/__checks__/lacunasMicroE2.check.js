@@ -115,9 +115,11 @@ secao('3. Arranjos × fases')
 {
   ok(POLITICA_ARRANJOS.id === 'minimo_de_ramais', 'a política aplicada é nomeada')
   ok(!!POLITICA_ARRANJOS.descricao, 'e descrita')
-  ok(POLITICA_ARRANJOS.alternativa_nao_implementada.id === 'ocupar_todas_as_fases'
-    && /não existe no sistema/i.test(POLITICA_ARRANJOS.alternativa_nao_implementada.motivo),
-  'a alternativa não implementada fica registrada com o motivo')
+  // Pacotes a partir de 2026-11-25 implementam a alternativa e não a registram mais.
+  const alternativa = POLITICA_ARRANJOS.alternativa_nao_implementada
+  ok(alternativa === undefined || (alternativa.id === 'ocupar_todas_as_fases'
+    && /não existe no sistema/i.test(alternativa.motivo)),
+  'a alternativa está implementada, ou fica registrada com o motivo')
 
   const p6 = planejarMicros({ modulos: 24, quantidade: 6, micro: DEYE, fases: 'Trifásico' })
   ok(JSON.stringify(p6.fases.fases_sem_arranjo) === '["L3"]',

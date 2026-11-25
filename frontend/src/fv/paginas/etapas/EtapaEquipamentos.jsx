@@ -242,7 +242,8 @@ export default function EtapaEquipamentos() {
     return Number.isFinite(v) && v > 0 ? v : null
   })()
   const primeiroInversor = atual.inversores[0] ?? null
-  const avisoFase = primeiroInversor
+  // Micro: o aviso fica no quadro Fases, junto da divisão entre elas.
+  const avisoFase = primeiroInversor && primeiroInversor.tipo !== 'micro'
     ? avisoDeFase(projeto?.fatura_extracao?.tipo_ligacao, primeiroInversor.fases ?? null)
     : null
 

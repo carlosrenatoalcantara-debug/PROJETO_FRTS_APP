@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url'
 import { render, screen } from '@testing-library/react'
 
 import {
-  planejarMicros, planejarComposicaoMicro, planoObsoleto, POLITICA_ARRANJOS,
+  planejarMicros, planejarComposicaoMicro, planoObsoleto, POLITICA_ARRANJOS, POLITICAS_ARRANJO,
 } from '@fortesolar/fv-shared/engenharia/arranjos-micro'
 import {
   avaliarCorrenteMicro, correnteDaEntrada, correnteDoMicro, correnteDoRamal, VEREDITO,
@@ -272,11 +272,10 @@ describe('arranjos × fases', () => {
       .toBe(JSON.stringify(p))
   })
 
-  it('12. a política é nomeada, documentada e a alternativa fica registrada', () => {
+  it('12. a política é nomeada e documentada, e a alternativa está implementada', () => {
     expect(POLITICA_ARRANJOS.id).toBe('minimo_de_ramais')
     expect(POLITICA_ARRANJOS.descricao).toBeTruthy()
-    expect(POLITICA_ARRANJOS.alternativa_nao_implementada.id).toBe('ocupar_todas_as_fases')
-    expect(POLITICA_ARRANJOS.alternativa_nao_implementada.motivo).toMatch(/não existe no sistema/i)
+    expect(POLITICAS_ARRANJO.map((x) => x.id)).toEqual(['equilibrar_fases', 'minimo_de_ramais'])
     // A política aplicada é a mesma que o plano declara.
     const p = planejarMicros({ modulos: 24, quantidade: 6, micro: DEYE, fases: 'Trifásico' })
     expect(p.politica.id).toBe(POLITICA_ARRANJOS.id)

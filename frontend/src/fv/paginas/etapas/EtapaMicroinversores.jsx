@@ -2,12 +2,13 @@ import { useMemo, useState } from 'react'
 import { obterCamposEditaveis } from '@fortesolar/fv-shared/ai/campos-equipamento'
 import { useProjeto } from '../../providers/ProjetoProvider'
 import EdicaoInversor from '../../../components/equipamentos/EdicaoInversor'
+import { avisoDeFase, fasesDoInversor } from '../../catalogo'
 import { linkEdicaoCatalogo } from '../../../utils/linkEdicaoCatalogo'
 import {
-  avaliar, capacidadeDoBloco, capacidadePorMicro, coerenciaComComposicao, configDaComposicao,
+  avaliar, caboDoRamal, capacidadeDoBloco, capacidadePorMicro, coerenciaComComposicao, configDaComposicao,
   correnteDoBloco, entradaDoBloco, STATUS_ENTRADA, daConfigPersistida, distribuicaoDoBloco, divergenciasDaComposicao, inteiro,
   microsNecessariosNoBloco, modulosAtribuidos, obsolescenciaDaComposicao,
-  paraArranjoComMicros, planoDaComposicao, procedenciaDaCapacidade, recalcularPelaComposicao,
+  paraArranjoComMicros, planoDaComposicao, politicaDaConfig, procedenciaDaCapacidade, sugestoesDeArranjo, recalcularPelaComposicao,
   reidratarDoCatalogo,
   totalDeMicros, VEREDITO,
 } from '../../microinversores'
@@ -99,6 +100,8 @@ export default function EtapaMicroinversores({ catalogoInversores, arranjoPrinci
   const { projeto, acoes } = useProjeto()
 
   const [config, setConfig] = useState(null)
+  // Arranjos escolhidos na tela; `null` = os da topologia salva, ou os recomendados.
+  const [politicaEscolhida, setPolitica] = useState(null)
   const [salvando, setSalvando] = useState(false)
   const [erroSalvar, setErroSalvar] = useState(null)
   const [salvo, setSalvo] = useState(false)
@@ -122,7 +125,8 @@ export default function EtapaMicroinversores({ catalogoInversores, arranjoPrinci
    */
   const editado = useMemo(() => config && reidratarDoCatalogo(config, catalogoInversores), [config, catalogoInversores])
   const atual = editado ?? persistida ?? inicial
-  const alterado = config !== null
+  const politica = politicaEscolhida ?? politicaDaConfig(persistida, fases)
+  const alterado = config !== null || politicaEscolhida !== null
 
   const veredito = useMemo(
     () => avaliar(atual, potenciaModuloW, totalModulos),
@@ -141,9 +145,10 @@ export default function EtapaMicroinversores({ catalogoInversores, arranjoPrinci
     setErroSalvar(null)
     try {
       const outros = (projeto?.arranjos ?? []).filter((a) => a !== arranjoPrincipal)
-      const lista = [...outros, paraArranjoComMicros(arranjoPrincipal, atual, fases)]
+      const lista = [...outros, paraArranjoComMicros(arranjoPrincipal, atual, fases, politica)]
       await acoes.salvarEtapa('arranjos', { lista })
       setConfig(null)
+      setPolitica(null)
       setSalvo(true)
     } catch (e) {
       setErroSalvar(e.codigo ? `${e.message} (${e.codigo})` : e.message)
@@ -154,8 +159,11 @@ export default function EtapaMicroinversores({ catalogoInversores, arranjoPrinci
 
   // Sprint E2 — um plano para a composição inteira, e a obsolescência medida
   // contra ele. Calculados uma vez por render, não por bloco.
-  const composicao = useMemo(() => planoDaComposicao(atual, fases), [atual, fases])
-  const obsolescencias = useMemo(() => obsolescenciaDaComposicao(atual, fases), [atual, fases])
+  const composicao = useMemo(() => planoDaComposicao(atual, fases, politica), [atual, fases, politica])
+  const obsolescencias = useMemo(() => obsolescenciaDaComposicao(atual, fases, politica), [atual, fases, politica])
+  const sugestoes = useMemo(() => sugestoesDeArranjo(atual, fases), [atual, fases])
+  const avisoFase = avisoDeFase(projeto?.fatura_extracao?.tipo_ligacao, fasesDoInversor(
+    (catalogoInversores ?? []).find((e) => String(e._id) === String(atual[0]?.equipamento_id)) ?? null))
 
   // Uma avaliação elétrica por bloco: a mesma que a tela mostra decide a conclusão.
   const avaliacoes = atual.map((b, i) => {
@@ -545,7 +553,8 @@ export default function EtapaMicroinversores({ catalogoInversores, arranjoPrinci
                       <dd className="inline text-amber-700">
                         {ra.corrente_a === null
                           ? 'não avaliada — limite do ramal não cadastrado'
-                          : `${ra.corrente_a} A (${ra.micros} micros) — ` +
+                          : `${ra.corrente_a} A (${ra.micros} micros)` +
+                            `${caboDoRamal(ra.corrente_a) ? ` · cabo mín. ${caboDoRamal(ra.corrente_a)} mm²` : ''} — ` +
                             'não avaliada: limite do ramal não cadastrado'}
                       </dd>
                     </div>
@@ -594,6 +603,12 @@ export default function EtapaMicroinversores({ catalogoInversores, arranjoPrinci
             declararia equilibrado.
           </p>
 
+          {avisoFase && (
+            <p className="mt-2 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+              ⚠ {avisoFase}
+            </p>
+          )}
+
           {!composicao.fases ? (
             <p className="mt-2 text-xs text-amber-700">
               Fases da instalação não informadas — etapa Projeto.
@@ -637,12 +652,59 @@ export default function EtapaMicroinversores({ catalogoInversores, arranjoPrinci
                   {composicao.fases.fases_sem_arranjo.join(' e ')} sem nenhum
                   microinversor. São {composicao.total_arranjos} arranjo(s) para{' '}
                   {composicao.fases.n} fases, pela política <strong>{composicao.politica.rotulo}</strong>:
-                  {' '}{composicao.politica.descricao} Dividir os mesmos micros em mais
-                  arranjos ocuparia todas as fases ao custo de um ramal a mais —{' '}
-                  {composicao.politica.alternativa_nao_implementada.motivo}
+                  {' '}{composicao.politica.descricao}
                 </p>
               )}
             </>
+          )}
+
+          {/* ── Sugestões: a escolha é do projetista e só grava ao salvar ── */}
+          {sugestoes.length > 0 && (
+            <fieldset className="mt-3" aria-label="Arranjos sugeridos">
+              <legend className="text-xs font-medium text-slate-600">Arranjos sugeridos</legend>
+              {sugestoes.map((o, i) => (
+                <label
+                  key={o.politica.id}
+                  className={`mt-2 flex gap-2 rounded border px-3 py-2 text-xs text-slate-700 ${
+                    o.limite_declarado && o.politica.id === politica ? 'border-slate-900' : 'border-slate-200'}`}
+                >
+                  {o.limite_declarado && (
+                    <input
+                      type="radio" name="arranjos-sugeridos" className="mt-0.5"
+                      aria-label={`Opção ${i + 1}: ${o.politica.rotulo}`}
+                      checked={sugestoes.length === 1 || o.politica.id === politica}
+                      onChange={() => { setPolitica(o.politica.id); setSalvo(false) }}
+                    />
+                  )}
+                  <span>
+                    <span className="font-medium">
+                      Opção {i + 1}{i === 0 && o.limite_declarado ? ' (recomendada)' : ''} — {o.politica.rotulo}
+                    </span>
+                    {o.ramais.map((r, k) => (
+                      <span key={k} className="block">
+                        {r.fase}: {r.micros} {r.micros === 1 ? 'micro' : 'micros'}
+                        {atual.length > 1 && r.rotulo ? ` ${r.rotulo}` : ''}
+                        {r.corrente_a === null
+                          ? ' · corrente de saída não cadastrada'
+                          : ` · ${r.corrente_a} A · ${r.cabo_mm2 === null ? 'cabo acima da tabela' : `cabo ${r.cabo_mm2} mm²`}`}
+                      </span>
+                    ))}
+                    {o.fases?.fases_sem_arranjo?.length > 0 && (
+                      <span className="block text-amber-700">{o.fases.fases_sem_arranjo.join(' e ')} sem micro</span>
+                    )}
+                  </span>
+                </label>
+              ))}
+              <p className="mt-1 text-xs text-slate-500">
+                Cabo mínimo por aquecimento (NBR 5410); confira queda de tensão e agrupamento.
+              </p>
+              {!sugestoes[0].limite_declarado && (
+                <p className="mt-1 text-xs text-amber-700">
+                  Referência: falta o máximo de micros por arranjo no cadastro para confirmar e aplicar.
+                  {' '}{linkCadastro(atual.find((b) => !b._max_por_cabo_tronco) ?? atual[0])}.
+                </p>
+              )}
+            </fieldset>
           )}
 
           {!composicao.homogenea && (
@@ -724,7 +786,7 @@ export default function EtapaMicroinversores({ catalogoInversores, arranjoPrinci
         </button>
         {alterado && !salvando && (
           <button
-            type="button" onClick={() => { setConfig(null); setErroSalvar(null) }}
+            type="button" onClick={() => { setConfig(null); setPolitica(null); setErroSalvar(null) }}
             className="rounded border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50"
           >
             Descartar alterações
